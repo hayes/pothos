@@ -1,0 +1,62 @@
+{
+  "name": "@hayes/schema-builder",
+  "version": "0.1.0",
+  "main": "lib/index.js",
+  "author": "Michael Hayes",
+  "license": "MIT",
+  "private": false,
+  "scripts": {
+    "prepare": "nimbus create-config --silent",
+    "build": "nimbus typescript",
+    "lint": "nimbus eslint",
+    "posttest": "yarn run lint",
+    "jest": "NODE_ENV=test TZ=UTC nimbus jest",
+    "jest:coverage": "yarn run jest -- --coverage",
+    "test": "yarn run jest:coverage",
+    "prepack": "yarn build",
+    "prettier": "nimbus prettier",
+    "type": "nimbus typescript --noEmit",
+    "pretest": "yarn run type"
+  },
+  "devDependencies": {
+    "@airbnb/config-babel": "^2.0.0",
+    "@airbnb/config-eslint": "^2.0.1",
+    "@airbnb/config-jest": "^2.0.0",
+    "@airbnb/config-prettier": "^2.0.0",
+    "@airbnb/config-typescript": "^2.0.0",
+    "@airbnb/nimbus": "^2.0.1",
+    "@babel/plugin-syntax-bigint": "^7.4.4",
+    "@types/jest": "^24.0.18",
+    "husky": "^3.0.5",
+    "lint-staged": "^9.2.5"
+  },
+  "nimbus": {
+    "drivers": [
+      "babel",
+      "eslint",
+      "jest",
+      "prettier",
+      "typescript"
+    ],
+    "settings": {
+      "library": true,
+      "next": true,
+      "node": true
+    }
+  },
+  "lint-staged": {
+    "./src/**/*.{ts,tsx}": [
+      "yarn run prettier",
+      "git add"
+    ],
+    "*.md": [
+      "yarn run prettier --tab-width 4",
+      "git add"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  }
+}
