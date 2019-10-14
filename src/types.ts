@@ -1,6 +1,7 @@
 import InputType from './input';
 import BaseType from './base';
 import FieldBuilder from './fieldBuilder';
+import InterfaceType from './interface';
 
 export type TypeMap = {
   [s: string]: unknown;
@@ -164,16 +165,92 @@ export type ShapeFromTypeParam<
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : Exclude<OptionalShapeFromTypeParam<Types, Param>, undefined | null>;
 
+export type ShapeOption<
+  Types extends TypeMap,
+  Type extends TypeParam<Types>,
+  ParentShape extends {},
+  Shape extends {},
+  Context
+> =
+  | FieldBuilder<Shape, Types, Type, Context>
+  | ((
+      builder: FieldBuilder<ParentShape, Types, Type, Context>,
+    ) => FieldBuilder<Shape, Types, Type, Context>);
+
+export type ShapeFromOptions<
+  Types extends TypeMap,
+  Type extends TypeParam<Types>,
+  Options extends { shape: ShapeOption<Types, Type, {}, {}, {}> }
+> = Options['shape'] extends () => FieldBuilder<infer T, TypeMap, string, {}>
+  ? T
+  : Options['shape'] extends FieldBuilder<infer U, TypeMap, string, {}>
+  ? U
+  : never;
+
+export type ObjectShapeFromInterfaces<
+  Types extends TypeMap,
+  Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[] | InvalidType<unknown>
+> = Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
+  ? UnionToIntersection<Exclude<Interfaces[number]['objectShape'], null | undefined>> & {}
+  : never;
+
+export type ShapeFromInterfaces<
+  Types extends TypeMap,
+  Interfaces extends (InterfaceType<Types, TypeParam<Types>, {}, {}, {}>)[] | InvalidType<unknown>
+> = Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
+  ? UnionToIntersection<Exclude<Interfaces[number]['shape'], null | undefined>> & {}
+  : never;
+
+export type CompatiblePartial<Types extends {}, Shape> = {
+  [K in keyof Types]: never;
+};
+
+export type CompatibleInterfaces<
+  Types extends TypeMap,
+  Type extends TypeParam<Types>,
+  Interfaces extends (InterfaceType<Types, TypeParam<Types>, {}, {}, {}>)[] | InvalidType<unknown>
+> = Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
+  ? ShapeFromTypeParam<Types, Type, true> extends ShapeFromInterfaces<Types, Interfaces>
+    ? Interfaces
+    : InvalidType<'Backing model must implement backing model of all interfaces'>
+  : InvalidType<'Backing model must implement backing model of all interfaces'>;
+
 export type ObjectTypeOptions<
   Types extends TypeMap,
   Type extends TypeParam<Types>,
-  Shape extends {},
+  CheckedInterfaces extends CompatibleInterfaces<Types, Type, Interfaces>,
+  ParentShape extends ObjectShapeFromInterfaces<Types, Interfaces>,
+  Shape extends ParentShape,
+  Context,
+  Interfaces extends
+    | InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
+    | InvalidType<unknown> = CheckedInterfaces
+> = {
+  implements?: CheckedInterfaces;
+  shape: ShapeOption<Types, Type, ParentShape, Shape, Context>;
+};
+
+export type InterfaceTypeOptions<
+  Types extends TypeMap,
+  Type extends TypeParam<Types>,
+  ParentShape extends {},
+  Shape extends ParentShape,
   Context
 > = {
-  implements?: (keyof Types)[];
-  shape:
-    | FieldBuilder<Shape, Types, Context, Type>
-    | ((
-        builder: FieldBuilder<{}, Types, Context, Type>,
-      ) => FieldBuilder<Shape, Types, Context, Type>);
+  shape: ShapeOption<Types, Type, ParentShape, Shape, Context>;
 };
+
+// eslint-disable-next-line import/prefer-default-export
+export abstract class InvalidType<Message> {
+  never!: never;
+}
+
+export type UnknownString<T extends string | InvalidType<unknown>, Known, Message> = T extends Known
+  ? InvalidType<Message>
+  : T;
+
+export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends ((
+  k: infer I,
+) => void)
+  ? I
+  : never;

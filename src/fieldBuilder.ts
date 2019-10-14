@@ -1,32 +1,54 @@
-import { TypeMap, TypeParam, FieldOptions, InputFields, ShapeFromTypeParam } from './types';
+import {
+  TypeMap,
+  TypeParam,
+  FieldOptions,
+  InputFields,
+  ShapeFromTypeParam,
+  UnknownString,
+  InvalidType,
+} from './types';
 
 export default class FieldBuilder<
   Shape extends {},
   Types extends TypeMap,
-  Context,
-  Type extends TypeParam<Types>
+  Type extends TypeParam<Types>,
+  Context
 > {
+  shape?: Shape;
+
   field<
     T extends TypeParam<Types>,
-    Name extends string,
+    Name extends UnknownString<U, keyof Shape, [Name, 'is already defined for this type']>,
     Req extends boolean,
-    Args extends InputFields = {}
+    Args extends InputFields = {},
+    U extends string | InvalidType<unknown> = Name
   >(
     name: Name,
-    { type }: FieldOptions<Types, Type, T, Name, Req, Args, Context> & { required?: Req },
+    {
+      type,
+    }: FieldOptions<Types, Type, T, Extract<Name, string>, Req, Args, Context> & { required?: Req },
   ): FieldBuilder<
     Shape &
       {
-        [K in Name]: ShapeFromTypeParam<Types, T, Req>;
+        [K in Extract<Name, string>]: ShapeFromTypeParam<Types, T, Req>;
       },
     Types,
-    Context,
-    Type
+    Type,
+    Context
   > {
     throw new Error(`${this} not implemented`);
   }
 
   addValidator(validator: (item: Shape) => boolean) {
+    throw new Error(`${this} not implemented`);
+  }
+
+  modify<Name extends keyof Shape>(
+    name: Name,
+    options: {
+      resolver?: () => Shape[Name];
+    },
+  ): this {
     throw new Error(`${this} not implemented`);
   }
 
@@ -51,20 +73,32 @@ export default class FieldBuilder<
   stringList = this.fieldTypeHelper(['String']);
 
   private fieldTypeHelper<T extends TypeParam<Types>>(type: T) {
-    return <Name extends string, Req extends boolean, Args extends InputFields = {}>(
+    return <
+      Name extends UnknownString<U, keyof Shape, [Name, 'has already been defined for this type']>,
+      Req extends boolean,
+      Args extends InputFields = {},
+      U extends string | InvalidType<unknown> = Name
+    >(
       name: Name,
-      options: Omit<FieldOptions<Types, Type, T, Name, Req, Args, Context>, 'type'>,
-    ) => {
-      // hack for now... for some reason omitting `type` field makes types unhappy
-      return this.field(name, ({ ...options, type } as unknown) as FieldOptions<
-        Types,
-        Type,
-        T,
-        Name,
-        Req,
-        Args,
-        Context
-      >);
+      options: Omit<
+        FieldOptions<Types, Type, T, Extract<Name, string>, Req, Args, Context>,
+        'type'
+      >,
+    ): FieldBuilder<
+      Shape &
+        {
+          [K in Extract<Name, string>]: ShapeFromTypeParam<Types, T, Req>;
+        },
+      Types,
+      Type,
+      Context
+    > => {
+      return this.field(
+        // hack for now... for some reason omitting `type` field makes types unhappy
+        // @ts-ignore
+        name,
+        { ...options, type },
+      );
     };
   }
 }

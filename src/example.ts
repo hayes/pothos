@@ -11,6 +11,9 @@ const builder = new SchemaBuilder<
     Boolean: boolean;
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
+    Countable: { count: number };
+    Shaveable: { shaved: boolean };
+    Sheep: { name: string; count: number; shaved: boolean };
   },
   // Context shape
   { userID: number }
@@ -62,6 +65,8 @@ const User = builder.createObjectType('User', {
       })
       // Detects if resolver can be omitted
       .string('firstName', {})
+      // Errors if same field is defined multiple times
+      // .string('firstName', {})
       .string('lastName', {})
       // Non scalar fields:
       .field('firstBornChild', {
@@ -83,7 +88,7 @@ const User = builder.createObjectType('User', {
         },
       })
       // creating a resolver with args that use recursive types
-      .id('partialName', {
+      .id('recursiveArgs', {
         args: {
           example2: () => Example2,
           firstN: () => Int,
@@ -161,3 +166,23 @@ UserFields.addValidator(user => typeof user.displayName === 'string');
 
 // Compile to usable graphql-js schema type
 User.build();
+
+const Countable = builder.createInterfaceType('Countable', {
+  shape: t => t.int('count', {}),
+});
+
+const Shaveable = builder.createInterfaceType('Shaveable', {
+  shape: t => t.boolean('shaved', {}).id('id', { resolver: () => 5n }),
+});
+
+const Sheep = builder.createObjectType('Sheep', {
+  implements: [Countable, Shaveable],
+  shape: t => t.string('color', { resolver: () => 'black' }),
+  // Errors when adding type already defined in interface
+  // .id('shaved', {
+  //   resolver: () => 4n,
+  // })
+  // .id('id', { resolver: () => 5n }),
+});
+
+Sheep.build();

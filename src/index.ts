@@ -1,24 +1,59 @@
 /* eslint-disable class-methods-use-this */
 
-import { TypeMap, ObjectTypeOptions } from './types';
+import {
+  TypeMap,
+  ObjectTypeOptions,
+  InterfaceTypeOptions,
+  CompatibleInterfaces,
+  TypeParam,
+  ObjectShapeFromInterfaces,
+  InvalidType,
+} from './types';
 import BaseType from './base';
 import ObjectType from './object';
 import UnionType from './union';
 import FieldBuilder from './fieldBuilder';
 import InputType from './input';
+import InterfaceType from './interface';
 
 export default class SchemaBuilder<Types extends TypeMap, Context> {
   types: BaseType<Types>[] = [];
 
-  createObjectType<Type extends keyof Types, Shape extends {}>(
+  createObjectType<
+    Type extends keyof Types,
+    CheckedInterfaces extends CompatibleInterfaces<Types, Type, Interfaces>,
+    ParentShape extends ObjectShapeFromInterfaces<Types, Interfaces>,
+    Shape extends ParentShape,
+    Interfaces extends
+      | InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
+      | InvalidType<unknown> = CheckedInterfaces
+  >(
     name: Type,
-    options: ObjectTypeOptions<Types, Type, Shape, Context>,
+    options: ObjectTypeOptions<
+      Types,
+      Type,
+      CheckedInterfaces,
+      ParentShape,
+      Shape,
+      Context,
+      Interfaces
+    >,
   ) {
-    return new ObjectType<Types, typeof name, Shape, Context>(name, options);
+    return new ObjectType<Types, Type, CheckedInterfaces, ParentShape, Shape, Context, Interfaces>(
+      name,
+      options,
+    );
+  }
+
+  createInterfaceType<Type extends keyof Types, ParentShape extends {}, Shape extends ParentShape>(
+    name: Type,
+    options: InterfaceTypeOptions<Types, Type, ParentShape, Shape, Context>,
+  ) {
+    return new InterfaceType<Types, Type, ParentShape, Shape, Context>(name, options);
   }
 
   fieldBuilder<Type extends keyof Types>(name: Type) {
-    return new FieldBuilder<{}, Types, Context, typeof name>();
+    return new FieldBuilder<{}, Types, typeof name, Context>();
   }
 
   createUnionType<Member extends keyof Types>(
