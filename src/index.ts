@@ -1,13 +1,14 @@
 /* eslint-disable class-methods-use-this */
 
+import { GraphQLEnumValueConfigMap } from 'graphql';
 import {
   TypeMap,
   ObjectTypeOptions,
   InterfaceTypeOptions,
-  CompatibleInterfaces,
-  TypeParam,
   ObjectShapeFromInterfaces,
-  InvalidType,
+  CompatibleInterfaceNames,
+  ShapeFromTypeParam,
+  EnumTypeOptions,
 } from './types';
 import BaseType from './base';
 import ObjectType from './object';
@@ -15,34 +16,24 @@ import UnionType from './union';
 import FieldBuilder from './fieldBuilder';
 import InputType from './input';
 import InterfaceType from './interface';
+import EnumType from './enum';
 
 export default class SchemaBuilder<Types extends TypeMap, Context> {
   types: BaseType<Types>[] = [];
 
   createObjectType<
-    Type extends keyof Types,
-    CheckedInterfaces extends CompatibleInterfaces<Types, Type, Interfaces>,
+    Type extends Extract<keyof Types, string>,
     ParentShape extends ObjectShapeFromInterfaces<Types, Interfaces>,
     Shape extends ParentShape,
-    Interfaces extends
-      | InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
-      | InvalidType<unknown> = CheckedInterfaces
-  >(
-    name: Type,
-    options: ObjectTypeOptions<
+    Interfaces extends InterfaceType<
       Types,
-      Type,
-      CheckedInterfaces,
-      ParentShape,
-      Shape,
-      Context,
-      Interfaces
-    >,
-  ) {
-    return new ObjectType<Types, Type, CheckedInterfaces, ParentShape, Shape, Context, Interfaces>(
-      name,
-      options,
-    );
+      CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
+      {},
+      {},
+      {}
+    >[]
+  >(name: Type, options: ObjectTypeOptions<Types, Type, ParentShape, Shape, Context, Interfaces>) {
+    return new ObjectType<Types, Type, ParentShape, Shape, Context, Interfaces>(name, options);
   }
 
   createInterfaceType<Type extends keyof Types, ParentShape extends {}, Shape extends ParentShape>(
@@ -53,7 +44,9 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
   }
 
   fieldBuilder<Type extends keyof Types>(name: Type) {
-    return new FieldBuilder<{}, Types, typeof name, Context>();
+    return new FieldBuilder<{}, Types, typeof name, Context>({
+      fields: {},
+    });
   }
 
   createUnionType<Member extends keyof Types>(
@@ -64,6 +57,13 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     },
   ) {
     return new UnionType<Types, Context, Member>(name, options);
+  }
+
+  createEnumType<
+    Name extends string,
+    Values extends { [s: number]: string } | string[] | GraphQLEnumValueConfigMap
+  >(name: Name, options: EnumTypeOptions<Values>) {
+    return new EnumType(name, options);
   }
 }
 

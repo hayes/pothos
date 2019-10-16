@@ -1,53 +1,81 @@
+import { GraphQLFieldConfigMap } from 'graphql';
 import {
   TypeMap,
   TypeParam,
   FieldOptions,
   InputFields,
-  ShapeFromTypeParam,
   UnknownString,
   InvalidType,
+  FieldBuilderOptions,
+  ModifyOptions,
 } from './types';
+import Field from './field';
 
 export default class FieldBuilder<
-  Shape extends {},
+  Fields extends { [s: string]: Field<string, Types, Type, TypeParam<Types>> },
   Types extends TypeMap,
   Type extends TypeParam<Types>,
   Context
 > {
-  shape?: Shape;
+  options: FieldBuilderOptions<Types, Type, Fields>;
+
+  constructor(options: FieldBuilderOptions<Types, Type, Fields>) {
+    this.options = options;
+  }
 
   field<
     T extends TypeParam<Types>,
-    Name extends UnknownString<U, keyof Shape, [Name, 'is already defined for this type']>,
+    CheckedName extends UnknownString<
+      U,
+      keyof Fields,
+      [CheckedName, 'is already defined for this type']
+    >,
     Req extends boolean,
     Args extends InputFields = {},
-    U extends string | InvalidType<unknown> = Name
+    U extends string | InvalidType<unknown> = CheckedName,
+    Name extends Extract<CheckedName, string> = Extract<CheckedName, string>,
+    Options extends FieldOptions<Types, Type, T, Name, Req, Args, Context> = FieldOptions<
+      Types,
+      Type,
+      T,
+      Name,
+      Req,
+      Args,
+      Context
+    >
   >(
     name: Name,
-    {
-      type,
-    }: FieldOptions<Types, Type, T, Extract<Name, string>, Req, Args, Context> & { required?: Req },
+    options: Options,
   ): FieldBuilder<
-    Shape &
+    Fields &
       {
-        [K in Extract<Name, string>]: ShapeFromTypeParam<Types, T, Req>;
+        [K in Name]: Field<K, Types, Type, T, Req, Context, Args>;
       },
     Types,
     Type,
     Context
   > {
-    throw new Error(`${this} not implemented`);
+    const field = new Field<Name, Types, Type, T, Req, Context, Args>(name as Name, options);
+
+    return new FieldBuilder({
+      ...this.options,
+      fields: {
+        ...this.options.fields,
+        [name as Extract<Name, string>]: field,
+      },
+    });
   }
 
-  addValidator(validator: (item: Shape) => boolean) {
-    throw new Error(`${this} not implemented`);
-  }
-
-  modify<Name extends keyof Shape>(
+  modify<Name extends keyof Fields>(
     name: Name,
-    options: {
-      resolver?: () => Shape[Name];
-    },
+    options: ModifyOptions<
+      Types,
+      Type,
+      NonNullable<Fields[Name]['shape']>,
+      Fields[Name]['required'],
+      Fields[Name]['args'],
+      Context
+    >,
   ): this {
     throw new Error(`${this} not implemented`);
   }
@@ -74,20 +102,22 @@ export default class FieldBuilder<
 
   private fieldTypeHelper<T extends TypeParam<Types>>(type: T) {
     return <
-      Name extends UnknownString<U, keyof Shape, [Name, 'has already been defined for this type']>,
+      CheckedName extends UnknownString<
+        U,
+        keyof Fields,
+        [CheckedName, 'has already been defined for this type']
+      >,
       Req extends boolean,
       Args extends InputFields = {},
-      U extends string | InvalidType<unknown> = Name
+      U extends string | InvalidType<unknown> = CheckedName,
+      Name extends Extract<CheckedName, string> = Extract<CheckedName, string>
     >(
-      name: Name,
-      options: Omit<
-        FieldOptions<Types, Type, T, Extract<Name, string>, Req, Args, Context>,
-        'type'
-      >,
+      name: CheckedName,
+      options: Omit<FieldOptions<Types, Type, T, Name, Req, Args, Context>, 'type'>,
     ): FieldBuilder<
-      Shape &
+      Fields &
         {
-          [K in Extract<Name, string>]: ShapeFromTypeParam<Types, T, Req>;
+          [K in Name]: Field<K, Types, Type, T, Req, Context, Args>;
         },
       Types,
       Type,
@@ -100,5 +130,9 @@ export default class FieldBuilder<
         { ...options, type },
       );
     };
+  }
+
+  build(): GraphQLFieldConfigMap<unknown, unknown> {
+    throw new Error(`${this} not implemented yet`);
   }
 }

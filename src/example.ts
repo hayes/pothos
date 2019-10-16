@@ -161,9 +161,6 @@ builder.createObjectType('User', {
   shape: UserFields,
 });
 
-// won't be a real method, but shows that built fields have real shape
-UserFields.addValidator(user => typeof user.displayName === 'string');
-
 // Compile to usable graphql-js schema type
 User.build();
 
@@ -176,13 +173,35 @@ const Shaveable = builder.createInterfaceType('Shaveable', {
 });
 
 const Sheep = builder.createObjectType('Sheep', {
-  implements: [Countable, Shaveable],
-  shape: t => t.string('color', { resolver: () => 'black' }),
-  // Errors when adding type already defined in interface
-  // .id('shaved', {
-  //   resolver: () => 4n,
-  // })
-  // .id('id', { resolver: () => 5n }),
+  check: () => true,
+  implements: [Shaveable, Countable],
+  shape: t =>
+    t
+      .string('color', { args: { id: () => ID }, resolver: () => 'black' })
+      // Errors when adding type already defined in interface
+      // .id('shaved', {
+      //   resolver: () => 4n,
+      // })
+      // .id('id', { resolver: () => 5n }),
+      .id('id2', { resolver: () => 5n })
+      // modify previous args (from interfaces)
+      .modify('shaved', { resolver: () => true })
+      .modify('color', {
+        description: 'shaved sheep?',
+        resolver: (parent, args) => (args.id === 1n ? 'red' : 'blue'),
+      }),
+});
+
+// Enums
+const Stuff = builder.createEnumType('stuff', {
+  values: ['Beats', 'Bears', 'BattlestarGalactica'] as const,
+});
+
+UserFields.field('stuff', {
+  resolver() {
+    return 'BattlestarGalactica';
+  },
+  type: () => Stuff,
 });
 
 Sheep.build();
