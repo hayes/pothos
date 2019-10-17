@@ -1,6 +1,6 @@
-/* eslint-disable class-methods-use-this */
+/* eslint-disable class-methods-use-this, no-restricted-syntax */
 
-import { GraphQLEnumValueConfigMap } from 'graphql';
+import { GraphQLEnumValueConfigMap, GraphQLType } from 'graphql';
 import {
   TypeMap,
   ObjectTypeOptions,
@@ -13,7 +13,6 @@ import {
 import BaseType from './base';
 import ObjectType from './object';
 import UnionType from './union';
-import FieldBuilder from './fieldBuilder';
 import InputType from './input';
 import InterfaceType from './interface';
 import EnumType from './enum';
@@ -29,24 +28,17 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
       Types,
       CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
       {},
-      {},
       {}
     >[]
-  >(name: Type, options: ObjectTypeOptions<Types, Type, ParentShape, Shape, Context, Interfaces>) {
-    return new ObjectType<Types, Type, ParentShape, Shape, Context, Interfaces>(name, options);
+  >(name: Type, options: ObjectTypeOptions<Types, Type, Shape, Context, Interfaces>) {
+    return new ObjectType<Types, Type, Shape, Context, Interfaces>(name, options);
   }
 
-  createInterfaceType<Type extends keyof Types, ParentShape extends {}, Shape extends ParentShape>(
+  createInterfaceType<Type extends keyof Types, Shape extends {}>(
     name: Type,
-    options: InterfaceTypeOptions<Types, Type, ParentShape, Shape, Context>,
+    options: InterfaceTypeOptions<Types, Type, Shape, Context>,
   ) {
-    return new InterfaceType<Types, Type, ParentShape, Shape, Context>(name, options);
-  }
-
-  fieldBuilder<Type extends keyof Types>(name: Type) {
-    return new FieldBuilder<{}, Types, typeof name, Context>({
-      fields: {},
-    });
+    return new InterfaceType<Types, Type, Shape, Context>(name, options);
   }
 
   createUnionType<Member extends keyof Types>(
@@ -64,6 +56,18 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     Values extends { [s: number]: string } | string[] | GraphQLEnumValueConfigMap
   >(name: Name, options: EnumTypeOptions<Values>) {
     return new EnumType(name, options);
+  }
+
+  toSchema(types: BaseType<unknown>[]) {
+    const typeMap = new Map<string, GraphQLType>();
+
+    for (const type of types) {
+      if (typeMap.has(type.typename)) {
+        throw new Error(`Received multiple implementations of type ${type.typename}`);
+      }
+
+      typeMap.set(type.typename, type.buildType(typeMap));
+    }
   }
 }
 

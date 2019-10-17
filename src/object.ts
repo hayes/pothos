@@ -1,52 +1,35 @@
-import { GraphQLObjectType } from 'graphql';
+import { GraphQLObjectType, GraphQLType } from 'graphql';
 import BaseType from './base';
-import {
-  TypeMap,
-  ShapeFromTypeParam,
-  ObjectTypeOptions,
-  ObjectShapeFromInterfaces,
-  CompatibleInterfaceNames,
-} from './types';
+import { TypeMap, ShapeFromTypeParam, ObjectTypeOptions, CompatibleInterfaceNames } from './types';
 import InterfaceType from './interface';
-import FieldBuilder from './fieldBuilder';
 
 export default class ObjectType<
   Types extends TypeMap,
   Type extends Extract<keyof Types, string>,
-  ParentShape extends ObjectShapeFromInterfaces<Types, Interfaces>,
-  Shape extends ParentShape,
+  Shape extends {},
   Context,
   Interfaces extends InterfaceType<
     Types,
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
     {},
-    {},
     {}
   >[]
 > extends BaseType<ShapeFromTypeParam<Types, Type, true>> {
-  name: Type;
+  kind: 'Object' = 'Object';
 
   description?: string;
 
-  fieldBuilder: FieldBuilder<Shape, Types, Type, Context>;
-
-  constructor(
-    name: Type,
-    options: ObjectTypeOptions<Types, Type, ParentShape, Shape, Context, Interfaces>,
-  ) {
+  constructor(name: Type, options: ObjectTypeOptions<Types, Type, Shape, Context, Interfaces>) {
     super(name as string);
 
-    this.name = name;
     this.description = options.description;
-    this.fieldBuilder =
-      typeof options.shape === 'function' ? options.shape({} as any) : options.shape;
   }
 
-  build() {
+  buildType(typeMap: Map<string, GraphQLType>) {
     return new GraphQLObjectType({
-      name: this.name,
+      name: this.typename,
       description: this.description,
-      fields: this.fieldBuilder.build(),
+      fields: {},
     });
   }
 }

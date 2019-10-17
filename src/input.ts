@@ -1,7 +1,5 @@
 import { InputFields, InputShapeFromFields } from './types';
 
-/* eslint-disable @typescript-eslint/no-use-before-define, no-use-before-define */
-
 export default class InputType<Shape> {
   name: string;
 

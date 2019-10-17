@@ -168,6 +168,8 @@ export type TypeParam<Types extends TypeMap> =
   | [keyof Types]
   | (() => [BaseType<unknown>]);
 
+export type EnumValues = { [s: number]: string } | string[] | GraphQLEnumValueConfigMap;
+
 export type OptionalShapeFromTypeParam<
   Types extends TypeMap,
   Param extends TypeParam<Types>
@@ -189,27 +191,21 @@ export type ShapeFromTypeParam<
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
-export type ShapeOption<
-  Types extends TypeMap,
-  Type extends TypeParam<Types>,
-  ParentFields extends {},
-  Fields extends ParentFields,
-  Context
-> =
-  | FieldBuilder<Fields, Types, Type, Context>
-  | ((
-      builder: FieldBuilder<ParentFields, Types, Type, Context>,
-    ) => FieldBuilder<Fields, Types, Type, Context>);
+export type FieldsShape<Shape, Types extends TypeMap, Type extends TypeParam<Types>, Context> = {
+  [K in Extract<keyof Shape, string>]: (
+    t: FieldBuilder<Types, Type, K, Context>,
+  ) => Field<K, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, {}>;
+};
 
 export type ObjectShapeFromInterfaces<
   Types extends TypeMap,
-  Interfaces extends InterfaceType<Types, CompatibleInterfaceNames<Types, unknown>, {}, {}, {}>[]
+  Interfaces extends InterfaceType<Types, CompatibleInterfaceNames<Types, unknown>, {}, {}>[]
 > = UnionToIntersection<NonNullable<Interfaces[number]['objectShape']>> & {};
 
 export type ShapeFromInterfaces<
   Types extends TypeMap,
-  Interfaces extends (InterfaceType<Types, TypeParam<Types>, {}, {}, {}>)[] | InvalidType<unknown>
-> = Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}, {}>[]
+  Interfaces extends (InterfaceType<Types, TypeParam<Types>, {}, {}>)[] | InvalidType<unknown>
+> = Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}>[]
   ? UnionToIntersection<NonNullable<Interfaces[number]['shape']>> & {}
   : never;
 
@@ -220,13 +216,11 @@ export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = {
 export type ObjectTypeOptions<
   Types extends TypeMap,
   Type extends TypeParam<Types>,
-  ParentShape extends ObjectShapeFromInterfaces<Types, Interfaces>,
-  Shape extends ParentShape,
+  Shape extends {},
   Context,
   Interfaces extends InterfaceType<
     Types,
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
-    {},
     {},
     {}
   >[]
@@ -234,12 +228,11 @@ export type ObjectTypeOptions<
   implements?: Interfaces;
   description?: string;
   check?: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
-  shape: ShapeOption<Types, Type, ParentShape, Shape, Context>;
+  shape: FieldsShape<Shape, Types, Type, Context>;
 } & ([
   InterfaceType<
     Types,
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
-    {},
     {},
     {}
   >,
@@ -250,11 +243,11 @@ export type ObjectTypeOptions<
 export type InterfaceTypeOptions<
   Types extends TypeMap,
   Type extends TypeParam<Types>,
-  ParentShape extends {},
-  Shape extends ParentShape,
+  Shape extends {},
   Context
 > = {
-  shape: ShapeOption<Types, Type, ParentShape, Shape, Context>;
+  description?: string;
+  shape: FieldsShape<Shape, Types, Type, Context>;
 };
 
 // eslint-disable-next-line import/prefer-default-export
@@ -279,10 +272,8 @@ export type EnumTypeOptions<
   values: Values;
 };
 
-export type FieldBuilderOptions<
-  Types extends TypeMap,
-  Type extends TypeParam<Types>,
-  Fields extends { [s: string]: Field<string, Types, Type, TypeParam<Types>> }
-> = {
-  fields: Fields;
+export type UnionOptions<Types extends TypeMap, Context, Member extends keyof Types> = {
+  description?: string;
+  members: Member[];
+  resolveType: (parent: Types[Member], context: Context) => Member | Promise<Member>;
 };

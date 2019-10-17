@@ -1,10 +1,10 @@
 import { GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLEnumValueConfig } from 'graphql';
 import BaseType from './base';
-import { EnumTypeOptions } from './types';
+import { EnumTypeOptions, EnumValues } from './types';
 
 export default class EnumType<
   Name extends string,
-  Values extends { [s: number]: string } | string[] | GraphQLEnumValueConfigMap,
+  Values extends EnumValues = EnumValues,
   Shape extends string = Values extends string[]
     ? Values[number]
     : Values extends { [s: number]: string }
@@ -16,6 +16,8 @@ export default class EnumType<
   values: GraphQLEnumValueConfigMap;
 
   description?: string;
+
+  kind: 'Enum' = 'Enum';
 
   constructor(name: Name, options: EnumTypeOptions<Values>) {
     super(name);
@@ -40,7 +42,7 @@ export default class EnumType<
     this.name = name;
   }
 
-  build() {
+  buildType() {
     return new GraphQLEnumType({
       description: this.description,
       name: this.name,
