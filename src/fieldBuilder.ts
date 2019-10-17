@@ -33,32 +33,17 @@ export default class FieldBuilder<
 
   stringList = this.fieldTypeHelper(['String']);
 
-  field<
-    Args extends InputFields,
-    Type extends TypeParam<Types>,
-    Req extends boolean,
-    Options extends FieldOptions<Types, ParentType, Type, Name, Req, Args, Context> = FieldOptions<
-      Types,
-      ParentType,
-      Type,
-      Name,
-      Req,
-      Args,
-      Context
-    >
-  >(options: Options): Field<Name, Types, ParentType, Type, Req, Context, Args> {
+  field<Args extends InputFields, Type extends TypeParam<Types>, Req extends boolean>(
+    options: FieldOptions<Types, ParentType, Type, Name, Req, Args, Context>,
+  ): Field<Name, Types, ParentType, Type, Req, Context, Args> {
     return new Field<Name, Types, ParentType, Type, Req, Context, Args>(this.name, options);
   }
 
   private fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <
-      Args extends InputFields,
-      Req extends boolean,
-      Options extends FieldOptions<Types, ParentType, Type, Name, Req, Args, Context>
-    >(
-      options: Omit<Options, 'type'>,
+    return <Args extends InputFields, Req extends boolean>(
+      options: Omit<FieldOptions<Types, ParentType, Type, Name, Req, Args, Context>, 'type'>,
     ) => {
-      return this.field<Args, Type, Req, Options>(
+      return this.field<Args, Type, Req>(
         // hack for now... for some reason omitting `type` field makes types unhappy
         // @ts-ignore
         { ...options, type },

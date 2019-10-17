@@ -192,9 +192,7 @@ export type ShapeFromTypeParam<
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
 export type FieldsShape<Shape, Types extends TypeMap, Type extends TypeParam<Types>, Context> = {
-  [K in Extract<keyof Shape, string>]: (
-    t: FieldBuilder<Types, Type, K, Context>,
-  ) => Field<K, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, {}>;
+  [K in Extract<keyof Shape, string>]: (t: FieldBuilder<Types, Type, K, Context>) => unknown;
 };
 
 export type ObjectShapeFromInterfaces<
