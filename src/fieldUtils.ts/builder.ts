@@ -5,14 +5,15 @@ import {
   InputFields,
   CompatibleTypes,
   NamedTypeParam,
-} from './types';
-import Field from './field';
+} from '../types';
+import Field from '../field';
+import BaseFieldUtil from './base';
 
 export default class FieldBuilder<
   Types extends TypeMap,
   ParentType extends TypeParam<Types>,
   Context
-> {
+> extends BaseFieldUtil<Types, ParentType, Context> {
   boolean = this.fieldTypeHelper('Boolean' as NamedTypeParam<Types>);
 
   float = this.fieldTypeHelper('Float' as NamedTypeParam<Types>);
@@ -56,7 +57,7 @@ export default class FieldBuilder<
   field<Args extends InputFields, Type extends TypeParam<Types>, Req extends boolean>(
     options: FieldOptions<Types, ParentType, Type, Req, Args, Context>,
   ): Field<Args, Types, ParentType, Type, Req, Context> {
-    return new Field<Args, Types, ParentType, Type, Req, Context>(options);
+    return this.createField(options);
   }
 
   expose<
@@ -66,30 +67,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolver'>,
-  ): Field<{}, Types, ParentType, Type, Req, Context> {
-    return new Field<{}, Types, ParentType, Type, Req, Context>({
-      ...options,
-      resolver: parent => parent[name],
-    });
-  }
-
-  private fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <Args extends InputFields, Req extends boolean>(
-      options: Omit<FieldOptions<Types, ParentType, Type, Req, Args, Context>, 'type'>,
-    ) => {
-      return this.field<Args, Type, Req>({ ...options, type });
-    };
-  }
-
-  private exposeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <Req extends boolean, Name extends CompatibleTypes<Types, ParentType, Type, Req>>(
-      name: Name,
-      options: Omit<
-        FieldOptions<Types, ParentType, Type, Req, {}, Context>,
-        'resolver' | 'type'
-      > = {},
-    ) => {
-      return this.expose<Type, Req, Name>(name, { ...options, type });
-    };
+  ) {
+    return this.exposeField(name, options);
   }
 }

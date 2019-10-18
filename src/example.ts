@@ -192,7 +192,7 @@ const Sheep = builder.createObjectType('Sheep', {
     }),
     // // Errors when adding type already defined in interface
     // count: t.id({ resolver: () => 4n }),
-    count: t.extend('count', {
+    count: t.implement({
       resolver: () => 10,
     }),
   }),

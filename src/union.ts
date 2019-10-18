@@ -5,7 +5,7 @@ import BaseType from './base';
 export default class UnionType<
   Types extends TypeMap,
   Context,
-  Name extends NamedTypeParam<Types>,
+  Name extends string,
   Member extends NamedTypeParam<Types>
 > extends BaseType<Types[Member], Name> {
   kind: 'Union' = 'Union';

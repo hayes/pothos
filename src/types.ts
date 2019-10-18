@@ -1,9 +1,9 @@
 import { GraphQLEnumValueConfigMap } from 'graphql';
 import InputType from './input';
 import BaseType from './base';
-import FieldBuilder from './fieldBuilder';
 import InterfaceType from './interface';
 import Field from './field';
+import FieldBuilder from './fieldUtils.ts/builder';
 
 export type TypeMap = {
   [s: string]: unknown;
@@ -177,7 +177,7 @@ export type FieldsShape<
 ) => Shape &
   {
     [K in keyof Shape]: K extends keyof ParentShape
-      ? 123
+      ? 'TODO'
       : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, any>;
   };
 
