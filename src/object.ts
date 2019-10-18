@@ -1,4 +1,4 @@
-import { GraphQLObjectType, GraphQLType } from 'graphql';
+import { GraphQLObjectType } from 'graphql';
 import BaseType from './base';
 import {
   TypeMap,
@@ -8,6 +8,7 @@ import {
   NamedTypeParam,
 } from './types';
 import InterfaceType from './interface';
+import TypeStore from './store';
 
 export default class ObjectType<
   Shape extends {},
@@ -20,7 +21,7 @@ export default class ObjectType<
   Types extends TypeMap,
   Name extends NamedTypeParam<Types>,
   Context
-> extends BaseType<ShapeFromTypeParam<Types, Name, true>, Name> {
+> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
   kind: 'Object' = 'Object';
 
   description?: string;
@@ -34,7 +35,7 @@ export default class ObjectType<
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
   }
 
-  buildType(typeMap: Map<string, GraphQLType>) {
+  buildType(store: TypeStore<Types>) {
     return new GraphQLObjectType({
       name: this.typename,
       description: this.description,

@@ -1,13 +1,14 @@
-import { GraphQLInterfaceType, GraphQLType } from 'graphql';
+import { GraphQLInterfaceType } from 'graphql';
 import BaseType from './base';
 import { TypeMap, ShapeFromTypeParam, InterfaceTypeOptions, NamedTypeParam } from './types';
+import TypeStore from './store';
 
 export default class InterfaceType<
   Shape extends {},
   Types extends TypeMap,
   Name extends NamedTypeParam<Types>,
   Context = {}
-> extends BaseType<ShapeFromTypeParam<Types, Name, true>, Name> {
+> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
   kind: 'Interface' = 'Interface';
 
   description?: string;
@@ -20,7 +21,7 @@ export default class InterfaceType<
     this.description = options.description;
   }
 
-  buildType(typeMap: Map<string, GraphQLType>) {
+  buildType(store: TypeStore<Types>) {
     return new GraphQLInterfaceType({
       name: this.typename,
       description: this.description,

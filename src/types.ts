@@ -1,9 +1,20 @@
-import { GraphQLEnumValueConfigMap } from 'graphql';
+import {
+  GraphQLEnumValueConfigMap,
+  GraphQLObjectType,
+  GraphQLInterfaceType,
+  GraphQLUnionType,
+  GraphQLEnumType,
+  GraphQLScalarType,
+} from 'graphql';
 import InputType from './input';
 import BaseType from './base';
 import InterfaceType from './interface';
 import Field from './field';
 import FieldBuilder from './fieldUtils.ts/builder';
+import ObjectType from './object';
+import UnionType from './union';
+import EnumType from './enum';
+import ScalarType from './scalar';
 
 export type TypeMap = {
   [s: string]: unknown;
@@ -115,33 +126,13 @@ export type FieldOptions<
   >;
 };
 
-export type ModifyOptions<
-  Types extends TypeMap,
-  ParentName extends TypeParam<Types>,
-  Shape,
-  Req extends boolean,
-  Args extends InputFields,
-  Context
-> = {
-  directives?: { [s: string]: unknown[] };
-  description?: string;
-  resolver?:
-    | Resolver<
-        ShapeFromTypeParam<Types, ParentName, true>,
-        InputShapeFromFields<Args>,
-        Context,
-        Shape
-      >
-    | undefined;
-};
-
 export type NamedTypeParam<Types extends TypeMap> = Extract<keyof Types, string>;
 
 export type TypeParam<Types extends TypeMap> =
   | keyof Types
-  | (() => BaseType<unknown, string>)
+  | (() => BaseType<Types, string, unknown>)
   | [keyof Types]
-  | (() => [BaseType<unknown, string>]);
+  | (() => [BaseType<Types, string, unknown>]);
 
 export type EnumValues = { [s: number]: string } | string[] | GraphQLEnumValueConfigMap;
 
@@ -150,11 +141,11 @@ export type OptionalShapeFromTypeParam<
   Param extends TypeParam<Types>
 > = Param extends keyof Types
   ? Types[Param]
-  : Param extends () => BaseType<unknown, string>
+  : Param extends () => BaseType<Types, string, unknown>
   ? ReturnType<Param>['shape']
   : Param extends [keyof Types]
   ? Types[Param[0]][]
-  : Param extends () => [BaseType<unknown, string>]
+  : Param extends () => [BaseType<Types, string, unknown>]
   ? ReturnType<Param>[0]['shape'][]
   : never;
 
@@ -301,3 +292,33 @@ export type CompatibleTypes<
 > = {
   [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
 }[keyof ParentShape];
+
+export type ImplementedType<Types extends TypeMap> =
+  | ObjectType<{}, [], Types, NamedTypeParam<Types>, {}>
+  | InterfaceType<{}, Types, NamedTypeParam<Types>, {}>
+  | UnionType<Types, {}, string, NamedTypeParam<Types>>
+  | EnumType<Types, string>
+  | ScalarType<Types, NamedTypeParam<Types>, unknown>;
+
+export type StoreEntry<Types extends TypeMap> =
+  | {
+      type: ObjectType<{}, [], Types, NamedTypeParam<Types>, {}>;
+      built: GraphQLObjectType;
+      kind: 'Object';
+    }
+  | {
+      type: InterfaceType<{}, Types, NamedTypeParam<Types>, {}>;
+      built: GraphQLInterfaceType;
+      kind: 'Interface';
+    }
+  | {
+      type: UnionType<Types, {}, string, NamedTypeParam<Types>>;
+      built: GraphQLUnionType;
+      kind: 'Union';
+    }
+  | { type: EnumType<Types, string>; built: GraphQLEnumType; kind: 'Enum' }
+  | {
+      type: ScalarType<Types, NamedTypeParam<Types>, unknown>;
+      built: GraphQLScalarType;
+      kind: 'Scalar';
+    };

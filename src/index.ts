@@ -1,6 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 
-import { GraphQLEnumValueConfigMap, GraphQLType } from 'graphql';
+import { GraphQLEnumValueConfigMap } from 'graphql';
 import {
   TypeMap,
   ObjectTypeOptions,
@@ -9,13 +9,15 @@ import {
   ShapeFromTypeParam,
   EnumTypeOptions,
   NamedTypeParam,
+  ImplementedType,
+  StoreEntry,
 } from './types';
-import BaseType from './base';
 import ObjectType from './object';
 import UnionType from './union';
 import InputType from './input';
 import InterfaceType from './interface';
 import EnumType from './enum';
+import TypeStore from './store';
 
 export default class SchemaBuilder<Types extends TypeMap, Context> {
   createObjectType<
@@ -55,15 +57,19 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     return new EnumType(name, options);
   }
 
-  toSchema(types: BaseType<unknown, string>[]) {
-    const typeMap = new Map<string, GraphQLType>();
+  toSchema(types: ImplementedType<Types>[]) {
+    const typeStore = new TypeStore<Types>();
 
     for (const type of types) {
-      if (typeMap.has(type.typename)) {
+      if (typeStore.has(type.typename)) {
         throw new Error(`Received multiple implementations of type ${type.typename}`);
       }
 
-      typeMap.set(type.typename, type.buildType(typeMap));
+      typeStore.set(type.typename, {
+        built: type.buildType(typeStore),
+        kind: type.kind,
+        type,
+      } as StoreEntry<Types>);
     }
   }
 }
