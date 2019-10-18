@@ -134,7 +134,7 @@ export type TypeParam<Types extends TypeMap> =
   | [keyof Types]
   | (() => [BaseType<Types, string, unknown>]);
 
-export type EnumValues = { [s: number]: string } | string[] | GraphQLEnumValueConfigMap;
+export type EnumValues = (readonly string[]) | GraphQLEnumValueConfigMap;
 
 export type OptionalShapeFromTypeParam<
   Types extends TypeMap,
@@ -269,9 +269,7 @@ export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never
   ? I
   : never;
 
-export type EnumTypeOptions<
-  Values extends { [s: number]: string } | string[] | GraphQLEnumValueConfigMap
-> = {
+export type EnumTypeOptions<Values extends EnumValues> = {
   description?: string;
   values: Values;
 };
@@ -294,10 +292,10 @@ export type CompatibleTypes<
 }[keyof ParentShape];
 
 export type ImplementedType<Types extends TypeMap> =
-  | ObjectType<{}, [], Types, NamedTypeParam<Types>, {}>
+  | ObjectType<{}, any[], Types, NamedTypeParam<Types>, {}>
   | InterfaceType<{}, Types, NamedTypeParam<Types>, {}>
   | UnionType<Types, {}, string, NamedTypeParam<Types>>
-  | EnumType<Types, string>
+  | EnumType<Types, string, EnumValues>
   | ScalarType<Types, NamedTypeParam<Types>, unknown>;
 
 export type StoreEntry<Types extends TypeMap> =

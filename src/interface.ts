@@ -1,7 +1,14 @@
 import { GraphQLInterfaceType } from 'graphql';
 import BaseType from './base';
-import { TypeMap, ShapeFromTypeParam, InterfaceTypeOptions, NamedTypeParam } from './types';
+import {
+  TypeMap,
+  ShapeFromTypeParam,
+  InterfaceTypeOptions,
+  NamedTypeParam,
+  TypeParam,
+} from './types';
 import TypeStore from './store';
+import Field from './field';
 
 export default class InterfaceType<
   Shape extends {},
@@ -25,7 +32,13 @@ export default class InterfaceType<
     return new GraphQLInterfaceType({
       name: this.typename,
       description: this.description,
-      fields: {},
+      fields: () =>
+        Object.fromEntries(
+          Object.entries(this.fields).map(([key, field]) => [
+            key,
+            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(key, store),
+          ]),
+        ),
     });
   }
 }

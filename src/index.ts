@@ -1,6 +1,5 @@
 /* eslint-disable no-restricted-syntax */
 
-import { GraphQLEnumValueConfigMap } from 'graphql';
 import {
   TypeMap,
   ObjectTypeOptions,
@@ -11,6 +10,7 @@ import {
   NamedTypeParam,
   ImplementedType,
   StoreEntry,
+  EnumValues,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -50,10 +50,10 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     return new UnionType<Types, Context, Name, Member>(name, options);
   }
 
-  createEnumType<
-    Name extends string,
-    Values extends { [s: number]: string } | string[] | GraphQLEnumValueConfigMap
-  >(name: Name, options: EnumTypeOptions<Values>) {
+  createEnumType<Name extends string, Values extends EnumValues>(
+    name: Name,
+    options: EnumTypeOptions<Values>,
+  ) {
     return new EnumType(name, options);
   }
 

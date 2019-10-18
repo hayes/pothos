@@ -181,6 +181,11 @@ const Shaveable = builder.createInterfaceType('Shaveable', {
   }),
 });
 
+// Enums
+const Stuff = builder.createEnumType('stuff', {
+  values: ['Beats', 'Bears', 'BattlestarGalactica'] as const,
+});
+
 const Sheep = builder.createObjectType('Sheep', {
   implements: [Shaveable, Countable],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
@@ -197,12 +202,11 @@ const Sheep = builder.createObjectType('Sheep', {
       .extend('count') // required to get the args for the correct field
       // grabs args and requiredness from interface field
       .implement({ resolver: (parent, args) => Math.min(args.max, parent.count) }),
+    thing: t.field({
+      type: () => Stuff,
+      resolver: () => 'Bears' as const,
+    }),
   }),
 });
 
-// Enums
-const Stuff = builder.createEnumType('stuff', {
-  values: ['Beats', 'Bears', 'BattlestarGalactica'] as const,
-});
-
-console.log(User, Sheep, Stuff);
+builder.toSchema([Shaveable, Stuff, User, Sheep]);

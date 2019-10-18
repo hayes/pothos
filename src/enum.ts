@@ -6,7 +6,7 @@ export default class EnumType<
   Types extends TypeMap,
   Name extends string,
   Values extends EnumValues = EnumValues,
-  Shape extends string = Values extends string[]
+  Shape extends string = Values extends readonly string[]
     ? Values[number]
     : Values extends { [s: number]: string }
     ? Values[keyof Values]

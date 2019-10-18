@@ -1,6 +1,8 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import { GraphQLField } from 'graphql';
+import { GraphQLFieldConfig } from 'graphql';
 import { TypeMap, TypeParam, FieldOptions, InputFields, ShapeFromTypeParam } from './types';
+import TypeStore from './store';
+import { typeFromParam } from './utils';
 
 export default class Field<
   Args extends InputFields,
@@ -47,13 +49,12 @@ export default class Field<
     // this.type = typeof typeParam === 'function' ? typeParam() : type;
   }
 
-  build(name: string): GraphQLField<unknown, unknown> {
+  build(name: string, store: TypeStore<Types>): GraphQLFieldConfig<unknown, unknown> {
     return {
-      name,
-      args: [],
+      args: {},
       extensions: [],
       description: this.options.description || name,
-      type: {} as any,
+      type: typeFromParam(this.type, store),
     };
   }
 }
