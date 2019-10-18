@@ -135,11 +135,13 @@ export type ModifyOptions<
     | undefined;
 };
 
+export type NamedTypeParam<Types extends TypeMap> = Extract<keyof Types, string>;
+
 export type TypeParam<Types extends TypeMap> =
-  | keyof Types
-  | (() => BaseType<unknown>)
+  | NamedTypeParam<Types>
+  | (() => BaseType<unknown, NamedTypeParam<Types>>)
   | [keyof Types]
-  | (() => [BaseType<unknown>]);
+  | (() => [BaseType<unknown, NamedTypeParam<Types>>]);
 
 export type EnumValues = { [s: number]: string } | string[] | GraphQLEnumValueConfigMap;
 
@@ -148,11 +150,11 @@ export type OptionalShapeFromTypeParam<
   Param extends TypeParam<Types>
 > = Param extends keyof Types
   ? Types[Param]
-  : Param extends () => BaseType<unknown>
+  : Param extends () => BaseType<unknown, NamedTypeParam<Types>>
   ? ReturnType<Param>['shape']
   : Param extends [keyof Types]
   ? Types[Param[0]][]
-  : Param extends () => [BaseType<unknown>]
+  : Param extends () => [BaseType<unknown, NamedTypeParam<Types>>]
   ? ReturnType<Param>[0]['shape'][]
   : never;
 
@@ -181,14 +183,17 @@ export type FieldsShape<
 
 export type ShapeFromInterfaces<
   Types extends TypeMap,
-  Interfaces extends (InterfaceType<{}, Types, TypeParam<Types>>)[] | InvalidType<unknown>
-> = Interfaces extends InterfaceType<{}, Types, TypeParam<Types>>[]
+  Interfaces extends (InterfaceType<{}, Types, NamedTypeParam<Types>>)[] | InvalidType<unknown>
+> = Interfaces extends InterfaceType<{}, Types, NamedTypeParam<Types>>[]
   ? UnionToIntersection<NonNullable<Interfaces[number]['shape']>> & {}
   : never;
 
-export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = {
-  [K in keyof Types]: Shape extends NonNullable<Types[K]> ? K : never;
-}[keyof Types];
+export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = Extract<
+  {
+    [K in keyof Types]: Shape extends NonNullable<Types[K]> ? K : never;
+  }[keyof Types],
+  string
+>;
 
 export type ObjectTypeOptions<
   Shape extends {},
@@ -199,12 +204,11 @@ export type ObjectTypeOptions<
     Context
   >[],
   Types extends TypeMap,
-  Type extends TypeParam<Types>,
+  Type extends NamedTypeParam<Types>,
   Context = {}
 > = {
   implements?: Interfaces;
   description?: string;
-  check?: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
   shape: FieldsShape<
     Shape,
     Types,
@@ -212,7 +216,11 @@ export type ObjectTypeOptions<
     Context,
     UnionToIntersection<Interfaces[number]['fields']> & {}
   >;
-};
+} & (Interfaces[number]['typename'] extends Type
+  ? {}
+  : {
+      check: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
+    });
 
 export type InterfaceTypeOptions<
   Shape extends {},

@@ -8,6 +8,7 @@ import {
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
   EnumTypeOptions,
+  NamedTypeParam,
 } from './types';
 import BaseType from './base';
 import ObjectType from './object';
@@ -17,8 +18,6 @@ import InterfaceType from './interface';
 import EnumType from './enum';
 
 export default class SchemaBuilder<Types extends TypeMap, Context> {
-  types: BaseType<Types>[] = [];
-
   createObjectType<
     Shape extends {},
     Interfaces extends InterfaceType<
@@ -32,21 +31,21 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     return new ObjectType<Shape, Interfaces, Types, Type, Context>(name, options);
   }
 
-  createInterfaceType<Shape extends {}, Type extends keyof Types>(
+  createInterfaceType<Shape extends {}, Type extends Extract<keyof Types, string>>(
     name: Type,
     options: InterfaceTypeOptions<Shape, Types, Type, Context>,
   ) {
     return new InterfaceType<Shape, Types, Type, Context>(name, options);
   }
 
-  createUnionType<Member extends keyof Types>(
-    name: string,
+  createUnionType<Member extends NamedTypeParam<Types>, Name extends string>(
+    name: Name,
     options: {
       members: Member[];
       resolveType: (parent: Types[Member], context: Context) => Member | Promise<Member>;
     },
   ) {
-    return new UnionType<Types, Context, Member>(name, options);
+    return new UnionType<Types, Context, Name, Member>(name, options);
   }
 
   createEnumType<
@@ -56,7 +55,7 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     return new EnumType(name, options);
   }
 
-  toSchema(types: BaseType<unknown>[]) {
+  toSchema(types: BaseType<unknown, string>[]) {
     const typeMap = new Map<string, GraphQLType>();
 
     for (const type of types) {

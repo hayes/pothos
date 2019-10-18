@@ -10,9 +10,7 @@ export default class EnumType<
     : Values extends { [s: number]: string }
     ? Values[keyof Values]
     : Extract<keyof Values, string>
-> extends BaseType<Shape> {
-  name: string;
-
+> extends BaseType<Shape, Name> {
   values: GraphQLEnumValueConfigMap;
 
   description?: string;
@@ -39,13 +37,12 @@ export default class EnumType<
           .filter(Boolean) as [string, GraphQLEnumValueConfig][]);
 
     this.description = options.description;
-    this.name = name;
   }
 
   buildType() {
     return new GraphQLEnumType({
       description: this.description,
-      name: this.name,
+      name: this.typename,
       values: this.values,
     });
   }

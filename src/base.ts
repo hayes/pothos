@@ -1,13 +1,13 @@
 import { GraphQLType } from 'graphql';
 
-export default abstract class BaseType<Shape> {
-  typename: string;
+export default abstract class BaseType<Shape, Name extends string> {
+  typename: Name;
 
   shape?: Shape;
 
   abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum';
 
-  constructor(name: string, shape?: Shape) {
+  constructor(name: Name, shape?: Shape) {
     this.typename = name;
     this.shape = shape;
   }

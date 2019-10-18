@@ -1,4 +1,11 @@
-import { TypeMap, TypeParam, FieldOptions, InputFields, CompatibleTypes } from './types';
+import {
+  TypeMap,
+  TypeParam,
+  FieldOptions,
+  InputFields,
+  CompatibleTypes,
+  NamedTypeParam,
+} from './types';
 import Field from './field';
 
 export default class FieldBuilder<
@@ -6,15 +13,15 @@ export default class FieldBuilder<
   ParentType extends TypeParam<Types>,
   Context
 > {
-  boolean = this.fieldTypeHelper('Boolean');
+  boolean = this.fieldTypeHelper('Boolean' as NamedTypeParam<Types>);
 
-  float = this.fieldTypeHelper('Float');
+  float = this.fieldTypeHelper('Float' as NamedTypeParam<Types>);
 
-  id = this.fieldTypeHelper('ID');
+  id = this.fieldTypeHelper('ID' as NamedTypeParam<Types>);
 
-  int = this.fieldTypeHelper('Int');
+  int = this.fieldTypeHelper('Int' as NamedTypeParam<Types>);
 
-  string = this.fieldTypeHelper('String');
+  string = this.fieldTypeHelper('String' as NamedTypeParam<Types>);
 
   booleanList = this.fieldTypeHelper(['Boolean']);
 
@@ -26,15 +33,15 @@ export default class FieldBuilder<
 
   stringList = this.fieldTypeHelper(['String']);
 
-  exposBoolean = this.exposeHelper('Boolean');
+  exposBoolean = this.exposeHelper('Boolean' as NamedTypeParam<Types>);
 
-  exposeFloat = this.exposeHelper('Float');
+  exposeFloat = this.exposeHelper('Float' as NamedTypeParam<Types>);
 
-  exposeID = this.exposeHelper('ID');
+  exposeID = this.exposeHelper('ID' as NamedTypeParam<Types>);
 
-  exposeInt = this.exposeHelper('Int');
+  exposeInt = this.exposeHelper('Int' as NamedTypeParam<Types>);
 
-  exposeString = this.exposeHelper('String');
+  exposeString = this.exposeHelper('String' as NamedTypeParam<Types>);
 
   exposeBooleanList = this.exposeHelper(['Boolean']);
 

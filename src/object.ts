@@ -1,6 +1,12 @@
 import { GraphQLObjectType, GraphQLType } from 'graphql';
 import BaseType from './base';
-import { TypeMap, ShapeFromTypeParam, ObjectTypeOptions, CompatibleInterfaceNames } from './types';
+import {
+  TypeMap,
+  ShapeFromTypeParam,
+  ObjectTypeOptions,
+  CompatibleInterfaceNames,
+  NamedTypeParam,
+} from './types';
 import InterfaceType from './interface';
 
 export default class ObjectType<
@@ -8,19 +14,19 @@ export default class ObjectType<
   Interfaces extends InterfaceType<
     {},
     Types,
-    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
+    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, true>>,
     {}
   >[],
   Types extends TypeMap,
-  Type extends Extract<keyof Types, string>,
+  Name extends NamedTypeParam<Types>,
   Context
-> extends BaseType<ShapeFromTypeParam<Types, Type, true>> {
+> extends BaseType<ShapeFromTypeParam<Types, Name, true>, Name> {
   kind: 'Object' = 'Object';
 
   description?: string;
 
-  constructor(name: Type, options: ObjectTypeOptions<Shape, Interfaces, Types, Type, Context>) {
-    super(name as string);
+  constructor(name: Name, options: ObjectTypeOptions<Shape, Interfaces, Types, Name, Context>) {
+    super(name);
 
     this.description = options.description;
   }

@@ -1,17 +1,18 @@
 import { GraphQLUnionType, GraphQLType } from 'graphql';
-import { TypeMap, UnionOptions } from './types';
+import { TypeMap, UnionOptions, NamedTypeParam } from './types';
 import BaseType from './base';
 
 export default class UnionType<
   Types extends TypeMap,
   Context,
-  Member extends keyof Types
-> extends BaseType<Types[Member]> {
+  Name extends NamedTypeParam<Types>,
+  Member extends NamedTypeParam<Types>
+> extends BaseType<Types[Member], Name> {
   kind: 'Union' = 'Union';
 
   description?: string;
 
-  constructor(name: string, options: UnionOptions<Types, Context, Member>) {
+  constructor(name: Name, options: UnionOptions<Types, Context, Member>) {
     super(name);
 
     this.description = options.description;
