@@ -55,104 +55,94 @@ const SearchResult = builder.createUnionType('SearchResult', {
 
 // Creating an ObjectType and its resolvers
 const User = builder.createObjectType('User', {
-  shape: {
+  shape: t => ({
     // add a scalar field
-    id: t => t.id({ resolver: () => 5n }),
+    id: t.id({ resolver: () => 5n }),
     // parent is inferred from model shapes defined in builder
-    displayName: t =>
-      t.string({
-        resolver: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
-      }),
-    // Detects if resolver can be omitted
-    firstName: t => t.string({}),
-    lastName: t => t.string({}),
+    displayName: t.string({
+      resolver: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
+    }),
+    // can omit resolvers by exposing fields from the backing modl
+    firstName: t.exposeString('firstName'),
+    lastName: t.exposeString('lastName'),
     // Non scalar fields:
-    firstBornChild: t =>
-      t.field({
-        type: 'User',
-        resolver: () => ({
-          firstName: 'child',
-          lastName: '1',
-        }),
+    firstBornChild: t.field({
+      type: 'User',
+      resolver: () => ({
+        firstName: 'child',
+        lastName: '1',
       }),
+    }),
     // creating a resolver with args
-    partialName: t =>
-      t.string({
-        args: {
-          // args use arrow function syntax for consistency with input type syntax
-          example: () => Example,
-          firstN: () => Int,
-        },
-        resolver: (parent, args) => {
-          return parent.firstName.slice(0, args.firstN) + args.example.id;
-        },
-      }),
+    partialName: t.string({
+      args: {
+        // args use arrow function syntax for consistency with input type syntax
+        example: () => Example,
+        firstN: () => Int,
+      },
+      resolver: (parent, args) => {
+        return parent.firstName.slice(0, args.firstN) + args.example.id;
+      },
+    }),
     // creating a resolver with args that use recursive types
-    recursiveArgs: t =>
-      t.id({
-        args: {
-          example2: () => Example2,
-          firstN: () => Int,
-        },
-        resolver: (parent, args) => {
-          return args.example2.more.more.more.example.id;
-        },
-      }),
+    recursiveArgs: t.id({
+      args: {
+        example2: () => Example2,
+        firstN: () => Int,
+      },
+      resolver: (parent, args) => {
+        return args.example2.more.more.more.example.id;
+      },
+    }),
     // add directives
-    privateField: t =>
-      t.string({
-        // map of directives -> directive args
-        directives: { privateData: [] },
-        resolver: (parent, args) => {
-          return 'private stuff';
-        },
-      }),
+    privateField: t.string({
+      // map of directives -> directive args
+      directives: { privateData: [] },
+      resolver: (parent, args) => {
+        return 'private stuff';
+      },
+    }),
     // Using a union type
-    related: t =>
-      t.field({
-        resolver: parent => {
-          return {
-            body: 'stuff',
-            title: 'hi',
-          };
-        },
-        // reference implementation so we can automatically pull types for all member types
-        type: () => SearchResult,
-      }),
+    related: t.field({
+      resolver: parent => {
+        return {
+          body: 'stuff',
+          title: 'hi',
+        };
+      },
+      // reference implementation so we can automatically pull types for all member types
+      type: () => SearchResult,
+    }),
     // Lists
-    friends: t =>
-      t.field({
-        resolver: parent => {
-          return [parent];
-        },
-        type: ['User'],
-      }),
+    friends: t.field({
+      resolver: parent => {
+        return [parent];
+      },
+      type: ['User'],
+    }),
     // list helpers
-    stuff: t =>
-      t.stringList({
-        resolver() {
-          return ['soup', 'cats'];
-        },
-      }),
+    stuff: t.stringList({
+      resolver() {
+        return ['soup', 'cats'];
+      },
+    }),
     // optional fields
-    optional: t =>
-      t.string({
-        required: false,
-        resolver: () => null,
-      }),
+    optional: t.string({
+      required: false,
+      resolver: () => null,
+    }),
     // list and optional args
-    list: t =>
-      t.idList({
-        args: {
-          ids: {
-            required: false,
-            type: () => [ID],
-          },
+    list: t.idList({
+      args: {
+        ids: {
+          required: false,
+          type: () => [ID],
         },
-        required: false,
-        resolver: (parent, args) => args.ids,
-      }),
-  },
+      },
+      required: false,
+      resolver: (parent, args) => args.ids,
+    }),
+  }),
 });
 
 // TODO
@@ -171,39 +161,36 @@ const User = builder.createObjectType('User', {
 // });
 
 const Countable = builder.createInterfaceType('Countable', {
-  shape: {
-    count: t => t.int({}),
-  },
+  shape: t => ({
+    count: t.int({
+      args: {
+        max: () => Int,
+      },
+      resolver: (parent, args) => Math.min(args.max, parent.count),
+    }),
+  }),
 });
 
 const Shaveable = builder.createInterfaceType('Shaveable', {
-  shape: {
-    id: t =>
-      t.id({
-        resolver: () => 5n,
-      }),
-    shaved: t => t.boolean({}),
-  },
+  shape: t => ({
+    id: t.id({
+      resolver: () => 5n,
+    }),
+    shaved: t.exposBoolean('shaved'),
+  }),
 });
 
 const Sheep = builder.createObjectType('Sheep', {
   check: () => true,
   implements: [Shaveable, Countable],
-  shape: t =>
-    t
-      .string('color', { args: { id: () => ID }, resolver: () => 'black' })
-      // Errors when adding type already defined in interface
-      // .id('shaved', {
-      //   resolver: () => 4n,
-      // })
-      // .id('id', { resolver: () => 5n }),
-      .id('id2', { resolver: () => 5n })
-      // modify previous args (from interfaces)
-      .modify('shaved', { resolver: () => true })
-      .modify('color', {
-        description: 'shaved sheep?',
-        resolver: (parent, args) => (args.id === 1n ? 'red' : 'blue'),
-      }),
+  shape: t => ({
+    color: t.string({
+      args: { id: () => ID },
+      resolver: (p, { id }) => (id === 1n ? 'black' : 'white'),
+    }),
+    // // Errors when adding type already defined in interface
+    // count: t.id({ resolver: () => 4n }),
+  }),
 });
 
 // Enums

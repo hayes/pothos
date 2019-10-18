@@ -4,22 +4,22 @@ import { TypeMap, ShapeFromTypeParam, ObjectTypeOptions, CompatibleInterfaceName
 import InterfaceType from './interface';
 
 export default class ObjectType<
-  Types extends TypeMap,
-  Type extends Extract<keyof Types, string>,
   Shape extends {},
-  Context,
   Interfaces extends InterfaceType<
+    {},
     Types,
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
-    {},
     {}
-  >[]
+  >[],
+  Types extends TypeMap,
+  Type extends Extract<keyof Types, string>,
+  Context
 > extends BaseType<ShapeFromTypeParam<Types, Type, true>> {
   kind: 'Object' = 'Object';
 
   description?: string;
 
-  constructor(name: Type, options: ObjectTypeOptions<Types, Type, Shape, Context, Interfaces>) {
+  constructor(name: Type, options: ObjectTypeOptions<Shape, Interfaces, Types, Type, Context>) {
     super(name as string);
 
     this.description = options.description;

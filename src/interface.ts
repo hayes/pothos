@@ -3,18 +3,18 @@ import BaseType from './base';
 import { TypeMap, TypeParam, ShapeFromTypeParam, InterfaceTypeOptions } from './types';
 
 export default class InterfaceType<
+  Shape extends {},
   Types extends TypeMap,
   Type extends TypeParam<Types>,
-  Shape extends {},
-  Context
+  Context = {}
 > extends BaseType<ShapeFromTypeParam<Types, Type, true>> {
   kind: 'Interface' = 'Interface';
 
-  objectShape!: Shape;
-
   description?: string;
 
-  constructor(name: Type, options: InterfaceTypeOptions<Types, Type, Shape, Context>) {
+  fields!: Shape;
+
+  constructor(name: Type, options: InterfaceTypeOptions<Shape, Types, Type, Context>) {
     super(name as string);
 
     this.description = options.description;

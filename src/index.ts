@@ -1,11 +1,10 @@
-/* eslint-disable class-methods-use-this, no-restricted-syntax */
+/* eslint-disable no-restricted-syntax */
 
 import { GraphQLEnumValueConfigMap, GraphQLType } from 'graphql';
 import {
   TypeMap,
   ObjectTypeOptions,
   InterfaceTypeOptions,
-  ObjectShapeFromInterfaces,
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
   EnumTypeOptions,
@@ -21,24 +20,23 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
   types: BaseType<Types>[] = [];
 
   createObjectType<
-    Type extends Extract<keyof Types, string>,
-    ParentShape extends ObjectShapeFromInterfaces<Types, Interfaces>,
-    Shape extends ParentShape,
+    Shape extends {},
     Interfaces extends InterfaceType<
+      {},
       Types,
       CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
-      {},
       {}
-    >[]
-  >(name: Type, options: ObjectTypeOptions<Types, Type, Shape, Context, Interfaces>) {
-    return new ObjectType<Types, Type, Shape, Context, Interfaces>(name, options);
+    >[],
+    Type extends Extract<keyof Types, string>
+  >(name: Type, options: ObjectTypeOptions<Shape, Interfaces, Types, Type, Context>) {
+    return new ObjectType<Shape, Interfaces, Types, Type, Context>(name, options);
   }
 
-  createInterfaceType<Type extends keyof Types, Shape extends {}>(
+  createInterfaceType<Shape extends {}, Type extends keyof Types>(
     name: Type,
-    options: InterfaceTypeOptions<Types, Type, Shape, Context>,
+    options: InterfaceTypeOptions<Shape, Types, Type, Context>,
   ) {
-    return new InterfaceType<Types, Type, Shape, Context>(name, options);
+    return new InterfaceType<Shape, Types, Type, Context>(name, options);
   }
 
   createUnionType<Member extends keyof Types>(

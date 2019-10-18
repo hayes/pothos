@@ -80,16 +80,6 @@ export type NeedsResolver<
     : true
   : true;
 
-export type MaybeResolver<
-  Shape,
-  Name extends string | number | symbol,
-  Type,
-  Args,
-  Context
-> = NeedsResolver<Shape, Name, Type> extends true
-  ? Resolver<Shape, Args, Context, Type>
-  : Resolver<Shape, Args, Context, Type> | undefined;
-
 export type Resolver<Parent, Args, Context, Type> = (
   parent: Parent,
   args: Args,
@@ -107,7 +97,6 @@ export type FieldOptions<
   Types extends TypeMap,
   ParentName extends TypeParam<Types>,
   ReturnTypeName extends TypeParam<Types>,
-  FieldName extends string | number | symbol,
   Req extends boolean,
   Args extends InputFields,
   Context
@@ -118,29 +107,13 @@ export type FieldOptions<
   directives?: { [s: string]: unknown[] };
   description?: string;
   deprecationReason?: string;
-} & (NeedsResolver<
-  ShapeFromTypeParam<Types, ParentName, true>,
-  FieldName,
-  ShapeFromTypeParam<Types, ReturnTypeName, Req>
-> extends true
-  ? {
-      resolver: Resolver<
-        ShapeFromTypeParam<Types, ParentName, true>,
-        InputShapeFromFields<Args>,
-        Context,
-        ShapeFromTypeParam<Types, ReturnTypeName, Req>
-      >;
-    }
-  : {
-      resolver?:
-        | Resolver<
-            ShapeFromTypeParam<Types, ParentName, true>,
-            InputShapeFromFields<Args>,
-            Context,
-            ShapeFromTypeParam<Types, ReturnTypeName, Req>
-          >
-        | undefined;
-    });
+  resolver: Resolver<
+    ShapeFromTypeParam<Types, ParentName, true>,
+    InputShapeFromFields<Args>,
+    Context,
+    ShapeFromTypeParam<Types, ReturnTypeName, Req>
+  >;
+};
 
 export type ModifyOptions<
   Types extends TypeMap,
@@ -191,19 +164,25 @@ export type ShapeFromTypeParam<
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
-export type FieldsShape<Shape, Types extends TypeMap, Type extends TypeParam<Types>, Context> = {
-  [K in Extract<keyof Shape, string>]: (t: FieldBuilder<Types, Type, K, Context>) => unknown;
-};
-
-export type ObjectShapeFromInterfaces<
+export type FieldsShape<
+  Shape extends {},
   Types extends TypeMap,
-  Interfaces extends InterfaceType<Types, CompatibleInterfaceNames<Types, unknown>, {}, {}>[]
-> = UnionToIntersection<NonNullable<Interfaces[number]['objectShape']>> & {};
+  Type extends TypeParam<Types>,
+  Context,
+  ParentShape extends {} = {}
+> = (
+  t: FieldBuilder<Types, Type, Context>,
+) => Shape &
+  {
+    [K in keyof Shape]: K extends keyof ParentShape
+      ? 123
+      : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, any>;
+  };
 
 export type ShapeFromInterfaces<
   Types extends TypeMap,
-  Interfaces extends (InterfaceType<Types, TypeParam<Types>, {}, {}>)[] | InvalidType<unknown>
-> = Interfaces extends InterfaceType<Types, TypeParam<Types>, {}, {}>[]
+  Interfaces extends (InterfaceType<{}, Types, TypeParam<Types>>)[] | InvalidType<unknown>
+> = Interfaces extends InterfaceType<{}, Types, TypeParam<Types>>[]
   ? UnionToIntersection<NonNullable<Interfaces[number]['shape']>> & {}
   : never;
 
@@ -212,37 +191,34 @@ export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = {
 }[keyof Types];
 
 export type ObjectTypeOptions<
-  Types extends TypeMap,
-  Type extends TypeParam<Types>,
   Shape extends {},
-  Context,
   Interfaces extends InterfaceType<
+    {},
     Types,
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
-    {},
-    {}
-  >[]
+    Context
+  >[],
+  Types extends TypeMap,
+  Type extends TypeParam<Types>,
+  Context = {}
 > = {
   implements?: Interfaces;
   description?: string;
   check?: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
-  shape: FieldsShape<Shape, Types, Type, Context>;
-} & ([
-  InterfaceType<
+  shape: FieldsShape<
+    Shape,
     Types,
-    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
-    {},
-    {}
-  >,
-] extends Interfaces
-  ? {}
-  : { check: (obj: NonNullable<Interfaces[number]['shape']>) => boolean });
+    Type,
+    Context,
+    UnionToIntersection<Interfaces[number]['fields']> & {}
+  >;
+};
 
 export type InterfaceTypeOptions<
+  Shape extends {},
   Types extends TypeMap,
   Type extends TypeParam<Types>,
-  Shape extends {},
-  Context
+  Context = {}
 > = {
   description?: string;
   shape: FieldsShape<Shape, Types, Type, Context>;
@@ -275,3 +251,14 @@ export type UnionOptions<Types extends TypeMap, Context, Member extends keyof Ty
   members: Member[];
   resolveType: (parent: Types[Member], context: Context) => Member | Promise<Member>;
 };
+
+export type CompatibleTypes<
+  Types extends TypeMap,
+  ParentType extends TypeParam<Types>,
+  Type extends TypeParam<Types>,
+  Req extends boolean,
+  ParentShape = ShapeFromTypeParam<Types, ParentType, true>,
+  Shape = ShapeFromTypeParam<Types, Type, Req>
+> = {
+  [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
+}[keyof ParentShape];

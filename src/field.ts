@@ -3,25 +3,21 @@ import { GraphQLField } from 'graphql';
 import { TypeMap, TypeParam, FieldOptions, InputFields, ShapeFromTypeParam } from './types';
 
 export default class Field<
-  Name extends string,
+  Args extends InputFields,
   Types extends TypeMap,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Req extends boolean = false,
   Context = {},
-  Args extends InputFields = {},
-  Options extends FieldOptions<Types, ParentType, Type, Name, Req, Args, Context> = FieldOptions<
+  Options extends FieldOptions<Types, ParentType, Type, Req, Args, Context> = FieldOptions<
     Types,
     ParentType,
     Type,
-    Name,
     Req,
     Args,
     Context
   >
 > {
-  name: Name;
-
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
   required: Req;
@@ -32,8 +28,7 @@ export default class Field<
 
   options: Options;
 
-  constructor(name: Name, options: Options) {
-    this.name = name;
+  constructor(options: Options) {
     this.options = options;
     this.required = options.required || (false as Req);
     this.args = options.args || ({} as Args);
@@ -43,12 +38,12 @@ export default class Field<
     // this.type = typeof typeParam === 'function' ? typeParam() : type;
   }
 
-  build(): GraphQLField<unknown, unknown> {
+  build(name: string): GraphQLField<unknown, unknown> {
     return {
-      name: this.name,
+      name,
       args: [],
       extensions: [],
-      description: this.options.description || this.name,
+      description: this.options.description || name,
       type: {} as any,
     };
   }
