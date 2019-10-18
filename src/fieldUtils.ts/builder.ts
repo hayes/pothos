@@ -1,28 +1,54 @@
-import {
-  TypeMap,
-  TypeParam,
-  FieldOptions,
-  InputFields,
-  CompatibleTypes,
-  NamedTypeParam,
-} from '../types';
+import { TypeMap, TypeParam, FieldOptions, InputFields, CompatibleTypes } from '../types';
 import Field from '../field';
 import BaseFieldUtil from './base';
+import FieldModifier from './modifier';
 
 export default class FieldBuilder<
   Types extends TypeMap,
   ParentType extends TypeParam<Types>,
-  Context
+  Context,
+  ParentShape extends {
+    [s: string]: Field<
+      {},
+      Types,
+      TypeParam<Types>,
+      TypeParam<Types>,
+      boolean,
+      Context,
+      string | null,
+      any
+    >;
+  }
 > extends BaseFieldUtil<Types, ParentType, Context> {
-  boolean = this.fieldTypeHelper('Boolean' as NamedTypeParam<Types>);
+  parentFields: ParentShape;
 
-  float = this.fieldTypeHelper('Float' as NamedTypeParam<Types>);
+  modifiers!: {
+    [K in keyof ParentShape]: FieldModifier<
+      Types,
+      ParentType,
+      ParentShape[K]['type'],
+      ParentShape[K]['required'],
+      ParentShape[K]['args'],
+      Extract<K, string>,
+      Context
+    >;
+  };
 
-  id = this.fieldTypeHelper('ID' as NamedTypeParam<Types>);
+  constructor(parentFields: ParentShape) {
+    super();
 
-  int = this.fieldTypeHelper('Int' as NamedTypeParam<Types>);
+    this.parentFields = parentFields;
+  }
 
-  string = this.fieldTypeHelper('String' as NamedTypeParam<Types>);
+  boolean = this.fieldTypeHelper('Boolean');
+
+  float = this.fieldTypeHelper('Float');
+
+  id = this.fieldTypeHelper('ID');
+
+  int = this.fieldTypeHelper('Int');
+
+  string = this.fieldTypeHelper('String');
 
   booleanList = this.fieldTypeHelper(['Boolean']);
 
@@ -34,15 +60,15 @@ export default class FieldBuilder<
 
   stringList = this.fieldTypeHelper(['String']);
 
-  exposBoolean = this.exposeHelper('Boolean' as NamedTypeParam<Types>);
+  exposBoolean = this.exposeHelper('Boolean');
 
-  exposeFloat = this.exposeHelper('Float' as NamedTypeParam<Types>);
+  exposeFloat = this.exposeHelper('Float');
 
-  exposeID = this.exposeHelper('ID' as NamedTypeParam<Types>);
+  exposeID = this.exposeHelper('ID');
 
-  exposeInt = this.exposeHelper('Int' as NamedTypeParam<Types>);
+  exposeInt = this.exposeHelper('Int');
 
-  exposeString = this.exposeHelper('String' as NamedTypeParam<Types>);
+  exposeString = this.exposeHelper('String');
 
   exposeBooleanList = this.exposeHelper(['Boolean']);
 
@@ -56,8 +82,8 @@ export default class FieldBuilder<
 
   field<Args extends InputFields, Type extends TypeParam<Types>, Req extends boolean>(
     options: FieldOptions<Types, ParentType, Type, Req, Args, Context>,
-  ): Field<Args, Types, ParentType, Type, Req, Context> {
-    return this.createField(options);
+  ): Field<Args, Types, ParentType, Type, Req, Context, null> {
+    return this.createField(options, null);
   }
 
   expose<
@@ -67,7 +93,11 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolver'>,
-  ) {
-    return this.exposeField(name, options);
+  ): Field<{}, Types, ParentType, Type, Req, Context, null> {
+    return this.exposeField(name, options, null);
+  }
+
+  extend<Name extends keyof ParentShape>(name: Name) {
+    return this.modifiers[name];
   }
 }

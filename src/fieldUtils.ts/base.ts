@@ -9,32 +9,37 @@ export default class BaseFieldUtil<
   protected createField<
     Args extends InputFields,
     Type extends TypeParam<Types>,
-    Req extends boolean
-  >(
-    options: FieldOptions<Types, ParentType, Type, Req, Args, Context>,
-  ): Field<Args, Types, ParentType, Type, Req, Context> {
-    return new Field<Args, Types, ParentType, Type, Req, Context>(options);
+    Req extends boolean,
+    Extends extends string | null
+  >(options: FieldOptions<Types, ParentType, Type, Req, Args, Context>, extendsField: Extends) {
+    return new Field<Args, Types, ParentType, Type, Req, Context, Extends>({
+      ...options,
+      extendsField,
+    });
   }
 
   protected exposeField<
     Type extends TypeParam<Types>,
     Req extends boolean,
-    Name extends CompatibleTypes<Types, ParentType, Type, Req>
+    Name extends CompatibleTypes<Types, ParentType, Type, Req>,
+    Extends extends string | null
   >(
     name: Name,
     options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolver'>,
-  ): Field<{}, Types, ParentType, Type, Req, Context> {
-    return new Field<{}, Types, ParentType, Type, Req, Context>({
+    extendsField: Extends,
+  ) {
+    return new Field<{}, Types, ParentType, Type, Req, Context, Extends>({
       ...options,
       resolver: parent => parent[name],
+      extendsField,
     });
   }
 
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
     return <Args extends InputFields, Req extends boolean>(
       options: Omit<FieldOptions<Types, ParentType, Type, Req, Args, Context>, 'type'>,
-    ) => {
-      return this.createField<Args, Type, Req>({ ...options, type });
+    ): Field<Args, Types, ParentType, Type, Req, Context, null> => {
+      return this.createField<Args, Type, Req, null>({ ...options, type }, null);
     };
   }
 
@@ -45,8 +50,8 @@ export default class BaseFieldUtil<
         FieldOptions<Types, ParentType, Type, Req, {}, Context>,
         'resolver' | 'type'
       > = {},
-    ) => {
-      return this.exposeField<Type, Req, Name>(name, { ...options, type });
+    ): Field<{}, Types, ParentType, Type, Req, Context, null> => {
+      return this.exposeField<Type, Req, Name, null>(name, { ...options, type }, null);
     };
   }
 }

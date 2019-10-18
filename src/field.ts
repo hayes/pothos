@@ -9,6 +9,7 @@ export default class Field<
   Type extends TypeParam<Types>,
   Req extends boolean = false,
   Context = {},
+  Extends extends string | null = null,
   Options extends FieldOptions<Types, ParentType, Type, Req, Args, Context> = FieldOptions<
     Types,
     ParentType,
@@ -24,14 +25,22 @@ export default class Field<
 
   args: Args = {} as Args;
 
-  // type: string;
+  extendsField: Extends;
+
+  type: Type;
 
   options: Options;
 
-  constructor(options: Options) {
+  constructor(
+    options: Options & {
+      extendsField?: Extends;
+    },
+  ) {
     this.options = options;
     this.required = options.required || (false as Req);
     this.args = options.args || ({} as Args);
+    this.extendsField = options.extendsField || (null as Extends);
+    this.type = options.type;
 
     // const typeParam = this.options.type;
 

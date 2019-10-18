@@ -166,6 +166,7 @@ const Countable = builder.createInterfaceType('Countable', {
       args: {
         max: () => Int,
       },
+      required: true,
       resolver: (parent, args) => Math.min(args.max, parent.count),
     }),
   }),
@@ -192,9 +193,10 @@ const Sheep = builder.createObjectType('Sheep', {
     }),
     // // Errors when adding type already defined in interface
     // count: t.id({ resolver: () => 4n }),
-    count: t.implement({
-      resolver: () => 10,
-    }),
+    count: t
+      .extend('count') // required to get the args for the correct field
+      // grabs args and requiredness from interface field
+      .implement({ resolver: (parent, args) => Math.min(args.max, parent.count) }),
   }),
 });
 

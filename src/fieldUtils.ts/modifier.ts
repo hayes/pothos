@@ -1,40 +1,45 @@
 import { TypeMap, TypeParam, FieldOptions, CompatibleTypes, InputFields } from '../types';
 import BaseFieldUtil from './base';
+import Field from '../field';
 
 export default class FieldModifier<
   Types extends TypeMap,
-  Type extends TypeParam<Types>,
   ParentType extends TypeParam<Types>,
+  Type extends TypeParam<Types>,
   Req extends boolean,
   Args extends InputFields,
+  Extends extends string,
   Context
 > extends BaseFieldUtil<Types, ParentType, Context> {
-  type: Type;
+  field: Field<Args, Types, ParentType, Type, Req, Context, string | null, any>;
 
-  required: Req;
+  extendsField: Extends;
 
-  args: Args;
-
-  constructor(type: Type, required: Req, args: Args) {
+  constructor(
+    field: Field<Args, Types, ParentType, Type, Req, Context, string | null, any>,
+    extendsField: Extends,
+  ) {
     super();
-    this.type = type;
-    this.required = required;
-    this.args = args;
+    this.field = field;
+    this.extendsField = extendsField;
   }
 
   expose<Name extends CompatibleTypes<Types, ParentType, Type, Req>>(
     name: Name,
-    options: Omit<
+    options?: Omit<
       FieldOptions<Types, ParentType, Type, Req, {}, Context>,
       'resolver' | 'type' | 'args'
     >,
-  ) {
-    return this.exposeField(name, { ...options, type: this.type });
+  ): Field<{}, Types, ParentType, Type, Req, Context, Extends> {
+    return this.exposeField(name, { ...options, type: this.field.type }, this.extendsField);
   }
 
   implement(
-    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'type' | 'args'>,
-  ) {
-    return this.createField({ ...options, type: this.type, args: this.args });
+    options: Omit<FieldOptions<Types, ParentType, Type, Req, Args, Context>, 'type' | 'args'>,
+  ): Field<Args, Types, ParentType, Type, Req, Context, Extends> {
+    return this.createField(
+      { ...options, type: this.field.type, args: this.field.args },
+      this.extendsField,
+    );
   }
 }

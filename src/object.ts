@@ -25,10 +25,13 @@ export default class ObjectType<
 
   description?: string;
 
+  interfaces: Interfaces;
+
   constructor(name: Name, options: ObjectTypeOptions<Shape, Interfaces, Types, Name, Context>) {
     super(name);
 
     this.description = options.description;
+    this.interfaces = options.implements || (([] as unknown) as Interfaces);
   }
 
   buildType(typeMap: Map<string, GraphQLType>) {

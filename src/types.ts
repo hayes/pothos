@@ -138,10 +138,10 @@ export type ModifyOptions<
 export type NamedTypeParam<Types extends TypeMap> = Extract<keyof Types, string>;
 
 export type TypeParam<Types extends TypeMap> =
-  | NamedTypeParam<Types>
-  | (() => BaseType<unknown, NamedTypeParam<Types>>)
+  | keyof Types
+  | (() => BaseType<unknown, string>)
   | [keyof Types]
-  | (() => [BaseType<unknown, NamedTypeParam<Types>>]);
+  | (() => [BaseType<unknown, string>]);
 
 export type EnumValues = { [s: number]: string } | string[] | GraphQLEnumValueConfigMap;
 
@@ -150,11 +150,11 @@ export type OptionalShapeFromTypeParam<
   Param extends TypeParam<Types>
 > = Param extends keyof Types
   ? Types[Param]
-  : Param extends () => BaseType<unknown, NamedTypeParam<Types>>
+  : Param extends () => BaseType<unknown, string>
   ? ReturnType<Param>['shape']
   : Param extends [keyof Types]
   ? Types[Param[0]][]
-  : Param extends () => [BaseType<unknown, NamedTypeParam<Types>>]
+  : Param extends () => [BaseType<unknown, string>]
   ? ReturnType<Param>[0]['shape'][]
   : never;
 
@@ -171,14 +171,45 @@ export type FieldsShape<
   Types extends TypeMap,
   Type extends TypeParam<Types>,
   Context,
-  ParentShape extends {} = {}
+  ParentShape extends {
+    [s: string]: Field<
+      {},
+      Types,
+      TypeParam<Types>,
+      TypeParam<Types>,
+      boolean,
+      {},
+      string | null,
+      any
+    >;
+  } = {}
 > = (
-  t: FieldBuilder<Types, Type, Context>,
+  t: FieldBuilder<Types, Type, Context, ParentShape>,
 ) => Shape &
   {
     [K in keyof Shape]: K extends keyof ParentShape
-      ? 'TODO'
-      : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, any>;
+      ? Shape[K] extends Field<
+          {},
+          Types,
+          TypeParam<Types>,
+          TypeParam<Types>,
+          boolean,
+          Context,
+          Extract<K, string>,
+          any
+        >
+        ? Field<
+            {},
+            Types,
+            TypeParam<Types>,
+            TypeParam<Types>,
+            boolean,
+            Context,
+            Extract<K, string>,
+            any
+          >
+        : InvalidType<['Use t.extend(', K, ') to implement this field']>
+      : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, null, any>;
   };
 
 export type ShapeFromInterfaces<
