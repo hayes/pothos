@@ -1,4 +1,5 @@
 import { GraphQLInterfaceType } from 'graphql';
+import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import {
   TypeMap,
@@ -9,6 +10,7 @@ import {
 } from './types';
 import TypeStore from './store';
 import Field from './field';
+import FieldBuilder from './fieldUtils/builder';
 
 export default class InterfaceType<
   Shape extends {},
@@ -20,12 +22,14 @@ export default class InterfaceType<
 
   description?: string;
 
-  fields!: Shape;
+  fields: Shape;
 
   constructor(name: Name, options: InterfaceTypeOptions<Shape, Types, Name, Context>) {
     super(name);
 
     this.description = options.description;
+
+    this.fields = options.shape(new FieldBuilder({}));
   }
 
   buildType(store: TypeStore<Types>) {
@@ -33,7 +37,7 @@ export default class InterfaceType<
       name: this.typename,
       description: this.description,
       fields: () =>
-        Object.fromEntries(
+        fromEntries(
           Object.entries(this.fields).map(([key, field]) => [
             key,
             (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(key, store),

@@ -1,5 +1,12 @@
 /* eslint-disable no-restricted-syntax */
-
+import {
+  GraphQLSchema,
+  GraphQLID,
+  GraphQLString,
+  GraphQLInt,
+  GraphQLFloat,
+  GraphQLBoolean,
+} from 'graphql';
 import {
   TypeMap,
   ObjectTypeOptions,
@@ -11,6 +18,8 @@ import {
   ImplementedType,
   StoreEntry,
   EnumValues,
+  InputFields,
+  InputShapeFromFields,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -18,6 +27,7 @@ import InputType from './input';
 import InterfaceType from './interface';
 import EnumType from './enum';
 import TypeStore from './store';
+import ScalarType from './scalar';
 
 export default class SchemaBuilder<Types extends TypeMap, Context> {
   createObjectType<
@@ -57,10 +67,26 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     return new EnumType(name, options);
   }
 
+  createInputType<
+    Shape extends InputShapeFromFields<Fields>,
+    Name extends string,
+    Fields extends InputFields
+  >(name: Name, options: { fields: Fields }) {
+    return new InputType<Shape, Fields, Name>(name);
+  }
+
   toSchema(types: ImplementedType<Types>[]) {
     const typeStore = new TypeStore<Types>();
 
-    for (const type of types) {
+    const scalars = [
+      new ScalarType('ID', GraphQLID),
+      new ScalarType('Int', GraphQLInt),
+      new ScalarType('Float', GraphQLFloat),
+      new ScalarType('Boolean', GraphQLBoolean),
+      new ScalarType('String', GraphQLString),
+    ];
+
+    for (const type of [...scalars, ...types]) {
       if (typeStore.has(type.typename)) {
         throw new Error(`Received multiple implementations of type ${type.typename}`);
       }
@@ -71,9 +97,14 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
         type,
       } as StoreEntry<Types>);
     }
+
+    return new GraphQLSchema({
+      query: typeStore.has('Query') ? typeStore.getBuiltObject('Query') : undefined,
+      mutation: typeStore.has('Mutation') ? typeStore.getBuiltObject('Mutation') : undefined,
+    });
   }
 }
 
 // Create input types
-export const ID = new InputType<bigint>('ID');
-export const Int = new InputType<number>('Int');
+export const ID = new InputType<bigint, {}, 'ID'>('ID');
+export const Int = new InputType<number, {}, 'Int'>('Int');

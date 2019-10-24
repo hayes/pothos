@@ -22,7 +22,7 @@ export default class FieldBuilder<
 > extends BaseFieldUtil<Types, ParentType, Context> {
   parentFields: ParentShape;
 
-  modifiers!: {
+  modifiers: {
     [K in keyof ParentShape]: FieldModifier<
       Types,
       ParentType,
@@ -38,6 +38,28 @@ export default class FieldBuilder<
     super();
 
     this.parentFields = parentFields;
+
+    const modifiers: Partial<
+      {
+        [K in keyof ParentShape]: FieldModifier<
+          Types,
+          ParentType,
+          ParentShape[K]['type'],
+          ParentShape[K]['required'],
+          ParentShape[K]['args'],
+          Extract<K, string>,
+          Context
+        >;
+      }
+    > = {};
+
+    (Object.keys(parentFields) as (Extract<keyof ParentShape, string>)[]).forEach(name => {
+      modifiers[name] = new FieldModifier(parentFields[name], name);
+    });
+
+    this.modifiers = modifiers as {
+      [K in keyof typeof modifiers]-?: Exclude<(typeof modifiers)[K], undefined>;
+    };
   }
 
   boolean = this.fieldTypeHelper('Boolean');

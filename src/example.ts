@@ -1,5 +1,5 @@
+import { printSchema } from 'graphql';
 import SchemaBuilder, { ID, Int } from '.';
-import InputType from './input';
 
 const builder = new SchemaBuilder<
   // Model shapes
@@ -14,36 +14,43 @@ const builder = new SchemaBuilder<
     Countable: { count: number };
     Shaveable: { shaved: boolean };
     Sheep: { name: string; count: number; shaved: boolean };
+    Query: {};
+    Mutation: {};
   },
   // Context shape
   { userID: number }
 >();
 
 // Create input types
-const Example = InputType.createInputType('Example', {
+const Example = builder.createInputType('Example', {
+  fields: {
+    id: () => ID,
+  },
   // arrow function syntax explained below
-  id: () => ID,
 });
 
 // When creating input types with circular references
 // shape needs to be defined explicitly but is still checked by the type checker
-type ExampleShape = {
-  id: bigint;
-  example: {
-    id: bigint;
-  };
-  more: ExampleShape;
-};
+// type ExampleShape = {
+//   id: bigint;
+//   example: {
+//     id: bigint;
+//   };
+//   more: ExampleShape;
+// };
 
-const Example2: InputType<ExampleShape> = InputType.createInputType('Example', {
-  example: () => Example,
-  id: {
-    required: false,
-    type: () => ID,
-  },
-  // We use arrow function syntax to allow this type of circular reference
-  more: () => Example2,
-});
+// TODO fix recursive inputs
+// const Example2 = builder.createInputType<ExampleShape>('Example', {
+//   fields: {
+//     example: () => Example,
+//     id: {
+//       required: false,
+//       type: () => ID,
+//     },
+//     // We use arrow function syntax to allow this type of circular reference
+//     more: () => Example2,
+//   },
+// });
 
 // Union type
 const SearchResult = builder.createUnionType('SearchResult', {
@@ -85,15 +92,15 @@ const User = builder.createObjectType('User', {
       },
     }),
     // creating a resolver with args that use recursive types
-    recursiveArgs: t.id({
-      args: {
-        example2: () => Example2,
-        firstN: () => Int,
-      },
-      resolver: (parent, args) => {
-        return args.example2.more.more.more.example.id;
-      },
-    }),
+    // recursiveArgs: t.id({
+    //   args: {
+    //     example2: () => Example2,
+    //     firstN: () => Int,
+    //   },
+    //   resolver: (parent, args) => {
+    //     return args.example2.more.more.more.example.id;
+    //   },
+    // }),
     // add directives
     privateField: t.string({
       // map of directives -> directive args
@@ -209,4 +216,45 @@ const Sheep = builder.createObjectType('Sheep', {
   }),
 });
 
-builder.toSchema([Shaveable, Stuff, User, Sheep]);
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    user: t.field({
+      resolver: () => ({
+        firstName: 'user',
+        lastName: 'name',
+      }),
+      type: 'User',
+    }),
+    stuff: t.field({
+      type: () => [Stuff],
+      resolver() {
+        return ['Bears', 'Beats', 'BattlestarGalactica'] as const;
+      },
+    }),
+    sheep: t.field({
+      type: 'Sheep',
+      resolver: () => ({
+        count: 5,
+        name: 'bah-bah',
+        shaved: true,
+      }),
+    }),
+  }),
+});
+
+const Article = builder.createObjectType('Article', {
+  shape: t => ({}),
+});
+
+const schema = builder.toSchema([
+  Query,
+  Shaveable,
+  Stuff,
+  User,
+  Sheep,
+  SearchResult,
+  Article,
+  Example,
+]);
+
+console.log(printSchema(schema));

@@ -1,6 +1,7 @@
 import {
   GraphQLEnumValueConfigMap,
   GraphQLObjectType,
+  GraphQLInputObjectType,
   GraphQLInterfaceType,
   GraphQLUnionType,
   GraphQLEnumType,
@@ -10,7 +11,7 @@ import InputType from './input';
 import BaseType from './base';
 import InterfaceType from './interface';
 import Field from './field';
-import FieldBuilder from './fieldUtils.ts/builder';
+import FieldBuilder from './fieldUtils/builder';
 import ObjectType from './object';
 import UnionType from './union';
 import EnumType from './enum';
@@ -26,10 +27,11 @@ export type TypeMap = {
 };
 
 export type InputField =
-  | (() => InputType<unknown> | InputType<unknown>[])
+  | (() => InputType<{}, {}, string> | InputType<{}, {}, string>[])
   | {
+      description?: string;
       required?: boolean;
-      type: () => InputType<unknown> | InputType<unknown>[];
+      type: () => InputType<{}, {}, string> | InputType<{}, {}, string>[];
     };
 
 export type InputFields = {
@@ -40,9 +42,13 @@ export type Args<Types extends TypeMap> = {
   [s: string]: Types[keyof Types];
 };
 
-export type InputShapeFromFields<Fields extends InputFields> = {
-  [K in keyof Fields]: InputShapeFromField<Fields[K]>;
-};
+export type InputShapeFromFields<
+  Fields extends InputFields | null | undefined
+> = Fields extends InputFields
+  ? {
+      [K in keyof Fields]: InputShapeFromField<Fields[K]>;
+    }
+  : unknown;
 
 export type MaybeRequired<Required extends boolean, Type> = Required extends true
   ? NonNullable<Type>
@@ -53,11 +59,11 @@ export type InputShapeFromField<
   Required extends boolean = true
 > = MaybeRequired<
   Required,
-  Field extends (() => InputType<unknown> | InputType<unknown>[])
+  Field extends (() => InputType<{}, {}, string> | InputType<{}, {}, string>[])
     ? InputShapeFromType<Field>
     : Field extends {
         required?: infer Required;
-        type: () => InputType<unknown> | InputType<unknown>[];
+        type: () => InputType<{}, {}, string> | InputType<{}, {}, string>[];
       }
     ? Required extends false
       ? InputShapeFromType<Field['type']> | null | undefined
@@ -66,13 +72,13 @@ export type InputShapeFromField<
 >;
 
 export type InputShapeFromType<
-  Type extends () => InputType<unknown> | InputType<unknown>[]
+  Type extends () => InputType<{}, {}, string> | InputType<{}, {}, string>[]
 > = Type extends () => (infer T)[]
-  ? T extends InputType<unknown>
+  ? T extends InputType<{}, {}, string>
     ? NonNullable<T['shape']>[]
     : never
   : Type extends () => infer U
-  ? U extends InputType<unknown>
+  ? U extends InputType<{}, {}, string>
     ? NonNullable<U['shape']>
     : never
   : never;
@@ -95,7 +101,7 @@ export type Resolver<Parent, Args, Context, Type> = (
   parent: Parent,
   args: Args,
   context: Context,
-) => Type | Promise<Type>;
+) => Readonly<Type | Promise<Type>>;
 
 export type OptionalKeys<T extends {}> = {
   [K in keyof T]: undefined extends T[K] ? K : never;
@@ -213,7 +219,7 @@ export type ShapeFromInterfaces<
 export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = Extract<
   {
     [K in keyof Types]: Shape extends NonNullable<Types[K]> ? K : never;
-  }[keyof Types],
+  }[Exclude<keyof Types, 'Query' | 'Mutation'>],
   string
 >;
 
@@ -296,7 +302,8 @@ export type ImplementedType<Types extends TypeMap> =
   | InterfaceType<{}, Types, NamedTypeParam<Types>, {}>
   | UnionType<Types, {}, string, NamedTypeParam<Types>>
   | EnumType<Types, string, EnumValues>
-  | ScalarType<Types, NamedTypeParam<Types>, unknown>;
+  | ScalarType<Types, NamedTypeParam<Types>>
+  | InputType<{}, {}, string>;
 
 export type StoreEntry<Types extends TypeMap> =
   | {
@@ -316,7 +323,12 @@ export type StoreEntry<Types extends TypeMap> =
     }
   | { type: EnumType<Types, string>; built: GraphQLEnumType; kind: 'Enum' }
   | {
-      type: ScalarType<Types, NamedTypeParam<Types>, unknown>;
+      type: ScalarType<Types, NamedTypeParam<Types>>;
       built: GraphQLScalarType;
       kind: 'Scalar';
+    }
+  | {
+      type: InputType<{}, {}, string>;
+      built: GraphQLInputObjectType;
+      kind: 'InputObject';
     };

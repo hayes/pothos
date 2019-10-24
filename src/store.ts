@@ -12,7 +12,23 @@ export default class TypeStore<Types extends TypeMap> {
   }
 
   getBuilt(name: string) {
-    return this.getEntry(name).built;
+    const entry = this.getEntry(name);
+
+    if (entry.kind === 'InputObject') {
+      throw new Error(`${name} is of type ${entry.type}, expected valid output type`);
+    }
+
+    return entry.built;
+  }
+
+  getBuiltInput(name: string) {
+    const entry = this.getEntry(name);
+
+    if (entry.kind === 'Object' || entry.kind === 'Interface' || entry.kind === 'Union') {
+      throw new Error(`${name} is of type ${entry.type}, expected valid input type`);
+    }
+
+    return entry.built;
   }
 
   getType(name: string) {

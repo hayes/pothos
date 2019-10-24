@@ -5,7 +5,7 @@ import { NamedTypeParam, TypeMap } from './types';
 export default class ScalarType<
   Types extends TypeMap,
   Name extends NamedTypeParam<Types>,
-  Shape
+  Shape extends Types[Name] = Types[Name]
 > extends BaseType<Types, Name, Shape> {
   scalar: GraphQLScalarType;
 

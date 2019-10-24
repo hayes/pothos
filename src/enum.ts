@@ -1,4 +1,5 @@
 import { GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLEnumValueConfig } from 'graphql';
+import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import { EnumTypeOptions, EnumValues, TypeMap } from './types';
 
@@ -22,8 +23,8 @@ export default class EnumType<
     super(name);
 
     this.values = Array.isArray(options.values)
-      ? Object.fromEntries(options.values.map(key => [key, {}]))
-      : Object.fromEntries(Object.entries(options.values)
+      ? fromEntries(options.values.map(key => [key, {}]))
+      : fromEntries(Object.entries(options.values)
           .map(([key, value]) => {
             if (value && typeof value === 'object') {
               return [key, value];

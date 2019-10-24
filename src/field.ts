@@ -1,8 +1,9 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import { GraphQLFieldConfig } from 'graphql';
+import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLNonNull } from 'graphql';
+import fromEntries from 'object.fromentries';
 import { TypeMap, TypeParam, FieldOptions, InputFields, ShapeFromTypeParam } from './types';
 import TypeStore from './store';
-import { typeFromParam } from './utils';
+import { typeFromParam, buildArg } from './utils';
 
 export default class Field<
   Args extends InputFields,
@@ -39,7 +40,7 @@ export default class Field<
     },
   ) {
     this.options = options;
-    this.required = options.required || (false as Req);
+    this.required = (options.required === false ? options.required : true) as Req;
     this.args = options.args || ({} as Args);
     this.extendsField = options.extendsField || (null as Extends);
     this.type = options.type;
@@ -49,12 +50,29 @@ export default class Field<
     // this.type = typeof typeParam === 'function' ? typeParam() : type;
   }
 
+  buildArgs(store: TypeStore<Types>): GraphQLFieldConfigArgumentMap {
+    return fromEntries(
+      Object.keys(this.args).map(key => {
+        const arg = this.args[key];
+        return [
+          key,
+          {
+            description: typeof arg === 'function' ? undefined : arg.description,
+            type: buildArg(arg, store),
+          },
+        ];
+      }),
+    );
+  }
+
   build(name: string, store: TypeStore<Types>): GraphQLFieldConfig<unknown, unknown> {
     return {
-      args: {},
+      args: this.buildArgs(store),
       extensions: [],
       description: this.options.description || name,
-      type: typeFromParam(this.type, store),
+      type: this.required
+        ? new GraphQLNonNull(typeFromParam(this.type, store))
+        : typeFromParam(this.type, store),
     };
   }
 }

@@ -1,4 +1,5 @@
 import { GraphQLObjectType } from 'graphql';
+import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import {
   TypeMap,
@@ -12,7 +13,7 @@ import {
 import InterfaceType from './interface';
 import TypeStore from './store';
 import Field from './field';
-import FieldBuilder from './fieldUtils.ts/builder';
+import FieldBuilder from './fieldUtils/builder';
 
 export default class ObjectType<
   Shape extends {},
@@ -54,7 +55,7 @@ export default class ObjectType<
       name: this.typename,
       description: this.description,
       fields: () =>
-        Object.fromEntries(
+        fromEntries(
           Object.entries(this.fields).map(([key, field]) => [
             key,
             (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(key, store),
