@@ -7,7 +7,7 @@ export default abstract class BaseType<Types extends TypeMap, Name extends strin
 
   shape?: Shape;
 
-  abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar';
+  abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar' | 'InputObject';
 
   constructor(name: Name, shape?: Shape) {
     this.typename = name;

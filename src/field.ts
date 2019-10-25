@@ -6,7 +6,7 @@ import TypeStore from './store';
 import { typeFromParam, buildArg } from './utils';
 
 export default class Field<
-  Args extends InputFields,
+  Args extends InputFields<Types>,
   Types extends TypeMap,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,

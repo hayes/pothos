@@ -7,7 +7,7 @@ export default class BaseFieldUtil<
   Context
 > {
   protected createField<
-    Args extends InputFields,
+    Args extends InputFields<Types>,
     Type extends TypeParam<Types>,
     Req extends boolean,
     Extends extends string | null
@@ -36,7 +36,7 @@ export default class BaseFieldUtil<
   }
 
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <Args extends InputFields, Req extends boolean>(
+    return <Args extends InputFields<Types>, Req extends boolean>(
       options: Omit<FieldOptions<Types, ParentType, Type, Req, Args, Context>, 'type'>,
     ): Field<Args, Types, ParentType, Type, Req, Context, null> => {
       return this.createField<Args, Type, Req, null>({ ...options, type }, null);

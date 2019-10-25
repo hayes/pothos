@@ -7,7 +7,7 @@ export default class FieldModifier<
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Req extends boolean,
-  Args extends InputFields,
+  Args extends InputFields<Types>,
   Extends extends string,
   Context
 > extends BaseFieldUtil<Types, ParentType, Context> {

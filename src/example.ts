@@ -1,25 +1,32 @@
-import { printSchema } from 'graphql';
-import SchemaBuilder, { ID, Int } from '.';
+import { printSchema, GraphQLID, GraphQLInt, GraphQLString } from 'graphql';
+import SchemaBuilder from '.';
+import InputType from './input';
+
+type Types = {
+  ID: bigint;
+  Int: number;
+  Float: number;
+  String: string;
+  Boolean: boolean;
+  User: { firstName: string; lastName: string };
+  Article: { title: string; body: string };
+  Countable: { count: number };
+  Shaveable: { shaved: boolean };
+  Sheep: { name: string; count: number; shaved: boolean };
+  Query: {};
+  Mutation: {};
+};
 
 const builder = new SchemaBuilder<
   // Model shapes
-  {
-    ID: bigint;
-    Int: number;
-    Float: number;
-    String: string;
-    Boolean: boolean;
-    User: { firstName: string; lastName: string };
-    Article: { title: string; body: string };
-    Countable: { count: number };
-    Shaveable: { shaved: boolean };
-    Sheep: { name: string; count: number; shaved: boolean };
-    Query: {};
-    Mutation: {};
-  },
+  Types,
   // Context shape
   { userID: number }
 >();
+
+const ID = builder.createScalar('ID', GraphQLID);
+const Int = builder.createScalar('Int', GraphQLInt);
+const String = builder.createScalar('String', GraphQLString);
 
 // Create input types
 const Example = builder.createInputType('Example', {
@@ -31,26 +38,26 @@ const Example = builder.createInputType('Example', {
 
 // When creating input types with circular references
 // shape needs to be defined explicitly but is still checked by the type checker
-// type ExampleShape = {
-//   id: bigint;
-//   example: {
-//     id: bigint;
-//   };
-//   more: ExampleShape;
-// };
+type ExampleShape = {
+  id: bigint;
+  example: {
+    id: bigint;
+  };
+  more: ExampleShape;
+};
 
-// TODO fix recursive inputs
-// const Example2 = builder.createInputType<ExampleShape>('Example', {
-//   fields: {
-//     example: () => Example,
-//     id: {
-//       required: false,
-//       type: () => ID,
-//     },
-//     // We use arrow function syntax to allow this type of circular reference
-//     more: () => Example2,
-//   },
-// });
+// TODO make this signature simpler (probs by allowing defining shape for input types in builder types)
+const Example2: InputType<Types, ExampleShape, {}, string> = builder.createInputType('Example2', {
+  fields: {
+    example: () => Example,
+    id: {
+      required: false,
+      type: () => ID,
+    },
+    // We use arrow function syntax to allow this type of circular reference
+    more: () => Example2,
+  },
+});
 
 // Union type
 const SearchResult = builder.createUnionType('SearchResult', {
@@ -92,15 +99,15 @@ const User = builder.createObjectType('User', {
       },
     }),
     // creating a resolver with args that use recursive types
-    // recursiveArgs: t.id({
-    //   args: {
-    //     example2: () => Example2,
-    //     firstN: () => Int,
-    //   },
-    //   resolver: (parent, args) => {
-    //     return args.example2.more.more.more.example.id;
-    //   },
-    // }),
+    recursiveArgs: t.id({
+      args: {
+        example2: () => Example2,
+        firstN: () => Int,
+      },
+      resolver: (parent, args) => {
+        return args.example2.more.more.more.example.id;
+      },
+    }),
     // add directives
     privateField: t.string({
       // map of directives -> directive args
@@ -247,6 +254,9 @@ const Article = builder.createObjectType('Article', {
 });
 
 const schema = builder.toSchema([
+  ID,
+  Int,
+  String,
   Query,
   Shaveable,
   Stuff,
@@ -255,6 +265,7 @@ const schema = builder.toSchema([
   SearchResult,
   Article,
   Example,
+  Example2,
 ]);
 
 console.log(printSchema(schema));

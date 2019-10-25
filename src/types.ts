@@ -7,7 +7,7 @@ import {
   GraphQLEnumType,
   GraphQLScalarType,
 } from 'graphql';
-import InputType from './input';
+import InputObjectType from './input';
 import BaseType from './base';
 import InterfaceType from './interface';
 import Field from './field';
@@ -26,16 +26,21 @@ export type TypeMap = {
   Boolean: unknown;
 };
 
-export type InputField =
-  | (() => InputType<{}, {}, string> | InputType<{}, {}, string>[])
+export type InputType<Types extends TypeMap> =
+  | InputObjectType<Types, {}, {}, string>
+  | ScalarType<Types, NamedTypeParam<Types>>
+  | EnumType<Types, string>;
+
+export type InputField<Types extends TypeMap> =
+  | (() => InputType<Types> | InputType<Types>[])
   | {
       description?: string;
       required?: boolean;
-      type: () => InputType<{}, {}, string> | InputType<{}, {}, string>[];
+      type: () => InputType<Types> | InputType<Types>[];
     };
 
-export type InputFields = {
-  [s: string]: InputField;
+export type InputFields<Types extends TypeMap> = {
+  [s: string]: InputField<Types>;
 };
 
 export type Args<Types extends TypeMap> = {
@@ -43,10 +48,11 @@ export type Args<Types extends TypeMap> = {
 };
 
 export type InputShapeFromFields<
-  Fields extends InputFields | null | undefined
-> = Fields extends InputFields
+  Types extends TypeMap,
+  Fields extends InputFields<Types> | null | undefined
+> = Fields extends InputFields<Types>
   ? {
-      [K in keyof Fields]: InputShapeFromField<Fields[K]>;
+      [K in keyof Fields]: InputShapeFromField<Types, Fields[K]>;
     }
   : unknown;
 
@@ -55,30 +61,32 @@ export type MaybeRequired<Required extends boolean, Type> = Required extends tru
   : Type | null | undefined;
 
 export type InputShapeFromField<
-  Field extends InputField,
+  Types extends TypeMap,
+  Field extends InputField<Types>,
   Required extends boolean = true
 > = MaybeRequired<
   Required,
-  Field extends (() => InputType<{}, {}, string> | InputType<{}, {}, string>[])
-    ? InputShapeFromType<Field>
+  Field extends (() => InputType<Types> | InputType<Types>[])
+    ? InputShapeFromType<Types, Field>
     : Field extends {
         required?: infer Required;
-        type: () => InputType<{}, {}, string> | InputType<{}, {}, string>[];
+        type: () => InputType<Types> | InputType<Types>[];
       }
     ? Required extends false
-      ? InputShapeFromType<Field['type']> | null | undefined
-      : NonNullable<InputShapeFromType<Field['type']>>
+      ? InputShapeFromType<Types, Field['type']> | null | undefined
+      : NonNullable<InputShapeFromType<Types, Field['type']>>
     : never
 >;
 
 export type InputShapeFromType<
-  Type extends () => InputType<{}, {}, string> | InputType<{}, {}, string>[]
+  Types extends TypeMap,
+  Type extends () => InputType<Types> | InputType<Types>[]
 > = Type extends () => (infer T)[]
-  ? T extends InputType<{}, {}, string>
+  ? T extends InputType<Types>
     ? NonNullable<T['shape']>[]
     : never
   : Type extends () => infer U
-  ? U extends InputType<{}, {}, string>
+  ? U extends InputType<Types>
     ? NonNullable<U['shape']>
     : never
   : never;
@@ -115,7 +123,7 @@ export type FieldOptions<
   ParentName extends TypeParam<Types>,
   ReturnTypeName extends TypeParam<Types>,
   Req extends boolean,
-  Args extends InputFields,
+  Args extends InputFields<Types>,
   Context
 > = {
   type: ReturnTypeName;
@@ -126,7 +134,7 @@ export type FieldOptions<
   deprecationReason?: string;
   resolver: Resolver<
     ShapeFromTypeParam<Types, ParentName, true>,
-    InputShapeFromFields<Args>,
+    InputShapeFromFields<Types, Args>,
     Context,
     ShapeFromTypeParam<Types, ReturnTypeName, Req>
   >;
@@ -303,7 +311,7 @@ export type ImplementedType<Types extends TypeMap> =
   | UnionType<Types, {}, string, NamedTypeParam<Types>>
   | EnumType<Types, string, EnumValues>
   | ScalarType<Types, NamedTypeParam<Types>>
-  | InputType<{}, {}, string>;
+  | InputObjectType<Types, {}, {}, string>;
 
 export type StoreEntry<Types extends TypeMap> =
   | {
@@ -328,7 +336,7 @@ export type StoreEntry<Types extends TypeMap> =
       kind: 'Scalar';
     }
   | {
-      type: InputType<{}, {}, string>;
+      type: InputObjectType<Types, {}, {}, string>;
       built: GraphQLInputObjectType;
       kind: 'InputObject';
     };

@@ -1,8 +1,8 @@
 import { GraphQLList, GraphQLOutputType, GraphQLInputType, GraphQLNonNull } from 'graphql';
-import { TypeParam, TypeMap, InputField } from './types';
+import { TypeParam, TypeMap, InputField, InputType } from './types';
 import TypeStore from './store';
 import BaseType from './base';
-import InputType from './input';
+import InputObjectType from './input';
 
 export function typeFromParam<Types extends TypeMap>(
   param: TypeParam<Types> | BaseType<Types, string, unknown> | [BaseType<Types, string, unknown>],
@@ -21,6 +21,9 @@ export function typeFromParam<Types extends TypeMap>(
   }
 
   if (param instanceof BaseType) {
+    if (typeStore.getType(param.typename) !== param) {
+      throw new Error(`Found unexpected type of same name ${param.typename}`);
+    }
     return typeStore.getBuilt(param.typename);
   }
 
@@ -28,7 +31,7 @@ export function typeFromParam<Types extends TypeMap>(
 }
 
 export function buildArg<Types extends TypeMap>(
-  arg: InputField | InputType<{}, {}, string> | InputType<{}, {}, string>[],
+  arg: InputField<Types> | InputType<Types> | InputType<Types>[],
   store: TypeStore<Types>,
 ): GraphQLInputType {
   if (typeof arg === 'function') {
@@ -39,7 +42,10 @@ export function buildArg<Types extends TypeMap>(
     return new GraphQLList(buildArg(arg[0], store));
   }
 
-  if (arg instanceof InputType) {
+  if (arg instanceof BaseType || arg instanceof InputObjectType) {
+    if (store.getType(arg.typename) !== arg) {
+      throw new Error(`Found unexpected type of same name ${arg.typename}`);
+    }
     return store.getBuiltInput(arg.typename);
   }
 

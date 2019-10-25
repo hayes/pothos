@@ -102,7 +102,7 @@ export default class FieldBuilder<
 
   exposeStringList = this.exposeHelper(['String']);
 
-  field<Args extends InputFields, Type extends TypeParam<Types>, Req extends boolean>(
+  field<Args extends InputFields<Types>, Type extends TypeParam<Types>, Req extends boolean>(
     options: FieldOptions<Types, ParentType, Type, Req, Args, Context>,
   ): Field<Args, Types, ParentType, Type, Req, Context, null> {
     return this.createField(options, null);
