@@ -69,7 +69,7 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     Name extends string,
     Fields extends InputFields<Types>
   >(name: Name, options: { fields: Fields }) {
-    return new InputObjectType<Types, Shape, Fields, Name>(name);
+    return new InputObjectType<Types, Shape, Fields, Name>(name, options);
   }
 
   toSchema(types: ImplementedType<Types>[]) {

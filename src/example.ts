@@ -51,7 +51,7 @@ const Example2: InputType<Types, ExampleShape, {}, string> = builder.createInput
   fields: {
     example: () => Example,
     id: {
-      required: false,
+      required: true,
       type: () => ID,
     },
     // We use arrow function syntax to allow this type of circular reference

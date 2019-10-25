@@ -47,14 +47,9 @@ export type Args<Types extends TypeMap> = {
   [s: string]: Types[keyof Types];
 };
 
-export type InputShapeFromFields<
-  Types extends TypeMap,
-  Fields extends InputFields<Types> | null | undefined
-> = Fields extends InputFields<Types>
-  ? {
-      [K in keyof Fields]: InputShapeFromField<Types, Fields[K]>;
-    }
-  : unknown;
+export type InputShapeFromFields<Types extends TypeMap, Fields extends InputFields<Types>> = {
+  [K in keyof Fields]: InputShapeFromField<Types, Fields[K]>;
+};
 
 export type MaybeRequired<Required extends boolean, Type> = Required extends true
   ? NonNullable<Type>

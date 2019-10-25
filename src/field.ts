@@ -58,6 +58,7 @@ export default class Field<
           key,
           {
             description: typeof arg === 'function' ? undefined : arg.description,
+            required: typeof arg === 'function' ? false : arg.required,
             type: buildArg(arg, store),
           },
         ];
