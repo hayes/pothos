@@ -2,10 +2,17 @@ import { GraphQLType } from 'graphql';
 import TypeStore from './store';
 import { TypeMap } from './types';
 
-export default abstract class BaseType<Types extends TypeMap, Name extends string, Shape> {
+export default abstract class BaseType<
+  Types extends TypeMap,
+  Name extends string,
+  Shape,
+  InputShape = Shape
+> {
   typename: Name;
 
   shape?: Shape;
+
+  inputShape?: InputShape;
 
   abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar' | 'InputObject';
 

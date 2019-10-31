@@ -17,75 +17,180 @@ import UnionType from './union';
 import EnumType from './enum';
 import ScalarType from './scalar';
 
+// Utils
+export type OptionalKeys<T extends {}> = {
+  [K in keyof T]: undefined extends T[K] ? K : never;
+}[keyof T];
+
+export type UndefinedToOptional<T extends {}> = Omit<T, OptionalKeys<T>> &
+  Partial<Pick<T, OptionalKeys<T>>>;
+
+export type MaybeRequired<Required extends boolean, Type> = Required extends true
+  ? NonNullable<Type>
+  : Type | null | undefined;
+
+// eslint-disable-next-line import/prefer-default-export
+export abstract class InvalidType<Message> {
+  never!: never;
+}
+
+export type UnknownString<T extends string | InvalidType<unknown>, Known, Message> = T extends Known
+  ? InvalidType<Message>
+  : T;
+
+export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends ((
+  k: infer I,
+) => void)
+  ? I
+  : never;
+
+// TypeMap
 export type TypeMap = {
-  [s: string]: unknown;
-  String: unknown;
-  ID: unknown;
-  Int: unknown;
-  Float: unknown;
-  Boolean: unknown;
+  Input: {
+    [s: string]: unknown;
+  };
+  Output: {
+    [s: string]: unknown;
+  };
 };
 
+export type MergeTypeMap<Map extends TypeMap, Partial extends TypeMap> = {
+  Input: Omit<Map['Input'], keyof (Partial['Input'])> & Partial['Input'];
+  Output: Omit<Map['Output'], keyof (Partial['Output'])> & Partial['Output'];
+};
+
+// TypeParam
+export type DefaultTypeMap = {
+  Input: {
+    String: string;
+    ID: string | number;
+    Int: number;
+    Float: number;
+    Boolean: boolean;
+  };
+  Output: {
+    Query: {};
+    Mutation: {};
+    String: string;
+    ID: string | number;
+    Int: number;
+    Float: number;
+    Boolean: boolean;
+  };
+};
+
+export type OptionalShapeFromTypeParam<
+  Types extends TypeMap,
+  Param extends TypeParam<Types>
+> = Param extends keyof Types['Output']
+  ? Types['Output'][Param]
+  : Param extends () => BaseType<Types, string, unknown>
+  ? ReturnType<Param>['shape']
+  : Param extends [keyof Types['Output']]
+  ? Types['Output'][Param[0]][]
+  : Param extends () => [BaseType<Types, string, unknown>]
+  ? ReturnType<Param>[0]['shape'][]
+  : never;
+
+export type ShapeFromTypeParam<
+  Types extends TypeMap,
+  Param extends TypeParam<Types>,
+  Required extends boolean
+> = Required extends false
+  ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
+  : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
+
+export type NamedTypeParam<Types extends TypeMap> = Extract<keyof Types['Output'], string>;
+
+export type TypeParam<Types extends TypeMap> =
+  | keyof Types['Output']
+  | (() => BaseType<Types, string, unknown>)
+  | [keyof Types['Output']]
+  | (() => [BaseType<Types, string, unknown>]);
+
+// InputTypes
 export type InputType<Types extends TypeMap> =
-  | InputObjectType<Types, {}, {}, string>
-  | ScalarType<Types, NamedTypeParam<Types>>
-  | EnumType<Types, string>;
+  | InputObjectType<Types, unknown, {}, string>
+  | ScalarType<Types, NamedTypeParam<Types>, any, any>
+  | EnumType<Types, any>
+  | keyof Types['Input'];
 
 export type InputField<Types extends TypeMap> =
-  | (() => InputType<Types> | InputType<Types>[])
+  | (() => InputType<Types>)
   | {
       description?: string;
       required?: boolean;
       type: () => InputType<Types> | InputType<Types>[];
     };
 
-export type InputFields<Types extends TypeMap> = {
-  [s: string]: InputField<Types>;
+export type InputTypeWithShape<Types extends TypeMap, Shape> =
+  | InputObjectType<Types, Shape, {}, string>
+  | ScalarType<
+      Types,
+      NamedTypeParam<Types>,
+      any,
+      Shape extends Types['Input'][Extract<keyof Types['Output'], string>] ? Shape : never
+    >
+  | EnumType<Types, Shape extends string ? Shape : never>
+  | keyof Types['Input'];
+
+export type InputFieldWithShape<Types extends TypeMap, Shape> =
+  | (() => InputTypeWithShape<Types, Shape>)
+  | {
+      description?: string;
+      required?: boolean;
+      type: () => InputTypeWithShape<Types, Shape> | InputTypeWithShape<Types, Shape>[];
+    };
+
+export type ShapedInputFields<Types extends TypeMap, Name extends keyof Types['Input']> = {
+  [K in keyof Types['Input'][Name]]: InputFieldWithShape<Types, Types['Input'][Name][K]>;
 };
 
-export type Args<Types extends TypeMap> = {
-  [s: string]: Types[keyof Types];
+export type InputFields<Types extends TypeMap> = {
+  [s: string]: InputField<Types>;
 };
 
 export type InputShapeFromFields<Types extends TypeMap, Fields extends InputFields<Types>> = {
   [K in keyof Fields]: InputShapeFromField<Types, Fields[K]>;
 };
 
-export type MaybeRequired<Required extends boolean, Type> = Required extends true
-  ? NonNullable<Type>
-  : Type | null | undefined;
-
 export type InputShapeFromField<
   Types extends TypeMap,
-  Field extends InputField<Types>,
-  Required extends boolean = true
-> = MaybeRequired<
-  Required,
-  Field extends (() => InputType<Types> | InputType<Types>[])
-    ? InputShapeFromType<Types, Field>
-    : Field extends {
-        required?: infer Required;
-        type: () => InputType<Types> | InputType<Types>[];
-      }
-    ? Required extends false
-      ? InputShapeFromType<Types, Field['type']> | null | undefined
-      : NonNullable<InputShapeFromType<Types, Field['type']>>
-    : never
->;
+  Field extends InputField<Types>
+> = Field extends (() => InputType<Types> | InputType<Types>[])
+  ? InputShapeFromType<Types, Field>
+  : Field extends {
+      required?: infer Required;
+      type: () => InputType<Types> | InputType<Types>[];
+    }
+  ? Required extends false
+    ? InputShapeFromType<Types, Field['type']> | null | undefined
+    : NonNullable<InputShapeFromType<Types, Field['type']>>
+  : never;
 
 export type InputShapeFromType<
   Types extends TypeMap,
   Type extends () => InputType<Types> | InputType<Types>[]
 > = Type extends () => (infer T)[]
-  ? T extends InputType<Types>
-    ? NonNullable<T['shape']>[]
+  ? T extends BaseType<Types, string, unknown>
+    ? NonNullable<T['inputShape']>[]
+    : T extends keyof Types['Input']
+    ? NonNullable<Types['Input'][T]>[]
     : never
   : Type extends () => infer U
-  ? U extends InputType<Types>
-    ? NonNullable<U['shape']>
-    : never
-  : never;
+  ? U extends BaseType<Types, string, unknown>
+    ? NonNullable<U['inputShape']>
+    : U extends keyof Types['Input']
+    ? Types['Input'][U]
+    : 'not an input'
+  : 'not a func';
 
+// Args
+export type Args<Types extends TypeMap> = {
+  [s: string]: Types[keyof Types];
+};
+
+// Resolvers
 export type ResolvableValue<T> = T | Promise<T> | (() => T | Promise<T>);
 
 export type NeedsResolver<
@@ -106,65 +211,7 @@ export type Resolver<Parent, Args, Context, Type> = (
   context: Context,
 ) => Readonly<Type | Promise<Type>>;
 
-export type OptionalKeys<T extends {}> = {
-  [K in keyof T]: undefined extends T[K] ? K : never;
-}[keyof T];
-
-export type UndefinedToOptional<T extends {}> = Omit<T, OptionalKeys<T>> &
-  Partial<Pick<T, OptionalKeys<T>>>;
-
-export type FieldOptions<
-  Types extends TypeMap,
-  ParentName extends TypeParam<Types>,
-  ReturnTypeName extends TypeParam<Types>,
-  Req extends boolean,
-  Args extends InputFields<Types>,
-  Context
-> = {
-  type: ReturnTypeName;
-  args?: Args;
-  required?: Req;
-  directives?: { [s: string]: unknown[] };
-  description?: string;
-  deprecationReason?: string;
-  resolver: Resolver<
-    ShapeFromTypeParam<Types, ParentName, true>,
-    InputShapeFromFields<Types, Args>,
-    Context,
-    ShapeFromTypeParam<Types, ReturnTypeName, Req>
-  >;
-};
-
-export type NamedTypeParam<Types extends TypeMap> = Extract<keyof Types, string>;
-
-export type TypeParam<Types extends TypeMap> =
-  | keyof Types
-  | (() => BaseType<Types, string, unknown>)
-  | [keyof Types]
-  | (() => [BaseType<Types, string, unknown>]);
-
 export type EnumValues = (readonly string[]) | GraphQLEnumValueConfigMap;
-
-export type OptionalShapeFromTypeParam<
-  Types extends TypeMap,
-  Param extends TypeParam<Types>
-> = Param extends keyof Types
-  ? Types[Param]
-  : Param extends () => BaseType<Types, string, unknown>
-  ? ReturnType<Param>['shape']
-  : Param extends [keyof Types]
-  ? Types[Param[0]][]
-  : Param extends () => [BaseType<Types, string, unknown>]
-  ? ReturnType<Param>[0]['shape'][]
-  : never;
-
-export type ShapeFromTypeParam<
-  Types extends TypeMap,
-  Param extends TypeParam<Types>,
-  Required extends boolean
-> = Required extends false
-  ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
-  : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
 export type FieldsShape<
   Shape extends {},
@@ -221,10 +268,44 @@ export type ShapeFromInterfaces<
 
 export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = Extract<
   {
-    [K in keyof Types]: Shape extends NonNullable<Types[K]> ? K : never;
-  }[Exclude<keyof Types, 'Query' | 'Mutation'>],
+    [K in keyof Types['Output']]: Shape extends NonNullable<Types['Output'][K]> ? K : never;
+  }[Exclude<keyof Types['Output'], 'Query' | 'Mutation' | 'Input'>],
   string
 >;
+
+export type CompatibleTypes<
+  Types extends TypeMap,
+  ParentType extends TypeParam<Types>,
+  Type extends TypeParam<Types>,
+  Req extends boolean,
+  ParentShape = ShapeFromTypeParam<Types, ParentType, true>,
+  Shape = ShapeFromTypeParam<Types, Type, Req>
+> = {
+  [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
+}[keyof ParentShape];
+
+// Type Options
+export type FieldOptions<
+  Types extends TypeMap,
+  ParentName extends TypeParam<Types>,
+  ReturnTypeName extends TypeParam<Types>,
+  Req extends boolean,
+  Args extends InputFields<Types>,
+  Context
+> = {
+  type: ReturnTypeName;
+  args?: Args;
+  required?: Req;
+  directives?: { [s: string]: unknown[] };
+  description?: string;
+  deprecationReason?: string;
+  resolver: Resolver<
+    ShapeFromTypeParam<Types, ParentName, true>,
+    InputShapeFromFields<Types, Args>,
+    Context,
+    ShapeFromTypeParam<Types, ReturnTypeName, Req>
+  >;
+};
 
 export type ObjectTypeOptions<
   Shape extends {},
@@ -263,43 +344,18 @@ export type InterfaceTypeOptions<
   shape: FieldsShape<Shape, Types, Type, Context>;
 };
 
-// eslint-disable-next-line import/prefer-default-export
-export abstract class InvalidType<Message> {
-  never!: never;
-}
-
-export type UnknownString<T extends string | InvalidType<unknown>, Known, Message> = T extends Known
-  ? InvalidType<Message>
-  : T;
-
-export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends ((
-  k: infer I,
-) => void)
-  ? I
-  : never;
-
 export type EnumTypeOptions<Values extends EnumValues> = {
   description?: string;
   values: Values;
 };
 
-export type UnionOptions<Types extends TypeMap, Context, Member extends keyof Types> = {
+export type UnionOptions<Types extends TypeMap, Context, Member extends keyof Types['Output']> = {
   description?: string;
   members: Member[];
-  resolveType: (parent: Types[Member], context: Context) => Member | Promise<Member>;
+  resolveType: (parent: Types['Output'][Member], context: Context) => Member | Promise<Member>;
 };
 
-export type CompatibleTypes<
-  Types extends TypeMap,
-  ParentType extends TypeParam<Types>,
-  Type extends TypeParam<Types>,
-  Req extends boolean,
-  ParentShape = ShapeFromTypeParam<Types, ParentType, true>,
-  Shape = ShapeFromTypeParam<Types, Type, Req>
-> = {
-  [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
-}[keyof ParentShape];
-
+// All types
 export type ImplementedType<Types extends TypeMap> =
   | ObjectType<{}, any[], Types, NamedTypeParam<Types>, {}>
   | InterfaceType<{}, Types, NamedTypeParam<Types>, {}>

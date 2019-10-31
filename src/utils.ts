@@ -30,10 +30,20 @@ export function typeFromParam<Types extends TypeMap>(
   throw new Error(`Unable to resolve typeParam ${Object.keys(param)} ${param}`);
 }
 
+export function isInputName<Types extends TypeMap>(
+  arg: InputField<Types> | InputType<Types> | InputType<Types>[],
+): arg is keyof Types['Input'] {
+  return typeof arg === 'string';
+}
+
 export function buildArg<Types extends TypeMap>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
   store: TypeStore<Types>,
 ): GraphQLInputType {
+  if (isInputName(arg)) {
+    return store.getBuiltInput(arg as string);
+  }
+
   if (typeof arg === 'function') {
     return buildArg(arg(), store);
   }
@@ -49,9 +59,13 @@ export function buildArg<Types extends TypeMap>(
     return store.getBuiltInput(arg.typename);
   }
 
-  if (arg.required) {
-    return new GraphQLNonNull(buildArg(arg.type, store));
+  if (typeof arg === 'string') {
+    return store.getBuiltInput(arg);
   }
 
-  return buildArg(arg.type, store);
+  if (arg.required) {
+    return new GraphQLNonNull(buildArg(arg.type(), store));
+  }
+
+  return buildArg(arg.type(), store);
 }

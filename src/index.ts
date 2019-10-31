@@ -1,7 +1,6 @@
 /* eslint-disable no-restricted-syntax */
 import { GraphQLSchema, GraphQLScalarType } from 'graphql';
 import {
-  TypeMap,
   ObjectTypeOptions,
   InterfaceTypeOptions,
   CompatibleInterfaceNames,
@@ -11,6 +10,10 @@ import {
   ImplementedType,
   StoreEntry,
   EnumValues,
+  ShapedInputFields,
+  MergeTypeMap,
+  DefaultTypeMap,
+  TypeMap,
   InputFields,
   InputShapeFromFields,
 } from './types';
@@ -22,7 +25,14 @@ import EnumType from './enum';
 import TypeStore from './store';
 import ScalarType from './scalar';
 
-export default class SchemaBuilder<Types extends TypeMap, Context> {
+export default class SchemaBuilder<
+  PartialTypes extends TypeMap,
+  Context,
+  Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
+    DefaultTypeMap,
+    PartialTypes
+  >
+> {
   createObjectType<
     Shape extends {},
     Interfaces extends InterfaceType<
@@ -31,12 +41,12 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
       CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
       {}
     >[],
-    Type extends Extract<keyof Types, string>
+    Type extends Extract<keyof Types['Output'], string>
   >(name: Type, options: ObjectTypeOptions<Shape, Interfaces, Types, Type, Context>) {
     return new ObjectType<Shape, Interfaces, Types, Type, Context>(name, options);
   }
 
-  createInterfaceType<Shape extends {}, Type extends Extract<keyof Types, string>>(
+  createInterfaceType<Shape extends {}, Type extends Extract<keyof Types['Output'], string>>(
     name: Type,
     options: InterfaceTypeOptions<Shape, Types, Type, Context>,
   ) {
@@ -47,7 +57,7 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
     name: Name,
     options: {
       members: Member[];
-      resolveType: (parent: Types[Member], context: Context) => Member | Promise<Member>;
+      resolveType: (parent: Types['Output'][Member], context: Context) => Member | Promise<Member>;
     },
   ) {
     return new UnionType<Types, Context, Name, Member>(name, options);
@@ -61,15 +71,19 @@ export default class SchemaBuilder<Types extends TypeMap, Context> {
   }
 
   createScalar<Name extends NamedTypeParam<Types>>(name: Name, scalar: GraphQLScalarType) {
-    return new ScalarType<Types, Name, Types[Name]>(name, scalar);
+    return new ScalarType<Types, Name>(name, scalar);
   }
 
   createInputType<
-    Shape extends InputShapeFromFields<Types, Fields>,
     Name extends string,
-    Fields extends InputFields<Types>
+    Fields extends Name extends keyof Types['Input']
+      ? ShapedInputFields<Types, Name>
+      : InputFields<Types>
   >(name: Name, options: { fields: Fields }) {
-    return new InputObjectType<Types, Shape, Fields, Name>(name, options);
+    return new InputObjectType<Types, InputShapeFromFields<Types, Fields>, Fields, Name>(
+      name,
+      options,
+    );
   }
 
   toSchema(types: ImplementedType<Types>[]) {

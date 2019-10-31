@@ -1,20 +1,24 @@
 import { printSchema, GraphQLID, GraphQLInt, GraphQLString } from 'graphql';
 import SchemaBuilder from '.';
-import InputType from './input';
+
+type ExampleShape = {
+  // eslint-disable-next-line no-use-before-define, @typescript-eslint/no-use-before-define
+  example: NonNullable<typeof Example['inputShape']>;
+  id: string | number;
+  more: ExampleShape;
+};
 
 type Types = {
-  ID: bigint;
-  Int: number;
-  Float: number;
-  String: string;
-  Boolean: boolean;
-  User: { firstName: string; lastName: string };
-  Article: { title: string; body: string };
-  Countable: { count: number };
-  Shaveable: { shaved: boolean };
-  Sheep: { name: string; count: number; shaved: boolean };
-  Query: {};
-  Mutation: {};
+  Input: {
+    Example2: ExampleShape;
+  };
+  Output: {
+    User: { firstName: string; lastName: string };
+    Article: { title: string; body: string };
+    Countable: { count: number };
+    Shaveable: { shaved: boolean };
+    Sheep: { name: string; count: number; shaved: boolean };
+  };
 };
 
 const builder = new SchemaBuilder<
@@ -31,31 +35,17 @@ const String = builder.createScalar('String', GraphQLString);
 // Create input types
 const Example = builder.createInputType('Example', {
   fields: {
+    // arrow function syntax explained below
     id: () => ID,
   },
-  // arrow function syntax explained below
 });
 
-// When creating input types with circular references
-// shape needs to be defined explicitly but is still checked by the type checker
-type ExampleShape = {
-  id: bigint;
-  example: {
-    id: bigint;
-  };
-  more: ExampleShape;
-};
-
-// TODO make this signature simpler (probs by allowing defining shape for input types in builder types)
-const Example2: InputType<Types, ExampleShape, {}, string> = builder.createInputType('Example2', {
+const Example2 = builder.createInputType('Example2', {
   fields: {
     example: () => Example,
-    id: {
-      required: true,
-      type: () => ID,
-    },
+    id: () => ID,
     // We use arrow function syntax to allow this type of circular reference
-    more: () => Example2,
+    more: () => 'Example2',
   },
 });
 
@@ -71,12 +61,12 @@ const SearchResult = builder.createUnionType('SearchResult', {
 const User = builder.createObjectType('User', {
   shape: t => ({
     // add a scalar field
-    id: t.id({ resolver: () => 5n }),
+    id: t.id({ resolver: () => 5 }),
     // parent is inferred from model shapes defined in builder
     displayName: t.string({
       resolver: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
     }),
-    // can omit resolvers by exposing fields from the backing modl
+    // can omit resolvers by exposing fields from the backing model
     firstName: t.exposeString('firstName'),
     lastName: t.exposeString('lastName'),
     // Non scalar fields:
@@ -189,7 +179,7 @@ const Countable = builder.createInterfaceType('Countable', {
 const Shaveable = builder.createInterfaceType('Shaveable', {
   shape: t => ({
     id: t.id({
-      resolver: () => 5n,
+      resolver: () => 5,
     }),
     shaved: t.exposBoolean('shaved'),
   }),
@@ -208,7 +198,7 @@ const Sheep = builder.createObjectType('Sheep', {
   shape: t => ({
     color: t.string({
       args: { id: () => ID },
-      resolver: (p, { id }) => (id === 1n ? 'black' : 'white'),
+      resolver: (p, { id }) => (id === 1 ? 'black' : 'white'),
     }),
     // // Errors when adding type already defined in interface
     // count: t.id({ resolver: () => 4n }),
