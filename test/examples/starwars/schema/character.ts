@@ -9,12 +9,12 @@ export default builder.createInterfaceType('Character', {
     friends: t.field({
       type: ['Character'],
       description: 'The friends of the character, or an empty list if they have none.',
-      resolver: character => getFriends(character),
+      resolve: character => getFriends(character),
     }),
     appearsIn: t.field({
       type: [Episode],
       description: 'Which movies they appear in.',
-      resolver: o => o.appearsIn.map(id => episodeFromID(id)),
+      resolve: o => o.appearsIn.map(id => episodeFromID(id)),
       args: {
         id: {
           required: true,

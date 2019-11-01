@@ -8,7 +8,7 @@ export default builder.createObjectType('Droid', {
   shape: t => ({
     primaryFunction: t.string({
       description: 'The primary function of the droid.',
-      resolver: o => o.primaryFunc || 'N/A',
+      resolve: o => o.primaryFunc || 'N/A',
     }),
   }),
 });

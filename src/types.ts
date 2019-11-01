@@ -326,7 +326,7 @@ export type FieldOptions<
   directives?: { [s: string]: unknown[] };
   description?: string;
   deprecationReason?: string;
-  resolver: Resolver<
+  resolve: Resolver<
     ShapeFromTypeParam<Types, ParentName, true>,
     InputShapeFromFields<Types, Args>,
     Context,

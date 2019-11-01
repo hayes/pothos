@@ -28,7 +28,7 @@ export default class FieldModifier<
     name: Name,
     options?: Omit<
       FieldOptions<Types, ParentType, Type, Req, {}, Context>,
-      'resolver' | 'type' | 'args'
+      'resolve' | 'type' | 'args'
     >,
   ): Field<{}, Types, ParentType, Type, Req, Context, Extends> {
     return this.exposeField(name, { ...options, type: this.field.type }, this.extendsField);

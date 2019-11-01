@@ -60,10 +60,10 @@ const SearchResult = builder.createUnionType('SearchResult', {
 const User = builder.createObjectType('User', {
   shape: t => ({
     // add a scalar field
-    id: t.id({ resolver: () => 5 }),
+    id: t.id({ resolve: () => 5 }),
     // parent is inferred from model shapes defined in builder
     displayName: t.string({
-      resolver: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
+      resolve: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
     }),
     // can omit resolvers by exposing fields from the backing model
     firstName: t.exposeString('firstName'),
@@ -71,7 +71,7 @@ const User = builder.createObjectType('User', {
     // Non scalar fields:
     firstBornChild: t.field({
       type: 'User',
-      resolver: () => ({
+      resolve: () => ({
         firstName: 'child',
         lastName: '1',
       }),
@@ -82,7 +82,7 @@ const User = builder.createObjectType('User', {
         example: Example,
         firstN: Int,
       },
-      resolver: (parent, args) => {
+      resolve: (parent, args) => {
         return parent.firstName.slice(0, args.firstN) + args.example.id;
       },
     }),
@@ -92,7 +92,7 @@ const User = builder.createObjectType('User', {
         example2: 'Example2',
         firstN: Int,
       },
-      resolver: (parent, args) => {
+      resolve: (parent, args) => {
         return Number.parseInt(args.example2.more.more.more.example.id, 10);
       },
     }),
@@ -100,13 +100,13 @@ const User = builder.createObjectType('User', {
     privateField: t.string({
       // map of directives -> directive args
       directives: { privateData: [] },
-      resolver: (parent, args) => {
+      resolve: (parent, args) => {
         return 'private stuff';
       },
     }),
     // Using a union type
     related: t.field({
-      resolver: parent => {
+      resolve: parent => {
         return {
           body: 'stuff',
           title: 'hi',
@@ -117,21 +117,21 @@ const User = builder.createObjectType('User', {
     }),
     // Lists
     friends: t.field({
-      resolver: parent => {
+      resolve: parent => {
         return [parent];
       },
       type: ['User'],
     }),
     // list helpers
     stuff: t.stringList({
-      resolver() {
+      resolve() {
         return ['soup', 'cats'];
       },
     }),
     // optional fields
     optional: t.string({
       required: false,
-      resolver: () => null,
+      resolve: () => null,
     }),
     // list and optional args
     list: t.idList({
@@ -142,7 +142,7 @@ const User = builder.createObjectType('User', {
         },
       },
       required: true,
-      resolver: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
+      resolve: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
     }),
   }),
 });
@@ -154,7 +154,7 @@ const User = builder.createObjectType('User', {
 //   .string('firstName', {})
 //   .string('lastName', {})
 //   .string('displayName', {
-//     resolver: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
+//     resolve: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
 //   });
 
 // Build using fields defined outside the class
@@ -169,7 +169,7 @@ const Countable = builder.createInterfaceType('Countable', {
         max: Int,
       },
       required: true,
-      resolver: (parent, args) => Math.min(args.max, parent.count),
+      resolve: (parent, args) => Math.min(args.max, parent.count),
     }),
   }),
 });
@@ -177,7 +177,7 @@ const Countable = builder.createInterfaceType('Countable', {
 const Shaveable = builder.createInterfaceType('Shaveable', {
   shape: t => ({
     id: t.id({
-      resolver: () => 5,
+      resolve: () => 5,
     }),
     shaved: t.exposBoolean('shaved'),
   }),
@@ -196,17 +196,17 @@ const Sheep = builder.createObjectType('Sheep', {
   shape: t => ({
     color: t.string({
       args: { id: ID },
-      resolver: (p, { id }) => (id === '1' ? 'black' : 'white'),
+      resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     // // Errors when adding type already defined in interface
-    // count: t.id({ resolver: () => 4n }),
+    // count: t.id({ resolve: () => 4n }),
     count: t
       .extend('count') // required to get the args for the correct field
       // grabs args and requiredness from interface field
-      .implement({ resolver: (parent, args) => Math.min(args.max, parent.count) }),
+      .implement({ resolve: (parent, args) => Math.min(args.max, parent.count) }),
     thing: t.field({
       type: Stuff,
-      resolver: () => 'Bears' as const,
+      resolve: () => 'Bears' as const,
     }),
   }),
 });
@@ -214,7 +214,7 @@ const Sheep = builder.createObjectType('Sheep', {
 const Query = builder.createObjectType('Query', {
   shape: t => ({
     user: t.field({
-      resolver: () => ({
+      resolve: () => ({
         firstName: 'user',
         lastName: 'name',
       }),
@@ -222,13 +222,13 @@ const Query = builder.createObjectType('Query', {
     }),
     stuff: t.field({
       type: [Stuff],
-      resolver() {
+      resolve() {
         return ['Bears', 'Beats', 'BattlestarGalactica'] as const;
       },
     }),
     sheep: t.field({
       type: 'Sheep',
-      resolver: () => ({
+      resolve: () => ({
         count: 5,
         name: 'bah-bah',
         shaved: true,
@@ -241,7 +241,7 @@ const Article = builder.createObjectType('Article', {
   shape: t => ({
     title: t.string({
       description: 'Title of the article, probably click bait',
-      resolver: () => 'Things are happening!',
+      resolve: () => 'Things are happening!',
     }),
   }),
 });

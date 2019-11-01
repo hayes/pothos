@@ -114,7 +114,7 @@ export default class FieldBuilder<
     Name extends CompatibleTypes<Types, ParentType, Type, Req>
   >(
     name: Name,
-    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolver'>,
+    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolve'>,
   ): Field<{}, Types, ParentType, Type, Req, Context, null> {
     return this.exposeField(name, options, null);
   }

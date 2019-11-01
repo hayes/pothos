@@ -9,7 +9,7 @@ export default builder.createObjectType('Human', {
     homePlanet: t.string({
       description: 'The home planet of the human, or null if unknown.',
       required: false,
-      resolver: o => o.characterHomePlanet || null,
+      resolve: o => o.characterHomePlanet || null,
     }),
   }),
 });

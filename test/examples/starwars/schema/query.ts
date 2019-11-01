@@ -21,17 +21,17 @@ export default builder.createObjectType('Query', {
             'If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.',
         },
       },
-      resolver: (_, { episode }) => getHero(episode),
+      resolve: (_, { episode }) => getHero(episode),
     }),
     human: t.field({
       type: 'Human',
       args: characterArgs,
-      resolver: (_, { id }) => getHuman(id),
+      resolve: (_, { id }) => getHuman(id),
     }),
     droid: t.field({
       type: 'Droid',
       args: characterArgs,
-      resolver: (_, { id }) => getDroid(id),
+      resolve: (_, { id }) => getDroid(id),
     }),
   }),
 });

@@ -25,7 +25,7 @@ export default class BaseFieldUtil<
     Extends extends string | null
   >(
     name: Name,
-    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolver'>,
+    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolve'>,
     extendsField: Extends,
   ) {
     return new Field<{}, Types, ParentType, Type, Req, Context, Extends>({
@@ -49,7 +49,7 @@ export default class BaseFieldUtil<
       name: Name,
       options: Omit<
         FieldOptions<Types, ParentType, Type, Req, {}, Context>,
-        'resolver' | 'type'
+        'resolve' | 'type'
       > = {},
     ): Field<{}, Types, ParentType, Type, Req, Context, null> => {
       return this.exposeField<Type, Req, Name, null>(name, { ...options, type }, null);

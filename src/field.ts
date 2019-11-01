@@ -75,7 +75,7 @@ export default class Field<
       args: this.buildArgs(store),
       extensions: [],
       description: this.options.description || name,
-      resolve: this.options.resolver as () => unknown,
+      resolve: this.options.resolve as () => unknown,
       type: this.required
         ? new GraphQLNonNull(typeFromParam(this.type, store))
         : typeFromParam(this.type, store),
