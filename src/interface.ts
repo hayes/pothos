@@ -34,7 +34,7 @@ export default class InterfaceType<
 
   buildType(store: TypeStore<Types>) {
     return new GraphQLInterfaceType({
-      name: this.typename,
+      name: String(this.typename),
       description: this.description,
       fields: () =>
         fromEntries(

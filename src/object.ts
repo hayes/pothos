@@ -52,7 +52,7 @@ export default class ObjectType<
 
   buildType(store: TypeStore<Types>) {
     return new GraphQLObjectType({
-      name: this.typename,
+      name: String(this.typename),
       description: this.description,
       fields: () =>
         fromEntries(

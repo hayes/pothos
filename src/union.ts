@@ -8,7 +8,7 @@ export default class UnionType<
   Context,
   Name extends string,
   Member extends NamedTypeParam<Types>
-> extends BaseType<Types, Name, Types[Member]> {
+> extends BaseType<Types, Name, Types['Output'][Member]> {
   kind: 'Union' = 'Union';
 
   description?: string;

@@ -48,15 +48,40 @@ export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never
 export type TypeMap = {
   Input: {
     [s: string]: unknown;
+    String: unknown;
+    ID: unknown;
+    Int: unknown;
+    Float: unknown;
+    Boolean: unknown;
   };
   Output: {
     [s: string]: unknown;
+    String: unknown;
+    ID: unknown;
+    Int: unknown;
+    Float: unknown;
+    Boolean: unknown;
   };
 };
 
-export type MergeTypeMap<Map extends TypeMap, Partial extends TypeMap> = {
-  Input: Omit<Map['Input'], keyof (Partial['Input'])> & Partial['Input'];
-  Output: Omit<Map['Output'], keyof (Partial['Output'])> & Partial['Output'];
+export type PartialTypeMap = {
+  Input: Partial<TypeMap['Input']>;
+  Output: Partial<TypeMap['Output']>;
+};
+
+export type MergeTypeMap<Map extends TypeMap, Partial extends PartialTypeMap> = {
+  Input: { String: unknown; ID: unknown; Int: unknown; Float: unknown; Boolean: unknown } & {
+    [K in keyof Map['Input']]: K extends keyof Partial['Input']
+      ? Partial['Input'][K]
+      : Map['Input'][K];
+  } &
+    Partial['Input'];
+  Output: { String: unknown; ID: unknown; Int: unknown; Float: unknown; Boolean: unknown } & {
+    [K in keyof Map['Output']]: K extends keyof Partial['Output']
+      ? Partial['Output'][K]
+      : Map['Output'][K];
+  } &
+    Partial['Output'];
 };
 
 // TypeParam
@@ -100,7 +125,7 @@ export type ShapeFromTypeParam<
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
-export type NamedTypeParam<Types extends TypeMap> = Extract<keyof Types['Output'], string>;
+export type NamedTypeParam<Types extends TypeMap> = keyof Types['Output'];
 
 export type TypeParam<Types extends TypeMap> =
   | keyof Types['Output']

@@ -1,17 +1,20 @@
 import { TypeMap, StoreEntry } from './types';
 
-export default class TypeStore<Types extends TypeMap> {
-  types = new Map<string, StoreEntry<Types>>();
+export default class TypeStore<
+  Types extends TypeMap,
+  Key = string | keyof Types['Input'] | keyof Types['Output']
+> {
+  types = new Map<Key, StoreEntry<Types>>();
 
-  has(name: string) {
+  has(name: Key) {
     return this.types.has(name);
   }
 
-  set(name: string, entry: StoreEntry<Types>) {
+  set(name: Key, entry: StoreEntry<Types>) {
     return this.types.set(name, entry);
   }
 
-  getBuilt(name: string) {
+  getBuilt(name: Key) {
     const entry = this.getEntry(name);
 
     if (entry.kind === 'InputObject') {
@@ -21,7 +24,7 @@ export default class TypeStore<Types extends TypeMap> {
     return entry.built;
   }
 
-  getBuiltInput(name: string) {
+  getBuiltInput(name: Key) {
     const entry = this.getEntry(name);
 
     if (entry.kind === 'Object' || entry.kind === 'Interface' || entry.kind === 'Union') {
@@ -31,18 +34,18 @@ export default class TypeStore<Types extends TypeMap> {
     return entry.built;
   }
 
-  getType(name: string) {
+  getType(name: Key) {
     return this.getEntry(name).type;
   }
 
-  getBuiltObject(name: string) {
+  getBuiltObject(name: Key) {
     const entry = this.getEntryOfType(name, 'Object');
 
     return entry.built;
   }
 
   getEntryOfType<Type extends StoreEntry<Types>['kind']>(
-    name: string,
+    name: Key,
     type: Type,
   ): Extract<StoreEntry<Types>, { kind: Type }> {
     const entry = this.getEntry(name);
@@ -54,7 +57,7 @@ export default class TypeStore<Types extends TypeMap> {
     return entry as Extract<StoreEntry<Types>, { kind: Type }>;
   }
 
-  getEntry(name: string): StoreEntry<Types> {
+  getEntry(name: Key): StoreEntry<Types> {
     if (!this.types.has(name)) {
       throw new Error(`${name} not found in type store`);
     }

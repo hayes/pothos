@@ -1,4 +1,4 @@
-import { printSchema, GraphQLID, GraphQLInt, GraphQLString } from 'graphql';
+import { printSchema } from 'graphql';
 import SchemaBuilder from '.';
 
 type ExampleShape = {
@@ -28,9 +28,7 @@ const builder = new SchemaBuilder<
   { userID: number }
 >();
 
-const ID = builder.createScalar('ID', GraphQLID);
-const Int = builder.createScalar('Int', GraphQLInt);
-const String = builder.createScalar('String', GraphQLString);
+const { Int, ID } = builder.scalars;
 
 // Create input types
 const Example = builder.createInputType('Example', {
@@ -244,9 +242,6 @@ const Article = builder.createObjectType('Article', {
 });
 
 const schema = builder.toSchema([
-  ID,
-  Int,
-  String,
   Query,
   Shaveable,
   Stuff,

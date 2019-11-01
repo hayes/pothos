@@ -1,5 +1,13 @@
 /* eslint-disable no-restricted-syntax */
-import { GraphQLSchema, GraphQLScalarType } from 'graphql';
+import {
+  GraphQLSchema,
+  GraphQLScalarType,
+  GraphQLString,
+  GraphQLInt,
+  GraphQLID,
+  GraphQLFloat,
+  GraphQLBoolean,
+} from 'graphql';
 import {
   ObjectTypeOptions,
   InterfaceTypeOptions,
@@ -13,9 +21,9 @@ import {
   ShapedInputFields,
   MergeTypeMap,
   DefaultTypeMap,
-  TypeMap,
   InputFields,
   InputShapeFromFields,
+  PartialTypeMap,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -26,13 +34,21 @@ import TypeStore from './store';
 import ScalarType from './scalar';
 
 export default class SchemaBuilder<
-  PartialTypes extends TypeMap,
+  PartialTypes extends PartialTypeMap,
   Context,
   Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
     DefaultTypeMap,
     PartialTypes
   >
 > {
+  scalars = {
+    ID: this.createScalar('ID', GraphQLID),
+    Int: this.createScalar('Int', GraphQLInt),
+    Float: this.createScalar('Float', GraphQLFloat),
+    String: this.createScalar('String', GraphQLString),
+    Boolean: this.createScalar('Boolean', GraphQLBoolean),
+  };
+
   createObjectType<
     Shape extends {},
     Interfaces extends InterfaceType<
@@ -88,8 +104,15 @@ export default class SchemaBuilder<
 
   toSchema(types: ImplementedType<Types>[]) {
     const typeStore = new TypeStore<Types>();
+    const scalars = [
+      this.scalars.Boolean,
+      this.scalars.Float,
+      this.scalars.ID,
+      this.scalars.Int,
+      this.scalars.String,
+    ];
 
-    for (const type of types) {
+    for (const type of [...scalars, ...types]) {
       if (typeStore.has(type.typename)) {
         throw new Error(`Received multiple implementations of type ${type.typename}`);
       }

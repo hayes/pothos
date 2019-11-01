@@ -4,7 +4,7 @@ import { TypeMap } from './types';
 
 export default abstract class BaseType<
   Types extends TypeMap,
-  Name extends string,
+  Name extends string | keyof Types['Input'] | keyof Types['Output'],
   Shape,
   InputShape = Shape
 > {
