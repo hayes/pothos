@@ -358,7 +358,7 @@ export type ObjectTypeOptions<
 } & (Interfaces[number]['typename'] extends Type
   ? {}
   : {
-      test: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
+      isType: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
     });
 
 export type InterfaceTypeOptions<

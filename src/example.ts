@@ -192,7 +192,7 @@ const Sheep = builder.createObjectType('Sheep', {
   implements: [Shaveable, Countable],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
-  test: () => true,
+  isType: () => true,
   shape: t => ({
     color: t.string({
       args: { id: ID },

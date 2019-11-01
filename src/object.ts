@@ -35,7 +35,7 @@ export default class ObjectType<
 
   fields: Shape;
 
-  test: (obj: unknown) => boolean;
+  isType: (obj: unknown) => boolean;
 
   constructor(name: Name, options: ObjectTypeOptions<Shape, Interfaces, Types, Name, Context>) {
     super(name);
@@ -43,7 +43,7 @@ export default class ObjectType<
     this.description = options.description;
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
 
-    this.test = (options as ({ test: (obj: unknown) => boolean })).test || (() => false);
+    this.isType = (options as ({ isType: (obj: unknown) => boolean })).isType || (() => false);
 
     const parentFields = this.interfaces
       .map(i => i.fields)
