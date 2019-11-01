@@ -11,6 +11,7 @@ import {
 import TypeStore from './store';
 import Field from './field';
 import FieldBuilder from './fieldUtils/builder';
+import ObjectType from './object';
 
 export default class InterfaceType<
   Shape extends {},
@@ -33,9 +34,24 @@ export default class InterfaceType<
   }
 
   buildType(store: TypeStore<Types>) {
+    let types: ObjectType<{}, any, Types, NamedTypeParam<Types>, unknown>[];
+
     return new GraphQLInterfaceType({
       name: String(this.typename),
       description: this.description,
+      resolveType: (obj: unknown) => {
+        if (!types) {
+          types = store.getImplementers(this);
+        }
+
+        for (const type of types) {
+          if (type.test(obj)) {
+            return String(type.typename);
+          }
+        }
+
+        return String(this.typename);
+      },
       fields: () =>
         fromEntries(
           Object.entries(this.fields).map(([key, field]) => [

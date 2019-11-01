@@ -9,8 +9,6 @@ export default class EnumType<
   Values extends EnumValues = EnumValues,
   Shape extends string = Values extends readonly string[]
     ? Values[number]
-    : Values extends { [s: number]: string }
-    ? Values[keyof Values]
     : Extract<keyof Values, string>
 > extends BaseType<Types, Name, Shape> {
   values: GraphQLEnumValueConfigMap;

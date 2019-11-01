@@ -30,6 +30,7 @@ export default class BaseFieldUtil<
   ) {
     return new Field<{}, Types, ParentType, Type, Req, Context, Extends>({
       ...options,
+      // @ts-ignore
       resolver: parent => parent[name],
       extendsField,
     });

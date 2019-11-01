@@ -35,11 +35,15 @@ export default class ObjectType<
 
   fields: Shape;
 
+  test: (obj: unknown) => boolean;
+
   constructor(name: Name, options: ObjectTypeOptions<Shape, Interfaces, Types, Name, Context>) {
     super(name);
 
     this.description = options.description;
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
+
+    this.test = (options as ({ test: (obj: unknown) => boolean })).test || (() => false);
 
     const parentFields = this.interfaces
       .map(i => i.fields)
@@ -47,13 +51,18 @@ export default class ObjectType<
       Interfaces[number]['fields']
     > & {};
 
-    this.fields = options.shape(new FieldBuilder(parentFields));
+    this.fields = {
+      ...parentFields,
+      ...options.shape(new FieldBuilder(parentFields)),
+    };
   }
 
-  buildType(store: TypeStore<Types>) {
+  buildType(store: TypeStore<Types>): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
+      interfaces: () =>
+        this.interfaces.map(type => store.getEntryOfType(type.typename, 'Interface').built),
       fields: () =>
         fromEntries(
           Object.entries(this.fields).map(([key, field]) => [

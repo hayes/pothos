@@ -65,8 +65,8 @@ export type TypeMap = {
 };
 
 export type PartialTypeMap = {
-  Input: Partial<TypeMap['Input']>;
-  Output: Partial<TypeMap['Output']>;
+  Input?: Partial<TypeMap['Input']>;
+  Output?: Partial<TypeMap['Output']>;
 };
 
 export type MergeTypeMap<Map extends TypeMap, Partial extends PartialTypeMap> = {
@@ -234,7 +234,9 @@ export type Resolver<Parent, Args, Context, Type> = (
   parent: Parent,
   args: Args,
   context: Context,
-) => Readonly<Type | Promise<Type>>;
+) => Type extends any[]
+  ? Promise<Readonly<Type[number]>>[] | Readonly<Type | Promise<Type>>
+  : Readonly<Type | Promise<Type>>;
 
 export type EnumValues = (readonly string[]) | GraphQLEnumValueConfigMap;
 
@@ -356,7 +358,7 @@ export type ObjectTypeOptions<
 } & (Interfaces[number]['typename'] extends Type
   ? {}
   : {
-      check: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
+      test: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
     });
 
 export type InterfaceTypeOptions<

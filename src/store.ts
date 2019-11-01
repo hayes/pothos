@@ -1,4 +1,5 @@
-import { TypeMap, StoreEntry } from './types';
+import { TypeMap, StoreEntry, NamedTypeParam } from './types';
+import InterfaceType from './interface';
 
 export default class TypeStore<
   Types extends TypeMap,
@@ -42,6 +43,17 @@ export default class TypeStore<
     const entry = this.getEntryOfType(name, 'Object');
 
     return entry.built;
+  }
+
+  getImplementers(type: InterfaceType<{}, Types, NamedTypeParam<Types>, {}>) {
+    const implementers = [];
+    for (const entry of this.types.values()) {
+      if (entry.kind === 'Object' && (entry.type.interfaces as unknown[]).includes(type)) {
+        implementers.push(entry.type);
+      }
+    }
+
+    return implementers;
   }
 
   getEntryOfType<Type extends StoreEntry<Types>['kind']>(
