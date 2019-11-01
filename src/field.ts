@@ -4,6 +4,7 @@ import fromEntries from 'object.fromentries';
 import { TypeMap, TypeParam, FieldOptions, InputFields, ShapeFromTypeParam } from './types';
 import TypeStore from './store';
 import { typeFromParam, buildArg } from './utils';
+import BaseType from './base';
 
 export default class Field<
   Args extends InputFields<Types>,
@@ -54,11 +55,14 @@ export default class Field<
     return fromEntries(
       Object.keys(this.args).map(key => {
         const arg = this.args[key];
+
         return [
           key,
           {
-            description: typeof arg === 'function' ? undefined : arg.description,
-            required: typeof arg === 'function' ? false : arg.required,
+            description:
+              typeof arg !== 'object' || arg instanceof BaseType ? undefined : arg.description,
+            required:
+              typeof arg !== 'object' || arg instanceof BaseType ? false : arg.required || false,
             type: buildArg(arg, store),
           },
         ];

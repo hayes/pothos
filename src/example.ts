@@ -1,24 +1,27 @@
 import { printSchema } from 'graphql';
 import SchemaBuilder from '.';
 
-type ExampleShape = {
-  // eslint-disable-next-line no-use-before-define, @typescript-eslint/no-use-before-define
-  example: NonNullable<typeof Example['inputShape']>;
-  id: string | number;
-  more: ExampleShape;
-};
-
+// Define backing models/types
 type Types = {
   Input: {
     Example2: ExampleShape;
+    ID: string;
   };
   Output: {
+    ID: number;
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
     Countable: { count: number };
     Shaveable: { shaved: boolean };
     Sheep: { name: string; count: number; shaved: boolean };
   };
+};
+
+type ExampleShape = {
+  // eslint-disable-next-line no-use-before-define, @typescript-eslint/no-use-before-define
+  example: NonNullable<typeof Example['inputShape']>;
+  id: string | number;
+  more: ExampleShape;
 };
 
 const builder = new SchemaBuilder<
@@ -33,17 +36,15 @@ const { Int, ID } = builder.scalars;
 // Create input types
 const Example = builder.createInputType('Example', {
   fields: {
-    // arrow function syntax explained below
-    id: () => ID,
+    id: ID,
   },
 });
 
 const Example2 = builder.createInputType('Example2', {
   fields: {
-    example: () => Example,
-    id: () => ID,
-    // We use arrow function syntax to allow this type of circular reference
-    more: () => 'Example2',
+    example: Example,
+    id: ID,
+    more: 'Example2',
   },
 });
 
@@ -78,9 +79,8 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        // args use arrow function syntax for consistency with input type syntax
-        example: () => Example,
-        firstN: () => Int,
+        example: Example,
+        firstN: Int,
       },
       resolver: (parent, args) => {
         return parent.firstName.slice(0, args.firstN) + args.example.id;
@@ -89,11 +89,11 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: () => Example2,
-        firstN: () => Int,
+        example2: 'Example2',
+        firstN: Int,
       },
       resolver: (parent, args) => {
-        return args.example2.more.more.more.example.id;
+        return Number.parseInt(args.example2.more.more.more.example.id, 10);
       },
     }),
     // add directives
@@ -113,7 +113,7 @@ const User = builder.createObjectType('User', {
         };
       },
       // reference implementation so we can automatically pull types for all member types
-      type: () => SearchResult,
+      type: SearchResult,
     }),
     // Lists
     friends: t.field({
@@ -137,12 +137,12 @@ const User = builder.createObjectType('User', {
     list: t.idList({
       args: {
         ids: {
-          required: false,
-          type: () => [ID],
+          required: true,
+          type: [ID],
         },
       },
-      required: false,
-      resolver: (parent, args) => args.ids,
+      required: true,
+      resolver: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
     }),
   }),
 });
@@ -166,7 +166,7 @@ const Countable = builder.createInterfaceType('Countable', {
   shape: t => ({
     count: t.int({
       args: {
-        max: () => Int,
+        max: Int,
       },
       required: true,
       resolver: (parent, args) => Math.min(args.max, parent.count),
@@ -195,8 +195,8 @@ const Sheep = builder.createObjectType('Sheep', {
   check: () => true,
   shape: t => ({
     color: t.string({
-      args: { id: () => ID },
-      resolver: (p, { id }) => (id === 1 ? 'black' : 'white'),
+      args: { id: ID },
+      resolver: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     // // Errors when adding type already defined in interface
     // count: t.id({ resolver: () => 4n }),
@@ -205,7 +205,7 @@ const Sheep = builder.createObjectType('Sheep', {
       // grabs args and requiredness from interface field
       .implement({ resolver: (parent, args) => Math.min(args.max, parent.count) }),
     thing: t.field({
-      type: () => Stuff,
+      type: Stuff,
       resolver: () => 'Bears' as const,
     }),
   }),
@@ -221,7 +221,7 @@ const Query = builder.createObjectType('Query', {
       type: 'User',
     }),
     stuff: t.field({
-      type: () => [Stuff],
+      type: [Stuff],
       resolver() {
         return ['Bears', 'Beats', 'BattlestarGalactica'] as const;
       },

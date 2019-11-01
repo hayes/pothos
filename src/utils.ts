@@ -17,7 +17,7 @@ export function typeFromParam<Types extends TypeMap>(
   }
 
   if (typeof param === 'function') {
-    return typeFromParam(param(), typeStore);
+    return typeFromParam(param, typeStore);
   }
 
   if (param instanceof BaseType) {
@@ -44,10 +44,6 @@ export function buildArg<Types extends TypeMap>(
     return store.getBuiltInput(arg as string);
   }
 
-  if (typeof arg === 'function') {
-    return buildArg(arg(), store);
-  }
-
   if (Array.isArray(arg)) {
     return new GraphQLList(buildArg(arg[0], store));
   }
@@ -64,8 +60,8 @@ export function buildArg<Types extends TypeMap>(
   }
 
   if (arg.required) {
-    return new GraphQLNonNull(buildArg(arg.type(), store));
+    return new GraphQLNonNull(buildArg(arg.type, store));
   }
 
-  return buildArg(arg.type(), store);
+  return buildArg(arg.type, store);
 }

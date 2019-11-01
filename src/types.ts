@@ -109,12 +109,12 @@ export type OptionalShapeFromTypeParam<
   Param extends TypeParam<Types>
 > = Param extends keyof Types['Output']
   ? Types['Output'][Param]
-  : Param extends () => BaseType<Types, string, unknown>
-  ? ReturnType<Param>['shape']
+  : Param extends BaseType<Types, string, unknown>
+  ? Param['shape']
   : Param extends [keyof Types['Output']]
   ? Types['Output'][Param[0]][]
-  : Param extends () => [BaseType<Types, string, unknown>]
-  ? ReturnType<Param>[0]['shape'][]
+  : Param extends [BaseType<Types, string, unknown>]
+  ? Param[0]['shape'][]
   : never;
 
 export type ShapeFromTypeParam<
@@ -129,9 +129,9 @@ export type NamedTypeParam<Types extends TypeMap> = keyof Types['Output'];
 
 export type TypeParam<Types extends TypeMap> =
   | keyof Types['Output']
-  | (() => BaseType<Types, string, unknown>)
+  | (BaseType<Types, string, unknown>)
   | [keyof Types['Output']]
-  | (() => [BaseType<Types, string, unknown>]);
+  | ([BaseType<Types, string, unknown>]);
 
 // InputTypes
 export type InputType<Types extends TypeMap> =
@@ -141,11 +141,11 @@ export type InputType<Types extends TypeMap> =
   | keyof Types['Input'];
 
 export type InputField<Types extends TypeMap> =
-  | (() => InputType<Types>)
+  | (InputType<Types>)
   | {
       description?: string;
       required?: boolean;
-      type: () => InputType<Types> | InputType<Types>[];
+      type: InputType<Types> | InputType<Types>[];
     };
 
 export type InputTypeWithShape<Types extends TypeMap, Shape> =
@@ -160,11 +160,11 @@ export type InputTypeWithShape<Types extends TypeMap, Shape> =
   | keyof Types['Input'];
 
 export type InputFieldWithShape<Types extends TypeMap, Shape> =
-  | (() => InputTypeWithShape<Types, Shape>)
+  | (InputTypeWithShape<Types, Shape>)
   | {
       description?: string;
       required?: boolean;
-      type: () => InputTypeWithShape<Types, Shape> | InputTypeWithShape<Types, Shape>[];
+      type: InputTypeWithShape<Types, Shape> | InputTypeWithShape<Types, Shape>[];
     };
 
 export type ShapedInputFields<Types extends TypeMap, Name extends keyof Types['Input']> = {
@@ -182,11 +182,11 @@ export type InputShapeFromFields<Types extends TypeMap, Fields extends InputFiel
 export type InputShapeFromField<
   Types extends TypeMap,
   Field extends InputField<Types>
-> = Field extends (() => InputType<Types> | InputType<Types>[])
+> = Field extends (InputType<Types> | InputType<Types>[])
   ? InputShapeFromType<Types, Field>
   : Field extends {
       required?: infer Required;
-      type: () => InputType<Types> | InputType<Types>[];
+      type: InputType<Types> | InputType<Types>[];
     }
   ? Required extends false
     ? InputShapeFromType<Types, Field['type']> | null | undefined
@@ -195,14 +195,14 @@ export type InputShapeFromField<
 
 export type InputShapeFromType<
   Types extends TypeMap,
-  Type extends () => InputType<Types> | InputType<Types>[]
-> = Type extends () => (infer T)[]
+  Type extends InputType<Types> | InputType<Types>[]
+> = Type extends (infer T)[]
   ? T extends BaseType<Types, string, unknown>
     ? NonNullable<T['inputShape']>[]
     : T extends keyof Types['Input']
     ? NonNullable<Types['Input'][T]>[]
     : never
-  : Type extends () => infer U
+  : Type extends infer U
   ? U extends BaseType<Types, string, unknown>
     ? NonNullable<U['inputShape']>
     : U extends keyof Types['Input']

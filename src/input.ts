@@ -28,8 +28,14 @@ export default class InputObjectType<
         return [
           key,
           {
-            description: typeof field === 'function' ? undefined : field.description,
-            required: typeof field === 'function' ? false : field.required,
+            description:
+              typeof field !== 'object' || field instanceof BaseType
+                ? undefined
+                : field.description,
+            required:
+              typeof field !== 'object' || field instanceof BaseType
+                ? false
+                : field.required || false,
             type: buildArg(field, store),
           },
         ];
