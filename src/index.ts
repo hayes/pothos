@@ -54,7 +54,7 @@ export default class SchemaBuilder<
     Interfaces extends InterfaceType<
       {},
       Types,
-      CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
+      CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>,
       {}
     >[],
     Type extends Extract<keyof Types['Output'], string>

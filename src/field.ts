@@ -11,21 +11,21 @@ export default class Field<
   Types extends TypeMap,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
-  Req extends boolean = false,
+  Nullable extends boolean = true,
   Context = {},
   Extends extends string | null = null,
-  Options extends FieldOptions<Types, ParentType, Type, Req, Args, Context> = FieldOptions<
+  Options extends FieldOptions<Types, ParentType, Type, Nullable, Args, Context> = FieldOptions<
     Types,
     ParentType,
     Type,
-    Req,
+    Nullable,
     Args,
     Context
   >
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
-  required: Req;
+  nullable: Nullable;
 
   args: Args = {} as Args;
 
@@ -41,14 +41,10 @@ export default class Field<
     },
   ) {
     this.options = options;
-    this.required = (options.required === false ? options.required : true) as Req;
+    this.nullable = (options.nullable === true ? options.nullable : false) as Nullable;
     this.args = options.args || ({} as Args);
     this.extendsField = options.extendsField || (null as Extends);
     this.type = options.type;
-
-    // const typeParam = this.options.type;
-
-    // this.type = typeof typeParam === 'function' ? typeParam() : type;
   }
 
   buildArgs(store: TypeStore<Types>): GraphQLFieldConfigArgumentMap {
@@ -76,9 +72,9 @@ export default class Field<
       extensions: [],
       description: this.options.description || name,
       resolve: this.options.resolve as () => unknown,
-      type: this.required
-        ? new GraphQLNonNull(typeFromParam(this.type, store))
-        : typeFromParam(this.type, store),
+      type: this.nullable
+        ? typeFromParam(this.type, store)
+        : new GraphQLNonNull(typeFromParam(this.type, store)),
     };
   }
 }

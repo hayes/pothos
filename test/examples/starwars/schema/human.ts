@@ -8,7 +8,7 @@ export default builder.createObjectType('Human', {
   shape: t => ({
     homePlanet: t.string({
       description: 'The home planet of the human, or null if unknown.',
-      required: false,
+      nullable: true,
       resolve: o => o.characterHomePlanet || null,
     }),
   }),

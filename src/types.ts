@@ -120,8 +120,8 @@ export type OptionalShapeFromTypeParam<
 export type ShapeFromTypeParam<
   Types extends TypeMap,
   Param extends TypeParam<Types>,
-  Required extends boolean
-> = Required extends false
+  Nullable extends boolean
+> = Nullable extends true
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
@@ -313,7 +313,7 @@ export type CompatibleTypes<
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Req extends boolean,
-  ParentShape = ShapeFromTypeParam<Types, ParentType, true>,
+  ParentShape = ShapeFromTypeParam<Types, ParentType, false>,
   Shape = ShapeFromTypeParam<Types, Type, Req>
 > = {
   [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
@@ -324,21 +324,21 @@ export type FieldOptions<
   Types extends TypeMap,
   ParentName extends TypeParam<Types>,
   ReturnTypeName extends TypeParam<Types>,
-  Req extends boolean,
+  Nullable extends boolean,
   Args extends InputFields<Types>,
   Context
 > = {
   type: ReturnTypeName;
   args?: Args;
-  required?: Req;
+  nullable?: Nullable;
   directives?: { [s: string]: unknown[] };
   description?: string;
   deprecationReason?: string;
   resolve: Resolver<
-    ShapeFromTypeParam<Types, ParentName, true>,
+    ShapeFromTypeParam<Types, ParentName, false>,
     InputShapeFromFields<Types, Args>,
     Context,
-    ShapeFromTypeParam<Types, ReturnTypeName, Req>
+    ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
   >;
 };
 
@@ -347,7 +347,7 @@ export type ObjectTypeOptions<
   Interfaces extends InterfaceType<
     {},
     Types,
-    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, true>>,
+    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>,
     Context
   >[],
   Types extends TypeMap,

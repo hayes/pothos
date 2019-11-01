@@ -20,13 +20,13 @@ export default class ObjectType<
   Interfaces extends InterfaceType<
     {},
     Types,
-    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, true>>,
+    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, false>>,
     {}
   >[],
   Types extends TypeMap,
   Name extends NamedTypeParam<Types>,
   Context
-> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
+> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
   kind: 'Object' = 'Object';
 
   description?: string;

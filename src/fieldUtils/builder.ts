@@ -27,7 +27,7 @@ export default class FieldBuilder<
       Types,
       ParentType,
       ParentShape[K]['type'],
-      ParentShape[K]['required'],
+      ParentShape[K]['nullable'],
       ParentShape[K]['args'],
       Extract<K, string>,
       Context
@@ -45,7 +45,7 @@ export default class FieldBuilder<
           Types,
           ParentType,
           ParentShape[K]['type'],
-          ParentShape[K]['required'],
+          ParentShape[K]['nullable'],
           ParentShape[K]['args'],
           Extract<K, string>,
           Context

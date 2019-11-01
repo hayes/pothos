@@ -130,7 +130,7 @@ const User = builder.createObjectType('User', {
     }),
     // optional fields
     optional: t.string({
-      required: false,
+      nullable: true,
       resolve: () => null,
     }),
     // list and optional args
@@ -141,7 +141,6 @@ const User = builder.createObjectType('User', {
           type: [ID],
         },
       },
-      required: true,
       resolve: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
     }),
   }),
@@ -168,7 +167,6 @@ const Countable = builder.createInterfaceType('Countable', {
       args: {
         max: Int,
       },
-      required: true,
       resolve: (parent, args) => Math.min(args.max, parent.count),
     }),
   }),
