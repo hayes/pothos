@@ -1,5 +1,5 @@
 import builder from '../builder';
-import { Episode, episodeFromID } from './episode';
+import { Episode } from './episode';
 import { getFriends } from '../data';
 
 export default builder.createInterfaceType('Character', {
@@ -14,7 +14,7 @@ export default builder.createInterfaceType('Character', {
     appearsIn: t.field({
       type: [Episode],
       description: 'Which movies they appear in.',
-      resolve: o => o.appearsIn.map(id => episodeFromID(id)),
+      resolve: o => o.appearsIn,
       args: {
         id: {
           required: true,

@@ -1,15 +1,13 @@
 import { GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLEnumValueConfig } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { EnumTypeOptions, EnumValues, TypeMap } from './types';
+import { EnumTypeOptions, EnumValues, TypeMap, ShapeFromEnumValues } from './types';
 
 export default class EnumType<
   Types extends TypeMap,
   Name extends string,
   Values extends EnumValues = EnumValues,
-  Shape extends string = Values extends readonly string[]
-    ? Values[number]
-    : Extract<keyof Values, string>
+  Shape extends string = ShapeFromEnumValues<Values>
 > extends BaseType<Types, Name, Shape> {
   values: GraphQLEnumValueConfigMap;
 

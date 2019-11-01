@@ -1,5 +1,5 @@
 import SchemaBuilder from '../../../src';
-import { Character, ContextType, Droid, Human } from './backing-modles';
+import { Character, ContextType, Droid, Human } from './backing-models';
 
 type Types = { Output: { Character: Character; Droid: Droid; Human: Human } };
 

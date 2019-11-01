@@ -1,9 +1,9 @@
 import builder from '../builder';
 
 const OriginalEpisodes = {
-  NEWHOPE: { description: 'Released in 1977.' },
-  EMPIRE: { description: 'Released in 1980.' },
-  JEDI: { description: 'Released in 1983' },
+  NEWHOPE: { description: 'Released in 1977.', value: 4 },
+  EMPIRE: { description: 'Released in 1980.', value: 5 },
+  JEDI: { description: 'Released in 1983', value: 6 },
 };
 
 export function episodeFromID(id: number) {

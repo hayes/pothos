@@ -45,7 +45,7 @@ export default class InterfaceType<
         }
 
         for (const type of types) {
-          if (type.test(obj)) {
+          if (type.isType(obj)) {
             return String(type.typename);
           }
         }

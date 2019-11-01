@@ -240,6 +240,14 @@ export type Resolver<Parent, Args, Context, Type> = (
 
 export type EnumValues = (readonly string[]) | GraphQLEnumValueConfigMap;
 
+export type ShapeFromEnumValues<Values extends EnumValues> = Values extends readonly string[]
+  ? Values[number]
+  : Values extends GraphQLEnumValueConfigMap
+  ? {
+      [K in keyof Values]: Values[K]['value'] extends string | number ? Values[K]['value'] : K;
+    }[keyof Values]
+  : never;
+
 export type FieldsShape<
   Shape extends {},
   Types extends TypeMap,
