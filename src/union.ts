@@ -15,18 +15,23 @@ export default class UnionType<
 
   members: Member[];
 
+  resolveType: (parent: unknown, ctx: unknown) => string;
+
   constructor(name: Name, options: UnionOptions<Types, Context, Member>) {
     super(name);
 
     this.members = options.members;
 
     this.description = options.description;
+
+    this.resolveType = options.resolveType as (parent: unknown, ctx: unknown) => string;
   }
 
   buildType(store: TypeStore<Types>) {
     return new GraphQLUnionType({
       name: this.typename,
       description: this.description,
+      resolveType: this.resolveType,
       types: () => this.members.map(member => store.getBuiltObject(member)),
     });
   }
