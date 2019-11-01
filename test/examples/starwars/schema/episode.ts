@@ -6,19 +6,6 @@ const OriginalEpisodes = {
   JEDI: { description: 'Released in 1983', value: 6 },
 };
 
-export function episodeFromID(id: number) {
-  switch (id) {
-    case 4:
-      return 'NEWHOPE';
-    case 5:
-      return 'EMPIRE';
-    case 6:
-      return 'JEDI';
-    default:
-      throw new Error(`Episode ${id} not found`);
-  }
-}
-
 export const Episode = builder.createEnumType('Episode', {
   description: 'One of the films in the Star Wars Trilogy',
   values: OriginalEpisodes,
