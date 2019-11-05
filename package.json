@@ -38,8 +38,12 @@
       "eslint",
       "jest",
       "prettier",
-      "typescript"
+      {
+        "driver": "typescript",
+        "testsFolder": "test"
+      }
     ],
+
     "settings": {
       "library": true,
       "next": true,

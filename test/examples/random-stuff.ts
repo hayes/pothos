@@ -1,5 +1,5 @@
 import { printSchema } from 'graphql';
-import SchemaBuilder from '.';
+import SchemaBuilder from '../../src';
 
 // Define backing models/types
 type Types = {
@@ -18,9 +18,9 @@ type Types = {
 };
 
 type ExampleShape = {
-  // eslint-disable-next-line no-use-before-define, @typescript-eslint/no-use-before-define
-  example: NonNullable<typeof Example['inputShape']>;
-  id: string | number;
+  example: {
+    id: string;
+  };
   more: ExampleShape;
 };
 
@@ -35,17 +35,17 @@ const { Int, ID } = builder.scalars;
 
 // Create input types
 const Example = builder.createInputType('Example', {
-  fields: {
-    id: ID,
-  },
+  shape: t => ({
+    id: t.id(),
+  }),
 });
 
 const Example2 = builder.createInputType('Example2', {
-  fields: {
-    example: Example,
-    id: ID,
-    more: 'Example2',
-  },
+  shape: t => ({
+    example: t.type(Example),
+    id: t.id(),
+    more: t.type('Example2'),
+  }),
 });
 
 // Union type
@@ -79,8 +79,8 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        example: Example,
-        firstN: Int,
+        example: t.arg(Example),
+        firstN: t.arg('Int'),
       },
       resolve: (parent, args) => {
         return parent.firstName.slice(0, args.firstN) + args.example.id;
@@ -89,8 +89,8 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: 'Example2',
-        firstN: Int,
+        example2: t.arg(Example2),
+        firstN: t.arg.id(),
       },
       resolve: (parent, args) => {
         return Number.parseInt(args.example2.more.more.more.example.id, 10);
@@ -193,7 +193,9 @@ const Sheep = builder.createObjectType('Sheep', {
   isType: () => true,
   shape: t => ({
     color: t.string({
-      args: { id: ID },
+      args: {
+        id: ID,
+      },
       resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
     // // Errors when adding type already defined in interface

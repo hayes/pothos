@@ -24,6 +24,7 @@ import {
   InputFields,
   InputShapeFromFields,
   PartialTypeMap,
+  InputTypeOptions,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -32,6 +33,7 @@ import InterfaceType from './interface';
 import EnumType from './enum';
 import TypeStore from './store';
 import ScalarType from './scalar';
+import InputFieldBuilder from './fieldUtils/input';
 
 export default class SchemaBuilder<
   PartialTypes extends PartialTypeMap,
@@ -49,6 +51,14 @@ export default class SchemaBuilder<
     Boolean: this.createScalar('Boolean', GraphQLBoolean),
   };
 
+  inputBuilder = {
+    // id: () => this.scalars.ID,
+    // int: () => this.scalars.Int,
+    // float: () => this.scalars.Float,
+    // string: () => this.scalars.String,
+    bool: () => this.scalars.Boolean,
+  };
+
   createObjectType<
     Shape extends {},
     Interfaces extends InterfaceType<
@@ -60,6 +70,10 @@ export default class SchemaBuilder<
     Type extends Extract<keyof Types['Output'], string>
   >(name: Type, options: ObjectTypeOptions<Shape, Interfaces, Types, Type, Context>) {
     return new ObjectType<Shape, Interfaces, Types, Type, Context>(name, options);
+  }
+
+  createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
+    return shape(new InputFieldBuilder<Types>());
   }
 
   createInterfaceType<Shape extends {}, Type extends Extract<keyof Types['Output'], string>>(
@@ -95,7 +109,7 @@ export default class SchemaBuilder<
     Fields extends Name extends keyof Types['Input']
       ? ShapedInputFields<Types, Name>
       : InputFields<Types>
-  >(name: Name, options: { fields: Fields }) {
+  >(name: Name, options: InputTypeOptions<Types, Fields>) {
     return new InputObjectType<Types, InputShapeFromFields<Types, Fields>, Fields, Name>(
       name,
       options,

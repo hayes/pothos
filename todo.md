@@ -6,4 +6,4 @@
 4. auth API
 5. external resolvers
 6. shared resolvers for other types to use
-
+7. documentation

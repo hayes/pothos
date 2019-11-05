@@ -1,9 +1,10 @@
 import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
 import fromEntries from 'object.fromentries';
-import { InputFields, TypeMap } from './types';
+import { InputFields, TypeMap, InputTypeOptions } from './types';
 import TypeStore from './store';
 import BaseType from './base';
 import { buildArg } from './utils';
+import InputFieldBuilder from './fieldUtils/input';
 
 export default class InputObjectType<
   Types extends TypeMap,
@@ -15,10 +16,10 @@ export default class InputObjectType<
 
   fields: Fields;
 
-  constructor(name: Name, options: { fields: Fields }) {
+  constructor(name: Name, options: InputTypeOptions<Types, Fields>) {
     super(name);
 
-    this.fields = options.fields;
+    this.fields = options.shape(new InputFieldBuilder());
   }
 
   buildFields(store: TypeStore<Types>): GraphQLInputFieldConfigMap {
@@ -29,11 +30,11 @@ export default class InputObjectType<
           key,
           {
             description:
-              typeof field !== 'object' || field instanceof BaseType
+              typeof field !== 'object' || field instanceof BaseType || Array.isArray(field)
                 ? undefined
                 : field.description,
             required:
-              typeof field !== 'object' || field instanceof BaseType
+              typeof field !== 'object' || field instanceof BaseType || Array.isArray(field)
                 ? false
                 : field.required || false,
             type: buildArg(field, store),

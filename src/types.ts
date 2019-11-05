@@ -16,6 +16,7 @@ import ObjectType from './object';
 import UnionType from './union';
 import EnumType from './enum';
 import ScalarType from './scalar';
+import InputFieldBuilder from './fieldUtils/input';
 
 // Utils
 export type OptionalKeys<T extends {}> = {
@@ -47,7 +48,6 @@ export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never
 // TypeMap
 export type TypeMap = {
   Input: {
-    [s: string]: unknown;
     String: unknown;
     ID: unknown;
     Int: unknown;
@@ -55,7 +55,6 @@ export type TypeMap = {
     Boolean: unknown;
   };
   Output: {
-    [s: string]: unknown;
     String: unknown;
     ID: unknown;
     Int: unknown;
@@ -140,8 +139,14 @@ export type InputType<Types extends TypeMap> =
   | EnumType<Types, any>
   | keyof Types['Input'];
 
+export type InputOptions = {
+  description?: string;
+  required?: boolean;
+};
+
 export type InputField<Types extends TypeMap> =
-  | (InputType<Types>)
+  | InputType<Types>
+  | InputType<Types>[]
   | {
       description?: string;
       required?: boolean;
@@ -157,7 +162,9 @@ export type InputTypeWithShape<Types extends TypeMap, Shape> =
       Shape extends Types['Input'][Extract<keyof Types['Output'], string>] ? Shape : never
     >
   | EnumType<Types, Shape extends string ? Shape : never>
-  | keyof Types['Input'];
+  | {
+      [K in keyof Types['Input']]: Types['Input'][K] extends Shape ? K : never;
+    }[keyof Types['Input']];
 
 export type InputFieldWithShape<Types extends TypeMap, Shape> =
   | (InputTypeWithShape<Types, Shape>)
@@ -202,13 +209,11 @@ export type InputShapeFromType<
     : T extends keyof Types['Input']
     ? NonNullable<Types['Input'][T]>[]
     : never
-  : Type extends infer U
-  ? U extends BaseType<Types, string, unknown>
-    ? NonNullable<U['inputShape']>
-    : U extends keyof Types['Input']
-    ? Types['Input'][U]
-    : 'not an input'
-  : 'not a func';
+  : Type extends BaseType<Types, string, unknown>
+  ? NonNullable<Type['inputShape']>
+  : Type extends keyof Types['Input']
+  ? Types['Input'][Type]
+  : never;
 
 // Args
 export type Args<Types extends TypeMap> = {
@@ -340,6 +345,10 @@ export type FieldOptions<
     Context,
     ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
   >;
+};
+
+export type InputTypeOptions<Types extends TypeMap, Fields extends InputFields<Types>> = {
+  shape: (t: InputFieldBuilder<Types>) => Fields;
 };
 
 export type ObjectTypeOptions<

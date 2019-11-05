@@ -42,7 +42,7 @@ export default class Field<
   ) {
     this.options = options;
     this.nullable = (options.nullable === true ? options.nullable : false) as Nullable;
-    this.args = options.args || ({} as Args);
+    this.args = options.args ? options.args! : ({} as Args);
     this.extendsField = options.extendsField || (null as Extends);
     this.type = options.type;
   }
@@ -56,9 +56,13 @@ export default class Field<
           key,
           {
             description:
-              typeof arg !== 'object' || arg instanceof BaseType ? undefined : arg.description,
+              typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
+                ? undefined
+                : arg.description,
             required:
-              typeof arg !== 'object' || arg instanceof BaseType ? false : arg.required || false,
+              typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
+                ? false
+                : arg.required || false,
             type: buildArg(arg, store),
           },
         ];

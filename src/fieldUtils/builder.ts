@@ -2,6 +2,7 @@ import { TypeMap, TypeParam, FieldOptions, InputFields, CompatibleTypes } from '
 import Field from '../field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
+import InputFieldBuilder from './input';
 
 export default class FieldBuilder<
   Types extends TypeMap,
@@ -61,6 +62,8 @@ export default class FieldBuilder<
       [K in keyof typeof modifiers]-?: Exclude<(typeof modifiers)[K], undefined>;
     };
   }
+
+  arg = new InputFieldBuilder<Types>().callableBuilder();
 
   boolean = this.fieldTypeHelper('Boolean');
 

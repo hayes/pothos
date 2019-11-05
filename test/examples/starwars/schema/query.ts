@@ -2,24 +2,22 @@ import builder from '../builder';
 import { getHero, getHuman, getDroid } from '../data';
 import { Episode } from './episode';
 
-const characterArgs = {
-  id: {
-    type: 'ID' as const,
-    required: true as const,
+const characterArgs = builder.createArgs(t => ({
+  id: t.id({
+    required: true,
     description: 'id of the character',
-  },
-};
+  }),
+}));
 
 export default builder.createObjectType('Query', {
   shape: t => ({
     hero: t.field({
       type: 'Character',
       args: {
-        episode: {
-          type: Episode,
+        episode: t.arg(Episode, {
           description:
             'If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.',
-        },
+        }),
       },
       resolve: (_, { episode }) => getHero(episode),
     }),
