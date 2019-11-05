@@ -69,7 +69,7 @@ type Query {
     \\"\\"\\"
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
-    episode: Episode
+    episode: Episode!
   ): Character!
 
   \\"\\"\\"human\\"\\"\\"

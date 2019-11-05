@@ -139,9 +139,9 @@ export type InputType<Types extends TypeMap> =
   | EnumType<Types, any>
   | keyof Types['Input'];
 
-export type InputOptions = {
+export type InputOptions<Req extends boolean> = {
   description?: string;
-  required?: boolean;
+  required: Req;
 };
 
 export type InputField<Types extends TypeMap> =
@@ -166,12 +166,18 @@ export type InputTypeWithShape<Types extends TypeMap, Shape> =
       [K in keyof Types['Input']]: Types['Input'][K] extends Shape ? K : never;
     }[keyof Types['Input']];
 
-export type InputFieldWithShape<Types extends TypeMap, Shape> =
-  | (InputTypeWithShape<Types, Shape>)
-  | {
+export type InputFieldWithShape<Types extends TypeMap, Shape> = undefined extends Shape
+  ? {
       description?: string;
-      required?: boolean;
-      type: InputTypeWithShape<Types, Shape> | InputTypeWithShape<Types, Shape>[];
+      required: false;
+      type: InputTypeWithShape<Types, NonNullable<Shape>> | InputTypeWithShape<Types, Shape>[];
+    }
+  : {
+      description?: string;
+      required: true;
+      type:
+        | InputTypeWithShape<Types, Shape | null | undefined>
+        | InputTypeWithShape<Types, Shape>[];
     };
 
 export type ShapedInputFields<Types extends TypeMap, Name extends keyof Types['Input']> = {
@@ -195,9 +201,9 @@ export type InputShapeFromField<
       required?: infer Required;
       type: InputType<Types> | InputType<Types>[];
     }
-  ? Required extends false
-    ? InputShapeFromType<Types, Field['type']> | null | undefined
-    : NonNullable<InputShapeFromType<Types, Field['type']>>
+  ? Required extends true
+    ? NonNullable<InputShapeFromType<Types, Field['type']>>
+    : InputShapeFromType<Types, Field['type']> | null | undefined
   : never;
 
 export type InputShapeFromType<

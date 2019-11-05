@@ -5,7 +5,9 @@ export default builder.createObjectType('Query', {
     user: t.field({
       type: 'User',
       args: {
-        id: t.arg('ID'),
+        id: t.arg('ID', {
+          required: true,
+        }),
       },
       resolve: (parent, { id }, { User }) => {
         const user = User.map.get(parseInt(id, 10));

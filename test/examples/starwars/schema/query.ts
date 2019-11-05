@@ -15,6 +15,7 @@ export default builder.createObjectType('Query', {
       type: 'Character',
       args: {
         episode: t.arg(Episode, {
+          required: true,
           description:
             'If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.',
         }),

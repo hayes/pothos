@@ -20,7 +20,9 @@ type Types = {
 type ExampleShape = {
   example: {
     id: string;
+    id2?: number | null;
   };
+  id?: string | undefined;
   more: ExampleShape;
 };
 
@@ -36,15 +38,16 @@ const { Int, ID } = builder.scalars;
 // Create input types
 const Example = builder.createInputType('Example', {
   shape: t => ({
-    id: t.id(),
+    id: t.id({ required: true }),
+    id2: t.int({ required: false }),
   }),
 });
 
 const Example2 = builder.createInputType('Example2', {
   shape: t => ({
-    example: t.type(Example),
+    example: t.type(Example, { required: true }),
     id: t.id(),
-    more: t.type('Example2'),
+    more: t.type('Example2', { required: true }),
   }),
 });
 
@@ -79,8 +82,8 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        example: t.arg(Example),
-        firstN: t.arg('Int'),
+        example: t.arg(Example, { required: true }),
+        firstN: t.arg('Int', { required: true }),
       },
       resolve: (parent, args) => {
         return parent.firstName.slice(0, args.firstN) + args.example.id;
@@ -89,7 +92,7 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: t.arg(Example2),
+        example2: t.arg(Example2, { required: true }),
         firstN: t.arg.id(),
       },
       resolve: (parent, args) => {
