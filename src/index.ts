@@ -18,13 +18,13 @@ import {
   ImplementedType,
   StoreEntry,
   EnumValues,
-  ShapedInputFields,
   MergeTypeMap,
   DefaultTypeMap,
   InputFields,
   InputShapeFromFields,
   PartialTypeMap,
   InputTypeOptions,
+  ShapedInputFields,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -108,12 +108,18 @@ export default class SchemaBuilder<
     Name extends string,
     Fields extends Name extends keyof Types['Input']
       ? ShapedInputFields<Types, Name>
-      : InputFields<Types>
+      : InputFields<Types>,
+    Shape extends Name extends keyof Types['Input']
+      ? Types['Input'][Name]
+      : InputShapeFromFields<Types, Fields>
   >(name: Name, options: InputTypeOptions<Types, Fields>) {
-    return new InputObjectType<Types, InputShapeFromFields<Types, Fields>, Fields, Name>(
-      name,
-      options,
-    );
+    return new InputObjectType<
+      Types,
+      Shape,
+      Fields,
+      Name,
+      InputShapeFromFields<Types, Fields, undefined>
+    >(name, options);
   }
 
   toSchema(types: ImplementedType<Types>[]) {

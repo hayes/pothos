@@ -10,8 +10,9 @@ export default class InputObjectType<
   Types extends TypeMap,
   Shape,
   Fields extends InputFields<Types>,
-  Name extends string
-> extends BaseType<Types, Name, Shape> {
+  Name extends string,
+  MatchShape = Shape
+> extends BaseType<Types, Name, Shape, Shape, MatchShape> {
   kind: 'InputObject' = 'InputObject';
 
   fields: Fields;

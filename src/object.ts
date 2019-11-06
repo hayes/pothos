@@ -52,7 +52,7 @@ export default class ObjectType<
     > & {};
 
     this.fields = {
-      ...parentFields,
+      ...(parentFields as {}),
       ...options.shape(new FieldBuilder(parentFields)),
     };
   }

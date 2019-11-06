@@ -55,7 +55,7 @@ export default class FieldBuilder<
     > = {};
 
     (Object.keys(parentFields) as (Extract<keyof ParentShape, string>)[]).forEach(name => {
-      modifiers[name] = new FieldModifier(parentFields[name], name);
+      modifiers[name] = new FieldModifier(parentFields[name], name) as any;
     });
 
     this.modifiers = modifiers as {

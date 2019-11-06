@@ -20,9 +20,12 @@ type Types = {
 type ExampleShape = {
   example: {
     id: string;
-    id2?: number | null;
+    id2?: number;
+    ids: string[];
+    ids2?: number[];
   };
-  id?: string | undefined;
+  id?: string;
+  ids: string[];
   more: ExampleShape;
 };
 
@@ -40,6 +43,8 @@ const Example = builder.createInputType('Example', {
   shape: t => ({
     id: t.id({ required: true }),
     id2: t.int({ required: false }),
+    ids: t.idList({ required: true }),
+    ids2: t.intList({ required: false }),
   }),
 });
 
@@ -47,6 +52,7 @@ const Example2 = builder.createInputType('Example2', {
   shape: t => ({
     example: t.type(Example, { required: true }),
     id: t.id(),
+    ids: t.idList({ required: true }),
     more: t.type('Example2', { required: true }),
   }),
 });

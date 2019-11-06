@@ -6,13 +6,16 @@ export default abstract class BaseType<
   Types extends TypeMap,
   Name extends string | keyof Types['Input'] | keyof Types['Output'],
   Shape,
-  InputShape = Shape
+  InputShape = Shape,
+  MatchShape = Shape
 > {
   typename: Name;
 
   shape?: Shape;
 
   inputShape?: InputShape;
+
+  matchShape?: MatchShape;
 
   abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar' | 'InputObject';
 

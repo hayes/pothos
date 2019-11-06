@@ -43,7 +43,6 @@
         "testsFolder": "test"
       }
     ],
-
     "settings": {
       "library": true,
       "next": true,
@@ -68,6 +67,7 @@
   "dependencies": {
     "@types/graphql": "^14.5.0",
     "graphql": "^14.5.8",
-    "object.fromentries": "^2.0.1"
+    "object.fromentries": "^2.0.1",
+    "typescript": "^3.7.2"
   }
 }
