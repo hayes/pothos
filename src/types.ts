@@ -6,6 +6,7 @@ import {
   GraphQLUnionType,
   GraphQLEnumType,
   GraphQLScalarType,
+  GraphQLResolveInfo,
 } from 'graphql';
 import InputObjectType from './input';
 import BaseType from './base';
@@ -21,6 +22,10 @@ import InputFieldBuilder from './fieldUtils/input';
 // Utils
 export type OptionalKeys<T extends {}> = {
   [K in keyof T]: undefined extends T[K] ? K : never;
+}[keyof T];
+
+export type RequiredKeys<T extends {}> = {
+  [K in keyof T]: undefined extends T[K] ? never : K;
 }[keyof T];
 
 export type UndefinedToOptional<T extends {}> = Omit<T, OptionalKeys<T>> &
@@ -87,7 +92,7 @@ export type MergeTypeMap<Map extends TypeMap, Partial extends PartialTypeMap> = 
 export type DefaultTypeMap = {
   Input: {
     String: string;
-    ID: string | number;
+    ID: string;
     Int: number;
     Float: number;
     Boolean: boolean;
@@ -174,11 +179,11 @@ export type InputFieldWithShape<Types extends TypeMap, Shape, Req extends boolea
     : InputTypeWithShape<Types, NonNullable<Shape>>;
 };
 
-export type ShapedInputFields<Types extends TypeMap, Name extends keyof Types['Input']> = {
-  [K in keyof Types['Input'][Name]]: InputFieldWithShape<
+export type ShapedInputFields<Types extends TypeMap, Shape extends {}> = {
+  [K in keyof Shape]: InputFieldWithShape<
     Types,
-    Types['Input'][Name][K],
-    undefined extends Types['Input'][Name][K] ? false : true
+    Shape[K],
+    undefined extends Shape[K] ? false : true
   >;
 };
 
@@ -249,6 +254,7 @@ export type Resolver<Parent, Args, Context, Type> = (
   parent: Parent,
   args: Args,
   context: Context,
+  info: GraphQLResolveInfo,
 ) => Type extends any[]
   ? Promise<Readonly<Type[number]>>[] | Readonly<Type | Promise<Type>>
   : Readonly<Type | Promise<Type>>;
@@ -349,6 +355,7 @@ export type FieldOptions<
   directives?: { [s: string]: unknown[] };
   description?: string;
   deprecationReason?: string;
+  gates?: string[];
   resolve: Resolver<
     ShapeFromTypeParam<Types, ParentName, false>,
     InputShapeFromFields<Types, Args>,
@@ -373,6 +380,9 @@ export type ObjectTypeOptions<
   Type extends NamedTypeParam<Types>,
   Context = {}
 > = {
+  permissions?: {
+    [s: string]: (parent: ShapeFromTypeParam<Types, Type, false>, context: Context) => boolean;
+  };
   implements?: Interfaces;
   description?: string;
   shape: FieldsShape<
@@ -410,10 +420,10 @@ export type UnionOptions<Types extends TypeMap, Context, Member extends keyof Ty
 };
 
 // All types
-export type ImplementedType<Types extends TypeMap> =
-  | ObjectType<{}, any[], Types, NamedTypeParam<Types>, {}>
-  | InterfaceType<{}, Types, NamedTypeParam<Types>, {}>
-  | UnionType<Types, {}, string, NamedTypeParam<Types>>
+export type ImplementedType<Types extends TypeMap, Context> =
+  | ObjectType<{}, any[], Types, NamedTypeParam<Types>, Context>
+  | InterfaceType<{}, Types, NamedTypeParam<Types>, Context>
+  | UnionType<Types, Context, string, NamedTypeParam<Types>>
   | EnumType<Types, string, EnumValues>
   | ScalarType<Types, NamedTypeParam<Types>>
   | InputObjectType<Types, {}, {}, string>;

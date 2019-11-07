@@ -5,7 +5,7 @@ import { User } from './data';
 const server = new ApolloServer({
   schema,
   context: ctx => {
-    const userID = parseInt((ctx.req.headers['user-id'] as string) || '0', 10);
+    const userID = parseInt((ctx.req.headers['x-user-id'] as string) || '0', 10);
     const role = User.map.get(userID) ? User.map.get(userID)!.role : 'Guest';
 
     return {

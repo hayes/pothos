@@ -1,6 +1,18 @@
 import { printSchema } from 'graphql';
 import SchemaBuilder from '../../src';
 
+interface ExampleShape {
+  example: {
+    id: string;
+    id2?: number | null;
+    ids: string[];
+    ids2?: number[] | null;
+  };
+  id?: string | undefined;
+  ids: string[];
+  more: ExampleShape;
+}
+
 // Define backing models/types
 type Types = {
   Input: {
@@ -17,26 +29,12 @@ type Types = {
   };
 };
 
-type ExampleShape = {
-  example: {
-    id: string;
-    id2?: number;
-    ids: string[];
-    ids2?: number[];
-  };
-  id?: string;
-  ids: string[];
-  more: ExampleShape;
-};
-
 const builder = new SchemaBuilder<
   // Model shapes
   Types,
   // Context shape
   { userID: number }
 >();
-
-const { Int, ID } = builder.scalars;
 
 // Create input types
 const Example = builder.createInputType('Example', {
@@ -51,7 +49,7 @@ const Example = builder.createInputType('Example', {
 const Example2 = builder.createInputType('Example2', {
   shape: t => ({
     example: t.type(Example, { required: true }),
-    id: t.id(),
+    id: t.id({ required: false }),
     ids: t.idList({ required: true }),
     more: t.type('Example2', { required: true }),
   }),
@@ -145,10 +143,7 @@ const User = builder.createObjectType('User', {
     // list and optional args
     list: t.idList({
       args: {
-        ids: {
-          required: true,
-          type: [ID],
-        },
+        ids: t.arg.idList({ required: true }),
       },
       resolve: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
     }),
@@ -174,7 +169,7 @@ const Countable = builder.createInterfaceType('Countable', {
   shape: t => ({
     count: t.int({
       args: {
-        max: Int,
+        max: t.arg.int({ required: true }),
       },
       resolve: (parent, args) => Math.min(args.max, parent.count),
     }),
@@ -203,7 +198,7 @@ const Sheep = builder.createObjectType('Sheep', {
   shape: t => ({
     color: t.string({
       args: {
-        id: ID,
+        id: t.arg.id(),
       },
       resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),

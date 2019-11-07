@@ -1,4 +1,11 @@
-import { TypeMap, TypeParam, FieldOptions, CompatibleTypes, InputFields } from '../types';
+import {
+  TypeMap,
+  TypeParam,
+  FieldOptions,
+  CompatibleTypes,
+  InputFields,
+  NamedTypeParam,
+} from '../types';
 import BaseFieldUtil from './base';
 import Field from '../field';
 
@@ -18,8 +25,9 @@ export default class FieldModifier<
   constructor(
     field: Field<Args, Types, ParentType, Type, Nullable, Context, string | null, any>,
     extendsField: Extends,
+    name: NamedTypeParam<Types>,
   ) {
-    super();
+    super(name);
     this.field = field;
     this.extendsField = extendsField;
   }

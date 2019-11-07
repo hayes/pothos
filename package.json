@@ -19,11 +19,11 @@
     "pretest": "yarn run type"
   },
   "devDependencies": {
-    "@airbnb/config-babel": "^2.0.0",
-    "@airbnb/config-eslint": "^2.0.1",
-    "@airbnb/config-jest": "^2.0.0",
+    "@airbnb/config-babel": "^2.1.0",
+    "@airbnb/config-eslint": "^2.2.0",
+    "@airbnb/config-jest": "^2.1.0",
     "@airbnb/config-prettier": "^2.0.0",
-    "@airbnb/config-typescript": "^2.0.0",
+    "@airbnb/config-typescript": "^2.1.0",
     "@airbnb/nimbus": "^2.0.1",
     "@babel/plugin-syntax-bigint": "^7.4.4",
     "@types/jest": "^24.0.18",
@@ -46,7 +46,18 @@
     "settings": {
       "library": true,
       "next": true,
-      "node": true
+      "node": true,
+      "testFolder": "test"
+    },
+    "env": {
+      "useBuiltIns": false,
+      "corejs": false,
+      "targets": {
+        "node": "10"
+      },
+      "exclude": [
+        "proposal-async-generator-functions"
+      ]
     }
   },
   "lint-staged": {

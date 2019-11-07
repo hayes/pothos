@@ -1,4 +1,11 @@
-import { TypeMap, TypeParam, FieldOptions, InputFields, CompatibleTypes } from '../types';
+import {
+  TypeMap,
+  TypeParam,
+  FieldOptions,
+  InputFields,
+  CompatibleTypes,
+  NamedTypeParam,
+} from '../types';
 import Field from '../field';
 
 export default class BaseFieldUtil<
@@ -6,6 +13,12 @@ export default class BaseFieldUtil<
   ParentType extends TypeParam<Types>,
   Context
 > {
+  typename: NamedTypeParam<Types>;
+
+  constructor(name: NamedTypeParam<Types>) {
+    this.typename = name;
+  }
+
   protected createField<
     Args extends InputFields<Types>,
     Type extends TypeParam<Types>,
@@ -15,10 +28,13 @@ export default class BaseFieldUtil<
     options: FieldOptions<Types, ParentType, Type, Nullable, Args, Context>,
     extendsField: Extends,
   ) {
-    return new Field<Args, Types, ParentType, Type, Nullable, Context, Extends>({
-      ...options,
-      extendsField,
-    });
+    return new Field<Args, Types, ParentType, Type, Nullable, Context, Extends>(
+      {
+        ...options,
+        extendsField,
+      },
+      this.typename,
+    );
   }
 
   protected exposeField<
@@ -31,12 +47,15 @@ export default class BaseFieldUtil<
     options: Omit<FieldOptions<Types, ParentType, Type, Nullable, {}, Context>, 'resolve'>,
     extendsField: Extends,
   ) {
-    return new Field<{}, Types, ParentType, Type, Nullable, Context, Extends>({
-      ...options,
-      // @ts-ignore
-      resolver: parent => parent[name],
-      extendsField,
-    });
+    return new Field<{}, Types, ParentType, Type, Nullable, Context, Extends>(
+      {
+        ...options,
+        // @ts-ignore
+        resolver: parent => parent[name],
+        extendsField,
+      },
+      this.typename,
+    );
   }
 
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {

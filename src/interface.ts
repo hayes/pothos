@@ -30,11 +30,11 @@ export default class InterfaceType<
 
     this.description = options.description;
 
-    this.fields = options.shape(new FieldBuilder({}));
+    this.fields = options.shape(new FieldBuilder({}, this.typename));
   }
 
   buildType(store: TypeStore<Types>) {
-    let types: ObjectType<{}, any, Types, NamedTypeParam<Types>, unknown>[];
+    let types: ObjectType<{}, any, Types, NamedTypeParam<Types>, Context>[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),

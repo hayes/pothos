@@ -2,22 +2,24 @@
 # yarn lockfile v1
 
 
-"@airbnb/config-babel@^2.0.0":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-babel/-/config-babel-2.0.2.tgz#0c5d366c6dd314b8af1547fd24fd26a566115934"
-  integrity sha512-5en79K+2C3R1m6GOueVuHeqQnlxSMJo8J6WGs4xtfSLnh95z50am/yWizo+wZLDwBUWErU34GitiCo4QLQti6Q==
+"@airbnb/config-babel@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-babel/-/config-babel-2.1.0.tgz#38d55a8b2f7335c26f8396edc15c7d316372210d"
+  integrity sha512-BtrVQM2f07KN26b2OR9elcNGZ/bQZRYyD8eEQ2GM4S/+B1vUjuwt/4cD4SOZsai3dTGjLnjfAeZ3ZCzzgeX8bQ==
   dependencies:
     "@airbnb/nimbus-common" "^2.0.1"
-    "@babel/cli" "^7.6.4"
-    "@babel/core" "^7.6.4"
-    "@babel/plugin-proposal-class-properties" "^7.5.5"
+    "@babel/cli" "^7.7.0"
+    "@babel/core" "^7.7.0"
+    "@babel/plugin-proposal-class-properties" "^7.7.0"
+    "@babel/plugin-proposal-nullish-coalescing-operator" "^7.4.4"
     "@babel/plugin-proposal-optional-catch-binding" "^7.2.0"
+    "@babel/plugin-proposal-optional-chaining" "^7.6.0"
     "@babel/plugin-transform-react-jsx-self" "^7.2.0"
     "@babel/plugin-transform-react-jsx-source" "^7.5.0"
     "@babel/plugin-transform-runtime" "^7.6.2"
-    "@babel/preset-env" "^7.6.3"
-    "@babel/preset-react" "^7.6.3"
-    "@babel/preset-typescript" "^7.6.0"
+    "@babel/preset-env" "^7.7.1"
+    "@babel/preset-react" "^7.7.0"
+    "@babel/preset-typescript" "^7.7.0"
     "@beemo/core" "^1.0.7"
     "@beemo/driver-babel" "^1.0.5"
     babel-plugin-graphql-tag "^2.5.0"
@@ -26,16 +28,16 @@
     babel-plugin-transform-react-remove-prop-types "^0.4.24"
     babel-plugin-typescript-to-proptypes "^0.17.1"
 
-"@airbnb/config-eslint@^2.0.1":
-  version "2.1.0"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-eslint/-/config-eslint-2.1.0.tgz#b8d988555bf4af6ad0b1ac329821edc835010653"
-  integrity sha512-tYEo37V2sZR2sSYhgeI6UgS0L6STQIpnOp8SXnXY/ZHEENZ/ktWf2jNrvCddI0JsYcFRU5pFE7f+l+pY3qZRUw==
+"@airbnb/config-eslint@^2.2.0":
+  version "2.2.0"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-eslint/-/config-eslint-2.2.0.tgz#1052f4ae836493d4ec8c673b001a53e7468ecaac"
+  integrity sha512-ck7EkqkrlP/POhq8oI8Q3zTZcI61+ZqaR7c/2jr1yL3dN3kyCA1AXE5Ks/yPsjo8ZhBFMK9VEzJ4CbcYG7owgQ==
   dependencies:
     "@airbnb/nimbus-common" "^2.0.1"
     "@beemo/core" "^1.0.7"
     "@beemo/driver-eslint" "^1.0.6"
-    "@typescript-eslint/eslint-plugin" "^2.6.0"
-    "@typescript-eslint/parser" "^2.6.0"
+    "@typescript-eslint/eslint-plugin" "^2.6.1"
+    "@typescript-eslint/parser" "^2.6.1"
     babel-eslint "^10.0.3"
     eslint "^6.6.0"
     eslint-config-airbnb "^18.0.1"
@@ -49,13 +51,13 @@
     eslint-plugin-react-hooks "^2.2.0"
     eslint-plugin-unicorn "^12.1.0"
 
-"@airbnb/config-jest@^2.0.0":
-  version "2.0.2"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-jest/-/config-jest-2.0.2.tgz#1c033f7783f969bab342cedfa2bf189fa999e877"
-  integrity sha512-0coFJ7++CQs6DmYpn/fU02i29q68se90ohimsMgC3LNdLsXxaN+arTjpm4mkwg4sewgwZKEG4U6AfDN2M8rQtA==
+"@airbnb/config-jest@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-jest/-/config-jest-2.1.0.tgz#2958da46002ca8a97f480750e11bf458de240a59"
+  integrity sha512-FHPOOVgX8u4ylZTvdElOUy6cvGkyCVHfAu3HsQPF+IbVveusk5xg5vEHq2QqP9m4D7YetTUKAqM8c0/WEveX5g==
   dependencies:
     "@airbnb/nimbus-common" "^2.0.1"
-    "@babel/core" "^7.6.4"
+    "@babel/core" "^7.7.0"
     "@beemo/core" "^1.0.7"
     "@beemo/driver-babel" "^1.0.5"
     "@beemo/driver-jest" "^1.0.4"
@@ -73,14 +75,14 @@
     "@beemo/driver-prettier" "^1.0.3"
     prettier "^1.18.2"
 
-"@airbnb/config-typescript@^2.0.0":
-  version "2.0.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-typescript/-/config-typescript-2.0.1.tgz#eaf71a6003bda31e28063b03a851b9b2370de236"
-  integrity sha512-qkgdhI/wCLwoZM6UIYMw9flvK6hthZh8fLmYi6JhEGZDuAbTgdAWBW/yqkAbSamcYIB1jAyzeQPYGJbZhYoSlA==
+"@airbnb/config-typescript@^2.1.0":
+  version "2.1.0"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-typescript/-/config-typescript-2.1.0.tgz#8edfcf42f80f7aa8a22e93237f24292aefc817ed"
+  integrity sha512-9msI9QyLfMSQASItfn6AcXfJQpSTiWy52hUmnnCwg4mq769aFk78HslPp1cdtfGMzp/IbTHHnN71ApW/9MO5hQ==
   dependencies:
     "@beemo/core" "^1.0.7"
     "@beemo/driver-typescript" "^1.1.4"
-    typescript "^3.6.4"
+    typescript "^3.7.2"
 
 "@airbnb/nimbus-common@^2.0.1":
   version "2.0.1"
@@ -117,7 +119,7 @@
   resolved "https://registry.yarnpkg.com/@apollographql/graphql-playground-html/-/graphql-playground-html-1.6.24.tgz#3ce939cb127fb8aaa3ffc1e90dff9b8af9f2e3dc"
   integrity sha512-8GqG48m1XqyXh4mIZrtB5xOhUwSsh1WsrrsaZQOEYYql3YN9DEu9OOSg0ILzXHZo/h2Q74777YE4YzlArQzQEQ==
 
-"@babel/cli@^7.6.4":
+"@babel/cli@^7.7.0":
   version "7.7.0"
   resolved "https://registry.yarnpkg.com/@babel/cli/-/cli-7.7.0.tgz#8d10c9acb2acb362d7614a9493e1791c69100d89"
   integrity sha512-jECEqAq6Ngf3pOhLSg7od9WKyrIacyh1oNNYtRXNn+ummSHCTXBamGywOAtiae34Vk7zKuQNnLvo2BKTMCoV4A==
@@ -140,7 +142,7 @@
   dependencies:
     "@babel/highlight" "^7.0.0"
 
-"@babel/core@^7.1.0", "@babel/core@^7.6.4":
+"@babel/core@^7.1.0", "@babel/core@^7.7.0":
   version "7.7.0"
   resolved "https://registry.yarnpkg.com/@babel/core/-/core-7.7.0.tgz#461d2948b1a7113088baf999499bcbd39a7faa3b"
   integrity sha512-Bb1NjZCaiwTQC/ARL+MwDpgocdnwWDCaugvkGt6cxfBzQa8Whv1JybBoUEiBDKl8Ni3H3c7Fykwk7QChUsHRlg==
@@ -385,7 +387,7 @@
     "@babel/helper-remap-async-to-generator" "^7.7.0"
     "@babel/plugin-syntax-async-generators" "^7.2.0"
 
-"@babel/plugin-proposal-class-properties@^7.5.5":
+"@babel/plugin-proposal-class-properties@^7.7.0":
   version "7.7.0"
   resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-class-properties/-/plugin-proposal-class-properties-7.7.0.tgz#ac54e728ecf81d90e8f4d2a9c05a890457107917"
   integrity sha512-tufDcFA1Vj+eWvwHN+jvMN6QsV5o+vUlytNKrbMiCeDL0F2j92RURzUsUMWE5EJkLyWxjdUslCsMQa9FWth16A==
@@ -409,6 +411,14 @@
     "@babel/helper-plugin-utils" "^7.0.0"
     "@babel/plugin-syntax-json-strings" "^7.2.0"
 
+"@babel/plugin-proposal-nullish-coalescing-operator@^7.4.4":
+  version "7.4.4"
+  resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-nullish-coalescing-operator/-/plugin-proposal-nullish-coalescing-operator-7.4.4.tgz#41c360d59481d88e0ce3a3f837df10121a769b39"
+  integrity sha512-Amph7Epui1Dh/xxUxS2+K22/MUi6+6JVTvy3P58tja3B6yKTSjwwx0/d83rF7551D6PVSSoplQb8GCwqec7HRw==
+  dependencies:
+    "@babel/helper-plugin-utils" "^7.0.0"
+    "@babel/plugin-syntax-nullish-coalescing-operator" "^7.2.0"
+
 "@babel/plugin-proposal-object-rest-spread@^7.6.2":
   version "7.6.2"
   resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-object-rest-spread/-/plugin-proposal-object-rest-spread-7.6.2.tgz#8ffccc8f3a6545e9f78988b6bf4fe881b88e8096"
@@ -424,6 +434,14 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.0.0"
     "@babel/plugin-syntax-optional-catch-binding" "^7.2.0"
+
+"@babel/plugin-proposal-optional-chaining@^7.6.0":
+  version "7.6.0"
+  resolved "https://registry.yarnpkg.com/@babel/plugin-proposal-optional-chaining/-/plugin-proposal-optional-chaining-7.6.0.tgz#e9bf1f9b9ba10c77c033082da75f068389041af8"
+  integrity sha512-kj4gkZ6qUggkprRq3Uh5KP8XnE1MdIO0J7MhdDX8+rAbB6dJ2UrensGIS+0NPZAaaJ1Vr0PN6oLUgXMU1uMcSg==
+  dependencies:
+    "@babel/helper-plugin-utils" "^7.0.0"
+    "@babel/plugin-syntax-optional-chaining" "^7.2.0"
 
 "@babel/plugin-proposal-unicode-property-regex@^7.7.0":
   version "7.7.0"
@@ -468,6 +486,13 @@
   dependencies:
     "@babel/helper-plugin-utils" "^7.0.0"
 
+"@babel/plugin-syntax-nullish-coalescing-operator@^7.2.0":
+  version "7.2.0"
+  resolved "https://registry.yarnpkg.com/@babel/plugin-syntax-nullish-coalescing-operator/-/plugin-syntax-nullish-coalescing-operator-7.2.0.tgz#f75083dfd5ade73e783db729bbd87e7b9efb7624"
+  integrity sha512-lRCEaKE+LTxDQtgbYajI04ddt6WW0WJq57xqkAZ+s11h4YgfRHhVA/Y2VhfPzzFD4qeLHWg32DMp9HooY4Kqlg==
+  dependencies:
+    "@babel/helper-plugin-utils" "^7.0.0"
+
 "@babel/plugin-syntax-object-rest-spread@^7.0.0", "@babel/plugin-syntax-object-rest-spread@^7.2.0":
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/@babel/plugin-syntax-object-rest-spread/-/plugin-syntax-object-rest-spread-7.2.0.tgz#3b7a3e733510c57e820b9142a6579ac8b0dfad2e"
@@ -479,6 +504,13 @@
   version "7.2.0"
   resolved "https://registry.yarnpkg.com/@babel/plugin-syntax-optional-catch-binding/-/plugin-syntax-optional-catch-binding-7.2.0.tgz#a94013d6eda8908dfe6a477e7f9eda85656ecf5c"
   integrity sha512-bDe4xKNhb0LI7IvZHiA13kff0KEfaGX/Hv4lMA9+7TEc63hMNvfKo6ZFpXhKuEp+II/q35Gc4NoMeDZyaUbj9w==
+  dependencies:
+    "@babel/helper-plugin-utils" "^7.0.0"
+
+"@babel/plugin-syntax-optional-chaining@^7.2.0":
+  version "7.2.0"
+  resolved "https://registry.yarnpkg.com/@babel/plugin-syntax-optional-chaining/-/plugin-syntax-optional-chaining-7.2.0.tgz#a59d6ae8c167e7608eaa443fda9fa8fa6bf21dff"
+  integrity sha512-HtGCtvp5Uq/jH/WNUPkK6b7rufnCPLLlDAFN7cmACoIjaOOiXxUt3SswU5loHqrhtqTsa/WoLQ1OQ1AGuZqaWA==
   dependencies:
     "@babel/helper-plugin-utils" "^7.0.0"
 
@@ -791,7 +823,7 @@
     "@babel/helper-create-regexp-features-plugin" "^7.7.0"
     "@babel/helper-plugin-utils" "^7.0.0"
 
-"@babel/preset-env@^7.6.3":
+"@babel/preset-env@^7.7.1":
   version "7.7.1"
   resolved "https://registry.yarnpkg.com/@babel/preset-env/-/preset-env-7.7.1.tgz#04a2ff53552c5885cf1083e291c8dd5490f744bb"
   integrity sha512-/93SWhi3PxcVTDpSqC+Dp4YxUu3qZ4m7I76k0w73wYfn7bGVuRIO4QUz95aJksbS+AD1/mT1Ie7rbkT0wSplaA==
@@ -848,7 +880,7 @@
     js-levenshtein "^1.1.3"
     semver "^5.5.0"
 
-"@babel/preset-react@^7.6.3":
+"@babel/preset-react@^7.7.0":
   version "7.7.0"
   resolved "https://registry.yarnpkg.com/@babel/preset-react/-/preset-react-7.7.0.tgz#8ab0c4787d98cf1f5f22dabf115552bf9e4e406c"
   integrity sha512-IXXgSUYBPHUGhUkH+89TR6faMcBtuMW0h5OHbMuVbL3/5wK2g6a2M2BBpkLa+Kw0sAHiZ9dNVgqJMDP/O4GRBA==
@@ -859,7 +891,7 @@
     "@babel/plugin-transform-react-jsx-self" "^7.0.0"
     "@babel/plugin-transform-react-jsx-source" "^7.0.0"
 
-"@babel/preset-typescript@^7.6.0":
+"@babel/preset-typescript@^7.7.0":
   version "7.7.0"
   resolved "https://registry.yarnpkg.com/@babel/preset-typescript/-/preset-typescript-7.7.0.tgz#5d7682d938160ceaf51c3d4239e9521ef893474c"
   integrity sha512-WZ3qvtAJy8w/i6wqq5PuDnkCUXaLUTHIlJujfGHmHxsT5veAbEdEjl3cC/3nXfyD0bzlWsIiMdUhZgrXjd9QWg==
@@ -1666,7 +1698,7 @@
   dependencies:
     "@types/yargs-parser" "*"
 
-"@typescript-eslint/eslint-plugin@^2.6.0":
+"@typescript-eslint/eslint-plugin@^2.6.1":
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/eslint-plugin/-/eslint-plugin-2.6.1.tgz#e34972a24f8aba0861f9ccf7130acd74fd11e079"
   integrity sha512-Z0rddsGqioKbvqfohg7BwkFC3PuNLsB+GE9QkFza7tiDzuHoy0y823Y+oGNDzxNZrYyLjqkZtCTl4vCqOmEN4g==
@@ -1686,7 +1718,7 @@
     "@typescript-eslint/typescript-estree" "2.6.1"
     eslint-scope "^5.0.0"
 
-"@typescript-eslint/parser@^2.6.0":
+"@typescript-eslint/parser@^2.6.1":
   version "2.6.1"
   resolved "https://registry.yarnpkg.com/@typescript-eslint/parser/-/parser-2.6.1.tgz#3c00116baa0d696bc334ca18ac5286b34793993c"
   integrity sha512-PDPkUkZ4c7yA+FWqigjwf3ngPUgoLaGjMlFh6TRtbjhqxFBnkElDfckSjm98q9cMr4xRzZ15VrS/xKm6QHYf0w==
@@ -7676,7 +7708,7 @@ type-is@^1.6.16, type-is@~1.6.17, type-is@~1.6.18:
     media-typer "0.3.0"
     mime-types "~2.1.24"
 
-typescript@^3.6.4, typescript@^3.7.2:
+typescript@^3.7.2:
   version "3.7.2"
   resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.7.2.tgz#27e489b95fa5909445e9fef5ee48d81697ad18fb"
   integrity sha512-ml7V7JfiN2Xwvcer+XAf2csGO1bPBdRbFCkYBczNZggrBZ9c7G3riSUeJmqEU5uOtXNPMhE3n+R4FA/3YOAWOQ==

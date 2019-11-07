@@ -18,13 +18,13 @@ import {
   ImplementedType,
   StoreEntry,
   EnumValues,
-  MergeTypeMap,
-  DefaultTypeMap,
   InputFields,
   InputShapeFromFields,
-  PartialTypeMap,
   InputTypeOptions,
   ShapedInputFields,
+  MergeTypeMap,
+  DefaultTypeMap,
+  PartialTypeMap,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -49,14 +49,6 @@ export default class SchemaBuilder<
     Float: this.createScalar('Float', GraphQLFloat),
     String: this.createScalar('String', GraphQLString),
     Boolean: this.createScalar('Boolean', GraphQLBoolean),
-  };
-
-  inputBuilder = {
-    // id: () => this.scalars.ID,
-    // int: () => this.scalars.Int,
-    // float: () => this.scalars.Float,
-    // string: () => this.scalars.String,
-    bool: () => this.scalars.Boolean,
   };
 
   createObjectType<
@@ -107,7 +99,7 @@ export default class SchemaBuilder<
   createInputType<
     Name extends string,
     Fields extends Name extends keyof Types['Input']
-      ? ShapedInputFields<Types, Name>
+      ? ShapedInputFields<Types, Types['Input'][Name]>
       : InputFields<Types>,
     Shape extends Name extends keyof Types['Input']
       ? Types['Input'][Name]
@@ -122,7 +114,7 @@ export default class SchemaBuilder<
     >(name, options);
   }
 
-  toSchema(types: ImplementedType<Types>[]) {
+  toSchema(types: ImplementedType<Types, Context>[]) {
     const typeStore = new TypeStore<Types>();
     const scalars = [
       this.scalars.Boolean,

@@ -1,4 +1,11 @@
-import { TypeMap, TypeParam, FieldOptions, InputFields, CompatibleTypes } from '../types';
+import {
+  TypeMap,
+  TypeParam,
+  FieldOptions,
+  InputFields,
+  CompatibleTypes,
+  NamedTypeParam,
+} from '../types';
 import Field from '../field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
@@ -35,8 +42,8 @@ export default class FieldBuilder<
     >;
   };
 
-  constructor(parentFields: ParentShape) {
-    super();
+  constructor(parentFields: ParentShape, typename: NamedTypeParam<Types>) {
+    super(typename);
 
     this.parentFields = parentFields;
 
@@ -55,7 +62,7 @@ export default class FieldBuilder<
     > = {};
 
     (Object.keys(parentFields) as (Extract<keyof ParentShape, string>)[]).forEach(name => {
-      modifiers[name] = new FieldModifier(parentFields[name], name) as any;
+      modifiers[name] = new FieldModifier(parentFields[name], name, this.typename) as any;
     });
 
     this.modifiers = modifiers as {
