@@ -131,6 +131,9 @@ export type ShapeFromTypeParam<
 
 export type NamedTypeParam<Types extends TypeMap> = keyof Types['Output'];
 
+export type NamedInputAndOutput<Types extends TypeMap> = keyof Types['Output'] &
+  keyof Types['Input'];
+
 export type TypeParam<Types extends TypeMap> =
   | keyof Types['Output']
   | (BaseType<Types, string, unknown>)

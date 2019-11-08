@@ -1,64 +1,41 @@
 {
-  "name": "@hayes/schema-builder",
-  "version": "0.1.0",
-  "main": "lib/index.js",
-  "author": "Michael Hayes",
-  "license": "MIT",
-  "private": false,
+  "name": "schema-builder",
+  "version": "1.0.0",
+  "description": "## Getting started",
+  "directories": {
+    "lib": "lib"
+  },
   "scripts": {
     "prepare": "nimbus create-config --silent",
-    "build": "nimbus typescript",
+    "build": "nimbus babel --workspaces=* && nimbus babel --esm --workspaces=*",
     "lint": "nimbus eslint",
     "posttest": "yarn run lint",
     "jest": "NODE_ENV=test TZ=UTC nimbus jest",
     "jest:coverage": "yarn run jest -- --coverage",
     "test": "yarn run jest:coverage",
-    "prepack": "yarn build",
     "prettier": "nimbus prettier",
-    "type": "nimbus typescript --noEmit",
+    "type": "nimbus typescript --build --reference-workspaces",
+    "prebuild": "yarn run type",
     "pretest": "yarn run type"
+  },
+  "workspaces": [
+    "./packages/*"
+  ],
+  "private": true,
+  "dependencies": {
+    "typescript": "^3.7.2"
   },
   "devDependencies": {
     "@airbnb/config-babel": "^2.1.0",
     "@airbnb/config-eslint": "^2.2.0",
     "@airbnb/config-jest": "^2.1.0",
-    "@airbnb/config-prettier": "^2.0.0",
+    "@airbnb/config-prettier": "^2.0.1",
     "@airbnb/config-typescript": "^2.1.0",
-    "@airbnb/nimbus": "^2.0.1",
+    "@airbnb/nimbus": "^2.0.4",
     "@babel/plugin-syntax-bigint": "^7.4.4",
     "@types/jest": "^24.0.18",
-    "apollo-server": "^2.9.7",
-    "graphql-tag": "^2.10.1",
     "husky": "^3.0.5",
     "lint-staged": "^9.2.5"
-  },
-  "nimbus": {
-    "drivers": [
-      "babel",
-      "eslint",
-      "jest",
-      "prettier",
-      {
-        "driver": "typescript",
-        "testsFolder": "test"
-      }
-    ],
-    "settings": {
-      "library": true,
-      "next": true,
-      "node": true,
-      "testFolder": "test"
-    },
-    "env": {
-      "useBuiltIns": false,
-      "corejs": false,
-      "targets": {
-        "node": "10"
-      },
-      "exclude": [
-        "proposal-async-generator-functions"
-      ]
-    }
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
@@ -75,10 +52,28 @@
       "pre-commit": "lint-staged"
     }
   },
-  "dependencies": {
-    "@types/graphql": "^14.5.0",
-    "graphql": "^14.5.8",
-    "object.fromentries": "^2.0.1",
-    "typescript": "^3.7.2"
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/schema-builder.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hayes/schema-builder/issues"
+  },
+  "homepage": "https://github.com/hayes/schema-builder#readme",
+  "nimbus": {
+    "drivers": [
+      "eslint",
+      "jest",
+      "prettier",
+      "typescript",
+      "babel"
+    ],
+    "settings": {
+      "library": true,
+      "next": true,
+      "node": true
+    }
   }
 }

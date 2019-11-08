@@ -25,6 +25,7 @@ import {
   MergeTypeMap,
   DefaultTypeMap,
   PartialTypeMap,
+  NamedInputAndOutput,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -92,7 +93,7 @@ export default class SchemaBuilder<
     return new EnumType(name, options);
   }
 
-  createScalar<Name extends NamedTypeParam<Types>>(name: Name, scalar: GraphQLScalarType) {
+  createScalar<Name extends NamedInputAndOutput<Types>>(name: Name, scalar: GraphQLScalarType) {
     return new ScalarType<Types, Name>(name, scalar);
   }
 
