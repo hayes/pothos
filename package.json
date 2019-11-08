@@ -7,7 +7,7 @@
   },
   "scripts": {
     "prepare": "nimbus create-config --silent",
-    "build": "nimbus babel --workspaces=* && nimbus babel --esm --workspaces=*",
+    "build": "nimbus type",
     "lint": "nimbus eslint",
     "posttest": "yarn run lint",
     "jest": "NODE_ENV=test TZ=UTC nimbus jest",
@@ -15,7 +15,6 @@
     "test": "yarn run jest:coverage",
     "prettier": "nimbus prettier",
     "type": "nimbus typescript --build --reference-workspaces",
-    "prebuild": "yarn run type",
     "pretest": "yarn run type"
   },
   "workspaces": [
