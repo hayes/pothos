@@ -36,7 +36,10 @@ export default class BaseFieldUtil<
     Extends extends string | null
   >(
     name: Name,
-    options: Omit<GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>, 'resolve'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
+      'resolve'
+    >,
     extendsField: Extends,
   ) {
     return new Field<{}, Types, ParentType, Type, Nullable, Extends>(

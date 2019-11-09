@@ -119,8 +119,9 @@ export type ShapeFromTypeParam<
 
 export type NamedTypeParam<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Output'];
 
-export type NamedInputAndOutput<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Output'] &
-  keyof Types['Input'];
+export type NamedInputAndOutput<
+  Types extends GiraphQLSchemaTypes.TypeInfo
+> = keyof Types['Output'] & keyof Types['Input'];
 
 export type TypeParam<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | keyof Types['Output']

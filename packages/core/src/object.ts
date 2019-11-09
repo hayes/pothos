@@ -35,7 +35,9 @@ export default class ObjectType<
 
   isType: (obj: unknown) => boolean;
 
-  options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>>;
+  options: NullableToOptional<
+    GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>
+  >;
 
   // permissions: {
   //   [s: string]: (parent: any, context: any) => boolean | Promise<boolean>;

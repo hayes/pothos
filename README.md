@@ -45,8 +45,3 @@ const Query = builder.createObject('Query', () => {
 
 const schema = builder.toSchema([Query, User])
 ```
-
-
-
-
-
