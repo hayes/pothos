@@ -7,7 +7,7 @@ export default builder.createObjectType('User', {
     lastName: t.exposeString('lastName'),
     email: t.exposeString('email'),
   }),
-  externalResolvers: {
+  extends: {
     Query: t => ({
       user: t.field({
         type: 'User',

@@ -2,7 +2,7 @@
 import { BasePlugin } from '@giraphql/core';
 import './global-types';
 
-export default class ExternalResolverPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
+export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   visitObjectType() {}
 }

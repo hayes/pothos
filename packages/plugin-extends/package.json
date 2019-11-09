@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/plugin-external-resolvers",
+  "name": "@giraphql/plugin-extends",
   "version": "0.1.1-alpha.0",
   "description": "",
   "main": "lib/index.js",

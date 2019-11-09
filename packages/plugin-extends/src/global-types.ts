@@ -19,7 +19,7 @@ declare global {
       Types extends TypeInfo,
       Type extends NamedTypeParam<Types>
     > {
-      externalResolvers?: {
+      extends?: {
         [K in keyof Types['Output']]?: FieldsShape<{ [s: string]: unknown }, Types, K, {}>;
       };
     }
