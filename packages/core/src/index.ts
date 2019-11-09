@@ -36,7 +36,17 @@ import Field from './field';
 
 export * from './types';
 
-export { EnumType, BasePlugin, Field, TypeStore, ObjectType, InterfaceType, UnionType };
+export {
+  BasePlugin,
+  Field,
+  TypeStore,
+  ObjectType,
+  InterfaceType,
+  UnionType,
+  EnumType,
+  ScalarType,
+  InputObjectType,
+};
 
 export default class SchemaBuilder<
   PartialTypes extends GiraphQLSchemaTypes.PartialTypeInfo,
@@ -143,6 +153,43 @@ export default class SchemaBuilder<
         kind: type.kind,
         type,
       } as StoreEntry<Types>);
+    }
+
+    for (const plugin of this.plugins) {
+      for (const entry of typeStore.types.values()) {
+        switch (entry.kind) {
+          case 'Object':
+            if (plugin.visitObjectType) {
+              plugin.visitObjectType(entry.type, entry.built, typeStore);
+            }
+            break;
+          case 'Enum':
+            if (plugin.visitEnumType) {
+              plugin.visitEnumType(entry.type, entry.built, typeStore);
+            }
+            break;
+          case 'InputObject':
+            if (plugin.visitInputObjectType) {
+              plugin.visitInputObjectType(entry.type, entry.built, typeStore);
+            }
+            break;
+          case 'Interface':
+            if (plugin.visitInterfaceType) {
+              plugin.visitInterfaceType(entry.type, entry.built, typeStore);
+            }
+            break;
+          case 'Scalar':
+            if (plugin.visitScalarType) {
+              plugin.visitScalarType(entry.type, entry.built, typeStore);
+            }
+            break;
+          case 'Union':
+            if (plugin.visitUnionType) {
+              plugin.visitUnionType(entry.type, entry.built, typeStore);
+            }
+            break;
+        }
+      }
     }
 
     return new GraphQLSchema({

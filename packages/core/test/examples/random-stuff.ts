@@ -1,4 +1,3 @@
-import { printSchema } from 'graphql';
 import SchemaBuilder from '../../src';
 
 interface ExampleShape {
@@ -249,6 +248,7 @@ const Article = builder.createObjectType('Article', {
 const schema = builder.toSchema([
   Query,
   Shaveable,
+  Countable,
   Stuff,
   User,
   Sheep,
@@ -258,4 +258,4 @@ const schema = builder.toSchema([
   Example2,
 ]);
 
-console.log(printSchema(schema));
+export default schema;
