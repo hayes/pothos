@@ -17,7 +17,7 @@
     "prettier": "nimbus prettier",
     "type": "nimbus typescript --build --reference-workspaces",
     "pretest": "yarn run type",
-    "release": "yarn clean && yarn build && lerna publish  --push"
+    "release": "yarn clean && yarn build && lerna publish --push"
   },
   "workspaces": [
     "./packages/*"
