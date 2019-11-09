@@ -1,5 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { BasePlugin, InputFields, TypeParam, Field, TypeStore } from '@giraphql/core';
+/* eslint-disable no-param-reassign */
+import {
+  BasePlugin,
+  InputFields,
+  TypeParam,
+  Field,
+  TypeStore,
+  UnionType,
+  NamedTypeParam,
+  InterfaceType,
+} from '@giraphql/core';
 import {
   GraphQLFieldConfig,
   GraphQLResolveInfo,
@@ -9,6 +18,8 @@ import {
   GraphQLList,
   GraphQLScalarType,
   GraphQLEnumType,
+  GraphQLUnionType,
+  GraphQLInterfaceType,
 } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
 import './global-types';
@@ -212,6 +223,37 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     return {
       ...config,
       resolve: wrappedResolver as (...args: unknown[]) => unknown,
+    };
+  }
+
+  visitUnionType(type: UnionType<Types, string, NamedTypeParam<Types>>, built: GraphQLUnionType) {
+    const { resolveType } = built;
+
+    if (!resolveType) {
+      return;
+    }
+
+    built.resolveType = (originalParent, context, info) => {
+      const { parent } = originalParent as { parent: unknown };
+
+      return (resolveType as Function)(parent, context, info);
+    };
+  }
+
+  visitInterfaceType(
+    type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
+    built: GraphQLInterfaceType,
+  ) {
+    const { resolveType } = built;
+
+    if (!resolveType) {
+      return;
+    }
+
+    built.resolveType = (originalParent, context, info) => {
+      const { parent } = originalParent as { parent: unknown };
+
+      return (resolveType as Function)(parent, context, info);
     };
   }
 }

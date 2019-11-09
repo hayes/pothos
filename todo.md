@@ -1,9 +1,10 @@
 # TODO
 
-1. Make args helper for defining args outside of field definition
-2. helper for fields that can be used outside type definition
-3. fix ts-ignore in exposeField helper
-4. auth API
-5. external resolvers
-6. shared resolvers for other types to use
-7. documentation
+1. helper for fields that can be used outside type definition
+2. fix ts-ignore in exposeField helper
+3. external resolvers
+4. shared resolvers for other types to use
+5. documentation
+6. Example schema about giraffes with facts and neck length based access control
+7. Split up output types into objects, interfaces, and scalars
+8. Website
