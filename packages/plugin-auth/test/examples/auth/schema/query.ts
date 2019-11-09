@@ -1,7 +1,7 @@
 import builder from '../builder';
 
 export default builder.createObjectType('Query', {
-  permissions: {
+  authChecks: {
     readUser: (parent, context) => {
       return context.role === 'Admin' || context.role === 'User';
     },
@@ -14,7 +14,7 @@ export default builder.createObjectType('Query', {
           required: true,
         }),
       },
-      gates: ['readUser'],
+      authWith: ['readUser'],
       resolve: (parent, { id }, { User }) => {
         const user = User.map.get(parseInt(id, 10));
 

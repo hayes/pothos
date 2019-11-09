@@ -14,10 +14,10 @@
   "dependencies": {
     "@giraphql/core": "^0.1.1-alpha.0",
     "@types/graphql": "^14.5.0",
+    "apollo-server": "^2.9.7",
     "graphql": "^14.5.8"
   },
   "devDependencies": {
-    "apollo-server": "^2.9.7",
     "graphql-tag": "^2.10.1"
   }
 }

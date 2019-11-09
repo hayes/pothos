@@ -94,6 +94,7 @@ export default class Field<
     return plugins.reduce((config, plugin) => {
       return plugin.updateFieldConfig
         ? plugin.updateFieldConfig(
+            name,
             // TODO figure out why this is complainings
             (this as unknown) as Field<
               InputFields<Types>,

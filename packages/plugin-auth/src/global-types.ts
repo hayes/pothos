@@ -20,7 +20,7 @@ declare global {
       Types extends TypeInfo,
       Type extends NamedTypeParam<Types>
     > {
-      permissions?: {
+      authChecks?: {
         [s: string]: (
           parent: ShapeFromTypeParam<Types, Type, false>,
           context: Types['Context'],
@@ -35,7 +35,15 @@ declare global {
       Nullable extends boolean,
       Args extends InputFields<Types>
     > {
-      gates?: string[];
+      authWith?: string[];
+      grantAuth?: {
+        [s: string]:
+          | true
+          | ((
+              parent: ShapeFromTypeParam<Types, ReturnTypeName, false>,
+              context: Types['Context'],
+            ) => boolean);
+      };
     }
   }
 }

@@ -55,6 +55,7 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
   ): void;
 
   updateFieldConfig?(
+    name: string,
     type: Field<InputFields<Types>, Types, TypeParam<Types>, TypeParam<Types>>,
     config: GraphQLFieldConfig<unknown, unknown>,
     store: TypeStore<Types>,
