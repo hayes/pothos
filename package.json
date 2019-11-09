@@ -56,14 +56,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraph.git"
+    "url": "git+https://github.com/hayes/giraphql.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/hayes/giraph/issues"
+    "url": "https://github.com/hayes/giraphql/issues"
   },
-  "homepage": "https://github.com/hayes/giraph#readme",
+  "homepage": "https://github.com/hayes/giraphql#readme",
   "nimbus": {
     "drivers": [
       "eslint",
