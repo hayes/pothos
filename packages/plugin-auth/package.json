@@ -1,6 +1,6 @@
 {
   "name": "@giraph/plugin-auth",
-  "version": "0.0.0",
+  "version": "0.1.0-alpha.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -9,9 +9,9 @@
   "author": "Michael Hayes",
   "license": "ISC",
   "dependencies": {
+    "@giraph/core": "^1.0.0",
     "@types/graphql": "^14.5.0",
-    "graphql": "^14.5.8",
-    "@giraph/core": "^1.0.0"
+    "graphql": "^14.5.8"
   },
   "devDependencies": {
     "apollo-server": "^2.9.7",
