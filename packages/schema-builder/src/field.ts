@@ -5,6 +5,7 @@ import { TypeParam, InputFields, ShapeFromTypeParam, NamedTypeParam } from './ty
 import TypeStore from './store';
 import { typeFromParam, buildArg } from './utils';
 import BaseType from './base';
+import BasePlugin from './plugin';
 
 export default class Field<
   Args extends InputFields<Types>,
@@ -52,40 +53,6 @@ export default class Field<
     this.parentTypename = parentTypename;
   }
 
-  // private wrapResolve(store: TypeStore<Types>) {
-  //   const parentType = store.getType(this.parentTypename);
-  //   const checks = parentType.kind === 'Object' ? parentType.permissions : {};
-
-  //   return (async (
-  //     parent: ShapeFromTypeParam<Types, ParentType, false>,
-  //     args: Args,
-  //     context: Context,
-  //     info: GraphQLResolveInfo,
-  //   ) => {
-  //     if (this.gates.length !== 0) {
-  //       const permissions = await Promise.all(
-  //         this.gates.map(gate => {
-  //           if (checks[gate]) {
-  //             return checks[gate](parent as Parameters<(typeof checks)[string]>[0], context);
-  //           }
-  //           return false;
-  //         }),
-  //       );
-
-  //       if (permissions.filter(Boolean).length === 0) {
-  //         throw new Error('unauthorized');
-  //       }
-  //     }
-
-  //     return (this.options.resolve || defaultFieldResolver)(
-  //       parent,
-  //       args as InputShapeFromFields<Types, Args, null | undefined>,
-  //       context,
-  //       info,
-  //     );
-  //   }) as (...args: unknown[]) => Promise<unknown>;
-  // }
-
   private buildArgs(store: TypeStore<Types>): GraphQLFieldConfigArgumentMap {
     return fromEntries(
       Object.keys(this.args).map(key => {
@@ -109,8 +76,12 @@ export default class Field<
     );
   }
 
-  build(name: string, store: TypeStore<Types>): GraphQLFieldConfig<unknown, unknown> {
-    return {
+  build(
+    name: string,
+    store: TypeStore<Types>,
+    plugins: BasePlugin<Types>[],
+  ): GraphQLFieldConfig<unknown, unknown> {
+    const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
       args: this.buildArgs(store),
       extensions: [],
       description: this.options.description || name,
@@ -119,5 +90,21 @@ export default class Field<
         ? typeFromParam(this.type, store)
         : new GraphQLNonNull(typeFromParam(this.type, store)),
     };
+
+    return plugins.reduce((config, plugin) => {
+      return plugin.updateFieldConfig
+        ? plugin.updateFieldConfig(
+            // TODO figure out why this is complainings
+            (this as unknown) as Field<
+              InputFields<Types>,
+              Types,
+              TypeParam<Types>,
+              TypeParam<Types>
+            >,
+            config,
+            store,
+          )
+        : config;
+    }, baseConfig);
   }
 }

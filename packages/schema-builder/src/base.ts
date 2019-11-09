@@ -1,5 +1,6 @@
 import { GraphQLType } from 'graphql';
 import TypeStore from './store';
+import BasePlugin from './plugin';
 
 export default abstract class BaseType<
   Types extends SpiderSchemaTypes.TypeInfo,
@@ -23,5 +24,5 @@ export default abstract class BaseType<
     this.shape = shape;
   }
 
-  abstract buildType(store: TypeStore<Types>): GraphQLType;
+  abstract buildType(store: TypeStore<Types>, plugins: BasePlugin<Types>[]): GraphQLType;
 }

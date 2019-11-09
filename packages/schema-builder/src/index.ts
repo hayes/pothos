@@ -31,10 +31,12 @@ import EnumType from './enum';
 import TypeStore from './store';
 import ScalarType from './scalar';
 import InputFieldBuilder from './fieldUtils/input';
+import BasePlugin from './plugin';
+import Field from './field';
 
 export * from './types';
 
-export { EnumType };
+export { EnumType, BasePlugin, Field, TypeStore, ObjectType, InterfaceType, UnionType };
 
 export default class SchemaBuilder<
   PartialTypes extends SpiderSchemaTypes.PartialTypeInfo,
@@ -43,6 +45,12 @@ export default class SchemaBuilder<
     PartialTypes
   >
 > {
+  plugins: BasePlugin<Types>[];
+
+  constructor(options: { plugins?: BasePlugin<Types>[] } = {}) {
+    this.plugins = options.plugins || [];
+  }
+
   scalars = {
     ID: this.createScalar('ID', GraphQLID),
     Int: this.createScalar('Int', GraphQLInt),
@@ -131,7 +139,7 @@ export default class SchemaBuilder<
       }
 
       typeStore.set(type.typename, {
-        built: type.buildType(typeStore),
+        built: type.buildType(typeStore, this.plugins),
         kind: type.kind,
         type,
       } as StoreEntry<Types>);

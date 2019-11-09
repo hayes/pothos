@@ -1,43 +1,45 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import SchemaBuilder, {
-  CompatibleInterfaceNames,
-  ShapeFromTypeParam,
-  NamedTypeParam,
-} from 'schema-builder';
-import InterfaceType from 'schema-builder/src/interface';
+import { BasePlugin, InputFields, TypeParam, Field, TypeStore } from 'schema-builder';
+import { GraphQLFieldConfig, GraphQLResolveInfo, defaultFieldResolver } from 'graphql';
+import './global-types';
 
-declare global {
-  export namespace SpiderSchemaTypes {
-    export interface ObjectTypeOptions<
-      Shape extends {},
-      Interfaces extends InterfaceType<
-        {},
-        Types,
-        CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>
-      >[],
-      Types extends TypeInfo,
-      Type extends NamedTypeParam<Types>
-    > {
-      permissions?: {
-        [s: string]: (
-          parent: ShapeFromTypeParam<Types, Type, false>,
-          context: Types['Context'],
-        ) => boolean;
-      };
-    }
+export default class AuthPlugin<Types extends SpiderSchemaTypes.TypeInfo>
+  implements BasePlugin<Types> {
+  updateFieldConfig(
+    field: Field<InputFields<Types>, Types, TypeParam<Types>, TypeParam<Types>>,
+    config: GraphQLFieldConfig<unknown, unknown>,
+    store: TypeStore<Types>,
+  ): GraphQLFieldConfig<unknown, unknown> {
+    const parentType = store.getType(field.parentTypename);
+    const checks = parentType.kind === 'Object' ? parentType.options.permissions || {} : {};
+
+    const wrappedResolver = async (
+      parent: unknown,
+      args: unknown,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => {
+      if (field.options.gates && field.options.gates.length !== 0) {
+        const permissions = await Promise.all(
+          field.options.gates!.map(gate => {
+            if (checks[gate]) {
+              return checks[gate](parent as Parameters<(typeof checks)[string]>[0], context);
+            }
+            return false;
+          }),
+        );
+
+        if (permissions.filter(Boolean).length === 0) {
+          throw new Error('unauthorized');
+        }
+      }
+
+      return (config.resolve || defaultFieldResolver)(parent, args as any, context, info);
+    };
+
+    return {
+      ...config,
+      resolve: wrappedResolver as (...args: unknown[]) => unknown,
+    };
   }
 }
-
-const builder = new SchemaBuilder<{
-  Output: { ID: string; Foo: { name: string } };
-  Context: { role: 'Admin' | 'User' | 'Guest' };
-}>();
-
-builder.createObjectType('Foo', {
-  permissions: {
-    canRead: (parent, context) => context.role === 'Admin',
-  },
-  shape: t => ({
-    name: t.exposeString('name'),
-  }),
-});

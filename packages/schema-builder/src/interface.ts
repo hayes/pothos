@@ -6,6 +6,7 @@ import TypeStore from './store';
 import Field from './field';
 import FieldBuilder from './fieldUtils/builder';
 import ObjectType from './object';
+import BasePlugin from './plugin';
 
 export default class InterfaceType<
   Shape extends {},
@@ -26,7 +27,7 @@ export default class InterfaceType<
     this.fields = options.shape(new FieldBuilder({}, this.typename));
   }
 
-  buildType(store: TypeStore<Types>) {
+  buildType(store: TypeStore<Types>, plugins: BasePlugin<Types>[]) {
     let types: ObjectType<{}, any, Types, NamedTypeParam<Types>>[];
 
     return new GraphQLInterfaceType({
@@ -49,7 +50,11 @@ export default class InterfaceType<
         fromEntries(
           Object.entries(this.fields).map(([key, field]) => [
             key,
-            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(key, store),
+            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
+              key,
+              store,
+              plugins,
+            ),
           ]),
         ),
     });

@@ -13,6 +13,7 @@ import InterfaceType from './interface';
 import TypeStore from './store';
 import Field from './field';
 import FieldBuilder from './fieldUtils/builder';
+import BasePlugin from './plugin';
 
 export default class ObjectType<
   Shape extends {},
@@ -69,7 +70,7 @@ export default class ObjectType<
     };
   }
 
-  buildType(store: TypeStore<Types>): GraphQLObjectType {
+  buildType(store: TypeStore<Types>, plugins: BasePlugin<Types>[]): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
@@ -79,7 +80,11 @@ export default class ObjectType<
         fromEntries(
           Object.entries(this.fields).map(([key, field]) => [
             key,
-            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(key, store),
+            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
+              key,
+              store,
+              plugins,
+            ),
           ]),
         ),
     });
