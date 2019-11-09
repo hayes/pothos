@@ -1,4 +1,4 @@
-import { TypeParam, FieldOptions, CompatibleTypes, InputFields, NamedTypeParam } from '../types';
+import { TypeParam, CompatibleTypes, InputFields, NamedTypeParam } from '../types';
 import BaseFieldUtil from './base';
 import Field from '../field';
 
@@ -27,7 +27,7 @@ export default class FieldModifier<
   expose<Name extends CompatibleTypes<Types, ParentType, Type, Nullable>>(
     name: Name,
     options?: Omit<
-      FieldOptions<Types, ParentType, Type, Nullable, {}>,
+      SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
       'resolve' | 'type' | 'args'
     >,
   ): Field<{}, Types, ParentType, Type, Nullable, Extends> {
@@ -35,7 +35,10 @@ export default class FieldModifier<
   }
 
   implement(
-    options: Omit<FieldOptions<Types, ParentType, Type, Nullable, Args>, 'type' | 'args'>,
+    options: Omit<
+      SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+      'type' | 'args'
+    >,
   ): Field<Args, Types, ParentType, Type, Nullable, Extends> {
     return this.createField(
       { ...options, type: this.field.type, args: this.field.args },

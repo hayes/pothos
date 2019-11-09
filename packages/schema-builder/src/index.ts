@@ -9,7 +9,6 @@ import {
   GraphQLBoolean,
 } from 'graphql';
 import {
-  InterfaceTypeOptions,
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
   NamedTypeParam,
@@ -18,7 +17,6 @@ import {
   EnumValues,
   InputFields,
   InputShapeFromFields,
-  InputTypeOptions,
   ShapedInputFields,
   MergeTypeMap,
   DefaultTypeMap,
@@ -76,20 +74,14 @@ export default class SchemaBuilder<
 
   createInterfaceType<Shape extends {}, Type extends Extract<keyof Types['Output'], string>>(
     name: Type,
-    options: InterfaceTypeOptions<Shape, Types, Type>,
+    options: SpiderSchemaTypes.InterfaceTypeOptions<Shape, Types, Type>,
   ) {
     return new InterfaceType<Shape, Types, Type>(name, options);
   }
 
   createUnionType<Member extends NamedTypeParam<Types>, Name extends string>(
     name: Name,
-    options: {
-      members: Member[];
-      resolveType: (
-        parent: Types['Output'][Member],
-        context: Types['Context'],
-      ) => Member | Promise<Member>;
-    },
+    options: SpiderSchemaTypes.UnionOptions<Types, Member>,
   ) {
     return new UnionType<Types, Name, Member>(name, options);
   }
@@ -113,7 +105,7 @@ export default class SchemaBuilder<
     Shape extends Name extends keyof Types['Input']
       ? Types['Input'][Name]
       : InputShapeFromFields<Types, Fields>
-  >(name: Name, options: InputTypeOptions<Types, Fields>) {
+  >(name: Name, options: SpiderSchemaTypes.InputTypeOptions<Types, Fields>) {
     return new InputObjectType<
       Types,
       Shape,

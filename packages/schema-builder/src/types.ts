@@ -17,7 +17,6 @@ import ObjectType from './object';
 import UnionType from './union';
 import EnumType from './enum';
 import ScalarType from './scalar';
-import InputFieldBuilder from './fieldUtils/input';
 
 import './global-types';
 
@@ -135,11 +134,6 @@ export type InputType<Types extends SpiderSchemaTypes.TypeInfo> =
   | ScalarType<Types, NamedTypeParam<Types>, any, any>
   | EnumType<Types, any>
   | keyof Types['Input'];
-
-export type InputOptions<Req extends boolean> = {
-  description?: string;
-  required: Req;
-};
 
 export type InputField<Types extends SpiderSchemaTypes.TypeInfo> =
   | InputType<Types>
@@ -315,57 +309,6 @@ export type CompatibleTypes<
 > = {
   [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
 }[keyof ParentShape];
-
-// Type Options
-export type FieldOptions<
-  Types extends SpiderSchemaTypes.TypeInfo,
-  ParentName extends TypeParam<Types>,
-  ReturnTypeName extends TypeParam<Types>,
-  Nullable extends boolean,
-  Args extends InputFields<Types>
-> = {
-  type: ReturnTypeName;
-  args?: Args;
-  nullable?: Nullable;
-  directives?: { [s: string]: unknown[] };
-  description?: string;
-  deprecationReason?: string;
-  gates?: string[];
-  resolve: Resolver<
-    ShapeFromTypeParam<Types, ParentName, false>,
-    InputShapeFromFields<Types, Args>,
-    Types['Context'],
-    ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
-  >;
-};
-
-export type InputTypeOptions<
-  Types extends SpiderSchemaTypes.TypeInfo,
-  Fields extends InputFields<Types>
-> = {
-  shape: (t: InputFieldBuilder<Types>) => Fields;
-};
-
-export type InterfaceTypeOptions<
-  Shape extends {},
-  Types extends SpiderSchemaTypes.TypeInfo,
-  Type extends TypeParam<Types>
-> = {
-  description?: string;
-  shape: FieldsShape<Shape, Types, Type>;
-};
-
-export type UnionOptions<
-  Types extends SpiderSchemaTypes.TypeInfo,
-  Member extends keyof Types['Output']
-> = {
-  description?: string;
-  members: Member[];
-  resolveType: (
-    parent: Types['Output'][Member],
-    context: Types['Context'],
-  ) => Member | Promise<Member>;
-};
 
 // All types
 export type ImplementedType<Types extends SpiderSchemaTypes.TypeInfo> =

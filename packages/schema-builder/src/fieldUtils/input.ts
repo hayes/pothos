@@ -1,5 +1,5 @@
 /* eslint-disable unicorn/consistent-function-scoping, no-dupe-class-members, lines-between-class-members */
-import { InputType, InputOptions } from '../types';
+import { InputType } from '../types';
 
 export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo> {
   bool = this.helper('Boolean');
@@ -27,11 +27,11 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
   ): { type: Type; required: false; description?: string };
   type<Type extends InputType<Types> | [InputType<Types>], Req extends boolean = false>(
     type: Type,
-    options: InputOptions<Req> | undefined,
+    options: SpiderSchemaTypes.InputOptions<Req> | undefined,
   ): { type: Type; required: Req; description?: string };
   type<Type extends InputType<Types> | [InputType<Types>], Req extends boolean>(
     type: Type,
-    options?: InputOptions<Req> | undefined,
+    options?: SpiderSchemaTypes.InputOptions<Req> | undefined,
   ) {
     return {
       description: options && options.description,
@@ -45,11 +45,11 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
   ): { type: [Type]; required: false; description?: string };
   list<Type extends InputType<Types>, Req extends boolean = false>(
     type: Type,
-    options: InputOptions<Req> | undefined,
+    options: SpiderSchemaTypes.InputOptions<Req> | undefined,
   ): { type: [Type]; required: Req; description?: string };
   list<Type extends InputType<Types>, Req extends boolean>(
     type: Type,
-    options?: InputOptions<Req> | undefined,
+    options?: SpiderSchemaTypes.InputOptions<Req> | undefined,
   ) {
     return {
       description: options && options.description,
@@ -64,8 +64,8 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
       Req extends boolean = false
     >(
       type: Type,
-      options?: InputOptions<Req>,
-    ): { type: Type } & InputOptions<Req> => this.type(type, options);
+      options?: SpiderSchemaTypes.InputOptions<Req>,
+    ): { type: Type } & SpiderSchemaTypes.InputOptions<Req> => this.type(type, options);
 
     (Object.keys(this) as (keyof InputFieldBuilder<Types>)[]).forEach(key => {
       ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
@@ -77,9 +77,11 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     function createType(): { type: Type; required: false; description?: string };
     function createType<Req extends boolean = false>(
-      options: InputOptions<Req> | undefined,
+      options: SpiderSchemaTypes.InputOptions<Req> | undefined,
     ): { type: Type; required: Req; description?: string };
-    function createType<Req extends boolean>(options?: InputOptions<Req> | undefined) {
+    function createType<Req extends boolean>(
+      options?: SpiderSchemaTypes.InputOptions<Req> | undefined,
+    ) {
       return {
         description: options && options.description,
         required: options ? options.required : false,

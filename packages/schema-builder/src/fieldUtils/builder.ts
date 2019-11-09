@@ -1,4 +1,4 @@
-import { TypeParam, FieldOptions, InputFields, CompatibleTypes, NamedTypeParam } from '../types';
+import { TypeParam, InputFields, CompatibleTypes, NamedTypeParam } from '../types';
 import Field from '../field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
@@ -94,7 +94,7 @@ export default class FieldBuilder<
   exposeStringList = this.exposeHelper(['String']);
 
   field<Args extends InputFields<Types>, Type extends TypeParam<Types>, Req extends boolean>(
-    options: FieldOptions<Types, ParentType, Type, Req, Args>,
+    options: SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Req, Args>,
   ): Field<Args, Types, ParentType, Type, Req, null> {
     return this.createField(options, null);
   }
@@ -105,7 +105,7 @@ export default class FieldBuilder<
     Name extends CompatibleTypes<Types, ParentType, Type, Req>
   >(
     name: Name,
-    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}>, 'resolve'>,
+    options: Omit<SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Req, {}>, 'resolve'>,
   ): Field<{}, Types, ParentType, Type, Req, null> {
     return this.exposeField(name, options, null);
   }

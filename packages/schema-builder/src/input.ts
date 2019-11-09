@@ -1,6 +1,6 @@
 import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
 import fromEntries from 'object.fromentries';
-import { InputFields, InputTypeOptions } from './types';
+import { InputFields } from './types';
 import TypeStore from './store';
 import BaseType from './base';
 import { buildArg } from './utils';
@@ -17,7 +17,7 @@ export default class InputObjectType<
 
   fields: Fields;
 
-  constructor(name: Name, options: InputTypeOptions<Types, Fields>) {
+  constructor(name: Name, options: SpiderSchemaTypes.InputTypeOptions<Types, Fields>) {
     super(name);
 
     this.fields = options.shape(new InputFieldBuilder());

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLNonNull } from 'graphql';
 import fromEntries from 'object.fromentries';
-import { TypeParam, FieldOptions, InputFields, ShapeFromTypeParam, NamedTypeParam } from './types';
+import { TypeParam, InputFields, ShapeFromTypeParam, NamedTypeParam } from './types';
 import TypeStore from './store';
 import { typeFromParam, buildArg } from './utils';
 import BaseType from './base';
@@ -13,13 +13,13 @@ export default class Field<
   Type extends TypeParam<Types>,
   Nullable extends boolean = true,
   Extends extends string | null = null,
-  Options extends FieldOptions<Types, ParentType, Type, Nullable, Args> = FieldOptions<
+  Options extends SpiderSchemaTypes.FieldOptions<
     Types,
     ParentType,
     Type,
     Nullable,
     Args
-  >
+  > = SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
