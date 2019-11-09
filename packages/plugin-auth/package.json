@@ -8,7 +8,9 @@
   },
   "author": "Michael Hayes",
   "license": "ISC",
-  "private": false,
+  "publishConfig": {
+    "access": "public"
+  },
   "dependencies": {
     "@giraphql/core": "^0.1.0-alpha.0",
     "@types/graphql": "^14.5.0",
