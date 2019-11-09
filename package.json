@@ -1,6 +1,6 @@
 {
   "name": "@giraph/schema-builder",
-  "version": "1.0.0",
+  "version": "0.0.0",
   "description": "## Getting started",
   "directories": {
     "lib": "lib"
@@ -8,6 +8,7 @@
   "scripts": {
     "prepare": "nimbus create-config --silent",
     "build": "yarn type",
+    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib}",
     "lint": "nimbus eslint",
     "posttest": "yarn run lint",
     "jest": "NODE_ENV=test TZ=UTC nimbus jest",
@@ -15,7 +16,8 @@
     "test": "yarn run jest:coverage",
     "prettier": "nimbus prettier",
     "type": "nimbus typescript --build --reference-workspaces",
-    "pretest": "yarn run type"
+    "pretest": "yarn run type",
+    "release": "yarn clean && yarn build && lerna publish  --push"
   },
   "workspaces": [
     "./packages/*"
@@ -34,6 +36,7 @@
     "@babel/plugin-syntax-bigint": "^7.4.4",
     "@types/jest": "^24.0.18",
     "husky": "^3.0.5",
+    "lerna": "^3.18.4",
     "lint-staged": "^9.2.5"
   },
   "lint-staged": {
