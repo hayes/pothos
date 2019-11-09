@@ -1,7 +1,7 @@
 import SchemaBuilder from 'schema-builder';
 import { ContextType } from './backing-models';
 import { User } from './data';
-import '../../../src';
+import AuthPlugin from '../../../src';
 
 type Types = {
   Output: {
@@ -14,4 +14,6 @@ type Types = {
   Context: ContextType;
 };
 
-export default new SchemaBuilder<Types>();
+export default new SchemaBuilder<Types>({
+  plugins: [new AuthPlugin()],
+});
