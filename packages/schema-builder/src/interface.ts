@@ -1,13 +1,7 @@
 import { GraphQLInterfaceType } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import {
-  TypeMap,
-  ShapeFromTypeParam,
-  InterfaceTypeOptions,
-  NamedTypeParam,
-  TypeParam,
-} from './types';
+import { ShapeFromTypeParam, InterfaceTypeOptions, NamedTypeParam, TypeParam } from './types';
 import TypeStore from './store';
 import Field from './field';
 import FieldBuilder from './fieldUtils/builder';
@@ -15,9 +9,8 @@ import ObjectType from './object';
 
 export default class InterfaceType<
   Shape extends {},
-  Types extends TypeMap,
-  Name extends NamedTypeParam<Types>,
-  Context = {}
+  Types extends SpiderSchemaTypes.TypeInfo,
+  Name extends NamedTypeParam<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
   kind: 'Interface' = 'Interface';
 
@@ -25,7 +18,7 @@ export default class InterfaceType<
 
   fields: Shape;
 
-  constructor(name: Name, options: InterfaceTypeOptions<Shape, Types, Name, Context>) {
+  constructor(name: Name, options: InterfaceTypeOptions<Shape, Types, Name>) {
     super(name);
 
     this.description = options.description;
@@ -34,7 +27,7 @@ export default class InterfaceType<
   }
 
   buildType(store: TypeStore<Types>) {
-    let types: ObjectType<{}, any, Types, NamedTypeParam<Types>, Context>[];
+    let types: ObjectType<{}, any, Types, NamedTypeParam<Types>>[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),

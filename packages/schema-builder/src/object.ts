@@ -2,13 +2,12 @@ import { GraphQLObjectType } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import {
-  TypeMap,
   ShapeFromTypeParam,
-  ObjectTypeOptions,
   CompatibleInterfaceNames,
   NamedTypeParam,
   TypeParam,
   UnionToIntersection,
+  NullableToOptional,
 } from './types';
 import InterfaceType from './interface';
 import TypeStore from './store';
@@ -20,12 +19,10 @@ export default class ObjectType<
   Interfaces extends InterfaceType<
     {},
     Types,
-    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, false>>,
-    {}
+    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, false>>
   >[],
-  Types extends TypeMap,
-  Name extends NamedTypeParam<Types>,
-  Context
+  Types extends SpiderSchemaTypes.TypeInfo,
+  Name extends NamedTypeParam<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
   kind: 'Object' = 'Object';
 
@@ -37,19 +34,28 @@ export default class ObjectType<
 
   isType: (obj: unknown) => boolean;
 
-  permissions: {
-    [s: string]: (parent: any, context: any) => boolean | Promise<boolean>;
-  };
+  options: NullableToOptional<SpiderSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>>;
 
-  constructor(name: Name, options: ObjectTypeOptions<Shape, Interfaces, Types, Name, Context>) {
+  // permissions: {
+  //   [s: string]: (parent: any, context: any) => boolean | Promise<boolean>;
+  // };
+
+  constructor(
+    name: Name,
+    options: NullableToOptional<
+      SpiderSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>
+    >,
+  ) {
     super(name);
+
+    this.options = options;
 
     this.description = options.description;
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
 
     this.isType = (options as ({ isType: (obj: unknown) => boolean })).isType || (() => false);
 
-    this.permissions = options.permissions || {};
+    // this.permissions = options.permissions || {};
 
     const parentFields = this.interfaces
       .map(i => i.fields)

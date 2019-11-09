@@ -1,40 +1,24 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import {
-  GraphQLFieldConfig,
-  GraphQLFieldConfigArgumentMap,
-  GraphQLNonNull,
-  GraphQLResolveInfo,
-  defaultFieldResolver,
-} from 'graphql';
+import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLNonNull } from 'graphql';
 import fromEntries from 'object.fromentries';
-import {
-  TypeMap,
-  TypeParam,
-  FieldOptions,
-  InputFields,
-  ShapeFromTypeParam,
-  NamedTypeParam,
-  InputShapeFromFields,
-} from './types';
+import { TypeParam, FieldOptions, InputFields, ShapeFromTypeParam, NamedTypeParam } from './types';
 import TypeStore from './store';
 import { typeFromParam, buildArg } from './utils';
 import BaseType from './base';
 
 export default class Field<
   Args extends InputFields<Types>,
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Nullable extends boolean = true,
-  Context = {},
   Extends extends string | null = null,
-  Options extends FieldOptions<Types, ParentType, Type, Nullable, Args, Context> = FieldOptions<
+  Options extends FieldOptions<Types, ParentType, Type, Nullable, Args> = FieldOptions<
     Types,
     ParentType,
     Type,
     Nullable,
-    Args,
-    Context
+    Args
   >
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
@@ -68,39 +52,39 @@ export default class Field<
     this.parentTypename = parentTypename;
   }
 
-  private wrapResolve(store: TypeStore<Types>) {
-    const parentType = store.getType(this.parentTypename);
-    const checks = parentType.kind === 'Object' ? parentType.permissions : {};
+  // private wrapResolve(store: TypeStore<Types>) {
+  //   const parentType = store.getType(this.parentTypename);
+  //   const checks = parentType.kind === 'Object' ? parentType.permissions : {};
 
-    return (async (
-      parent: ShapeFromTypeParam<Types, ParentType, false>,
-      args: Args,
-      context: Context,
-      info: GraphQLResolveInfo,
-    ) => {
-      if (this.gates.length !== 0) {
-        const permissions = await Promise.all(
-          this.gates.map(gate => {
-            if (checks[gate]) {
-              return checks[gate](parent as Parameters<(typeof checks)[string]>[0], context);
-            }
-            return false;
-          }),
-        );
+  //   return (async (
+  //     parent: ShapeFromTypeParam<Types, ParentType, false>,
+  //     args: Args,
+  //     context: Context,
+  //     info: GraphQLResolveInfo,
+  //   ) => {
+  //     if (this.gates.length !== 0) {
+  //       const permissions = await Promise.all(
+  //         this.gates.map(gate => {
+  //           if (checks[gate]) {
+  //             return checks[gate](parent as Parameters<(typeof checks)[string]>[0], context);
+  //           }
+  //           return false;
+  //         }),
+  //       );
 
-        if (permissions.filter(Boolean).length === 0) {
-          throw new Error('unauthorized');
-        }
-      }
+  //       if (permissions.filter(Boolean).length === 0) {
+  //         throw new Error('unauthorized');
+  //       }
+  //     }
 
-      return (this.options.resolve || defaultFieldResolver)(
-        parent,
-        args as InputShapeFromFields<Types, Args, null | undefined>,
-        context,
-        info,
-      );
-    }) as (...args: unknown[]) => Promise<unknown>;
-  }
+  //     return (this.options.resolve || defaultFieldResolver)(
+  //       parent,
+  //       args as InputShapeFromFields<Types, Args, null | undefined>,
+  //       context,
+  //       info,
+  //     );
+  //   }) as (...args: unknown[]) => Promise<unknown>;
+  // }
 
   private buildArgs(store: TypeStore<Types>): GraphQLFieldConfigArgumentMap {
     return fromEntries(
@@ -130,7 +114,7 @@ export default class Field<
       args: this.buildArgs(store),
       extensions: [],
       description: this.options.description || name,
-      resolve: this.wrapResolve(store),
+      resolve: this.options.resolve as ((...args: unknown[]) => unknown),
       type: this.nullable
         ? typeFromParam(this.type, store)
         : new GraphQLNonNull(typeFromParam(this.type, store)),

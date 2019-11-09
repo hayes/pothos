@@ -1,10 +1,10 @@
 import { GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLEnumValueConfig } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { EnumTypeOptions, EnumValues, TypeMap, ShapeFromEnumValues } from './types';
+import { EnumValues, ShapeFromEnumValues } from './types';
 
 export default class EnumType<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Name extends string,
   Values extends EnumValues = EnumValues,
   Shape extends string = ShapeFromEnumValues<Values>
@@ -15,7 +15,7 @@ export default class EnumType<
 
   kind: 'Enum' = 'Enum';
 
-  constructor(name: Name, options: EnumTypeOptions<Values>) {
+  constructor(name: Name, options: SpiderSchemaTypes.EnumTypeOptions<Values>) {
     super(name);
 
     this.values = Array.isArray(options.values)

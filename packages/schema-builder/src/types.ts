@@ -19,14 +19,21 @@ import EnumType from './enum';
 import ScalarType from './scalar';
 import InputFieldBuilder from './fieldUtils/input';
 
+import './global-types';
+
 // Utils
 export type OptionalKeys<T extends {}> = {
-  [K in keyof T]: undefined extends T[K] ? K : never;
+  [K in keyof T]: undefined extends T[K] ? K : null extends T[K] ? K : never;
 }[keyof T];
 
 export type RequiredKeys<T extends {}> = {
-  [K in keyof T]: undefined extends T[K] ? never : K;
+  [K in keyof T]: undefined extends T[K] ? never : null extends T[K] ? never : K;
 }[keyof T];
+
+export type NullableToOptional<T extends {}> = Partial<T> &
+  {
+    [K in RequiredKeys<T>]: T[K];
+  };
 
 export type UndefinedToOptional<T extends {}> = Omit<T, OptionalKeys<T>> &
   Partial<Pick<T, OptionalKeys<T>>>;
@@ -35,7 +42,6 @@ export type MaybeRequired<Required extends boolean, Type> = Required extends tru
   ? NonNullable<Type>
   : Type | null | undefined;
 
-// eslint-disable-next-line import/prefer-default-export
 export abstract class InvalidType<Message> {
   never!: never;
 }
@@ -51,29 +57,10 @@ export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never
   : never;
 
 // TypeMap
-export type TypeMap = {
-  Input: {
-    String: unknown;
-    ID: unknown;
-    Int: unknown;
-    Float: unknown;
-    Boolean: unknown;
-  };
-  Output: {
-    String: unknown;
-    ID: unknown;
-    Int: unknown;
-    Float: unknown;
-    Boolean: unknown;
-  };
-};
-
-export type PartialTypeMap = {
-  Input?: Partial<TypeMap['Input']>;
-  Output?: Partial<TypeMap['Output']>;
-};
-
-export type MergeTypeMap<Map extends TypeMap, Partial extends PartialTypeMap> = {
+export type MergeTypeMap<
+  Map extends SpiderSchemaTypes.TypeInfo,
+  Partial extends SpiderSchemaTypes.PartialTypeInfo
+> = {
   Input: { String: unknown; ID: unknown; Int: unknown; Float: unknown; Boolean: unknown } & {
     [K in keyof Map['Input']]: K extends keyof Partial['Input']
       ? Partial['Input'][K]
@@ -86,10 +73,11 @@ export type MergeTypeMap<Map extends TypeMap, Partial extends PartialTypeMap> = 
       : Map['Output'][K];
   } &
     Partial['Output'];
+  Context: Partial['Context'];
 };
 
 // TypeParam
-export type DefaultTypeMap = {
+export interface DefaultTypeMap {
   Input: {
     String: string;
     ID: string;
@@ -106,10 +94,11 @@ export type DefaultTypeMap = {
     Float: number;
     Boolean: boolean;
   };
-};
+  Context: {};
+}
 
 export type OptionalShapeFromTypeParam<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Param extends TypeParam<Types>
 > = Param extends keyof Types['Output']
   ? Types['Output'][Param]
@@ -122,26 +111,26 @@ export type OptionalShapeFromTypeParam<
   : never;
 
 export type ShapeFromTypeParam<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Param extends TypeParam<Types>,
   Nullable extends boolean
 > = Nullable extends true
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
-export type NamedTypeParam<Types extends TypeMap> = keyof Types['Output'];
+export type NamedTypeParam<Types extends SpiderSchemaTypes.TypeInfo> = keyof Types['Output'];
 
-export type NamedInputAndOutput<Types extends TypeMap> = keyof Types['Output'] &
+export type NamedInputAndOutput<Types extends SpiderSchemaTypes.TypeInfo> = keyof Types['Output'] &
   keyof Types['Input'];
 
-export type TypeParam<Types extends TypeMap> =
+export type TypeParam<Types extends SpiderSchemaTypes.TypeInfo> =
   | keyof Types['Output']
   | (BaseType<Types, string, unknown>)
   | [keyof Types['Output']]
   | ([BaseType<Types, string, unknown>]);
 
 // InputTypes
-export type InputType<Types extends TypeMap> =
+export type InputType<Types extends SpiderSchemaTypes.TypeInfo> =
   | InputObjectType<Types, unknown, {}, string>
   | ScalarType<Types, NamedTypeParam<Types>, any, any>
   | EnumType<Types, any>
@@ -152,7 +141,7 @@ export type InputOptions<Req extends boolean> = {
   required: Req;
 };
 
-export type InputField<Types extends TypeMap> =
+export type InputField<Types extends SpiderSchemaTypes.TypeInfo> =
   | InputType<Types>
   | InputType<Types>[]
   | {
@@ -161,7 +150,7 @@ export type InputField<Types extends TypeMap> =
       type: InputType<Types> | InputType<Types>[];
     };
 
-export type InputTypeWithShape<Types extends TypeMap, Shape> =
+export type InputTypeWithShape<Types extends SpiderSchemaTypes.TypeInfo, Shape> =
   | InputObjectType<Types, {}, {}, string, Shape>
   | ScalarType<
       Types,
@@ -174,7 +163,11 @@ export type InputTypeWithShape<Types extends TypeMap, Shape> =
       [K in keyof Types['Input']]: Types['Input'][K] extends Shape ? K : never;
     }[keyof Types['Input']];
 
-export type InputFieldWithShape<Types extends TypeMap, Shape, Req extends boolean> = {
+export type InputFieldWithShape<
+  Types extends SpiderSchemaTypes.TypeInfo,
+  Shape,
+  Req extends boolean
+> = {
   description?: string;
   required: Req;
   type: Shape extends unknown[]
@@ -182,7 +175,7 @@ export type InputFieldWithShape<Types extends TypeMap, Shape, Req extends boolea
     : InputTypeWithShape<Types, NonNullable<Shape>>;
 };
 
-export type ShapedInputFields<Types extends TypeMap, Shape extends {}> = {
+export type ShapedInputFields<Types extends SpiderSchemaTypes.TypeInfo, Shape extends {}> = {
   [K in keyof Shape]: InputFieldWithShape<
     Types,
     Shape[K],
@@ -190,12 +183,12 @@ export type ShapedInputFields<Types extends TypeMap, Shape extends {}> = {
   >;
 };
 
-export type InputFields<Types extends TypeMap> = {
+export type InputFields<Types extends SpiderSchemaTypes.TypeInfo> = {
   [s: string]: InputField<Types>;
 };
 
 export type InputShapeFromFields<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Fields extends InputFields<Types>,
   Nulls = null | undefined
 > = {
@@ -203,7 +196,7 @@ export type InputShapeFromFields<
 };
 
 export type InputShapeFromField<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Field extends InputField<Types>,
   Nulls = null | undefined
 > = Field extends (InputType<Types> | InputType<Types>[])
@@ -218,7 +211,7 @@ export type InputShapeFromField<
   : never;
 
 export type InputShapeFromType<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Type extends InputType<Types> | InputType<Types>[],
   Nulls = null | undefined
 > = Type extends (infer T)[]
@@ -234,7 +227,7 @@ export type InputShapeFromType<
   : never;
 
 // Args
-export type Args<Types extends TypeMap> = {
+export type Args<Types extends SpiderSchemaTypes.TypeInfo> = {
   [s: string]: Types[keyof Types];
 };
 
@@ -274,23 +267,13 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
 
 export type FieldsShape<
   Shape extends {},
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Type extends TypeParam<Types>,
-  Context,
   ParentShape extends {
-    [s: string]: Field<
-      {},
-      Types,
-      TypeParam<Types>,
-      TypeParam<Types>,
-      boolean,
-      {},
-      string | null,
-      any
-    >;
+    [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, string | null, any>;
   } = {}
 > = (
-  t: FieldBuilder<Types, Type, Context, ParentShape>,
+  t: FieldBuilder<Types, Type, ParentShape>,
 ) => Shape &
   {
     [K in keyof Shape]: K extends keyof ParentShape
@@ -300,32 +283,22 @@ export type FieldsShape<
           TypeParam<Types>,
           TypeParam<Types>,
           boolean,
-          Context,
           Extract<K, string>,
           any
         >
-        ? Field<
-            {},
-            Types,
-            TypeParam<Types>,
-            TypeParam<Types>,
-            boolean,
-            Context,
-            Extract<K, string>,
-            any
-          >
+        ? Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Extract<K, string>, any>
         : InvalidType<['Use t.extend(', K, ') to implement this field']>
-      : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Context, null, any>;
+      : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, null, any>;
   };
 
 export type ShapeFromInterfaces<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Interfaces extends (InterfaceType<{}, Types, NamedTypeParam<Types>>)[] | InvalidType<unknown>
 > = Interfaces extends InterfaceType<{}, Types, NamedTypeParam<Types>>[]
   ? UnionToIntersection<NonNullable<Interfaces[number]['shape']>> & {}
   : never;
 
-export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = Extract<
+export type CompatibleInterfaceNames<Types extends SpiderSchemaTypes.TypeInfo, Shape> = Extract<
   {
     [K in keyof Types['Output']]: Shape extends NonNullable<Types['Output'][K]> ? K : never;
   }[Exclude<keyof Types['Output'], 'Query' | 'Mutation' | 'Input'>],
@@ -333,7 +306,7 @@ export type CompatibleInterfaceNames<Types extends TypeMap, Shape> = Extract<
 >;
 
 export type CompatibleTypes<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Req extends boolean,
@@ -345,12 +318,11 @@ export type CompatibleTypes<
 
 // Type Options
 export type FieldOptions<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   ParentName extends TypeParam<Types>,
   ReturnTypeName extends TypeParam<Types>,
   Nullable extends boolean,
-  Args extends InputFields<Types>,
-  Context
+  Args extends InputFields<Types>
 > = {
   type: ReturnTypeName;
   args?: Args;
@@ -362,88 +334,61 @@ export type FieldOptions<
   resolve: Resolver<
     ShapeFromTypeParam<Types, ParentName, false>,
     InputShapeFromFields<Types, Args>,
-    Context,
+    Types['Context'],
     ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
   >;
 };
 
-export type InputTypeOptions<Types extends TypeMap, Fields extends InputFields<Types>> = {
+export type InputTypeOptions<
+  Types extends SpiderSchemaTypes.TypeInfo,
+  Fields extends InputFields<Types>
+> = {
   shape: (t: InputFieldBuilder<Types>) => Fields;
 };
 
-export type ObjectTypeOptions<
-  Shape extends {},
-  Interfaces extends InterfaceType<
-    {},
-    Types,
-    CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>,
-    Context
-  >[],
-  Types extends TypeMap,
-  Type extends NamedTypeParam<Types>,
-  Context = {}
-> = {
-  permissions?: {
-    [s: string]: (parent: ShapeFromTypeParam<Types, Type, false>, context: Context) => boolean;
-  };
-  implements?: Interfaces;
-  description?: string;
-  shape: FieldsShape<
-    Shape,
-    Types,
-    Type,
-    Context,
-    UnionToIntersection<Interfaces[number]['fields']> & {}
-  >;
-} & (Interfaces[number]['typename'] extends Type
-  ? {}
-  : {
-      isType: (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
-    });
-
 export type InterfaceTypeOptions<
   Shape extends {},
-  Types extends TypeMap,
-  Type extends TypeParam<Types>,
-  Context = {}
+  Types extends SpiderSchemaTypes.TypeInfo,
+  Type extends TypeParam<Types>
 > = {
   description?: string;
-  shape: FieldsShape<Shape, Types, Type, Context>;
+  shape: FieldsShape<Shape, Types, Type>;
 };
 
-export type EnumTypeOptions<Values extends EnumValues> = {
-  description?: string;
-  values: Values;
-};
-
-export type UnionOptions<Types extends TypeMap, Context, Member extends keyof Types['Output']> = {
+export type UnionOptions<
+  Types extends SpiderSchemaTypes.TypeInfo,
+  Member extends keyof Types['Output']
+> = {
   description?: string;
   members: Member[];
-  resolveType: (parent: Types['Output'][Member], context: Context) => Member | Promise<Member>;
+  resolveType: (
+    parent: Types['Output'][Member],
+    context: Types['Context'],
+  ) => Member | Promise<Member>;
 };
 
 // All types
-export type ImplementedType<Types extends TypeMap, Context> =
-  | ObjectType<{}, any[], Types, NamedTypeParam<Types>, Context>
-  | InterfaceType<{}, Types, NamedTypeParam<Types>, Context>
-  | UnionType<Types, Context, string, NamedTypeParam<Types>>
+export type ImplementedType<Types extends SpiderSchemaTypes.TypeInfo> =
+  | ObjectType<{}, any[], Types, any>
+  | InterfaceType<{}, Types, NamedTypeParam<Types>>
+  | UnionType<Types, string, NamedTypeParam<Types>>
   | EnumType<Types, string, EnumValues>
   | ScalarType<Types, NamedTypeParam<Types>>
   | InputObjectType<Types, {}, {}, string>;
 
-export type StoreEntry<Types extends TypeMap> =
+export type StoreEntry<Types extends SpiderSchemaTypes.TypeInfo> =
   | {
-      type: ObjectType<{}, [], Types, NamedTypeParam<Types>, {}>;
+      type: ObjectType<{}, [], Types, NamedTypeParam<Types>>;
       built: GraphQLObjectType;
       kind: 'Object';
     }
   | {
-      type: InterfaceType<{}, Types, NamedTypeParam<Types>, {}>;
+      type: InterfaceType<{}, Types, NamedTypeParam<Types>>;
       built: GraphQLInterfaceType;
       kind: 'Interface';
     }
   | {
-      type: UnionType<Types, {}, string, NamedTypeParam<Types>>;
+      type: UnionType<Types, string, NamedTypeParam<Types>>;
       built: GraphQLUnionType;
       kind: 'Union';
     }

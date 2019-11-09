@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/consistent-function-scoping, no-dupe-class-members, lines-between-class-members */
-import { TypeMap, InputType, InputOptions } from '../types';
+import { InputType, InputOptions } from '../types';
 
-export default class InputFieldBuilder<Types extends TypeMap> {
+export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo> {
   bool = this.helper('Boolean');
 
   float = this.helper('Float');

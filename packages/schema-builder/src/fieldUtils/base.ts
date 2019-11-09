@@ -1,17 +1,9 @@
-import {
-  TypeMap,
-  TypeParam,
-  FieldOptions,
-  InputFields,
-  CompatibleTypes,
-  NamedTypeParam,
-} from '../types';
+import { TypeParam, FieldOptions, InputFields, CompatibleTypes, NamedTypeParam } from '../types';
 import Field from '../field';
 
 export default class BaseFieldUtil<
-  Types extends TypeMap,
-  ParentType extends TypeParam<Types>,
-  Context
+  Types extends SpiderSchemaTypes.TypeInfo,
+  ParentType extends TypeParam<Types>
 > {
   typename: NamedTypeParam<Types>;
 
@@ -24,11 +16,8 @@ export default class BaseFieldUtil<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     Extends extends string | null
-  >(
-    options: FieldOptions<Types, ParentType, Type, Nullable, Args, Context>,
-    extendsField: Extends,
-  ) {
-    return new Field<Args, Types, ParentType, Type, Nullable, Context, Extends>(
+  >(options: FieldOptions<Types, ParentType, Type, Nullable, Args>, extendsField: Extends) {
+    return new Field<Args, Types, ParentType, Type, Nullable, Extends>(
       {
         ...options,
         extendsField,
@@ -44,10 +33,10 @@ export default class BaseFieldUtil<
     Extends extends string | null
   >(
     name: Name,
-    options: Omit<FieldOptions<Types, ParentType, Type, Nullable, {}, Context>, 'resolve'>,
+    options: Omit<FieldOptions<Types, ParentType, Type, Nullable, {}>, 'resolve'>,
     extendsField: Extends,
   ) {
-    return new Field<{}, Types, ParentType, Type, Nullable, Context, Extends>(
+    return new Field<{}, Types, ParentType, Type, Nullable, Extends>(
       {
         ...options,
         // @ts-ignore
@@ -60,8 +49,8 @@ export default class BaseFieldUtil<
 
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
     return <Args extends InputFields<Types>, Nullable extends boolean>(
-      options: Omit<FieldOptions<Types, ParentType, Type, Nullable, Args, Context>, 'type'>,
-    ): Field<Args, Types, ParentType, Type, Nullable, Context, null> => {
+      options: Omit<FieldOptions<Types, ParentType, Type, Nullable, Args>, 'type'>,
+    ): Field<Args, Types, ParentType, Type, Nullable, null> => {
       return this.createField<Args, Type, Nullable, null>({ ...options, type }, null);
     };
   }
@@ -72,11 +61,8 @@ export default class BaseFieldUtil<
       Name extends CompatibleTypes<Types, ParentType, Type, Nullable>
     >(
       name: Name,
-      options: Omit<
-        FieldOptions<Types, ParentType, Type, Nullable, {}, Context>,
-        'resolve' | 'type'
-      > = {},
-    ): Field<{}, Types, ParentType, Type, Nullable, Context, null> => {
+      options: Omit<FieldOptions<Types, ParentType, Type, Nullable, {}>, 'resolve' | 'type'> = {},
+    ): Field<{}, Types, ParentType, Type, Nullable, null> => {
       return this.exposeField<Type, Nullable, Name, null>(name, { ...options, type }, null);
     };
   }

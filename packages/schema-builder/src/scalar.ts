@@ -1,9 +1,9 @@
 import { GraphQLScalarType } from 'graphql';
 import BaseType from './base';
-import { TypeMap, NamedInputAndOutput } from './types';
+import { NamedInputAndOutput } from './types';
 
 export default class ScalarType<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Name extends NamedInputAndOutput<Types>,
   OutputShape extends Types['Output'][Name] = Types['Output'][Name],
   InputShape extends Types['Input'][Name] = Types['Input'][Name]

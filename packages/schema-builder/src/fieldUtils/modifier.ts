@@ -1,29 +1,21 @@
-import {
-  TypeMap,
-  TypeParam,
-  FieldOptions,
-  CompatibleTypes,
-  InputFields,
-  NamedTypeParam,
-} from '../types';
+import { TypeParam, FieldOptions, CompatibleTypes, InputFields, NamedTypeParam } from '../types';
 import BaseFieldUtil from './base';
 import Field from '../field';
 
 export default class FieldModifier<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Nullable extends boolean,
   Args extends InputFields<Types>,
-  Extends extends string,
-  Context
-> extends BaseFieldUtil<Types, ParentType, Context> {
-  field: Field<Args, Types, ParentType, Type, Nullable, Context, string | null, any>;
+  Extends extends string
+> extends BaseFieldUtil<Types, ParentType> {
+  field: Field<Args, Types, ParentType, Type, Nullable, string | null, any>;
 
   extendsField: Extends;
 
   constructor(
-    field: Field<Args, Types, ParentType, Type, Nullable, Context, string | null, any>,
+    field: Field<Args, Types, ParentType, Type, Nullable, string | null, any>,
     extendsField: Extends,
     name: NamedTypeParam<Types>,
   ) {
@@ -35,16 +27,16 @@ export default class FieldModifier<
   expose<Name extends CompatibleTypes<Types, ParentType, Type, Nullable>>(
     name: Name,
     options?: Omit<
-      FieldOptions<Types, ParentType, Type, Nullable, {}, Context>,
+      FieldOptions<Types, ParentType, Type, Nullable, {}>,
       'resolve' | 'type' | 'args'
     >,
-  ): Field<{}, Types, ParentType, Type, Nullable, Context, Extends> {
+  ): Field<{}, Types, ParentType, Type, Nullable, Extends> {
     return this.exposeField(name, { ...options, type: this.field.type }, this.extendsField);
   }
 
   implement(
-    options: Omit<FieldOptions<Types, ParentType, Type, Nullable, Args, Context>, 'type' | 'args'>,
-  ): Field<Args, Types, ParentType, Type, Nullable, Context, Extends> {
+    options: Omit<FieldOptions<Types, ParentType, Type, Nullable, Args>, 'type' | 'args'>,
+  ): Field<Args, Types, ParentType, Type, Nullable, Extends> {
     return this.createField(
       { ...options, type: this.field.type, args: this.field.args },
       this.extendsField,

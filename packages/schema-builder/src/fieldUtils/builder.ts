@@ -1,33 +1,16 @@
-import {
-  TypeMap,
-  TypeParam,
-  FieldOptions,
-  InputFields,
-  CompatibleTypes,
-  NamedTypeParam,
-} from '../types';
+import { TypeParam, FieldOptions, InputFields, CompatibleTypes, NamedTypeParam } from '../types';
 import Field from '../field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
 import InputFieldBuilder from './input';
 
 export default class FieldBuilder<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
-  Context,
   ParentShape extends {
-    [s: string]: Field<
-      {},
-      Types,
-      TypeParam<Types>,
-      TypeParam<Types>,
-      boolean,
-      Context,
-      string | null,
-      any
-    >;
+    [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, string | null, any>;
   }
-> extends BaseFieldUtil<Types, ParentType, Context> {
+> extends BaseFieldUtil<Types, ParentType> {
   parentFields: ParentShape;
 
   modifiers: {
@@ -37,8 +20,7 @@ export default class FieldBuilder<
       ParentShape[K]['type'],
       ParentShape[K]['nullable'],
       ParentShape[K]['args'],
-      Extract<K, string>,
-      Context
+      Extract<K, string>
     >;
   };
 
@@ -55,8 +37,7 @@ export default class FieldBuilder<
           ParentShape[K]['type'],
           ParentShape[K]['nullable'],
           ParentShape[K]['args'],
-          Extract<K, string>,
-          Context
+          Extract<K, string>
         >;
       }
     > = {};
@@ -113,8 +94,8 @@ export default class FieldBuilder<
   exposeStringList = this.exposeHelper(['String']);
 
   field<Args extends InputFields<Types>, Type extends TypeParam<Types>, Req extends boolean>(
-    options: FieldOptions<Types, ParentType, Type, Req, Args, Context>,
-  ): Field<Args, Types, ParentType, Type, Req, Context, null> {
+    options: FieldOptions<Types, ParentType, Type, Req, Args>,
+  ): Field<Args, Types, ParentType, Type, Req, null> {
     return this.createField(options, null);
   }
 
@@ -124,8 +105,8 @@ export default class FieldBuilder<
     Name extends CompatibleTypes<Types, ParentType, Type, Req>
   >(
     name: Name,
-    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}, Context>, 'resolve'>,
-  ): Field<{}, Types, ParentType, Type, Req, Context, null> {
+    options: Omit<FieldOptions<Types, ParentType, Type, Req, {}>, 'resolve'>,
+  ): Field<{}, Types, ParentType, Type, Req, null> {
     return this.exposeField(name, options, null);
   }
 

@@ -1,8 +1,8 @@
-import { TypeMap, StoreEntry, NamedTypeParam } from './types';
+import { StoreEntry, NamedTypeParam } from './types';
 import InterfaceType from './interface';
 
 export default class TypeStore<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Key = string | keyof Types['Input'] | keyof Types['Output']
 > {
   types = new Map<Key, StoreEntry<Types>>();
@@ -45,7 +45,7 @@ export default class TypeStore<
     return entry.built;
   }
 
-  getImplementers(type: InterfaceType<{}, Types, NamedTypeParam<Types>, {}>) {
+  getImplementers(type: InterfaceType<{}, Types, NamedTypeParam<Types>>) {
     const implementers = [];
     for (const entry of this.types.values()) {
       if (entry.kind === 'Object' && (entry.type.interfaces as unknown[]).includes(type)) {

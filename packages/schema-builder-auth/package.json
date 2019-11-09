@@ -1,0 +1,21 @@
+{
+  "name": "schema-builder-auth",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "dependencies": {
+    "@types/graphql": "^14.5.0",
+    "graphql": "^14.5.8",
+    "schema-builder": "^1.0.0",
+    "schema-builder-types": "^1.0.0"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.9.7",
+    "graphql-tag": "^2.10.1"
+  }
+}

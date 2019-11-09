@@ -1,11 +1,10 @@
 import { GraphQLUnionType } from 'graphql';
-import { TypeMap, UnionOptions, NamedTypeParam } from './types';
+import { UnionOptions, NamedTypeParam } from './types';
 import BaseType from './base';
 import TypeStore from './store';
 
 export default class UnionType<
-  Types extends TypeMap,
-  Context,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Name extends string,
   Member extends NamedTypeParam<Types>
 > extends BaseType<Types, Name, Types['Output'][Member]> {
@@ -17,7 +16,7 @@ export default class UnionType<
 
   resolveType: (parent: unknown, ctx: unknown) => string;
 
-  constructor(name: Name, options: UnionOptions<Types, Context, Member>) {
+  constructor(name: Name, options: UnionOptions<Types, Member>) {
     super(name);
 
     this.members = options.members;

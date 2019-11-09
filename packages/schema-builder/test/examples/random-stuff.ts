@@ -27,14 +27,10 @@ type Types = {
     Shaveable: { shaved: boolean };
     Sheep: { name: string; count: number; shaved: boolean };
   };
+  Context: { userID: number };
 };
 
-const builder = new SchemaBuilder<
-  // Model shapes
-  Types,
-  // Context shape
-  { userID: number }
->();
+const builder = new SchemaBuilder<Types>();
 
 // Create input types
 const Example = builder.createInputType('Example', {

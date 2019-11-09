@@ -7,7 +7,7 @@
   },
   "scripts": {
     "prepare": "nimbus create-config --silent",
-    "build": "nimbus type",
+    "build": "yarn type",
     "lint": "nimbus eslint",
     "posttest": "yarn run lint",
     "jest": "NODE_ENV=test TZ=UTC nimbus jest",

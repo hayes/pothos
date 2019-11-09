@@ -9,11 +9,9 @@ import {
   GraphQLBoolean,
 } from 'graphql';
 import {
-  ObjectTypeOptions,
   InterfaceTypeOptions,
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
-  EnumTypeOptions,
   NamedTypeParam,
   ImplementedType,
   StoreEntry,
@@ -24,8 +22,8 @@ import {
   ShapedInputFields,
   MergeTypeMap,
   DefaultTypeMap,
-  PartialTypeMap,
   NamedInputAndOutput,
+  NullableToOptional,
 } from './types';
 import ObjectType from './object';
 import UnionType from './union';
@@ -36,9 +34,12 @@ import TypeStore from './store';
 import ScalarType from './scalar';
 import InputFieldBuilder from './fieldUtils/input';
 
+export * from './types';
+
+export { EnumType };
+
 export default class SchemaBuilder<
-  PartialTypes extends PartialTypeMap,
-  Context,
+  PartialTypes extends SpiderSchemaTypes.PartialTypeInfo,
   Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
     DefaultTypeMap,
     PartialTypes
@@ -57,12 +58,16 @@ export default class SchemaBuilder<
     Interfaces extends InterfaceType<
       {},
       Types,
-      CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>,
-      {}
+      CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>
     >[],
     Type extends Extract<keyof Types['Output'], string>
-  >(name: Type, options: ObjectTypeOptions<Shape, Interfaces, Types, Type, Context>) {
-    return new ObjectType<Shape, Interfaces, Types, Type, Context>(name, options);
+  >(
+    name: Type,
+    options: NullableToOptional<
+      SpiderSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Type>
+    >,
+  ) {
+    return new ObjectType<Shape, Interfaces, Types, Type>(name, options);
   }
 
   createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
@@ -71,24 +76,27 @@ export default class SchemaBuilder<
 
   createInterfaceType<Shape extends {}, Type extends Extract<keyof Types['Output'], string>>(
     name: Type,
-    options: InterfaceTypeOptions<Shape, Types, Type, Context>,
+    options: InterfaceTypeOptions<Shape, Types, Type>,
   ) {
-    return new InterfaceType<Shape, Types, Type, Context>(name, options);
+    return new InterfaceType<Shape, Types, Type>(name, options);
   }
 
   createUnionType<Member extends NamedTypeParam<Types>, Name extends string>(
     name: Name,
     options: {
       members: Member[];
-      resolveType: (parent: Types['Output'][Member], context: Context) => Member | Promise<Member>;
+      resolveType: (
+        parent: Types['Output'][Member],
+        context: Types['Context'],
+      ) => Member | Promise<Member>;
     },
   ) {
-    return new UnionType<Types, Context, Name, Member>(name, options);
+    return new UnionType<Types, Name, Member>(name, options);
   }
 
   createEnumType<Name extends string, Values extends EnumValues>(
     name: Name,
-    options: EnumTypeOptions<Values>,
+    options: SpiderSchemaTypes.EnumTypeOptions<Values>,
   ) {
     return new EnumType(name, options);
   }
@@ -115,7 +123,7 @@ export default class SchemaBuilder<
     >(name, options);
   }
 
-  toSchema(types: ImplementedType<Types, Context>[]) {
+  toSchema(types: ImplementedType<Types>[]) {
     const typeStore = new TypeStore<Types>();
     const scalars = [
       this.scalars.Boolean,

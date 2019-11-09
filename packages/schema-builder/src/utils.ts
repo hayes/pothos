@@ -1,10 +1,10 @@
 import { GraphQLList, GraphQLOutputType, GraphQLInputType, GraphQLNonNull } from 'graphql';
-import { TypeParam, TypeMap, InputField, InputType } from './types';
+import { TypeParam, InputField, InputType } from './types';
 import TypeStore from './store';
 import BaseType from './base';
 import InputObjectType from './input';
 
-export function typeFromParam<Types extends TypeMap>(
+export function typeFromParam<Types extends SpiderSchemaTypes.TypeInfo>(
   param: TypeParam<Types> | BaseType<Types, string, unknown> | [BaseType<Types, string, unknown>],
   typeStore: TypeStore<Types>,
 ): GraphQLOutputType {
@@ -30,13 +30,13 @@ export function typeFromParam<Types extends TypeMap>(
   throw new Error(`Unable to resolve typeParam ${Object.keys(param)} ${param}`);
 }
 
-export function isInputName<Types extends TypeMap>(
+export function isInputName<Types extends SpiderSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
 ): arg is keyof Types['Input'] {
   return typeof arg === 'string';
 }
 
-export function buildArg<Types extends TypeMap>(
+export function buildArg<Types extends SpiderSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
   store: TypeStore<Types>,
 ): GraphQLInputType {

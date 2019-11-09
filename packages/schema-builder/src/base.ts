@@ -1,9 +1,8 @@
 import { GraphQLType } from 'graphql';
 import TypeStore from './store';
-import { TypeMap } from './types';
 
 export default abstract class BaseType<
-  Types extends TypeMap,
+  Types extends SpiderSchemaTypes.TypeInfo,
   Name extends string | keyof Types['Input'] | keyof Types['Output'],
   Shape,
   InputShape = Shape,
