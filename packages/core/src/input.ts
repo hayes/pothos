@@ -7,7 +7,7 @@ import { buildArg } from './utils';
 import InputFieldBuilder from './fieldUtils/input';
 
 export default class InputObjectType<
-  Types extends GiraphSchemaTypes.TypeInfo,
+  Types extends GiraphQLSchemaTypes.TypeInfo,
   Shape,
   Fields extends InputFields<Types>,
   Name extends string,
@@ -17,7 +17,7 @@ export default class InputObjectType<
 
   fields: Fields;
 
-  constructor(name: Name, options: GiraphSchemaTypes.InputTypeOptions<Types, Fields>) {
+  constructor(name: Name, options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>) {
     super(name);
 
     this.fields = options.shape(new InputFieldBuilder());

@@ -4,7 +4,7 @@ import TypeStore from './store';
 import BaseType from './base';
 import InputObjectType from './input';
 
-export function typeFromParam<Types extends GiraphSchemaTypes.TypeInfo>(
+export function typeFromParam<Types extends GiraphQLSchemaTypes.TypeInfo>(
   param: TypeParam<Types> | BaseType<Types, string, unknown> | [BaseType<Types, string, unknown>],
   typeStore: TypeStore<Types>,
 ): GraphQLOutputType {
@@ -30,13 +30,13 @@ export function typeFromParam<Types extends GiraphSchemaTypes.TypeInfo>(
   throw new Error(`Unable to resolve typeParam ${Object.keys(param)} ${param}`);
 }
 
-export function isInputName<Types extends GiraphSchemaTypes.TypeInfo>(
+export function isInputName<Types extends GiraphQLSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
 ): arg is keyof Types['Input'] {
   return typeof arg === 'string';
 }
 
-export function buildArg<Types extends GiraphSchemaTypes.TypeInfo>(
+export function buildArg<Types extends GiraphQLSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
   store: TypeStore<Types>,
 ): GraphQLInputType {

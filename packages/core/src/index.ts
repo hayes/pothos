@@ -39,7 +39,7 @@ export * from './types';
 export { EnumType, BasePlugin, Field, TypeStore, ObjectType, InterfaceType, UnionType };
 
 export default class SchemaBuilder<
-  PartialTypes extends GiraphSchemaTypes.PartialTypeInfo,
+  PartialTypes extends GiraphQLSchemaTypes.PartialTypeInfo,
   Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
     DefaultTypeMap,
     PartialTypes
@@ -70,7 +70,7 @@ export default class SchemaBuilder<
   >(
     name: Type,
     options: NullableToOptional<
-      GiraphSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Type>
+      GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Type>
     >,
   ) {
     return new ObjectType<Shape, Interfaces, Types, Type>(name, options);
@@ -82,21 +82,21 @@ export default class SchemaBuilder<
 
   createInterfaceType<Shape extends {}, Type extends Extract<keyof Types['Output'], string>>(
     name: Type,
-    options: GiraphSchemaTypes.InterfaceTypeOptions<Shape, Types, Type>,
+    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Shape, Types, Type>,
   ) {
     return new InterfaceType<Shape, Types, Type>(name, options);
   }
 
   createUnionType<Member extends NamedTypeParam<Types>, Name extends string>(
     name: Name,
-    options: GiraphSchemaTypes.UnionOptions<Types, Member>,
+    options: GiraphQLSchemaTypes.UnionOptions<Types, Member>,
   ) {
     return new UnionType<Types, Name, Member>(name, options);
   }
 
   createEnumType<Name extends string, Values extends EnumValues>(
     name: Name,
-    options: GiraphSchemaTypes.EnumTypeOptions<Values>,
+    options: GiraphQLSchemaTypes.EnumTypeOptions<Values>,
   ) {
     return new EnumType(name, options);
   }
@@ -113,7 +113,7 @@ export default class SchemaBuilder<
     Shape extends Name extends keyof Types['Input']
       ? Types['Input'][Name]
       : InputShapeFromFields<Types, Fields>
-  >(name: Name, options: GiraphSchemaTypes.InputTypeOptions<Types, Fields>) {
+  >(name: Name, options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>) {
     return new InputObjectType<
       Types,
       Shape,

@@ -22,7 +22,7 @@ export default class ObjectType<
     Types,
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, false>>
   >[],
-  Types extends GiraphSchemaTypes.TypeInfo,
+  Types extends GiraphQLSchemaTypes.TypeInfo,
   Name extends NamedTypeParam<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
   kind: 'Object' = 'Object';
@@ -35,7 +35,7 @@ export default class ObjectType<
 
   isType: (obj: unknown) => boolean;
 
-  options: NullableToOptional<GiraphSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>>;
+  options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>>;
 
   // permissions: {
   //   [s: string]: (parent: any, context: any) => boolean | Promise<boolean>;
@@ -44,7 +44,7 @@ export default class ObjectType<
   constructor(
     name: Name,
     options: NullableToOptional<
-      GiraphSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>
+      GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>
     >,
   ) {
     super(name);

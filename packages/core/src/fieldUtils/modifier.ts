@@ -3,7 +3,7 @@ import BaseFieldUtil from './base';
 import Field from '../field';
 
 export default class FieldModifier<
-  Types extends GiraphSchemaTypes.TypeInfo,
+  Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Nullable extends boolean,
@@ -27,7 +27,7 @@ export default class FieldModifier<
   expose<Name extends CompatibleTypes<Types, ParentType, Type, Nullable>>(
     name: Name,
     options?: Omit<
-      GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
       'resolve' | 'type' | 'args'
     >,
   ): Field<{}, Types, ParentType, Type, Nullable, Extends> {
@@ -36,7 +36,7 @@ export default class FieldModifier<
 
   implement(
     options: Omit<
-      GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
       'type' | 'args'
     >,
   ): Field<Args, Types, ParentType, Type, Nullable, Extends> {

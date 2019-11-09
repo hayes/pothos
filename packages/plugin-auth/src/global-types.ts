@@ -6,10 +6,10 @@ import {
   TypeParam,
   InputFields,
   InterfaceType,
-} from '@giraph/core';
+} from '@giraphql/core';
 
 declare global {
-  export namespace GiraphSchemaTypes {
+  export namespace GiraphQLSchemaTypes {
     export interface ObjectTypeOptions<
       Shape extends {},
       Interfaces extends InterfaceType<

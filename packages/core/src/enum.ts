@@ -4,7 +4,7 @@ import BaseType from './base';
 import { EnumValues, ShapeFromEnumValues } from './types';
 
 export default class EnumType<
-  Types extends GiraphSchemaTypes.TypeInfo,
+  Types extends GiraphQLSchemaTypes.TypeInfo,
   Name extends string,
   Values extends EnumValues = EnumValues,
   Shape extends string = ShapeFromEnumValues<Values>
@@ -15,7 +15,7 @@ export default class EnumType<
 
   kind: 'Enum' = 'Enum';
 
-  constructor(name: Name, options: GiraphSchemaTypes.EnumTypeOptions<Values>) {
+  constructor(name: Name, options: GiraphQLSchemaTypes.EnumTypeOptions<Values>) {
     super(name);
 
     this.values = Array.isArray(options.values)
