@@ -185,7 +185,9 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
         }),
       );
 
-      const failedChecks = authResults.filter(({ result }) => !result);
+      const failedChecks = authResults
+        .filter(({ result }) => !result)
+        .map(({ authName }) => authName);
 
       if (failedChecks.length !== 0) {
         throw new ForbiddenError(

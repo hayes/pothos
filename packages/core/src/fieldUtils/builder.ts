@@ -53,45 +53,259 @@ export default class FieldBuilder<
 
   arg = new InputFieldBuilder<Types>().callableBuilder();
 
-  boolean = this.fieldTypeHelper('Boolean');
+  boolean<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Boolean', Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, 'Boolean', Nullable, null> {
+    return this.createField<Args, 'Boolean', Nullable, null>({ ...options, type: 'Boolean' }, null);
+  }
 
-  float = this.fieldTypeHelper('Float');
+  float<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Float', Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, 'Float', Nullable, null> {
+    return this.createField<Args, 'Float', Nullable, null>({ ...options, type: 'Float' }, null);
+  }
 
-  id = this.fieldTypeHelper('ID');
+  id<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'ID', Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, 'ID', Nullable, null> {
+    return this.createField<Args, 'ID', Nullable, null>({ ...options, type: 'ID' }, null);
+  }
 
-  int = this.fieldTypeHelper('Int');
+  int<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Int', Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, 'Int', Nullable, null> {
+    return this.createField<Args, 'Int', Nullable, null>({ ...options, type: 'Int' }, null);
+  }
 
-  string = this.fieldTypeHelper('String');
+  string<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'String', Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, 'String', Nullable, null> {
+    return this.createField<Args, 'String', Nullable, null>({ ...options, type: 'String' }, null);
+  }
 
-  booleanList = this.fieldTypeHelper(['Boolean']);
+  booleanList<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Boolean'], Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, ['Boolean'], Nullable, null> {
+    return this.createField<Args, ['Boolean'], Nullable, null>(
+      { ...options, type: ['Boolean'] },
+      null,
+    );
+  }
 
-  floatList = this.fieldTypeHelper(['Float']);
+  floatList<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Float'], Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, ['Float'], Nullable, null> {
+    return this.createField<Args, ['Float'], Nullable, null>({ ...options, type: ['Float'] }, null);
+  }
 
-  idList = this.fieldTypeHelper(['ID']);
+  idList<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['ID'], Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, ['ID'], Nullable, null> {
+    return this.createField<Args, ['ID'], Nullable, null>({ ...options, type: ['ID'] }, null);
+  }
 
-  intList = this.fieldTypeHelper(['Int']);
+  intList<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Int'], Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, ['Int'], Nullable, null> {
+    return this.createField<Args, ['Int'], Nullable, null>({ ...options, type: ['Int'] }, null);
+  }
 
-  stringList = this.fieldTypeHelper(['String']);
+  stringList<Args extends InputFields<Types>, Nullable extends boolean>(
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['String'], Nullable, Args>,
+      'type'
+    >,
+  ): Field<Args, Types, ParentType, ['String'], Nullable, null> {
+    return this.createField<Args, ['String'], Nullable, null>(
+      { ...options, type: ['String'] },
+      null,
+    );
+  }
 
-  exposBoolean = this.exposeHelper('Boolean');
+  exposBoolean<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, 'Boolean', Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Boolean', Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, 'Boolean', Nullable, null> {
+    return this.exposeField<'Boolean', Nullable, Name, null>(
+      name,
+      { ...options, type: 'Boolean' },
+      null,
+    );
+  }
 
-  exposeFloat = this.exposeHelper('Float');
+  exposeFloat<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, 'Float', Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Float', Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, 'Float', Nullable, null> {
+    return this.exposeField<'Float', Nullable, Name, null>(
+      name,
+      { ...options, type: 'Float' },
+      null,
+    );
+  }
 
-  exposeID = this.exposeHelper('ID');
+  exposeID<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, 'ID', Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'ID', Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, 'ID', Nullable, null> {
+    return this.exposeField<'ID', Nullable, Name, null>(name, { ...options, type: 'ID' }, null);
+  }
 
-  exposeInt = this.exposeHelper('Int');
+  exposeInt<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, 'Int', Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Int', Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, 'Int', Nullable, null> {
+    return this.exposeField<'Int', Nullable, Name, null>(name, { ...options, type: 'Int' }, null);
+  }
 
-  exposeString = this.exposeHelper('String');
+  exposeString<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, 'String', Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'String', Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, 'String', Nullable, null> {
+    return this.exposeField<'String', Nullable, Name, null>(
+      name,
+      { ...options, type: 'String' },
+      null,
+    );
+  }
 
-  exposeBooleanList = this.exposeHelper(['Boolean']);
+  exposeBooleanList<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, ['Boolean'], Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Boolean'], Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, ['Boolean'], Nullable, null> {
+    return this.exposeField<['Boolean'], Nullable, Name, null>(
+      name,
+      { ...options, type: ['Boolean'] },
+      null,
+    );
+  }
 
-  exposeFloatList = this.exposeHelper(['Float']);
+  exposeFloatList<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, ['Float'], Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Float'], Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, ['Float'], Nullable, null> {
+    return this.exposeField<['Float'], Nullable, Name, null>(
+      name,
+      { ...options, type: ['Float'] },
+      null,
+    );
+  }
 
-  exposeIDList = this.exposeHelper(['ID']);
+  exposeIDList<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, ['ID'], Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['ID'], Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, ['ID'], Nullable, null> {
+    return this.exposeField<['ID'], Nullable, Name, null>(name, { ...options, type: ['ID'] }, null);
+  }
 
-  exposeIntList = this.exposeHelper(['Int']);
+  exposeIntList<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, ['Int'], Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Int'], Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, ['Int'], Nullable, null> {
+    return this.exposeField<['Int'], Nullable, Name, null>(
+      name,
+      { ...options, type: ['Int'] },
+      null,
+    );
+  }
 
-  exposeStringList = this.exposeHelper(['String']);
+  exposeStringList<
+    Nullable extends boolean,
+    Name extends CompatibleTypes<Types, ParentType, ['String'], Nullable>
+  >(
+    name: Name,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['String'], Nullable, {}>,
+      'resolve' | 'type'
+    > = {},
+  ): Field<{}, Types, ParentType, ['String'], Nullable, null> {
+    return this.exposeField<['String'], Nullable, Name, null>(
+      name,
+      { ...options, type: ['String'] },
+      null,
+    );
+  }
 
   field<Args extends InputFields<Types>, Type extends TypeParam<Types>, Req extends boolean>(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Req, Args>,

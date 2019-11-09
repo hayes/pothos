@@ -14,7 +14,12 @@ export default builder.createObjectType('Query', {
           required: true,
         }),
       },
+      // require a passing readUser auth check
       authWith: ['readUser'],
+      grantAuth: {
+        // grant readUser auth for returned user
+        readUserField: true,
+      },
       resolve: (parent, { id }, { User }) => {
         const user = User.map.get(parseInt(id, 10));
 
