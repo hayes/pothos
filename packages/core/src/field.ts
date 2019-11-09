@@ -9,18 +9,18 @@ import BasePlugin from './plugin';
 
 export default class Field<
   Args extends InputFields<Types>,
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Nullable extends boolean = true,
   Extends extends string | null = null,
-  Options extends SpiderSchemaTypes.FieldOptions<
+  Options extends GiraphSchemaTypes.FieldOptions<
     Types,
     ParentType,
     Type,
     Nullable,
     Args
-  > = SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>
+  > = GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 

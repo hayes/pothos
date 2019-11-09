@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { BasePlugin, InputFields, TypeParam, Field, TypeStore } from 'schema-builder';
+import { BasePlugin, InputFields, TypeParam, Field, TypeStore } from '@giraph/core';
 import { GraphQLFieldConfig, GraphQLResolveInfo, defaultFieldResolver } from 'graphql';
 import './global-types';
 
-export default class AuthPlugin<Types extends SpiderSchemaTypes.TypeInfo>
+export default class AuthPlugin<Types extends GiraphSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   updateFieldConfig(
     field: Field<InputFields<Types>, Types, TypeParam<Types>, TypeParam<Types>>,

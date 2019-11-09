@@ -1,5 +1,5 @@
 {
-  "name": "schema-builder",
+  "name": "@giraph/schema-builder",
   "version": "1.0.0",
   "description": "## Getting started",
   "directories": {
@@ -53,14 +53,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/schema-builder.git"
+    "url": "git+https://github.com/hayes/giraph.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/hayes/schema-builder/issues"
+    "url": "https://github.com/hayes/giraph/issues"
   },
-  "homepage": "https://github.com/hayes/schema-builder#readme",
+  "homepage": "https://github.com/hayes/giraph#readme",
   "nimbus": {
     "drivers": [
       "eslint",

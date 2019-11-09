@@ -17,7 +17,7 @@ import { NamedTypeParam, EnumValues, InputFields, TypeParam } from './types';
 import Field from './field';
 import TypeStore from './store';
 
-export default interface BasePlugin<Types extends SpiderSchemaTypes.TypeInfo> {
+export default interface BasePlugin<Types extends GiraphSchemaTypes.TypeInfo> {
   visitObjectType?(
     type: ObjectType<{}, any[], Types, any>,
     built: GraphQLObjectType,

@@ -5,7 +5,7 @@ import FieldModifier from './modifier';
 import InputFieldBuilder from './input';
 
 export default class FieldBuilder<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   ParentShape extends {
     [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, string | null, any>;
@@ -94,7 +94,7 @@ export default class FieldBuilder<
   exposeStringList = this.exposeHelper(['String']);
 
   field<Args extends InputFields<Types>, Type extends TypeParam<Types>, Req extends boolean>(
-    options: SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Req, Args>,
+    options: GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Req, Args>,
   ): Field<Args, Types, ParentType, Type, Req, null> {
     return this.createField(options, null);
   }
@@ -105,7 +105,7 @@ export default class FieldBuilder<
     Name extends CompatibleTypes<Types, ParentType, Type, Req>
   >(
     name: Name,
-    options: Omit<SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Req, {}>, 'resolve'>,
+    options: Omit<GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Req, {}>, 'resolve'>,
   ): Field<{}, Types, ParentType, Type, Req, null> {
     return this.exposeField(name, options, null);
   }

@@ -2,7 +2,7 @@ import { TypeParam, InputFields, CompatibleTypes, NamedTypeParam } from '../type
 import Field from '../field';
 
 export default class BaseFieldUtil<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>
 > {
   typename: NamedTypeParam<Types>;
@@ -17,7 +17,7 @@ export default class BaseFieldUtil<
     Nullable extends boolean,
     Extends extends string | null
   >(
-    options: SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+    options: GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
     extendsField: Extends,
   ) {
     return new Field<Args, Types, ParentType, Type, Nullable, Extends>(
@@ -36,7 +36,7 @@ export default class BaseFieldUtil<
     Extends extends string | null
   >(
     name: Name,
-    options: Omit<SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>, 'resolve'>,
+    options: Omit<GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>, 'resolve'>,
     extendsField: Extends,
   ) {
     return new Field<{}, Types, ParentType, Type, Nullable, Extends>(
@@ -53,7 +53,7 @@ export default class BaseFieldUtil<
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
     return <Args extends InputFields<Types>, Nullable extends boolean>(
       options: Omit<
-        SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+        GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
         'type'
       >,
     ): Field<Args, Types, ParentType, Type, Nullable, null> => {
@@ -68,7 +68,7 @@ export default class BaseFieldUtil<
     >(
       name: Name,
       options: Omit<
-        SpiderSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
+        GiraphSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
         'resolve' | 'type'
       > = {},
     ): Field<{}, Types, ParentType, Type, Nullable, null> => {

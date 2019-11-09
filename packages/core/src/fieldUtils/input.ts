@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/consistent-function-scoping, no-dupe-class-members, lines-between-class-members */
 import { InputType } from '../types';
 
-export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo> {
+export default class InputFieldBuilder<Types extends GiraphSchemaTypes.TypeInfo> {
   bool = this.helper('Boolean');
 
   float = this.helper('Float');
@@ -27,11 +27,11 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
   ): { type: Type; required: false; description?: string };
   type<Type extends InputType<Types> | [InputType<Types>], Req extends boolean = false>(
     type: Type,
-    options: SpiderSchemaTypes.InputOptions<Req> | undefined,
+    options: GiraphSchemaTypes.InputOptions<Req> | undefined,
   ): { type: Type; required: Req; description?: string };
   type<Type extends InputType<Types> | [InputType<Types>], Req extends boolean>(
     type: Type,
-    options?: SpiderSchemaTypes.InputOptions<Req> | undefined,
+    options?: GiraphSchemaTypes.InputOptions<Req> | undefined,
   ) {
     return {
       description: options && options.description,
@@ -45,11 +45,11 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
   ): { type: [Type]; required: false; description?: string };
   list<Type extends InputType<Types>, Req extends boolean = false>(
     type: Type,
-    options: SpiderSchemaTypes.InputOptions<Req> | undefined,
+    options: GiraphSchemaTypes.InputOptions<Req> | undefined,
   ): { type: [Type]; required: Req; description?: string };
   list<Type extends InputType<Types>, Req extends boolean>(
     type: Type,
-    options?: SpiderSchemaTypes.InputOptions<Req> | undefined,
+    options?: GiraphSchemaTypes.InputOptions<Req> | undefined,
   ) {
     return {
       description: options && options.description,
@@ -64,8 +64,8 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
       Req extends boolean = false
     >(
       type: Type,
-      options?: SpiderSchemaTypes.InputOptions<Req>,
-    ): { type: Type } & SpiderSchemaTypes.InputOptions<Req> => this.type(type, options);
+      options?: GiraphSchemaTypes.InputOptions<Req>,
+    ): { type: Type } & GiraphSchemaTypes.InputOptions<Req> => this.type(type, options);
 
     (Object.keys(this) as (keyof InputFieldBuilder<Types>)[]).forEach(key => {
       ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
@@ -77,10 +77,10 @@ export default class InputFieldBuilder<Types extends SpiderSchemaTypes.TypeInfo>
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     function createType(): { type: Type; required: false; description?: string };
     function createType<Req extends boolean = false>(
-      options: SpiderSchemaTypes.InputOptions<Req> | undefined,
+      options: GiraphSchemaTypes.InputOptions<Req> | undefined,
     ): { type: Type; required: Req; description?: string };
     function createType<Req extends boolean>(
-      options?: SpiderSchemaTypes.InputOptions<Req> | undefined,
+      options?: GiraphSchemaTypes.InputOptions<Req> | undefined,
     ) {
       return {
         description: options && options.description,

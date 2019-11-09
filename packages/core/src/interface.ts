@@ -10,7 +10,7 @@ import BasePlugin from './plugin';
 
 export default class InterfaceType<
   Shape extends {},
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Name extends NamedTypeParam<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
   kind: 'Interface' = 'Interface';
@@ -19,7 +19,7 @@ export default class InterfaceType<
 
   fields: Shape;
 
-  constructor(name: Name, options: SpiderSchemaTypes.InterfaceTypeOptions<Shape, Types, Name>) {
+  constructor(name: Name, options: GiraphSchemaTypes.InterfaceTypeOptions<Shape, Types, Name>) {
     super(name);
 
     this.description = options.description;

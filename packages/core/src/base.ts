@@ -3,7 +3,7 @@ import TypeStore from './store';
 import BasePlugin from './plugin';
 
 export default abstract class BaseType<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Name extends string | keyof Types['Input'] | keyof Types['Output'],
   Shape,
   InputShape = Shape,

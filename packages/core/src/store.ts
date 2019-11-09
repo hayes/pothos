@@ -2,7 +2,7 @@ import { StoreEntry, NamedTypeParam } from './types';
 import InterfaceType from './interface';
 
 export default class TypeStore<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Key = string | keyof Types['Input'] | keyof Types['Output']
 > {
   types = new Map<Key, StoreEntry<Types>>();

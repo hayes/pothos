@@ -6,10 +6,10 @@ import {
   TypeParam,
   InputFields,
   InterfaceType,
-} from 'schema-builder';
+} from '@giraph/core';
 
 declare global {
-  export namespace SpiderSchemaTypes {
+  export namespace GiraphSchemaTypes {
     export interface ObjectTypeOptions<
       Shape extends {},
       Interfaces extends InterfaceType<

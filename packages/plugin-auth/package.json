@@ -1,5 +1,5 @@
 {
-  "name": "schema-builder-auth",
+  "name": "@giraph/plugin-auth",
   "version": "1.0.0",
   "description": "",
   "main": "lib/index.js",
@@ -11,8 +11,7 @@
   "dependencies": {
     "@types/graphql": "^14.5.0",
     "graphql": "^14.5.8",
-    "schema-builder": "^1.0.0",
-    "schema-builder-types": "^1.0.0"
+    "@giraph/core": "^1.0.0"
   },
   "devDependencies": {
     "apollo-server": "^2.9.7",

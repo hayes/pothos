@@ -1,4 +1,4 @@
-import SchemaBuilder from 'schema-builder';
+import SchemaBuilder from '@giraph/core';
 import { ContextType } from './backing-models';
 import { User } from './data';
 import AuthPlugin from '../../../src';

@@ -3,7 +3,7 @@ import BaseType from './base';
 import { NamedInputAndOutput } from './types';
 
 export default class ScalarType<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Name extends NamedInputAndOutput<Types>,
   OutputShape extends Types['Output'][Name] = Types['Output'][Name],
   InputShape extends Types['Input'][Name] = Types['Input'][Name]

@@ -15,7 +15,7 @@ import InterfaceType from './interface';
 import InputFieldBuilder from './fieldUtils/input';
 
 declare global {
-  export namespace SpiderSchemaTypes {
+  export namespace GiraphSchemaTypes {
     export interface TypeInfo {
       Input: {
         String: unknown;
@@ -96,7 +96,7 @@ declare global {
     }
 
     export interface InputTypeOptions<
-      Types extends SpiderSchemaTypes.TypeInfo,
+      Types extends GiraphSchemaTypes.TypeInfo,
       Fields extends InputFields<Types>
     > {
       shape: (t: InputFieldBuilder<Types>) => Fields;
@@ -104,7 +104,7 @@ declare global {
 
     export interface InterfaceTypeOptions<
       Shape extends {},
-      Types extends SpiderSchemaTypes.TypeInfo,
+      Types extends GiraphSchemaTypes.TypeInfo,
       Type extends TypeParam<Types>
     > {
       description?: string;
@@ -112,7 +112,7 @@ declare global {
     }
 
     export interface UnionOptions<
-      Types extends SpiderSchemaTypes.TypeInfo,
+      Types extends GiraphSchemaTypes.TypeInfo,
       Member extends keyof Types['Output']
     > {
       description?: string;

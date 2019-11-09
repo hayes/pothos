@@ -57,8 +57,8 @@ export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never
 
 // TypeMap
 export type MergeTypeMap<
-  Map extends SpiderSchemaTypes.TypeInfo,
-  Partial extends SpiderSchemaTypes.PartialTypeInfo
+  Map extends GiraphSchemaTypes.TypeInfo,
+  Partial extends GiraphSchemaTypes.PartialTypeInfo
 > = {
   Input: { String: unknown; ID: unknown; Int: unknown; Float: unknown; Boolean: unknown } & {
     [K in keyof Map['Input']]: K extends keyof Partial['Input']
@@ -97,7 +97,7 @@ export interface DefaultTypeMap {
 }
 
 export type OptionalShapeFromTypeParam<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Param extends TypeParam<Types>
 > = Param extends keyof Types['Output']
   ? Types['Output'][Param]
@@ -110,32 +110,32 @@ export type OptionalShapeFromTypeParam<
   : never;
 
 export type ShapeFromTypeParam<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Param extends TypeParam<Types>,
   Nullable extends boolean
 > = Nullable extends true
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
   : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
 
-export type NamedTypeParam<Types extends SpiderSchemaTypes.TypeInfo> = keyof Types['Output'];
+export type NamedTypeParam<Types extends GiraphSchemaTypes.TypeInfo> = keyof Types['Output'];
 
-export type NamedInputAndOutput<Types extends SpiderSchemaTypes.TypeInfo> = keyof Types['Output'] &
+export type NamedInputAndOutput<Types extends GiraphSchemaTypes.TypeInfo> = keyof Types['Output'] &
   keyof Types['Input'];
 
-export type TypeParam<Types extends SpiderSchemaTypes.TypeInfo> =
+export type TypeParam<Types extends GiraphSchemaTypes.TypeInfo> =
   | keyof Types['Output']
   | (BaseType<Types, string, unknown>)
   | [keyof Types['Output']]
   | ([BaseType<Types, string, unknown>]);
 
 // InputTypes
-export type InputType<Types extends SpiderSchemaTypes.TypeInfo> =
+export type InputType<Types extends GiraphSchemaTypes.TypeInfo> =
   | InputObjectType<Types, unknown, {}, string>
   | ScalarType<Types, NamedTypeParam<Types>, any, any>
   | EnumType<Types, any>
   | keyof Types['Input'];
 
-export type InputField<Types extends SpiderSchemaTypes.TypeInfo> =
+export type InputField<Types extends GiraphSchemaTypes.TypeInfo> =
   | InputType<Types>
   | InputType<Types>[]
   | {
@@ -144,7 +144,7 @@ export type InputField<Types extends SpiderSchemaTypes.TypeInfo> =
       type: InputType<Types> | InputType<Types>[];
     };
 
-export type InputTypeWithShape<Types extends SpiderSchemaTypes.TypeInfo, Shape> =
+export type InputTypeWithShape<Types extends GiraphSchemaTypes.TypeInfo, Shape> =
   | InputObjectType<Types, {}, {}, string, Shape>
   | ScalarType<
       Types,
@@ -158,7 +158,7 @@ export type InputTypeWithShape<Types extends SpiderSchemaTypes.TypeInfo, Shape> 
     }[keyof Types['Input']];
 
 export type InputFieldWithShape<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Shape,
   Req extends boolean
 > = {
@@ -169,7 +169,7 @@ export type InputFieldWithShape<
     : InputTypeWithShape<Types, NonNullable<Shape>>;
 };
 
-export type ShapedInputFields<Types extends SpiderSchemaTypes.TypeInfo, Shape extends {}> = {
+export type ShapedInputFields<Types extends GiraphSchemaTypes.TypeInfo, Shape extends {}> = {
   [K in keyof Shape]: InputFieldWithShape<
     Types,
     Shape[K],
@@ -177,12 +177,12 @@ export type ShapedInputFields<Types extends SpiderSchemaTypes.TypeInfo, Shape ex
   >;
 };
 
-export type InputFields<Types extends SpiderSchemaTypes.TypeInfo> = {
+export type InputFields<Types extends GiraphSchemaTypes.TypeInfo> = {
   [s: string]: InputField<Types>;
 };
 
 export type InputShapeFromFields<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Fields extends InputFields<Types>,
   Nulls = null | undefined
 > = {
@@ -190,7 +190,7 @@ export type InputShapeFromFields<
 };
 
 export type InputShapeFromField<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Field extends InputField<Types>,
   Nulls = null | undefined
 > = Field extends (InputType<Types> | InputType<Types>[])
@@ -205,7 +205,7 @@ export type InputShapeFromField<
   : never;
 
 export type InputShapeFromType<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Type extends InputType<Types> | InputType<Types>[],
   Nulls = null | undefined
 > = Type extends (infer T)[]
@@ -221,7 +221,7 @@ export type InputShapeFromType<
   : never;
 
 // Args
-export type Args<Types extends SpiderSchemaTypes.TypeInfo> = {
+export type Args<Types extends GiraphSchemaTypes.TypeInfo> = {
   [s: string]: Types[keyof Types];
 };
 
@@ -261,7 +261,7 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
 
 export type FieldsShape<
   Shape extends {},
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Type extends TypeParam<Types>,
   ParentShape extends {
     [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, string | null, any>;
@@ -286,13 +286,13 @@ export type FieldsShape<
   };
 
 export type ShapeFromInterfaces<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   Interfaces extends (InterfaceType<{}, Types, NamedTypeParam<Types>>)[] | InvalidType<unknown>
 > = Interfaces extends InterfaceType<{}, Types, NamedTypeParam<Types>>[]
   ? UnionToIntersection<NonNullable<Interfaces[number]['shape']>> & {}
   : never;
 
-export type CompatibleInterfaceNames<Types extends SpiderSchemaTypes.TypeInfo, Shape> = Extract<
+export type CompatibleInterfaceNames<Types extends GiraphSchemaTypes.TypeInfo, Shape> = Extract<
   {
     [K in keyof Types['Output']]: Shape extends NonNullable<Types['Output'][K]> ? K : never;
   }[Exclude<keyof Types['Output'], 'Query' | 'Mutation' | 'Input'>],
@@ -300,7 +300,7 @@ export type CompatibleInterfaceNames<Types extends SpiderSchemaTypes.TypeInfo, S
 >;
 
 export type CompatibleTypes<
-  Types extends SpiderSchemaTypes.TypeInfo,
+  Types extends GiraphSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Req extends boolean,
@@ -311,7 +311,7 @@ export type CompatibleTypes<
 }[keyof ParentShape];
 
 // All types
-export type ImplementedType<Types extends SpiderSchemaTypes.TypeInfo> =
+export type ImplementedType<Types extends GiraphSchemaTypes.TypeInfo> =
   | ObjectType<{}, any[], Types, any>
   | InterfaceType<{}, Types, NamedTypeParam<Types>>
   | UnionType<Types, string, NamedTypeParam<Types>>
@@ -319,7 +319,7 @@ export type ImplementedType<Types extends SpiderSchemaTypes.TypeInfo> =
   | ScalarType<Types, NamedTypeParam<Types>>
   | InputObjectType<Types, {}, {}, string>;
 
-export type StoreEntry<Types extends SpiderSchemaTypes.TypeInfo> =
+export type StoreEntry<Types extends GiraphSchemaTypes.TypeInfo> =
   | {
       type: ObjectType<{}, [], Types, NamedTypeParam<Types>>;
       built: GraphQLObjectType;
