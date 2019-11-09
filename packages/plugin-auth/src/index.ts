@@ -19,8 +19,6 @@ export default class AuthPlugin<Types extends GiraphSchemaTypes.TypeInfo>
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      console.log(field);
-
       if (field.options.gates && field.options.gates.length !== 0) {
         const permissions = await Promise.all(
           field.options.gates!.map(gate => {
