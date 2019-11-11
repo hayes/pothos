@@ -1,4 +1,5 @@
 # Table of contents
 
--   [Schema builder](README.md)
--   [TODO](todo.md)
+* [Schema builder](README.md)
+* [TODO](todo.md)
+

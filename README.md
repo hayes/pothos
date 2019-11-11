@@ -2,8 +2,6 @@
 
 ## Getting started
 
-Becoming a super hero is a fairly straight forward process:
-
 ```typescript
 import SchemaBuilder from './still-need-a-name'
 
@@ -29,7 +27,7 @@ const User = builder.createObject('User', {
     firstName: t.exoseString('first', {}),
     lastName: t.exoseString('first', {}),
     fullName: t.string({
-      resolver: parent => `${parent.first} ${parent.last}`
+      resolve: parent => `${parent.first} ${parent.last}`
     }),
   }),
 })
@@ -45,3 +43,8 @@ const Query = builder.createObject('Query', () => {
 
 const schema = builder.toSchema([Query, User])
 ```
+
+
+
+
+
