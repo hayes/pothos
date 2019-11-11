@@ -1,3 +1,8 @@
+---
+name: Overview
+route: /
+---
+
 # GiraphQL SchemaBuilder
 
 GiraphQL is library for creating GraphQL schemas in typescript using a strongly typed code first
@@ -12,18 +17,18 @@ import { ApolloServer } from 'apollo-server';
 const builder = new SchemaBuilder<{ Context: {} }>();
 
 const Query = builder.createObjectType('Query', {
-    shape: t => ({
-        hello: t.string({
-            args: {
-                name: t.arg.string(),
-            },
-            resolve: (parent, { name }) => `hello, ${name || 'World'}`,
-        }),
+  shape: t => ({
+    hello: t.string({
+      args: {
+        name: t.arg.string(),
+      },
+      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
     }),
+  }),
 });
 
 const server = new ApolloServer({
-    schema: builder.toSchema([Query]),
+  schema: builder.toSchema([Query]),
 });
 
 server.listen(3000);

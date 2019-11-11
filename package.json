@@ -1,12 +1,15 @@
 {
   "name": "@giraphql/schema-builder",
   "version": "0.0.0",
-  "description": "## Getting started",
+  "description": "A strongly typed code first schema builder for GraphQL",
   "directories": {
     "lib": "lib"
   },
   "scripts": {
-    "prepare": "nimbus create-config --silent",
+    "docz:dev": "yarn workspace @giraphql/docs run docz:dev",
+    "docz:build": "yarn workspace @giraphql/docs docz:build",
+    "docz:serve": "yarn workspace @giraphql/docs docz:serve",
+    "prepare": "nimbus create-config --silent && rm babel.config.js",
     "build": "yarn type",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib}",
     "lint": "nimbus eslint",

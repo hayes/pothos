@@ -24,6 +24,7 @@ lib/
 public/
 node_modules/
 tmp/
+.docz/
 
 # Custom
 *.min.js

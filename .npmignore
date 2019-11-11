@@ -21,6 +21,7 @@ docs/
 src/
 test/
 tests/
+.docz/
 
 # Custom
 *.min.js
