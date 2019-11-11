@@ -3,7 +3,7 @@
 ## Getting started
 
 ```typescript
-import SchemaBuilder from './still-need-a-name'
+import SchemaBuilder from '@giraphql/core'
 
 type ContextShape = {}
 
