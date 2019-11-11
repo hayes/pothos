@@ -9,27 +9,18 @@ description: A strongly typed code first schema builder for GraphQL
 ```typescript
 import SchemaBuilder from '@giraphql/core'
 
-type ContextShape = {}
-
 const builder = new SchemaBuilder<{
-  Input: {
-    // optional place to define shapes for input types
-    // or overwrite types of scalars in args
+  Object: {
+    // backing models for User type
+    User: { first: string; last: string };
   };
-  Output: {
-    // backing models/shapes for objects and interfaces
-    // can also overwrite the scalars return values in resolvers
-    User: {
-      first: string;
-      last: string;
-    };
-  };
-}, ContextShape>()
+  Context: {},
+}>()
 
 const User = builder.createObject('User', {
   shape: t => ({
     firstName: t.exposeString('first', {}),
-    lastName: t.exposeString('first', {}),
+    lastName: t.exposeString('last', {}),
     fullName: t.string({
       resolve: parent => `${parent.first} ${parent.last}`
     }),
