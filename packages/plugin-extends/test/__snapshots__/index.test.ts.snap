@@ -1,7 +1,12 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`extends example schema generates expected schema 1`] = `
-"type Query {
+"type Mutation {
+  \\"\\"\\"createUser\\"\\"\\"
+  createUser(firstName: String!, lastName: String!): User!
+}
+
+type Query {
   \\"\\"\\"user\\"\\"\\"
   user(id: ID!): User!
 }
