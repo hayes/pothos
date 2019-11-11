@@ -1,4 +1,8 @@
-# Schema builder
+---
+description: A strongly typed code first schema builder for GraphQL
+---
+
+# GiraphQL
 
 ## Getting started
 
@@ -24,8 +28,8 @@ const builder = new SchemaBuilder<{
 
 const User = builder.createObject('User', {
   shape: t => ({
-    firstName: t.exoseString('first', {}),
-    lastName: t.exoseString('first', {}),
+    firstName: t.exposeString('first', {}),
+    lastName: t.exposeString('first', {}),
     fullName: t.string({
       resolve: parent => `${parent.first} ${parent.last}`
     }),

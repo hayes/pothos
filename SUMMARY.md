@@ -1,5 +1,5 @@
 # Table of contents
 
-* [Schema builder](README.md)
+* [GiraphQL](README.md)
 * [TODO](todo.md)
 
