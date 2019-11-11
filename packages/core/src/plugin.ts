@@ -7,57 +7,57 @@ import {
   GraphQLInputType,
   GraphQLFieldConfig,
 } from 'graphql';
-import ObjectType from './object';
-import InterfaceType from './interface';
-import UnionType from './union';
+import ObjectType from './graphql/object';
+import InterfaceType from './graphql/interface';
+import UnionType from './graphql/union';
 import { EnumType } from '.';
-import ScalarType from './scalar';
-import InputObjectType from './input';
+import ScalarType from './graphql/scalar';
+import InputObjectType from './graphql/input';
 import { NamedTypeParam, EnumValues, InputFields, TypeParam } from './types';
 import Field from './field';
-import TypeStore from './store';
+import BuildCache from './build-cache';
 
 export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> {
   visitObjectType?(
     type: ObjectType<{}, any[], Types, any>,
     built: GraphQLObjectType,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): void;
 
   visitInterfaceType?(
     type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
     built: GraphQLInterfaceType,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): void;
 
   visitUnionType?(
     type: UnionType<Types, string, NamedTypeParam<Types>>,
     built: GraphQLUnionType,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): void;
 
   visitEnumType?(
     type: EnumType<Types, string, EnumValues>,
     built: GraphQLEnumType,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): void;
 
   visitScalarType?(
     type: ScalarType<Types, NamedTypeParam<Types>>,
     built: GraphQLScalarType,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): void;
 
   visitInputObjectType?(
     type: InputObjectType<Types, {}, {}, string>,
     built: GraphQLInputType,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): void;
 
   updateFieldConfig?(
     name: string,
     type: Field<InputFields<Types>, Types, TypeParam<Types>, TypeParam<Types>>,
     config: GraphQLFieldConfig<unknown, unknown>,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): GraphQLFieldConfig<unknown, unknown>;
 }

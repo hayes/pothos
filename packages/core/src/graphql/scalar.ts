@@ -1,6 +1,6 @@
 import { GraphQLScalarType } from 'graphql';
 import BaseType from './base';
-import { NamedInputAndOutput } from './types';
+import { NamedInputAndOutput } from '../types';
 
 export default class ScalarType<
   Types extends GiraphQLSchemaTypes.TypeInfo,

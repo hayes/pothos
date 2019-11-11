@@ -1,10 +1,10 @@
 import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
 import fromEntries from 'object.fromentries';
-import { InputFields } from './types';
-import TypeStore from './store';
+import { InputFields } from '../types';
 import BaseType from './base';
-import { buildArg } from './utils';
-import InputFieldBuilder from './fieldUtils/input';
+import { buildArg } from '../utils';
+import InputFieldBuilder from '../fieldUtils/input';
+import BuildCache from '../build-cache';
 
 export default class InputObjectType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -23,7 +23,7 @@ export default class InputObjectType<
     this.fields = options.shape(new InputFieldBuilder());
   }
 
-  buildFields(store: TypeStore<Types>): GraphQLInputFieldConfigMap {
+  buildFields(cache: BuildCache<Types>): GraphQLInputFieldConfigMap {
     return fromEntries(
       Object.keys(this.fields).map(key => {
         const field = this.fields[key];
@@ -38,17 +38,17 @@ export default class InputObjectType<
               typeof field !== 'object' || field instanceof BaseType || Array.isArray(field)
                 ? false
                 : field.required || false,
-            type: buildArg(field, store),
+            type: buildArg(field, cache),
           },
         ];
       }),
     );
   }
 
-  buildType(store: TypeStore<Types>) {
+  buildType(cache: BuildCache<Types>) {
     return new GraphQLInputObjectType({
       name: this.typename,
-      fields: () => this.buildFields(store),
+      fields: () => this.buildFields(cache),
     });
   }
 }

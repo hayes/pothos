@@ -4,10 +4,10 @@ import {
   InputFields,
   TypeParam,
   Field,
-  TypeStore,
   UnionType,
   NamedTypeParam,
   InterfaceType,
+  BuildCache,
 } from '@giraphql/core';
 import {
   GraphQLFieldConfig,
@@ -104,7 +104,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     name: string,
     field: Field<InputFields<Types>, Types, TypeParam<Types>, TypeParam<Types>>,
     config: GraphQLFieldConfig<unknown, unknown>,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
   ): GraphQLFieldConfig<unknown, unknown> {
     const resolver = config.resolve || defaultFieldResolver;
 
@@ -117,7 +117,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
     const authWith = field.options.authWith || [];
 
-    const parentType = store.getType(field.parentTypename);
+    const parentType = cache.getType(field.parentTypename);
     const parentChecks = (parentType.kind === 'Object'
       ? parentType.options.authChecks || {}
       : {}) as {

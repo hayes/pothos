@@ -1,6 +1,6 @@
 import { GraphQLType } from 'graphql';
-import TypeStore from './store';
-import BasePlugin from './plugin';
+import BasePlugin from '../plugin';
+import BuildCache from '../build-cache';
 
 export default abstract class BaseType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -24,5 +24,5 @@ export default abstract class BaseType<
     this.shape = shape;
   }
 
-  abstract buildType(store: TypeStore<Types>, plugins: BasePlugin<Types>[]): GraphQLType;
+  abstract buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLType;
 }

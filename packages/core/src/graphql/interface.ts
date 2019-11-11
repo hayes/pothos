@@ -1,12 +1,12 @@
 import { GraphQLInterfaceType } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { ShapeFromTypeParam, NamedTypeParam, TypeParam } from './types';
-import TypeStore from './store';
-import Field from './field';
-import FieldBuilder from './fieldUtils/builder';
+import { ShapeFromTypeParam, NamedTypeParam, TypeParam } from '../types';
+import Field from '../field';
+import FieldBuilder from '../fieldUtils/builder';
 import ObjectType from './object';
-import BasePlugin from './plugin';
+import BasePlugin from '../plugin';
+import BuildCache from '../build-cache';
 
 export default class InterfaceType<
   Shape extends {},
@@ -17,17 +17,23 @@ export default class InterfaceType<
 
   description?: string;
 
-  fields: Shape;
+  options: GiraphQLSchemaTypes.InterfaceTypeOptions<{}, Types, any>;
+
+  fieldShape?: Shape;
 
   constructor(name: Name, options: GiraphQLSchemaTypes.InterfaceTypeOptions<Shape, Types, Name>) {
     super(name);
 
     this.description = options.description;
 
-    this.fields = options.shape(new FieldBuilder({}, this.typename));
+    this.options = options;
   }
 
-  buildType(store: TypeStore<Types>, plugins: BasePlugin<Types>[]) {
+  getFields() {
+    return this.options.shape(new FieldBuilder({}, this.typename));
+  }
+
+  buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLInterfaceType {
     let types: ObjectType<{}, any, Types, NamedTypeParam<Types>>[];
 
     return new GraphQLInterfaceType({
@@ -35,7 +41,7 @@ export default class InterfaceType<
       description: this.description,
       resolveType: (obj: unknown) => {
         if (!types) {
-          types = store.getImplementers(this);
+          types = cache.getImplementers(this.typename);
         }
 
         for (const type of types) {
@@ -48,11 +54,11 @@ export default class InterfaceType<
       },
       fields: () =>
         fromEntries(
-          Object.entries(this.fields).map(([key, field]) => [
+          Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
             (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
               key,
-              store,
+              cache,
               plugins,
             ),
           ]),

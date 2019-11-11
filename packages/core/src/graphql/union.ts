@@ -1,7 +1,7 @@
 import { GraphQLUnionType } from 'graphql';
-import { NamedTypeParam } from './types';
+import { NamedTypeParam } from '../types';
 import BaseType from './base';
-import TypeStore from './store';
+import BuildCache from '../build-cache';
 
 export default class UnionType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -26,12 +26,12 @@ export default class UnionType<
     this.resolveType = options.resolveType as (parent: unknown, ctx: unknown) => string;
   }
 
-  buildType(store: TypeStore<Types>) {
+  buildType(cache: BuildCache<Types>) {
     return new GraphQLUnionType({
       name: this.typename,
       description: this.description,
       resolveType: this.resolveType,
-      types: () => this.members.map(member => store.getBuiltObject(member)),
+      types: () => this.members.map(member => cache.getBuiltObject(member)),
     });
   }
 }

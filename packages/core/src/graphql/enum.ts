@@ -1,7 +1,7 @@
 import { GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLEnumValueConfig } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { EnumValues, ShapeFromEnumValues } from './types';
+import { EnumValues, ShapeFromEnumValues } from '../types';
 
 export default class EnumType<
   Types extends GiraphQLSchemaTypes.TypeInfo,

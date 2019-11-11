@@ -11,7 +11,7 @@ import {
   Resolver,
   InputShapeFromFields,
 } from './types';
-import InterfaceType from './interface';
+import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
 
 declare global {
@@ -66,7 +66,7 @@ declare global {
         Shape,
         Types,
         Type,
-        UnionToIntersection<Interfaces[number]['fields']> & {}
+        UnionToIntersection<NonNullable<Interfaces[number]['fieldShape']>> & {}
       >;
       isType: Interfaces[number]['typename'] extends Type
         ? ((obj: NonNullable<Interfaces[number]['shape']>) => boolean) | undefined

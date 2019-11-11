@@ -2,10 +2,10 @@
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLNonNull } from 'graphql';
 import fromEntries from 'object.fromentries';
 import { TypeParam, InputFields, ShapeFromTypeParam, NamedTypeParam } from './types';
-import TypeStore from './store';
 import { typeFromParam, buildArg } from './utils';
-import BaseType from './base';
+import BaseType from './graphql/base';
 import BasePlugin from './plugin';
+import { BuildCache } from '.';
 
 export default class Field<
   Args extends InputFields<Types>,
@@ -53,7 +53,7 @@ export default class Field<
     this.parentTypename = parentTypename;
   }
 
-  private buildArgs(store: TypeStore<Types>): GraphQLFieldConfigArgumentMap {
+  private buildArgs(cache: BuildCache<Types>): GraphQLFieldConfigArgumentMap {
     return fromEntries(
       Object.keys(this.args).map(key => {
         const arg = this.args[key];
@@ -69,7 +69,7 @@ export default class Field<
               typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
                 ? false
                 : arg.required || false,
-            type: buildArg(arg, store),
+            type: buildArg(arg, cache),
           },
         ];
       }),
@@ -78,17 +78,17 @@ export default class Field<
 
   build(
     name: string,
-    store: TypeStore<Types>,
+    cache: BuildCache<Types>,
     plugins: BasePlugin<Types>[],
   ): GraphQLFieldConfig<unknown, unknown> {
     const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
-      args: this.buildArgs(store),
+      args: this.buildArgs(cache),
       extensions: [],
       description: this.options.description || name,
       resolve: this.options.resolve as ((...args: unknown[]) => unknown),
       type: this.nullable
-        ? typeFromParam(this.type, store)
-        : new GraphQLNonNull(typeFromParam(this.type, store)),
+        ? typeFromParam(this.type, cache)
+        : new GraphQLNonNull(typeFromParam(this.type, cache)),
     };
 
     return plugins.reduce((config, plugin) => {
@@ -103,7 +103,7 @@ export default class Field<
               TypeParam<Types>
             >,
             config,
-            store,
+            cache,
           )
         : config;
     }, baseConfig);

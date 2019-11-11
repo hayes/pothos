@@ -8,12 +8,13 @@ import {
   TypeParam,
   UnionToIntersection,
   NullableToOptional,
-} from './types';
+  FieldMap,
+} from '../types';
 import InterfaceType from './interface';
-import TypeStore from './store';
-import Field from './field';
-import FieldBuilder from './fieldUtils/builder';
-import BasePlugin from './plugin';
+import Field from '../field';
+import FieldBuilder from '../fieldUtils/builder';
+import BasePlugin from '../plugin';
+import BuildCache from '../build-cache';
 
 export default class ObjectType<
   Shape extends {},
@@ -31,17 +32,9 @@ export default class ObjectType<
 
   interfaces: Interfaces;
 
-  fields: Shape;
-
   isType: (obj: unknown) => boolean;
 
-  options: NullableToOptional<
-    GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>
-  >;
-
-  // permissions: {
-  //   [s: string]: (parent: any, context: any) => boolean | Promise<boolean>;
-  // };
+  options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<{}, Interfaces, Types, Name>>;
 
   constructor(
     name: Name,
@@ -57,34 +50,27 @@ export default class ObjectType<
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
 
     this.isType = (options as ({ isType: (obj: unknown) => boolean })).isType || (() => false);
-
-    // this.permissions = options.permissions || {};
-
-    const parentFields = this.interfaces
-      .map(i => i.fields)
-      .reduce((fields, all) => ({ ...fields, ...all }), {}) as UnionToIntersection<
-      Interfaces[number]['fields']
-    > & {};
-
-    this.fields = {
-      ...(parentFields as {}),
-      ...options.shape(new FieldBuilder(parentFields, this.typename)),
-    };
   }
 
-  buildType(store: TypeStore<Types>, plugins: BasePlugin<Types>[]): GraphQLObjectType {
+  getFields(
+    parentFields: UnionToIntersection<NonNullable<Interfaces[number]['fieldShape']>> & {},
+  ): FieldMap<Types> {
+    return this.options.shape(new FieldBuilder(parentFields, this.typename));
+  }
+
+  buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
       interfaces: () =>
-        this.interfaces.map(type => store.getEntryOfType(type.typename, 'Interface').built),
+        this.interfaces.map(type => cache.getEntryOfType(type.typename, 'Interface').built),
       fields: () =>
         fromEntries(
-          Object.entries(this.fields).map(([key, field]) => [
+          Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
             (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
               key,
-              store,
+              cache,
               plugins,
             ),
           ]),

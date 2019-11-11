@@ -13,7 +13,6 @@ import {
   ShapeFromTypeParam,
   NamedTypeParam,
   ImplementedType,
-  StoreEntry,
   EnumValues,
   InputFields,
   InputShapeFromFields,
@@ -23,23 +22,23 @@ import {
   NamedInputAndOutput,
   NullableToOptional,
 } from './types';
-import ObjectType from './object';
-import UnionType from './union';
-import InputObjectType from './input';
-import InterfaceType from './interface';
-import EnumType from './enum';
-import TypeStore from './store';
-import ScalarType from './scalar';
+import ObjectType from './graphql/object';
+import UnionType from './graphql/union';
+import InputObjectType from './graphql/input';
+import InterfaceType from './graphql/interface';
+import EnumType from './graphql/enum';
+import ScalarType from './graphql/scalar';
 import InputFieldBuilder from './fieldUtils/input';
 import BasePlugin from './plugin';
 import Field from './field';
+import BuildCache from './build-cache';
 
 export * from './types';
 
 export {
   BasePlugin,
   Field,
-  TypeStore,
+  BuildCache,
   ObjectType,
   InterfaceType,
   UnionType,
@@ -134,7 +133,6 @@ export default class SchemaBuilder<
   }
 
   toSchema(types: ImplementedType<Types>[]) {
-    const typeStore = new TypeStore<Types>();
     const scalars = [
       this.scalars.Boolean,
       this.scalars.Float,
@@ -143,58 +141,13 @@ export default class SchemaBuilder<
       this.scalars.String,
     ];
 
-    for (const type of [...scalars, ...types]) {
-      if (typeStore.has(type.typename)) {
-        throw new Error(`Received multiple implementations of type ${type.typename}`);
-      }
+    const buildCache = new BuildCache<Types>([...scalars, ...types], this.plugins);
 
-      typeStore.set(type.typename, {
-        built: type.buildType(typeStore, this.plugins),
-        kind: type.kind,
-        type,
-      } as StoreEntry<Types>);
-    }
-
-    for (const plugin of this.plugins) {
-      for (const entry of typeStore.types.values()) {
-        switch (entry.kind) {
-          case 'Object':
-            if (plugin.visitObjectType) {
-              plugin.visitObjectType(entry.type, entry.built, typeStore);
-            }
-            break;
-          case 'Enum':
-            if (plugin.visitEnumType) {
-              plugin.visitEnumType(entry.type, entry.built, typeStore);
-            }
-            break;
-          case 'InputObject':
-            if (plugin.visitInputObjectType) {
-              plugin.visitInputObjectType(entry.type, entry.built, typeStore);
-            }
-            break;
-          case 'Interface':
-            if (plugin.visitInterfaceType) {
-              plugin.visitInterfaceType(entry.type, entry.built, typeStore);
-            }
-            break;
-          case 'Scalar':
-            if (plugin.visitScalarType) {
-              plugin.visitScalarType(entry.type, entry.built, typeStore);
-            }
-            break;
-          case 'Union':
-            if (plugin.visitUnionType) {
-              plugin.visitUnionType(entry.type, entry.built, typeStore);
-            }
-            break;
-        }
-      }
-    }
+    buildCache.buildAll();
 
     return new GraphQLSchema({
-      query: typeStore.has('Query') ? typeStore.getBuiltObject('Query') : undefined,
-      mutation: typeStore.has('Mutation') ? typeStore.getBuiltObject('Mutation') : undefined,
+      query: buildCache.has('Query') ? buildCache.getBuiltObject('Query') : undefined,
+      mutation: buildCache.has('Mutation') ? buildCache.getBuiltObject('Mutation') : undefined,
     });
   }
 }

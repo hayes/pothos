@@ -8,15 +8,15 @@ import {
   GraphQLScalarType,
   GraphQLResolveInfo,
 } from 'graphql';
-import InputObjectType from './input';
-import BaseType from './base';
-import InterfaceType from './interface';
+import InputObjectType from './graphql/input';
+import BaseType from './graphql/base';
+import InterfaceType from './graphql/interface';
 import Field from './field';
 import FieldBuilder from './fieldUtils/builder';
-import ObjectType from './object';
-import UnionType from './union';
-import EnumType from './enum';
-import ScalarType from './scalar';
+import ObjectType from './graphql/object';
+import UnionType from './graphql/union';
+import EnumType from './graphql/enum';
+import ScalarType from './graphql/scalar';
 
 import './global-types';
 
@@ -286,6 +286,10 @@ export type FieldsShape<
       : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, null, any>;
   };
 
+export type FieldMap<Types extends GiraphQLSchemaTypes.TypeInfo> = {
+  [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, null, any>;
+};
+
 export type ShapeFromInterfaces<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Interfaces extends (InterfaceType<{}, Types, NamedTypeParam<Types>>)[] | InvalidType<unknown>
@@ -296,7 +300,7 @@ export type ShapeFromInterfaces<
 export type CompatibleInterfaceNames<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = Extract<
   {
     [K in keyof Types['Output']]: Shape extends NonNullable<Types['Output'][K]> ? K : never;
-  }[Exclude<keyof Types['Output'], 'Query' | 'Mutation' | 'Input'>],
+  }[Exclude<keyof Types['Output'], 'Query' | 'Mutation'>],
   string
 >;
 
@@ -320,7 +324,7 @@ export type ImplementedType<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | ScalarType<Types, NamedTypeParam<Types>>
   | InputObjectType<Types, {}, {}, string>;
 
-export type StoreEntry<Types extends GiraphQLSchemaTypes.TypeInfo> =
+export type BuildCacheEntry<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | {
       type: ObjectType<{}, [], Types, NamedTypeParam<Types>>;
       built: GraphQLObjectType;
