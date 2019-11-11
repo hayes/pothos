@@ -1,4 +1,4 @@
-import { BasePlugin, ObjectType, BuildCache, FieldMap, NamedTypeParam } from '@giraphql/core';
+import { BasePlugin, ObjectType, BuildCache, FieldMap, ObjectName } from '@giraphql/core';
 import { GraphQLObjectType } from 'graphql';
 import './global-types';
 import FieldBuilder from '@giraphql/core/src/fieldUtils/builder';
@@ -16,7 +16,7 @@ export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
     cache.types.forEach(entry => {
       if (entry.kind === 'Object' && entry.type.options.extends) {
-        const shape = entry.type.options.extends[type.typename as NamedTypeParam<Types>];
+        const shape = entry.type.options.extends[type.typename as ObjectName<Types>];
 
         if (shape) {
           fields = cache.mergeFields(

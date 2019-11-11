@@ -13,7 +13,15 @@ import UnionType from './graphql/union';
 import { EnumType } from '.';
 import ScalarType from './graphql/scalar';
 import InputObjectType from './graphql/input';
-import { NamedTypeParam, EnumValues, InputFields, TypeParam, FieldMap } from './types';
+import {
+  EnumValues,
+  InputFields,
+  TypeParam,
+  FieldMap,
+  InterfaceName,
+  ScalarName,
+  ObjectName,
+} from './types';
 import Field from './field';
 import BuildCache from './build-cache';
 
@@ -27,7 +35,7 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
   ): FieldMap<Types>;
 
   fieldsForInterfaceType?(
-    type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
+    type: InterfaceType<{}, Types, InterfaceName<Types>>,
     fields: FieldMap<Types>,
     built: GraphQLInterfaceType,
     cache: BuildCache<Types>,
@@ -40,13 +48,13 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
   ): void;
 
   visitInterfaceType?(
-    type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
+    type: InterfaceType<{}, Types, InterfaceName<Types>>,
     built: GraphQLInterfaceType,
     cache: BuildCache<Types>,
   ): void;
 
   visitUnionType?(
-    type: UnionType<Types, string, NamedTypeParam<Types>>,
+    type: UnionType<Types, string, ObjectName<Types>>,
     built: GraphQLUnionType,
     cache: BuildCache<Types>,
   ): void;
@@ -58,7 +66,7 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
   ): void;
 
   visitScalarType?(
-    type: ScalarType<Types, NamedTypeParam<Types>>,
+    type: ScalarType<Types, ScalarName<Types>>,
     built: GraphQLScalarType,
     cache: BuildCache<Types>,
   ): void;

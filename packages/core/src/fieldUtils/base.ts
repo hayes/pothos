@@ -1,13 +1,13 @@
-import { TypeParam, InputFields, CompatibleTypes, NamedTypeParam } from '../types';
+import { TypeParam, InputFields, CompatibleTypes } from '../types';
 import Field from '../field';
 
 export default class BaseFieldUtil<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>
 > {
-  typename: NamedTypeParam<Types>;
+  typename: string;
 
-  constructor(name: NamedTypeParam<Types>) {
+  constructor(name: string) {
     this.typename = name;
   }
 

@@ -4,12 +4,11 @@ import { User } from './data';
 import AuthPlugin from '../../../src';
 
 type Types = {
-  Output: {
-    String: string;
+  Object: {
     User: User;
   };
-  Input: {
-    ID: string;
+  Scalar: {
+    ID: { Input: string; Output: string | number };
   };
   Context: ContextType;
 };

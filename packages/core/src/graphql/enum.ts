@@ -15,8 +15,12 @@ export default class EnumType<
 
   kind: 'Enum' = 'Enum';
 
+  options: GiraphQLSchemaTypes.EnumTypeOptions<EnumValues>;
+
   constructor(name: Name, options: GiraphQLSchemaTypes.EnumTypeOptions<Values>) {
     super(name);
+
+    this.options = options;
 
     this.values = Array.isArray(options.values)
       ? fromEntries(options.values.map(key => [key, {}]))

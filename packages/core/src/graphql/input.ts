@@ -17,10 +17,14 @@ export default class InputObjectType<
 
   fields: Fields;
 
+  options: GiraphQLSchemaTypes.InputTypeOptions<Types, InputFields<Types>>;
+
   constructor(name: Name, options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>) {
     super(name);
 
     this.fields = options.shape(new InputFieldBuilder());
+
+    this.options = options;
   }
 
   buildFields(cache: BuildCache<Types>): GraphQLInputFieldConfigMap {

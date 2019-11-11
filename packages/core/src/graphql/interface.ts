@@ -1,7 +1,7 @@
 import { GraphQLInterfaceType } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { ShapeFromTypeParam, NamedTypeParam, TypeParam } from '../types';
+import { ShapeFromTypeParam, TypeParam, InterfaceName, ObjectName } from '../types';
 import Field from '../field';
 import FieldBuilder from '../fieldUtils/builder';
 import ObjectType from './object';
@@ -11,7 +11,7 @@ import BuildCache from '../build-cache';
 export default class InterfaceType<
   Shape extends {},
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends NamedTypeParam<Types>
+  Name extends InterfaceName<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
   kind: 'Interface' = 'Interface';
 
@@ -34,7 +34,7 @@ export default class InterfaceType<
   }
 
   buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLInterfaceType {
-    let types: ObjectType<{}, any, Types, NamedTypeParam<Types>>[];
+    let types: ObjectType<{}, any, Types, ObjectName<Types>>[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),

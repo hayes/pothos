@@ -1,4 +1,4 @@
-import { TypeParam, InputFields, CompatibleTypes, NamedTypeParam } from '../types';
+import { TypeParam, InputFields, CompatibleTypes } from '../types';
 import Field from '../field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
@@ -24,7 +24,7 @@ export default class FieldBuilder<
     >;
   };
 
-  constructor(parentFields: ParentShape, typename: NamedTypeParam<Types>) {
+  constructor(parentFields: ParentShape, typename: string) {
     super(typename);
 
     this.parentFields = parentFields;

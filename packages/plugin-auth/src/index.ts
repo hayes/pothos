@@ -5,9 +5,9 @@ import {
   TypeParam,
   Field,
   UnionType,
-  NamedTypeParam,
   InterfaceType,
   BuildCache,
+  ObjectName,
 } from '@giraphql/core';
 import {
   GraphQLFieldConfig,
@@ -226,7 +226,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     };
   }
 
-  visitUnionType(type: UnionType<Types, string, NamedTypeParam<Types>>, built: GraphQLUnionType) {
+  visitUnionType(type: UnionType<Types, string, ObjectName<Types>>, built: GraphQLUnionType) {
     const { resolveType } = built;
 
     if (!resolveType) {
@@ -241,7 +241,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   }
 
   visitInterfaceType(
-    type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
+    type: InterfaceType<{}, Types, ObjectName<Types>>,
     built: GraphQLInterfaceType,
   ) {
     const { resolveType } = built;

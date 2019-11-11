@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLNonNull } from 'graphql';
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, ShapeFromTypeParam, NamedTypeParam } from './types';
+import { TypeParam, InputFields, ShapeFromTypeParam } from './types';
 import { typeFromParam, buildArg } from './utils';
 import BaseType from './graphql/base';
 import BasePlugin from './plugin';
@@ -36,13 +36,13 @@ export default class Field<
 
   gates: string[];
 
-  parentTypename: NamedTypeParam<Types>;
+  parentTypename: string;
 
   constructor(
     options: Options & {
       extendsField?: Extends;
     },
-    parentTypename: NamedTypeParam<Types>,
+    parentTypename: string,
   ) {
     this.options = options;
     this.nullable = (options.nullable === true ? options.nullable : false) as Nullable;

@@ -2,10 +2,10 @@
 import {
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
-  NamedTypeParam,
   TypeParam,
   InputFields,
   InterfaceType,
+  ObjectName,
 } from '@giraphql/core';
 
 declare global {
@@ -18,7 +18,7 @@ declare global {
         CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>
       >[],
       Types extends TypeInfo,
-      Type extends NamedTypeParam<Types>
+      Type extends ObjectName<Types>
     > {
       authChecks?: {
         [s: string]: (

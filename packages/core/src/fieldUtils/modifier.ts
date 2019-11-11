@@ -1,4 +1,4 @@
-import { TypeParam, CompatibleTypes, InputFields, NamedTypeParam } from '../types';
+import { TypeParam, CompatibleTypes, InputFields } from '../types';
 import BaseFieldUtil from './base';
 import Field from '../field';
 
@@ -17,7 +17,7 @@ export default class FieldModifier<
   constructor(
     field: Field<Args, Types, ParentType, Type, Nullable, string | null, any>,
     extendsField: Extends,
-    name: NamedTypeParam<Types>,
+    name: string,
   ) {
     super(name);
     this.field = field;

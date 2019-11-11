@@ -1,26 +1,20 @@
-import { BuildCacheEntry, ImplementedType, FieldMap, NamedTypeParam } from './types';
+import { BuildCacheEntry, ImplementedType, FieldMap, InterfaceName } from './types';
 import { BasePlugin, InterfaceType } from '.';
 import BaseType from './graphql/base';
 
-export default class BuildCache<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Key extends string | keyof Types['Input'] | keyof Types['Output'] =
-    | string
-    | keyof Types['Input']
-    | keyof Types['Output']
-> {
+export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
   implementations: ImplementedType<Types>[];
 
-  types = new Map<Key, BuildCacheEntry<Types>>();
+  types = new Map<string, BuildCacheEntry<Types>>();
 
-  fields = new Map<Key, FieldMap<Types>>();
+  fields = new Map<string, FieldMap<Types>>();
 
-  inProgress = new Set<Key>();
+  inProgress = new Set<string>();
 
   plugins: BasePlugin<Types>[];
 
   constructor(implementations: ImplementedType<Types>[], plugins: BasePlugin<Types>[]) {
-    const seenTypes = new Set<Key>();
+    const seenTypes = new Set<string>();
 
     for (const type of implementations) {
       if (seenTypes.has(type.typename)) {
@@ -35,7 +29,7 @@ export default class BuildCache<
   }
 
   mergeFields(
-    typename: Key,
+    typename: string,
     base: FieldMap<Types>,
     newFields: FieldMap<Types>,
     allowOverwrite = false,
@@ -72,14 +66,14 @@ export default class BuildCache<
     const parentFields = (entry.type.interfaces as InterfaceType<
       {},
       Types,
-      NamedTypeParam<Types>
+      InterfaceName<Types>
     >[]).reduce(
-      (all, type) => this.mergeFields(entry.type.typename as Key, all, type.getFields()),
+      (all, type) => this.mergeFields(entry.type.typename, all, type.getFields()),
       {} as FieldMap<Types>,
     );
 
     let fields = this.mergeFields(
-      entry.type.typename as Key,
+      entry.type.typename,
       parentFields,
       entry.type.getFields(parentFields),
       true,
@@ -94,7 +88,7 @@ export default class BuildCache<
     return fields;
   }
 
-  getFields(typename: Key): FieldMap<Types> {
+  getFields(typename: string): FieldMap<Types> {
     if (this.fields.has(typename)) {
       return this.fields.get(typename)!;
     }
@@ -171,15 +165,15 @@ export default class BuildCache<
     }
   }
 
-  has(name: Key) {
+  has(name: string) {
     return this.types.has(name);
   }
 
-  set(name: Key, entry: BuildCacheEntry<Types>) {
+  set(name: string, entry: BuildCacheEntry<Types>) {
     return this.types.set(name, entry);
   }
 
-  getBuilt(name: Key) {
+  getBuilt(name: string) {
     const entry = this.getEntry(name);
 
     if (entry.kind === 'InputObject') {
@@ -189,7 +183,7 @@ export default class BuildCache<
     return entry.built;
   }
 
-  getBuiltInput(name: Key) {
+  getBuiltInput(name: string) {
     const entry = this.getEntry(name);
 
     if (entry.kind === 'Object' || entry.kind === 'Interface' || entry.kind === 'Union') {
@@ -199,22 +193,22 @@ export default class BuildCache<
     return entry.built;
   }
 
-  getType(name: Key) {
+  getType(name: string) {
     return this.getEntry(name).type;
   }
 
-  getBuiltObject(name: Key) {
+  getBuiltObject(name: string) {
     const entry = this.getEntryOfType(name, 'Object');
 
     return entry.built;
   }
 
-  getImplementers(typename: Key) {
+  getImplementers(typename: string) {
     const implementers = [];
     for (const entry of this.types.values()) {
       if (
         entry.kind === 'Object' &&
-        (entry.type.interfaces as BaseType<Types, Key, {}>[]).find(
+        (entry.type.interfaces as BaseType<Types, string, {}>[]).find(
           type => type.typename === typename,
         )
       ) {
@@ -226,7 +220,7 @@ export default class BuildCache<
   }
 
   getEntryOfType<Type extends BuildCacheEntry<Types>['kind']>(
-    name: Key,
+    name: string,
     type: Type,
   ): Extract<BuildCacheEntry<Types>, { kind: Type }> {
     const entry = this.getEntry(name);
@@ -238,7 +232,7 @@ export default class BuildCache<
     return entry as Extract<BuildCacheEntry<Types>, { kind: Type }>;
   }
 
-  getEntry(name: Key): BuildCacheEntry<Types> {
+  getEntry(name: string): BuildCacheEntry<Types> {
     if (!this.types.has(name)) {
       throw new Error(`${name} not found in type store`);
     }

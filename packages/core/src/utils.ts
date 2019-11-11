@@ -1,5 +1,5 @@
 import { GraphQLList, GraphQLOutputType, GraphQLInputType, GraphQLNonNull } from 'graphql';
-import { TypeParam, InputField, InputType } from './types';
+import { TypeParam, InputField, InputType, InputName, ScalarName } from './types';
 import BaseType from './graphql/base';
 import InputObjectType from './graphql/input';
 import { BuildCache } from '.';
@@ -32,7 +32,7 @@ export function typeFromParam<Types extends GiraphQLSchemaTypes.TypeInfo>(
 
 export function isInputName<Types extends GiraphQLSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
-): arg is keyof Types['Input'] {
+): arg is InputName<Types> | ScalarName<Types> {
   return typeof arg === 'string';
 }
 
@@ -53,10 +53,6 @@ export function buildArg<Types extends GiraphQLSchemaTypes.TypeInfo>(
       throw new Error(`Found unexpected type of same name ${arg.typename}`);
     }
     return cache.getBuiltInput(arg.typename);
-  }
-
-  if (typeof arg === 'string') {
-    return cache.getBuiltInput(arg);
   }
 
   if (arg.required) {

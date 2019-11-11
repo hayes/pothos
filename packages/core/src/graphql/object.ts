@@ -4,11 +4,11 @@ import BaseType from './base';
 import {
   ShapeFromTypeParam,
   CompatibleInterfaceNames,
-  NamedTypeParam,
   TypeParam,
   UnionToIntersection,
   NullableToOptional,
   FieldMap,
+  ObjectName,
 } from '../types';
 import InterfaceType from './interface';
 import Field from '../field';
@@ -24,7 +24,7 @@ export default class ObjectType<
     CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Name, false>>
   >[],
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends NamedTypeParam<Types>
+  Name extends ObjectName<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
   kind: 'Object' = 'Object';
 

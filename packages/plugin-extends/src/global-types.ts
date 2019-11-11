@@ -2,9 +2,9 @@
 import {
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
-  NamedTypeParam,
   InterfaceType,
   FieldsShape,
+  ObjectName,
 } from '@giraphql/core';
 
 declare global {
@@ -17,10 +17,10 @@ declare global {
         CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>
       >[],
       Types extends TypeInfo,
-      Type extends NamedTypeParam<Types>
+      Type extends ObjectName<Types>
     > {
       extends?: {
-        [K in keyof Types['Output']]?: FieldsShape<{ [s: string]: unknown }, Types, K, {}>;
+        [K in ObjectName<Types>]?: FieldsShape<{ [s: string]: unknown }, Types, K, {}>;
       };
     }
   }

@@ -1,13 +1,11 @@
 import { GraphQLScalarType } from 'graphql';
 import BaseType from './base';
-import { NamedInputAndOutput } from '../types';
+import { ScalarName } from '../types';
 
 export default class ScalarType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends NamedInputAndOutput<Types>,
-  OutputShape extends Types['Output'][Name] = Types['Output'][Name],
-  InputShape extends Types['Input'][Name] = Types['Input'][Name]
-> extends BaseType<Types, Name, OutputShape, InputShape> {
+  Name extends ScalarName<Types>
+> extends BaseType<Types, Name, Types['Scalar'][Name]['Output'], Types['Scalar'][Name]['Input']> {
   scalar: GraphQLScalarType;
 
   kind: 'Scalar' = 'Scalar';

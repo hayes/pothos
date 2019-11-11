@@ -2,7 +2,6 @@
 import {
   EnumValues,
   FieldsShape,
-  NamedTypeParam,
   ShapeFromTypeParam,
   CompatibleInterfaceNames,
   UnionToIntersection,
@@ -10,6 +9,7 @@ import {
   InputFields,
   Resolver,
   InputShapeFromFields,
+  ObjectName,
 } from './types';
 import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
@@ -17,26 +17,48 @@ import InputFieldBuilder from './fieldUtils/input';
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface TypeInfo {
-      Input: {
-        String: unknown;
-        ID: unknown;
-        Int: unknown;
-        Float: unknown;
-        Boolean: unknown;
+      Scalar: {
+        [s: string]: {
+          Input: unknown;
+          Output: unknown;
+        };
+        String: {
+          Input: unknown;
+          Output: unknown;
+        };
+        ID: {
+          Input: unknown;
+          Output: unknown;
+        };
+        Int: {
+          Input: unknown;
+          Output: unknown;
+        };
+        Float: {
+          Input: unknown;
+          Output: unknown;
+        };
+        Boolean: {
+          Input: unknown;
+          Output: unknown;
+        };
       };
-      Output: {
-        String: unknown;
-        ID: unknown;
-        Int: unknown;
-        Float: unknown;
-        Boolean: unknown;
-      };
+      Object: {};
+      Interface: {};
+      Input: {};
       Context: {};
     }
 
     export interface PartialTypeInfo {
+      Scalar?: {
+        [s: string]: {
+          Input: unknown;
+          Output: unknown;
+        };
+      };
+      Object?: {};
+      Interface?: {};
       Input?: {};
-      Output?: {};
       Context: {};
     }
 
@@ -58,7 +80,7 @@ declare global {
         CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>
       >[],
       Types extends TypeInfo,
-      Type extends NamedTypeParam<Types>
+      Type extends ObjectName<Types>
     > {
       implements?: Interfaces;
       description?: string;
@@ -113,12 +135,12 @@ declare global {
 
     export interface UnionOptions<
       Types extends GiraphQLSchemaTypes.TypeInfo,
-      Member extends keyof Types['Output']
+      Member extends keyof Types['Object']
     > {
       description?: string;
       members: Member[];
       resolveType: (
-        parent: Types['Output'][Member],
+        parent: Types['Object'][Member],
         context: Types['Context'],
       ) => Member | Promise<Member>;
     }

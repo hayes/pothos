@@ -11,7 +11,6 @@ import {
 import {
   CompatibleInterfaceNames,
   ShapeFromTypeParam,
-  NamedTypeParam,
   ImplementedType,
   EnumValues,
   InputFields,
@@ -19,8 +18,11 @@ import {
   ShapedInputFields,
   MergeTypeMap,
   DefaultTypeMap,
-  NamedInputAndOutput,
   NullableToOptional,
+  ObjectName,
+  InterfaceName,
+  ScalarName,
+  InputName,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -75,7 +77,7 @@ export default class SchemaBuilder<
       Types,
       CompatibleInterfaceNames<Types, ShapeFromTypeParam<Types, Type, false>>
     >[],
-    Type extends Extract<keyof Types['Output'], string>
+    Type extends ObjectName<Types>
   >(
     name: Type,
     options: NullableToOptional<
@@ -89,14 +91,14 @@ export default class SchemaBuilder<
     return shape(new InputFieldBuilder<Types>());
   }
 
-  createInterfaceType<Shape extends {}, Type extends Extract<keyof Types['Output'], string>>(
+  createInterfaceType<Shape extends {}, Type extends InterfaceName<Types>>(
     name: Type,
     options: GiraphQLSchemaTypes.InterfaceTypeOptions<Shape, Types, Type>,
   ) {
     return new InterfaceType<Shape, Types, Type>(name, options);
   }
 
-  createUnionType<Member extends NamedTypeParam<Types>, Name extends string>(
+  createUnionType<Member extends ObjectName<Types>, Name extends string>(
     name: Name,
     options: GiraphQLSchemaTypes.UnionOptions<Types, Member>,
   ) {
@@ -110,16 +112,16 @@ export default class SchemaBuilder<
     return new EnumType(name, options);
   }
 
-  createScalar<Name extends NamedInputAndOutput<Types>>(name: Name, scalar: GraphQLScalarType) {
+  createScalar<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType) {
     return new ScalarType<Types, Name>(name, scalar);
   }
 
   createInputType<
     Name extends string,
-    Fields extends Name extends keyof Types['Input']
+    Fields extends Name extends InputName<Types>
       ? ShapedInputFields<Types, Types['Input'][Name]>
       : InputFields<Types>,
-    Shape extends Name extends keyof Types['Input']
+    Shape extends Name extends InputName<Types>
       ? Types['Input'][Name]
       : InputShapeFromFields<Types, Fields>
   >(name: Name, options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>) {

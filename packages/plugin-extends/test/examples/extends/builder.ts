@@ -4,12 +4,8 @@ import { User } from './data';
 import ExtendsPlugin from '../../../src';
 
 type Types = {
-  Output: {
-    String: string;
+  Object: {
     User: User;
-  };
-  Input: {
-    ID: string;
   };
   Context: ContextType;
 };

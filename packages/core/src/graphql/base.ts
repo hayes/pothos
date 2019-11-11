@@ -4,7 +4,7 @@ import BuildCache from '../build-cache';
 
 export default abstract class BaseType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends string | keyof Types['Input'] | keyof Types['Output'],
+  Name extends string,
   Shape,
   InputShape = Shape,
   MatchShape = Shape

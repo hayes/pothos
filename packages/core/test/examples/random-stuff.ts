@@ -16,15 +16,23 @@ interface ExampleShape {
 type Types = {
   Input: {
     Example2: ExampleShape;
-    ID: string;
   };
-  Output: {
-    ID: number;
+  Object: {
+    Query: {};
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
+    Sheep: { name: string; count: number; shaved: boolean };
+  };
+  Interface: {
     Countable: { count: number };
     Shaveable: { shaved: boolean };
-    Sheep: { name: string; count: number; shaved: boolean };
+  };
+  Scalar: {
+    String: { Input: string; Output: string };
+    ID: { Input: string; Output: string | number };
+    Int: { Input: number; Output: number };
+    Float: { Input: number; Output: number };
+    Boolean: { Input: boolean; Output: boolean };
   };
   Context: { userID: number };
 };
