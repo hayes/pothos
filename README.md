@@ -1,8 +1,6 @@
----
-description: A strongly typed code first schema builder for GraphQL
----
-
 # GiraphQL
+
+A strongly typed code first schema builder for GraphQL
 
 ## Getting started
 
@@ -38,8 +36,3 @@ const Query = builder.createObject('Query', () => {
 
 const schema = builder.toSchema([Query, User])
 ```
-
-
-
-
-
