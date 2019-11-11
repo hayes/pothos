@@ -61,11 +61,7 @@ export default class BuildCache<
 
     for (const plugin of this.plugins) {
       if (plugin.fieldsForInterfaceType) {
-        fields = this.mergeFields(
-          entry.type.typename as Key,
-          fields,
-          plugin.fieldsForInterfaceType(entry.type, entry.built, this),
-        );
+        fields = plugin.fieldsForInterfaceType(entry.type, fields, entry.built, this);
       }
     }
 
@@ -91,11 +87,7 @@ export default class BuildCache<
 
     for (const plugin of this.plugins) {
       if (plugin.fieldsForObjectType) {
-        fields = this.mergeFields(
-          entry.type.typename as Key,
-          fields,
-          plugin.fieldsForObjectType(entry.type, entry.built, this),
-        );
+        fields = plugin.fieldsForObjectType(entry.type, fields, parentFields, entry.built, this);
       }
     }
 

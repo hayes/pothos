@@ -1,0 +1,23 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`extends example schema generates expected schema 1`] = `
+"type Query {
+  \\"\\"\\"user\\"\\"\\"
+  user(id: ID!): User!
+}
+
+type User {
+  \\"\\"\\"id\\"\\"\\"
+  id: ID!
+
+  \\"\\"\\"firstName\\"\\"\\"
+  firstName: String!
+
+  \\"\\"\\"lastName\\"\\"\\"
+  lastName: String!
+
+  \\"\\"\\"email\\"\\"\\"
+  email: String!
+}
+"
+`;

@@ -20,12 +20,15 @@ import BuildCache from './build-cache';
 export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> {
   fieldsForObjectType?(
     type: ObjectType<{}, any[], Types, any>,
+    fields: FieldMap<Types>,
+    parentFields: FieldMap<Types>,
     built: GraphQLObjectType,
     cache: BuildCache<Types>,
   ): FieldMap<Types>;
 
   fieldsForInterfaceType?(
     type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
+    fields: FieldMap<Types>,
     built: GraphQLInterfaceType,
     cache: BuildCache<Types>,
   ): FieldMap<Types>;
