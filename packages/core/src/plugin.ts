@@ -13,11 +13,23 @@ import UnionType from './graphql/union';
 import { EnumType } from '.';
 import ScalarType from './graphql/scalar';
 import InputObjectType from './graphql/input';
-import { NamedTypeParam, EnumValues, InputFields, TypeParam } from './types';
+import { NamedTypeParam, EnumValues, InputFields, TypeParam, FieldMap } from './types';
 import Field from './field';
 import BuildCache from './build-cache';
 
 export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> {
+  fieldsForObjectType?(
+    type: ObjectType<{}, any[], Types, any>,
+    built: GraphQLObjectType,
+    cache: BuildCache<Types>,
+  ): FieldMap<Types>;
+
+  fieldsForInterfaceType?(
+    type: InterfaceType<{}, Types, NamedTypeParam<Types>>,
+    built: GraphQLInterfaceType,
+    cache: BuildCache<Types>,
+  ): FieldMap<Types>;
+
   visitObjectType?(
     type: ObjectType<{}, any[], Types, any>,
     built: GraphQLObjectType,

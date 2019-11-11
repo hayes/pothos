@@ -34,7 +34,20 @@ export default class BuildCache<
     this.implementations = implementations;
   }
 
-  mergeFields(base: FieldMap<Types>, newFields: FieldMap<Types>) {
+  mergeFields(
+    typename: Key,
+    base: FieldMap<Types>,
+    newFields: FieldMap<Types>,
+    allowOverwrite = false,
+  ) {
+    if (!allowOverwrite) {
+      Object.keys(newFields).forEach(key => {
+        if (base[key]) {
+          throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
+        }
+      });
+    }
+
     return {
       ...base,
       ...newFields,
@@ -44,7 +57,19 @@ export default class BuildCache<
   getInterfaceFields(
     entry: Extract<BuildCacheEntry<Types>, { kind: 'Interface' }>,
   ): FieldMap<Types> {
-    return entry.type.getFields();
+    let fields = entry.type.getFields();
+
+    for (const plugin of this.plugins) {
+      if (plugin.fieldsForInterfaceType) {
+        fields = this.mergeFields(
+          entry.type.typename as Key,
+          fields,
+          plugin.fieldsForInterfaceType(entry.type, entry.built, this),
+        );
+      }
+    }
+
+    return fields;
   }
 
   getObjectFields(entry: Extract<BuildCacheEntry<Types>, { kind: 'Object' }>): FieldMap<Types> {
@@ -53,17 +78,28 @@ export default class BuildCache<
       Types,
       NamedTypeParam<Types>
     >[]).reduce(
-      (all, type) => ({
-        ...all,
-        ...type.getFields(),
-      }),
+      (all, type) => this.mergeFields(entry.type.typename as Key, all, type.getFields()),
       {} as FieldMap<Types>,
     );
 
-    return {
-      ...parentFields,
-      ...entry.type.getFields(parentFields),
-    };
+    let fields = this.mergeFields(
+      entry.type.typename as Key,
+      parentFields,
+      entry.type.getFields(parentFields),
+      true,
+    );
+
+    for (const plugin of this.plugins) {
+      if (plugin.fieldsForObjectType) {
+        fields = this.mergeFields(
+          entry.type.typename as Key,
+          fields,
+          plugin.fieldsForObjectType(entry.type, entry.built, this),
+        );
+      }
+    }
+
+    return fields;
   }
 
   getFields(typename: Key): FieldMap<Types> {
