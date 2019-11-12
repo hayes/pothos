@@ -92,7 +92,7 @@ declare global {
       >;
       isType: Interfaces[number]['typename'] extends Type
         ? ((obj: NonNullable<Interfaces[number]['shape']>) => boolean) | undefined
-        : ((obj: NonNullable<Interfaces[number]['shape']>) => boolean);
+        : (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
     }
 
     export interface FieldOptions<
@@ -121,6 +121,7 @@ declare global {
       Types extends GiraphQLSchemaTypes.TypeInfo,
       Fields extends InputFields<Types>
     > {
+      description?: string;
       shape: (t: InputFieldBuilder<Types>) => Fields;
     }
 

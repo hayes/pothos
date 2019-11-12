@@ -52,6 +52,7 @@ export default class InputObjectType<
   buildType(cache: BuildCache<Types>) {
     return new GraphQLInputObjectType({
       name: this.typename,
+      description: this.options.description,
       fields: () => this.buildFields(cache),
     });
   }

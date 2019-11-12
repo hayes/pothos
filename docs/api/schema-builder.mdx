@@ -2,3 +2,181 @@
 name: Schema Builder
 menu: Api
 ---
+
+# SchemaBuilder
+
+SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a
+graphql.js Schema.
+
+## `constructor<TypeInfo>(options)`
+
+- typeParam: [`TypeInfo`]: A type that describes the backing models for your schema
+- options: [`SchemaBuilderOptions`]
+
+### `TypeInfo`
+
+```typescript
+type TypeInfo {
+  // Shape of the context arg in your resolvers
+  Context: {};
+  // A map of Object type names to their backing models.
+  Object?: {};
+  // A map of Interface type names to their backing models.
+  Interface?: {};
+  // A map of Input type names to input shapes.  This should only be used for defining recursive
+  // input types.`
+  Input?: {};
+  // Map of scalar names to Input and Output shapes.  Can be used to overwrite default scalar types,
+  // or to add type information for custom scalars
+  Scalar?: {
+    [s: string]: {
+      Input: unknown;
+      Output: unknown;
+    };
+  };
+}
+```
+
+### SchemaBuilderOptions
+
+```typescript
+type SchemaBuilderOptions = {
+  plugins?: BasePlugin[];
+};
+```
+
+- `plugins`: An array of GiraphQl plugins
+
+## `createObjectType(name, options)`
+
+- `name`: A key of the `Object` property in [`TypeInfo`]
+- `options`: [`ObjectTypeOptions`]
+
+### `ObjectTypeOptions`
+
+```typescript
+type ObjectTypeOptions = {
+  implements?: Interfaces;
+  description?: string;
+  shape: FieldsShape;
+  isType: (obj: InterfaceShape) => boolean;
+};
+```
+
+- `implements`: an array of interfaces implemented by this object type. Items in this array can
+  either be a key of the `Interface` property in [`TypeInfo`], or be an Interface type create by
+  [`createInterfaceType`]. The backing model for the object type must `extend` the backing model of
+  all interfaces in this list.
+- `description`: A description of the current type
+- `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
+  field definitons. See [`FieldBuilder`] for more details.
+- `isType`: Only required when implementing interfaces. This is a method that will be used when
+  determining if a value of an implemented interface is of the current type.
+
+## `createInterfaceType(name, options)`
+
+- `name`: A key of the `Interface` property in [`TypeInfo`]
+- `options`: [`InterfaceTypeOptions`]
+
+### `InterfaceTypeOptions`
+
+```typescript
+type InterfaceTypeOptions = {
+  description?: string;
+  shape: FieldsShape;
+};
+```
+
+- `description`: A description of the current type
+- `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
+  field definitons. See [`FieldBuilder`] for more details.
+
+## `createUnionType(name, options)`
+
+- `name`: A string
+- `options`: [`UnionTypeOptions`]
+
+### `UnionTypeOptions`
+
+```typescript
+type UnionTypeOptions = {
+  description?: string;
+  members: Member[];
+  resolveType: (parent: UnionShape, context) => TypeName | Promise<TypeName>;
+};
+```
+
+- `description`: A description of the current type
+- `members`: an array of objects included in the union type. Items in this array can either be a key
+  of the `Object` property in [`TypeInfo`], or be an Object type create by [`createObjectType`].
+- `resolveType`: A function called when resolving the type of a union value. `parent` will be a
+  union of the backing models of the types provided in `members`. This function should return the
+  name of one of the union member types.
+
+## `createEnumType(name, options)`
+
+- `name`: A string
+- `options`: [`EnumTypeOptions`]
+
+### `EnumTypeOptions`
+
+```typescript
+type UnionTypeOptions = {
+  description?: string;
+  values: Values;
+};
+```
+
+- `description`: A description of the current type
+- `values`: can be either an array of strings (you may need to use `as const` to get proper type
+  names) or a [`GraphQLEnumValueConfigMap`](https://graphql.org/graphql-js/type/#graphqlenumtype).
+
+## `createScalar(name, scalar)`
+
+- `name`: A key of the `Interface` property in [`TypeInfo`]
+- `scalar`: A [`GraphQLScalar`](https://graphql.org/graphql-js/type/#graphqlscalartype)
+
+## `createInputType(name, options)`
+
+- `name`: A string or a key of the `Input` property in [`TypeInfo`]
+- `options`: [`InputTypeOptions`]
+
+### `InputTypeOptions`
+
+```typescript
+type InputTypeOptions = {
+  description?: string;
+  shape: InputShape;
+};
+```
+
+- `description`: A description of the current type
+- `shape`: a function that receives an [`InputFieldBuilder`], and returns an object of field names
+  to field definitons. See [`InputFieldBuilder`] for more details. If `name` is a key of the `Input`
+  property in [`TypeInfo`], shape will show type errors for any fields that do not match the types
+  provided in [`TypeInfo`].
+
+## `createArgs(shape)`
+
+Creates an arguments object which can be used as the `args` option in a field definion.
+
+- `shape`: a function that receives an [`InputFieldBuilder`], and returns an object of field names
+  to field definitons. See [`InputFieldBuilder`] for more details.
+
+## `toSchema(types)`
+
+Takes an array of types created by [`SchemaBuilder`] and returns a [`GraphQLSchema`]
+
+[`fieldbuilder`]: /docs-api-field-builder
+[`inputfieldbuilder`]: /docs-api-field-builder#inputfieldbuilder
+[`schemabuilderoptions`]: #schemabuilderoptions
+[`typeinfo`]: #typeinfo
+[`objecttypeoptions`]: #objecttypeoptions
+[`interfacetypeoptions`]: #interfacetypeoptions
+[`uniontypeoptions`]: #uniontypeoptions
+[`enumtypeoptions`]: #enumtypeoptions
+[`inputtypeoptions`]: #inputtypeoptions
+[`createinterfacetype`]: #createinterfacetypename-options
+[`createobjecttype`]: #createobjecttypename-options
+[`schemabuilder`]: #schemabuilder
+[`graphqlschema`]: https://graphql.org/graphql-js/type/#graphqlschema
