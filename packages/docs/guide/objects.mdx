@@ -2,3 +2,56 @@
 name: Object Types
 menu: Guide
 ---
+
+## Creating a Schema Builder
+
+The SchemaBuilder takes a TypeParam that extends a Partial
+[`TypeInfo`](http://localhost:3000/api-type-info).
+
+These types are used as the backing models for the types defined by the SchemaBuilder.
+
+```typescript
+import SchemaBuilder from '@giraphql/core';
+
+const builder = new SchemaBuilder<{
+  // Type of the context object
+  Context: {};
+  // Backing models/shapes for Objects
+  Object: {
+    Droid: { primary_function: string };
+  };
+  // Backing models/shapes for Objects
+  Interface: {
+    Character: { name: string };
+  };
+  // Shapes for built-in or custom scalrs
+  Scalar: {
+    // Defines a shape for both input (field args) and outout (resolver return types)
+    ID: { Input: string; Output: string | number };
+  };
+}>({
+  // Optionally an array of plugins can be passed to the builder
+  plugins: [],
+});
+```
+
+The types provided here are used to enforce the types in resolvers, both for resolver arguments and
+return values.
+
+```typescript
+builder.createObjectType(
+  // The name must be one of the types provided above in the Object shape
+  'Droid',
+  {
+    shape: t => ({
+      primaryFunction: t.exposeString(
+        // must match a string property from the Droid shape above
+        'primary_function',
+      );
+      anotherPrimaryFunction: t.string({
+        resolve: (droid) => droid.primary_function // droid will be the same type as Droid shape above
+      })
+    }),
+  },
+);
+```

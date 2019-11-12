@@ -21,7 +21,7 @@ const builder = new SchemaBuilder<{
   Context: {};
   // Backing models/shapes for Objects
   Object: {
-    Droid: { primaryFunction: string };
+    Droid: { primary_function: string };
   };
   // Backing models/shapes for Objects
   Interface: {
@@ -36,4 +36,25 @@ const builder = new SchemaBuilder<{
   // Optionally an array of plugins can be passed to the builder
   plugins: [],
 });
+```
+
+The types provided here are used to enforce the types in resolvers, both for resolver arguments and
+return values.
+
+```typescript
+builder.createObjectType(
+  // The name must be one of the types provided above in the Object shape
+  'Droid',
+  {
+    shape: t => ({
+      primaryFunction: t.exposeString(
+        // must match a string property from the Droid shape above
+        'primary_function',
+      );
+      anotherPrimaryFunction: t.string({
+        resolve: (droid) => droid.primary_function // droid will be the same type as Droid shape above
+      })
+    }),
+  },
+);
 ```

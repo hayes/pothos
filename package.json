@@ -6,6 +6,7 @@
     "lib": "lib"
   },
   "scripts": {
+    "docz:deploy": "yarn docz:build && netlify deploy -d ./packages/docs/dist --prod",
     "docz:dev": "yarn workspace @giraphql/docs run docz:dev",
     "docz:build": "yarn workspace @giraphql/docs docz:build",
     "docz:serve": "yarn workspace @giraphql/docs docz:serve",

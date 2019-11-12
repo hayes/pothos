@@ -44,3 +44,6 @@ tsconfig.eslint.json
 tsconfig.options.json
 webpack.config.js
 *.tsbuildinfo
+
+# Local Netlify folder
+.netlify
