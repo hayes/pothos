@@ -2,6 +2,7 @@ export default {
   typescript: true,
   title: 'GiraphQL',
   dest: './dist',
+  docs: './docs',
   themeConfig: {
     mode: 'dark',
   },

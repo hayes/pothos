@@ -6,10 +6,10 @@
     "lib": "lib"
   },
   "scripts": {
-    "docz:deploy": "yarn docz:build && netlify deploy -d ./packages/docs/dist --prod",
-    "docz:dev": "yarn workspace @giraphql/docs run docz:dev",
-    "docz:build": "yarn workspace @giraphql/docs docz:build",
-    "docz:serve": "yarn workspace @giraphql/docs docz:serve",
+    "docz:deploy": "yarn docz:build && netlify deploy -d docs/dist --prod",
+    "docz:dev": "docz dev",
+    "docz:build": "docz build",
+    "docz:serve": "docz build && docz serve",
     "prepare": "nimbus create-config --silent && rm babel.config.js",
     "build": "yarn type",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
@@ -28,6 +28,8 @@
   ],
   "private": true,
   "dependencies": {
+    "react": "^16.11.0",
+    "react-dom": "^16.11.0",
     "typescript": "^3.7.2"
   },
   "devDependencies": {
@@ -39,6 +41,7 @@
     "@airbnb/nimbus": "^2.0.4",
     "@babel/plugin-syntax-bigint": "^7.4.4",
     "@types/jest": "^24.0.18",
+    "docz": "^2.0.0-rc.73",
     "husky": "^3.0.5",
     "lerna": "^3.18.4",
     "lint-staged": "^9.2.5"
