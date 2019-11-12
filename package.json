@@ -11,7 +11,7 @@
     "docz:serve": "yarn workspace @giraphql/docs docz:serve",
     "prepare": "nimbus create-config --silent && rm babel.config.js",
     "build": "yarn type",
-    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib}",
+    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
     "lint": "nimbus eslint",
     "posttest": "yarn run lint",
     "jest": "NODE_ENV=test TZ=UTC nimbus jest",
