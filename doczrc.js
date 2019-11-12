@@ -2,7 +2,7 @@ export default {
   typescript: true,
   title: 'GiraphQL',
   dest: './dist',
-  docs: './docs',
+  files: './docs/**/*.{md,markdown,mdx}',
   themeConfig: {
     mode: 'dark',
   },
