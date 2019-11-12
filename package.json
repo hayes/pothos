@@ -6,7 +6,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "docz:deploy": "yarn docz:build && netlify deploy -d docs/dist --prod",
+    "docz:deploy": "yarn docz:build && netlify deploy -d dist --prod",
     "docz:dev": "docz dev",
     "docz:build": "docz build",
     "docz:serve": "docz build && docz serve",
