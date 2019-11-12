@@ -1,4 +1,95 @@
 ---
-name: Field Builder
+name: FieldBuilder
 menu: Api
 ---
+
+# FieldBuilder
+
+## `field(options)`
+
+- `options`: [`FieldOptions`]
+
+### FieldOptions
+
+```typescript
+type FieldOptions = {
+  type: ReturnType;
+  args?: Args;
+  nullable?: boolean;
+  description?: string;
+  deprecationReason?: string;
+  resolve: (parent, args, context, info): ResolveValue;
+};
+```
+
+- `type`: Either a type created by the [`SchemaBuilder`] or a key of the `Object`, `Interface` or
+  `Scalar` properties of [`TypeInfo`]. type may also be wrapped in an array eg `['User']` to create
+  a list field.
+- `args`: a map of arg name to arg values. Arg values can be created using an [`InputFieldBuilder`]
+  \(`fieldBuilder.arg`) or using `schemaBuilder.`[`createArgs`];
+- `nullable`: boolean;
+- `description`: string;
+- `deprecationReason`: string;
+- `resolve`: Resolver
+
+### Resolver
+
+A function to resolve the value of this field.
+
+#### Return type
+
+Field resolvers should return a value (or promise) that matches the expected type for this field.
+For `Scalars`, `Objects`, and `Interfaces` this type is the corresponding type defined [`TypeInfo`].
+For Unions, the type may be any of the corresponding shapes of members of the union. For Enums, the
+value is dependent on the implimentation of the enum. See `Enum` guide for more details.
+
+#### Args
+
+- `parent`: Parent will be a value of the backing model for the current type specified in
+  [`TypeInfo`].
+- `args`: an object matching the shape of the args option for the current field
+- `context`: The type `Context` type defined in [`TypeInfo`].
+- `info`: a GraphQLResolveInfo object see
+  [https://graphql.org/graphql-js/type/#graphqlobjecttype](https://graphql.org/graphql-js/type/#graphqlobjecttype)
+  for more details.
+
+## helpers
+
+A set of helpers for creating scalar fields. This work the same as [`field`](#fieldoptions), but
+omit the `type` field from options.
+
+### Scalars
+
+- `string(options)`
+- `id(options)`
+- `boolean(options)`
+- `int(options)`
+- `float(options)`
+- `stringList(options)`
+- `idList(options)`
+- `booleanList(options)`
+- `intList(options)`
+- `floatList(options)`
+
+### expose
+
+A set of helpers to expose fields from the backing model. The `name` arg can be any field from the
+backing model that matches the type being exposed. Options are the same as [`field`](#fieldoptions),
+but `type` and `resolve` are omitted.
+
+- `exposeString(name, options)`
+- `exposeID(name, options)`
+- `exposeBoolean(name, options)`
+- `exposeInt(name, options)`
+- `exposeFloat(name, options)`
+- `exposeStringList(name, options)`
+- `exposeIDList(name, options)`
+- `exposeBooleanList(name, options)`
+- `exposeIntList(name, options)`
+- `exposeFloatList(name, options)`
+
+[`fieldoptions`]: #fieldoptions
+[`schemabuilder`]: /docs-api-schema-builder
+[`typeinfo`]: /docs-api-schema-builder#typeinfo
+[`createargs`]: /docs-api-schema-builder#createargsshape
+[`inputfieldbuilder`]: /docs-api-input-field-builder

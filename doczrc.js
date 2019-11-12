@@ -23,6 +23,6 @@ export default {
         'Printing schemas',
       ],
     },
-    { name: 'Api', menu: ['Schema Builder', 'Field Builder'] },
+    { name: 'Api', menu: ['SchemaBuilder', 'FieldBuilder', 'InputFieldBuilder'] },
   ],
 };

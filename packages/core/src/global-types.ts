@@ -108,7 +108,6 @@ declare global {
       directives?: { [s: string]: unknown[] };
       description?: string;
       deprecationReason?: string;
-      gates?: string[];
       resolve: Resolver<
         ShapeFromTypeParam<Types, ParentName, false>,
         InputShapeFromFields<Types, Args>,

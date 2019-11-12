@@ -34,8 +34,6 @@ export default class Field<
 
   options: Options;
 
-  gates: string[];
-
   parentTypename: string;
 
   constructor(
@@ -49,7 +47,6 @@ export default class Field<
     this.args = options.args ? options.args! : ({} as Args);
     this.extendsField = options.extendsField || (null as Extends);
     this.type = options.type;
-    this.gates = options.gates || [];
     this.parentTypename = parentTypename;
   }
 
@@ -85,7 +82,7 @@ export default class Field<
       args: this.buildArgs(cache),
       extensions: [],
       description: this.options.description || name,
-      resolve: this.options.resolve as ((...args: unknown[]) => unknown),
+      resolve: this.options.resolve as (...args: unknown[]) => unknown,
       type: this.nullable
         ? typeFromParam(this.type, cache)
         : new GraphQLNonNull(typeFromParam(this.type, cache)),
