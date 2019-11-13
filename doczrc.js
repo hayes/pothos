@@ -17,7 +17,7 @@ export default {
         'Arguments',
         'Input Types',
         'Enum Types',
-        'Scalars',
+        'Scalar Types',
         'Interface Types',
         'Union Types',
         'Printing schemas',

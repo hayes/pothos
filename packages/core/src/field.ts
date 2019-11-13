@@ -82,7 +82,7 @@ export default class Field<
     const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
       args: this.buildArgs(cache),
       extensions: [],
-      description: this.options.description || name,
+      description: this.options.description,
       resolve: this.options.resolve as (...args: unknown[]) => unknown,
       type: typeFromParam(this.type, cache, this.nullable),
     };

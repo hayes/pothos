@@ -64,21 +64,16 @@ type Human implements Character {
 }
 
 type Query {
-  \\"\\"\\"hero\\"\\"\\"
   hero(
     \\"\\"\\"
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
   ): Character!
-
-  \\"\\"\\"human\\"\\"\\"
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
-
-  \\"\\"\\"droid\\"\\"\\"
   droid(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!

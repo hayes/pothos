@@ -2,26 +2,17 @@
 
 exports[`extends example schema generates expected schema 1`] = `
 "type Mutation {
-  \\"\\"\\"createUser\\"\\"\\"
   createUser(firstName: String!, lastName: String!): User!
 }
 
 type Query {
-  \\"\\"\\"user\\"\\"\\"
   user(id: ID!): User!
 }
 
 type User {
-  \\"\\"\\"id\\"\\"\\"
   id: ID!
-
-  \\"\\"\\"firstName\\"\\"\\"
   firstName: String!
-
-  \\"\\"\\"lastName\\"\\"\\"
   lastName: String!
-
-  \\"\\"\\"email\\"\\"\\"
   email: String!
 }
 "

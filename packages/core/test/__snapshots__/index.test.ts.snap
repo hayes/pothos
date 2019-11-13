@@ -7,7 +7,6 @@ exports[`Example schema generates expected schema 1`] = `
 }
 
 interface Countable {
-  \\"\\"\\"count\\"\\"\\"
   count(max: Int!): Int!
 }
 
@@ -26,40 +25,23 @@ input Example2 {
 }
 
 type Query {
-  \\"\\"\\"user\\"\\"\\"
   user: User!
-
-  \\"\\"\\"stuff\\"\\"\\"
   stuff: [stuff!]!
-
-  \\"\\"\\"sheep\\"\\"\\"
   sheep: Sheep!
 }
 
 union SearchResult = User | Article
 
 interface Shaveable {
-  \\"\\"\\"id\\"\\"\\"
   id: ID!
-
-  \\"\\"\\"shaved\\"\\"\\"
   shaved: Boolean!
 }
 
 type Sheep implements Shaveable & Countable {
-  \\"\\"\\"id\\"\\"\\"
   id: ID!
-
-  \\"\\"\\"shaved\\"\\"\\"
   shaved: Boolean!
-
-  \\"\\"\\"count\\"\\"\\"
   count(max: Int!): Int!
-
-  \\"\\"\\"color\\"\\"\\"
   color(id: ID): String!
-
-  \\"\\"\\"thing\\"\\"\\"
   thing: stuff!
 }
 
@@ -70,49 +52,20 @@ enum stuff {
 }
 
 type User {
-  \\"\\"\\"id\\"\\"\\"
   id: ID!
-
-  \\"\\"\\"displayName\\"\\"\\"
   displayName: String!
-
-  \\"\\"\\"firstName\\"\\"\\"
   firstName: String!
-
-  \\"\\"\\"lastName\\"\\"\\"
   lastName: String!
-
-  \\"\\"\\"firstBornChild\\"\\"\\"
   firstBornChild: User!
-
-  \\"\\"\\"partialName\\"\\"\\"
   partialName(example: Example!, firstN: Int!): String!
-
-  \\"\\"\\"recursiveArgs\\"\\"\\"
   recursiveArgs(example2: Example2!, firstN: ID): ID!
-
-  \\"\\"\\"privateField\\"\\"\\"
   privateField: String!
-
-  \\"\\"\\"related\\"\\"\\"
   related: SearchResult!
-
-  \\"\\"\\"friends\\"\\"\\"
   friends: [User!]!
-
-  \\"\\"\\"stuff\\"\\"\\"
   stuff: [String!]!
-
-  \\"\\"\\"optional\\"\\"\\"
   optional: String
-
-  \\"\\"\\"list\\"\\"\\"
   list(ids: [ID!]!): [ID!]!
-
-  \\"\\"\\"sparseList\\"\\"\\"
   sparseList(ids: [ID]!): [ID]!
-
-  \\"\\"\\"notSparseList\\"\\"\\"
   notSparseList(ids: [ID!]!): [ID]
 }
 "
