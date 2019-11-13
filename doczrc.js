@@ -7,13 +7,12 @@ export default {
     mode: 'dark',
   },
   menu: [
-    'Overview',
+    'Getting started',
     {
       name: 'Guide',
       menu: [
-        'Getting started',
-        'SchemaBuilder',
         'Object Types',
+        'SchemaBuilder',
         'Defining Fields',
         'Arguments',
         'Input Types',

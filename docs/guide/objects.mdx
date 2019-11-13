@@ -5,7 +5,16 @@ menu: Guide
 
 ## Creating Object Types
 
+This will walk you through creating your fist object types, some concepts in this guide will be
+explained further in later guides.
+
 1. Start by creating a backing model and adding it to your SchemaBuilder
+
+The SchemaBuilder type signature will be explained further in the SchemaBuilder guide for now, the
+impart part is to know the types provided here will be used to make sure resolvers return the
+correct types, and to provide accurate types for the resolver arguments.
+
+This should be the only place you need to manaully add types for your schema.
 
 ```typescript
 interface Giraffe {

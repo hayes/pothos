@@ -34,6 +34,10 @@ const Giraffe = builder.createObjectType('Giraffe', {
   }),
 });
 
+const LengthUnit = builder.createEnumType('LengthUnit', {
+  values: { Feet: {}, Meters: {} },
+});
+
 const Query = builder.createObjectType('Query', {
   shape: t => ({
     giraffe: t.field({
@@ -43,7 +47,7 @@ const Query = builder.createObjectType('Query', {
   }),
 });
 
-const schema = builder.toSchema([Query, Giraffe]);
+const schema = builder.toSchema([Query, Giraffe, LengthUnit]);
 
 const server = new ApolloServer({ schema });
 

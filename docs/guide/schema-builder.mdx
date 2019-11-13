@@ -9,7 +9,7 @@ into a GraphQL schema.
 ## Creating a Schema Builder
 
 The SchemaBuilder takes a TypeParam that extends a Partial
-[`TypeInfo`](http://localhost:3000/api-type-info).
+[`TypeInfo`](/docs-api-schema-builder#typeinfo).
 
 These types are used as the backing models for the types defined by the SchemaBuilder.
 
@@ -21,11 +21,11 @@ const builder = new SchemaBuilder<{
   Context: {};
   // Backing models/shapes for Objects
   Object: {
-    Droid: { primary_function: string };
+    Giraffe: { name: string; age: number };
   };
   // Backing models/shapes for Objects
   Interface: {
-    Character: { name: string };
+    Animal: { name: string };
   };
   // Shapes for built-in or custom scalrs
   Scalar: {
@@ -43,16 +43,16 @@ return values.
 
 ```typescript
 builder.createObjectType(
-  // The name must be one of the types provided above in the Object shape
-  'Droid',
+  // typechecked as one of the types provided above in the Object shape (In this case only Giraffe)
+  'Giraffe',
   {
     shape: t => ({
-      primaryFunction: t.exposeString(
-        // must match a string property from the Droid shape above
-        'primary_function',
+      name: t.exposeString(
+        // typechecked as one string property from the Giraffe shape defined above (in this case only name)
+        'name',
       );
-      anotherPrimaryFunction: t.string({
-        resolve: (droid) => droid.primary_function // droid will be the same type as Droid shape above
+      firstInital: t.string({
+        resolve: (giraffe) => giraffe.name.slice(0, 1) // giraffe will be the same type as Giraffe shape above
       })
     }),
   },

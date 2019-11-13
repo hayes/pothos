@@ -2,3 +2,155 @@
 name: Defining Fields
 menu: Guide
 ---
+
+Fields for [Object] and [Interface] types are defined using a shape function. This is a function
+that takes a [FieldBuilder] as an argument, and returns a object who's keys are field names, and
+who's values are fields created by the [FieldBuilder]. These examples will mostly add fields to the
+`Query` type, but the topics covered in this guide should apply to any object or interface type.
+
+## Scalars
+
+Scalar fields can be difined a couple of different ways:
+
+1. Using convenience methods
+
+```typescript
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    id: t.id({ resolve: () => '123' }),
+    int: t.int({ resolve: () => 123 }),
+    float: t.float({ resolve: () => 1.23 }),
+    boolean: t.boolean({ resolve: () => false }),
+    string: t.string({ resolve: () => 'abc' }),
+    idList: t.idList({ resolve: () => ['123'] }),
+    intList: t.intList({ resolve: () => [123] }),
+    floatList: t.floatList({ resolve: () => [1.23] }),
+    booleanList: t.booleanList({ resolve: () => [false] }),
+    stringList: t.stringList({ resolve: () => ['abc'] }),
+  }),
+});
+```
+
+2. Using the generic `field` method
+
+```typescript
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    name: t.field({
+      description: 'Name field'
+      type: 'String',
+      resolve: () => 'Gina',
+    }),
+  }),
+});
+```
+
+## Other types
+
+Fields for non-scalar fields can also be created with the `field` method.
+
+Some types like [Objects] and [Interfaces] can be referenced by name if they have a backing model
+defined in the schema builder.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Object: { Giraffe: { name: string }}};
+  Context: {};
+}>();
+
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    giraffe: t.field({
+      description: 'A giraffe'
+      type: 'Giraffe',
+      resolve: () => ({ name: 'Gina' }),
+    }),:
+  }),
+});
+```
+
+Any type include types that do not have a backing model such as [Unions] and [Enums] can be
+referenced directly using the implementation.
+
+```typescript
+const LengthUnit = builder.createEnumType('LengthUnit', {
+  values: { Feet: {}, Meters: {} },
+});
+
+const Giraffe = builder.createObjectType('Giraffe', shape: t => ({
+  preferredNeckLengthUnit: t.field({
+    type: LengthUnit,
+    resolve: () => 'Feet',
+  })
+}));
+
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    giraffe: t.field({
+      type: Giraffe,
+      resolve: () => ({ name: 'Gina' }),
+    }),
+  }),
+});
+```
+
+## Lists
+
+To create a list field, you can wrap the the type in an array
+
+```typescript
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    giraffes: t.field({
+      description: 'multiple giraffes'
+      type: Giraffe,
+      resolve: () => [{ name: 'Gina' }, { name: 'James' }],
+    }),
+    giraffeNames: t.field({
+      type: ['String'],
+      resolve: () => ['Gina', 'James'],
+    })
+  }),
+});
+
+```
+
+## Exposing fields from backing models
+
+Some graphql implementations have a concept of "default resolvers" that can automatically resolve
+fields that match the types defined for thte backing model. In GiraphQL, these relationships need to
+be explicitly defined, but there are helper methods that make exposing fields easier.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Object: { Giraffe: { name: string }}};
+  Context: {};
+}>();
+
+const Giraffe = builder.createObjectType('Giraffe', shape: t => ({
+  name: t.exposeString('name')
+}));
+```
+
+The available expose helpers are:
+
+- `exposeString`
+- `exposeInt`
+- `exposeFloat`
+- `exposeBoolean`
+- `exposeID`
+- `exposeStringList`
+- `exposeIntList`
+- `exposeFloatList`
+- `exposeBooleanList`
+- `exposeIDList`
+
+## Nullable fields
+
+## Arguments
+
+[object]: /docs-guide-objects
+[interface]: /docs-guide-interfaces
+[objects]: /docs-guide-objects
+[interfaces]: /docs-guide-interfaces
+[fieldbuilder]: /docs-api-field-builder
