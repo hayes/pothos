@@ -8,7 +8,15 @@ export default class FieldBuilder<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   ParentShape extends {
-    [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, string | null, any>;
+    [s: string]: Field<
+      {},
+      Types,
+      TypeParam<Types>,
+      TypeParam<Types>,
+      FieldNullability<Types, TypeParam<Types>>,
+      string | null,
+      any
+    >;
   }
 > extends BaseFieldUtil<Types, ParentType> {
   parentFields: ParentShape;
@@ -18,7 +26,7 @@ export default class FieldBuilder<
       Types,
       ParentType,
       ParentShape[K]['type'],
-      ParentShape[K]['nullable'],
+      FieldNullability<Types, ParentShape[K]['type']>,
       ParentShape[K]['args'],
       Extract<K, string>
     >;
@@ -35,7 +43,7 @@ export default class FieldBuilder<
           Types,
           ParentType,
           ParentShape[K]['type'],
-          ParentShape[K]['nullable'],
+          FieldNullability<Types, ParentShape[K]['type']>,
           ParentShape[K]['args'],
           Extract<K, string>
         >;

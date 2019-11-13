@@ -1,7 +1,13 @@
-import { BasePlugin, ObjectType, BuildCache, FieldMap, ObjectName } from '@giraphql/core';
+import {
+  BasePlugin,
+  ObjectType,
+  BuildCache,
+  FieldMap,
+  ObjectName,
+  FieldBuilder,
+} from '@giraphql/core';
 import { GraphQLObjectType } from 'graphql';
 import './global-types';
-import FieldBuilder from '@giraphql/core/src/fieldUtils/builder';
 
 export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {

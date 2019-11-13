@@ -34,6 +34,7 @@ import InputFieldBuilder from './fieldUtils/input';
 import BasePlugin from './plugin';
 import Field from './field';
 import BuildCache from './build-cache';
+import FieldBuilder from './fieldUtils/builder';
 
 export * from './types';
 
@@ -47,6 +48,8 @@ export {
   EnumType,
   ScalarType,
   InputObjectType,
+  FieldBuilder,
+  InputFieldBuilder,
 };
 
 export default class SchemaBuilder<
