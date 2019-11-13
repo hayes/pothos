@@ -101,9 +101,7 @@ export function buildArg<Types extends GiraphQLSchemaTypes.TypeInfo>(
   }
 
   if (typeof arg.required === 'object') {
-    const builtArg = arg.required.items
-      ? buildRequiredArg(arg.type, cache)
-      : buildArg(arg.type, cache, true);
+    const builtArg = buildArg(arg.type, cache, !arg.required.items);
 
     if (arg.required.list) {
       return new GraphQLNonNull(builtArg);

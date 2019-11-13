@@ -111,6 +111,9 @@ type User {
 
   \\"\\"\\"sparseList\\"\\"\\"
   sparseList(ids: [ID]!): [ID]!
+
+  \\"\\"\\"notSparseList\\"\\"\\"
+  notSparseList(ids: [ID!]!): [ID]
 }
 "
 `;

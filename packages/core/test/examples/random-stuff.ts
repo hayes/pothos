@@ -165,6 +165,21 @@ const User = builder.createObjectType('User', {
       },
       resolve: (parent, args) => args.ids,
     }),
+    notSparseList: t.idList({
+      args: {
+        ids: t.arg.idList({
+          required: {
+            list: true,
+            items: true,
+          },
+        }),
+      },
+      nullable: {
+        list: true,
+        items: true,
+      },
+      resolve: (parent, args) => args.ids,
+    }),
   }),
 });
 
