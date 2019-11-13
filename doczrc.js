@@ -13,8 +13,9 @@ export default {
       menu: [
         'Getting started',
         'SchemaBuilder',
-        'Arguments',
         'Object Types',
+        'Defining Fields',
+        'Arguments',
         'Input Types',
         'Enum Types',
         'Scalars',

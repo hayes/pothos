@@ -3,55 +3,85 @@ name: Object Types
 menu: Guide
 ---
 
-## Creating a Schema Builder
+## Creating Object Types
 
-The SchemaBuilder takes a TypeParam that extends a Partial
-[`TypeInfo`](http://localhost:3000/docs-api-type-info).
-
-These types are used as the backing models for the types defined by the SchemaBuilder.
+1. Start by creating a backing model and adding it to your SchemaBuilder
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
+interface Giraffe {
+  name: string;
+  age: number;
+  height: number;
+}
 
 const builder = new SchemaBuilder<{
-  // Type of the context object
-  Context: {};
-  // Backing models/shapes for Objects
   Object: {
-    Droid: { primary_function: string };
+    Giraffe: Giraffe;
   };
-  // Backing models/shapes for Objects
-  Interface: {
-    Character: { name: string };
-  };
-  // Shapes for built-in or custom scalrs
-  Scalar: {
-    // Defines a shape for both input (field args) and outout (resolver return types)
-    ID: { Input: string; Output: string | number };
-  };
-}>({
-  // Optionally an array of plugins can be passed to the builder
-  plugins: [],
+  Context: {};
+}>();
+```
+
+2. Create your object type
+
+```typescript
+const Giraffe = builder.createObjectType('Giraffe', {
+  description: 'Long necks, cool patterns, taller than you.',
+  shape: t => ({}),
 });
 ```
 
-The types provided here are used to enforce the types in resolvers, both for resolver arguments and
-return values.
+3. Add some fields
 
 ```typescript
-builder.createObjectType(
-  // The name must be one of the types provided above in the Object shape
-  'Droid',
-  {
-    shape: t => ({
-      primaryFunction: t.exposeString(
-        // must match a string property from the Droid shape above
-        'primary_function',
-      );
-      anotherPrimaryFunction: t.string({
-        resolve: (droid) => droid.primary_function // droid will be the same type as Droid shape above
-      })
+const Giraffe = builder.createObjectType('Giraffe', {
+  name: t.exposeString('name'),
+  age: t.int({
+    resolve: parent => {
+      // Do some date match to get an aproximate age from a birthday
+      const today = new Date(new Date().toDateString());
+      const birthday = new Date(parent.birthday.toDateString());
+      const ageDifMs = Number(today) - Number(birthday);
+      const ageDate = new Date(ageDifMs);
+
+      return Math.abs(ageDate.getUTCFullYear() - 1970);
+    },
+  }),
+  height: t.float({
+    resolve: parent => parent.heightMeters,
+  }),
+});
+```
+
+4. Add a Query object
+
+```typescript
+const Query = builder.createObjectType('Query', {
+  shape: t => ({
+    giraffe: t.field({
+      type: Giraffe,
+      resolve: () => ({ name: 'James', heightMeters: 5.2, birthday: new Date(2012, 11, 12) }),
     }),
-  },
-);
+  }),
+});
+```
+
+5. Create a server
+
+```typescript
+// import apollo-server at top of file
+import { ApolloServer } from 'apollo-server';
+
+// Build schema and start server with the types we wrote above
+const schema = builder.toSchema([Query, Giraffe]);
+
+const server = new ApolloServer({ schema });
+
+server.listen(8000, (error: unknown) => {
+  if (error) {
+    throw error;
+  }
+
+  console.log('🚀 Server started at http://127.0.0.1:8000');
+});
 ```
