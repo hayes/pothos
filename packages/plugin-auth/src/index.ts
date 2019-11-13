@@ -22,6 +22,7 @@ import {
   GraphQLInterfaceType,
 } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
+import AuthWrapper from './auth-wrapper';
 import './global-types';
 
 type AuthMeta<Types extends GiraphQLSchemaTypes.TypeInfo> = {
@@ -66,26 +67,6 @@ export function assertArray(value: unknown): value is unknown[] {
   return true;
 }
 
-function wrapReturn<Types extends GiraphQLSchemaTypes.TypeInfo>(
-  result: unknown,
-  authData: AuthMeta<Types>,
-  isListResolver: boolean,
-  isScalarResolver: boolean,
-) {
-  if (!result || isScalarResolver) return result;
-
-  if (isListResolver) {
-    assertArray(result);
-  }
-
-  return isListResolver
-    ? (result as unknown[]).map((parent: unknown) => ({
-        parent,
-        authData,
-      }))
-    : { parent: result, authData };
-}
-
 export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   authRequired: boolean;
@@ -111,9 +92,6 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     const fieldName = `${field.parentTypename}.${name}`;
     const isListResolver = isList(config.type);
     const isScalarResolver = isScalar(config.type);
-    const isRootResolver = ['Query', 'Mutation', 'Subscription'].includes(
-      field.parentTypename as string,
-    );
 
     const authWith = field.options.authWith || [];
 
@@ -136,9 +114,8 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const { parent, authData = {} } = isRootResolver
-        ? { parent: originalParent }
-        : (originalParent as { parent: unknown; authData: AuthMeta<Types> });
+      const { parent, authData = {} } =
+        originalParent instanceof AuthWrapper ? originalParent : { parent: originalParent };
 
       const { grantCache = {}, checkCache = {} } = authData;
 
@@ -147,7 +124,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
           throw new ForbiddenError(`No authWith checks provided for ${fieldName}`);
         }
 
-        return wrapReturn(
+        return this.wrapReturn(
           await resolver(parent, args, context, info),
           isScalarResolver ? {} : authData,
           isListResolver,
@@ -208,7 +185,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
       const result = await resolver(parent, args, context, info);
 
-      return wrapReturn<Types>(
+      return this.wrapReturn<Types>(
         result,
         {
           grantAuth,
@@ -255,5 +232,26 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
       return (resolveType as Function)(parent, context, info);
     };
+  }
+
+  private wrapReturn<Types extends GiraphQLSchemaTypes.TypeInfo>(
+    result: unknown,
+    authData: AuthMeta<Types>,
+    isListResolver: boolean,
+    isScalarResolver: boolean,
+  ) {
+    if (result === null || result === undefined || isScalarResolver) return result;
+
+    if (isListResolver) {
+      assertArray(result);
+    }
+
+    if (isListResolver) {
+      return (result as unknown[]).map((parent: unknown) => {
+        return new AuthWrapper(parent, authData);
+      });
+    }
+
+    return new AuthWrapper(result, authData);
   }
 }

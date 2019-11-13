@@ -1,4 +1,5 @@
 import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
+// @ts-ignore
 import fromEntries from 'object.fromentries';
 import { InputFields } from '../types';
 import BaseType from './base';

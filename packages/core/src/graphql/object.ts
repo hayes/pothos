@@ -1,4 +1,5 @@
 import { GraphQLObjectType } from 'graphql';
+// @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import {
@@ -49,7 +50,7 @@ export default class ObjectType<
     this.description = options.description;
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
 
-    this.isType = (options as ({ isType: (obj: unknown) => boolean })).isType || (() => false);
+    this.isType = (options as { isType: (obj: unknown) => boolean }).isType || (() => false);
   }
 
   getFields(

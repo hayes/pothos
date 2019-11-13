@@ -17,7 +17,7 @@
     "object.fromentries": "^2.0.1"
   },
   "devDependencies": {
-    "apollo-server": "^2.9.7",
+    "apollo-server": "^2.9.8",
     "graphql-tag": "^2.10.1"
   }
 }

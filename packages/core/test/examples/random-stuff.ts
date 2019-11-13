@@ -150,6 +150,21 @@ const User = builder.createObjectType('User', {
       },
       resolve: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
     }),
+    sparseList: t.idList({
+      args: {
+        ids: t.arg.idList({
+          required: {
+            list: true,
+            items: false,
+          },
+        }),
+      },
+      nullable: {
+        list: false,
+        items: true,
+      },
+      resolve: (parent, args) => args.ids,
+    }),
   }),
 });
 

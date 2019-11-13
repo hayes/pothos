@@ -1,4 +1,5 @@
 import { GraphQLInterfaceType } from 'graphql';
+// @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import { ShapeFromTypeParam, TypeParam, InterfaceName, ObjectName } from '../types';

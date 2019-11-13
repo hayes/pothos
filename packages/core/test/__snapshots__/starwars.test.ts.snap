@@ -9,10 +9,10 @@ exports[`starwars example generates expected schema 1`] = `
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character]!
+  friends: [Character!]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode]!
+  appearsIn(id: ID!): [Episode!]!
 }
 
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
@@ -24,10 +24,10 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character]!
+  friends: [Character!]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode]!
+  appearsIn(id: ID!): [Episode!]!
 
   \\"\\"\\"The primary function of the droid.\\"\\"\\"
   primaryFunction: String!
@@ -54,10 +54,10 @@ type Human implements Character {
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character]!
+  friends: [Character!]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode]!
+  appearsIn(id: ID!): [Episode!]!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String

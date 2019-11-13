@@ -14,14 +14,14 @@ interface Countable {
 input Example {
   id: ID!
   id2: Int
-  ids: [ID]!
-  ids2: [Int]
+  ids: [ID!]!
+  ids2: [Int!]
 }
 
 input Example2 {
   example: Example!
   id: ID
-  ids: [ID]!
+  ids: [ID!]!
   more: Example2!
 }
 
@@ -30,7 +30,7 @@ type Query {
   user: User!
 
   \\"\\"\\"stuff\\"\\"\\"
-  stuff: [stuff]!
+  stuff: [stuff!]!
 
   \\"\\"\\"sheep\\"\\"\\"
   sheep: Sheep!
@@ -98,16 +98,19 @@ type User {
   related: SearchResult!
 
   \\"\\"\\"friends\\"\\"\\"
-  friends: [User]!
+  friends: [User!]!
 
   \\"\\"\\"stuff\\"\\"\\"
-  stuff: [String]!
+  stuff: [String!]!
 
   \\"\\"\\"optional\\"\\"\\"
   optional: String
 
   \\"\\"\\"list\\"\\"\\"
-  list(ids: [ID]!): [ID]!
+  list(ids: [ID!]!): [ID!]!
+
+  \\"\\"\\"sparseList\\"\\"\\"
+  sparseList(ids: [ID]!): [ID]!
 }
 "
 `;

@@ -6,6 +6,7 @@ import {
   InputFields,
   InterfaceType,
   ObjectName,
+  FieldNullability,
 } from '@giraphql/core';
 
 declare global {
@@ -32,7 +33,7 @@ declare global {
       Types extends TypeInfo,
       ParentName extends TypeParam<Types>,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends boolean,
+      Nullable extends FieldNullability<Types, ReturnTypeName>,
       Args extends InputFields<Types>
     > {
       authWith?: string[];

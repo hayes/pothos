@@ -49,9 +49,9 @@ export type UnknownString<T extends string | InvalidType<unknown>, Known, Messag
   ? InvalidType<Message>
   : T;
 
-export type UnionToIntersection<U> = (U extends unknown ? (k: U) => void : never) extends ((
-  k: infer I,
-) => void)
+export type UnionToIntersection<U> = (U extends unknown
+? (k: U) => void
+: never) extends (k: infer I) => void
   ? I
   : never;
 
@@ -122,33 +122,53 @@ export type OptionalShapeFromTypeParam<
   ? Types['Scalar'][Param]['Output']
   : Param extends BaseType<Types, string, unknown>
   ? Param['shape']
-  : Param extends [ObjectName<Types>]
-  ? Types['Object'][Param[0]][]
-  : Param extends [InterfaceName<Types>]
-  ? Types['Interface'][Param[0]][]
-  : Param extends [ScalarName<Types>]
-  ? Types['Scalar'][Param[0]]['Output'][]
-  : Param extends [BaseType<Types, string, unknown>]
-  ? Param[0]['shape'][]
+  : never;
+
+export type ShapeFromListTypeParam<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Param extends [TypeParam<Types>],
+  Nullable extends FieldNullability<Types, TypeParam<Types>>
+> = Nullable extends true
+  ? ShapeFromNonListTypeParam<Types, Param[0], false>[] | undefined | null
+  : Nullable extends false
+  ? ShapeFromNonListTypeParam<Types, Param[0], false>[]
+  : Nullable extends { list: infer List; items: infer Items }
+  ? Items extends boolean
+    ? List extends true
+      ? ShapeFromNonListTypeParam<Types, Param[0], Items>[] | undefined | null
+      : ShapeFromNonListTypeParam<Types, Param[0], Items>[]
+    : never
   : never;
 
 export type ShapeFromTypeParam<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Param extends TypeParam<Types>,
+  Nullable extends FieldNullability<Types, Param>
+> = Param extends [TypeParam<Types>]
+  ? ShapeFromListTypeParam<Types, Param, Nullable>
+  : Nullable extends true
+  ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
+  : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
+
+export type ShapeFromNonListTypeParam<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Param extends TypeParam<Types>,
   Nullable extends boolean
 > = Nullable extends true
   ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
-  : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
+  : Nullable extends false
+  ? NonNullable<OptionalShapeFromTypeParam<Types, Param>>
+  : never;
 
 export type TypeParam<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | ObjectName<Types>
   | InterfaceName<Types>
   | ScalarName<Types>
-  | (BaseType<Types, string, unknown>)
+  | BaseType<Types, string, unknown>
   | [ObjectName<Types>]
   | [InterfaceName<Types>]
   | [ScalarName<Types>]
-  | ([BaseType<Types, string, unknown>]);
+  | [BaseType<Types, string, unknown>];
 
 // InputTypes
 export type InputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
@@ -164,8 +184,27 @@ export type InputField<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | {
       description?: string;
       required?: boolean;
-      type: InputType<Types> | InputType<Types>[];
+      type: InputType<Types>;
+    }
+  | {
+      description?: string;
+      required?: boolean | { items: boolean; list: boolean };
+      type: InputType<Types>[];
     };
+
+export type FieldNullability<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Param extends TypeParam<Types>
+> =
+  | boolean
+  | (Param extends [unknown]
+      ?
+          | boolean
+          | {
+              items: boolean;
+              list: boolean;
+            }
+      : boolean);
 
 export type ScalarName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Scalar'] & string;
 
@@ -197,17 +236,33 @@ export type InputFieldWithShape<
 > = {
   description?: string;
   required: Req;
-  type: Shape extends unknown[]
-    ? InputTypeWithShape<Types, NonNullable<Shape[number]>>[]
-    : InputTypeWithShape<Types, NonNullable<Shape>>;
+  type: InputTypeWithShape<Types, NonNullable<Shape>>;
+};
+
+export type InputListFieldWithShape<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Shape extends undefined | unknown[],
+  Req extends boolean | { list: boolean; items: boolean }
+> = {
+  description?: string;
+  required: Req;
+  type: InputTypeWithShape<Types, NonNullable<NonNullable<Shape>[number]>>[];
 };
 
 export type ShapedInputFields<Types extends GiraphQLSchemaTypes.TypeInfo, Shape extends {}> = {
-  [K in keyof Shape]: InputFieldWithShape<
-    Types,
-    Shape[K],
-    undefined extends Shape[K] ? false : true
-  >;
+  [K in keyof Shape]: Shape[K] extends undefined | unknown[]
+    ? InputListFieldWithShape<
+        Types,
+        Shape[K],
+        undefined | [undefined] extends Shape[K]
+          ? { items: false; list: false }
+          : [undefined] extends Shape[K]
+          ? { items: false; list: true }
+          : undefined extends Shape[K]
+          ? false
+          : true
+      >
+    : InputFieldWithShape<Types, Shape[K], undefined extends Shape[K] ? false : true>;
 };
 
 export type InputFields<Types extends GiraphQLSchemaTypes.TypeInfo> = {
@@ -226,28 +281,53 @@ export type InputShapeFromField<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Field extends InputField<Types>,
   Nulls = null | undefined
-> = Field extends (InputType<Types> | InputType<Types>[])
+> = Field extends InputType<Types>
   ? InputShapeFromType<Types, Field>
+  : Field extends InputType<Types>[]
+  ? NonNullable<InputShapeFromType<Types, Field[number]>>[] | Nulls
   : Field extends {
-      required?: infer Required;
-      type: InputType<Types> | InputType<Types>[];
+      type: InputType<Types>;
     }
-  ? Required extends true
-    ? NonNullable<InputShapeFromType<Types, Field['type']>>
-    : InputShapeFromType<Types, Field['type']> | Nulls
+  ? InputShapeFromNonListField<Types, Field, Nulls>
+  : Field extends {
+      type: InputType<Types>[];
+    }
+  ? InputShapeFromListField<Types, Field, Nulls>
   : never;
+
+export type InputShapeFromListField<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Field extends {
+    type: InputType<Types>[];
+    required?: boolean | { list: boolean; items: boolean };
+  },
+  Nulls = null | undefined
+> = Field['required'] extends boolean
+  ? Field['required'] extends true
+    ? NonNullable<InputShapeFromType<Types, Field['type'][number]>>[]
+    : InputShapeFromType<Types, Field['type'][number]>[] | Nulls
+  : Field['required'] extends { list: infer List; items: infer Items }
+  ? List extends true
+    ? Items extends true
+      ? NonNullable<InputShapeFromType<Types, Field['type'][number]>>[]
+      : (InputShapeFromType<Types, Field['type'][number]> | Nulls)[]
+    : Items extends true
+    ? NonNullable<InputShapeFromType<Types, Field['type'][number]>>[] | Nulls
+    : (InputShapeFromType<Types, Field['type'][number]> | Nulls)[] | Nulls
+  : never;
+
+export type InputShapeFromNonListField<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Field extends { type: InputType<Types>; required?: boolean },
+  Nulls = null | undefined
+> = Field['required'] extends true
+  ? NonNullable<InputShapeFromType<Types, Field['type']>>
+  : InputShapeFromType<Types, Field['type']> | Nulls;
 
 export type InputShapeFromType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends InputType<Types> | InputType<Types>[],
-  Nulls = null | undefined
-> = Type extends (infer T)[]
-  ? T extends BaseType<Types, string, unknown>
-    ? NonNullable<T['inputShape']>[]
-    : T extends InputName<Types>
-    ? NonNullable<Types['Input'][T]>[]
-    : never
-  : Type extends BaseType<Types, string, unknown>
+  Type extends InputType<Types>
+> = Type extends BaseType<Types, string, unknown>
   ? NonNullable<Type['inputShape']>
   : Type extends InputName<Types>
   ? Types['Input'][Type]
@@ -284,7 +364,7 @@ export type Resolver<Parent, Args, Context, Type> = (
   ? Promise<Readonly<Type[number]>>[] | Readonly<Type | Promise<Type>>
   : Readonly<Type | Promise<Type>>;
 
-export type EnumValues = (readonly string[]) | GraphQLEnumValueConfigMap;
+export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
 
 export type ShapeFromEnumValues<Values extends EnumValues> = Values extends readonly string[]
   ? Values[number]
@@ -311,22 +391,46 @@ export type FieldsShape<
           Types,
           TypeParam<Types>,
           TypeParam<Types>,
-          boolean,
+          FieldNullability<Types, TypeParam<Types>>,
           Extract<K, string>,
           any
         >
-        ? Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, Extract<K, string>, any>
+        ? Field<
+            {},
+            Types,
+            TypeParam<Types>,
+            TypeParam<Types>,
+            FieldNullability<Types, TypeParam<Types>>,
+            Extract<K, string>,
+            any
+          >
         : InvalidType<['Use t.extend(', K, ') to implement this field']>
-      : Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, null, any>;
+      : Field<
+          {},
+          Types,
+          TypeParam<Types>,
+          TypeParam<Types>,
+          FieldNullability<Types, TypeParam<Types>>,
+          null,
+          any
+        >;
   };
 
 export type FieldMap<Types extends GiraphQLSchemaTypes.TypeInfo> = {
-  [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, null, any>;
+  [s: string]: Field<
+    {},
+    Types,
+    TypeParam<Types>,
+    TypeParam<Types>,
+    FieldNullability<Types, TypeParam<Types>>,
+    null,
+    any
+  >;
 };
 
 export type ShapeFromInterfaces<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Interfaces extends (InterfaceType<{}, Types, InterfaceName<Types>>)[] | InvalidType<unknown>
+  Interfaces extends InterfaceType<{}, Types, InterfaceName<Types>>[] | InvalidType<unknown>
 > = Interfaces extends InterfaceType<{}, Types, InterfaceName<Types>>[]
   ? UnionToIntersection<NonNullable<Interfaces[number]['shape']>> & {}
   : never;
@@ -340,9 +444,9 @@ export type CompatibleTypes<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
-  Req extends boolean,
+  Nullable extends FieldNullability<Types, Type>,
   ParentShape = ShapeFromTypeParam<Types, ParentType, false>,
-  Shape = ShapeFromTypeParam<Types, Type, Req>
+  Shape = ShapeFromTypeParam<Types, Type, Nullable>
 > = {
   [K in keyof ParentShape]: ParentShape[K] extends Shape ? K : never;
 }[keyof ParentShape];

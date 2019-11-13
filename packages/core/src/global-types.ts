@@ -10,6 +10,7 @@ import {
   Resolver,
   InputShapeFromFields,
   ObjectName,
+  FieldNullability,
 } from './types';
 import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
@@ -62,7 +63,7 @@ declare global {
       Context: {};
     }
 
-    export interface InputOptions<Req extends boolean> {
+    export interface InputOptions<Req extends boolean | { list: boolean; items: boolean }> {
       description?: string;
       required: Req;
     }
@@ -99,7 +100,7 @@ declare global {
       Types extends TypeInfo,
       ParentName extends TypeParam<Types>,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends boolean,
+      Nullable extends FieldNullability<Types, ReturnTypeName>,
       Args extends InputFields<Types>
     > {
       type: ReturnTypeName;

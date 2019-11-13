@@ -1,4 +1,4 @@
-import { TypeParam, InputFields, CompatibleTypes } from '../types';
+import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
 import Field from '../field';
 
 export default class BaseFieldUtil<
@@ -14,7 +14,7 @@ export default class BaseFieldUtil<
   protected createField<
     Args extends InputFields<Types>,
     Type extends TypeParam<Types>,
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, Type>,
     Extends extends string | null
   >(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
@@ -31,7 +31,7 @@ export default class BaseFieldUtil<
 
   protected exposeField<
     Type extends TypeParam<Types>,
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, Type>,
     Name extends CompatibleTypes<Types, ParentType, Type, Nullable>,
     Extends extends string | null
   >(

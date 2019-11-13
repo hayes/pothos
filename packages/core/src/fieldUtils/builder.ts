@@ -1,4 +1,4 @@
-import { TypeParam, InputFields, CompatibleTypes } from '../types';
+import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
 import Field from '../field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
@@ -42,18 +42,18 @@ export default class FieldBuilder<
       }
     > = {};
 
-    (Object.keys(parentFields) as (Extract<keyof ParentShape, string>)[]).forEach(name => {
+    (Object.keys(parentFields) as Extract<keyof ParentShape, string>[]).forEach(name => {
       modifiers[name] = new FieldModifier(parentFields[name], name, this.typename) as any;
     });
 
     this.modifiers = modifiers as {
-      [K in keyof typeof modifiers]-?: Exclude<(typeof modifiers)[K], undefined>;
+      [K in keyof typeof modifiers]-?: Exclude<typeof modifiers[K], undefined>;
     };
   }
 
   arg = new InputFieldBuilder<Types>().callableBuilder();
 
-  boolean<Args extends InputFields<Types>, Nullable extends boolean>(
+  boolean<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'Boolean'>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Boolean', Nullable, Args>,
       'type'
@@ -62,7 +62,7 @@ export default class FieldBuilder<
     return this.createField<Args, 'Boolean', Nullable, null>({ ...options, type: 'Boolean' }, null);
   }
 
-  float<Args extends InputFields<Types>, Nullable extends boolean>(
+  float<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'Flaot'>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Float', Nullable, Args>,
       'type'
@@ -71,7 +71,7 @@ export default class FieldBuilder<
     return this.createField<Args, 'Float', Nullable, null>({ ...options, type: 'Float' }, null);
   }
 
-  id<Args extends InputFields<Types>, Nullable extends boolean>(
+  id<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'ID'>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'ID', Nullable, Args>,
       'type'
@@ -80,7 +80,7 @@ export default class FieldBuilder<
     return this.createField<Args, 'ID', Nullable, null>({ ...options, type: 'ID' }, null);
   }
 
-  int<Args extends InputFields<Types>, Nullable extends boolean>(
+  int<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'Int'>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'Int', Nullable, Args>,
       'type'
@@ -89,7 +89,7 @@ export default class FieldBuilder<
     return this.createField<Args, 'Int', Nullable, null>({ ...options, type: 'Int' }, null);
   }
 
-  string<Args extends InputFields<Types>, Nullable extends boolean>(
+  string<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'String'>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, 'String', Nullable, Args>,
       'type'
@@ -98,7 +98,10 @@ export default class FieldBuilder<
     return this.createField<Args, 'String', Nullable, null>({ ...options, type: 'String' }, null);
   }
 
-  booleanList<Args extends InputFields<Types>, Nullable extends boolean>(
+  booleanList<
+    Args extends InputFields<Types>,
+    Nullable extends FieldNullability<Types, ['Boolean']>
+  >(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Boolean'], Nullable, Args>,
       'type'
@@ -110,7 +113,7 @@ export default class FieldBuilder<
     );
   }
 
-  floatList<Args extends InputFields<Types>, Nullable extends boolean>(
+  floatList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['Float']>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Float'], Nullable, Args>,
       'type'
@@ -119,7 +122,7 @@ export default class FieldBuilder<
     return this.createField<Args, ['Float'], Nullable, null>({ ...options, type: ['Float'] }, null);
   }
 
-  idList<Args extends InputFields<Types>, Nullable extends boolean>(
+  idList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['ID']>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['ID'], Nullable, Args>,
       'type'
@@ -128,7 +131,7 @@ export default class FieldBuilder<
     return this.createField<Args, ['ID'], Nullable, null>({ ...options, type: ['ID'] }, null);
   }
 
-  intList<Args extends InputFields<Types>, Nullable extends boolean>(
+  intList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['Int']>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['Int'], Nullable, Args>,
       'type'
@@ -137,7 +140,7 @@ export default class FieldBuilder<
     return this.createField<Args, ['Int'], Nullable, null>({ ...options, type: ['Int'] }, null);
   }
 
-  stringList<Args extends InputFields<Types>, Nullable extends boolean>(
+  stringList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['String']>>(
     options: Omit<
       GiraphQLSchemaTypes.FieldOptions<Types, ParentType, ['String'], Nullable, Args>,
       'type'
@@ -150,7 +153,7 @@ export default class FieldBuilder<
   }
 
   exposBoolean<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, 'Boolean'>,
     Name extends CompatibleTypes<Types, ParentType, 'Boolean', Nullable>
   >(
     name: Name,
@@ -167,7 +170,7 @@ export default class FieldBuilder<
   }
 
   exposeFloat<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, 'Float'>,
     Name extends CompatibleTypes<Types, ParentType, 'Float', Nullable>
   >(
     name: Name,
@@ -184,7 +187,7 @@ export default class FieldBuilder<
   }
 
   exposeID<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, 'ID'>,
     Name extends CompatibleTypes<Types, ParentType, 'ID', Nullable>
   >(
     name: Name,
@@ -197,7 +200,7 @@ export default class FieldBuilder<
   }
 
   exposeInt<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, 'Int'>,
     Name extends CompatibleTypes<Types, ParentType, 'Int', Nullable>
   >(
     name: Name,
@@ -210,7 +213,7 @@ export default class FieldBuilder<
   }
 
   exposeString<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, 'String'>,
     Name extends CompatibleTypes<Types, ParentType, 'String', Nullable>
   >(
     name: Name,
@@ -227,7 +230,7 @@ export default class FieldBuilder<
   }
 
   exposeBooleanList<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, ['Boolean']>,
     Name extends CompatibleTypes<Types, ParentType, ['Boolean'], Nullable>
   >(
     name: Name,
@@ -244,7 +247,7 @@ export default class FieldBuilder<
   }
 
   exposeFloatList<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, ['Float']>,
     Name extends CompatibleTypes<Types, ParentType, ['Float'], Nullable>
   >(
     name: Name,
@@ -261,7 +264,7 @@ export default class FieldBuilder<
   }
 
   exposeIDList<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, ['ID']>,
     Name extends CompatibleTypes<Types, ParentType, ['ID'], Nullable>
   >(
     name: Name,
@@ -274,7 +277,7 @@ export default class FieldBuilder<
   }
 
   exposeIntList<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, ['Int']>,
     Name extends CompatibleTypes<Types, ParentType, ['Int'], Nullable>
   >(
     name: Name,
@@ -291,7 +294,7 @@ export default class FieldBuilder<
   }
 
   exposeStringList<
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Types, ['String']>,
     Name extends CompatibleTypes<Types, ParentType, ['String'], Nullable>
   >(
     name: Name,

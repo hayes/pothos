@@ -25,14 +25,21 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
   type<Type extends InputType<Types> | [InputType<Types>]>(
     type: Type,
   ): { type: Type; required: false; description?: string };
-  type<Type extends InputType<Types> | [InputType<Types>], Req extends boolean = false>(
+  type<Type extends InputType<Types>, Req extends boolean = false>(
     type: Type,
     options: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
   ): { type: Type; required: Req; description?: string };
-  type<Type extends InputType<Types> | [InputType<Types>], Req extends boolean>(
+  type<
+    Type extends InputType<Types> | [InputType<Types>],
+    Req extends boolean | { list: boolean; items: boolean } = false
+  >(
     type: Type,
-    options?: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
-  ) {
+    options: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
+  ): { type: Type; required: Req; description?: string };
+  type<
+    Type extends InputType<Types> | [InputType<Types>],
+    Req extends boolean | { list: boolean; items: boolean }
+  >(type: Type, options?: GiraphQLSchemaTypes.InputOptions<Req> | undefined) {
     return {
       description: options && options.description,
       required: options ? options.required : false,
@@ -76,10 +83,10 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     function createType(): { type: Type; required: false; description?: string };
-    function createType<Req extends boolean = false>(
+    function createType<Req extends boolean | { list: boolean; items: boolean } = false>(
       options: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
     ): { type: Type; required: Req; description?: string };
-    function createType<Req extends boolean>(
+    function createType<Req extends boolean | { list: boolean; items: boolean }>(
       options?: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
     ) {
       return {

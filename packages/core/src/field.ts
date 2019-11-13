@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap, GraphQLNonNull } from 'graphql';
+import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap } from 'graphql';
+// @ts-ignore
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, ShapeFromTypeParam } from './types';
+import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from './types';
 import { typeFromParam, buildArg } from './utils';
 import BaseType from './graphql/base';
 import BasePlugin from './plugin';
@@ -12,7 +13,7 @@ export default class Field<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
-  Nullable extends boolean = true,
+  Nullable extends FieldNullability<Types, Type> = true,
   Extends extends string | null = null,
   Options extends GiraphQLSchemaTypes.FieldOptions<
     Types,
@@ -43,7 +44,7 @@ export default class Field<
     parentTypename: string,
   ) {
     this.options = options;
-    this.nullable = (options.nullable === true ? options.nullable : false) as Nullable;
+    this.nullable = options.nullable || (false as Nullable);
     this.args = options.args ? options.args! : ({} as Args);
     this.extendsField = options.extendsField || (null as Extends);
     this.type = options.type;
@@ -83,9 +84,7 @@ export default class Field<
       extensions: [],
       description: this.options.description || name,
       resolve: this.options.resolve as (...args: unknown[]) => unknown,
-      type: this.nullable
-        ? typeFromParam(this.type, cache)
-        : new GraphQLNonNull(typeFromParam(this.type, cache)),
+      type: typeFromParam(this.type, cache, this.nullable),
     };
 
     return plugins.reduce((config, plugin) => {
