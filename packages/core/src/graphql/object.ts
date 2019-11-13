@@ -12,7 +12,7 @@ import {
   ObjectName,
 } from '../types';
 import InterfaceType from './interface';
-import Field from '../field';
+import Field from './field';
 import FieldBuilder from '../fieldUtils/builder';
 import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
@@ -76,6 +76,7 @@ export default class ObjectType<
             ),
           ]),
         ),
+      extensions: this.options.extensions,
     });
   }
 }

@@ -10,7 +10,7 @@ explained further in later guides.
 
 1. Start by creating a backing model and adding it to your SchemaBuilder
 
-The SchemaBuilder type signature will be explained further in the SchemaBuilder guide for now, the
+The SchemaBuilder type signature will be explained further in the SchemaBuilder guide, for now the
 impart part is to know the types provided here will be used to make sure resolvers return the
 correct types, and to provide accurate types for the resolver arguments.
 
@@ -44,25 +44,28 @@ const Giraffe = builder.createObjectType('Giraffe', {
 
 ```typescript
 const Giraffe = builder.createObjectType('Giraffe', {
-  name: t.exposeString('name'),
-  age: t.int({
-    resolve: parent => {
-      // Do some date match to get an aproximate age from a birthday
-      const today = new Date(new Date().toDateString());
-      const birthday = new Date(parent.birthday.toDateString());
-      const ageDifMs = Number(today) - Number(birthday);
-      const ageDate = new Date(ageDifMs);
+  description: 'Long necks, cool patterns, taller than you.',
+  shape: t => ({
+    name: t.exposeString('name'),
+    age: t.int({
+      resolve: parent => {
+        // Do some date math to get an aproximate age from a birthday
+        const today = new Date(new Date().toDateString());
+        const birthday = new Date(parent.birthday.toDateString());
+        const ageDifMs = Number(today) - Number(birthday);
+        const ageDate = new Date(ageDifMs);
 
-      return Math.abs(ageDate.getUTCFullYear() - 1970);
-    },
-  }),
-  height: t.float({
-    resolve: parent => parent.heightMeters,
+        return Math.abs(ageDate.getUTCFullYear() - 1970);
+      },
+    }),
+    height: t.float({
+      resolve: parent => parent.heightMeters,
+    }),
   }),
 });
 ```
 
-4. Add a Query object
+4. Add a Query object as an entry point for fetching instances of the Giraffe type
 
 ```typescript
 const Query = builder.createObjectType('Query', {

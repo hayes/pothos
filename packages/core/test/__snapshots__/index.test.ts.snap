@@ -59,7 +59,6 @@ type User {
   firstBornChild: User!
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!
-  privateField: String!
   related: SearchResult!
   friends: [User!]!
   stuff: [String!]!

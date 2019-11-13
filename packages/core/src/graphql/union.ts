@@ -36,6 +36,7 @@ export default class UnionType<
       description: this.description,
       resolveType: this.resolveType,
       types: () => this.members.map(member => cache.getBuiltObject(member)),
+      extensions: this.options.extensions,
     });
   }
 }

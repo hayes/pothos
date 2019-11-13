@@ -1,5 +1,5 @@
 import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
-import Field from '../field';
+import Field from '../graphql/field';
 import BaseFieldUtil from './base';
 import FieldModifier from './modifier';
 import InputFieldBuilder from './input';

@@ -55,6 +55,7 @@ export default class InputObjectType<
       name: this.typename,
       description: this.options.description,
       fields: () => this.buildFields(cache),
+      extensions: this.options.extensions,
     });
   }
 }

@@ -2,11 +2,11 @@
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from './types';
-import { typeFromParam, buildArg } from './utils';
-import BaseType from './graphql/base';
-import BasePlugin from './plugin';
-import { BuildCache } from '.';
+import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from '../types';
+import { typeFromParam, buildArg } from '../utils';
+import BaseType from './base';
+import BasePlugin from '../plugin';
+import { BuildCache } from '..';
 
 export default class Field<
   Args extends InputFields<Types>,
@@ -81,10 +81,10 @@ export default class Field<
   ): GraphQLFieldConfig<unknown, unknown> {
     const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
       args: this.buildArgs(cache),
-      extensions: [],
       description: this.options.description,
       resolve: this.options.resolve as (...args: unknown[]) => unknown,
       type: typeFromParam(this.type, cache, this.nullable),
+      extensions: this.options.extensions,
     };
 
     return plugins.reduce((config, plugin) => {

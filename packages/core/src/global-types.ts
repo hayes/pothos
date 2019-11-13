@@ -71,6 +71,7 @@ declare global {
     export interface EnumTypeOptions<Values extends EnumValues> {
       description?: string;
       values: Values;
+      extensions?: Readonly<Record<string, any>>;
     }
 
     export interface ObjectTypeOptions<
@@ -94,6 +95,7 @@ declare global {
       isType: Interfaces[number]['typename'] extends Type
         ? ((obj: NonNullable<Interfaces[number]['shape']>) => boolean) | undefined
         : (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
+      extensions?: Readonly<Record<string, any>>;
     }
 
     export interface FieldOptions<
@@ -106,7 +108,6 @@ declare global {
       type: ReturnTypeName;
       args?: Args;
       nullable?: Nullable;
-      directives?: { [s: string]: unknown[] };
       description?: string;
       deprecationReason?: string;
       resolve: Resolver<
@@ -115,6 +116,7 @@ declare global {
         Types['Context'],
         ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
       >;
+      extensions?: Readonly<Record<string, any>>;
     }
 
     export interface InputTypeOptions<
@@ -123,6 +125,7 @@ declare global {
     > {
       description?: string;
       shape: (t: InputFieldBuilder<Types>) => Fields;
+      extensions?: Readonly<Record<string, any>>;
     }
 
     export interface InterfaceTypeOptions<
@@ -132,6 +135,7 @@ declare global {
     > {
       description?: string;
       shape: FieldsShape<Shape, Types, Type>;
+      extensions?: Readonly<Record<string, any>>;
     }
 
     export interface UnionOptions<
@@ -144,6 +148,7 @@ declare global {
         parent: Types['Object'][Member],
         context: Types['Context'],
       ) => Member | Promise<Member>;
+      extensions?: Readonly<Record<string, any>>;
     }
   }
 }

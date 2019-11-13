@@ -3,7 +3,7 @@ import { GraphQLInterfaceType } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import { ShapeFromTypeParam, TypeParam, InterfaceName, ObjectName } from '../types';
-import Field from '../field';
+import Field from './field';
 import FieldBuilder from '../fieldUtils/builder';
 import ObjectType from './object';
 import BasePlugin from '../plugin';
@@ -64,6 +64,7 @@ export default class InterfaceType<
             ),
           ]),
         ),
+      extensions: this.options.extensions,
     });
   }
 }

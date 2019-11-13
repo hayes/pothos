@@ -106,14 +106,6 @@ const User = builder.createObjectType('User', {
         return Number.parseInt(args.example2.more.more.more.example.id, 10);
       },
     }),
-    // add directives
-    privateField: t.string({
-      // map of directives -> directive args
-      directives: { privateData: [] },
-      resolve: (parent, args) => {
-        return 'private stuff';
-      },
-    }),
     // Using a union type
     related: t.field({
       resolve: parent => {

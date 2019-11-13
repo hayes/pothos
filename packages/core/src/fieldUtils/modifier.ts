@@ -1,6 +1,6 @@
 import { TypeParam, CompatibleTypes, InputFields, FieldNullability } from '../types';
 import BaseFieldUtil from './base';
-import Field from '../field';
+import Field from '../graphql/field';
 
 export default class FieldModifier<
   Types extends GiraphQLSchemaTypes.TypeInfo,

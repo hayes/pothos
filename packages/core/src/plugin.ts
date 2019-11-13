@@ -22,7 +22,7 @@ import {
   ScalarName,
   ObjectName,
 } from './types';
-import Field from './field';
+import Field from './graphql/field';
 import BuildCache from './build-cache';
 
 export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> {

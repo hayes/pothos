@@ -33,7 +33,7 @@ import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
 import InputFieldBuilder from './fieldUtils/input';
 import BasePlugin from './plugin';
-import Field from './field';
+import Field from './graphql/field';
 import BuildCache from './build-cache';
 import FieldBuilder from './fieldUtils/builder';
 
@@ -144,7 +144,7 @@ export default class SchemaBuilder<
       directives,
       extensions,
     }: {
-      directives?: GraphQLDirective[];
+      directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
     } = {},
   ) {
@@ -169,7 +169,7 @@ export default class SchemaBuilder<
         ? buildCache.getBuiltObject('Subscription')
         : undefined,
       extensions,
-      directives,
+      directives: directives as GraphQLDirective[],
       types: builtTypes,
     });
   }

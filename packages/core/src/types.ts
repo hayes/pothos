@@ -11,7 +11,7 @@ import {
 import InputObjectType from './graphql/input';
 import BaseType from './graphql/base';
 import InterfaceType from './graphql/interface';
-import Field from './field';
+import Field from './graphql/field';
 import FieldBuilder from './fieldUtils/builder';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';

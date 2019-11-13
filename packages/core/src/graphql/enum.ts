@@ -49,6 +49,7 @@ export default class EnumType<
       description: this.description,
       name: this.typename,
       values: this.values,
+      extensions: this.options.extensions,
     });
   }
 }
