@@ -7,6 +7,7 @@ import {
   GraphQLID,
   GraphQLFloat,
   GraphQLBoolean,
+  GraphQLDirective,
 } from 'graphql';
 import {
   CompatibleInterfaceNames,
@@ -137,7 +138,16 @@ export default class SchemaBuilder<
     >(name, options);
   }
 
-  toSchema(types: ImplementedType<Types>[]) {
+  toSchema(
+    types: ImplementedType<Types>[],
+    {
+      directives,
+      extensions,
+    }: {
+      directives?: GraphQLDirective[];
+      extensions?: Record<string, unknown>;
+    } = {},
+  ) {
     const scalars = [
       this.scalars.Boolean,
       this.scalars.Float,
@@ -150,9 +160,17 @@ export default class SchemaBuilder<
 
     buildCache.buildAll();
 
+    const builtTypes = [...buildCache.types.values()].map(entry => entry.built);
+
     return new GraphQLSchema({
       query: buildCache.has('Query') ? buildCache.getBuiltObject('Query') : undefined,
       mutation: buildCache.has('Mutation') ? buildCache.getBuiltObject('Mutation') : undefined,
+      subscription: buildCache.has('Subscription')
+        ? buildCache.getBuiltObject('Subscription')
+        : undefined,
+      extensions,
+      directives,
+      types: builtTypes,
     });
   }
 }
