@@ -85,3 +85,16 @@ server.listen(8000, (error: unknown) => {
   console.log('🚀 Server started at http://127.0.0.1:8000');
 });
 ```
+
+6. Run your server (either with ts-node) by compiling your code and running it with node.
+7. Open http://127.0.0.1:8000 to open the playground and query your API:
+
+```graphql
+query {
+  giraffe {
+    name
+    age
+    height
+  }
+}
+```
