@@ -20,7 +20,12 @@ declare global {
       Type extends ObjectName<Types>
     > {
       extends?: {
-        [K in ObjectName<Types>]?: FieldsShape<{ [s: string]: unknown }, Types, K, {}>;
+        [K in ObjectName<Types> | 'Query' | 'Mutation' | 'Suscription']?: FieldsShape<
+          { [s: string]: unknown },
+          Types,
+          K,
+          {}
+        >;
       };
     }
   }

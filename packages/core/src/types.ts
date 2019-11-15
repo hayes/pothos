@@ -108,7 +108,7 @@ export type MergeTypeMap<
   Object: Exclude<Partial['Object'], undefined> & Map['Object'];
   Interface: Exclude<Partial['Interface'], undefined> & {};
   Root: Exclude<Partial['Root'], undefined> & {};
-  Context: Partial['Context'];
+  Context: Exclude<Partial['Context'], undefined> & {};
 };
 
 // TypeParam
@@ -120,11 +120,7 @@ export interface DefaultTypeMap {
     Float: { Input: number; Output: number };
     Boolean: { Input: boolean; Output: boolean };
   };
-  Object: {
-    Query: {};
-    Mutation: {};
-    Subscription: {};
-  };
+  Object: {};
   Interface: {};
   Input: {};
   Root: {};

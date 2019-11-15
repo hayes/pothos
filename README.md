@@ -9,7 +9,7 @@ multiple files.
 import SchemaBuilder from '@giraphql/core';
 import { ApolloServer } from 'apollo-server';
 
-const builder = new SchemaBuilder<{ Context: {} }>();
+const builder = new SchemaBuilder();
 
 const Query = builder.createQueryType({
     shape: t => ({

@@ -1,6 +1,6 @@
 import builder from '../builder';
 
-export default builder.createObjectType('Mutation', {
+export default builder.createMutationType({
   shape: t => ({
     createUser: t.field({
       type: 'User',

@@ -36,6 +36,7 @@ import BasePlugin from './plugin';
 import Field from './graphql/field';
 import BuildCache from './build-cache';
 import FieldBuilder from './fieldUtils/builder';
+import RootFieldBuilder from './fieldUtils/root';
 import RootType from './graphql/root';
 
 export * from './types';
@@ -53,10 +54,11 @@ export {
   FieldBuilder,
   InputFieldBuilder,
   RootType,
+  RootFieldBuilder,
 };
 
 export default class SchemaBuilder<
-  PartialTypes extends GiraphQLSchemaTypes.PartialTypeInfo,
+  PartialTypes extends GiraphQLSchemaTypes.PartialTypeInfo = {},
   Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
     DefaultTypeMap,
     PartialTypes

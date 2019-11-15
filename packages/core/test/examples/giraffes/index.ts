@@ -11,7 +11,6 @@ const builder = new SchemaBuilder<{
   Object: {
     Giraffe: Giraffe;
   };
-  Context: {};
 }>();
 
 const Giraffe = builder.createObjectType('Giraffe', {

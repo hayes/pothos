@@ -18,7 +18,6 @@ type Types = {
     Example2: ExampleShape;
   };
   Object: {
-    Query: {};
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
     Sheep: { name: string; count: number; shaved: boolean };

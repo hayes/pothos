@@ -66,7 +66,7 @@ declare global {
       Interface?: {};
       Input?: {};
       Root?: {};
-      Context: {};
+      Context?: {};
     }
 
     export interface InputOptions<Req extends boolean | { list: boolean; items: boolean }> {
