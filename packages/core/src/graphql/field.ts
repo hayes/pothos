@@ -7,7 +7,7 @@ import {
   InputFields,
   ShapeFromTypeParam,
   FieldNullability,
-  MaybeSubscriptionFieldOptions,
+  FieldOptionsFromKind,
 } from '../types';
 import { typeFromParam, buildArg } from '../utils';
 import BaseType from './base';
@@ -21,15 +21,19 @@ export default class Field<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Types, Type> = FieldNullability<Types, Type>,
   Extends extends string | null = null,
-  Subscription extends boolean = false,
-  Options extends MaybeSubscriptionFieldOptions<
+  Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription' =
+    | 'Object'
+    | 'Interface'
+    | 'Root'
+    | 'Subscription',
+  Options extends FieldOptionsFromKind<
     Types,
     ParentType,
     Type,
     Nullable,
     Args,
-    Subscription
-  > = MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>
+    Kind
+  > = FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
@@ -90,7 +94,11 @@ export default class Field<
     const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
       args: this.buildArgs(cache),
       description: this.options.description,
-      resolve: this.options.resolve as (...args: unknown[]) => unknown,
+      resolve:
+        (this.options as { resolve?: (...args: unknown[]) => unknown }).resolve ||
+        (() => {
+          throw new Error(`Not implemented: No resolver found for ${this.parentTypename}.${name}`);
+        }),
       subscribe: (this.options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
       type: typeFromParam(this.type, cache, this.nullable),
       extensions: this.options.extensions,

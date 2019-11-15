@@ -4,14 +4,14 @@ import {
   InputFields,
   CompatibleTypes,
   FieldNullability,
-  MaybeSubscriptionFieldOptions,
+  FieldOptionsFromKind,
 } from '../types';
 import Field from '../graphql/field';
 
 export default class BaseFieldUtil<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
-  Subscription extends boolean = false
+  Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription'
 > {
   typename: string;
 
@@ -25,7 +25,7 @@ export default class BaseFieldUtil<
     Nullable extends FieldNullability<Types, Type>,
     Extends extends string | null
   >(
-    options: MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>,
+    options: FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>,
     extendsField: Extends,
   ): Field<
     Args,
@@ -34,8 +34,8 @@ export default class BaseFieldUtil<
     Type,
     Nullable,
     Extends,
-    Subscription,
-    MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>
+    Kind,
+    FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>
   > {
     return new Field(
       {
@@ -54,7 +54,7 @@ export default class BaseFieldUtil<
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, Type, Nullable, {}>,
       'resolve'
     >,
     extendsField: Extends,
@@ -63,7 +63,7 @@ export default class BaseFieldUtil<
       {
         ...options,
         // @ts-ignore
-        resolver: parent => parent[name],
+        resolve: parent => parent[name],
         extendsField,
       },
       this.typename,
@@ -72,10 +72,7 @@ export default class BaseFieldUtil<
 
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
     return <Args extends InputFields<Types>, Nullable extends boolean>(
-      options: Omit<
-        MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>,
-        'type'
-      >,
+      options: Omit<FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>, 'type'>,
     ): Field<
       Args,
       Types,
@@ -83,13 +80,13 @@ export default class BaseFieldUtil<
       Type,
       Nullable,
       null,
-      Subscription,
-      MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>
+      Kind,
+      FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>
     > => {
       const mergedOptions = {
         ...options,
         type,
-      } as MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>;
+      } as FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>;
 
       return this.createField(mergedOptions, null);
     };
@@ -102,7 +99,7 @@ export default class BaseFieldUtil<
     >(
       name: Name,
       options: Omit<
-        GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
+        GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, Type, Nullable, {}>,
         'resolve' | 'type'
       > = {},
     ): Field<{}, Types, ParentType, Type, Nullable, null> => {

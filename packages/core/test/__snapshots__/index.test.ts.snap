@@ -35,11 +35,13 @@ union SearchResult = User | Article
 interface Shaveable {
   id: ID!
   shaved: Boolean!
+  extendMePlease: String!
 }
 
 type Sheep implements Shaveable & Countable {
   id: ID!
   shaved: Boolean!
+  extendMePlease: String!
   count(max: Int!): Int!
   color(id: ID): String!
   thing: stuff!

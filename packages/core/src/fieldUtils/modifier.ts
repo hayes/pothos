@@ -9,7 +9,7 @@ export default class FieldModifier<
   Nullable extends FieldNullability<Types, Type>,
   Args extends InputFields<Types>,
   Extends extends string
-> extends BaseFieldUtil<Types, ParentType> {
+> extends BaseFieldUtil<Types, ParentType, 'Object'> {
   field: Field<Args, Types, ParentType, Type, Nullable, string | null, any>;
 
   extendsField: Extends;
@@ -27,7 +27,7 @@ export default class FieldModifier<
   expose<Name extends CompatibleTypes<Types, ParentType, Type, Nullable>>(
     name: Name,
     options?: Omit<
-      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, Type, Nullable, {}>,
       'resolve' | 'type' | 'args'
     >,
   ): Field<{}, Types, ParentType, Type, Nullable, Extends> {
@@ -36,7 +36,7 @@ export default class FieldModifier<
 
   implement(
     options: Omit<
-      GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, Type, Nullable, Args>,
       'type' | 'args'
     >,
   ): Field<Args, Types, ParentType, Type, Nullable, Extends> {

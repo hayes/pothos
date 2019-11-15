@@ -207,6 +207,7 @@ const Shaveable = builder.createInterfaceType('Shaveable', {
       resolve: () => 5,
     }),
     shaved: t.exposBoolean('shaved'),
+    extendMePlease: t.string({}),
   }),
 });
 
@@ -279,7 +280,7 @@ const Subscription = builder.createSubscriptionType({
   shape: t => ({
     event: t.string({
       resolve: () => 'yup',
-      subscribe: async function*() {
+      async *subscribe() {
         yield '123';
       },
     }),

@@ -59,16 +59,18 @@ export type UnionToIntersection<U> = (U extends unknown
 
 export type MaybeMerge<T, U, Condition extends boolean> = Condition extends true ? T & U : T;
 
-export type MaybeSubscriptionFieldOptions<
+export type FieldOptionsFromKind<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Types, Type>,
   Args extends InputFields<Types>,
-  Subscription extends boolean
-> = Subscription extends true
+  Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription'
+> = Kind extends 'Subscription'
   ? GiraphQLSchemaTypes.SubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args>
-  : GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>;
+  : Kind extends 'Interface'
+  ? GiraphQLSchemaTypes.InterfaceFieldOptions<Types, ParentType, Type, Nullable, Args>
+  : GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, Type, Nullable, Args>;
 
 // TypeMap
 export type MergeTypeMap<
@@ -420,7 +422,7 @@ export type FieldsShape<
           TypeParam<Types>,
           FieldNullability<Types, TypeParam<Types>>,
           Extract<K, string>,
-          false,
+          'Object',
           any
         >
         ? Field<
@@ -430,7 +432,7 @@ export type FieldsShape<
             TypeParam<Types>,
             FieldNullability<Types, TypeParam<Types>>,
             Extract<K, string>,
-            false,
+            'Object',
             any
           >
         : InvalidType<['Use t.extend(', K, ') to implement this field']>
@@ -441,7 +443,7 @@ export type FieldsShape<
           TypeParam<Types>,
           FieldNullability<Types, TypeParam<Types>>,
           null,
-          false,
+          'Object',
           any
         >;
   };
@@ -451,7 +453,7 @@ export type RootFieldsShape<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Type extends 'Query' | 'Mutation' | 'Subscription'
 > = (
-  t: RootFieldBuilder<Types, Type, Type extends 'Subscription' ? true : false>,
+  t: RootFieldBuilder<Types, Type, Type extends 'Subscription' ? 'Subscription' : 'Root'>,
 ) => Shape &
   {
     [K in keyof Shape]: Field<
@@ -461,7 +463,27 @@ export type RootFieldsShape<
       TypeParam<Types>,
       FieldNullability<Types, TypeParam<Types>>,
       null,
-      Type extends 'Subscription' ? true : false,
+      Type extends 'Subscription' ? 'Subscription' : 'Root',
+      any
+    >;
+  };
+
+export type InterfaceFieldsShape<
+  Shape extends {},
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Type extends InterfaceName<Types>
+> = (
+  t: FieldBuilder<Types, Type, {}, true>,
+) => Shape &
+  {
+    [K in keyof Shape]: Field<
+      {},
+      Types,
+      TypeParam<Types>,
+      TypeParam<Types>,
+      FieldNullability<Types, TypeParam<Types>>,
+      null,
+      'Interface',
       any
     >;
   };
@@ -509,7 +531,8 @@ export type ImplementedType<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | EnumType<Types, string, EnumValues>
   | ScalarType<Types, ScalarName<Types>>
   | InputObjectType<Types, {}, {}, string>
-  | RootType<Types, {}, 'Query' | 'Mutation' | 'Subscription'>;
+  | RootType<Types, {}, 'Query' | 'Mutation'>
+  | RootType<Types, {}, 'Subscription'>;
 
 export type BuildCacheEntry<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | {
