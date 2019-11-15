@@ -8,6 +8,7 @@ import {
   InterfaceType,
   BuildCache,
   ObjectName,
+  InterfaceName,
 } from '@giraphql/core';
 import {
   GraphQLFieldConfig,
@@ -22,22 +23,8 @@ import {
   GraphQLInterfaceType,
 } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
-import AuthWrapper from './auth-wrapper';
+import AuthWrapper, { AuthMeta } from './auth-wrapper';
 import './global-types';
-
-type AuthMeta<Types extends GiraphQLSchemaTypes.TypeInfo> = {
-  grantAuth?: {
-    [s: string]:
-      | true
-      | ((parent: unknown, context: Types['Context']) => boolean | Promise<boolean>);
-  };
-  grantCache?: {
-    [s: string]: boolean | Promise<boolean>;
-  };
-  checkCache?: {
-    [s: string]: boolean | Promise<boolean>;
-  };
-};
 
 export function isScalar(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLNonNull) {
@@ -218,7 +205,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   }
 
   visitInterfaceType(
-    type: InterfaceType<{}, Types, ObjectName<Types>>,
+    type: InterfaceType<{}, Types, InterfaceName<Types>>,
     built: GraphQLInterfaceType,
   ) {
     const { resolveType } = built;

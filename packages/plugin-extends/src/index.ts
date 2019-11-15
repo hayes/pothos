@@ -1,4 +1,5 @@
 import {
+  RootType,
   BasePlugin,
   ObjectType,
   BuildCache,
@@ -11,6 +12,15 @@ import './global-types';
 
 export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
+  fieldsForRootType(
+    type: RootType<Types, {}, 'Query' | 'Mutation' | 'Subscription'>,
+    fields: FieldMap<Types>,
+    built: GraphQLObjectType,
+    cache: BuildCache<Types>,
+  ) {
+    return this.mergeFields(type.typename, fields, {}, cache);
+  }
+
   fieldsForObjectType(
     type: ObjectType<{}, any[], Types, any>,
     existingFields: FieldMap<Types>,
@@ -18,17 +28,26 @@ export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     built: GraphQLObjectType,
     cache: BuildCache<Types>,
   ) {
+    return this.mergeFields(type.typename, existingFields, parentFields, cache);
+  }
+
+  private mergeFields(
+    typename: string,
+    existingFields: FieldMap<Types>,
+    parentFields: FieldMap<Types>,
+    cache: BuildCache<Types>,
+  ) {
     let fields = existingFields;
 
     cache.types.forEach(entry => {
       if (entry.kind === 'Object' && entry.type.options.extends) {
-        const shape = entry.type.options.extends[type.typename as ObjectName<Types>];
+        const shape = entry.type.options.extends[typename as ObjectName<Types>];
 
         if (shape) {
           fields = cache.mergeFields(
-            type.typename,
+            typename,
             fields,
-            shape(new FieldBuilder(parentFields, type.typename)),
+            shape(new FieldBuilder(parentFields, typename)),
           );
         }
       }

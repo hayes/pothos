@@ -9,7 +9,7 @@ const characterArgs = builder.createArgs(t => ({
   }),
 }));
 
-export default builder.createObjectType('Query', {
+export default builder.createQueryType({
   shape: t => ({
     hero: t.field({
       type: 'Character',

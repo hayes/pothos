@@ -68,7 +68,7 @@ const Giraffe = builder.createObjectType('Giraffe', {
 4. Add a Query object as an entry point for fetching instances of the Giraffe type
 
 ```typescript
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     giraffe: t.field({
       type: Giraffe,

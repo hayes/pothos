@@ -1,9 +1,17 @@
-import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
+/* eslint-disable @typescript-eslint/consistent-type-assertions */
+import {
+  TypeParam,
+  InputFields,
+  CompatibleTypes,
+  FieldNullability,
+  MaybeSubscriptionFieldOptions,
+} from '../types';
 import Field from '../graphql/field';
 
 export default class BaseFieldUtil<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentType extends TypeParam<Types>
+  ParentType extends TypeParam<Types>,
+  Subscription extends boolean = false
 > {
   typename: string;
 
@@ -17,10 +25,19 @@ export default class BaseFieldUtil<
     Nullable extends FieldNullability<Types, Type>,
     Extends extends string | null
   >(
-    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+    options: MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>,
     extendsField: Extends,
-  ) {
-    return new Field<Args, Types, ParentType, Type, Nullable, Extends>(
+  ): Field<
+    Args,
+    Types,
+    ParentType,
+    Type,
+    Nullable,
+    Extends,
+    Subscription,
+    MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>
+  > {
+    return new Field(
       {
         ...options,
         extendsField,
@@ -56,11 +73,25 @@ export default class BaseFieldUtil<
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
     return <Args extends InputFields<Types>, Nullable extends boolean>(
       options: Omit<
-        GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>,
+        MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>,
         'type'
       >,
-    ): Field<Args, Types, ParentType, Type, Nullable, null> => {
-      return this.createField<Args, Type, Nullable, null>({ ...options, type }, null);
+    ): Field<
+      Args,
+      Types,
+      ParentType,
+      Type,
+      Nullable,
+      null,
+      Subscription,
+      MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>
+    > => {
+      const mergedOptions = {
+        ...options,
+        type,
+      } as MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>;
+
+      return this.createField(mergedOptions, null);
     };
   }
 

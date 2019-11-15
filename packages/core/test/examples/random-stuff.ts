@@ -240,7 +240,7 @@ const Sheep = builder.createObjectType('Sheep', {
   }),
 });
 
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     user: t.field({
       resolve: () => ({
@@ -275,7 +275,19 @@ const Article = builder.createObjectType('Article', {
   }),
 });
 
+const Subscription = builder.createSubscriptionType({
+  shape: t => ({
+    event: t.string({
+      resolve: () => 'yup',
+      subscribe: async function*() {
+        yield '123';
+      },
+    }),
+  }),
+});
+
 const schema = builder.toSchema([
+  Subscription,
   Query,
   Shaveable,
   Countable,

@@ -11,6 +11,19 @@ import {
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface RootTypeOptions<
+      Shape extends {},
+      Types extends TypeInfo,
+      Type extends 'Query' | 'Mutation' | 'Subscription'
+    > {
+      authChecks?: {
+        [s: string]: (
+          parent: ShapeFromTypeParam<Types, Type, false>,
+          context: Types['Context'],
+        ) => boolean;
+      };
+    }
+
     export interface ObjectTypeOptions<
       Shape extends {},
       Interfaces extends InterfaceType<

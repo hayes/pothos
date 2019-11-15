@@ -38,7 +38,7 @@ const LengthUnit = builder.createEnumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     giraffe: t.field({
       type: Giraffe,

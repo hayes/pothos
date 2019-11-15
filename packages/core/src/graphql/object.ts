@@ -45,6 +45,10 @@ export default class ObjectType<
   ) {
     super(name);
 
+    if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
+      throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
+    }
+
     this.options = options;
 
     this.description = options.description;

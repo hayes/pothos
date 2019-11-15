@@ -17,7 +17,7 @@ export default abstract class BaseType<
 
   matchShape?: MatchShape;
 
-  abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar' | 'InputObject';
+  abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar' | 'InputObject' | 'Root';
 
   constructor(name: Name, shape?: Shape) {
     this.typename = name;

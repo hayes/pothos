@@ -49,6 +49,28 @@ type SchemaBuilderOptions = {
 
 ## `createObjectType(name, options)`
 
+## `createMuttationType(name, options)`
+
+## `createSubscriptionType(name, options)`
+
+- `name`: A key of the `Object` property in [`TypeInfo`]
+- `options`: [`RootTypeOptions`]
+
+### `ObjectTypeOptions`
+
+```typescript
+type RootTypeOptions = {
+  description?: string;
+  shape: FieldsShape;
+};
+```
+
+- `description`: A description of the current type
+- `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
+  field definitons. See [`FieldBuilder`] for more details.
+
+## `createObjectType(name, options)`
+
 - `name`: A key of the `Object` property in [`TypeInfo`]
 - `options`: [`ObjectTypeOptions`]
 

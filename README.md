@@ -11,7 +11,7 @@ import { ApolloServer } from 'apollo-server';
 
 const builder = new SchemaBuilder<{ Context: {} }>();
 
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
     shape: t => ({
         hello: t.string({
             args: {

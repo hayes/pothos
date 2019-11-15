@@ -36,6 +36,7 @@ import BasePlugin from './plugin';
 import Field from './graphql/field';
 import BuildCache from './build-cache';
 import FieldBuilder from './fieldUtils/builder';
+import RootType from './graphql/root';
 
 export * from './types';
 
@@ -51,6 +52,7 @@ export {
   InputObjectType,
   FieldBuilder,
   InputFieldBuilder,
+  RootType,
 };
 
 export default class SchemaBuilder<
@@ -89,6 +91,22 @@ export default class SchemaBuilder<
     >,
   ) {
     return new ObjectType<Shape, Interfaces, Types, Type>(name, options);
+  }
+
+  createQueryType<Shape extends {}>(options: GiraphQLSchemaTypes.QueryTypeOptions<Shape, Types>) {
+    return new RootType<Types, Shape, 'Query'>('Query', options);
+  }
+
+  createMutationType<Shape extends {}>(
+    options: GiraphQLSchemaTypes.MutationTypeOptions<Shape, Types>,
+  ) {
+    return new RootType<Types, Shape, 'Mutation'>('Mutation', options);
+  }
+
+  createSubscriptionType<Shape extends {}>(
+    options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Shape, Types>,
+  ) {
+    return new RootType<Types, Shape, 'Subscription'>('Subscription', options);
   }
 
   createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
@@ -163,10 +181,12 @@ export default class SchemaBuilder<
     const builtTypes = [...buildCache.types.values()].map(entry => entry.built);
 
     return new GraphQLSchema({
-      query: buildCache.has('Query') ? buildCache.getBuiltObject('Query') : undefined,
-      mutation: buildCache.has('Mutation') ? buildCache.getBuiltObject('Mutation') : undefined,
+      query: buildCache.has('Query') ? buildCache.getEntryOfType('Query', 'Root').built : undefined,
+      mutation: buildCache.has('Mutation')
+        ? buildCache.getEntryOfType('Mutation', 'Root').built
+        : undefined,
       subscription: buildCache.has('Subscription')
-        ? buildCache.getBuiltObject('Subscription')
+        ? buildCache.getEntryOfType('Subscription', 'Root').built
         : undefined,
       extensions,
       directives: directives as GraphQLDirective[],

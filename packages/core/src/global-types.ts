@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import {
   EnumValues,
   FieldsShape,
@@ -11,6 +11,8 @@ import {
   InputShapeFromFields,
   ObjectName,
   FieldNullability,
+  RootFieldsShape,
+  Subscriber,
 } from './types';
 import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
@@ -45,6 +47,7 @@ declare global {
         };
       };
       Object: {};
+      Root: {};
       Interface: {};
       Input: {};
       Context: {};
@@ -60,6 +63,7 @@ declare global {
       Object?: {};
       Interface?: {};
       Input?: {};
+      Root?: {};
       Context: {};
     }
 
@@ -117,6 +121,40 @@ declare global {
         ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
       >;
       extensions?: Readonly<Record<string, any>>;
+    }
+
+    export interface RootTypeOptions<
+      Shape extends {},
+      Types extends TypeInfo,
+      Type extends 'Query' | 'Mutation' | 'Subscription'
+    > {
+      description?: string;
+      shape: RootFieldsShape<Shape, Types, Type>;
+      extensions?: Readonly<Record<string, any>>;
+    }
+
+    export interface QueryTypeOptions<Shape extends {}, Types extends TypeInfo>
+      extends RootTypeOptions<Shape, Types, 'Query'> {}
+
+    export interface MutationTypeOptions<Shape extends {}, Types extends TypeInfo>
+      extends RootTypeOptions<Shape, Types, 'Mutation'> {}
+
+    export interface SubscriptionTypeOptions<Shape extends {}, Types extends TypeInfo>
+      extends RootTypeOptions<Shape, Types, 'Subscription'> {}
+
+    export interface SubscriptionFieldOptions<
+      Types extends TypeInfo,
+      ParentName extends TypeParam<Types>,
+      ReturnTypeName extends TypeParam<Types>,
+      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, ParentName, ReturnTypeName, Nullable, Args> {
+      subscribe: Subscriber<
+        ShapeFromTypeParam<Types, ParentName, false>,
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
+      >;
     }
 
     export interface InputTypeOptions<

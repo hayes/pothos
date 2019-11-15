@@ -15,7 +15,7 @@ Scalar fields can be difined a couple of different ways:
 1. Using convenience methods
 
 ```typescript
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     id: t.id({ resolve: () => '123' }),
     int: t.int({ resolve: () => 123 }),
@@ -34,7 +34,7 @@ const Query = builder.createObjectType('Query', {
 2. Using the generic `field` method
 
 ```typescript
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     name: t.field({
       description: 'Name field'
@@ -58,7 +58,7 @@ const builder = new SchemaBuilder<{
   Context: {};
 }>();
 
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     giraffe: t.field({
       description: 'A giraffe'
@@ -84,7 +84,7 @@ const Giraffe = builder.createObjectType('Giraffe', shape: t => ({
   })
 }));
 
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     giraffe: t.field({
       type: Giraffe,
@@ -99,7 +99,7 @@ const Query = builder.createObjectType('Query', {
 To create a list field, you can wrap the the type in an array
 
 ```typescript
-const Query = builder.createObjectType('Query', {
+const Query = builder.createQueryType({
   shape: t => ({
     giraffes: t.field({
       description: 'multiple giraffes'
@@ -120,6 +120,9 @@ const Query = builder.createObjectType('Query', {
 Some graphql implementations have a concept of "default resolvers" that can automatically resolve
 fields that match the types defined for thte backing model. In GiraphQL, these relationships need to
 be explicitly defined, but there are helper methods that make exposing fields easier.
+
+These helpers are not available for root types (Query, Mutation and Subscription), but will work on
+any other object type or interface.
 
 ```typescript
 const builder = new SchemaBuilder<{

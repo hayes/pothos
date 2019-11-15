@@ -19,6 +19,8 @@ import SchemaBuilder from '@giraphql/core';
 const builder = new SchemaBuilder<{
   // Type of the context object
   Context: {};
+  // parent type in root resolvers (Query, Mutation, Subscription)
+  Root: {};
   // Backing models/shapes for Objects
   Object: {
     Giraffe: { name: string; age: number };

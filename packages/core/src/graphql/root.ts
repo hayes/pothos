@@ -1,0 +1,50 @@
+import { GraphQLObjectType } from 'graphql';
+// @ts-ignore
+import fromEntries from 'object.fromentries';
+import BaseType from './base';
+import { ShapeFromTypeParam, TypeParam, FieldMap } from '../types';
+import Field from './field';
+import BasePlugin from '../plugin';
+import BuildCache from '../build-cache';
+import RootFieldBuilder from '../fieldUtils/root';
+
+export default class RootType<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Shape extends {},
+  Name extends 'Query' | 'Mutation' | 'Subscription'
+> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
+  kind: 'Root' = 'Root';
+
+  description?: string;
+
+  options: GiraphQLSchemaTypes.RootTypeOptions<Shape, Types, Name>;
+
+  constructor(name: Name, options: GiraphQLSchemaTypes.RootTypeOptions<Shape, Types, Name>) {
+    super(name);
+
+    this.options = options;
+  }
+
+  getFields(): FieldMap<Types> {
+    return this.options.shape(new RootFieldBuilder(this.typename));
+  }
+
+  buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLObjectType {
+    return new GraphQLObjectType({
+      name: String(this.typename),
+      description: this.description,
+      fields: () =>
+        fromEntries(
+          Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
+            key,
+            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
+              key,
+              cache,
+              plugins,
+            ),
+          ]),
+        ),
+      extensions: this.options.extensions,
+    });
+  }
+}

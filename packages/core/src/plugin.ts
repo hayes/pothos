@@ -24,6 +24,7 @@ import {
 } from './types';
 import Field from './graphql/field';
 import BuildCache from './build-cache';
+import RootType from './graphql/root';
 
 export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> {
   fieldsForObjectType?(
@@ -34,12 +35,25 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
     cache: BuildCache<Types>,
   ): FieldMap<Types>;
 
+  fieldsForRootType?(
+    type: RootType<Types, {}, 'Query' | 'Mutation' | 'Subscription'>,
+    fields: FieldMap<Types>,
+    built: GraphQLObjectType,
+    cache: BuildCache<Types>,
+  ): FieldMap<Types>;
+
   fieldsForInterfaceType?(
     type: InterfaceType<{}, Types, InterfaceName<Types>>,
     fields: FieldMap<Types>,
     built: GraphQLInterfaceType,
     cache: BuildCache<Types>,
   ): FieldMap<Types>;
+
+  visitRootType?(
+    type: RootType<Types, {}, 'Query' | 'Mutation' | 'Subscription'>,
+    built: GraphQLObjectType,
+    cache: BuildCache<Types>,
+  ): void;
 
   visitObjectType?(
     type: ObjectType<{}, any[], Types, any>,

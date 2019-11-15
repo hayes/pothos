@@ -88,6 +88,18 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return fields;
   }
 
+  getRootFields(entry: Extract<BuildCacheEntry<Types>, { kind: 'Root' }>): FieldMap<Types> {
+    let fields = entry.type.getFields();
+
+    for (const plugin of this.plugins) {
+      if (plugin.fieldsForRootType) {
+        fields = plugin.fieldsForRootType(entry.type, fields, entry.built, this);
+      }
+    }
+
+    return fields;
+  }
+
   getFields(typename: string): FieldMap<Types> {
     if (this.fields.has(typename)) {
       return this.fields.get(typename)!;
@@ -101,16 +113,16 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
     const entry = this.getEntry(typename);
 
-    if (entry.kind === 'Interface') {
-      const fields = this.getInterfaceFields(entry);
+    if (entry.kind === 'Root') {
+      return this.getRootFields(entry);
+    }
 
-      return fields;
+    if (entry.kind === 'Interface') {
+      return this.getInterfaceFields(entry);
     }
 
     if (entry.kind === 'Object') {
-      const fields = this.getObjectFields(entry);
-
-      return fields;
+      return this.getObjectFields(entry);
     }
 
     throw new Error(`Type ${entry.kind} does not have fields to resolve`);
@@ -128,6 +140,11 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
     for (const plugin of this.plugins) {
       for (const entry of this.types.values()) {
         switch (entry.kind) {
+          case 'Root':
+            if (plugin.visitRootType) {
+              plugin.visitRootType(entry.type, entry.built, this);
+            }
+            break;
           case 'Object':
             if (plugin.visitObjectType) {
               plugin.visitObjectType(entry.type, entry.built, this);
@@ -186,7 +203,12 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
   getBuiltInput(name: string) {
     const entry = this.getEntry(name);
 
-    if (entry.kind === 'Object' || entry.kind === 'Interface' || entry.kind === 'Union') {
+    if (
+      entry.kind === 'Object' ||
+      entry.kind === 'Interface' ||
+      entry.kind === 'Union' ||
+      entry.kind === 'Root'
+    ) {
       throw new Error(`${name} is of type ${entry.type}, expected valid input type`);
     }
 

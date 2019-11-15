@@ -1,6 +1,6 @@
 import builder from '../builder';
 
-export default builder.createObjectType('Query', {
+export default builder.createQueryType({
   authChecks: {
     readUser: (parent, context) => {
       return context.role === 'Admin' || context.role === 'User';

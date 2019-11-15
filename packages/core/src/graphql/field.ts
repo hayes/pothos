@@ -2,7 +2,13 @@
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from '../types';
+import {
+  TypeParam,
+  InputFields,
+  ShapeFromTypeParam,
+  FieldNullability,
+  MaybeSubscriptionFieldOptions,
+} from '../types';
 import { typeFromParam, buildArg } from '../utils';
 import BaseType from './base';
 import BasePlugin from '../plugin';
@@ -13,15 +19,17 @@ export default class Field<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentType extends TypeParam<Types>,
   Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Types, Type> = true,
+  Nullable extends FieldNullability<Types, Type> = FieldNullability<Types, Type>,
   Extends extends string | null = null,
-  Options extends GiraphQLSchemaTypes.FieldOptions<
+  Subscription extends boolean = false,
+  Options extends MaybeSubscriptionFieldOptions<
     Types,
     ParentType,
     Type,
     Nullable,
-    Args
-  > = GiraphQLSchemaTypes.FieldOptions<Types, ParentType, Type, Nullable, Args>
+    Args,
+    Subscription
+  > = MaybeSubscriptionFieldOptions<Types, ParentType, Type, Nullable, Args, Subscription>
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
@@ -51,7 +59,7 @@ export default class Field<
     this.parentTypename = parentTypename;
   }
 
-  private buildArgs(cache: BuildCache<Types>): GraphQLFieldConfigArgumentMap {
+  protected buildArgs(cache: BuildCache<Types>): GraphQLFieldConfigArgumentMap {
     return fromEntries(
       Object.keys(this.args).map(key => {
         const arg = this.args[key];
@@ -83,24 +91,14 @@ export default class Field<
       args: this.buildArgs(cache),
       description: this.options.description,
       resolve: this.options.resolve as (...args: unknown[]) => unknown,
+      subscribe: (this.options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
       type: typeFromParam(this.type, cache, this.nullable),
       extensions: this.options.extensions,
     };
 
     return plugins.reduce((config, plugin) => {
       return plugin.updateFieldConfig
-        ? plugin.updateFieldConfig(
-            name,
-            // TODO figure out why this is complainings
-            (this as unknown) as Field<
-              InputFields<Types>,
-              Types,
-              TypeParam<Types>,
-              TypeParam<Types>
-            >,
-            config,
-            cache,
-          )
+        ? plugin.updateFieldConfig(name, this as any, config, cache)
         : config;
     }, baseConfig);
   }
