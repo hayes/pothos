@@ -24,5 +24,6 @@ export default {
       ],
     },
     { name: 'Api', menu: ['SchemaBuilder', 'FieldBuilder', 'InputFieldBuilder'] },
+    'Schema converter',
   ],
 };

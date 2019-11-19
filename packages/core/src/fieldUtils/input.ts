@@ -22,17 +22,24 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
 
   stringList = this.helper(['String']);
 
+  callableBuilder() {
+    const builder: InputFieldBuilder<Types>['type'] = this.type.bind(this);
+
+    ([...Object.keys(this), 'type', 'list'] as (keyof InputFieldBuilder<Types>)[]).forEach(key => {
+      ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
+    });
+
+    return builder as InputFieldBuilder<Types> & typeof builder;
+  }
+
   type<Type extends InputType<Types> | [InputType<Types>]>(
     type: Type,
   ): { type: Type; required: false; description?: string };
-  type<Type extends InputType<Types>, Req extends boolean = false>(
+  type<Type extends InputType<Types>, Req extends boolean>(
     type: Type,
     options: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
   ): { type: Type; required: Req; description?: string };
-  type<
-    Type extends InputType<Types> | [InputType<Types>],
-    Req extends boolean | { list: boolean; items: boolean } = false
-  >(
+  type<Type extends [InputType<Types>], Req extends boolean | { list: boolean; items: boolean }>(
     type: Type,
     options: GiraphQLSchemaTypes.InputOptions<Req> | undefined,
   ): { type: Type; required: Req; description?: string };
@@ -63,22 +70,6 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
       required: options ? options.required : false,
       type: [type] as [Type],
     };
-  }
-
-  callableBuilder() {
-    const builder = <
-      Type extends InputType<Types> | [InputType<Types>],
-      Req extends boolean = false
-    >(
-      type: Type,
-      options?: GiraphQLSchemaTypes.InputOptions<Req>,
-    ): { type: Type } & GiraphQLSchemaTypes.InputOptions<Req> => this.type(type, options);
-
-    (Object.keys(this) as (keyof InputFieldBuilder<Types>)[]).forEach(key => {
-      ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
-    });
-
-    return builder as InputFieldBuilder<Types> & typeof builder;
   }
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {

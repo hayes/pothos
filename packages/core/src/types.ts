@@ -190,7 +190,7 @@ export type TypeParam<Types extends GiraphQLSchemaTypes.TypeInfo> =
 
 // InputTypes
 export type InputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
-  | InputObjectType<Types, unknown, {}, string>
+  | InputObjectType<Types, unknown, {}, any>
   | ScalarType<Types, ScalarName<Types>>
   | EnumType<Types, any>
   | ScalarName<Types>
@@ -277,8 +277,8 @@ export type ShapedInputFields<Types extends GiraphQLSchemaTypes.TypeInfo, Shape 
           : [undefined] extends Shape[K]
           ? { items: false; list: true }
           : undefined extends Shape[K]
-          ? false
-          : true
+          ? false | { items: true; list: false }
+          : true | { items: true; list: true }
       >
     : InputFieldWithShape<Types, Shape[K], undefined extends Shape[K] ? false : true>;
 };

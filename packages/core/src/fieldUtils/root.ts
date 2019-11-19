@@ -179,7 +179,11 @@ export default class RootFieldBuilder<
     );
   }
 
-  field<Args extends InputFields<Types>, Type extends TypeParam<Types>, Req extends boolean>(
+  field<
+    Args extends InputFields<Types>,
+    Type extends TypeParam<Types>,
+    Req extends FieldNullability<Types, Type>
+  >(
     options: FieldOptionsFromKind<Types, ParentType, Type, Req, Args, Kind>,
   ): Field<Args, Types, ParentType, Type, Req, null> {
     return this.createField(options, null);

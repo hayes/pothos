@@ -1,4 +1,4 @@
-import { GraphQLInterfaceType } from 'graphql';
+import { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
@@ -40,13 +40,13 @@ export default class InterfaceType<
     return new GraphQLInterfaceType({
       name: String(this.typename),
       description: this.description,
-      resolveType: (obj: unknown) => {
+      resolveType: (obj: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
         if (!types) {
           types = cache.getImplementers(this.typename);
         }
 
         for (const type of types) {
-          if (type.isType(obj)) {
+          if (type.options.isType && type.options.isType(obj, context, info)) {
             return String(type.typename);
           }
         }

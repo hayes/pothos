@@ -14,7 +14,7 @@ export default class UnionType<
 
   members: Member[];
 
-  resolveType: (parent: unknown, ctx: unknown) => string;
+  resolveType: (parent: unknown, ctx: unknown, info: unknown) => string;
 
   options: GiraphQLSchemaTypes.UnionOptions<Types, any>;
 
@@ -25,7 +25,11 @@ export default class UnionType<
 
     this.description = options.description;
 
-    this.resolveType = options.resolveType as (parent: unknown, ctx: unknown) => string;
+    this.resolveType = options.resolveType as (
+      parent: unknown,
+      ctx: unknown,
+      info: unknown,
+    ) => string;
 
     this.options = options;
   }

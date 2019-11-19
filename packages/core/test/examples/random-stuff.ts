@@ -88,8 +88,8 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        example: t.arg(Example, { required: true }),
-        firstN: t.arg('Int', { required: true }),
+        example: t.arg.type(Example, { required: true }),
+        firstN: t.arg.int({ required: true }),
       },
       resolve: (parent, args) => {
         return parent.firstName.slice(0, args.firstN) + args.example.id;
@@ -98,7 +98,7 @@ const User = builder.createObjectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: t.arg(Example2, { required: true }),
+        example2: t.arg.type(Example2, { required: true }),
         firstN: t.arg.id(),
       },
       resolve: (parent, args) => {
@@ -280,7 +280,7 @@ const Subscription = builder.createSubscriptionType({
     event: t.string({
       resolve: () => 'yup',
       async *subscribe() {
-        yield '123';
+        yield await Promise.resolve('123');
       },
     }),
   }),

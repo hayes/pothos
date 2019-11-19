@@ -33,8 +33,6 @@ export default class ObjectType<
 
   interfaces: Interfaces;
 
-  isType: (obj: unknown) => boolean;
-
   options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<{}, Interfaces, Types, Name>>;
 
   constructor(
@@ -50,11 +48,8 @@ export default class ObjectType<
     }
 
     this.options = options;
-
     this.description = options.description;
     this.interfaces = options.implements || (([] as unknown) as Interfaces);
-
-    this.isType = (options as { isType: (obj: unknown) => boolean }).isType || (() => false);
   }
 
   getFields(

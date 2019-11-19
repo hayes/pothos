@@ -18,6 +18,7 @@ import {
 } from './types';
 import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
+import { GraphQLResolveInfo } from 'graphql';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -99,8 +100,18 @@ declare global {
         UnionToIntersection<NonNullable<Interfaces[number]['fieldShape']>> & {}
       >;
       isType: Interfaces[number]['typename'] extends Type
-        ? ((obj: NonNullable<Interfaces[number]['shape']>) => boolean) | undefined
-        : (obj: NonNullable<Interfaces[number]['shape']>) => boolean;
+        ?
+            | ((
+                obj: NonNullable<Interfaces[number]['shape']>,
+                context: Types['Context'],
+                info: GraphQLResolveInfo,
+              ) => boolean)
+            | undefined
+        : (
+            obj: NonNullable<Interfaces[number]['shape']>,
+            context: Types['Context'],
+            info: GraphQLResolveInfo,
+          ) => boolean;
       extensions?: Readonly<Record<string, any>>;
     }
 
@@ -217,6 +228,7 @@ declare global {
       resolveType: (
         parent: Types['Object'][Member],
         context: Types['Context'],
+        info: GraphQLResolveInfo,
       ) => Member | Promise<Member>;
       extensions?: Readonly<Record<string, any>>;
     }
