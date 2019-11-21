@@ -205,7 +205,7 @@ const Shaveable = builder.createInterfaceType('Shaveable', {
     id: t.id({
       resolve: () => 5,
     }),
-    shaved: t.exposBoolean('shaved'),
+    shaved: t.exposeBoolean('shaved'),
     extendMePlease: t.string({}),
   }),
 });

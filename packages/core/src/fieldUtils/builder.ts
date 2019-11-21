@@ -59,7 +59,7 @@ export default class FieldBuilder<
     };
   }
 
-  exposBoolean<
+  exposeBoolean<
     Nullable extends FieldNullability<Types, 'Boolean'>,
     Name extends CompatibleTypes<Types, ParentType, 'Boolean', Nullable>
   >(
