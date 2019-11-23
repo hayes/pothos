@@ -4,7 +4,7 @@ import { ApolloServer } from 'apollo-server';
 interface Giraffe {
   name: string;
   birthday: Date;
-  heightMeters: number;
+  heightInMeters: number;
 }
 
 const builder = new SchemaBuilder<{
@@ -12,6 +12,10 @@ const builder = new SchemaBuilder<{
     Giraffe: Giraffe;
   };
 }>();
+
+const LengthUnit = builder.createEnumType('LengthUnit', {
+  values: { Feet: {}, Meters: {} },
+});
 
 const Giraffe = builder.createObjectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
@@ -28,20 +32,20 @@ const Giraffe = builder.createObjectType('Giraffe', {
       },
     }),
     height: t.float({
-      resolve: parent => parent.heightMeters,
+      args: {
+        unit: t.arg(LengthUnit, {}),
+      },
+      resolve: (parent, args) =>
+        args.unit === 'Feet' ? parent.heightInMeters * 3.281 : parent.heightInMeters,
     }),
   }),
-});
-
-const LengthUnit = builder.createEnumType('LengthUnit', {
-  values: { Feet: {}, Meters: {} },
 });
 
 const Query = builder.createQueryType({
   shape: t => ({
     giraffe: t.field({
       type: Giraffe,
-      resolve: () => ({ name: 'James', heightMeters: 5.2, birthday: new Date(2012, 11, 12) }),
+      resolve: () => ({ name: 'James', heightInMeters: 5.2, birthday: new Date(2012, 11, 12) }),
     }),
   }),
 });

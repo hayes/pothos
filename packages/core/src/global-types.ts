@@ -72,7 +72,7 @@ declare global {
 
     export interface InputOptions<Req extends boolean | { list: boolean; items: boolean }> {
       description?: string;
-      required: Req;
+      required?: Req;
     }
 
     export interface EnumTypeOptions<Values extends EnumValues> {
