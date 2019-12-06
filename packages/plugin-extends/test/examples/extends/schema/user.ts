@@ -42,6 +42,22 @@ export default builder.createObjectType('User', {
           return user;
         },
       }),
+      createAdmin: t.field({
+        type: 'User',
+        args: {
+          firstName: t.arg('String', {
+            required: true,
+          }),
+          lastName: t.arg.string({
+            required: true,
+          }),
+        },
+        resolve: (parent, { firstName, lastName }, { User }) => {
+          const user = User.create(firstName, lastName, 'Admin');
+
+          return user;
+        },
+      }),
     }),
   },
 });

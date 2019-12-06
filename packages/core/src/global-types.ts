@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
+import { GraphQLResolveInfo } from 'graphql';
 import {
   EnumValues,
   FieldsShape,
@@ -15,10 +16,11 @@ import {
   Subscriber,
   InterfaceFieldsShape,
   InterfaceName,
+  InputType,
+  InputShapeFromField,
 } from './types';
 import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
-import { GraphQLResolveInfo } from 'graphql';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -70,9 +72,14 @@ declare global {
       Context?: {};
     }
 
-    export interface InputOptions<Req extends boolean | { list: boolean; items: boolean }> {
+    export interface InputOptions<
+      Types extends TypeInfo,
+      Type extends InputType<Types> | [InputType<Types>],
+      Req extends boolean | { list: boolean; items: boolean }
+    > {
       description?: string;
       required?: Req;
+      default?: NonNullable<InputShapeFromField<Types, Type>>;
     }
 
     export interface EnumTypeOptions<Values extends EnumValues> {

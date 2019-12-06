@@ -80,6 +80,10 @@ export default class Field<
                 ? false
                 : arg.required || false,
             type: buildArg(arg, cache),
+            defaultValue:
+              typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
+                ? undefined
+                : arg.default,
           },
         ];
       }),

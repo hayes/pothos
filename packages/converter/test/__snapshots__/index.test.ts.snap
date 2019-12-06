@@ -234,6 +234,17 @@ const User = builder.createObjectType('User', {
             type: ['ID'],
             nullable: { list: true, items: true },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        defaultArgs: t.field({
+            args: {
+                ids: t.arg.type(['ID'], {
+                    required: { list: true, items: true },
+                    default: [\\"abc\\"],
+                }),
+            },
+            type: ['ID'],
+            nullable: { list: false, items: false },
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
@@ -367,6 +378,7 @@ type User {
   list(ids: [ID!]!): [ID!]!
   sparseList(ids: [ID]!): [ID]!
   notSparseList(ids: [ID!]!): [ID]
+  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
 }
 
 "

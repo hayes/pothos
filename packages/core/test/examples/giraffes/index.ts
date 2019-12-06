@@ -33,7 +33,10 @@ const Giraffe = builder.createObjectType('Giraffe', {
     }),
     height: t.float({
       args: {
-        unit: t.arg(LengthUnit, {}),
+        unit: t.arg(LengthUnit, {
+          required: true,
+          default: 'Meters',
+        }),
       },
       resolve: (parent, args) =>
         args.unit === 'Feet' ? parent.heightInMeters * 3.281 : parent.heightInMeters,

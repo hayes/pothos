@@ -72,6 +72,7 @@ type User {
   list(ids: [ID!]!): [ID!]!
   sparseList(ids: [ID]!): [ID]!
   notSparseList(ids: [ID!]!): [ID]
+  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
 }
 "
 `;

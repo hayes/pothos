@@ -203,11 +203,13 @@ export type InputField<Types extends GiraphQLSchemaTypes.TypeInfo> =
       description?: string;
       required?: boolean;
       type: InputType<Types>;
+      default?: unknown;
     }
   | {
       description?: string;
       required?: boolean | { items: boolean; list: boolean };
       type: InputType<Types>[];
+      default?: unknown[];
     };
 
 export type FieldNullability<

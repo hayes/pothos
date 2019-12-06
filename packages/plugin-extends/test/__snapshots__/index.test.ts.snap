@@ -3,6 +3,7 @@
 exports[`extends example schema generates expected schema 1`] = `
 "type Mutation {
   createUser(firstName: String!, lastName: String!): User!
+  createAdmin(firstName: String!, lastName: String!): User!
 }
 
 type Query {

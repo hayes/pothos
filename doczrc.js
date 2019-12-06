@@ -15,6 +15,7 @@ export default {
         'SchemaBuilder',
         'Defining Fields',
         'Defining Arguments',
+        'Using Context',
         'Input Types',
         'Enum Types',
         'Scalar Types',

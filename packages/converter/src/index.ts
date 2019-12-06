@@ -646,6 +646,11 @@ export default class GirphQLConverter {
             this.writeRequiredness(writer, arg.type);
             writer.write(',');
             writer.newLine();
+            if (arg.defaultValue != null) {
+              writer.write(`default: ${JSON.stringify(arg.defaultValue)}`);
+              writer.write(',');
+              writer.newLine();
+            }
           });
           writer.newLine();
           writer.writeLine('}),');
