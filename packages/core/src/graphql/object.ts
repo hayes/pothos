@@ -18,7 +18,6 @@ import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 
 export default class ObjectType<
-  Shape extends {},
   Interfaces extends InterfaceType<
     {},
     Types,
@@ -33,13 +32,11 @@ export default class ObjectType<
 
   interfaces: Interfaces;
 
-  options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<{}, Interfaces, Types, Name>>;
+  options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<Interfaces, Types, Name>>;
 
   constructor(
     name: Name,
-    options: NullableToOptional<
-      GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Name>
-    >,
+    options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<Interfaces, Types, Name>>,
   ) {
     super(name);
 

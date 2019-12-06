@@ -12,7 +12,6 @@ import {
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface RootTypeOptions<
-      Shape extends {},
       Types extends TypeInfo,
       Type extends 'Query' | 'Mutation' | 'Subscription'
     > {
@@ -25,7 +24,6 @@ declare global {
     }
 
     export interface ObjectTypeOptions<
-      Shape extends {},
       Interfaces extends InterfaceType<
         {},
         Types,

@@ -10,16 +10,15 @@ import RootFieldBuilder from '../fieldUtils/root';
 
 export default class RootType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Shape extends {},
   Name extends 'Query' | 'Mutation' | 'Subscription'
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
   kind: 'Root' = 'Root';
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.RootTypeOptions<Shape, Types, Name>;
+  options: GiraphQLSchemaTypes.RootTypeOptions<Types, Name>;
 
-  constructor(name: Name, options: GiraphQLSchemaTypes.RootTypeOptions<Shape, Types, Name>) {
+  constructor(name: Name, options: GiraphQLSchemaTypes.RootTypeOptions<Types, Name>) {
     super(name);
 
     this.options = options;

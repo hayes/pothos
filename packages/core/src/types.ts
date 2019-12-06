@@ -402,7 +402,6 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
   : never;
 
 export type FieldsShape<
-  Shape extends {},
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Type extends TypeParam<Types>,
   ParentShape extends {
@@ -410,61 +409,47 @@ export type FieldsShape<
   } = {}
 > = (
   t: FieldBuilder<Types, Type, ParentShape>,
-) => Shape &
-  {
-    [K in keyof Shape]: K extends keyof ParentShape
-      ? Shape[K] extends Field<
-          {},
-          Types,
-          TypeParam<Types>,
-          TypeParam<Types>,
-          FieldNullability<Types, TypeParam<Types>>,
-          Extract<K, string>,
-          'Object',
-          any
-        >
-        ? Field<
-            {},
-            Types,
-            TypeParam<Types>,
-            TypeParam<Types>,
-            FieldNullability<Types, TypeParam<Types>>,
-            Extract<K, string>,
-            'Object',
-            any
-          >
-        : InvalidType<['Use t.extend(', K, ') to implement this field']>
-      : Field<
-          {},
-          Types,
-          TypeParam<Types>,
-          TypeParam<Types>,
-          FieldNullability<Types, TypeParam<Types>>,
-          null,
-          'Object',
-          any
-        >;
-  };
+) => {
+  [K in keyof ParentShape]?: Field<
+    {},
+    Types,
+    TypeParam<Types>,
+    TypeParam<Types>,
+    FieldNullability<Types, TypeParam<Types>>,
+    Extract<K, string>,
+    'Object',
+    any
+  >;
+} & {
+  [s: string]: Field<
+    {},
+    Types,
+    TypeParam<Types>,
+    TypeParam<Types>,
+    FieldNullability<Types, TypeParam<Types>>,
+    string | null,
+    'Object',
+    any
+  >;
+};
 
 export type RootFieldsShape<
-  Shape extends {},
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Type extends 'Query' | 'Mutation' | 'Subscription'
 > = (
   t: RootFieldBuilder<Types, Type, Type extends 'Subscription' ? 'Subscription' : 'Root'>,
-) => Shape &
-  {
-    [K in keyof Shape]: Field<
-      {},
-      Types,
-      TypeParam<Types>,
-      TypeParam<Types>,
-      FieldNullability<Types, TypeParam<Types>>,
-      null,
-      Type extends 'Subscription' ? 'Subscription' : 'Root',
-      any
-    >;
-  };
+) => {
+  [s: string]: Field<
+    {},
+    Types,
+    TypeParam<Types>,
+    TypeParam<Types>,
+    FieldNullability<Types, TypeParam<Types>>,
+    null,
+    Type extends 'Subscription' ? 'Subscription' : 'Root',
+    any
+  >;
+};
 
 export type InterfaceFieldsShape<
   Shape extends {},
@@ -493,7 +478,7 @@ export type FieldMap<Types extends GiraphQLSchemaTypes.TypeInfo> = {
     TypeParam<Types>,
     TypeParam<Types>,
     FieldNullability<Types, TypeParam<Types>>,
-    null,
+    string | null,
     any
   >;
 };
@@ -523,18 +508,18 @@ export type CompatibleTypes<
 
 // All types
 export type ImplementedType<Types extends GiraphQLSchemaTypes.TypeInfo> =
-  | ObjectType<{}, any[], Types, any>
+  | ObjectType<any[], Types, any>
   | InterfaceType<{}, Types, InterfaceName<Types>>
   | UnionType<Types, string, ObjectName<Types>>
   | EnumType<Types, string, EnumValues>
   | ScalarType<Types, ScalarName<Types>>
   | InputObjectType<Types, {}, {}, string>
-  | RootType<Types, {}, 'Query' | 'Mutation'>
-  | RootType<Types, {}, 'Subscription'>;
+  | RootType<Types, 'Query' | 'Mutation'>
+  | RootType<Types, 'Subscription'>;
 
 export type BuildCacheEntry<Types extends GiraphQLSchemaTypes.TypeInfo> =
   | {
-      type: ObjectType<{}, [], Types, ObjectName<Types>>;
+      type: ObjectType<[], Types, ObjectName<Types>>;
       built: GraphQLObjectType;
       kind: 'Object';
     }
@@ -560,7 +545,7 @@ export type BuildCacheEntry<Types extends GiraphQLSchemaTypes.TypeInfo> =
       kind: 'InputObject';
     }
   | {
-      type: RootType<Types, {}, 'Query' | 'Mutation' | 'Subscription'>;
+      type: RootType<Types, 'Query' | 'Mutation' | 'Subscription'>;
       built: GraphQLObjectType;
       kind: 'Root';
     };

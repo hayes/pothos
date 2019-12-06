@@ -13,7 +13,7 @@ import './global-types';
 export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   fieldsForRootType(
-    type: RootType<Types, {}, 'Query' | 'Mutation' | 'Subscription'>,
+    type: RootType<Types, 'Query' | 'Mutation' | 'Subscription'>,
     fields: FieldMap<Types>,
     built: GraphQLObjectType,
     cache: BuildCache<Types>,
@@ -22,7 +22,7 @@ export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   }
 
   fieldsForObjectType(
-    type: ObjectType<{}, any[], Types, any>,
+    type: ObjectType<any[], Types, any>,
     existingFields: FieldMap<Types>,
     parentFields: FieldMap<Types>,
     built: GraphQLObjectType,

@@ -88,27 +88,23 @@ export default class SchemaBuilder<
     Type extends ObjectName<Types>
   >(
     name: Type,
-    options: NullableToOptional<
-      GiraphQLSchemaTypes.ObjectTypeOptions<Shape, Interfaces, Types, Type>
-    >,
+    options: NullableToOptional<GiraphQLSchemaTypes.ObjectTypeOptions<Interfaces, Types, Type>>,
   ) {
-    return new ObjectType<Shape, Interfaces, Types, Type>(name, options);
+    return new ObjectType<Interfaces, Types, Type>(name, options);
   }
 
-  createQueryType<Shape extends {}>(options: GiraphQLSchemaTypes.QueryTypeOptions<Shape, Types>) {
-    return new RootType<Types, Shape, 'Query'>('Query', options);
+  createQueryType<Shape extends {}>(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
+    return new RootType<Types, 'Query'>('Query', options);
   }
 
-  createMutationType<Shape extends {}>(
-    options: GiraphQLSchemaTypes.MutationTypeOptions<Shape, Types>,
-  ) {
-    return new RootType<Types, Shape, 'Mutation'>('Mutation', options);
+  createMutationType<Shape extends {}>(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
+    return new RootType<Types, 'Mutation'>('Mutation', options);
   }
 
   createSubscriptionType<Shape extends {}>(
-    options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Shape, Types>,
+    options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>,
   ) {
-    return new RootType<Types, Shape, 'Subscription'>('Subscription', options);
+    return new RootType<Types, 'Subscription'>('Subscription', options);
   }
 
   createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {

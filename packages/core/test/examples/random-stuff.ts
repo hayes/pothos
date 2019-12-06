@@ -174,7 +174,7 @@ const User = builder.createObjectType('User', {
     defaultArgs: t.idList({
       args: {
         ids: t.arg.idList({
-          required: true,
+          required: { items: true, list: true },
           default: ['abc'],
         }),
       },

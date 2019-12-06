@@ -89,7 +89,6 @@ declare global {
     }
 
     export interface ObjectTypeOptions<
-      Shape extends {},
       Interfaces extends InterfaceType<
         {},
         Types,
@@ -101,7 +100,6 @@ declare global {
       implements?: Interfaces;
       description?: string;
       shape: FieldsShape<
-        Shape,
         Types,
         Type,
         UnionToIntersection<NonNullable<Interfaces[number]['fieldShape']>> & {}
@@ -189,23 +187,22 @@ declare global {
     }
 
     export interface RootTypeOptions<
-      Shape extends {},
       Types extends TypeInfo,
       Type extends 'Query' | 'Mutation' | 'Subscription'
     > {
       description?: string;
-      shape: RootFieldsShape<Shape, Types, Type>;
+      shape: RootFieldsShape<Types, Type>;
       extensions?: Readonly<Record<string, any>>;
     }
 
-    export interface QueryTypeOptions<Shape extends {}, Types extends TypeInfo>
-      extends RootTypeOptions<Shape, Types, 'Query'> {}
+    export interface QueryTypeOptions<Types extends TypeInfo>
+      extends RootTypeOptions<Types, 'Query'> {}
 
-    export interface MutationTypeOptions<Shape extends {}, Types extends TypeInfo>
-      extends RootTypeOptions<Shape, Types, 'Mutation'> {}
+    export interface MutationTypeOptions<Types extends TypeInfo>
+      extends RootTypeOptions<Types, 'Mutation'> {}
 
-    export interface SubscriptionTypeOptions<Shape extends {}, Types extends TypeInfo>
-      extends RootTypeOptions<Shape, Types, 'Subscription'> {}
+    export interface SubscriptionTypeOptions<Types extends TypeInfo>
+      extends RootTypeOptions<Types, 'Subscription'> {}
 
     export interface InputTypeOptions<
       Types extends GiraphQLSchemaTypes.TypeInfo,

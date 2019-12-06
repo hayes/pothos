@@ -35,7 +35,7 @@ export default class InterfaceType<
   }
 
   buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLInterfaceType {
-    let types: ObjectType<{}, any, Types, ObjectName<Types>>[];
+    let types: ObjectType<any, Types, ObjectName<Types>>[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),

@@ -10,7 +10,6 @@ import {
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface ObjectTypeOptions<
-      Shape extends {},
       Interfaces extends InterfaceType<
         {},
         Types,
@@ -20,12 +19,7 @@ declare global {
       Type extends ObjectName<Types>
     > {
       extends?: {
-        [K in ObjectName<Types> | 'Query' | 'Mutation' | 'Suscription']?: FieldsShape<
-          { [s: string]: unknown },
-          Types,
-          K,
-          {}
-        >;
+        [K in ObjectName<Types> | 'Query' | 'Mutation' | 'Suscription']?: FieldsShape<Types, K, {}>;
       };
     }
   }
