@@ -380,9 +380,7 @@ export type Resolver<Parent, Args, Context, Type> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => Type extends any[]
-  ? Readonly<Promise<Type[number]>[] | Type | Promise<Type>>
-  : Type | Promise<Type>;
+) => Readonly<Type | Promise<Type> | (Type extends unknown[] ? Promise<Type[number]>[] : never)>;
 
 export type Subscriber<Parent, Args, Context, Type> = (
   parent: Parent,
