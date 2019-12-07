@@ -381,8 +381,8 @@ export type Resolver<Parent, Args, Context, Type> = (
   context: Context,
   info: GraphQLResolveInfo,
 ) => Type extends any[]
-  ? Promise<Readonly<Type[number]>>[] | Readonly<Type | Promise<Type>>
-  : Readonly<Type | Promise<Type>>;
+  ? Readonly<Promise<Type[number]>[] | Type | Promise<Type>>
+  : Type | Promise<Type>;
 
 export type Subscriber<Parent, Args, Context, Type> = (
   parent: Parent,
