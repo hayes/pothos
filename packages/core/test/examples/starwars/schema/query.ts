@@ -34,3 +34,10 @@ export default builder.createQueryType({
     }),
   }),
 });
+
+export const extraQueryFields = builder.createQueryFields(t => ({
+  r2d2: t.field({
+    type: 'Droid',
+    resolve: () => getDroid(2001),
+  }),
+}));

@@ -5,6 +5,8 @@ import {
   InterfaceType,
   FieldsShape,
   ObjectName,
+  RootName,
+  RootFieldsShape,
 } from '@giraphql/core';
 
 declare global {
@@ -19,8 +21,9 @@ declare global {
       Type extends ObjectName<Types>
     > {
       extends?: {
-        [K in ObjectName<Types> | 'Query' | 'Mutation' | 'Suscription']?: FieldsShape<Types, K, {}>;
-      };
+        [K in ObjectName<Types>]?: FieldsShape<Types, K, {}>;
+      } &
+        { [K in RootName]?: RootFieldsShape<Types, K> };
     }
   }
 }

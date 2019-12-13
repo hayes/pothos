@@ -59,5 +59,25 @@ export default builder.createObjectType('User', {
         },
       }),
     }),
+    Subscription: t => ({
+      user: t.field({
+        type: 'User',
+        args: {
+          id: t.arg.id({ required: true }),
+        },
+        subscribe: async function*() {
+          return {};
+        },
+        resolve: (parent, args, { User }) => {
+          const user = User.map.get(parseInt(args.id, 10));
+
+          if (!user) {
+            throw new Error(`User with id ${args.id} was not found`);
+          }
+
+          return user;
+        },
+      }),
+    }),
   },
 });

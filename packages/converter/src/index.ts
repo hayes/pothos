@@ -72,10 +72,13 @@ export default class GirphQLConverter {
 
   sourcefile: SourceFile;
 
-  constructor(schema: GraphQLSchema) {
-    this.schema = schema;
+  types: string[] | null;
 
+  constructor(schema: GraphQLSchema, { types }: { types?: string[] | null } = {}) {
+    this.schema = schema;
     this.sourcefile = this.project.createSourceFile('./codegen/schema.ts');
+
+    this.types = types || null;
 
     this.createSchemaTypes();
   }
@@ -85,34 +88,40 @@ export default class GirphQLConverter {
 
     const gqlTypes = Object.keys(typeMap).map(typeName => typeMap[typeName]);
 
-    this.sourcefile.addImportDeclaration({
-      kind: StructureKind.ImportDeclaration,
-      moduleSpecifier: '@giraphql/core',
-      defaultImport: 'SchemaBuilder',
-    });
+    if (!this.types) {
+      this.sourcefile.addImportDeclaration({
+        kind: StructureKind.ImportDeclaration,
+        moduleSpecifier: '@giraphql/core',
+        defaultImport: 'SchemaBuilder',
+      });
 
-    this.sourcefile.addStatements(writer => writer.blankLine());
+      this.sourcefile.addStatements(writer => writer.blankLine());
 
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: 'builder',
-          initializer: writer => {
-            writer.writeLine('new SchemaBuilder<{');
-            writer.indent(() => {
-              this.writeTypeInfo(writer);
-            });
-            writer.writeLine('}>()');
+      this.sourcefile.addVariableStatement({
+        kind: StructureKind.VariableStatement,
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [
+          {
+            kind: StructureKind.VariableDeclaration,
+            name: 'builder',
+            initializer: writer => {
+              writer.writeLine('new SchemaBuilder<{');
+              writer.indent(() => {
+                this.writeTypeInfo(writer);
+              });
+              writer.writeLine('}>()');
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    }
 
     gqlTypes.forEach(type => {
       if (type.name.slice(0, 2) === '__' || builtins.includes(type.name)) {
+        return;
+      }
+
+      if (this.types && !this.types.includes(type.name)) {
         return;
       }
 
@@ -126,18 +135,32 @@ export default class GirphQLConverter {
     });
 
     gqlTypes.forEach(type => {
+      if (this.types && !this.types.includes(type.name)) {
+        return;
+      }
+
       if (type instanceof GraphQLInputObjectType) {
         this.createInputType(type);
       }
     });
 
     gqlTypes.forEach(type => {
+      if (this.types && !this.types.includes(type.name)) {
+        return;
+      }
+      if (this.types && !this.types.includes(type.name)) {
+        return;
+      }
       if (type instanceof GraphQLInterfaceType) {
         this.createInterfaceType(type);
       }
     });
 
     gqlTypes.forEach(type => {
+      if (this.types && !this.types.includes(type.name)) {
+        return;
+      }
+
       if (type.name.slice(0, 2) === '__') {
         return;
       }
@@ -155,30 +178,32 @@ export default class GirphQLConverter {
       }
     });
 
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      isExported: true,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: 'schema',
-          initializer: writer => {
-            writer.writeLine('builder.toSchema([');
-            writer.indent(() => {
-              gqlTypes.forEach(type => {
-                if (type.name.slice(0, 2) === '__' || builtins.includes(type.name)) {
-                  return;
-                }
+    if (!this.types) {
+      this.sourcefile.addVariableStatement({
+        kind: StructureKind.VariableStatement,
+        declarationKind: VariableDeclarationKind.Const,
+        isExported: true,
+        declarations: [
+          {
+            kind: StructureKind.VariableDeclaration,
+            name: 'schema',
+            initializer: writer => {
+              writer.writeLine('builder.toSchema([');
+              writer.indent(() => {
+                gqlTypes.forEach(type => {
+                  if (type.name.slice(0, 2) === '__' || builtins.includes(type.name)) {
+                    return;
+                  }
 
-                writer.writeLine(`${type.name},`);
+                  writer.writeLine(`${type.name},`);
+                });
               });
-            });
-            writer.writeLine('])');
+              writer.writeLine('])');
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+    }
   }
 
   createQueryType(type: GraphQLObjectType) {
@@ -425,7 +450,10 @@ export default class GirphQLConverter {
     const fieldMap = type.getFields();
     const inheritedFields =
       type instanceof GraphQLObjectType
-        ? type.getInterfaces().flatMap(i => Object.keys(i.getFields()))
+        ? type
+            .getInterfaces()
+            .map(i => Object.keys(i.getFields()))
+            .reduce((all, fields) => [...all, ...fields], [] as string[])
         : [];
     const fields = Object.keys(fieldMap).map(f => fieldMap[f]);
     writer.writeLine('shape: t => ({');

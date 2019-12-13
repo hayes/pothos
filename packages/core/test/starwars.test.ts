@@ -36,6 +36,9 @@ describe('starwars example', () => {
           hero(episode: NEWHOPE) {
             name
           }
+          r2d2 {
+            name
+          }
         }
       `;
 

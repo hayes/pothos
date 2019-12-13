@@ -6,6 +6,7 @@ import {
   FieldMap,
   ObjectName,
   FieldBuilder,
+  RootName,
 } from '@giraphql/core';
 import { GraphQLObjectType } from 'graphql';
 import './global-types';
@@ -13,7 +14,7 @@ import './global-types';
 export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   fieldsForRootType(
-    type: RootType<Types, 'Query' | 'Mutation' | 'Subscription'>,
+    type: RootType<Types, RootName>,
     fields: FieldMap<Types>,
     built: GraphQLObjectType,
     cache: BuildCache<Types>,

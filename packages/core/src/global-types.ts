@@ -18,6 +18,7 @@ import {
   InterfaceName,
   InputType,
   InputShapeFromField,
+  RootName,
 } from './types';
 import InterfaceType from './graphql/interface';
 import InputFieldBuilder from './fieldUtils/input';
@@ -186,10 +187,7 @@ declare global {
       >;
     }
 
-    export interface RootTypeOptions<
-      Types extends TypeInfo,
-      Type extends 'Query' | 'Mutation' | 'Subscription'
-    > {
+    export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       description?: string;
       shape: RootFieldsShape<Types, Type>;
       extensions?: Readonly<Record<string, any>>;

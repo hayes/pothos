@@ -7,14 +7,12 @@ import {
   InterfaceType,
   ObjectName,
   FieldNullability,
+  RootName,
 } from '@giraphql/core';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface RootTypeOptions<
-      Types extends TypeInfo,
-      Type extends 'Query' | 'Mutation' | 'Subscription'
-    > {
+    export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       authChecks?: {
         [s: string]: (
           parent: ShapeFromTypeParam<Types, Type, false>,

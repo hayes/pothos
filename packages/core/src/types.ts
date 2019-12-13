@@ -160,7 +160,7 @@ export type ShapeFromTypeParam<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Param extends TypeParam<Types>,
   Nullable extends FieldNullability<Types, Param>
-> = Param extends 'Query' | 'Mutation' | 'Subscription'
+> = Param extends RootName
   ? Types['Root']
   : Param extends [TypeParam<Types>]
   ? ShapeFromListTypeParam<Types, Param, Nullable>
@@ -234,6 +234,8 @@ export type InterfaceName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Ty
 export type ObjectName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Object'] & string;
 
 export type InputName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Input'] & string;
+
+export type RootName = 'Query' | 'Mutation' | 'Subscription';
 
 export type ScalarNameWithInputShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = {
   [K in keyof Types['Scalar']]: Types['Scalar'][K]['Input'] extends Shape ? K : never;
@@ -431,10 +433,7 @@ export type FieldsShape<
   >;
 };
 
-export type RootFieldsShape<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends 'Query' | 'Mutation' | 'Subscription'
-> = (
+export type RootFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Type extends RootName> = (
   t: RootFieldBuilder<Types, Type, Type extends 'Subscription' ? 'Subscription' : 'Root'>,
 ) => {
   [s: string]: Field<
@@ -543,7 +542,7 @@ export type BuildCacheEntry<Types extends GiraphQLSchemaTypes.TypeInfo> =
       kind: 'InputObject';
     }
   | {
-      type: RootType<Types, 'Query' | 'Mutation' | 'Subscription'>;
+      type: RootType<Types, RootName>;
       built: GraphQLObjectType;
       kind: 'Root';
     };

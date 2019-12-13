@@ -24,6 +24,10 @@ import {
   InterfaceName,
   ScalarName,
   InputName,
+  FieldsShape,
+  RootFieldsShape,
+  TypeParam,
+  RootName,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -38,6 +42,8 @@ import BuildCache from './build-cache';
 import FieldBuilder from './fieldUtils/builder';
 import RootFieldBuilder from './fieldUtils/root';
 import RootType from './graphql/root';
+import FieldSet from './graphql/field-set';
+import RootFieldSet from './graphql/root-field-set';
 
 export * from './types';
 
@@ -79,7 +85,6 @@ export default class SchemaBuilder<
   };
 
   createObjectType<
-    Shape extends {},
     Interfaces extends InterfaceType<
       {},
       Types,
@@ -93,18 +98,32 @@ export default class SchemaBuilder<
     return new ObjectType<Interfaces, Types, Type>(name, options);
   }
 
-  createQueryType<Shape extends {}>(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
+  createObjectFields<Type extends ObjectName<Types>>(name: Type, shape: FieldsShape<Types, Type>) {
+    return new FieldSet(name, shape);
+  }
+
+  createQueryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
     return new RootType<Types, 'Query'>('Query', options);
   }
 
-  createMutationType<Shape extends {}>(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
+  createQueryFields(shape: RootFieldsShape<Types, 'Query'>) {
+    return new RootFieldSet('Query', shape);
+  }
+
+  createMutationType(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
     return new RootType<Types, 'Mutation'>('Mutation', options);
   }
 
-  createSubscriptionType<Shape extends {}>(
-    options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>,
-  ) {
+  createMutationFields(shape: RootFieldsShape<Types, 'Mutation'>) {
+    return new RootFieldSet('Mutation', shape);
+  }
+
+  createSubscriptionType(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>) {
     return new RootType<Types, 'Subscription'>('Subscription', options);
+  }
+
+  createSubscription(shape: RootFieldsShape<Types, 'Mutation'>) {
+    return new RootFieldSet('Mutation', shape);
   }
 
   createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
@@ -116,6 +135,13 @@ export default class SchemaBuilder<
     options: GiraphQLSchemaTypes.InterfaceTypeOptions<Shape, Types, Type>,
   ) {
     return new InterfaceType<Shape, Types, Type>(name, options);
+  }
+
+  createInterfaceFields<Type extends InterfaceName<Types>>(
+    name: Type,
+    shape: FieldsShape<Types, Type>,
+  ) {
+    return new FieldSet(name, shape);
   }
 
   createUnionType<Member extends ObjectName<Types>, Name extends string>(
@@ -157,11 +183,13 @@ export default class SchemaBuilder<
   toSchema(
     types: ImplementedType<Types>[],
     {
+      fieldDefinitions,
       directives,
       extensions,
     }: {
       directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
+      fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
     } = {},
   ) {
     const scalars = [
@@ -172,7 +200,10 @@ export default class SchemaBuilder<
       this.scalars.String,
     ];
 
-    const buildCache = new BuildCache<Types>([...scalars, ...types], this.plugins);
+    const buildCache = new BuildCache<Types>([...scalars, ...types], {
+      plugins: this.plugins,
+      fieldDefinitions,
+    });
 
     buildCache.buildAll();
 

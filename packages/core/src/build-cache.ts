@@ -1,6 +1,15 @@
-import { BuildCacheEntry, ImplementedType, FieldMap, InterfaceName } from './types';
-import { BasePlugin, InterfaceType } from '.';
+import {
+  BuildCacheEntry,
+  ImplementedType,
+  FieldMap,
+  InterfaceName,
+  TypeParam,
+  RootName,
+} from './types';
+import { BasePlugin, InterfaceType, FieldBuilder } from '.';
 import BaseType from './graphql/base';
+import RootFieldSet from './graphql/root-field-set';
+import FieldSet from './graphql/field-set';
 
 export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
   implementations: ImplementedType<Types>[];
@@ -13,7 +22,18 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   plugins: BasePlugin<Types>[];
 
-  constructor(implementations: ImplementedType<Types>[], plugins: BasePlugin<Types>[]) {
+  fieldDefinitions: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
+
+  constructor(
+    implementations: ImplementedType<Types>[],
+    {
+      plugins,
+      fieldDefinitions,
+    }: {
+      plugins?: BasePlugin<Types>[];
+      fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
+    } = {},
+  ) {
     const seenTypes = new Set<string>();
 
     for (const type of implementations) {
@@ -24,8 +44,9 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
       seenTypes.add(type.typename);
     }
 
-    this.plugins = plugins;
+    this.plugins = plugins || [];
     this.implementations = implementations;
+    this.fieldDefinitions = fieldDefinitions || [];
   }
 
   mergeFields(
@@ -53,6 +74,18 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
   ): FieldMap<Types> {
     let fields = entry.type.getFields();
 
+    this.fieldDefinitions
+      .filter(set => set.forType === entry.type.typename)
+      .forEach(set => {
+        fields = this.mergeFields(
+          entry.type.typename,
+          fields,
+          (set as FieldSet<Types, TypeParam<Types>>).shape(
+            new FieldBuilder({}, entry.type.typename),
+          ),
+        );
+      });
+
     for (const plugin of this.plugins) {
       if (plugin.fieldsForInterfaceType) {
         fields = plugin.fieldsForInterfaceType(entry.type, fields, entry.built, this);
@@ -79,6 +112,18 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
       true,
     );
 
+    this.fieldDefinitions
+      .filter(set => set.forType === entry.type.typename)
+      .forEach(set => {
+        fields = this.mergeFields(
+          entry.type.typename,
+          fields,
+          (set as FieldSet<Types, TypeParam<Types>>).shape(
+            new FieldBuilder(parentFields, entry.type.typename),
+          ),
+        );
+      });
+
     for (const plugin of this.plugins) {
       if (plugin.fieldsForObjectType) {
         fields = plugin.fieldsForObjectType(entry.type, fields, parentFields, entry.built, this);
@@ -90,6 +135,16 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   getRootFields(entry: Extract<BuildCacheEntry<Types>, { kind: 'Root' }>): FieldMap<Types> {
     let fields = entry.type.getFields();
+
+    this.fieldDefinitions
+      .filter(set => set.forType === entry.type.typename)
+      .forEach(set => {
+        fields = this.mergeFields(
+          entry.type.typename,
+          fields,
+          (set as RootFieldSet<Types, RootName>).shape(new FieldBuilder({}, entry.type.typename)),
+        );
+      });
 
     for (const plugin of this.plugins) {
       if (plugin.fieldsForRootType) {

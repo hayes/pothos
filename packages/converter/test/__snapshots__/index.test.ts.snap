@@ -499,6 +499,11 @@ const Query = builder.createQueryType({
             type: 'Droid',
             nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        r2d2: t.field({
+            type: 'Droid',
+            nullable: false,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
@@ -629,6 +634,7 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Droid!
+  r2d2: Droid!
 }
 
 "
