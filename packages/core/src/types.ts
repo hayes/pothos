@@ -156,6 +156,12 @@ export type ShapeFromListTypeParam<
     : never
   : never;
 
+export type OutputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
+  | ObjectName<Types>
+  | InterfaceName<Types>
+  | ScalarName<Types>
+  | BaseType<Types, string, unknown>;
+
 export type ShapeFromType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Param extends
