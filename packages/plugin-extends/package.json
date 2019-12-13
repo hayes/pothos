@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-extends",
-  "version": "0.6.2",
+  "version": "0.7.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@giraphql/core": "^0.6.2",
+    "@giraphql/core": "^0.7.0",
     "apollo-server": "^2.9.8",
     "graphql": "^14.5.8"
   },
