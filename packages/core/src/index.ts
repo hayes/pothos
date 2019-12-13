@@ -122,8 +122,8 @@ export default class SchemaBuilder<
     return new RootType<Types, 'Subscription'>('Subscription', options);
   }
 
-  createSubscription(shape: RootFieldsShape<Types, 'Mutation'>) {
-    return new RootFieldSet('Mutation', shape);
+  createSubscriptionFields(shape: RootFieldsShape<Types, 'Subscription'>) {
+    return new RootFieldSet('Subscription', shape);
   }
 
   createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
