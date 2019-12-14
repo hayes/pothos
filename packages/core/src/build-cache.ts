@@ -5,6 +5,8 @@ import {
   InterfaceName,
   TypeParam,
   RootName,
+  ResolverMap,
+  Resolver,
 } from './types';
 import { BasePlugin, InterfaceType, FieldBuilder } from '.';
 import BaseType from './graphql/base';
@@ -24,14 +26,18 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   fieldDefinitions: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
 
+  mocks: ResolverMap;
+
   constructor(
     implementations: ImplementedType<Types>[],
     {
       plugins,
       fieldDefinitions,
+      mocks,
     }: {
       plugins?: BasePlugin<Types>[];
       fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
+      mocks?: ResolverMap;
     } = {},
   ) {
     const seenTypes = new Set<string>();
@@ -47,6 +53,41 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
     this.plugins = plugins || [];
     this.implementations = implementations;
     this.fieldDefinitions = fieldDefinitions || [];
+    this.mocks = mocks || {};
+  }
+
+  resolverMock(
+    typename: string,
+    fieldName: string,
+  ): Resolver<unknown, unknown, unknown, unknown> | null {
+    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
+
+    if (!fieldMock) {
+      return null;
+    }
+
+    if (typeof fieldMock === 'function') {
+      return fieldMock;
+    }
+
+    return fieldMock.resolve || null;
+  }
+
+  subscribeMock(
+    typename: string,
+    fieldName: string,
+  ): Resolver<unknown, unknown, unknown, unknown> | null {
+    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
+
+    if (!fieldMock) {
+      return null;
+    }
+
+    if (typeof fieldMock === 'function') {
+      return fieldMock;
+    }
+
+    return fieldMock.resolve || null;
   }
 
   mergeFields(

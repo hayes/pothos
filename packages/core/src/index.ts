@@ -28,6 +28,7 @@ import {
   RootFieldsShape,
   TypeParam,
   RootName,
+  ResolverMap,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -188,10 +189,12 @@ export default class SchemaBuilder<
       fieldDefinitions,
       directives,
       extensions,
+      mocks,
     }: {
       directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
       fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
+      mocks?: ResolverMap;
     } = {},
   ) {
     const scalars = [
@@ -205,13 +208,14 @@ export default class SchemaBuilder<
     const buildCache = new BuildCache<Types>([...scalars, ...types], {
       plugins: this.plugins,
       fieldDefinitions,
+      mocks,
     });
 
     buildCache.buildAll();
 
     const builtTypes = [...buildCache.types.values()].map(entry => entry.built);
 
-    return new GraphQLSchema({
+    const schema = new GraphQLSchema({
       query: buildCache.has('Query') ? buildCache.getEntryOfType('Query', 'Root').built : undefined,
       mutation: buildCache.has('Mutation')
         ? buildCache.getEntryOfType('Mutation', 'Root').built
@@ -223,5 +227,7 @@ export default class SchemaBuilder<
       directives: directives as GraphQLDirective[],
       types: builtTypes,
     });
+
+    return schema;
   }
 }

@@ -1,5 +1,15 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`mocked query some stuff 1`] = `
+Object {
+  "data": Object {
+    "r2d2": Object {
+      "name": "C-3PO",
+    },
+  },
+}
+`;
+
 exports[`starwars example generates expected schema 1`] = `
 "interface Character {
   \\"\\"\\"The id of the character\\"\\"\\"

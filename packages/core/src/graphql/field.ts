@@ -99,11 +99,14 @@ export default class Field<
       args: this.buildArgs(cache),
       description: this.options.description,
       resolve:
+        cache.resolverMock(this.parentTypename, name) ||
         (this.options as { resolve?: (...args: unknown[]) => unknown }).resolve ||
         (() => {
           throw new Error(`Not implemented: No resolver found for ${this.parentTypename}.${name}`);
         }),
-      subscribe: (this.options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
+      subscribe:
+        cache.subscribeMock(this.parentTypename, name) ||
+        (this.options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
       type: typeFromParam(this.type, cache, this.nullable),
       extensions: this.options.extensions,
     };
