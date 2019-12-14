@@ -84,10 +84,10 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
     }
 
     if (typeof fieldMock === 'function') {
-      return fieldMock;
+      return null;
     }
 
-    return fieldMock.resolve || null;
+    return fieldMock.subscribe || null;
   }
 
   mergeFields(
