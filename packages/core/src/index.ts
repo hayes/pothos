@@ -49,18 +49,20 @@ export * from './types';
 
 export {
   BasePlugin,
-  Field,
   BuildCache,
-  ObjectType,
-  InterfaceType,
-  UnionType,
   EnumType,
-  ScalarType,
-  InputObjectType,
+  Field,
   FieldBuilder,
+  FieldSet,
   InputFieldBuilder,
+  InputObjectType,
+  InterfaceType,
+  ObjectType,
   RootType,
   RootFieldBuilder,
+  RootFieldSet,
+  ScalarType,
+  UnionType,
 };
 
 export default class SchemaBuilder<
