@@ -26,8 +26,6 @@ import {
   InputName,
   FieldsShape,
   RootFieldsShape,
-  TypeParam,
-  RootName,
   ResolverMap,
 } from './types';
 import ObjectType from './graphql/object';
@@ -193,7 +191,7 @@ export default class SchemaBuilder<
     }: {
       directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
-      fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
+      fieldDefinitions?: (FieldSet<Types, any> | RootFieldSet<Types, any>)[];
       mocks?: ResolverMap;
     } = {},
   ) {

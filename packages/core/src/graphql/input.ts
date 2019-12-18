@@ -1,7 +1,7 @@
 import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { InputFields } from '../types';
+import { InputFields, NullableToOptional } from '../types';
 import BaseType from './base';
 import { buildArg } from '../utils';
 import InputFieldBuilder from '../fieldUtils/input';
@@ -13,7 +13,7 @@ export default class InputObjectType<
   Fields extends InputFields<Types>,
   Name extends string,
   MatchShape = Shape
-> extends BaseType<Types, Name, Shape, Shape, MatchShape> {
+> extends BaseType<Types, Name, Shape, NullableToOptional<Shape>, MatchShape> {
   kind: 'InputObject' = 'InputObject';
 
   fields: Fields;
