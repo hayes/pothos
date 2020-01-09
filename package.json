@@ -28,24 +28,25 @@
   ],
   "private": true,
   "dependencies": {
-    "react": "^16.11.0",
-    "react-dom": "^16.11.0",
-    "typescript": "^3.7.2"
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "typescript": "^3.7.4"
   },
   "devDependencies": {
-    "@airbnb/config-babel": "^2.1.1",
-    "@airbnb/config-eslint": "^2.2.1",
-    "@airbnb/config-jest": "^2.1.1",
-    "@airbnb/config-prettier": "^2.0.2",
-    "@airbnb/config-typescript": "^2.1.0",
-    "@airbnb/nimbus": "^2.1.0",
-    "@babel/plugin-syntax-bigint": "^7.4.4",
-    "@types/jest": "^24.0.23",
-    "@types/node": "^12.12.9",
-    "docz": "^2.0.0-rc.73",
-    "husky": "^3.0.5",
-    "lerna": "^3.18.4",
-    "lint-staged": "^9.2.5"
+    "@airbnb/config-babel": "^2.2.0",
+    "@airbnb/config-eslint": "^2.4.0",
+    "@airbnb/config-jest": "^2.2.0",
+    "@airbnb/config-prettier": "^2.1.0",
+    "@airbnb/config-typescript": "^2.2.0",
+    "@airbnb/nimbus": "^2.2.1",
+    "@babel/plugin-syntax-bigint": "^7.7.4",
+    "@types/jest": "^24.0.24",
+    "@types/node": "^13.1.0",
+    "@types/node-fetch": "^2.5.4",
+    "docz": "^2.2.0",
+    "husky": "^3.1.0",
+    "lerna": "^3.19.0",
+    "lint-staged": "^9.5.0"
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
@@ -85,8 +86,5 @@
       "next": true,
       "node": true
     }
-  },
-  "resolutions": {
-    "prettier": "1.18.2"
   }
 }

@@ -2,14 +2,12 @@ import {
   BuildCacheEntry,
   ImplementedType,
   FieldMap,
-  InterfaceName,
   TypeParam,
   RootName,
   ResolverMap,
   Resolver,
 } from './types';
-import { BasePlugin, InterfaceType, FieldBuilder } from '.';
-import BaseType from './graphql/base';
+import { BasePlugin, FieldBuilder, RootFieldBuilder } from '.';
 import RootFieldSet from './graphql/root-field-set';
 import FieldSet from './graphql/field-set';
 
@@ -51,9 +49,13 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
     }
 
     this.plugins = plugins || [];
-    this.implementations = implementations;
-    this.fieldDefinitions = fieldDefinitions || [];
+    this.implementations = [...implementations];
+    this.fieldDefinitions = [...(fieldDefinitions || [])];
     this.mocks = mocks || {};
+  }
+
+  addImplementation(impl: ImplementedType<Types>) {
+    this.implementations.push(impl);
   }
 
   resolverMock(
@@ -121,9 +123,7 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
         fields = this.mergeFields(
           entry.type.typename,
           fields,
-          (set as FieldSet<Types, TypeParam<Types>>).shape(
-            new FieldBuilder({}, entry.type.typename),
-          ),
+          (set as FieldSet<Types, TypeParam<Types>>).shape(new FieldBuilder(entry.type.typename)),
         );
       });
 
@@ -137,21 +137,17 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
   }
 
   getObjectFields(entry: Extract<BuildCacheEntry<Types>, { kind: 'Object' }>): FieldMap<Types> {
-    const parentFields = (entry.type.interfaces as InterfaceType<
-      {},
-      Types,
-      InterfaceName<Types>
-    >[]).reduce(
-      (all, type) => this.mergeFields(entry.type.typename, all, type.getFields()),
+    const parentFields = entry.type.interfaces.reduce(
+      (all, type) =>
+        this.mergeFields(
+          entry.type.typename,
+          all,
+          this.getEntryOfType(type, 'Interface').type.getFields(),
+        ),
       {} as FieldMap<Types>,
     );
 
-    let fields = this.mergeFields(
-      entry.type.typename,
-      parentFields,
-      entry.type.getFields(parentFields),
-      true,
-    );
+    let fields = this.mergeFields(entry.type.typename, parentFields, entry.type.getFields(), true);
 
     this.fieldDefinitions
       .filter(set => set.forType === entry.type.typename)
@@ -159,15 +155,13 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
         fields = this.mergeFields(
           entry.type.typename,
           fields,
-          (set as FieldSet<Types, TypeParam<Types>>).shape(
-            new FieldBuilder(parentFields, entry.type.typename),
-          ),
+          (set as FieldSet<Types, TypeParam<Types>>).shape(new FieldBuilder(entry.type.typename)),
         );
       });
 
     for (const plugin of this.plugins) {
       if (plugin.fieldsForObjectType) {
-        fields = plugin.fieldsForObjectType(entry.type, fields, parentFields, entry.built, this);
+        fields = plugin.fieldsForObjectType(entry.type, fields, entry.built, this);
       }
     }
 
@@ -183,7 +177,7 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
         fields = this.mergeFields(
           entry.type.typename,
           fields,
-          (set as RootFieldSet<Types, RootName>).shape(new FieldBuilder({}, entry.type.typename)),
+          (set as RootFieldSet<Types, RootName>).shape(new RootFieldBuilder(entry.type.typename)),
         );
       });
 
@@ -324,12 +318,7 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
   getImplementers(typename: string) {
     const implementers = [];
     for (const entry of this.types.values()) {
-      if (
-        entry.kind === 'Object' &&
-        (entry.type.interfaces as BaseType<Types, string, {}>[]).find(
-          type => type.typename === typename,
-        )
-      ) {
+      if (entry.kind === 'Object' && entry.type.interfaces.find(type => type === typename)) {
         implementers.push(entry.type);
       }
     }

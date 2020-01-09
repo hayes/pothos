@@ -73,6 +73,45 @@ type User {
   sparseList(ids: [ID]!): [ID]!
   notSparseList(ids: [ID!]!): [ID]
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
+  newField: String!
+}
+"
+`;
+
+exports[`Giraffe schema generates expected schema 1`] = `
+"\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type Giraffe {
+  name: String!
+  age: Int!
+  height(unit: LengthUnit! = Meters): Float!
+}
+
+enum LengthUnit {
+  Feet
+  Meters
+}
+
+type Query {
+  giraffe: Giraffe!
+}
+"
+`;
+
+exports[`Stateful schema generates expected schema 1`] = `
+"\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type Giraffe {
+  name: String!
+  age: Int!
+  height(unit: LengthUnit! = Meters): Float!
+}
+
+enum LengthUnit {
+  Feet
+  Meters
+}
+
+type Query {
+  giraffe: Giraffe!
 }
 "
 `;

@@ -1,18 +1,14 @@
-import { FieldsShape, TypeParam } from '../types';
-import { Field } from '..';
+import { FieldsShape, TypeParam, ShapeFromTypeParam } from '../types';
 
 export default class FieldSet<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends TypeParam<Types>,
-  ParentShape extends {
-    [s: string]: Field<{}, Types, TypeParam<Types>, TypeParam<Types>, boolean, string | null, any>;
-  } = {}
+  Type extends TypeParam<Types>
 > {
   forType: Type;
 
-  shape: FieldsShape<Types, Type, ParentShape>;
+  shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>;
 
-  constructor(type: Type, shape: FieldsShape<Types, Type, ParentShape>) {
+  constructor(type: Type, shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>) {
     this.forType = type;
     this.shape = shape;
   }

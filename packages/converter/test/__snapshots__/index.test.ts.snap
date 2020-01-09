@@ -245,6 +245,11 @@ const User = builder.createObjectType('User', {
             type: ['ID'],
             nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        newField: t.field({
+            type: 'String',
+            nullable: false,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
@@ -379,6 +384,7 @@ type User {
   sparseList(ids: [ID]!): [ID]!
   notSparseList(ids: [ID!]!): [ID]
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
+  newField: String!
 }
 
 "

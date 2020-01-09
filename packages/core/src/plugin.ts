@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+
 import {
   GraphQLObjectType,
   GraphQLUnionType,
@@ -29,9 +31,8 @@ import RootType from './graphql/root';
 
 export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> {
   fieldsForObjectType?(
-    type: ObjectType<any[], Types, any>,
+    type: ObjectType<any[], Types, ObjectName<Types>>,
     fields: FieldMap<Types>,
-    parentFields: FieldMap<Types>,
     built: GraphQLObjectType,
     cache: BuildCache<Types>,
   ): FieldMap<Types>;
@@ -44,7 +45,7 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
   ): FieldMap<Types>;
 
   fieldsForInterfaceType?(
-    type: InterfaceType<{}, Types, InterfaceName<Types>>,
+    type: InterfaceType<Types, InterfaceName<Types>>,
     fields: FieldMap<Types>,
     built: GraphQLInterfaceType,
     cache: BuildCache<Types>,
@@ -57,13 +58,13 @@ export default interface BasePlugin<Types extends GiraphQLSchemaTypes.TypeInfo> 
   ): void;
 
   visitObjectType?(
-    type: ObjectType<any[], Types, any>,
+    type: ObjectType<any[], Types, ObjectName<Types>>,
     built: GraphQLObjectType,
     cache: BuildCache<Types>,
   ): void;
 
   visitInterfaceType?(
-    type: InterfaceType<{}, Types, InterfaceName<Types>>,
+    type: InterfaceType<Types, InterfaceName<Types>>,
     built: GraphQLInterfaceType,
     cache: BuildCache<Types>,
   ): void;

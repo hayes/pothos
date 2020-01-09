@@ -16,7 +16,7 @@ export default class RootType<
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.RootTypeOptions<Types, Name>;
+  options: GiraphQLSchemaTypes.RootTypeOptions<Types, RootName>;
 
   constructor(name: Name, options: GiraphQLSchemaTypes.RootTypeOptions<Types, Name>) {
     super(name);

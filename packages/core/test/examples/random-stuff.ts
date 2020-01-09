@@ -183,20 +183,9 @@ const User = builder.createObjectType('User', {
   }),
 });
 
-// TODO
-// Build fields independently
-// const UserFields = builder
-//   .fieldBuilder('User')
-//   .string('firstName', {})
-//   .string('lastName', {})
-//   .string('displayName', {
-//     resolve: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
-//   });
-
-// Build using fields defined outside the class
-// builder.createObjectType('User', {
-//   shape: UserFields,
-// });
+const UserFields = builder.createObjectFields('User', t => ({
+  newField: t.string({ resolve: () => 'hii' }),
+}));
 
 const Countable = builder.createInterfaceType('Countable', {
   shape: t => ({
@@ -225,7 +214,7 @@ const Stuff = builder.createEnumType('stuff', {
 });
 
 const Sheep = builder.createObjectType('Sheep', {
-  implements: [Shaveable, Countable],
+  implements: [Shaveable, 'Countable'],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
   isType: () => true,
@@ -236,12 +225,6 @@ const Sheep = builder.createObjectType('Sheep', {
       },
       resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
-    // // Errors when adding type already defined in interface
-    // count: t.id({ resolve: () => 4n }),
-    count: t
-      .extend('count') // required to get the args for the correct field
-      // grabs args and requiredness from interface field
-      .implement({ resolve: (parent, args) => Math.min(args.max, parent.count) }),
     thing: t.field({
       type: Stuff,
       resolve: () => 'Bears' as const,
@@ -295,18 +278,23 @@ const Subscription = builder.createSubscriptionType({
   }),
 });
 
-const schema = builder.toSchema([
-  Subscription,
-  Query,
-  Shaveable,
-  Countable,
-  Stuff,
-  User,
-  Sheep,
-  SearchResult,
-  Article,
-  Example,
-  Example2,
-]);
+const schema = builder.toSchema(
+  [
+    Subscription,
+    Query,
+    Shaveable,
+    Countable,
+    Stuff,
+    User,
+    Sheep,
+    SearchResult,
+    Article,
+    Example,
+    Example2,
+  ],
+  {
+    fieldDefinitions: [UserFields],
+  },
+);
 
 export default schema;

@@ -4,6 +4,8 @@ import { InputType, InputShapeFromField } from '../types';
 export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   bool = this.helper('Boolean');
 
+  boolean = this.helper('Boolean');
+
   float = this.helper('Float');
 
   id = this.helper('ID');
@@ -13,6 +15,8 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
   string = this.helper('String');
 
   boolList = this.helper(['Boolean']);
+
+  booleanList = this.helper(['Boolean']);
 
   floatList = this.helper(['Float']);
 

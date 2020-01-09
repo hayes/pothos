@@ -10,13 +10,13 @@ const builder = new SchemaBuilder<{
   Object: {
     Giraffe: Giraffe;
   };
-}>();
+}>({ stateful: true });
 
 const LengthUnit = builder.createEnumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Giraffe = builder.createObjectType('Giraffe', {
+builder.createObjectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
   shape: t => ({
     name: t.exposeString('name'),
@@ -43,15 +43,15 @@ const Giraffe = builder.createObjectType('Giraffe', {
   }),
 });
 
-const Query = builder.createQueryType({
+builder.createQueryType({
   shape: t => ({
     giraffe: t.field({
-      type: Giraffe,
+      type: 'Giraffe',
       resolve: () => ({ name: 'James', heightInMeters: 5.2, birthday: new Date(2012, 11, 12) }),
     }),
   }),
 });
 
-const schema = builder.toSchema([Query, Giraffe, LengthUnit]);
+const schema = builder.toSchema();
 
 export default schema;

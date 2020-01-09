@@ -17,23 +17,14 @@ import { BuildCache } from '..';
 export default class Field<
   Args extends InputFields<Types>,
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentType extends TypeParam<Types>,
+  ParentShape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Types, Type> = FieldNullability<Types, Type>,
-  Extends extends string | null = null,
   Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription' =
     | 'Object'
     | 'Interface'
     | 'Root'
-    | 'Subscription',
-  Options extends FieldOptionsFromKind<
-    Types,
-    ParentType,
-    Type,
-    Nullable,
-    Args,
-    Kind
-  > = FieldOptionsFromKind<Types, ParentType, Type, Nullable, Args, Kind>
+    | 'Subscription'
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
@@ -41,24 +32,26 @@ export default class Field<
 
   args: Args = {} as Args;
 
-  extendsField: Extends;
-
   type: Type;
 
-  options: Options;
+  options: FieldOptionsFromKind<Types, TypeParam<Types>, TypeParam<Types>, boolean, {}, Kind>;
 
   parentTypename: string;
 
   constructor(
-    options: Options & {
-      extendsField?: Extends;
-    },
+    options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>,
     parentTypename: string,
   ) {
-    this.options = options;
+    this.options = (options as unknown) as FieldOptionsFromKind<
+      Types,
+      TypeParam<Types>,
+      TypeParam<Types>,
+      boolean,
+      {},
+      Kind
+    >;
     this.nullable = options.nullable || (false as Nullable);
     this.args = options.args ? options.args! : ({} as Args);
-    this.extendsField = options.extendsField || (null as Extends);
     this.type = options.type;
     this.parentTypename = parentTypename;
   }
@@ -78,7 +71,7 @@ export default class Field<
             required:
               typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
                 ? false
-                : arg.required || false,
+                : arg.required ?? false,
             type: buildArg(arg, cache),
             defaultValue:
               typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
@@ -99,13 +92,13 @@ export default class Field<
       args: this.buildArgs(cache),
       description: this.options.description,
       resolve:
-        cache.resolverMock(this.parentTypename, name) ||
-        (this.options as { resolve?: (...args: unknown[]) => unknown }).resolve ||
+        cache.resolverMock(this.parentTypename, name) ??
+        (this.options as { resolve?: (...args: unknown[]) => unknown }).resolve ??
         (() => {
           throw new Error(`Not implemented: No resolver found for ${this.parentTypename}.${name}`);
         }),
       subscribe:
-        cache.subscribeMock(this.parentTypename, name) ||
+        cache.subscribeMock(this.parentTypename, name) ??
         (this.options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
       type: typeFromParam(this.type, cache, this.nullable),
       extensions: this.options.extensions,
@@ -113,7 +106,7 @@ export default class Field<
 
     return plugins.reduce((config, plugin) => {
       return plugin.updateFieldConfig
-        ? plugin.updateFieldConfig(name, this as any, config, cache)
+        ? plugin.updateFieldConfig(name, this as any, config, cache) // eslint-disable-line @typescript-eslint/no-explicit-any
         : config;
     }, baseConfig);
   }

@@ -1,237 +1,153 @@
 import { TypeParam, CompatibleTypes, FieldNullability } from '../types';
 import Field from '../graphql/field';
-import FieldModifier from './modifier';
 import RootFieldBuilder from './root';
 
 export default class FieldBuilder<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentType extends TypeParam<Types>,
-  ParentShape extends {
-    [s: string]: Field<
-      {},
-      Types,
-      TypeParam<Types>,
-      TypeParam<Types>,
-      FieldNullability<Types, TypeParam<Types>>,
-      string | null,
-      any
-    >;
-  },
+  ParentShape,
   Interface extends boolean = false
-> extends RootFieldBuilder<Types, ParentType, Interface extends true ? 'Interface' : 'Object'> {
-  parentFields: ParentShape;
-
-  modifiers: {
-    [K in keyof ParentShape]: FieldModifier<
-      Types,
-      ParentType,
-      ParentShape[K]['type'],
-      FieldNullability<Types, ParentShape[K]['type']>,
-      ParentShape[K]['args'],
-      Extract<K, string>
-    >;
-  };
-
-  constructor(parentFields: ParentShape, typename: string) {
-    super(typename);
-
-    this.parentFields = parentFields;
-
-    const modifiers: Partial<
-      {
-        [K in keyof ParentShape]: FieldModifier<
-          Types,
-          ParentType,
-          ParentShape[K]['type'],
-          FieldNullability<Types, ParentShape[K]['type']>,
-          ParentShape[K]['args'],
-          Extract<K, string>
-        >;
-      }
-    > = {};
-
-    (Object.keys(parentFields) as Extract<keyof ParentShape, string>[]).forEach(name => {
-      modifiers[name] = new FieldModifier(parentFields[name], name, this.typename) as any;
-    });
-
-    this.modifiers = modifiers as {
-      [K in keyof typeof modifiers]-?: Exclude<typeof modifiers[K], undefined>;
-    };
-  }
-
+> extends RootFieldBuilder<Types, ParentShape, Interface extends true ? 'Interface' : 'Object'> {
   exposeBoolean<
     Nullable extends FieldNullability<Types, 'Boolean'>,
-    Name extends CompatibleTypes<Types, ParentType, 'Boolean', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, 'Boolean', Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, 'Boolean', Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, 'Boolean', Nullable, null> {
-    return this.exposeField<'Boolean', Nullable, Name, null>(
-      name,
-      { ...options, type: 'Boolean' },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, 'Boolean', Nullable> {
+    return this.exposeField<'Boolean', Nullable, Name>(name, { ...options, type: 'Boolean' });
   }
 
   exposeFloat<
     Nullable extends FieldNullability<Types, 'Float'>,
-    Name extends CompatibleTypes<Types, ParentType, 'Float', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, 'Float', Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, 'Float', Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, 'Float', Nullable, null> {
-    return this.exposeField<'Float', Nullable, Name, null>(
-      name,
-      { ...options, type: 'Float' },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, 'Float', Nullable> {
+    return this.exposeField<'Float', Nullable, Name>(name, { ...options, type: 'Float' });
   }
 
   exposeID<
     Nullable extends FieldNullability<Types, 'ID'>,
-    Name extends CompatibleTypes<Types, ParentType, 'ID', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, 'ID', Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, 'ID', Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, 'ID', Nullable, null> {
-    return this.exposeField<'ID', Nullable, Name, null>(name, { ...options, type: 'ID' }, null);
+  ): Field<{}, Types, ParentShape, 'ID', Nullable> {
+    return this.exposeField<'ID', Nullable, Name>(name, { ...options, type: 'ID' });
   }
 
   exposeInt<
     Nullable extends FieldNullability<Types, 'Int'>,
-    Name extends CompatibleTypes<Types, ParentType, 'Int', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, 'Int', Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, 'Int', Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, 'Int', Nullable, null> {
-    return this.exposeField<'Int', Nullable, Name, null>(name, { ...options, type: 'Int' }, null);
+  ): Field<{}, Types, ParentShape, 'Int', Nullable> {
+    return this.exposeField<'Int', Nullable, Name>(name, { ...options, type: 'Int' });
   }
 
   exposeString<
     Nullable extends FieldNullability<Types, 'String'>,
-    Name extends CompatibleTypes<Types, ParentType, 'String', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, 'String', Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, 'String', Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, 'String', Nullable, null> {
-    return this.exposeField<'String', Nullable, Name, null>(
-      name,
-      { ...options, type: 'String' },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, 'String', Nullable> {
+    return this.exposeField<'String', Nullable, Name>(name, { ...options, type: 'String' });
   }
 
   exposeBooleanList<
     Nullable extends FieldNullability<Types, ['Boolean']>,
-    Name extends CompatibleTypes<Types, ParentType, ['Boolean'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, ['Boolean'], Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, ['Boolean'], Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, ['Boolean'], Nullable, null> {
-    return this.exposeField<['Boolean'], Nullable, Name, null>(
-      name,
-      { ...options, type: ['Boolean'] },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, ['Boolean'], Nullable> {
+    return this.exposeField<['Boolean'], Nullable, Name>(name, { ...options, type: ['Boolean'] });
   }
 
   exposeFloatList<
     Nullable extends FieldNullability<Types, ['Float']>,
-    Name extends CompatibleTypes<Types, ParentType, ['Float'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, ['Float'], Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, ['Float'], Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, ['Float'], Nullable, null> {
-    return this.exposeField<['Float'], Nullable, Name, null>(
-      name,
-      { ...options, type: ['Float'] },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, ['Float'], Nullable> {
+    return this.exposeField<['Float'], Nullable, Name>(name, { ...options, type: ['Float'] });
   }
 
   exposeIDList<
     Nullable extends FieldNullability<Types, ['ID']>,
-    Name extends CompatibleTypes<Types, ParentType, ['ID'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, ['ID'], Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, ['ID'], Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, ['ID'], Nullable, null> {
-    return this.exposeField<['ID'], Nullable, Name, null>(name, { ...options, type: ['ID'] }, null);
+  ): Field<{}, Types, ParentShape, ['ID'], Nullable> {
+    return this.exposeField<['ID'], Nullable, Name>(name, { ...options, type: ['ID'] });
   }
 
   exposeIntList<
     Nullable extends FieldNullability<Types, ['Int']>,
-    Name extends CompatibleTypes<Types, ParentType, ['Int'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, ['Int'], Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, ['Int'], Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, ['Int'], Nullable, null> {
-    return this.exposeField<['Int'], Nullable, Name, null>(
-      name,
-      { ...options, type: ['Int'] },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, ['Int'], Nullable> {
+    return this.exposeField<['Int'], Nullable, Name>(name, { ...options, type: ['Int'] });
   }
 
   exposeStringList<
     Nullable extends FieldNullability<Types, ['String']>,
-    Name extends CompatibleTypes<Types, ParentType, ['String'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, ['String'], Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, ['String'], Nullable, {}>,
       'resolve' | 'type'
     > = {},
-  ): Field<{}, Types, ParentType, ['String'], Nullable, null> {
-    return this.exposeField<['String'], Nullable, Name, null>(
-      name,
-      { ...options, type: ['String'] },
-      null,
-    );
+  ): Field<{}, Types, ParentShape, ['String'], Nullable> {
+    return this.exposeField<['String'], Nullable, Name>(name, { ...options, type: ['String'] });
   }
 
   expose<
     Type extends TypeParam<Types>,
     Req extends boolean,
-    Name extends CompatibleTypes<Types, ParentType, Type, Req>
+    Name extends CompatibleTypes<Types, ParentShape, Type, Req>
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentType, Type, Req, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Req, {}>,
       'resolve'
     >,
-  ): Field<{}, Types, ParentType, Type, Req, null> {
-    return this.exposeField(name, options, null);
-  }
-
-  extend<Name extends keyof ParentShape>(name: Name) {
-    return this.modifiers[name];
+  ): Field<{}, Types, ParentShape, Type, Req> {
+    return this.exposeField(name, options);
   }
 }

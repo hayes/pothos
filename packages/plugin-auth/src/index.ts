@@ -205,7 +205,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   }
 
   visitInterfaceType(
-    type: InterfaceType<{}, Types, InterfaceName<Types>>,
+    type: InterfaceType<Types, InterfaceName<Types>>,
     built: GraphQLInterfaceType,
   ) {
     const { resolveType } = built;

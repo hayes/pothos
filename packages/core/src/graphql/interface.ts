@@ -10,7 +10,6 @@ import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 
 export default class InterfaceType<
-  Shape extends {},
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Name extends InterfaceName<Types>
 > extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, true>> {
@@ -18,24 +17,29 @@ export default class InterfaceType<
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.InterfaceTypeOptions<{}, Types, any>;
+  options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, {}>;
 
-  fieldShape?: Shape;
-
-  constructor(name: Name, options: GiraphQLSchemaTypes.InterfaceTypeOptions<Shape, Types, Name>) {
+  constructor(
+    name: Name,
+    options: GiraphQLSchemaTypes.InterfaceTypeOptions<
+      Types,
+      ShapeFromTypeParam<Types, Name, false>
+    >,
+  ) {
     super(name);
 
     this.description = options.description;
 
-    this.options = options;
+    this.options = (options as unknown) as GiraphQLSchemaTypes.InterfaceTypeOptions<Types, {}>;
   }
 
   getFields() {
-    return this.options.shape(new FieldBuilder({}, this.typename));
+    return this.options.shape(new FieldBuilder(this.typename));
   }
 
   buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLInterfaceType {
-    let types: ObjectType<any, Types, ObjectName<Types>>[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    let types: ObjectType<any[], Types, ObjectName<Types>>[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),
@@ -46,7 +50,8 @@ export default class InterfaceType<
         }
 
         for (const type of types) {
-          if (type.options.isType && type.options.isType(obj, context, info)) {
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          if (type.options.isType && type.options.isType(obj as any, context, info)) {
             return String(type.typename);
           }
         }
