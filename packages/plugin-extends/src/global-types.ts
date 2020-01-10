@@ -5,6 +5,7 @@ import {
   RootName,
   RootFieldsShape,
   CompatibleInterfaceParam,
+  ShapeFromType,
 } from '@giraphql/core';
 
 declare global {
@@ -15,7 +16,7 @@ declare global {
       Shape
     > {
       extends?: {
-        [K in ObjectName<Types>]?: FieldsShape<Types, K>;
+        [K in ObjectName<Types>]?: FieldsShape<Types, ShapeFromType<Types, K>>;
       } &
         { [K in RootName]?: RootFieldsShape<Types, K> };
     }
