@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax */
 import {
   GraphQLSchema,
   GraphQLScalarType,
@@ -197,9 +196,9 @@ export default class SchemaBuilder<
       this.scalars.String,
     ];
 
-    const buildCache = new BuildCache<Types>([...scalars, ...this.types, ...types || []], {
+    const buildCache = new BuildCache<Types>([...scalars, ...this.types, ...(types ?? [])], {
       plugins: this.plugins,
-      fieldDefinitions: [...this.fields, ...fieldDefinitions || []],
+      fieldDefinitions: [...this.fields, ...(fieldDefinitions ?? [])],
       mocks,
     });
 

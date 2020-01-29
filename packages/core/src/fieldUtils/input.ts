@@ -1,4 +1,4 @@
-/* eslint-disable unicorn/consistent-function-scoping, no-dupe-class-members, lines-between-class-members */
+/* eslint-disable no-dupe-class-members, lines-between-class-members */
 import { InputType, InputShapeFromField } from '../types';
 
 export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
@@ -62,9 +62,9 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
     Req extends boolean | { list: boolean; items: boolean }
   >(type: Type, options?: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined) {
     return {
-      description: options && options.description,
+      description: options?.description,
       required: options ? options.required : false,
-      default: options && options.default,
+      default: options?.default,
       type,
     };
   }
@@ -86,9 +86,9 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
     options?: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
   ) {
     return {
-      description: options && options.description,
+      description: options?.description,
       required: options ? options.required : false,
-      default: options && options.default,
+      default: options?.default,
       type: [type] as [Type],
     };
   }
@@ -102,9 +102,9 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
       options?: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
     ) {
       return {
-        description: options && options.description,
+        description: options?.description,
         required: options ? options.required : false,
-        default: options && options.default,
+        default: options?.default,
         type,
       };
     }

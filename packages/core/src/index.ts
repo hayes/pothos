@@ -1,4 +1,3 @@
-/* eslint-disable no-restricted-syntax */
 import { MergeTypeMap, DefaultTypeMap } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';

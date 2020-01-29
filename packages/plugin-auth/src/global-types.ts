@@ -10,13 +10,16 @@ import {
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    type AuthCheck<Types extends TypeInfo, ParentShape> = (
+      parent: ParentShape,
+      context: Types['Context'],
+    ) => boolean | Promise<boolean>;
+
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       authChecks?: {
-        [s: string]: (
-          parent: ShapeFromTypeParam<Types, Type, false>,
-          context: Types['Context'],
-        ) => boolean;
+        [s: string]: AuthCheck<Types, Types['Root']>;
       };
+      defaultAuthChecks?: string[];
     }
 
     export interface ObjectTypeOptions<
@@ -25,24 +28,57 @@ declare global {
       Shape
     > {
       authChecks?: {
-        [s: string]: (parent: Shape, context: Types['Context']) => boolean;
+        [s: string]: AuthCheck<Types, Shape>;
       };
+      defaultAuthChecks?: string[];
     }
 
-    export interface FieldOptions<
+    export interface ObjectFieldOptions<
       Types extends TypeInfo,
+      ParentShape,
       ReturnTypeName extends TypeParam<Types>,
       Nullable extends FieldNullability<Types, ReturnTypeName>,
       Args extends InputFields<Types>
-    > {
-      authWith?: string[];
+    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+      checkAuth?:
+        | string
+        | AuthCheck<Types, ParentShape>
+        | (string | AuthCheck<Types, ParentShape>)[];
       grantAuth?: {
         [s: string]:
           | true
-          | ((
-              parent: ShapeFromTypeParam<Types, ReturnTypeName, false>,
-              context: Types['Context'],
-            ) => boolean);
+          | AuthCheck<
+              Types,
+              ReturnTypeName extends [TypeParam<Types>]
+                ? ShapeFromTypeParam<Types, ReturnTypeName[0], false>
+                : ShapeFromTypeParam<Types, ReturnTypeName, false>
+            >;
+      };
+    }
+
+    export interface InterfaceFieldOptions<
+      Types extends TypeInfo,
+      ParentShape,
+      ReturnTypeName extends TypeParam<Types>,
+      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+      checkAuth?: (string | AuthCheck<Types, ParentShape>)[];
+      grantAuth?: {
+        [s: string]: true | AuthCheck<Types, ShapeFromTypeParam<Types, ReturnTypeName, false>>;
+      };
+    }
+
+    export interface SubscriptionFieldOptions<
+      Types extends TypeInfo,
+      ParentShape,
+      ReturnTypeName extends TypeParam<Types>,
+      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+      checkAuth?: (string | AuthCheck<Types, ParentShape>)[];
+      grantAuth?: {
+        [s: string]: true | AuthCheck<Types, ShapeFromTypeParam<Types, ReturnTypeName, false>>;
       };
     }
   }

@@ -6,12 +6,13 @@
     "lib": "lib"
   },
   "scripts": {
+    "babel": "NODE_ENV=production nimbus babel --copy-files --workspaces=*",
     "docz:deploy": "yarn docz:build && netlify deploy -d dist --prod",
     "docz:dev": "docz dev",
     "docz:build": "docz build",
     "docz:serve": "docz build && docz serve",
     "prepare": "nimbus create-config --silent && rm babel.config.js",
-    "build": "yarn type",
+    "build": "yarn babel && yarn type:dts",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
     "lint": "nimbus eslint",
     "posttest": "yarn run lint",
@@ -19,7 +20,8 @@
     "jest:coverage": "yarn run jest -- --coverage",
     "test": "yarn run jest:coverage",
     "prettier": "nimbus prettier",
-    "type": "nimbus typescript --build --reference-workspaces",
+    "type": "nimbus typescript --build --reference-workspaces --no-emit",
+    "type:dts": "nimbus typescript --build --reference-workspaces",
     "pretest": "yarn run type",
     "release": "yarn clean && yarn build && lerna publish --push"
   },
@@ -30,23 +32,23 @@
   "dependencies": {
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "typescript": "^3.7.4"
+    "typescript": "^3.7.5"
   },
   "devDependencies": {
-    "@airbnb/config-babel": "^2.2.0",
-    "@airbnb/config-eslint": "^2.4.0",
-    "@airbnb/config-jest": "^2.2.0",
-    "@airbnb/config-prettier": "^2.1.0",
-    "@airbnb/config-typescript": "^2.2.0",
-    "@airbnb/nimbus": "^2.2.1",
-    "@babel/plugin-syntax-bigint": "^7.7.4",
-    "@types/jest": "^24.0.24",
-    "@types/node": "^13.1.0",
+    "@airbnb/config-babel": "^2.2.2",
+    "@airbnb/config-eslint": "^2.5.1",
+    "@airbnb/config-jest": "^2.2.2",
+    "@airbnb/config-prettier": "^2.1.1",
+    "@airbnb/config-typescript": "^2.2.2",
+    "@airbnb/nimbus": "^2.2.3",
+    "@babel/plugin-syntax-bigint": "^7.8.3",
+    "@types/jest": "^25.1.0",
+    "@types/node": "^13.5.1",
     "@types/node-fetch": "^2.5.4",
     "docz": "^2.2.0",
-    "husky": "^3.1.0",
-    "lerna": "^3.19.0",
-    "lint-staged": "^9.5.0"
+    "husky": "^4.2.1",
+    "lerna": "^3.20.2",
+    "lint-staged": "^10.0.3"
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
@@ -84,7 +86,14 @@
     "settings": {
       "library": true,
       "next": true,
-      "node": true
+      "node": true,
+      "env": {
+        "useBuiltIns": false,
+        "corejs": false,
+        "targets": {
+          "node": "10"
+        }
+      }
     }
   }
 }

@@ -1,3 +1,5 @@
+/* eslint-disable no-console */
+
 import { ApolloServer } from 'apollo-server';
 import schema from '.';
 

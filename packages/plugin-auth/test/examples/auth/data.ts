@@ -38,3 +38,14 @@ User.create('Michael', 'Hayes', 'Admin');
 User.create('Darth', 'Vader', 'User');
 
 export class Other {}
+
+export function createContext(userID: number) {
+  const role = User.map.get(userID) ? User.map.get(userID)!.role : 'Guest';
+
+  return {
+    userID,
+    role,
+    User,
+    user: User.map.get(userID) ?? null,
+  };
+}

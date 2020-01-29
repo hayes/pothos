@@ -78,7 +78,7 @@ export default class GirphQLConverter {
     this.schema = schema;
     this.sourcefile = this.project.createSourceFile('./codegen/schema.ts');
 
-    this.types = types || null;
+    this.types = types ?? null;
 
     this.createSchemaTypes();
   }
@@ -588,7 +588,7 @@ export default class GirphQLConverter {
     } else if (type instanceof GraphQLInputObjectType) {
       if (isRecursive(type)) {
         writer.write(`${rootType.name}Shape`);
-        throw type;
+        throw new Error(type.toString());
       } else {
         writer.write('{');
         writer.newLine();

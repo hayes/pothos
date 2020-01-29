@@ -1,15 +1,15 @@
 import '@giraphql/core';
 
 export type AuthMeta<Types extends GiraphQLSchemaTypes.TypeInfo> = {
-  grantAuth?: {
+  grantAuth: {
     [s: string]:
       | true
       | ((parent: unknown, context: Types['Context']) => boolean | Promise<boolean>);
   };
-  grantCache?: {
+  grantCache: {
     [s: string]: boolean | Promise<boolean>;
   };
-  checkCache?: {
+  checkCache: {
     [s: string]: boolean | Promise<boolean>;
   };
 };
@@ -19,9 +19,15 @@ export default class AuthWrapper<Parent, Types extends GiraphQLSchemaTypes.TypeI
 
   authData: AuthMeta<Types>;
 
-  constructor(parent: Parent, authData: AuthMeta<Types>) {
+  constructor(parent: Parent, grantAuth: AuthMeta<Types>['grantAuth']) {
     this.parent = parent;
-    this.authData = authData;
+    this.authData = {
+      grantCache: {},
+      checkCache: {},
+      grantAuth: {
+        ...grantAuth,
+      },
+    };
   }
 
   unwrap() {

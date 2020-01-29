@@ -26,6 +26,8 @@ import { ForbiddenError } from 'apollo-server';
 import AuthWrapper, { AuthMeta } from './auth-wrapper';
 import './global-types';
 
+export { AuthWrapper, AuthMeta };
+
 export function isScalar(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLNonNull) {
     return isScalar(type.ofType);
@@ -74,17 +76,26 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     config: GraphQLFieldConfig<unknown, unknown>,
     cache: BuildCache<Types>,
   ): GraphQLFieldConfig<unknown, unknown> {
-    const resolver = config.resolve || defaultFieldResolver;
+    const resolver = config.resolve ?? defaultFieldResolver;
 
     const fieldName = `${field.parentTypename}.${name}`;
     const isListResolver = isList(config.type);
     const isScalarResolver = isScalar(config.type);
 
-    const authWith = field.options.authWith || [];
-
     const parentType = cache.getType(field.parentTypename);
-    const parentChecks = (parentType.kind === 'Object'
-      ? parentType.options.authChecks || {}
+
+    const fieldAuthChecks =
+      typeof field.options.checkAuth === 'function' || typeof field.options.checkAuth === 'string'
+        ? [field.options.checkAuth]
+        : field.options.checkAuth;
+
+    const authWith =
+      fieldAuthChecks ??
+      (parentType.kind === 'Object' ? parentType.options.defaultAuthChecks : []) ??
+      [];
+
+    const parentChecks = (parentType.kind === 'Object' || parentType.kind === 'Root'
+      ? parentType.options.authChecks ?? {}
       : {}) as {
       [s: string]: (parent: unknown, context: Types['Context']) => boolean | Promise<boolean>;
     };
@@ -101,62 +112,65 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const { parent, authData = {} } =
+      const { parent, authData = { grantCache: {}, checkCache: {}, grantAuth: {} } } =
         originalParent instanceof AuthWrapper ? originalParent : { parent: originalParent };
 
-      const { grantCache = {}, checkCache = {} } = authData;
+      const { grantCache, checkCache } = authData;
 
       if (authWith.length === 0) {
         if (this.authRequired) {
-          throw new ForbiddenError(`No authWith checks provided for ${fieldName}`);
+          throw new ForbiddenError(`No auth checks defined for ${fieldName}`);
         }
 
         return this.wrapReturn(
           await resolver(parent, args, context, info),
-          isScalarResolver ? {} : authData,
+          grantAuth,
           isListResolver,
           isScalarResolver,
         );
       }
 
       const authResults = await Promise.all(
-        authWith.map(authName => {
-          if (!parentChecks[authName] && !(authData.grantAuth && authData.grantAuth[authName])) {
-            return Promise.resolve({ result: false, authName });
+        authWith.map(async authCheck => {
+          const authName = typeof authCheck === 'string' ? authCheck : authCheck.name;
+          if (typeof authCheck === 'function') {
+            return Promise.resolve(authCheck(parent, context)).then(result => ({
+              result,
+              authName,
+            }));
           }
 
-          return (async () => {
-            if (authData.grantAuth && authData.grantAuth[authName]) {
-              if (!grantCache[authName]) {
-                const check = authData.grantAuth[authName];
+          if (!parentChecks[authCheck] && !(authData.grantAuth && authData.grantAuth[authCheck])) {
+            return Promise.resolve({ result: false, authName: authCheck });
+          }
 
-                if (check === true) {
-                  grantCache[authName] = true;
-                } else {
-                  grantCache[authName] = check(parent, context);
-                }
-              }
+          if (authData.grantAuth && authData.grantAuth[authCheck]) {
+            const check = authData.grantAuth[authCheck];
 
-              if ((await grantCache[authName]) === true) {
-                return true;
+            if (!grantCache[authCheck]) {
+              if (check === true) {
+                grantCache[authCheck] = true;
+              } else {
+                grantCache[authCheck] = check(parent, context);
               }
             }
 
-            if (parentChecks[authName]) {
-              if (!checkCache[authName]) {
-                checkCache[authName] = parentChecks[authName](parent, context);
-              }
+            if ((await grantCache[authCheck]) === true) {
+              return { result: true, authName };
+            }
+          }
 
-              return checkCache[authName];
+          if (parentChecks[authCheck]) {
+            if (!checkCache[authCheck]) {
+              checkCache[authCheck] = parentChecks[authCheck](parent, context);
             }
 
-            return false;
-          })()
-            .catch(
-              error =>
-                new ForbiddenError(`Error performing authCheck (${authName} on ${fieldName})`),
-            )
-            .then(result => ({ result, authName }));
+            const result = await checkCache[authCheck];
+
+            return { result, authName };
+          }
+
+          return { result: false, authName };
         }),
       );
 
@@ -166,22 +180,15 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
       if (failedChecks.length !== 0) {
         throw new ForbiddenError(
-          `Failed to auth checks on ${fieldName} (${failedChecks.join(', ')})`,
+          `Failed ${failedChecks.length} auth check${
+            failedChecks.length > 1 ? 's' : ''
+          } on ${fieldName} (${failedChecks.map(n => n || '[anonymous]').join(', ')})`,
         );
       }
 
       const result = await resolver(parent, args, context, info);
 
-      return this.wrapReturn<Types>(
-        result,
-        {
-          grantAuth,
-          grantCache: {},
-          checkCache: {},
-        },
-        isListResolver,
-        isScalarResolver,
-      );
+      return this.wrapReturn<Types>(result, grantAuth, isListResolver, isScalarResolver);
     };
 
     return {
@@ -223,7 +230,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
   private wrapReturn<Types extends GiraphQLSchemaTypes.TypeInfo>(
     result: unknown,
-    authData: AuthMeta<Types>,
+    grantAuth: AuthMeta<Types>['grantAuth'],
     isListResolver: boolean,
     isScalarResolver: boolean,
   ) {
@@ -235,10 +242,10 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
     if (isListResolver) {
       return (result as unknown[]).map((parent: unknown) => {
-        return new AuthWrapper(parent, authData);
+        return new AuthWrapper(parent, grantAuth);
       });
     }
 
-    return new AuthWrapper(result, authData);
+    return new AuthWrapper(result, grantAuth);
   }
 }

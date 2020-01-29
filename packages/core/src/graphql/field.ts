@@ -50,7 +50,7 @@ export default class Field<
       {},
       Kind
     >;
-    this.nullable = options.nullable || (false as Nullable);
+    this.nullable = options.nullable ?? (false as Nullable);
     this.args = options.args ? options.args! : ({} as Args);
     this.type = options.type;
     this.parentTypename = parentTypename;
@@ -106,7 +106,7 @@ export default class Field<
 
     return plugins.reduce((config, plugin) => {
       return plugin.updateFieldConfig
-        ? plugin.updateFieldConfig(name, this as any, config, cache) // eslint-disable-line @typescript-eslint/no-explicit-any
+        ? plugin.updateFieldConfig(name, this as any, config, cache)
         : config;
     }, baseConfig);
   }

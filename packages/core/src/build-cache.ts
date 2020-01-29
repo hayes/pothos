@@ -48,10 +48,10 @@ export default class BuildCache<Types extends GiraphQLSchemaTypes.TypeInfo> {
       seenTypes.add(type.typename);
     }
 
-    this.plugins = plugins || [];
+    this.plugins = plugins ?? [];
     this.implementations = [...implementations];
-    this.fieldDefinitions = [...(fieldDefinitions || [])];
-    this.mocks = mocks || {};
+    this.fieldDefinitions = [...(fieldDefinitions ?? [])];
+    this.mocks = mocks ?? {};
   }
 
   addImplementation(impl: ImplementedType<Types>) {

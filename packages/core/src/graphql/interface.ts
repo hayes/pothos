@@ -38,7 +38,6 @@ export default class InterfaceType<
   }
 
   buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLInterfaceType {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     let types: ObjectType<any[], Types, ObjectName<Types>>[];
 
     return new GraphQLInterfaceType({
@@ -50,7 +49,6 @@ export default class InterfaceType<
         }
 
         for (const type of types) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
           if (type.options.isType && type.options.isType(obj as any, context, info)) {
             return String(type.typename);
           }

@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
-
 import {
   GraphQLEnumValueConfigMap,
   GraphQLObjectType,
@@ -53,7 +51,6 @@ export type UnknownString<T extends string | InvalidType<unknown>, Known, Messag
   ? InvalidType<Message>
   : T;
 
-// eslint-disable-next-line prettier/prettier
 export type UnionToIntersection<U> = (U extends unknown
 ? (k: U) => void
 : never) extends (k: infer I) => void
@@ -208,12 +205,12 @@ export type ShapeFromNonListTypeParam<
   : never;
 
 export type TypeParam<Types extends GiraphQLSchemaTypes.TypeInfo> =
+  | [InterfaceName<Types>]
   | ObjectName<Types>
   | InterfaceName<Types>
   | ScalarName<Types>
   | BaseType<Types, string, unknown>
   | [ObjectName<Types>]
-  | [InterfaceName<Types>]
   | [ScalarName<Types>]
   | [BaseType<Types, string, unknown>];
 

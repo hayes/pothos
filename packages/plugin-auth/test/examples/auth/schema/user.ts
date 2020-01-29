@@ -1,18 +1,20 @@
 import builder from '../builder';
 
 export default builder.createObjectType('User', {
+  defaultAuthChecks: ['readUserField'],
+  authChecks: {
+    readEmail: parent => !!(parent.id % 2),
+  },
   shape: t => ({
     id: t.exposeID('id', {
-      authWith: ['readUserField'],
+      checkAuth: ['readUserId'],
     }),
-    firstName: t.exposeString('firstName', {
-      authWith: ['readUserField'],
-    }),
+    firstName: t.exposeString('firstName', {}),
     lastName: t.exposeString('lastName', {
-      authWith: ['readUserField'],
+      checkAuth: [(parent, { user }) => parent.lastName === user?.lastName],
     }),
     email: t.exposeString('email', {
-      authWith: ['readUserField'],
+      checkAuth: ['readEmail'],
     }),
   }),
 });

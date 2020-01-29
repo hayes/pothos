@@ -42,7 +42,7 @@ export default class InputObjectType<
             required:
               typeof field !== 'object' || field instanceof BaseType || Array.isArray(field)
                 ? false
-                : field.required || false,
+                : field.required ?? false,
             type: buildArg(field, cache),
           },
         ];

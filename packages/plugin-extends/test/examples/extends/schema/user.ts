@@ -65,8 +65,10 @@ export default builder.createObjectType('User', {
         args: {
           id: t.arg.id({ required: true }),
         },
-        subscribe: async function*() {
-          return {};
+        subscribe: async function* subscribe(parent, { id }, { User }) {
+          yield await Promise.resolve(User.map.get(parseInt(id, 10)));
+
+          return User.map.get(parseInt(id, 10));
         },
         resolve: (parent, args, { User }) => {
           const user = User.map.get(parseInt(args.id, 10));
