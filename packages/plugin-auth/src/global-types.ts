@@ -33,6 +33,13 @@ declare global {
       defaultAuthChecks?: string[];
     }
 
+    export interface InterfaceTypeOptions<Types extends TypeInfo, Shape> {
+      authChecks?: {
+        [s: string]: AuthCheck<Types, Shape>;
+      };
+      defaultAuthChecks?: string[];
+    }
+
     export interface ObjectFieldOptions<
       Types extends TypeInfo,
       ParentShape,
