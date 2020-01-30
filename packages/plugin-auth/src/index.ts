@@ -28,6 +28,8 @@ import './global-types';
 
 export { AuthWrapper, AuthMeta };
 
+export * from './types';
+
 export function isScalar(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLNonNull) {
     return isScalar(type.ofType);

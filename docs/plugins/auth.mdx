@@ -2,3 +2,217 @@
 name: Extends
 menu: Plugins
 ---
+
+# Auth Plugin
+
+This plugin provides a way to handle authorization checks throughout your schema.
+
+## Usage
+
+### Install
+
+```bash
+yarn add @giraphql/plugin-auth
+```
+
+### Setup
+
+```ts
+import AuthPlugin from '@giraphql/plugin-auth';
+
+const builder = new SchemaBuilder({ stateful: true, plugins: [new AuthPlugin()] });
+```
+
+### Add an auth check to a resolver
+
+```ts
+builder.createQueryType({
+  shape: t => ({
+    hello: t.string({
+      checkAuth: (parent, { name }, context) => {
+        // only say hello to people who capitalize their name
+        return args.name[0] === args[0].toUpperCase(),
+      },
+      args: {
+        name: t.arg.string({ required: true }),
+      },
+      resolve: (parent, { name }) => `hello, ${name}`,
+    }),
+  }),
+});
+```
+
+This check will run before the resolver for `Query.hello` runs and will return an authorization
+error for any request where the name is not capitalized.
+
+### Reusing auth checks
+
+As you add more fields to your schema, you may want to re-use the same auth checks on multiple
+fields:
+
+```ts
+builder.createQueryType({
+  authChecks: {
+    isLoggedIn: (parent, context) => !!context.user,
+    isAdmin: async (parent, context) => {
+      if (!context.user) {
+        return false;
+      }
+      // Auth checks can be async
+      const roles = await context.user.roles();
+
+      return roles.includes('Admin');
+    },
+  },
+  shape: t => ({
+    helloAdmin: t.string({
+      checkAuth: 'isAdmin',
+      resolve: (parent, { name }) => `hello Admin`,
+    }),
+    hello: t.string({
+      // checkAuth can be an array of checks
+      checkAuth: [
+        'isLoggedIn',
+        (parent, { name }, context) => {
+          // only say hello to people who capitalize their name
+          return args.name[0] === args[0].toUpperCase(),
+        }
+      ],
+      args: {
+        name: t.arg.string({ required: true }),
+      },
+      resolve: (parent, { name }) => `hello, ${name}`,
+    }),
+  }),
+});
+```
+
+the `authChecks` option allows you to create reusable checks that can be referenced by `checkAuth`
+
+on any field on that type. checks defined `authChecks` do _NOT_ work with `extends` fields from
+`@giraphql/plugin-extends` since those fields would have a different parent type.
+
+If multiple fields of an object use the same auth check, the result of that check will be cached,
+and the check function will only be called once. This caching will only apply for checks called with
+the same `parent` object, so if the check exists on a type that is returned in a list, the check
+will be called for each object in that list.
+
+## Default auth checks
+
+Often most fields on a type will use the same auth check. To make this a little simpler, you can set
+default auth checks for a type that will be applied to any fields that do not explicitly set an auth
+check.
+
+```ts
+builder.createQueryType({
+  authChecks: {
+    isLoggedIn: (parent, context) => !!context.user,
+    isAdmin: (parent, context) => !!context.user && context.user.isAdmin(),
+  },
+  defaultAuthChecks: ['isLoggedIn']
+  shape: t => ({
+    hello: t.string({
+      // uses default isLoggedIn check
+      resolve: (parent, { name }) => `hello, World`,
+    }),
+    helloAdmin: t.string({
+      // does not user isLoggedIn
+      checkAuth: 'isAdmin',
+      resolve: (parent, { name }) => `hello Admin`,
+    }),
+  }),
+});
+```
+
+## Granting auth checks to children
+
+There are often cases where either it is more efficient to do an auth check once in a parent
+resolver, or the context you need to determine if a request should be authorized is not available in
+a child resolver. The naive solution would be to simple do the check in the parent, and not have
+auth checks for you child resolvers. Unfortunatly this is suseptable to creating problems down the
+road if there are new resolvers that expose the same type, but forget that they need to add an auth
+check for the children. To address these kinds of use cases, the auth plugin allows on a field to
+return a set of checks the child should be authorized for.
+
+```ts
+builder.createQueryType({
+  shape: t => ({
+    people: t.field({
+      type: ['Person'],
+      checkAuth: (parent, { name }, context) => {
+        if (!context.user) {
+          return false;
+        }
+
+        return {
+          loggedIn: true,
+          isAdmin: context.user.isAdmin(),
+        };
+      },
+      resolve: (parent, args, { Users }) => Users.getAll(),
+    }),
+  }),
+});
+
+builder.createObjectType('Person', {
+  shape: t => ({
+    firstName: t.exposeString('firstName', {
+      checkAuth: 'loggedIn',
+    }),
+    email: t.exposeString('email', {
+      checkAuth: 'isAdmin',
+    }),
+  }),
+});
+```
+
+## Running auth checks for all resolvers for a type
+
+As your schema gets more complicated, some types may be refferenced by fields on a lot of different
+types. This can make it hard to keep all the auth checks for this popular type in sync and ensure
+that all fields have appropriate auth checks. To make this simpler there is a preResoleAuthCheck you
+can add to object types that allows you to define a check that will run before any resolver for that
+type.
+
+```ts
+builder.createQueryType({
+  shape: t => ({
+    people: t.field({
+      type: ['Person'],
+      resolve: (parent, args, { Users }) => Users.getAll(),
+    }),
+  }),
+});
+
+builder.createObjectType('Person', {
+  // Run before the resolver for Query.people
+  preResolveAuthCheck: context => {
+    if (!context.user) {
+      return false;
+    }
+
+    return {
+      loggedIn: true,
+      isAdmin: context.user.isAdmin(),
+    };
+  },
+  shape: t => ({
+    firstName: t.exposeString('firstName', {
+      checkAuth: 'loggedIn',
+    }),
+    email: t.exposeString('email', {
+      checkAuth: 'isAdmin',
+    }),
+  }),
+});
+```
+
+the preResolveAuthCheck only receives the `context` object because the `parent` and args will vary
+depending on which resolver is being called. It can return an map of authorizations the same way an
+auch check on a field can. This approach allows you to define all of the auth for your type in one
+place, and is the recomended path for applications where you want more ridged controls over your
+auth checks.
+
+## API
+
+TODO
