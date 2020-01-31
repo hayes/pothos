@@ -72,19 +72,22 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   authRequired: boolean;
 
+  explicitMutationChecks: boolean;
+
   preResolveAuthCheckCache = new WeakMap<
     Types['Context'],
     Map<PreResolveAuthCheck<Types>, ReturnType<PreResolveAuthCheck<Types>>>
   >();
 
-  constructor(
-    options: {
-      authRequired: boolean;
-    } = {
-      authRequired: true,
-    },
-  ) {
-    this.authRequired = options.authRequired;
+  constructor({
+    authRequired = true,
+    explicitMutationChecks = true,
+  }: {
+    authRequired?: boolean;
+    explicitMutationChecks?: boolean;
+  } = {}) {
+    this.authRequired = authRequired;
+    this.explicitMutationChecks = explicitMutationChecks;
   }
 
   updateFieldConfig(
@@ -144,6 +147,16 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
       const { grantedAuth, checkCache } = authData;
       const authGrants: { [s: string]: boolean } = {};
+
+      if (
+        this.explicitMutationChecks &&
+        fieldAuthChecks.length === 0 &&
+        parentType.typename === 'Mutation'
+      ) {
+        throw new ForbiddenError(
+          `${fieldName} is missing an explicit auth check which is required for all Mutations (explicitMutationChecks)`,
+        );
+      }
 
       if (authChecks.length === 0 && this.authRequired && !preResolveCheck) {
         throw new ForbiddenError(`No auth checks defined for ${fieldName}`);

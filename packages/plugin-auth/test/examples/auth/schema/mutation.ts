@@ -12,11 +12,15 @@ export default builder.createMutationType({
           required: true,
         }),
       },
+      checkAuth: (parent, args, { role }) => role === 'Admin',
       resolve: (parent, { firstName, lastName }, { User }) => {
         const user = User.create(firstName, lastName, 'User');
 
         return user;
       },
+    }),
+    missingAuth: t.int({
+      resolve: () => 123,
     }),
   }),
 });

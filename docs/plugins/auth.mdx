@@ -20,7 +20,18 @@ yarn add @giraphql/plugin-auth
 ```ts
 import AuthPlugin from '@giraphql/plugin-auth';
 
-const builder = new SchemaBuilder({ stateful: true, plugins: [new AuthPlugin()] });
+const builder = new SchemaBuilder({
+  stateful: true,
+  plugins: [
+    new AuthPlugin({
+      // when true (default) fields not covered by an auth check will return an Authorization error
+      authRequired: true,
+      // when true (default) mutation fields will not be authroized unless they are protected by a
+      // check defined directly on the mutation field
+      explicitMutationChecks: true,
+    }),
+  ],
+});
 ```
 
 ### Add an auth check to a resolver

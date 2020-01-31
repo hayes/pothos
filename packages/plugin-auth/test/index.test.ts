@@ -302,4 +302,51 @@ describe('auth example schema', () => {
       });
     });
   });
+
+  describe('mutations', () => {
+    test('createUser', async () => {
+      const query = gql`
+        mutation {
+          createUser(firstName: "Foo", lastName: "Bar") {
+            email
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(1),
+      });
+
+      expect(result.errors).toBeUndefined();
+
+      expect(result.data).toEqual({
+        createUser: {
+          email: 'foo.bar@example.com',
+        },
+      });
+    });
+
+    test('without auth', async () => {
+      const query = gql`
+        mutation {
+          missingAuth
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(1),
+      });
+
+      expect(result.errors).toEqual([
+        expect.objectContaining({
+          message:
+            'Mutation.missingAuth is missing an explicit auth check which is required for all Mutations (explicitMutationChecks)',
+        }),
+      ]);
+    });
+  });
 });
