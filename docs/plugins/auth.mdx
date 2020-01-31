@@ -131,8 +131,8 @@ resolver, or the context you need to determine if a request should be authorized
 a child resolver. The naive solution would be to simple do the check in the parent, and not have
 auth checks for you child resolvers. Unfortunatly this is suseptable to creating problems down the
 road if there are new resolvers that expose the same type, but forget that they need to add an auth
-check for the children. To address these kinds of use cases, the auth plugin allows on a field to
-return a set of checks the child should be authorized for.
+check for the children. To address these kinds of use cases, the auth plugin allows auth checks on a
+field to return a set of checks the child should be authorized for.
 
 ```ts
 builder.createQueryType({
@@ -168,11 +168,11 @@ builder.createObjectType('Person', {
 
 ## Running auth checks for all resolvers for a type
 
-As your schema gets more complicated, some types may be refferenced by fields on a lot of different
+As your schema gets more complicated, some types may be reference by fields on a lot of different
 types. This can make it hard to keep all the auth checks for this popular type in sync and ensure
-that all fields have appropriate auth checks. To make this simpler there is a preResoleAuthCheck you
-can add to object types that allows you to define a check that will run before any resolver for that
-type.
+that all fields have appropriate auth checks. To make this simpler there is a `preResoleAuthCheck`
+you can add to object types that allows you to define a check that will run before any resolver for
+that type.
 
 ```ts
 builder.createQueryType({
@@ -207,11 +207,14 @@ builder.createObjectType('Person', {
 });
 ```
 
-the preResolveAuthCheck only receives the `context` object because the `parent` and args will vary
+the `preResolveAuthCheck` only receives the `context` object because the `parent` and args will vary
 depending on which resolver is being called. It can return an map of authorizations the same way an
 auch check on a field can. This approach allows you to define all of the auth for your type in one
 place, and is the recomended path for applications where you want more ridged controls over your
 auth checks.
+
+Because the `preResolveAuthCheck` only receives the context object, it will be run at most once per
+request and its result will be cached for subsequent fields of the same kind.
 
 ## API
 

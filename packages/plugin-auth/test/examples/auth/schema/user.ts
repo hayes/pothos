@@ -2,6 +2,15 @@ import builder from '../builder';
 
 export default builder.createObjectType('User', {
   defaultAuthChecks: ['readUserField'],
+  preResolveAuthCheck: context => {
+    if (!context.user || context.user.id > 2) {
+      return false;
+    }
+
+    return {
+      readUserId: context.user.id === 1,
+    };
+  },
   authChecks: {
     readEmail: parent => !!(parent.id % 2),
   },
@@ -11,7 +20,7 @@ export default builder.createObjectType('User', {
     }),
     firstName: t.exposeString('firstName', {}),
     lastName: t.exposeString('lastName', {
-      checkAuth: [(parent, { user }) => parent.lastName === user?.lastName],
+      checkAuth: (parent, args, { user }) => parent.lastName === user?.lastName,
     }),
     email: t.exposeString('email', {
       checkAuth: ['readEmail'],

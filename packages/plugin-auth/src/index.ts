@@ -1,5 +1,6 @@
 /* eslint-disable no-param-reassign */
 import {
+  BaseType,
   BasePlugin,
   InputFields,
   TypeParam,
@@ -25,6 +26,7 @@ import {
 import { ForbiddenError } from 'apollo-server';
 import AuthWrapper, { AuthMeta } from './auth-wrapper';
 import './global-types';
+import { AuthGrantMap, PreResolveAuthCheck, AuthCheckWithGrants } from './types';
 
 export { AuthWrapper, AuthMeta };
 
@@ -58,9 +60,22 @@ export function assertArray(value: unknown): value is unknown[] {
   return true;
 }
 
+export function mergeAuthGrants(grants: AuthGrantMap, newGrants: AuthGrantMap) {
+  Object.keys(newGrants).forEach(key => {
+    if (!grants[key] && newGrants[key]) {
+      grants[key] = true;
+    }
+  });
+}
+
 export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   authRequired: boolean;
+
+  preResolveAuthCheckCache = new WeakMap<
+    Types['Context'],
+    Map<PreResolveAuthCheck<Types>, ReturnType<PreResolveAuthCheck<Types>>>
+  >();
 
   constructor(
     options: {
@@ -85,28 +100,36 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     const isScalarResolver = isScalar(config.type);
 
     const parentType = cache.getType(field.parentTypename);
+    const nonListReturnType = Array.isArray(field.type) ? field.type[0] : field.type;
+    const returnTypeName =
+      typeof nonListReturnType === 'string'
+        ? nonListReturnType
+        : (nonListReturnType as BaseType<Types, string, {}>).typename;
+    const returnType = cache.getType(returnTypeName);
 
     const fieldAuthChecks =
-      typeof field.options.checkAuth === 'function' || typeof field.options.checkAuth === 'string'
-        ? [field.options.checkAuth]
-        : field.options.checkAuth;
-
-    const authWith =
-      fieldAuthChecks ??
-      (parentType.kind === 'Object' ? parentType.options.defaultAuthChecks : []) ??
+      (field.options.checkAuth &&
+        (Array.isArray(field.options.checkAuth)
+          ? field.options.checkAuth
+          : [field.options.checkAuth])) ||
       [];
 
-    const parentChecks = (parentType.kind === 'Object' || parentType.kind === 'Root'
+    let authChecks = fieldAuthChecks;
+
+    if (!field.options.checkAuth) {
+      const defaultAuthChecks =
+        (parentType.kind === 'Object' && parentType.options.defaultAuthChecks) || [];
+
+      authChecks = defaultAuthChecks;
+    }
+
+    const authChecksFromType = (parentType.kind === 'Object' || parentType.kind === 'Root'
       ? parentType.options.authChecks ?? {}
       : {}) as {
       [s: string]: (parent: unknown, context: Types['Context']) => boolean | Promise<boolean>;
     };
 
-    const grantAuth = field.options.grantAuth as {
-      [s: string]:
-        | true
-        | ((parent: unknown, context: Types['Context']) => boolean | Promise<boolean>);
-    };
+    const preResolveCheck = returnType.kind === 'Object' && returnType.options.preResolveAuthCheck;
 
     const wrappedResolver = async (
       originalParent: unknown,
@@ -114,57 +137,42 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const { parent, authData = { grantCache: {}, checkCache: {}, grantAuth: {} } } =
-        originalParent instanceof AuthWrapper ? originalParent : { parent: originalParent };
+      const { parent, authData } =
+        originalParent instanceof AuthWrapper
+          ? originalParent
+          : new AuthWrapper(originalParent, {});
 
-      const { grantCache, checkCache } = authData;
+      const { grantedAuth, checkCache } = authData;
+      const authGrants: { [s: string]: boolean } = {};
 
-      if (authWith.length === 0) {
-        if (this.authRequired) {
-          throw new ForbiddenError(`No auth checks defined for ${fieldName}`);
-        }
-
-        return this.wrapReturn(
-          await resolver(parent, args, context, info),
-          grantAuth,
-          isListResolver,
-          isScalarResolver,
-        );
+      if (authChecks.length === 0 && this.authRequired && !preResolveCheck) {
+        throw new ForbiddenError(`No auth checks defined for ${fieldName}`);
       }
 
       const authResults = await Promise.all(
-        authWith.map(async authCheck => {
+        authChecks.map(async authCheck => {
           const authName = typeof authCheck === 'string' ? authCheck : authCheck.name;
+
           if (typeof authCheck === 'function') {
-            return Promise.resolve(authCheck(parent, context)).then(result => ({
-              result,
-              authName,
-            }));
-          }
-
-          if (!parentChecks[authCheck] && !(authData.grantAuth && authData.grantAuth[authCheck])) {
-            return Promise.resolve({ result: false, authName: authCheck });
-          }
-
-          if (authData.grantAuth && authData.grantAuth[authCheck]) {
-            const check = authData.grantAuth[authCheck];
-
-            if (!grantCache[authCheck]) {
-              if (check === true) {
-                grantCache[authCheck] = true;
-              } else {
-                grantCache[authCheck] = check(parent, context);
+            return Promise.resolve(authCheck(parent, args, context)).then(result => {
+              if (result && typeof result === 'object') {
+                mergeAuthGrants(authGrants, result);
               }
-            }
 
-            if ((await grantCache[authCheck]) === true) {
-              return { result: true, authName };
-            }
+              return {
+                result: !!result,
+                authName,
+              };
+            });
           }
 
-          if (parentChecks[authCheck]) {
+          if (grantedAuth[authCheck]) {
+            return { result: true, authName };
+          }
+
+          if (authChecksFromType[authCheck]) {
             if (!checkCache[authCheck]) {
-              checkCache[authCheck] = parentChecks[authCheck](parent, context);
+              checkCache[authCheck] = authChecksFromType[authCheck](parent, context);
             }
 
             const result = await checkCache[authCheck];
@@ -172,7 +180,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
             return { result, authName };
           }
 
-          return { result: false, authName };
+          return { result: false, authName: authCheck };
         }),
       );
 
@@ -188,9 +196,30 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
         );
       }
 
+      if (preResolveCheck) {
+        if (!this.preResolveAuthCheckCache.has(context)) {
+          this.preResolveAuthCheckCache.set(context, new Map());
+        }
+        const preResolveCache = this.preResolveAuthCheckCache.get(context)!;
+
+        if (!preResolveCache.has(preResolveCheck)) {
+          preResolveCache.set(preResolveCheck, preResolveCheck(context));
+        }
+
+        const preResolveResult = await preResolveCache.get(preResolveCheck);
+
+        if (!preResolveResult) {
+          throw new ForbiddenError(`${returnTypeName} preResolveCheck failed for ${fieldName}`);
+        }
+
+        if (typeof preResolveResult === 'object') {
+          mergeAuthGrants(authGrants, preResolveResult);
+        }
+      }
+
       const result = await resolver(parent, args, context, info);
 
-      return this.wrapReturn<Types>(result, grantAuth, isListResolver, isScalarResolver);
+      return this.wrapReturn<Types>(result, authGrants, isListResolver, isScalarResolver);
     };
 
     return {
@@ -232,7 +261,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
   private wrapReturn<Types extends GiraphQLSchemaTypes.TypeInfo>(
     result: unknown,
-    grantAuth: AuthMeta<Types>['grantAuth'],
+    grantAuth: AuthMeta<Types>['grantedAuth'],
     isListResolver: boolean,
     isScalarResolver: boolean,
   ) {

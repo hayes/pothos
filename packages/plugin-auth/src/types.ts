@@ -34,4 +34,4 @@ export type CheckAuth<
 > =
   | string
   | AuthCheckWithGrants<Types, ParentShape, Args>
-  | (string | AuthCheckWithGrants<Types, ParentShape, Args>[]);
+  | (string | AuthCheckWithGrants<Types, ParentShape, Args>)[];
