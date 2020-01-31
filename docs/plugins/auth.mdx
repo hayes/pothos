@@ -170,7 +170,7 @@ builder.createObjectType('Person', {
 
 As your schema gets more complicated, some types may be reference by fields on a lot of different
 types. This can make it hard to keep all the auth checks for this popular type in sync and ensure
-that all fields have appropriate auth checks. To make this simpler there is a `preResoleAuthCheck`
+that all fields have appropriate auth checks. To make this simpler there is a `preResolveAuthCheck`
 you can add to object types that allows you to define a check that will run before any resolver for
 that type.
 
