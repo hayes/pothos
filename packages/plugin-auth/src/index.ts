@@ -26,7 +26,7 @@ import {
 import { ForbiddenError } from 'apollo-server';
 import AuthWrapper, { AuthMeta } from './auth-wrapper';
 import './global-types';
-import { AuthGrantMap, PreResolveAuthCheck, AuthCheckWithGrants } from './types';
+import { AuthGrantMap, PreResolveAuthCheck } from './types';
 
 export { AuthWrapper, AuthMeta };
 
