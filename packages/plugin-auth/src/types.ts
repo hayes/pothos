@@ -1,4 +1,4 @@
-import { InputFields, InputShapeFromFields } from '@giraphql/core/src';
+import { InputFields, InputShapeFromFields } from '@giraphql/core';
 
 export type MaybePromise<T> = T | Promise<T>;
 
