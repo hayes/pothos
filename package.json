@@ -8,9 +8,9 @@
   "scripts": {
     "babel": "NODE_ENV=production nimbus babel --copy-files --workspaces=*",
     "docz:deploy": "yarn docz:build && netlify deploy -d dist --prod",
-    "docz:dev": "docz dev",
-    "docz:build": "docz build",
-    "docz:serve": "docz build && docz serve",
+    "docz:dev": "rm -f babel.config.js && docz dev",
+    "docz:build": "rm -f babel.config.js && docz build",
+    "docz:serve": " rm -f babel.config.js && docz build && docz serve",
     "prepare": "nimbus create-config --silent && rm babel.config.js",
     "build": "yarn babel && yarn type:dts",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
@@ -42,13 +42,13 @@
     "@airbnb/config-typescript": "^2.2.2",
     "@airbnb/nimbus": "^2.2.3",
     "@babel/plugin-syntax-bigint": "^7.8.3",
-    "@types/jest": "^25.1.0",
-    "@types/node": "^13.5.1",
+    "@types/jest": "^25.1.1",
+    "@types/node": "^13.5.3",
     "@types/node-fetch": "^2.5.4",
     "docz": "^2.2.0",
     "husky": "^4.2.1",
     "lerna": "^3.20.2",
-    "lint-staged": "^10.0.3"
+    "lint-staged": "^10.0.6"
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
