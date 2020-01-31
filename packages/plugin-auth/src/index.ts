@@ -222,6 +222,8 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
       return this.wrapReturn<Types>(result, authGrants, isListResolver, isScalarResolver);
     };
 
+    wrappedResolver.unwrap = () => resolver;
+
     return {
       ...config,
       resolve: wrappedResolver as (...args: unknown[]) => unknown,
