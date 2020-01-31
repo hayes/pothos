@@ -29,9 +29,9 @@ const builder = new SchemaBuilder({ stateful: true, plugins: [new AuthPlugin()] 
 builder.createQueryType({
   shape: t => ({
     hello: t.string({
-      checkAuth: (parent, { name }, context) => {
+      checkAuth: (parent, args, context) => {
         // only say hello to people who capitalize their name
-        return args.name[0] === args[0].toUpperCase(),
+        return name[0] === args[0].toUpperCase(),
       },
       args: {
         name: t.arg.string({ required: true }),
@@ -67,13 +67,13 @@ builder.createQueryType({
   shape: t => ({
     helloAdmin: t.string({
       checkAuth: 'isAdmin',
-      resolve: (parent, { name }) => `hello Admin`,
+      resolve: parent => `hello Admin`,
     }),
     hello: t.string({
       // checkAuth can be an array of checks
       checkAuth: [
         'isLoggedIn',
-        (parent, { name }, context) => {
+        (parent, args, context) => {
           // only say hello to people who capitalize their name
           return args.name[0] === args[0].toUpperCase(),
         }
