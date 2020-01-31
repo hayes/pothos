@@ -15,12 +15,13 @@ export default builder.createQueryType({
         }),
       },
       // require a passing readUser auth check
-      checkAuth: ['readUser'],
-      grantAuth: {
-        // grant readUser auth for returned user
-        readUserField: true,
-        readUserId: parent => parent.id === 1,
-      },
+      checkAuth: [
+        'readUser',
+        () => ({
+          // grant readUserField auth for returned user
+          readUserField: true,
+        }),
+      ],
       resolve: (parent, { id }, { User }) => {
         const user = User.map.get(parseInt(id, 10));
 
@@ -34,13 +35,14 @@ export default builder.createQueryType({
     users: t.field({
       type: ['User'],
       // require a passing readUser auth check
-      checkAuth: ['readUser'],
+      checkAuth: [
+        'readUser',
+        () => ({
+          // grant readUserField auth for returned user
+          readUserField: true,
+        }),
+      ],
       nullable: { list: false, items: true },
-      grantAuth: {
-        // grant readUser auth for returned user
-        readUserField: true,
-        readUserId: parent => parent.id === 1,
-      },
       resolve: (parent, args, { User }) => {
         const user1 = User.map.get(1);
         const user2 = User.map.get(2);

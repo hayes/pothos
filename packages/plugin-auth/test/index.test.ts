@@ -37,7 +37,6 @@ describe('auth example schema', () => {
       const query = gql`
         query {
           user(id: 1) {
-            id
             firstName
             lastName
             email
@@ -53,7 +52,6 @@ describe('auth example schema', () => {
 
       expect(result.data).toEqual({
         user: {
-          id: '1',
           firstName: 'Michael',
           lastName: 'Hayes',
           email: 'michael.hayes@example.com',
@@ -84,6 +82,30 @@ describe('auth example schema', () => {
       ]);
     });
 
+    test('granted auth check passes', async () => {
+      const query = gql`
+        query {
+          user(id: 2) {
+            id
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(1),
+      });
+
+      expect(result.errors).toBeUndefined();
+
+      expect(result.data).toEqual({
+        user: {
+          id: '2',
+        },
+      });
+    });
+
     test('granted auth check fails', async () => {
       const query = gql`
         query {
@@ -110,7 +132,6 @@ describe('auth example schema', () => {
       const query = gql`
         query {
           user(id: 1) {
-            id
             firstName
             lastName
             email
@@ -126,7 +147,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.lastName ([anonymous])',
+          message: 'Failed 1 auth check on User.lastName (checkAuth)',
         }),
       ]);
     });
@@ -238,15 +259,13 @@ describe('auth example schema', () => {
         expect.objectContaining({
           message: 'Failed 1 auth check on User.id (readUserId)',
         }),
+        expect.objectContaining({
+          message: 'Failed 1 auth check on User.id (readUserId)',
+        }),
       ]);
 
       expect(result.data).toEqual({
-        users: [
-          {
-            id: '1',
-          },
-          null,
-        ],
+        users: [null, null],
       });
     });
 
@@ -268,7 +287,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.lastName ([anonymous])',
+          message: 'Failed 1 auth check on User.lastName (checkAuth)',
         }),
       ]);
 

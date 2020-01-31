@@ -15,10 +15,13 @@ import RootType from './graphql/root';
 import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
 import SchemaBuilder from './builder';
+import BaseType from './graphql/base';
 
 export * from './types';
+export * from './utils';
 
 export {
+  BaseType,
   BasePlugin,
   BuildCache,
   EnumType,
