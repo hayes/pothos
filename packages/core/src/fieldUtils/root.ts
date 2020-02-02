@@ -1,4 +1,10 @@
-import { FieldOptionsFromKind, TypeParam, InputFields, FieldNullability } from '../types';
+import {
+  TypeParam,
+  InputFields,
+  FieldNullability,
+  FieldOptionsFromKind,
+  FieldKind,
+} from '../types';
 import Field from '../graphql/field';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
@@ -6,192 +12,98 @@ import InputFieldBuilder from './input';
 export default class RootFieldBuilder<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentShape,
-  Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription'
-> extends BaseFieldUtil<Types, ParentShape, Kind> {
+  Kind extends FieldKind = FieldKind
+> extends BaseFieldUtil<Types, ParentShape> {
   arg = new InputFieldBuilder<Types>().callableBuilder();
 
-  boolean<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'Boolean'>>(
+  boolean<Args extends InputFields<Types>, Nullable extends FieldNullability<'Boolean'>>(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, 'Boolean', Nullable, Args, Kind>,
       'type'
     >,
-  ): Field<Args, Types, ParentShape, 'Boolean', Nullable, Kind> {
-    return this.createField<Args, 'Boolean', Nullable, null>(
-      { ...options, type: 'Boolean' } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'Boolean',
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, 'Boolean'> {
+    return this.createField<Args, 'Boolean', Nullable>({
+      ...options,
+      type: 'Boolean',
+    });
   }
 
-  float<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'Flaot'>>(
+  float<Args extends InputFields<Types>, Nullable extends FieldNullability<'Float'>>(
     options: Omit<FieldOptionsFromKind<Types, ParentShape, 'Float', Nullable, Args, Kind>, 'type'>,
-  ): Field<Args, Types, ParentShape, 'Float', Nullable> {
-    return this.createField<Args, 'Float', Nullable, null>(
-      { ...options, type: 'Float' } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'Float',
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, 'Float'> {
+    return this.createField<Args, 'Float', Nullable>({
+      ...options,
+      type: 'Float',
+    });
   }
 
-  id<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'ID'>>(
+  id<Args extends InputFields<Types>, Nullable extends FieldNullability<'ID'>>(
     options: Omit<FieldOptionsFromKind<Types, ParentShape, 'ID', Nullable, Args, Kind>, 'type'>,
-  ): Field<Args, Types, ParentShape, 'ID', Nullable> {
-    return this.createField<Args, 'ID', Nullable, null>(
-      { ...options, type: 'ID' } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'ID',
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, 'ID'> {
+    return this.createField<Args, 'ID', Nullable>({ ...options, type: 'ID' });
   }
 
-  int<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'Int'>>(
+  int<Args extends InputFields<Types>, Nullable extends FieldNullability<'Int'>>(
     options: Omit<FieldOptionsFromKind<Types, ParentShape, 'Int', Nullable, Args, Kind>, 'type'>,
-  ): Field<Args, Types, ParentShape, 'Int', Nullable> {
-    return this.createField<Args, 'Int', Nullable, null>(
-      { ...options, type: 'Int' } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'Int',
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, 'Int'> {
+    return this.createField<Args, 'Int', Nullable>({ ...options, type: 'Int' });
   }
 
-  string<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, 'String'>>(
+  string<Args extends InputFields<Types>, Nullable extends FieldNullability<'String'>>(
     options: Omit<FieldOptionsFromKind<Types, ParentShape, 'String', Nullable, Args, Kind>, 'type'>,
-  ): Field<Args, Types, ParentShape, 'String', Nullable> {
-    return this.createField<Args, 'String', Nullable, null>(
-      { ...options, type: 'String' } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'String',
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, 'String'> {
+    return this.createField<Args, 'String', Nullable>({
+      ...options,
+      type: 'String',
+    });
   }
 
-  booleanList<
-    Args extends InputFields<Types>,
-    Nullable extends FieldNullability<Types, ['Boolean']>
-  >(
+  booleanList<Args extends InputFields<Types>, Nullable extends FieldNullability<['Boolean']>>(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['Boolean'], Nullable, Args, Kind>,
       'type'
     >,
-  ): Field<Args, Types, ParentShape, ['Boolean'], Nullable> {
-    return this.createField<Args, ['Boolean'], Nullable, null>(
-      { ...options, type: ['Boolean'] } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['Boolean'],
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, ['Boolean']> {
+    return this.createField<Args, ['Boolean'], Nullable>({ ...options, type: ['Boolean'] });
   }
 
-  floatList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['Float']>>(
+  floatList<Args extends InputFields<Types>, Nullable extends FieldNullability<['Float']>>(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['Float'], Nullable, Args, Kind>,
       'type'
     >,
-  ): Field<Args, Types, ParentShape, ['Float'], Nullable> {
-    return this.createField<Args, ['Float'], Nullable, null>(
-      { ...options, type: ['Float'] } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['Float'],
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, ['Float']> {
+    return this.createField<Args, ['Float'], Nullable>({ ...options, type: ['Float'] });
   }
 
-  idList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['ID']>>(
+  idList<Args extends InputFields<Types>, Nullable extends FieldNullability<['ID']>>(
     options: Omit<FieldOptionsFromKind<Types, ParentShape, ['ID'], Nullable, Args, Kind>, 'type'>,
-  ): Field<Args, Types, ParentShape, ['ID'], Nullable> {
-    return this.createField<Args, ['ID'], Nullable, null>(
-      { ...options, type: ['ID'] } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['ID'],
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, ['ID']> {
+    return this.createField<Args, ['ID'], Nullable>({ ...options, type: ['ID'] });
   }
 
-  intList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['Int']>>(
+  intList<Args extends InputFields<Types>, Nullable extends FieldNullability<['Int']>>(
     options: Omit<FieldOptionsFromKind<Types, ParentShape, ['Int'], Nullable, Args, Kind>, 'type'>,
-  ): Field<Args, Types, ParentShape, ['Int'], Nullable> {
-    return this.createField<Args, ['Int'], Nullable, null>(
-      { ...options, type: ['Int'] } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['Int'],
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, ['Int']> {
+    return this.createField<Args, ['Int'], Nullable>({ ...options, type: ['Int'] });
   }
 
-  stringList<Args extends InputFields<Types>, Nullable extends FieldNullability<Types, ['String']>>(
+  stringList<Args extends InputFields<Types>, Nullable extends FieldNullability<['String']>>(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['String'], Nullable, Args, Kind>,
       'type'
     >,
-  ): Field<Args, Types, ParentShape, ['String'], Nullable> {
-    return this.createField<Args, ['String'], Nullable, null>(
-      { ...options, type: ['String'] } as FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['String'],
-        Nullable,
-        Args,
-        Kind
-      >,
-      null,
-    );
+  ): Field<Args, Types, ['String']> {
+    return this.createField<Args, ['String'], Nullable>({ ...options, type: ['String'] });
   }
 
   field<
     Args extends InputFields<Types>,
     Type extends TypeParam<Types>,
-    Req extends FieldNullability<Types, Type>
+    Nullable extends FieldNullability<Type>
   >(
-    options: FieldOptionsFromKind<Types, ParentShape, Type, Req, Args, Kind>,
-  ): Field<Args, Types, ParentShape, Type, Req> {
-    return this.createField(options, null);
+    options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>,
+  ): Field<Args, Types, Type> {
+    return this.createField(options);
   }
 }

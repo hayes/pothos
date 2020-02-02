@@ -1,7 +1,7 @@
 import Character from './character';
 import builder from '../builder';
 
-export default builder.createObjectType('Droid', {
+export default builder.objectType('Droid', {
   description: 'A mechanical creature in the Star Wars universe.',
   implements: [Character],
   isType: item => item.type === 'Droid',

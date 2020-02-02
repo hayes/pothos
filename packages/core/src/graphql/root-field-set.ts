@@ -1,14 +1,14 @@
-import { RootName, RootFieldsShape } from '../types';
+import { RootFieldsShape, RootName } from '../types';
 
 export default class RootFieldSet<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends RootName
+  Kind extends RootName = RootName
 > {
-  forType: Type;
+  forType: RootName;
 
-  shape: RootFieldsShape<Types, Type>;
+  shape: RootFieldsShape<any, Kind>;
 
-  constructor(type: Type, shape: RootFieldsShape<Types, Type>) {
+  constructor(type: RootName, shape: RootFieldsShape<Types, Kind>) {
     this.forType = type;
     this.shape = shape;
   }

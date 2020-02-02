@@ -1,6 +1,6 @@
 import builder from '../builder';
 
-export default builder.createObjectType('User', {
+export default builder.objectType('User', {
   defaultAuthChecks: ['readUserField'],
   preResolveAuthCheck: context => {
     if (!context.user || context.user.id > 2) {

@@ -1,18 +1,8 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import {
-  TypeParam,
-  InputFields,
-  CompatibleTypes,
-  FieldNullability,
-  FieldOptionsFromKind,
-} from '../types';
+import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
 import Field from '../graphql/field';
 
-export default class BaseFieldUtil<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentShape,
-  Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription'
-> {
+export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> {
   typename: string;
 
   constructor(name: string) {
@@ -22,16 +12,13 @@ export default class BaseFieldUtil<
   protected createField<
     Args extends InputFields<Types>,
     Type extends TypeParam<Types>,
-    Nullable extends FieldNullability<Types, Type>,
-    Extends extends string | null
+    Nullable extends FieldNullability<Type>
   >(
-    options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>,
-    extendsField: Extends,
-  ): Field<Args, Types, ParentShape, Type, Nullable, Kind> {
+    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args>,
+  ): Field<Args, Types, Type> {
     return new Field(
       {
         ...options,
-        extendsField,
       },
       this.typename,
     );
@@ -39,7 +26,7 @@ export default class BaseFieldUtil<
 
   protected exposeField<
     Type extends TypeParam<Types>,
-    Nullable extends FieldNullability<Types, Type>,
+    Nullable extends FieldNullability<Type>,
     Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>
   >(
     name: Name,
@@ -48,7 +35,7 @@ export default class BaseFieldUtil<
       'resolve'
     >,
   ) {
-    return new Field<{}, Types, ParentShape, Type, Nullable>(
+    return new Field<{}, Types, Type>(
       {
         ...options,
         // @ts-ignore
@@ -59,15 +46,18 @@ export default class BaseFieldUtil<
   }
 
   protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <Args extends InputFields<Types>, Nullable extends boolean>(
-      options: Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>, 'type'>,
-    ): Field<Args, Types, ParentShape, Type, Nullable, Kind> => {
+    return <Args extends InputFields<Types>, Nullable extends FieldNullability<Type>>(
+      options: Omit<
+        GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args>,
+        'type'
+      >,
+    ): Field<Args, Types, Type> => {
       const mergedOptions = {
         ...options,
         type,
-      } as FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>;
+      };
 
-      return this.createField(mergedOptions, null);
+      return this.createField(mergedOptions);
     };
   }
 
@@ -81,7 +71,7 @@ export default class BaseFieldUtil<
         GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}>,
         'resolve' | 'type'
       > = {},
-    ): Field<{}, Types, ParentShape, Type, Nullable> => {
+    ): Field<{}, Types, Type> => {
       return this.exposeField<Type, Nullable, Name>(name, { ...options, type });
     };
   }

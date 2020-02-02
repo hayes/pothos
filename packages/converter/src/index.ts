@@ -93,6 +93,11 @@ export default class GirphQLConverter {
         kind: StructureKind.ImportDeclaration,
         moduleSpecifier: '@giraphql/core',
         defaultImport: 'SchemaBuilder',
+        namedImports: gqlTypes.find(
+          type => type instanceof GraphQLInputObjectType && isRecursive(type),
+        )
+          ? ['InputObjectOfShape']
+          : [],
       });
 
       this.sourcefile.addStatements(writer => writer.blankLine());
@@ -126,11 +131,11 @@ export default class GirphQLConverter {
       }
 
       if (type instanceof GraphQLUnionType) {
-        this.createUnionType(type);
+        this.unionType(type);
       } else if (type instanceof GraphQLEnumType) {
-        this.createEnumType(type);
+        this.enumType(type);
       } else if (type instanceof GraphQLScalarType) {
-        this.createScalarType(type);
+        this.scalarType(type);
       }
     });
 
@@ -140,7 +145,7 @@ export default class GirphQLConverter {
       }
 
       if (type instanceof GraphQLInputObjectType) {
-        this.createInputType(type);
+        this.inputType(type);
       }
     });
 
@@ -152,7 +157,7 @@ export default class GirphQLConverter {
         return;
       }
       if (type instanceof GraphQLInterfaceType) {
-        this.createInterfaceType(type);
+        this.interfaceType(type);
       }
     });
 
@@ -167,13 +172,13 @@ export default class GirphQLConverter {
 
       if (type instanceof GraphQLObjectType) {
         if (type.name === 'Query') {
-          this.createQueryType(type);
+          this.queryType(type);
         } else if (type.name === 'Mutation') {
-          this.createMutationType(type);
+          this.mutationType(type);
         } else if (type.name === 'Subscription') {
-          this.createSubscriptionType(type);
+          this.subscriptionType(type);
         } else {
-          this.createObjectType(type);
+          this.objectType(type);
         }
       }
     });
@@ -206,7 +211,7 @@ export default class GirphQLConverter {
     }
   }
 
-  createQueryType(type: GraphQLObjectType) {
+  queryType(type: GraphQLObjectType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -215,7 +220,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: 'Query',
           initializer: writer => {
-            writer.writeLine('builder.createQueryType({');
+            writer.writeLine('builder.queryType({');
             writer.indent(() => {
               this.writeDescription(writer, type);
               this.writeObjectShape(writer, type);
@@ -227,7 +232,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createMutationType(type: GraphQLObjectType) {
+  mutationType(type: GraphQLObjectType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -236,7 +241,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: 'Mutation',
           initializer: writer => {
-            writer.writeLine('builder.createMutationType({');
+            writer.writeLine('builder.mutationType({');
             writer.indent(() => {
               this.writeDescription(writer, type);
               this.writeObjectShape(writer, type);
@@ -248,7 +253,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createSubscriptionType(type: GraphQLObjectType) {
+  subscriptionType(type: GraphQLObjectType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -257,7 +262,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: 'Subscription',
           initializer: writer => {
-            writer.writeLine('builder.createSubscriptionType({');
+            writer.writeLine('builder.subscriptionType({');
             writer.indent(() => {
               this.writeDescription(writer, type);
               this.writeObjectShape(writer, type);
@@ -269,7 +274,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createObjectType(type: GraphQLObjectType) {
+  objectType(type: GraphQLObjectType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -278,7 +283,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: type.name,
           initializer: writer => {
-            writer.writeLine(`builder.createObjectType('${type.name}', {`);
+            writer.writeLine(`builder.objectType('${type.name}', {`);
             writer.indent(() => {
               this.writeDescription(writer, type);
               if (type.getInterfaces().length !== 0) {
@@ -288,10 +293,10 @@ export default class GirphQLConverter {
                     .map(i => i.name)
                     .join(', ')}],`,
                 );
+                writer.writeLine(
+                  `isType: (obj, context, info) => { throw new Error('Not implemented') },`,
+                );
               }
-              writer.writeLine(
-                `isType: (obj, context, info) => { throw new Error('Not implemented') },`,
-              );
               this.writeObjectShape(writer, type);
             });
             writer.writeLine('})');
@@ -301,7 +306,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createInterfaceType(type: GraphQLInterfaceType) {
+  interfaceType(type: GraphQLInterfaceType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -310,7 +315,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: type.name,
           initializer: writer => {
-            writer.writeLine(`builder.createInterfaceType('${type.name}', {`);
+            writer.writeLine(`builder.interfaceType('${type.name}', {`);
             writer.indent(() => {
               this.writeDescription(writer, type);
               this.writeObjectShape(writer, type);
@@ -322,7 +327,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createUnionType(type: GraphQLUnionType) {
+  unionType(type: GraphQLUnionType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -331,7 +336,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: type.name,
           initializer: writer => {
-            writer.writeLine(`builder.createUnionType('${type.name}', {`);
+            writer.writeLine(`builder.unionType('${type.name}', {`);
             writer.indent(() => {
               this.writeDescription(writer, type);
               writer.writeLine(`members: [${type.getTypes().map(t => `'${t.name}'`)}],`);
@@ -346,7 +351,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createScalarType(type: GraphQLScalarType) {
+  scalarType(type: GraphQLScalarType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -355,21 +360,22 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: type.name,
           initializer: writer => {
-            writer.writeLine(`builder.createScalarType('${type.name}', new GraphQLScalarType({`);
+            writer.writeLine(`builder.scalarType('${type.name}', {`);
             writer.indent(() => {
               writer.writeLine(`name: '${type.name}',`);
               writer.writeLine(`serialize: () => { throw new Error('Not implemented') },`);
             });
-            writer.writeLine('}))');
+            writer.writeLine('})');
           },
         },
       ],
     });
   }
 
-  createInputType(type: GraphQLInputObjectType) {
-    if (isRecursive(type)) {
-      this.createInputShape(type);
+  inputType(type: GraphQLInputObjectType) {
+    const recursive = isRecursive(type);
+    if (recursive) {
+      this.inputTypeShape(type);
     }
 
     this.sourcefile.addVariableStatement({
@@ -379,8 +385,9 @@ export default class GirphQLConverter {
         {
           kind: StructureKind.VariableDeclaration,
           name: type.name,
+          type: recursive ? `InputObjectOfShape<${type.name}Shape>` : undefined,
           initializer: writer => {
-            writer.writeLine(`builder.createInputType('${type.name}', {`);
+            writer.writeLine(`builder.inputType('${type.name}', {`);
             writer.indent(() => {
               this.writeDescription(writer, type);
               this.writeInputShape(writer, type);
@@ -392,7 +399,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createInputShape(type: GraphQLInputObjectType) {
+  inputTypeShape(type: GraphQLInputObjectType) {
     const fieldMap = type.getFields();
     const fields = Object.keys(fieldMap).map(name => fieldMap[name]);
 
@@ -406,7 +413,7 @@ export default class GirphQLConverter {
     });
   }
 
-  createEnumType(type: GraphQLEnumType) {
+  enumType(type: GraphQLEnumType) {
     this.sourcefile.addVariableStatement({
       kind: StructureKind.VariableStatement,
       declarationKind: VariableDeclarationKind.Const,
@@ -415,7 +422,7 @@ export default class GirphQLConverter {
           kind: StructureKind.VariableDeclaration,
           name: type.name,
           initializer: writer => {
-            writer.writeLine(`builder.createEnumType('${type.name}', {`);
+            writer.writeLine(`builder.enumType('${type.name}', {`);
             writer.indent(() => {
               this.writeDescription(writer, type);
               writer.writeLine('values: {');
@@ -470,9 +477,7 @@ export default class GirphQLConverter {
           writer.write('type: ');
           this.writeType(writer, field.type);
           writer.writeLine(',');
-          writer.write('nullable: ');
           this.writeNullability(writer, field.type);
-          writer.writeLine(',');
           writer.writeLine(
             `resolve: (parent, args, context, info) => { throw new Error('Not implemented') },`,
           );
@@ -540,8 +545,7 @@ export default class GirphQLConverter {
     if (
       type instanceof GraphQLScalarType ||
       type instanceof GraphQLObjectType ||
-      type instanceof GraphQLInterfaceType ||
-      isRecursive(type)
+      type instanceof GraphQLInterfaceType
     ) {
       writer.write(`'${type.name}'`);
       return;
@@ -618,22 +622,18 @@ export default class GirphQLConverter {
   writeNullability(writer: CodeBlockWriter, type: GraphQLType) {
     if (type instanceof GraphQLNonNull) {
       if (type.ofType instanceof GraphQLList) {
-        if (type.ofType.ofType instanceof GraphQLNonNull) {
-          writer.write(`{ list: false, items: false }`);
-        } else {
-          writer.write(`{ list: false, items: true }`);
+        if (!(type.ofType.ofType instanceof GraphQLNonNull)) {
+          writer.write('nullable: { list: false, items: true },');
         }
-      } else {
-        writer.write('false');
       }
     } else if (type instanceof GraphQLList) {
       if (type.ofType instanceof GraphQLNonNull) {
-        writer.write(`{ list: true, items: false }`);
+        writer.write('nullable: true,');
       } else {
-        writer.write(`{ list: true, items: true }`);
+        writer.write(`nullable: { list: true, items: true },`);
       }
     } else {
-      writer.write('true');
+      writer.write('nullable: true,');
     }
   }
 
@@ -720,19 +720,6 @@ export default class GirphQLConverter {
       writer.indent(() => {
         interfaces.forEach(type => {
           writer.writeLine(`${type.name}: unknown,`);
-        });
-      });
-      writer.writeLine('},');
-    }
-
-    const inputs = gqlTypes.filter(
-      type => type instanceof GraphQLInputObjectType && isRecursive(type),
-    ) as GraphQLInputObjectType[];
-    if (inputs.length !== 0) {
-      writer.writeLine('Input: {');
-      writer.indent(() => {
-        inputs.forEach(type => {
-          writer.writeLine(`${type.name}: ${type.name}Shape`);
         });
       });
       writer.writeLine('},');

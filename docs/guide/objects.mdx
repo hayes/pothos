@@ -33,7 +33,7 @@ const builder = new SchemaBuilder<{
 2. Create your object type
 
 ```typescript
-const Giraffe = builder.createObjectType('Giraffe', {
+const Giraffe = builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
   shape: t => ({}),
 });
@@ -42,7 +42,7 @@ const Giraffe = builder.createObjectType('Giraffe', {
 3. Add some fields
 
 ```typescript
-const Giraffe = builder.createObjectType('Giraffe', {
+const Giraffe = builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
   shape: t => ({
     name: t.exposeString('name'),
@@ -67,7 +67,7 @@ const Giraffe = builder.createObjectType('Giraffe', {
 4. Add a Query object as an entry point for fetching instances of the Giraffe type
 
 ```typescript
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     giraffe: t.field({
       type: Giraffe,

@@ -2,14 +2,14 @@ import { FieldsShape, TypeParam, ShapeFromTypeParam } from '../types';
 
 export default class FieldSet<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends TypeParam<Types>
+  Type extends TypeParam<Types> = TypeParam<Types>
 > {
-  forType: Type;
+  forType: string;
 
-  shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>;
+  shape: FieldsShape<any, any>;
 
-  constructor(type: Type, shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>) {
+  constructor(type: string, shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>) {
     this.forType = type;
-    this.shape = shape;
+    this.shape = shape as FieldsShape<any, any>;
   }
 }

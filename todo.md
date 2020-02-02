@@ -1,7 +1,10 @@
 # TODO
 
-1. helper for fields that can be used outside type definition
-2. shared resolvers for other types to use
-3. documentation
-4. Add proper scalar api
-5. Make shape functions a separate/final arg.
+1. shared resolvers for other types to use
+2. documentation
+3. Make shape functions a separate/final arg.
+4. investigate perf issues
+5. make field builder plugable
+6. cleanup plugin api
+7. plugin priority
+8. update toSchema method

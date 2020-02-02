@@ -26,7 +26,7 @@ type FieldOptions = {
   `Scalar` properties of [`TypeInfo`]. type may also be wrapped in an array eg `['User']` to create
   a list field.
 - `args`: a map of arg name to arg values. Arg values can be created using an [`InputFieldBuilder`]
-  \(`fieldBuilder.arg`) or using `schemaBuilder.`[`createArgs`];
+  \(`fieldBuilder.arg`) or using `schemaBuilder.`[`args`];
 - `nullable`: boolean;
 - `description`: string;
 - `deprecationReason`: string;
@@ -91,5 +91,5 @@ but `type` and `resolve` are omitted.
 [`fieldoptions`]: #fieldoptions
 [`schemabuilder`]: /docs-api-schema-builder
 [`typeinfo`]: /docs-api-schema-builder#typeinfo
-[`createargs`]: /docs-api-schema-builder#createargsshape
+[`args`]: /docs-api-schema-builder#argsshape
 [`inputfieldbuilder`]: /docs-api-input-field-builder

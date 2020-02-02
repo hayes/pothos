@@ -1,11 +1,11 @@
 import builder from '../builder';
 
-export default builder.createObjectType('User', {
+export default builder.objectType('User', {
   shape: t => ({
-    id: t.exposeID('id'),
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
-    email: t.exposeString('email'),
+    id: t.exposeID('id', {}),
+    firstName: t.exposeString('firstName', {}),
+    lastName: t.exposeString('lastName', {}),
+    email: t.exposeString('email', {}),
   }),
   extends: {
     Query: t => ({

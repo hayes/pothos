@@ -2,8 +2,7 @@ import { GraphQLObjectType } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { ShapeFromTypeParam, TypeParam, FieldMap, RootName } from '../types';
-import Field from './field';
+import { ShapeFromTypeParam, FieldMap, RootName } from '../types';
 import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 import RootFieldBuilder from '../fieldUtils/root';
@@ -11,7 +10,7 @@ import RootFieldBuilder from '../fieldUtils/root';
 export default class RootType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Name extends RootName
-> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
+> extends BaseType<ShapeFromTypeParam<Types, Name, false>> {
   kind: 'Root' = 'Root';
 
   description?: string;
@@ -24,11 +23,11 @@ export default class RootType<
     this.options = options;
   }
 
-  getFields(): FieldMap<Types> {
+  getFields(): FieldMap {
     return this.options.shape(new RootFieldBuilder(this.typename));
   }
 
-  buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLObjectType {
+  buildType(cache: BuildCache, plugins: BasePlugin[]): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
@@ -36,11 +35,7 @@ export default class RootType<
         fromEntries(
           Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
-            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
-              key,
-              cache,
-              plugins,
-            ),
+            field.build(key, cache, plugins),
           ]),
         ),
       extensions: this.options.extensions,

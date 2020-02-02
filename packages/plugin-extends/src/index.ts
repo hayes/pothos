@@ -15,23 +15,23 @@ export default class ExtendsPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
   implements BasePlugin<Types> {
   fieldsForRootType(
     type: RootType<Types, RootName>,
-    fields: FieldMap<Types>,
+    fields: FieldMap,
     built: GraphQLObjectType,
-    cache: BuildCache<Types>,
+    cache: BuildCache,
   ) {
     return this.mergeFields(type.typename, fields, cache);
   }
 
   fieldsForObjectType(
-    type: ObjectType<any[], Types, ObjectName<Types>>,
-    existingFields: FieldMap<Types>,
+    type: ObjectType<Types>,
+    existingFields: FieldMap,
     built: GraphQLObjectType,
-    cache: BuildCache<Types>,
+    cache: BuildCache,
   ) {
     return this.mergeFields(type.typename, existingFields, cache);
   }
 
-  private mergeFields(typename: string, existingFields: FieldMap<Types>, cache: BuildCache<Types>) {
+  private mergeFields(typename: string, existingFields: FieldMap, cache: BuildCache) {
     let fields = existingFields;
 
     cache.types.forEach(entry => {

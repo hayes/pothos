@@ -2,13 +2,7 @@
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import {
-  TypeParam,
-  InputFields,
-  ShapeFromTypeParam,
-  FieldNullability,
-  FieldOptionsFromKind,
-} from '../types';
+import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from '../types';
 import { typeFromParam, buildArg } from '../utils';
 import BaseType from './base';
 import BasePlugin from '../plugin';
@@ -17,46 +11,32 @@ import { BuildCache } from '..';
 export default class Field<
   Args extends InputFields<Types>,
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentShape,
-  Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Types, Type> = FieldNullability<Types, Type>,
-  Kind extends 'Object' | 'Interface' | 'Root' | 'Subscription' =
-    | 'Object'
-    | 'Interface'
-    | 'Root'
-    | 'Subscription'
+  Type extends TypeParam<Types>
 > {
   shape?: ShapeFromTypeParam<Types, Type, true>;
 
-  nullable: Nullable;
+  nullable: FieldNullability<Type>;
 
   args: Args = {} as Args;
 
   type: Type;
 
-  options: FieldOptionsFromKind<Types, TypeParam<Types>, TypeParam<Types>, boolean, {}, Kind>;
+  options: GiraphQLSchemaTypes.FieldOptions<any, unknown, TypeParam<any>, FieldNullability, any>;
 
   parentTypename: string;
 
   constructor(
-    options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>,
+    options: GiraphQLSchemaTypes.FieldOptions<Types, any, Type, FieldNullability<Type>, Args>,
     parentTypename: string,
   ) {
-    this.options = (options as unknown) as FieldOptionsFromKind<
-      Types,
-      TypeParam<Types>,
-      TypeParam<Types>,
-      boolean,
-      {},
-      Kind
-    >;
-    this.nullable = options.nullable ?? (false as Nullable);
+    this.options = options;
+    this.nullable = options.nullable ?? false;
     this.args = options.args ? options.args! : ({} as Args);
     this.type = options.type;
     this.parentTypename = parentTypename;
   }
 
-  protected buildArgs(cache: BuildCache<Types>): GraphQLFieldConfigArgumentMap {
+  protected buildArgs(cache: BuildCache): GraphQLFieldConfigArgumentMap {
     return fromEntries(
       Object.keys(this.args).map(key => {
         const arg = this.args[key];
@@ -85,8 +65,8 @@ export default class Field<
 
   build(
     name: string,
-    cache: BuildCache<Types>,
-    plugins: BasePlugin<Types>[],
+    cache: BuildCache,
+    plugins: BasePlugin[],
   ): GraphQLFieldConfig<unknown, unknown> {
     const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
       args: this.buildArgs(cache),

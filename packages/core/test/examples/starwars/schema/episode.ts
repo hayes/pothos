@@ -6,11 +6,11 @@ const OriginalEpisodes = {
   JEDI: { description: 'Released in 1983', value: 6 },
 };
 
-export const Episode = builder.createEnumType('Episode', {
+export const Episode = builder.enumType('Episode', {
   description: 'One of the films in the Star Wars Trilogy',
   values: OriginalEpisodes,
 });
 
-export const MoreEpisodes = builder.createEnumType('MoreEpisode', {
+export const MoreEpisodes = builder.enumType('MoreEpisode', {
   values: { ...OriginalEpisodes, OTHER: {} },
 });

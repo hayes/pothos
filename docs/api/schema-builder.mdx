@@ -47,11 +47,11 @@ type SchemaBuilderOptions = {
 
 - `plugins`: An array of GiraphQl plugins
 
-## `createObjectType(name, options)`
+## `objectType(name, options)`
 
-## `createMutationType(name, options)`
+## `mutationType(name, options)`
 
-## `createSubscriptionType(name, options)`
+## `subscriptionType(name, options)`
 
 - `name`: A key of the `Object` property in [`TypeInfo`]
 - `options`: [`RootTypeOptions`]
@@ -69,7 +69,7 @@ type RootTypeOptions = {
 - `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field definitons. See [`FieldBuilder`] for more details.
 
-## `createObjectType(name, options)`
+## `objectType(name, options)`
 
 - `name`: A key of the `Object` property in [`TypeInfo`]
 - `options`: [`ObjectTypeOptions`]
@@ -87,15 +87,15 @@ type ObjectTypeOptions = {
 
 - `implements`: an array of interfaces implemented by this object type. Items in this array can
   either be a key of the `Interface` property in [`TypeInfo`], or be an Interface type create by
-  [`createInterfaceType`]. The backing model for the object type must `extend` the backing model of
-  all interfaces in this list.
+  [`interfaceType`]. The backing model for the object type must `extend` the backing model of all
+  interfaces in this list.
 - `description`: A description of the current type
 - `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field definitons. See [`FieldBuilder`] for more details.
 - `isType`: Only required when implementing interfaces. This is a method that will be used when
   determining if a value of an implemented interface is of the current type.
 
-## `createInterfaceType(name, options)`
+## `interfaceType(name, options)`
 
 - `name`: A key of the `Interface` property in [`TypeInfo`]
 - `options`: [`InterfaceTypeOptions`]
@@ -113,7 +113,7 @@ type InterfaceTypeOptions = {
 - `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field definitons. See [`FieldBuilder`] for more details.
 
-## `createUnionType(name, options)`
+## `unionType(name, options)`
 
 - `name`: A string
 - `options`: [`UnionTypeOptions`]
@@ -130,12 +130,12 @@ type UnionTypeOptions = {
 
 - `description`: A description of the current type
 - `members`: an array of objects included in the union type. Items in this array can either be a key
-  of the `Object` property in [`TypeInfo`], or be an Object type create by [`createObjectType`].
+  of the `Object` property in [`TypeInfo`], or be an Object type create by [`objectType`].
 - `resolveType`: A function called when resolving the type of a union value. `parent` will be a
   union of the backing models of the types provided in `members`. This function should return the
   name of one of the union member types.
 
-## `createEnumType(name, options)`
+## `enumType(name, options)`
 
 - `name`: A string
 - `options`: [`EnumTypeOptions`]
@@ -153,12 +153,12 @@ type UnionTypeOptions = {
 - `values`: can be either an array of strings (you may need to use `as const` to get proper type
   names) or a [`GraphQLEnumValueConfigMap`](https://graphql.org/graphql-js/type/#graphqlenumtype).
 
-## `createScalar(name, scalar)`
+## `scalarType(name, scalar)`
 
 - `name`: A key of the `Interface` property in [`TypeInfo`]
 - `scalar`: A [`GraphQLScalar`](https://graphql.org/graphql-js/type/#graphqlscalartype)
 
-## `createInputType(name, options)`
+## `inputType(name, options)`
 
 - `name`: A string or a key of the `Input` property in [`TypeInfo`]
 - `options`: [`InputTypeOptions`]
@@ -178,7 +178,7 @@ type InputTypeOptions = {
   property in [`TypeInfo`], shape will show type errors for any fields that do not match the types
   provided in [`TypeInfo`].
 
-## `createArgs(shape)`
+## `args(shape)`
 
 Creates an arguments object which can be used as the `args` option in a field definion.
 
@@ -198,7 +198,7 @@ Takes an array of types created by [`SchemaBuilder`] and returns a [`GraphQLSche
 [`uniontypeoptions`]: #uniontypeoptions
 [`enumtypeoptions`]: #enumtypeoptions
 [`inputtypeoptions`]: #inputtypeoptions
-[`createinterfacetype`]: #createinterfacetypename-options
-[`createobjecttype`]: #createobjecttypename-options
+[`interfacetype`]: #interfaceTypename-options
+[`objecttype`]: #objectTypename-options
 [`schemabuilder`]: #schemabuilder
 [`graphqlschema`]: https://graphql.org/graphql-js/type/#graphqlschema

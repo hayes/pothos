@@ -1,31 +1,19 @@
-import {
-  GraphQLSchema,
-  GraphQLScalarType,
-  GraphQLString,
-  GraphQLInt,
-  GraphQLID,
-  GraphQLFloat,
-  GraphQLBoolean,
-  GraphQLDirective,
-} from 'graphql';
+import { GraphQLSchema, GraphQLScalarType, GraphQLDirective } from 'graphql';
 import {
   ImplementedType,
   EnumValues,
   InputFields,
   InputShapeFromFields,
-  ShapedInputFields,
-  MergeTypeMap,
-  DefaultTypeMap,
-  NullableToOptional,
   ObjectName,
   InterfaceName,
   ScalarName,
-  InputName,
   FieldsShape,
   RootFieldsShape,
   ResolverMap,
   ShapeFromTypeParam,
   CompatibleInterfaceParam,
+  TypeParam,
+  RootName,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -40,86 +28,80 @@ import RootType from './graphql/root';
 import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
 
-export default class SchemaBuilder<
-  PartialTypes extends GiraphQLSchemaTypes.PartialTypeInfo = {},
-  Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
-    DefaultTypeMap,
-    PartialTypes
-  >
-> {
-  private plugins: BasePlugin<Types>[];
+export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
+  private plugins: BasePlugin[];
 
-  private types: ImplementedType<Types>[] = [];
+  private types: ImplementedType[] = [];
 
-  private fields: (FieldSet<Types, any> | RootFieldSet<Types, any>)[] = [];
+  private fields: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types>)[] = [];
 
   private stateful: boolean;
 
-  constructor(options: { plugins?: BasePlugin<Types>[]; stateful?: boolean } = {}) {
+  constructor(options: { plugins?: BasePlugin[]; stateful?: boolean } = {}) {
     this.plugins = options.plugins ?? [];
     this.stateful = options.stateful ?? false;
   }
 
-  scalars = {
-    ID: this.createScalar('ID', GraphQLID),
-    Int: this.createScalar('Int', GraphQLInt),
-    Float: this.createScalar('Float', GraphQLFloat),
-    String: this.createScalar('String', GraphQLString),
-    Boolean: this.createScalar('Boolean', GraphQLBoolean),
-  };
-
-  createObjectType<
+  objectType<
     Interfaces extends CompatibleInterfaceParam<Types, ShapeFromTypeParam<Types, Type, false>>[],
     Type extends ObjectName<Types>
   >(
     name: Type,
-    options: NullableToOptional<
-      GiraphQLSchemaTypes.ObjectTypeOptions<
-        Interfaces,
-        Types,
-        ShapeFromTypeParam<Types, Type, false>
-      >
-    >,
+    options:
+      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ShapeFromTypeParam<Types, Type, false>>
+      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
+          Types,
+          ShapeFromTypeParam<Types, Type, false>,
+          Interfaces
+        >,
   ) {
-    return this.addType(new ObjectType<Interfaces, Types, Type>(name, options));
+    return this.addType(
+      new ObjectType<Types>(
+        name,
+        options as GiraphQLSchemaTypes.ObjectTypeOptions<
+          Types,
+          ShapeFromTypeParam<Types, Type, false>
+        >,
+      ),
+    );
   }
 
-  createObjectFields<Type extends ObjectName<Types>>(
+  objectFields<Type extends ObjectName<Types>>(
     name: Type,
-    shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>,
+    shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Object'>,
   ) {
-    return this.addFields(new FieldSet(name, shape));
+    return this.addFields(new FieldSet<Types, Type>(name, shape));
   }
 
-  createQueryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
+  queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
     return this.addType(new RootType<Types, 'Query'>('Query', options));
   }
 
-  createQueryFields(shape: RootFieldsShape<Types, 'Query'>) {
+  queryFields(shape: RootFieldsShape<Types, 'Query'>) {
     return this.addFields(new RootFieldSet('Query', shape));
   }
 
-  createMutationType(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
+  mutationType(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
     return this.addType(new RootType<Types, 'Mutation'>('Mutation', options));
   }
 
-  createMutationFields(shape: RootFieldsShape<Types, 'Mutation'>) {
+  mutationFields(shape: RootFieldsShape<Types, 'Mutation'>) {
     return this.addFields(new RootFieldSet('Mutation', shape));
   }
 
-  createSubscriptionType(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>) {
+  subscriptionType(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>) {
     return this.addType(new RootType<Types, 'Subscription'>('Subscription', options));
   }
 
-  createSubscriptionFields(shape: RootFieldsShape<Types, 'Subscription'>) {
+  subscriptionFields(shape: RootFieldsShape<Types, 'Subscription'>) {
     return this.addFields(new RootFieldSet('Subscription', shape));
   }
 
-  createArgs<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
+  args<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
     return shape(new InputFieldBuilder<Types>());
   }
 
-  createInterfaceType<Type extends InterfaceName<Types>>(
+  interfaceType<Type extends InterfaceName<Types>>(
     name: Type,
     options: GiraphQLSchemaTypes.InterfaceTypeOptions<
       Types,
@@ -129,53 +111,100 @@ export default class SchemaBuilder<
     return this.addType(new InterfaceType<Types, Type>(name, options));
   }
 
-  createInterfaceFields<Type extends InterfaceName<Types>>(
+  interfaceFields<Type extends InterfaceName<Types>>(
     name: Type,
-    shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>>,
+    shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Interface'>,
   ) {
     return this.addFields(new FieldSet(name, shape));
   }
 
-  createUnionType<Member extends ObjectName<Types>, Name extends string>(
+  unionType<Member extends ObjectName<Types>, Name extends string>(
     name: Name,
     options: GiraphQLSchemaTypes.UnionOptions<Types, Member>,
   ) {
-    return this.addType(new UnionType<Types, Name, Member>(name, options));
+    return this.addType(new UnionType<Types, Member>(name, options));
   }
 
-  createEnumType<Name extends string, Values extends EnumValues>(
+  enumType<Name extends string, Values extends EnumValues>(
     name: Name,
     options: GiraphQLSchemaTypes.EnumTypeOptions<Values>,
   ) {
     return this.addType(new EnumType(name, options));
   }
 
-  createScalar<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType) {
-    return this.addType(new ScalarType<Types, Name>(name, scalar));
-  }
-
-  createInputType<
-    Name extends string,
-    Fields extends Name extends InputName<Types>
-      ? ShapedInputFields<Types, Types['Input'][Name]>
-      : InputFields<Types>,
-    Shape extends Name extends InputName<Types>
-      ? Types['Input'][Name]
-      : InputShapeFromFields<Types, Fields>
-  >(name: Name, options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>) {
+  scalarType<Name extends ScalarName<Types>>(
+    name: Name,
+    options: GiraphQLSchemaTypes.ScalarOptions<
+      Types['Scalar'][Name]['Input'],
+      Types['Scalar'][Name]['Output']
+    >,
+  ) {
     return this.addType(
-      new InputObjectType<
-        Types,
-        Shape,
-        Fields,
-        Name,
-        InputShapeFromFields<Types, Fields, undefined>
-      >(name, options),
+      new ScalarType<Types['Scalar'][Name]['Input'], Types['Scalar'][Name]['Output']>(
+        name,
+        options,
+      ),
     );
   }
 
+  addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType) {
+    return this.addType(
+      new ScalarType<Types['Scalar'][Name]['Input'], Types['Scalar'][Name]['Output']>(name, {
+        name,
+        description: scalar.description ?? undefined,
+        serialize: scalar.serialize,
+        parseLiteral: scalar.parseLiteral,
+        parseValue: scalar.parseValue,
+        extensions: scalar.extensions ?? undefined,
+      }),
+    );
+  }
+
+  inputType<Name extends string, Fields extends InputFields<Types>>(
+    name: Name,
+    options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>,
+  ) {
+    return this.addType(
+      new InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name>(
+        name,
+        options,
+      ),
+    );
+  }
+
+  // Temporarily alias old names for compatibility
+  createQueryType = this.queryType;
+
+  createMutationType = this.mutationType;
+
+  createSubscriptionType = this.subscriptionType;
+
+  createObjectType = this.objectType;
+
+  createInterfaceType = this.interfaceType;
+
+  createQueryFields = this.queryFields;
+
+  createMutationFields = this.mutationFields;
+
+  createSubscriptionFields = this.subscriptionFields;
+
+  createObjectFields = this.objectFields;
+
+  createInterfaceFields = this.interfaceFields;
+
+  createUnionType = this.unionType;
+
+  createEnumType = this.enumType;
+
+  createScalarType = this.addScalarType;
+
+  createInputType = this.inputType;
+
+  createArgs = this.args;
+
   toSchema(
-    types?: ImplementedType<Types>[],
+    types?: ImplementedType[],
     {
       fieldDefinitions,
       directives,
@@ -184,19 +213,11 @@ export default class SchemaBuilder<
     }: {
       directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
-      fieldDefinitions?: (FieldSet<Types, any> | RootFieldSet<Types, any>)[];
+      fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
       mocks?: ResolverMap;
     } = {},
   ) {
-    const scalars = [
-      this.scalars.Boolean,
-      this.scalars.Float,
-      this.scalars.ID,
-      this.scalars.Int,
-      this.scalars.String,
-    ];
-
-    const buildCache = new BuildCache<Types>([...scalars, ...this.types, ...(types ?? [])], {
+    const buildCache = new BuildCache([...this.types, ...(types ?? [])], {
       plugins: this.plugins,
       fieldDefinitions: [...this.fields, ...(fieldDefinitions ?? [])],
       mocks,
@@ -222,7 +243,7 @@ export default class SchemaBuilder<
     return schema;
   }
 
-  private addType<T extends ImplementedType<Types>>(type: T) {
+  private addType<T extends ImplementedType>(type: T) {
     if (this.stateful) {
       this.types.push(type);
     }
@@ -230,7 +251,7 @@ export default class SchemaBuilder<
     return type;
   }
 
-  private addFields<T extends FieldSet<Types, any> | RootFieldSet<Types, any>>(fields: T) {
+  private addFields<T extends FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types>>(fields: T) {
     if (this.stateful) {
       this.fields.push(fields);
     }

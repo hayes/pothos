@@ -2,14 +2,14 @@ import builder from '../builder';
 import { getHero, getHuman, getDroid } from '../data';
 import { Episode } from './episode';
 
-const characterArgs = builder.createArgs(t => ({
+const characterArgs = builder.args(t => ({
   id: t.id({
     required: true,
     description: 'id of the character',
   }),
 }));
 
-export default builder.createQueryType({
+export default builder.queryType({
   shape: t => ({
     hero: t.field({
       type: 'Character',
@@ -35,7 +35,7 @@ export default builder.createQueryType({
   }),
 });
 
-export const extraQueryFields = builder.createQueryFields(t => ({
+export const extraQueryFields = builder.queryFields(t => ({
   r2d2: t.field({
     type: 'Droid',
     resolve: () => getDroid(2001),

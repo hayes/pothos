@@ -5,20 +5,19 @@ import { ObjectName } from '../types';
 
 export default class UnionType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends string,
   Member extends ObjectName<Types>
-> extends BaseType<Types, Name, Types['Object'][Member]> {
+> extends BaseType<Types['Object'][Member]> {
   kind: 'Union' = 'Union';
 
   description?: string;
 
-  members: Member[];
+  members: string[];
 
   resolveType: (parent: unknown, ctx: unknown, info: unknown) => string;
 
-  options: GiraphQLSchemaTypes.UnionOptions<Types, any>;
+  options: GiraphQLSchemaTypes.UnionOptions<any, any>;
 
-  constructor(name: Name, options: GiraphQLSchemaTypes.UnionOptions<Types, Member>) {
+  constructor(name: string, options: GiraphQLSchemaTypes.UnionOptions<Types, Member>) {
     super(name);
 
     this.members = options.members;
@@ -34,7 +33,7 @@ export default class UnionType<
     this.options = options;
   }
 
-  buildType(cache: BuildCache<Types>) {
+  buildType(cache: BuildCache) {
     return new GraphQLUnionType({
       name: this.typename,
       description: this.description,

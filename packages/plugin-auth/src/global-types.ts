@@ -1,11 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-  TypeParam,
-  InputFields,
-  FieldNullability,
-  RootName,
-  CompatibleInterfaceParam,
-} from '@giraphql/core';
+import { TypeParam, InputFields, FieldNullability, RootName } from '@giraphql/core';
 import { AuthCheckMap, PreResolveAuthCheck, CheckAuth } from './types';
 
 declare global {
@@ -15,11 +9,7 @@ declare global {
       defaultAuthChecks?: string[];
     }
 
-    export interface ObjectTypeOptions<
-      Interfaces extends CompatibleInterfaceParam<Types, Shape>[],
-      Types extends TypeInfo,
-      Shape
-    > {
+    export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       preResolveAuthCheck?: PreResolveAuthCheck<Types>;
       authChecks?: AuthCheckMap<Types, Shape>;
       defaultAuthChecks?: string[];
@@ -30,23 +20,24 @@ declare global {
       defaultAuthChecks?: string[];
     }
 
-    export interface ObjectFieldOptions<
+    export interface FieldOptions<
       Types extends TypeInfo,
       ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
-      checkAuth?: CheckAuth<Types, ParentShape, Args>;
+    > {
+      // TODO add parent shape to FieldOptions
+      checkAuth?: CheckAuth<Types, any, Args>;
     }
 
     export interface InterfaceFieldOptions<
       Types extends TypeInfo,
       ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
       checkAuth?: CheckAuth<Types, ParentShape, Args>;
     }
 
@@ -54,9 +45,9 @@ declare global {
       Types extends TypeInfo,
       ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
       checkAuth?: CheckAuth<Types, ParentShape, Args>;
     }
   }

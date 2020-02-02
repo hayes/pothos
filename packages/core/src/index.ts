@@ -1,4 +1,3 @@
-import { MergeTypeMap, DefaultTypeMap } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
 import InputObjectType from './graphql/input';
@@ -16,6 +15,7 @@ import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
 import SchemaBuilder from './builder';
 import BaseType from './graphql/base';
+import { MergedTypeMap } from './types';
 
 export * from './types';
 export * from './utils';
@@ -40,14 +40,8 @@ export {
 };
 
 export default SchemaBuilder as {
-  new <
-    PartialTypes extends GiraphQLSchemaTypes.PartialTypeInfo = {},
-    Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
-      DefaultTypeMap,
-      PartialTypes
-    >
-  >(options?: {
-    plugins?: BasePlugin<Types>[];
+  new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
+    plugins?: BasePlugin<MergedTypeMap<Types>>[];
     stateful?: boolean;
   }): GiraphQLSchemaTypes.SchemaBuilder<Types>;
 };

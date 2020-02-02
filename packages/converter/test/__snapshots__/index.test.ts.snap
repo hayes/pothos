@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Code generator example schema 1`] = `
-"import SchemaBuilder from \\"@giraphql/core\\";
+"import SchemaBuilder, { InputObjectOfShape } from \\"@giraphql/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
     Object: {
@@ -13,17 +13,14 @@ const builder = new SchemaBuilder<{
         Shaveable: unknown;
         Countable: unknown;
     };
-    Input: {
-        Example2: Example2Shape;
-    };
 }>();
-const SearchResult = builder.createUnionType('SearchResult', {
+const SearchResult = builder.unionType('SearchResult', {
     members: ['User', 'Article'],
     resolveType: (parent, context, info) => {
         throw new Error('Not implemented');
     }
 });
-const stuff = builder.createEnumType('stuff', {
+const stuff = builder.enumType('stuff', {
     values: {
         Beats: {
             value: 'Beats',
@@ -36,7 +33,7 @@ const stuff = builder.createEnumType('stuff', {
         },
     },
 });
-const Example = builder.createInputType('Example', {
+const Example = builder.inputType('Example', {
     shape: t => ({
         id: t.type('ID', {
             required: true,
@@ -63,7 +60,7 @@ interface Example2Shape {
     ids: string[];
     more: Example2Shape;
 }
-const Example2 = builder.createInputType('Example2', {
+const Example2: InputObjectOfShape<Example2Shape> = builder.inputType('Example2', {
     shape: t => ({
         example: t.type(Example, {
             required: true,
@@ -74,31 +71,28 @@ const Example2 = builder.createInputType('Example2', {
         ids: t.type(['ID'], {
             required: { list: true, items: true },
         }),
-        more: t.type('Example2', {
+        more: t.type(Example2, {
             required: true,
         }),
     }),
 });
-const Shaveable = builder.createInterfaceType('Shaveable', {
+const Shaveable = builder.interfaceType('Shaveable', {
     shape: t => ({
         id: t.field({
             type: 'ID',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         shaved: t.field({
             type: 'Boolean',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         extendMePlease: t.field({
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Countable = builder.createInterfaceType('Countable', {
+const Countable = builder.interfaceType('Countable', {
     shape: t => ({
         count: t.field({
             args: {
@@ -107,56 +101,46 @@ const Countable = builder.createInterfaceType('Countable', {
                 }),
             },
             type: 'Int',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Query = builder.createQueryType({
+const Query = builder.queryType({
     shape: t => ({
         user: t.field({
             type: 'User',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         stuff: t.field({
             type: [stuff],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         sheep: t.field({
             type: 'Sheep',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const User = builder.createObjectType('User', {
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+const User = builder.objectType('User', {
     shape: t => ({
         id: t.field({
             type: 'ID',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         displayName: t.field({
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         firstName: t.field({
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         lastName: t.field({
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         firstBornChild: t.field({
             type: 'User',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         partialName: t.field({
@@ -169,12 +153,11 @@ const User = builder.createObjectType('User', {
                 }),
             },
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         recursiveArgs: t.field({
             args: {
-                example2: t.arg.type('Example2', {
+                example2: t.arg.type(Example2, {
                     required: true,
                 }),
                 firstN: t.arg.type('ID', {
@@ -182,22 +165,18 @@ const User = builder.createObjectType('User', {
                 }),
             },
             type: 'ID',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         related: t.field({
             type: SearchResult,
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         friends: t.field({
             type: ['User'],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         stuff: t.field({
             type: ['String'],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         optional: t.field({
@@ -212,7 +191,6 @@ const User = builder.createObjectType('User', {
                 }),
             },
             type: ['ID'],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         sparseList: t.field({
@@ -243,28 +221,24 @@ const User = builder.createObjectType('User', {
                 }),
             },
             type: ['ID'],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         newField: t.field({
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Article = builder.createObjectType('Article', {
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+const Article = builder.objectType('Article', {
     shape: t => ({
         title: t.field({
             description: \\"Title of the article, probably click bait\\",
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Sheep = builder.createObjectType('Sheep', {
+const Sheep = builder.objectType('Sheep', {
     implements: [Shaveable, Countable],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
     shape: t => ({
@@ -275,21 +249,18 @@ const Sheep = builder.createObjectType('Sheep', {
                 }),
             },
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         thing: t.field({
             type: stuff,
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Subscription = builder.createSubscriptionType({
+const Subscription = builder.subscriptionType({
     shape: t => ({
         event: t.field({
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
             subscribe: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
@@ -402,7 +373,7 @@ const builder = new SchemaBuilder<{
         Character: unknown;
     };
 }>();
-const Episode = builder.createEnumType('Episode', {
+const Episode = builder.enumType('Episode', {
     description: \\"One of the films in the Star Wars Trilogy\\",
     values: {
         NEWHOPE: {
@@ -419,7 +390,7 @@ const Episode = builder.createEnumType('Episode', {
         },
     },
 });
-const MoreEpisode = builder.createEnumType('MoreEpisode', {
+const MoreEpisode = builder.enumType('MoreEpisode', {
     values: {
         NEWHOPE: {
             description: \\"Released in 1977.\\",
@@ -438,24 +409,21 @@ const MoreEpisode = builder.createEnumType('MoreEpisode', {
         },
     },
 });
-const Character = builder.createInterfaceType('Character', {
+const Character = builder.interfaceType('Character', {
     shape: t => ({
         id: t.field({
             description: \\"The id of the character\\",
             type: 'ID',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         name: t.field({
             description: \\"The name of the character\\",
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         friends: t.field({
             description: \\"The friends of the character, or an empty list if they have none.\\",
             type: ['Character'],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         appearsIn: t.field({
@@ -466,12 +434,11 @@ const Character = builder.createInterfaceType('Character', {
                 }),
             },
             type: [Episode],
-            nullable: { list: false, items: false },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Query = builder.createQueryType({
+const Query = builder.queryType({
     shape: t => ({
         hero: t.field({
             args: {
@@ -481,7 +448,6 @@ const Query = builder.createQueryType({
                 }),
             },
             type: 'Character',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         human: t.field({
@@ -492,7 +458,6 @@ const Query = builder.createQueryType({
                 }),
             },
             type: 'Human',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         droid: t.field({
@@ -503,17 +468,15 @@ const Query = builder.createQueryType({
                 }),
             },
             type: 'Droid',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         r2d2: t.field({
             type: 'Droid',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
-const Human = builder.createObjectType('Human', {
+const Human = builder.objectType('Human', {
     description: \\"A humanoid creature in the Star Wars universe.\\",
     implements: [Character],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
@@ -526,7 +489,7 @@ const Human = builder.createObjectType('Human', {
         })
     }),
 });
-const Droid = builder.createObjectType('Droid', {
+const Droid = builder.objectType('Droid', {
     description: \\"A mechanical creature in the Star Wars universe.\\",
     implements: [Character],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
@@ -534,7 +497,6 @@ const Droid = builder.createObjectType('Droid', {
         primaryFunction: t.field({
             description: \\"The primary function of the droid.\\",
             type: 'String',
-            nullable: false,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),

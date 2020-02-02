@@ -1,13 +1,13 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/no-use-before-define */
 import { GraphQLList, GraphQLOutputType, GraphQLInputType, GraphQLNonNull } from 'graphql';
-import { TypeParam, InputField, InputType, InputName, ScalarName, FieldNullability } from './types';
+import { TypeParam, InputField, InputType, FieldNullability } from './types';
 import BaseType from './graphql/base';
 import InputObjectType from './graphql/input';
 import { BuildCache } from '.';
 
-export function typeFromNonListParam<Types extends GiraphQLSchemaTypes.TypeInfo>(
-  param: Exclude<TypeParam<Types>, [unknown]> | BaseType<Types, string, unknown>,
-  cache: BuildCache<Types>,
+export function typeFromNonListParam(
+  param: Exclude<TypeParam<any>, [unknown]> | BaseType,
+  cache: BuildCache,
 ): GraphQLOutputType {
   if (typeof param === 'string') {
     return cache.getBuilt(param);
@@ -23,9 +23,9 @@ export function typeFromNonListParam<Types extends GiraphQLSchemaTypes.TypeInfo>
   throw new Error(`Unable to resolve typeParam ${Object.keys(param)} ${param}`);
 }
 
-export function typeFromMaybeNullParam<Types extends GiraphQLSchemaTypes.TypeInfo>(
-  param: Exclude<TypeParam<Types>, [unknown]> | BaseType<Types, string, unknown>,
-  cache: BuildCache<Types>,
+export function typeFromMaybeNullParam(
+  param: Exclude<TypeParam, [unknown]> | BaseType,
+  cache: BuildCache,
   nullable: boolean,
 ): GraphQLOutputType {
   const type = typeFromNonListParam(param, cache);
@@ -37,10 +37,10 @@ export function typeFromMaybeNullParam<Types extends GiraphQLSchemaTypes.TypeInf
   return new GraphQLNonNull(type);
 }
 
-export function typeFromParam<Types extends GiraphQLSchemaTypes.TypeInfo>(
-  param: TypeParam<Types> | BaseType<Types, string, unknown> | [BaseType<Types, string, unknown>],
-  cache: BuildCache<Types>,
-  nullable: FieldNullability<Types, TypeParam<Types>>,
+export function typeFromParam(
+  param: TypeParam | BaseType | [BaseType],
+  cache: BuildCache,
+  nullable: FieldNullability,
 ): GraphQLOutputType {
   const itemNullable = typeof nullable === 'object' ? nullable.items : false;
   const listNullable = typeof nullable === 'object' ? nullable.list : !!nullable;
@@ -63,22 +63,22 @@ export function typeFromParam<Types extends GiraphQLSchemaTypes.TypeInfo>(
   return typeFromMaybeNullParam(param as Exclude<typeof param, [unknown]>, cache, listNullable);
 }
 
-export function isInputName<Types extends GiraphQLSchemaTypes.TypeInfo>(
-  arg: InputField<Types> | InputType<Types> | InputType<Types>[],
-): arg is InputName<Types> | ScalarName<Types> {
+export function isInputName<
+  Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo
+>(arg: InputField<Types> | InputType<Types> | InputType<Types>[]): arg is string {
   return typeof arg === 'string';
 }
 
 export function buildRequiredArg<Types extends GiraphQLSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
-  cache: BuildCache<Types>,
+  cache: BuildCache,
 ) {
   return new GraphQLNonNull(buildArg(arg, cache));
 }
 
-export function buildArg<Types extends GiraphQLSchemaTypes.TypeInfo>(
+export function buildArg<Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
-  cache: BuildCache<Types>,
+  cache: BuildCache,
   nullableListItems = false,
 ): GraphQLInputType {
   if (isInputName(arg)) {

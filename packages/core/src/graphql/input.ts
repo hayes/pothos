@@ -1,7 +1,7 @@
 import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { InputFields, NullableToOptional } from '../types';
+import { InputFields } from '../types';
 import BaseType from './base';
 import { buildArg } from '../utils';
 import InputFieldBuilder from '../fieldUtils/input';
@@ -10,28 +10,27 @@ import BuildCache from '../build-cache';
 export default class InputObjectType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Shape,
-  Fields extends InputFields<Types>,
-  Name extends string,
-  MatchShape = Shape
-> extends BaseType<Types, Name, Shape, NullableToOptional<Shape>, MatchShape> {
+  Name extends string
+> extends BaseType<never, Shape> {
   kind: 'InputObject' = 'InputObject';
 
-  fields: Fields;
+  options: GiraphQLSchemaTypes.InputTypeOptions<any, any>;
 
-  options: GiraphQLSchemaTypes.InputTypeOptions<Types, InputFields<Types>>;
-
-  constructor(name: Name, options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>) {
+  constructor(
+    name: Name,
+    options: GiraphQLSchemaTypes.InputTypeOptions<Types, InputFields<Types>>,
+  ) {
     super(name);
-
-    this.fields = options.shape(new InputFieldBuilder());
 
     this.options = options;
   }
 
-  buildFields(cache: BuildCache<Types>): GraphQLInputFieldConfigMap {
+  buildFields(cache: BuildCache): GraphQLInputFieldConfigMap {
+    const fields = this.options.shape(new InputFieldBuilder());
+
     return fromEntries(
-      Object.keys(this.fields).map(key => {
-        const field = this.fields[key];
+      Object.keys(fields).map(key => {
+        const field = fields[key];
         return [
           key,
           {
@@ -50,7 +49,7 @@ export default class InputObjectType<
     );
   }
 
-  buildType(cache: BuildCache<Types>) {
+  buildType(cache: BuildCache) {
     return new GraphQLInputObjectType({
       name: this.typename,
       description: this.options.description,

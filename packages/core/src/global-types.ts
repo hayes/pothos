@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
-import { GraphQLResolveInfo } from 'graphql';
+import {
+  GraphQLResolveInfo,
+  GraphQLScalarSerializer,
+  GraphQLScalarValueParser,
+  GraphQLScalarLiteralParser,
+} from 'graphql';
 import {
   EnumValues,
   FieldsShape,
@@ -11,28 +16,20 @@ import {
   FieldNullability,
   RootFieldsShape,
   Subscriber,
-  InterfaceFieldsShape,
-  InterfaceName,
   InputType,
   InputShapeFromField,
   RootName,
-  DefaultTypeMap,
-  MergeTypeMap,
   ShapeFromType,
-  CompatibleInterfaceParam,
+  MergedTypeMap,
+  InterfaceParam,
 } from './types';
 import InputFieldBuilder from './fieldUtils/input';
 import Builder from './builder';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface SchemaBuilder<
-      PartialTypes extends PartialTypeInfo = {},
-      Types extends MergeTypeMap<DefaultTypeMap, PartialTypes> = MergeTypeMap<
-        DefaultTypeMap,
-        PartialTypes
-      >
-    > extends Builder<PartialTypes, Types> {}
+    export interface SchemaBuilder<PartialTypes extends PartialTypeInfo>
+      extends Builder<MergedTypeMap<PartialTypes>> {}
 
     export interface TypeInfo {
       Scalar: {
@@ -64,7 +61,6 @@ declare global {
       Object: {};
       Root: {};
       Interface: {};
-      Input: {};
       Context: {};
     }
 
@@ -77,7 +73,6 @@ declare global {
       };
       Object?: {};
       Interface?: {};
-      Input?: {};
       Root?: {};
       Context?: {};
     }
@@ -98,34 +93,32 @@ declare global {
       extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface ObjectTypeOptions<
-      Interfaces extends CompatibleInterfaceParam<Types, Shape>[],
-      Types extends TypeInfo,
-      Shape
-    > {
-      implements?: Interfaces;
+    export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       description?: string;
-      shape: FieldsShape<Types, Shape>;
-      isType: Interfaces extends [InterfaceName<Types>]
-        ? (
-            obj: ShapeFromType<Types, Interfaces[number]>,
-            context: Types['Context'],
-            info: GraphQLResolveInfo,
-          ) => boolean
-        :
-            | ((
-                obj: ShapeFromType<Types, Interfaces[number]>,
-                context: Types['Context'],
-                info: GraphQLResolveInfo,
-              ) => boolean)
-            | undefined;
+      shape: FieldsShape<Types, Shape, 'Object'>;
       extensions?: Readonly<Record<string, unknown>>;
+      implements?: undefined;
+      isType?: undefined;
+    }
+
+    export interface ObjectTypeWithInterfaceOptions<
+      Types extends TypeInfo,
+      Shape,
+      Interfaces extends InterfaceParam<Types>[]
+    > extends Omit<ObjectTypeOptions<Types, Shape>, 'implements' | 'isType'> {
+      implements: Interfaces;
+      isType: (
+        obj: ShapeFromType<Types, Interfaces[number]>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => boolean;
     }
 
     export interface FieldOptions<
       Types extends TypeInfo,
+      ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
     > {
       type: ReturnTypeName;
@@ -134,15 +127,21 @@ declare global {
       description?: string;
       deprecationReason?: string;
       extensions?: Readonly<Record<string, unknown>>;
+      resolve?: Resolver<
+        ParentShape,
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
+      >;
     }
 
     export interface ObjectFieldOptions<
       Types extends TypeInfo,
       ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
@@ -155,9 +154,9 @@ declare global {
       Types extends TypeInfo,
       ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
       resolve?: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
@@ -170,9 +169,9 @@ declare global {
       Types extends TypeInfo,
       ParentShape,
       ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<Types, ReturnTypeName>,
+      Nullable extends FieldNullability<ReturnTypeName>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
@@ -213,7 +212,7 @@ declare global {
 
     export interface InterfaceTypeOptions<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> {
       description?: string;
-      shape: InterfaceFieldsShape<Types, Shape>;
+      shape: FieldsShape<Types, Shape, 'Interface'>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
@@ -228,6 +227,18 @@ declare global {
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => Member | Promise<Member>;
+      extensions?: Readonly<Record<string, unknown>>;
+    }
+
+    export interface ScalarOptions<InputShape, OutputShape> {
+      name: string;
+      description?: string;
+      // Serializes an internal value to include in a response.
+      serialize: GraphQLScalarSerializer<OutputShape>;
+      // Parses an externally provided value to use as an input.
+      parseValue?: GraphQLScalarValueParser<InputShape>;
+      // Parses an externally provided literal value to use as an input.
+      parseLiteral?: GraphQLScalarLiteralParser<InputShape>;
       extensions?: Readonly<Record<string, unknown>>;
     }
   }

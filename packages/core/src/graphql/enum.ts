@@ -5,11 +5,9 @@ import BaseType from './base';
 import { EnumValues, ShapeFromEnumValues } from '../types';
 
 export default class EnumType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends string,
   Values extends EnumValues = EnumValues,
   Shape extends string = ShapeFromEnumValues<Values>
-> extends BaseType<Types, Name, Shape> {
+> extends BaseType<Shape> {
   values: GraphQLEnumValueConfigMap;
 
   description?: string;
@@ -18,7 +16,7 @@ export default class EnumType<
 
   options: GiraphQLSchemaTypes.EnumTypeOptions<EnumValues>;
 
-  constructor(name: Name, options: GiraphQLSchemaTypes.EnumTypeOptions<Values>) {
+  constructor(name: string, options: GiraphQLSchemaTypes.EnumTypeOptions<Values>) {
     super(name);
 
     this.options = options;

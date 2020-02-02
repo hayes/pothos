@@ -12,14 +12,14 @@ const builder = new SchemaBuilder<{
   };
 }>({ stateful: true });
 
-const LengthUnit = builder.createEnumType('LengthUnit', {
+const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-builder.createObjectType('Giraffe', {
+builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
   shape: t => ({
-    name: t.exposeString('name'),
+    name: t.exposeString('name', {}),
     age: t.int({
       resolve: parent => {
         const today = new Date(new Date().toDateString());
@@ -43,7 +43,7 @@ builder.createObjectType('Giraffe', {
   }),
 });
 
-builder.createQueryType({
+builder.queryType({
   shape: t => ({
     giraffe: t.field({
       type: 'Giraffe',

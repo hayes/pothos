@@ -92,9 +92,9 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
   updateFieldConfig(
     name: string,
-    field: Field<InputFields<Types>, Types, TypeParam<Types>, TypeParam<Types>>,
+    field: Field<InputFields<Types>, Types, TypeParam<Types>>,
     config: GraphQLFieldConfig<unknown, unknown>,
-    cache: BuildCache<Types>,
+    cache: BuildCache,
   ): GraphQLFieldConfig<unknown, unknown> {
     const resolver = config.resolve ?? defaultFieldResolver;
 
@@ -107,7 +107,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     const returnTypeName =
       typeof nonListReturnType === 'string'
         ? nonListReturnType
-        : (nonListReturnType as BaseType<Types, string, {}>).typename;
+        : (nonListReturnType as BaseType).typename;
     const returnType = cache.getType(returnTypeName);
 
     const fieldAuthChecks =
@@ -243,7 +243,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     };
   }
 
-  visitUnionType(type: UnionType<Types, string, ObjectName<Types>>, built: GraphQLUnionType) {
+  visitUnionType(type: UnionType<Types, ObjectName<Types>>, built: GraphQLUnionType) {
     const { resolveType } = built;
 
     if (!resolveType) {

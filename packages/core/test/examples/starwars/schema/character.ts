@@ -2,7 +2,7 @@ import builder from '../builder';
 import { Episode } from './episode';
 import { getFriends } from '../data';
 
-export default builder.createInterfaceType('Character', {
+export default builder.interfaceType('Character', {
   shape: t => ({
     id: t.exposeID('id', { description: 'The id of the character' }),
     name: t.exposeString('name', { description: 'The name of the character' }),

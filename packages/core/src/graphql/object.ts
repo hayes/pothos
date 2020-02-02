@@ -2,45 +2,28 @@ import { GraphQLObjectType } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import {
-  ShapeFromTypeParam,
-  TypeParam,
-  NullableToOptional,
-  FieldMap,
-  ObjectName,
-  InterfaceName,
-  CompatibleInterfaceParam,
-} from '../types';
-import Field from './field';
+import { FieldMap, InterfaceName } from '../types';
 import FieldBuilder from '../fieldUtils/builder';
 import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 import { InterfaceType } from '..';
 
-export default class ObjectType<
-  Interfaces extends CompatibleInterfaceParam<Types, ShapeFromTypeParam<Types, Name, false>>[],
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends ObjectName<Types>
-> extends BaseType<Types, Name, ShapeFromTypeParam<Types, Name, false>> {
+export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<{}> {
   kind: 'Object' = 'Object';
 
   description?: string;
 
-  interfaces: InterfaceName<Types>[];
+  interfaces: string[];
 
-  options: NullableToOptional<
-    GiraphQLSchemaTypes.ObjectTypeOptions<CompatibleInterfaceParam<Types, {}>[], Types, {}>
-  >;
+  options:
+    | GiraphQLSchemaTypes.ObjectTypeOptions<any, any>
+    | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<any, any, any>;
 
   constructor(
-    name: Name,
-    options: NullableToOptional<
-      GiraphQLSchemaTypes.ObjectTypeOptions<
-        Interfaces,
-        Types,
-        ShapeFromTypeParam<Types, Name, false>
-      >
-    >,
+    name: string,
+    options:
+      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, any>
+      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, any, []>,
   ) {
     super(name);
 
@@ -48,26 +31,21 @@ export default class ObjectType<
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
     }
 
-    this.options = (options as unknown) as NullableToOptional<
-      GiraphQLSchemaTypes.ObjectTypeOptions<CompatibleInterfaceParam<Types, {}>[], Types, {}>
-    >;
+    this.options = options;
 
     this.description = options.description;
-    this.interfaces = ((options.implements ?? []) as (
-      | InterfaceType<Types, InterfaceName<Types>>
-      | InterfaceName<Types>
-    )[]).map(iface =>
+    this.interfaces = (options.implements ?? []).map(iface =>
       typeof iface === 'string'
         ? iface
         : (iface as InterfaceType<Types, InterfaceName<Types>>).typename,
     );
   }
 
-  getFields(): FieldMap<Types> {
+  getFields(): FieldMap {
     return this.options.shape(new FieldBuilder(this.typename));
   }
 
-  buildType(cache: BuildCache<Types>, plugins: BasePlugin<Types>[]): GraphQLObjectType {
+  buildType(cache: BuildCache, plugins: BasePlugin[]): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
@@ -76,11 +54,7 @@ export default class ObjectType<
         fromEntries(
           Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
-            (field as Field<{}, Types, TypeParam<Types>, TypeParam<Types>>).build(
-              key,
-              cache,
-              plugins,
-            ),
+            field.build(key, cache, plugins),
           ]),
         ),
       extensions: this.options.extensions,

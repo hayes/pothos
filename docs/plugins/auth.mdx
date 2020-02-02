@@ -37,7 +37,7 @@ const builder = new SchemaBuilder({
 ### Add an auth check to a resolver
 
 ```ts
-builder.createQueryType({
+builder.queryType({
   shape: t => ({
     hello: t.string({
       checkAuth: (parent, args, context) => {
@@ -62,7 +62,7 @@ As you add more fields to your schema, you may want to re-use the same auth chec
 fields:
 
 ```ts
-builder.createQueryType({
+builder.queryType({
   authChecks: {
     isLoggedIn: (parent, context) => !!context.user,
     isAdmin: async (parent, context) => {
@@ -115,7 +115,7 @@ default auth checks for a type that will be applied to any fields that do not ex
 check.
 
 ```ts
-builder.createQueryType({
+builder.queryType({
   authChecks: {
     isLoggedIn: (parent, context) => !!context.user,
     isAdmin: (parent, context) => !!context.user && context.user.isAdmin(),
@@ -146,7 +146,7 @@ check for the children. To address these kinds of use cases, the auth plugin all
 field to return a set of checks the child should be authorized for.
 
 ```ts
-builder.createQueryType({
+builder.queryType({
   shape: t => ({
     people: t.field({
       type: ['Person'],
@@ -165,7 +165,7 @@ builder.createQueryType({
   }),
 });
 
-builder.createObjectType('Person', {
+builder.objectType('Person', {
   shape: t => ({
     firstName: t.exposeString('firstName', {
       checkAuth: 'loggedIn',
@@ -186,7 +186,7 @@ you can add to object types that allows you to define a check that will run befo
 that type.
 
 ```ts
-builder.createQueryType({
+builder.queryType({
   shape: t => ({
     people: t.field({
       type: ['Person'],
@@ -195,7 +195,7 @@ builder.createQueryType({
   }),
 });
 
-builder.createObjectType('Person', {
+builder.objectType('Person', {
   // Run before the resolver for Query.people
   preResolveAuthCheck: context => {
     if (!context.user) {

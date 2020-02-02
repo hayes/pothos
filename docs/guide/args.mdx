@@ -14,7 +14,7 @@ Scalar args can be difined a couple of different ways:
 1. Using convenience methods
 
 ```typescript
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     withArgs: t.stringList({
       args: {
@@ -38,7 +38,7 @@ const Query = builder.createQueryType({
 2. Using the generic `t.arg.type` method
 
 ```typescript
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     string: t.string({
       args: {
@@ -55,7 +55,7 @@ const Query = builder.createQueryType({
 3. Using the `arg` method (alias for `t.arg.type`)
 
 ```typescript
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     string: t.string({
       args: {
@@ -76,11 +76,11 @@ Args of non-scalar types can also be created with the `t.arg` or `t.arg.type` me
 Valid arg types include `Scalras`, `Enums`, and `Input` types.
 
 ```typescript
-const LengthUnit = builder.createEnumType('LengthUnit', {
+const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Giraffe = builder.createObjectType('Giraffe', {
+const Giraffe = builder.objectType('Giraffe', {
   shape: t => ({
     height: t.float({
       args: {
@@ -99,7 +99,7 @@ Arguments are optional by default, but can be made required by passing `required
 argument options.
 
 ```typescript
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     nullableArgs: t.stringList({
       args: {
@@ -127,7 +127,7 @@ argument in the example above shows how you can make list items optional.
 To create a list argument, you can wrap the the type in an array or use one of the helpers
 
 ```typescript
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     giraffeNameChecker: t.booleanList({
       {

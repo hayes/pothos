@@ -23,7 +23,7 @@ import SchemaBuilder from '@giraphql/core';
 
 const builder = new SchemaBuilder();
 
-const Query = builder.createQueryType({
+const Query = builder.queryType({
   shape: t => ({
     hello: t.string({
       args: {

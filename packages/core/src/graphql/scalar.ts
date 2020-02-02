@@ -1,22 +1,25 @@
 import { GraphQLScalarType } from 'graphql';
 import BaseType from './base';
-import { ScalarName } from '../types';
 
-export default class ScalarType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends ScalarName<Types>
-> extends BaseType<Types, Name, Types['Scalar'][Name]['Output'], Types['Scalar'][Name]['Input']> {
-  scalar: GraphQLScalarType;
-
+export default class ScalarType<InputShape, OutputShape> extends BaseType<OutputShape, InputShape> {
   kind: 'Scalar' = 'Scalar';
 
-  constructor(name: Name, scalar: GraphQLScalarType) {
+  options: GiraphQLSchemaTypes.ScalarOptions<unknown, unknown>;
+
+  constructor(name: string, options: GiraphQLSchemaTypes.ScalarOptions<InputShape, OutputShape>) {
     super(name);
 
-    this.scalar = scalar;
+    this.options = options;
   }
 
   buildType() {
-    return this.scalar;
+    return new GraphQLScalarType({
+      name: this.options.name,
+      description: this.options.description,
+      serialize: this.options.serialize,
+      parseLiteral: this.options.parseLiteral,
+      parseValue: this.options.parseValue,
+      extensions: this.options.extensions,
+    });
   }
 }

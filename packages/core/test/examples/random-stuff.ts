@@ -1,22 +1,7 @@
-import SchemaBuilder from '../../src';
-
-interface ExampleShape {
-  example: {
-    id: string;
-    id2?: number | null;
-    ids: string[];
-    ids2?: number[] | null;
-  };
-  id?: string | undefined;
-  ids: string[];
-  more: ExampleShape;
-}
+import SchemaBuilder, { InputObjectOfShape } from '../../src';
 
 // Define backing models/types
 type Types = {
-  Input: {
-    Example2: ExampleShape;
-  };
   Object: {
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
@@ -36,10 +21,10 @@ type Types = {
   Context: { userID: number };
 };
 
-const builder = new SchemaBuilder<Types>();
+const builder = new SchemaBuilder<Types>({ stateful: true });
 
 // Create input types
-const Example = builder.createInputType('Example', {
+const Example = builder.inputType('Example', {
   shape: t => ({
     id: t.id({ required: true }),
     id2: t.int({ required: false }),
@@ -48,17 +33,29 @@ const Example = builder.createInputType('Example', {
   }),
 });
 
-const Example2 = builder.createInputType('Example2', {
+interface ExampleShape {
+  example: {
+    id: string;
+    id2?: number;
+    ids: string[];
+    ids2?: number[];
+  };
+  id?: string;
+  ids: string[];
+  more: ExampleShape;
+}
+
+const Example2: InputObjectOfShape<ExampleShape> = builder.inputType('Example2', {
   shape: t => ({
     example: t.type(Example, { required: true }),
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
-    more: t.type('Example2', { required: true }),
+    more: t.type(Example2, { required: true }),
   }),
 });
 
 // Union type
-const SearchResult = builder.createUnionType('SearchResult', {
+const SearchResult = builder.unionType('SearchResult', {
   members: ['User', 'Article'],
   resolveType: parent => {
     return Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article';
@@ -66,17 +63,18 @@ const SearchResult = builder.createUnionType('SearchResult', {
 });
 
 // Creating an ObjectType and its resolvers
-const User = builder.createObjectType('User', {
+builder.objectType('User', {
   shape: t => ({
     // add a scalar field
     id: t.id({ resolve: () => 5 }),
     // parent is inferred from model shapes defined in builder
-    displayName: t.string({
+    displayName: t.field({
+      type: 'String',
       resolve: ({ firstName, lastName }) => `${firstName} ${lastName.slice(0, 1)}.`,
     }),
     // can omit resolvers by exposing fields from the backing model
-    firstName: t.exposeString('firstName'),
-    lastName: t.exposeString('lastName'),
+    firstName: t.exposeString('firstName', {}),
+    lastName: t.exposeString('lastName', {}),
     // Non scalar fields:
     firstBornChild: t.field({
       type: 'User',
@@ -183,11 +181,11 @@ const User = builder.createObjectType('User', {
   }),
 });
 
-const UserFields = builder.createObjectFields('User', t => ({
+builder.objectFields('User', t => ({
   newField: t.string({ resolve: () => 'hii' }),
 }));
 
-const Countable = builder.createInterfaceType('Countable', {
+builder.interfaceType('Countable', {
   shape: t => ({
     count: t.int({
       args: {
@@ -198,22 +196,22 @@ const Countable = builder.createInterfaceType('Countable', {
   }),
 });
 
-const Shaveable = builder.createInterfaceType('Shaveable', {
+const Shaveable = builder.interfaceType('Shaveable', {
   shape: t => ({
     id: t.id({
       resolve: () => 5,
     }),
-    shaved: t.exposeBoolean('shaved'),
+    shaved: t.exposeBoolean('shaved', {}),
     extendMePlease: t.string({}),
   }),
 });
 
 // Enums
-const Stuff = builder.createEnumType('stuff', {
+const Stuff = builder.enumType('stuff', {
   values: ['Beats', 'Bears', 'BattlestarGalactica'] as const,
 });
 
-const Sheep = builder.createObjectType('Sheep', {
+builder.objectType('Sheep', {
   implements: [Shaveable, 'Countable'],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
@@ -232,7 +230,7 @@ const Sheep = builder.createObjectType('Sheep', {
   }),
 });
 
-const Query = builder.createQueryType({
+builder.queryType({
   shape: t => ({
     user: t.field({
       resolve: () => ({
@@ -258,7 +256,7 @@ const Query = builder.createQueryType({
   }),
 });
 
-const Article = builder.createObjectType('Article', {
+builder.objectType('Article', {
   shape: t => ({
     title: t.string({
       description: 'Title of the article, probably click bait',
@@ -267,7 +265,7 @@ const Article = builder.createObjectType('Article', {
   }),
 });
 
-const Subscription = builder.createSubscriptionType({
+builder.subscriptionType({
   shape: t => ({
     event: t.string({
       resolve: () => 'yup',
@@ -278,23 +276,6 @@ const Subscription = builder.createSubscriptionType({
   }),
 });
 
-const schema = builder.toSchema(
-  [
-    Subscription,
-    Query,
-    Shaveable,
-    Countable,
-    Stuff,
-    User,
-    Sheep,
-    SearchResult,
-    Article,
-    Example,
-    Example2,
-  ],
-  {
-    fieldDefinitions: [UserFields],
-  },
-);
+const schema = builder.toSchema();
 
 export default schema;
