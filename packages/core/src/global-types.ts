@@ -22,14 +22,32 @@ import {
   ShapeFromType,
   MergedTypeMap,
   InterfaceParam,
+  FieldKind,
 } from './types';
-import InputFieldBuilder from './fieldUtils/input';
+import InternalFieldBuilder from './fieldUtils/builder';
+import InternalRootFieldBuilder from './fieldUtils/root';
+import InternalInputFieldBuilder from './fieldUtils/input';
 import Builder from './builder';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface SchemaBuilder<PartialTypes extends PartialTypeInfo>
       extends Builder<MergedTypeMap<PartialTypes>> {}
+
+    export interface FieldBuilder<
+      Types extends GiraphQLSchemaTypes.TypeInfo,
+      ParentShape,
+      Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
+    > extends InternalFieldBuilder<Types, ParentShape, Kind> {}
+
+    export interface RootFieldBuilder<
+      Types extends GiraphQLSchemaTypes.TypeInfo,
+      ParentShape,
+      Kind extends FieldKind = FieldKind
+    > extends InternalRootFieldBuilder<Types, ParentShape, Kind> {}
+
+    export interface InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo>
+      extends InternalInputFieldBuilder<Types> {}
 
     export interface TypeInfo {
       Scalar: {

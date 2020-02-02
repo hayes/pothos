@@ -1,8 +1,8 @@
+import { GraphQLString, GraphQLInt, GraphQLID, GraphQLFloat, GraphQLBoolean } from 'graphql';
 import { BuildCacheEntry, ImplementedType, FieldMap, ResolverMap, Resolver } from './types';
 import { BasePlugin, FieldBuilder, RootFieldBuilder } from '.';
 import RootFieldSet from './graphql/root-field-set';
 import FieldSet from './graphql/field-set';
-import { GraphQLString, GraphQLInt, GraphQLID, GraphQLFloat, GraphQLBoolean } from 'graphql';
 import ScalarType from './graphql/scalar';
 
 export default class BuildCache {

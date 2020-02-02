@@ -12,14 +12,12 @@ import InputObjectType from './graphql/input';
 import BaseType from './graphql/base';
 import InterfaceType from './graphql/interface';
 import Field from './graphql/field';
-import FieldBuilder from './fieldUtils/builder';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
 import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
 
 import './global-types';
-import RootFieldBuilder from './fieldUtils/root';
 import RootType from './graphql/root';
 
 // Utils
@@ -308,13 +306,13 @@ export type FieldsShape<
   Shape,
   Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
 > = (
-  t: FieldBuilder<Types, Shape, Kind>,
+  t: GiraphQLSchemaTypes.FieldBuilder<Types, Shape, Kind>,
 ) => {
   [s: string]: Field<{}, Types, TypeParam<Types>>;
 };
 
 export type RootFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Kind extends RootName> = (
-  t: RootFieldBuilder<Types, Types['Root'], Kind>,
+  t: GiraphQLSchemaTypes.RootFieldBuilder<Types, Types['Root'], Kind>,
 ) => {
   [s: string]: Field<{}, Types, TypeParam<Types>>;
 };

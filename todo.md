@@ -4,7 +4,6 @@
 2. documentation
 3. Make shape functions a separate/final arg.
 4. investigate perf issues
-5. make field builder plugable
-6. cleanup plugin api
-7. plugin priority
-8. update toSchema method
+5. cleanup plugin api
+6. plugin priority
+7. update toSchema method

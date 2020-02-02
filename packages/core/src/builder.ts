@@ -21,7 +21,7 @@ import InputObjectType from './graphql/input';
 import InterfaceType from './graphql/interface';
 import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
-import InputFieldBuilder from './fieldUtils/input';
+import { InputFieldBuilder } from '.';
 import BasePlugin from './plugin';
 import BuildCache from './build-cache';
 import RootType from './graphql/root';
@@ -97,7 +97,9 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addFields(new RootFieldSet('Subscription', shape));
   }
 
-  args<Shape extends InputFields<Types>>(shape: (t: InputFieldBuilder<Types>) => Shape) {
+  args<Shape extends InputFields<Types>>(
+    shape: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Shape,
+  ) {
     return shape(new InputFieldBuilder<Types>());
   }
 
