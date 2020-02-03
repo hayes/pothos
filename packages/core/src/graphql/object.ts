@@ -42,6 +42,10 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
   }
 
   getFields(): FieldMap {
+    if (!this.options.shape) {
+      return {};
+    }
+
     return this.options.shape(new FieldBuilder(this.typename));
   }
 

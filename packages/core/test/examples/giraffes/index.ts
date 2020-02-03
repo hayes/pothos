@@ -16,7 +16,7 @@ const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Giraffe = builder.objectType('Giraffe', {
+builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
   shape: t => ({
     name: t.exposeString('name', {}),
@@ -43,15 +43,15 @@ const Giraffe = builder.objectType('Giraffe', {
   }),
 });
 
-const Query = builder.queryType({
+builder.queryType({
   shape: t => ({
     giraffe: t.field({
-      type: Giraffe,
+      type: 'Giraffe',
       resolve: () => ({ name: 'James', heightInMeters: 5.2, birthday: new Date(2012, 11, 12) }),
     }),
   }),
 });
 
-const schema = builder.toSchema([Query, Giraffe, LengthUnit]);
+const schema = builder.toSchema();
 
 export default schema;

@@ -113,7 +113,7 @@ declare global {
 
     export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       description?: string;
-      shape: FieldsShape<Types, Shape, 'Object'>;
+      shape?: FieldsShape<Types, Shape, 'Object'>;
       extensions?: Readonly<Record<string, unknown>>;
       implements?: undefined;
       isType?: undefined;
@@ -206,7 +206,7 @@ declare global {
 
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       description?: string;
-      shape: RootFieldsShape<Types, Type>;
+      shape?: RootFieldsShape<Types, Type>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
@@ -230,7 +230,7 @@ declare global {
 
     export interface InterfaceTypeOptions<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> {
       description?: string;
-      shape: FieldsShape<Types, Shape, 'Interface'>;
+      shape?: FieldsShape<Types, Shape, 'Interface'>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 

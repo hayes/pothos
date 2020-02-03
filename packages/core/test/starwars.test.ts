@@ -2,12 +2,6 @@ import { printSchema, execute } from 'graphql';
 import gql from 'graphql-tag';
 import starwarsSchema from './examples/starwars/schema';
 
-import Character from './examples/starwars/schema/character';
-import Droid from './examples/starwars/schema/droid';
-import { Episode, MoreEpisodes } from './examples/starwars/schema/episode';
-import Human from './examples/starwars/schema/human';
-import Query, { extraQueryFields } from './examples/starwars/schema/query';
-
 import builder from './examples/starwars/builder';
 
 describe('starwars example', () => {
@@ -61,8 +55,7 @@ describe('starwars example', () => {
 });
 
 describe('mocked', () => {
-  const mockedSchema = builder.toSchema([Character, Droid, Episode, Human, MoreEpisodes, Query], {
-    fieldDefinitions: [extraQueryFields],
+  const mockedSchema = builder.toSchema({
     mocks: {
       Character: {
         name: () => 'C-3PO',

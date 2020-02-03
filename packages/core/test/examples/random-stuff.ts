@@ -256,14 +256,18 @@ builder.queryType({
   }),
 });
 
-builder.objectType('Article', {
-  shape: t => ({
+builder.objectType(
+  'Article',
+  {
+    description: 'shape can be last arg',
+  },
+  t => ({
     title: t.string({
       description: 'Title of the article, probably click bait',
       resolve: () => 'Things are happening!',
     }),
   }),
-});
+);
 
 builder.subscriptionType({
   shape: t => ({

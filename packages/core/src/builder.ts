@@ -1,3 +1,4 @@
+/* eslint-disable no-dupe-class-members */
 import { GraphQLSchema, GraphQLScalarType, GraphQLDirective } from 'graphql';
 import {
   ImplementedType,
@@ -13,7 +14,6 @@ import {
   ShapeFromTypeParam,
   CompatibleInterfaceParam,
   TypeParam,
-  RootName,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -21,12 +21,12 @@ import InputObjectType from './graphql/input';
 import InterfaceType from './graphql/interface';
 import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
-import { InputFieldBuilder } from '.';
 import BasePlugin from './plugin';
 import BuildCache from './build-cache';
 import RootType from './graphql/root';
 import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
+import { InputFieldBuilder } from '.';
 
 export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   private plugins: BasePlugin[];
@@ -35,11 +35,8 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   private fields: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types>)[] = [];
 
-  private stateful: boolean;
-
-  constructor(options: { plugins?: BasePlugin[]; stateful?: boolean } = {}) {
+  constructor(options: { plugins?: BasePlugin[] } = {}) {
     this.plugins = options.plugins ?? [];
-    this.stateful = options.stateful ?? false;
   }
 
   objectType<
@@ -54,7 +51,12 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
           ShapeFromTypeParam<Types, Type, false>,
           Interfaces
         >,
+    shape?: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Object'>,
   ) {
+    if (shape) {
+      this.addFields(new FieldSet<Types, Type>(name, shape));
+    }
+
     return this.addType(
       new ObjectType<Types>(
         name,
@@ -73,7 +75,14 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addFields(new FieldSet<Types, Type>(name, shape));
   }
 
-  queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
+  queryType(
+    options: GiraphQLSchemaTypes.QueryTypeOptions<Types>,
+    shape?: RootFieldsShape<Types, 'Query'>,
+  ) {
+    if (shape) {
+      this.addFields(new RootFieldSet('Query', shape));
+    }
+
     return this.addType(new RootType<Types, 'Query'>('Query', options));
   }
 
@@ -81,7 +90,14 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addFields(new RootFieldSet('Query', shape));
   }
 
-  mutationType(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
+  mutationType(
+    options: GiraphQLSchemaTypes.MutationTypeOptions<Types>,
+    shape?: RootFieldsShape<Types, 'Mutation'>,
+  ) {
+    if (shape) {
+      this.addFields(new RootFieldSet('Mutation', shape));
+    }
+
     return this.addType(new RootType<Types, 'Mutation'>('Mutation', options));
   }
 
@@ -89,7 +105,14 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addFields(new RootFieldSet('Mutation', shape));
   }
 
-  subscriptionType(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>) {
+  subscriptionType(
+    options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>,
+    shape?: RootFieldsShape<Types, 'Subscription'>,
+  ) {
+    if (shape) {
+      this.addFields(new RootFieldSet('Subscription', shape));
+    }
+
     return this.addType(new RootType<Types, 'Subscription'>('Subscription', options));
   }
 
@@ -109,7 +132,12 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
       Types,
       ShapeFromTypeParam<Types, Type, false>
     >,
+    shape?: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Interface'>,
   ) {
+    if (shape) {
+      this.addFields(new FieldSet(name, shape));
+    }
+
     return this.addType(new InterfaceType<Types, Type>(name, options));
   }
 
@@ -165,12 +193,28 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   inputType<Name extends string, Fields extends InputFields<Types>>(
     name: Name,
     options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>,
-  ) {
+  ): InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name>;
+
+  inputType<Name extends string, Fields extends InputFields<Types>>(
+    name: Name,
+    options: Omit<GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>, 'shape'>,
+    shape: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Fields,
+  ): InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name>;
+
+  inputType<Name extends string, Fields extends InputFields<Types>>(
+    name: Name,
+    options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>,
+    shape?: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Fields,
+  ): InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name> {
+    if (shape && options.shape) {
+      throw new Error(`Received multiple field shape functions for InputObjectType ${name}`);
+    }
+
     return this.addType(
-      new InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name>(
-        name,
-        options,
-      ),
+      new InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name>(name, {
+        ...options,
+        shape: shape || options.shape,
+      }),
     );
   }
 
@@ -205,23 +249,18 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   createArgs = this.args;
 
-  toSchema(
-    types?: ImplementedType[],
-    {
-      fieldDefinitions,
-      directives,
-      extensions,
-      mocks,
-    }: {
-      directives?: readonly GraphQLDirective[];
-      extensions?: Record<string, unknown>;
-      fieldDefinitions?: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types, RootName>)[];
-      mocks?: ResolverMap;
-    } = {},
-  ) {
-    const buildCache = new BuildCache([...this.types, ...(types ?? [])], {
+  toSchema({
+    directives,
+    extensions,
+    mocks,
+  }: {
+    directives?: readonly GraphQLDirective[];
+    extensions?: Record<string, unknown>;
+    mocks?: ResolverMap;
+  } = {}) {
+    const buildCache = new BuildCache([...this.types], {
       plugins: this.plugins,
-      fieldDefinitions: [...this.fields, ...(fieldDefinitions ?? [])],
+      fieldDefinitions: [...this.fields],
       mocks,
     });
 
@@ -246,17 +285,13 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   }
 
   private addType<T extends ImplementedType>(type: T) {
-    if (this.stateful) {
-      this.types.push(type);
-    }
+    this.types.push(type);
 
     return type;
   }
 
   private addFields<T extends FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types>>(fields: T) {
-    if (this.stateful) {
-      this.fields.push(fields);
-    }
+    this.fields.push(fields);
 
     return fields;
   }

@@ -193,17 +193,7 @@ export default class GirphQLConverter {
             kind: StructureKind.VariableDeclaration,
             name: 'schema',
             initializer: writer => {
-              writer.writeLine('builder.toSchema([');
-              writer.indent(() => {
-                gqlTypes.forEach(type => {
-                  if (type.name.slice(0, 2) === '__' || builtins.includes(type.name)) {
-                    return;
-                  }
-
-                  writer.writeLine(`${type.name},`);
-                });
-              });
-              writer.writeLine('])');
+              writer.writeLine('builder.toSchema()');
             },
           },
         ],
@@ -212,97 +202,57 @@ export default class GirphQLConverter {
   }
 
   queryType(type: GraphQLObjectType) {
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: 'Query',
-          initializer: writer => {
-            writer.writeLine('builder.queryType({');
-            writer.indent(() => {
-              this.writeDescription(writer, type);
-              this.writeObjectShape(writer, type);
-            });
-            writer.writeLine('})');
-          },
-        },
-      ],
+    this.sourcefile.addStatements(writer => {
+      writer.writeLine('builder.queryType({');
+      writer.indent(() => {
+        this.writeDescription(writer, type);
+        this.writeObjectShape(writer, type);
+      });
+      writer.writeLine('})');
     });
   }
 
   mutationType(type: GraphQLObjectType) {
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: 'Mutation',
-          initializer: writer => {
-            writer.writeLine('builder.mutationType({');
-            writer.indent(() => {
-              this.writeDescription(writer, type);
-              this.writeObjectShape(writer, type);
-            });
-            writer.writeLine('})');
-          },
-        },
-      ],
+    this.sourcefile.addStatements(writer => {
+      writer.writeLine('builder.mutationType({');
+      writer.indent(() => {
+        this.writeDescription(writer, type);
+        this.writeObjectShape(writer, type);
+      });
+      writer.writeLine('})');
     });
   }
 
   subscriptionType(type: GraphQLObjectType) {
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: 'Subscription',
-          initializer: writer => {
-            writer.writeLine('builder.subscriptionType({');
-            writer.indent(() => {
-              this.writeDescription(writer, type);
-              this.writeObjectShape(writer, type);
-            });
-            writer.writeLine('})');
-          },
-        },
-      ],
+    this.sourcefile.addStatements(writer => {
+      writer.writeLine('builder.subscriptionType({');
+      writer.indent(() => {
+        this.writeDescription(writer, type);
+        this.writeObjectShape(writer, type);
+      });
+      writer.writeLine('})');
     });
   }
 
   objectType(type: GraphQLObjectType) {
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: type.name,
-          initializer: writer => {
-            writer.writeLine(`builder.objectType('${type.name}', {`);
-            writer.indent(() => {
-              this.writeDescription(writer, type);
-              if (type.getInterfaces().length !== 0) {
-                writer.writeLine(
-                  `implements: [${type
-                    .getInterfaces()
-                    .map(i => i.name)
-                    .join(', ')}],`,
-                );
-                writer.writeLine(
-                  `isType: (obj, context, info) => { throw new Error('Not implemented') },`,
-                );
-              }
-              this.writeObjectShape(writer, type);
-            });
-            writer.writeLine('})');
-          },
-        },
-      ],
+    this.sourcefile.addStatements(writer => {
+      writer.writeLine(`builder.objectType('${type.name}', {`);
+      writer.indent(() => {
+        this.writeDescription(writer, type);
+        if (type.getInterfaces().length !== 0) {
+          writer.writeLine(
+            `implements: [${type
+              .getInterfaces()
+              .map(i => i.name)
+              .join(', ')}],`,
+          );
+          writer.writeLine(
+            `isType: (obj, context, info) => { throw new Error('Not implemented') },`,
+          );
+        }
+        this.writeObjectShape(writer, type);
+      });
+      writer.writeLine('})');
     });
   }
 
@@ -352,23 +302,13 @@ export default class GirphQLConverter {
   }
 
   scalarType(type: GraphQLScalarType) {
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: type.name,
-          initializer: writer => {
-            writer.writeLine(`builder.scalarType('${type.name}', {`);
-            writer.indent(() => {
-              writer.writeLine(`name: '${type.name}',`);
-              writer.writeLine(`serialize: () => { throw new Error('Not implemented') },`);
-            });
-            writer.writeLine('})');
-          },
-        },
-      ],
+    this.sourcefile.addStatements(writer => {
+      writer.writeLine(`builder.scalarType('${type.name}', {`);
+      writer.indent(() => {
+        writer.writeLine(`name: '${type.name}',`);
+        writer.writeLine(`serialize: () => { throw new Error('Not implemented') },`);
+      });
+      writer.writeLine('})');
     });
   }
 

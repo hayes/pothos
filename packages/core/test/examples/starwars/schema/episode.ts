@@ -10,7 +10,3 @@ export const Episode = builder.enumType('Episode', {
   description: 'One of the films in the Star Wars Trilogy',
   values: OriginalEpisodes,
 });
-
-export const MoreEpisodes = builder.enumType('MoreEpisode', {
-  values: { ...OriginalEpisodes, OTHER: {} },
-});

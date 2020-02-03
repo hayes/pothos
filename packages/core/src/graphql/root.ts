@@ -24,6 +24,10 @@ export default class RootType<
   }
 
   getFields(): FieldMap {
+    if (!this.options.shape) {
+      return {};
+    }
+
     return this.options.shape(new RootFieldBuilder(this.typename));
   }
 

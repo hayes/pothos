@@ -105,7 +105,7 @@ const Countable = builder.interfaceType('Countable', {
         })
     }),
 });
-const Query = builder.queryType({
+builder.queryType({
     shape: t => ({
         user: t.field({
             type: 'User',
@@ -121,7 +121,7 @@ const Query = builder.queryType({
         })
     }),
 });
-const User = builder.objectType('User', {
+builder.objectType('User', {
     shape: t => ({
         id: t.field({
             type: 'ID',
@@ -229,7 +229,8 @@ const User = builder.objectType('User', {
         })
     }),
 });
-const Article = builder.objectType('Article', {
+builder.objectType('Article', {
+    description: \\"shape can be last arg\\",
     shape: t => ({
         title: t.field({
             description: \\"Title of the article, probably click bait\\",
@@ -238,7 +239,7 @@ const Article = builder.objectType('Article', {
         })
     }),
 });
-const Sheep = builder.objectType('Sheep', {
+builder.objectType('Sheep', {
     implements: [Shaveable, Countable],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
     shape: t => ({
@@ -257,7 +258,7 @@ const Sheep = builder.objectType('Sheep', {
         })
     }),
 });
-const Subscription = builder.subscriptionType({
+builder.subscriptionType({
     shape: t => ({
         event: t.field({
             type: 'String',
@@ -266,24 +267,13 @@ const Subscription = builder.subscriptionType({
         })
     }),
 });
-export const schema = builder.toSchema([
-    Query,
-    User,
-    Example,
-    Example2,
-    SearchResult,
-    Article,
-    stuff,
-    Sheep,
-    Shaveable,
-    Countable,
-    Subscription,
-]);
+export const schema = builder.toSchema();
 "
 `;
 
 exports[`Code generator example schema 2`] = `
-"type Article {
+"\\"\\"\\"shape can be last arg\\"\\"\\"
+type Article {
   \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
   title: String!
 }
@@ -390,25 +380,6 @@ const Episode = builder.enumType('Episode', {
         },
     },
 });
-const MoreEpisode = builder.enumType('MoreEpisode', {
-    values: {
-        NEWHOPE: {
-            description: \\"Released in 1977.\\",
-            value: 4,
-        },
-        EMPIRE: {
-            description: \\"Released in 1980.\\",
-            value: 5,
-        },
-        JEDI: {
-            description: \\"Released in 1983\\",
-            value: 6,
-        },
-        OTHER: {
-            value: 'OTHER',
-        },
-    },
-});
 const Character = builder.interfaceType('Character', {
     shape: t => ({
         id: t.field({
@@ -438,7 +409,7 @@ const Character = builder.interfaceType('Character', {
         })
     }),
 });
-const Query = builder.queryType({
+builder.queryType({
     shape: t => ({
         hero: t.field({
             args: {
@@ -476,7 +447,7 @@ const Query = builder.queryType({
         })
     }),
 });
-const Human = builder.objectType('Human', {
+builder.objectType('Human', {
     description: \\"A humanoid creature in the Star Wars universe.\\",
     implements: [Character],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
@@ -489,7 +460,7 @@ const Human = builder.objectType('Human', {
         })
     }),
 });
-const Droid = builder.objectType('Droid', {
+builder.objectType('Droid', {
     description: \\"A mechanical creature in the Star Wars universe.\\",
     implements: [Character],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
@@ -501,14 +472,7 @@ const Droid = builder.objectType('Droid', {
         })
     }),
 });
-export const schema = builder.toSchema([
-    Query,
-    Episode,
-    Character,
-    Human,
-    Droid,
-    MoreEpisode,
-]);
+export const schema = builder.toSchema();
 "
 `;
 
@@ -573,18 +537,6 @@ type Human implements Character {
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
-}
-
-enum MoreEpisode {
-  \\"\\"\\"Released in 1977.\\"\\"\\"
-  NEWHOPE
-
-  \\"\\"\\"Released in 1980.\\"\\"\\"
-  EMPIRE
-
-  \\"\\"\\"Released in 1983\\"\\"\\"
-  JEDI
-  OTHER
 }
 
 type Query {

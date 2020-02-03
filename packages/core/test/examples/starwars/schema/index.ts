@@ -1,11 +1,9 @@
-import Character from './character';
-import Droid from './droid';
-import { Episode, MoreEpisodes } from './episode';
-import Human from './human';
-import Query, { extraQueryFields } from './query';
+import './character';
+import './droid';
+import './episode';
+import './human';
+import './query';
 
 import builder from '../builder';
 
-export default builder.toSchema([Character, Droid, Episode, Human, MoreEpisodes, Query], {
-  fieldDefinitions: [extraQueryFields],
-});
+export default builder.toSchema();
