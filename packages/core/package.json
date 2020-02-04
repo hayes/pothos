@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/core",
-  "version": "0.9.0-alpha.3",
+  "version": "0.9.0-alpha.4",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
