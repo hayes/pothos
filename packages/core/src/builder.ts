@@ -11,7 +11,6 @@ import {
   FieldsShape,
   RootFieldsShape,
   ResolverMap,
-  ShapeFromTypeParam,
   CompatibleInterfaceParam,
   TypeParam,
 } from './types';
@@ -33,46 +32,43 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   private types: ImplementedType[] = [];
 
-  private fields: (FieldSet<Types, TypeParam<Types>> | RootFieldSet<Types>)[] = [];
+  private fields: (FieldSet<Types, unknown> | RootFieldSet<Types>)[] = [];
 
   constructor(options: { plugins?: BasePlugin[] } = {}) {
     this.plugins = options.plugins ?? [];
   }
 
   objectType<
-    Interfaces extends CompatibleInterfaceParam<Types, ShapeFromTypeParam<Types, Type, false>>[],
+    Interfaces extends CompatibleInterfaceParam<Types, Types['Object'][Type]>[],
     Type extends ObjectName<Types>
   >(
     name: Type,
     options:
-      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ShapeFromTypeParam<Types, Type, false>>
+      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Types['Object'][Type]>
       | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
           Types,
-          ShapeFromTypeParam<Types, Type, false>,
+          Types['Object'][Type],
           Interfaces
         >,
-    shape?: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Object'>,
+    shape?: FieldsShape<Types, Types['Object'][Type], 'Object'>,
   ) {
     if (shape) {
-      this.addFields(new FieldSet<Types, Type>(name, shape));
+      this.addFields(new FieldSet<Types, Types['Object'][Type]>(name, shape));
     }
 
     return this.addType(
       new ObjectType<Types>(
         name,
-        options as GiraphQLSchemaTypes.ObjectTypeOptions<
-          Types,
-          ShapeFromTypeParam<Types, Type, false>
-        >,
+        options as GiraphQLSchemaTypes.ObjectTypeOptions<Types, Types['Object'][Type]>,
       ),
     );
   }
 
   objectFields<Type extends ObjectName<Types>>(
     name: Type,
-    shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Object'>,
+    shape: FieldsShape<Types, Types['Object'][Type], 'Object'>,
   ) {
-    return this.addFields(new FieldSet<Types, Type>(name, shape));
+    return this.addFields(new FieldSet<Types, Types['Object'][Type]>(name, shape));
   }
 
   queryType(
@@ -128,11 +124,8 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   interfaceType<Type extends InterfaceName<Types>>(
     name: Type,
-    options: GiraphQLSchemaTypes.InterfaceTypeOptions<
-      Types,
-      ShapeFromTypeParam<Types, Type, false>
-    >,
-    shape?: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Interface'>,
+    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Types['Interface'][Type]>,
+    shape?: FieldsShape<Types, Types['Interface'][Type], 'Interface'>,
   ) {
     if (shape) {
       this.addFields(new FieldSet(name, shape));
@@ -143,7 +136,7 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   interfaceFields<Type extends InterfaceName<Types>>(
     name: Type,
-    shape: FieldsShape<Types, ShapeFromTypeParam<Types, Type, false>, 'Interface'>,
+    shape: FieldsShape<Types, Types['Interface'][Type], 'Interface'>,
   ) {
     return this.addFields(new FieldSet(name, shape));
   }

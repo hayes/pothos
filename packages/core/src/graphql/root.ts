@@ -2,7 +2,7 @@ import { GraphQLObjectType } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { ShapeFromTypeParam, FieldMap, RootName } from '../types';
+import { FieldMap, RootName } from '../types';
 import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 import RootFieldBuilder from '../fieldUtils/root';
@@ -10,7 +10,7 @@ import RootFieldBuilder from '../fieldUtils/root';
 export default class RootType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Name extends RootName
-> extends BaseType<ShapeFromTypeParam<Types, Name, false>> {
+> extends BaseType<Types['Root']> {
   kind: 'Root' = 'Root';
 
   description?: string;

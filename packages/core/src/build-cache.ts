@@ -16,7 +16,7 @@ export default class BuildCache {
 
   plugins: BasePlugin<any>[];
 
-  fieldDefinitions: (FieldSet<any, any> | RootFieldSet<any>)[];
+  fieldDefinitions: (FieldSet<any> | RootFieldSet<any>)[];
 
   mocks: ResolverMap;
 
@@ -28,7 +28,7 @@ export default class BuildCache {
       mocks,
     }: {
       plugins?: BasePlugin[];
-      fieldDefinitions?: (FieldSet<any, any> | RootFieldSet<any>)[];
+      fieldDefinitions?: (FieldSet<any> | RootFieldSet<any>)[];
       mocks?: ResolverMap;
     } = {},
   ) {
