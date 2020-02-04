@@ -21,9 +21,14 @@ import './global-types';
 import RootType from './graphql/root';
 
 // Utils
-export type RequiredKeys<T> = {
+export type RequiredKeys<T extends object> = {
   [K in keyof T]: undefined extends T[K] ? never : null extends T[K] ? never : K;
 }[keyof T];
+
+export type NullableToOptional<T extends object> = Partial<T> &
+  {
+    [K in RequiredKeys<T>]: T[K];
+  };
 
 export type OptionalKeys<T> = {
   [K in keyof T]: undefined extends T[K] ? K : null extends T[K] ? K : never;
@@ -216,9 +221,11 @@ export type InputShapeFromFields<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Fields extends InputFields<Types>,
   Nulls = null | undefined
-> = {
-  [K in keyof Fields]: InputShapeFromField<Types, Fields[K], Nulls>;
-};
+> = NullableToOptional<
+  {
+    [K in keyof Fields]: InputShapeFromField<Types, Fields[K], Nulls>;
+  }
+>;
 
 export type InputShapeFromField<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -284,12 +291,12 @@ export type Resolver<Parent, Args, Context, Type> = (
   info: GraphQLResolveInfo,
 ) => Readonly<Type | Promise<Type> | (Type extends unknown[] ? Promise<Type[number]>[] : never)>;
 
-export type Subscriber<Parent, Args, Context, Type> = (
+export type Subscriber<Parent, Args, Context> = (
   parent: Parent,
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => AsyncIterator<Type>;
+) => AsyncIterator<unknown>;
 
 export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
 
@@ -403,7 +410,7 @@ export type Resolvers<Parent = unknown, Context = unknown> = {
     | Resolver<Parent, unknown, Context, unknown>
     | {
         resolve: Resolver<Parent, unknown, Context, unknown>;
-        subscribe: Subscriber<Parent, unknown, Context, unknown>;
+        subscribe: Subscriber<Parent, unknown, Context>;
       };
 };
 

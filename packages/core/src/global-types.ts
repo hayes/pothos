@@ -135,11 +135,11 @@ declare global {
     export interface FieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
     > {
-      type: ReturnTypeName;
+      type: Type;
       args?: Args;
       nullable?: Nullable;
       description?: string;
@@ -149,7 +149,7 @@ declare global {
         ParentShape,
         InputShapeFromFields<Types, Args>,
         Types['Context'],
-        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
+        ShapeFromTypeParam<Types, Type, Nullable>
       >;
     }
 
@@ -196,12 +196,7 @@ declare global {
         Types['Context'],
         ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
       >;
-      subscribe: Subscriber<
-        ParentShape,
-        InputShapeFromFields<Types, Args>,
-        Types['Context'],
-        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
-      >;
+      subscribe: Subscriber<ParentShape, InputShapeFromFields<Types, Args>, Types['Context']>;
     }
 
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {

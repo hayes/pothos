@@ -206,7 +206,7 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addType(
       new InputObjectType<Types, InputShapeFromFields<Types, Fields, undefined>, Name>(name, {
         ...options,
-        shape: shape || options.shape,
+        shape: shape ?? options.shape,
       }),
     );
   }
