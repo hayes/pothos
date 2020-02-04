@@ -23,8 +23,8 @@ declare global {
     export interface FieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
     > {
       // TODO add parent shape to FieldOptions
@@ -34,20 +34,20 @@ declare global {
     export interface InterfaceFieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
       checkAuth?: CheckAuth<Types, ParentShape, Args>;
     }
 
     export interface SubscriptionFieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
       checkAuth?: CheckAuth<Types, ParentShape, Args>;
     }
   }

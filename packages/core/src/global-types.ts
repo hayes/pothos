@@ -156,45 +156,45 @@ declare global {
     export interface ObjectFieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
         Types['Context'],
-        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
+        ShapeFromTypeParam<Types, Type, Nullable>
       >;
     }
 
     export interface InterfaceFieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
       resolve?: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
         Types['Context'],
-        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
+        ShapeFromTypeParam<Types, Type, Nullable>
       >;
     }
 
     export interface SubscriptionFieldOptions<
       Types extends TypeInfo,
       ParentShape,
-      ReturnTypeName extends TypeParam<Types>,
-      Nullable extends FieldNullability<ReturnTypeName>,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, ReturnTypeName, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
         Types['Context'],
-        ShapeFromTypeParam<Types, ReturnTypeName, Nullable>
+        ShapeFromTypeParam<Types, Type, Nullable>
       >;
       subscribe: Subscriber<ParentShape, InputShapeFromFields<Types, Args>, Types['Context']>;
     }
