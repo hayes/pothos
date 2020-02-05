@@ -1,5 +1,12 @@
 import { GraphQLString, GraphQLInt, GraphQLID, GraphQLFloat, GraphQLBoolean } from 'graphql';
-import { BuildCacheEntry, ImplementedType, FieldMap, ResolverMap, Resolver } from './types';
+import {
+  BuildCacheEntry,
+  ImplementedType,
+  FieldMap,
+  ResolverMap,
+  Resolver,
+  BuildCacheEntryWithFields,
+} from './types';
 import { BasePlugin, FieldBuilder, RootFieldBuilder } from '.';
 import RootFieldSet from './graphql/root-field-set';
 import FieldSet from './graphql/field-set';
@@ -14,7 +21,7 @@ export default class BuildCache {
 
   inProgress = new Set<string>();
 
-  plugins: BasePlugin<any>[];
+  plugins: BasePlugin[];
 
   fieldDefinitions: (FieldSet<any> | RootFieldSet<any>)[];
 
@@ -132,12 +139,24 @@ export default class BuildCache {
       });
 
     for (const plugin of this.plugins) {
-      if (plugin.fieldsForInterfaceType) {
-        fields = plugin.fieldsForInterfaceType(entry.type, fields, entry.built, this);
+      if (plugin.updateFields) {
+        fields = plugin.updateFields(entry, fields, this);
       }
     }
 
-    return fields;
+    return this.updateFields(entry, fields);
+  }
+
+  updateFields(entry: BuildCacheEntryWithFields, fields: FieldMap): FieldMap {
+    let newFields = fields;
+
+    for (const plugin of this.plugins) {
+      if (plugin.updateFields) {
+        newFields = plugin.updateFields(entry, newFields, this);
+      }
+    }
+
+    return newFields;
   }
 
   getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
@@ -163,13 +182,7 @@ export default class BuildCache {
         );
       });
 
-    for (const plugin of this.plugins) {
-      if (plugin.fieldsForObjectType) {
-        fields = plugin.fieldsForObjectType(entry.type, fields, entry.built, this);
-      }
-    }
-
-    return fields;
+    return this.updateFields(entry, fields);
   }
 
   getRootFields(entry: Extract<BuildCacheEntry, { kind: 'Root' }>): FieldMap {
@@ -185,13 +198,7 @@ export default class BuildCache {
         );
       });
 
-    for (const plugin of this.plugins) {
-      if (plugin.fieldsForRootType) {
-        fields = plugin.fieldsForRootType(entry.type, fields, entry.built, this);
-      }
-    }
-
-    return fields;
+    return this.updateFields(entry, fields);
   }
 
   getFields(typename: string): FieldMap {
@@ -222,55 +229,23 @@ export default class BuildCache {
     throw new Error(`Type ${entry.kind} does not have fields to resolve`);
   }
 
+  buildType(type: ImplementedType) {
+    this.types.set(type.typename, {
+      built: type.buildType(this, this.plugins),
+      kind: type.kind,
+      type,
+    } as BuildCacheEntry);
+  }
+
   buildAll() {
     for (const type of this.implementations) {
-      this.types.set(type.typename, {
-        built: type.buildType(this, this.plugins),
-        kind: type.kind,
-        type,
-      } as BuildCacheEntry);
+      this.buildType(type);
     }
 
     for (const plugin of this.plugins) {
-      for (const entry of this.types.values()) {
-        switch (entry.kind) {
-          case 'Root':
-            if (plugin.visitRootType) {
-              plugin.visitRootType(entry.type, entry.built, this);
-            }
-            break;
-          case 'Object':
-            if (plugin.visitObjectType) {
-              plugin.visitObjectType(entry.type, entry.built, this);
-            }
-            break;
-          case 'Enum':
-            if (plugin.visitEnumType) {
-              plugin.visitEnumType(entry.type, entry.built, this);
-            }
-            break;
-          case 'InputObject':
-            if (plugin.visitInputObjectType) {
-              plugin.visitInputObjectType(entry.type, entry.built, this);
-            }
-            break;
-          case 'Interface':
-            if (plugin.visitInterfaceType) {
-              plugin.visitInterfaceType(entry.type, entry.built, this);
-            }
-            break;
-          case 'Scalar':
-            if (plugin.visitScalarType) {
-              plugin.visitScalarType(entry.type, entry.built, this);
-            }
-            break;
-          case 'Union':
-            if (plugin.visitUnionType) {
-              plugin.visitUnionType(entry.type, entry.built, this);
-            }
-            break;
-          default:
-            break;
+      if (plugin.visitType) {
+        for (const entry of this.types.values()) {
+          plugin.visitType(entry, this);
         }
       }
     }

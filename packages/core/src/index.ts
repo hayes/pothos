@@ -15,7 +15,7 @@ import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
 import SchemaBuilder from './builder';
 import BaseType from './graphql/base';
-import { MergedTypeMap, FieldKind } from './types';
+import { FieldKind } from './types';
 
 export * from './types';
 export * from './utils';
@@ -38,7 +38,7 @@ export {
 
 export default SchemaBuilder as {
   new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
-    plugins?: BasePlugin<MergedTypeMap<Types>>[];
+    plugins?: BasePlugin[];
     stateful?: boolean;
   }): GiraphQLSchemaTypes.SchemaBuilder<Types>;
 };

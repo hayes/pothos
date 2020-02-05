@@ -2,14 +2,10 @@
 import {
   BaseType,
   BasePlugin,
-  InputFields,
   TypeParam,
   Field,
-  UnionType,
-  InterfaceType,
   BuildCache,
-  ObjectName,
-  InterfaceName,
+  BuildCacheEntry,
 } from '@giraphql/core';
 import {
   GraphQLFieldConfig,
@@ -20,8 +16,6 @@ import {
   GraphQLList,
   GraphQLScalarType,
   GraphQLEnumType,
-  GraphQLUnionType,
-  GraphQLInterfaceType,
 } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
 import AuthWrapper, { AuthMeta } from './auth-wrapper';
@@ -68,15 +62,14 @@ export function mergeAuthGrants(grants: AuthGrantMap, newGrants: AuthGrantMap) {
   });
 }
 
-export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
-  implements BasePlugin<Types> {
+export default class AuthPlugin implements BasePlugin {
   authRequired: boolean;
 
   explicitMutationChecks: boolean;
 
   preResolveAuthCheckCache = new WeakMap<
-    Types['Context'],
-    Map<PreResolveAuthCheck<Types>, ReturnType<PreResolveAuthCheck<Types>>>
+    {},
+    Map<PreResolveAuthCheck<any>, ReturnType<PreResolveAuthCheck<any>>>
   >();
 
   constructor({
@@ -92,7 +85,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
   updateFieldConfig(
     name: string,
-    field: Field<InputFields<Types>, Types, TypeParam<Types>>,
+    field: Field<{}, any, TypeParam<any>>,
     config: GraphQLFieldConfig<unknown, unknown>,
     cache: BuildCache,
   ): GraphQLFieldConfig<unknown, unknown> {
@@ -129,7 +122,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     const authChecksFromType = (parentType.kind === 'Object' || parentType.kind === 'Root'
       ? parentType.options.authChecks ?? {}
       : {}) as {
-      [s: string]: (parent: unknown, context: Types['Context']) => boolean | Promise<boolean>;
+      [s: string]: (parent: unknown, context: {}) => boolean | Promise<boolean>;
     };
 
     const preResolveCheck = returnType.kind === 'Object' && returnType.options.preResolveAuthCheck;
@@ -137,7 +130,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     const wrappedResolver = async (
       originalParent: unknown,
       args: {},
-      context: Types['Context'],
+      context: {},
       info: GraphQLResolveInfo,
     ) => {
       const { parent, authData } =
@@ -232,7 +225,7 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
 
       const result = await resolver(parent, args, context, info);
 
-      return this.wrapReturn<Types>(result, authGrants, isListResolver, isScalarResolver);
+      return this.wrapReturn(result, authGrants, isListResolver, isScalarResolver);
     };
 
     wrappedResolver.unwrap = () => resolver;
@@ -243,35 +236,20 @@ export default class AuthPlugin<Types extends GiraphQLSchemaTypes.TypeInfo>
     };
   }
 
-  visitUnionType(type: UnionType<Types, ObjectName<Types>>, built: GraphQLUnionType) {
-    const { resolveType } = built;
+  visitType(entry: BuildCacheEntry) {
+    if (entry.kind === 'Union' || entry.kind === 'Interface') {
+      const { resolveType } = entry.built;
 
-    if (!resolveType) {
-      return;
+      if (!resolveType) {
+        return;
+      }
+
+      entry.built.resolveType = (originalParent, context, info) => {
+        const { parent } = originalParent as { parent: unknown };
+
+        return (resolveType as Function)(parent, context, info);
+      };
     }
-
-    built.resolveType = (originalParent, context, info) => {
-      const { parent } = originalParent as { parent: unknown };
-
-      return (resolveType as Function)(parent, context, info);
-    };
-  }
-
-  visitInterfaceType(
-    type: InterfaceType<Types, InterfaceName<Types>>,
-    built: GraphQLInterfaceType,
-  ) {
-    const { resolveType } = built;
-
-    if (!resolveType) {
-      return;
-    }
-
-    built.resolveType = (originalParent, context, info) => {
-      const { parent } = originalParent as { parent: unknown };
-
-      return (resolveType as Function)(parent, context, info);
-    };
   }
 
   private wrapReturn<Types extends GiraphQLSchemaTypes.TypeInfo>(

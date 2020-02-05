@@ -382,7 +382,7 @@ export type ImplementedType =
   | RootType<any, 'Query' | 'Mutation'>
   | RootType<any, 'Subscription'>;
 
-export type BuildCacheEntry =
+export type BuildCacheEntryWithFields =
   | {
       type: ObjectType<any>;
       built: GraphQLObjectType;
@@ -393,6 +393,14 @@ export type BuildCacheEntry =
       built: GraphQLInterfaceType;
       kind: 'Interface';
     }
+  | {
+      type: RootType<any, RootName>;
+      built: GraphQLObjectType;
+      kind: 'Root';
+    };
+
+export type BuildCacheEntry =
+  | BuildCacheEntryWithFields
   | {
       type: UnionType<any, any>;
       built: GraphQLUnionType;
@@ -408,11 +416,6 @@ export type BuildCacheEntry =
       type: InputObjectType<any, {}, string>;
       built: GraphQLInputObjectType;
       kind: 'InputObject';
-    }
-  | {
-      type: RootType<any, RootName>;
-      built: GraphQLObjectType;
-      kind: 'Root';
     };
 
 export type Resolvers<Parent = unknown, Context = unknown> = {
