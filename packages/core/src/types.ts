@@ -40,21 +40,31 @@ export type NormalizeNullable<T> = undefined extends T
   ? T | null | undefined
   : T;
 
-export type NormalizeNullableFields<T> = T extends object[]
+export type NormalizeNullableFields<T extends object> = {
+  [K in RequiredKeys<T>]: T[K];
+} &
+  {
+    [K in OptionalKeys<T>]?: T[K] | null | undefined;
+  };
+
+export type RecursivelyNormalizeNullableFields<T> = T extends object[]
   ? ({
-      [K in RequiredKeys<T[number]>]: NormalizeNullableFields<T[K]>;
+      [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[K]>;
     } &
       {
-        [K in OptionalKeys<T[number]>]?: NormalizeNullableFields<T[K]> | null | undefined;
+        [K in OptionalKeys<T[number]>]?:
+          | RecursivelyNormalizeNullableFields<T[K]>
+          | null
+          | undefined;
       })[]
   : T extends unknown[]
   ? NormalizeNullable<T[number]>[]
   : T extends object
   ? {
-      [K in RequiredKeys<T>]: NormalizeNullableFields<T[K]>;
+      [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
     } &
       {
-        [K in OptionalKeys<T>]?: NormalizeNullableFields<T[K]> | null | undefined;
+        [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
       }
   : NormalizeNullable<T>;
 
@@ -162,7 +172,7 @@ export type InputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
 
 export type InputObjectOfShape<Shape> = InputObjectType<
   any,
-  NormalizeNullableFields<Shape>,
+  RecursivelyNormalizeNullableFields<Shape>,
   string
 >;
 
@@ -221,7 +231,7 @@ export type InputShapeFromFields<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Fields extends InputFields<Types>,
   Nulls = null | undefined
-> = NullableToOptional<
+> = NormalizeNullableFields<
   {
     [K in keyof Fields]: InputShapeFromField<Types, Fields[K], Nulls>;
   }
