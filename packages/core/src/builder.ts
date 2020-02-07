@@ -13,6 +13,8 @@ import {
   ResolverMap,
   CompatibleInterfaceParam,
   TypeParam,
+  ScalarInputShape,
+  ScalarOutputShape,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -158,21 +160,18 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   scalarType<Name extends ScalarName<Types>>(
     name: Name,
     options: GiraphQLSchemaTypes.ScalarOptions<
-      Types['Scalar'][Name]['Input'],
-      Types['Scalar'][Name]['Output']
+      ScalarInputShape<Types, Name>,
+      ScalarOutputShape<Types, Name>
     >,
   ) {
     return this.addType(
-      new ScalarType<Types['Scalar'][Name]['Input'], Types['Scalar'][Name]['Output']>(
-        name,
-        options,
-      ),
+      new ScalarType<ScalarInputShape<Types, Name>, ScalarOutputShape<Types, Name>>(name, options),
     );
   }
 
   addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType) {
     return this.addType(
-      new ScalarType<Types['Scalar'][Name]['Input'], Types['Scalar'][Name]['Output']>(name, {
+      new ScalarType<ScalarInputShape<Types, Name>, ScalarOutputShape<Types, Name>>(name, {
         name,
         description: scalar.description ?? undefined,
         serialize: scalar.serialize,

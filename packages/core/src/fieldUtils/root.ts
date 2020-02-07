@@ -1,10 +1,4 @@
-import {
-  TypeParam,
-  InputFields,
-  FieldNullability,
-  FieldOptionsFromKind,
-  FieldKind,
-} from '../types';
+import { TypeParam, InputFields, FieldNullability, FieldKind } from '../types';
 import Field from '../graphql/field';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
@@ -18,7 +12,7 @@ export default class RootFieldBuilder<
 
   boolean<Args extends InputFields<Types>, Nullable extends FieldNullability<'Boolean'>>(
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, 'Boolean', Nullable, Args, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'Boolean', Nullable, Args>[Kind],
       'type'
     >,
   ): Field<Args, Types, 'Boolean'> {
@@ -29,7 +23,10 @@ export default class RootFieldBuilder<
   }
 
   float<Args extends InputFields<Types>, Nullable extends FieldNullability<'Float'>>(
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, 'Float', Nullable, Args, Kind>, 'type'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'Float', Nullable, Args>[Kind],
+      'type'
+    >,
   ): Field<Args, Types, 'Float'> {
     return this.createField<Args, 'Float', Nullable>({
       ...options,
@@ -38,19 +35,28 @@ export default class RootFieldBuilder<
   }
 
   id<Args extends InputFields<Types>, Nullable extends FieldNullability<'ID'>>(
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, 'ID', Nullable, Args, Kind>, 'type'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'ID', Nullable, Args>[Kind],
+      'type'
+    >,
   ): Field<Args, Types, 'ID'> {
     return this.createField<Args, 'ID', Nullable>({ ...options, type: 'ID' });
   }
 
   int<Args extends InputFields<Types>, Nullable extends FieldNullability<'Int'>>(
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, 'Int', Nullable, Args, Kind>, 'type'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'Int', Nullable, Args>[Kind],
+      'type'
+    >,
   ): Field<Args, Types, 'Int'> {
     return this.createField<Args, 'Int', Nullable>({ ...options, type: 'Int' });
   }
 
   string<Args extends InputFields<Types>, Nullable extends FieldNullability<'String'>>(
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, 'String', Nullable, Args, Kind>, 'type'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'String', Nullable, Args>[Kind],
+      'type'
+    >,
   ): Field<Args, Types, 'String'> {
     return this.createField<Args, 'String', Nullable>({
       ...options,
@@ -60,7 +66,7 @@ export default class RootFieldBuilder<
 
   booleanList<Args extends InputFields<Types>, Nullable extends FieldNullability<['Boolean']>>(
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['Boolean'], Nullable, Args, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['Boolean'], Nullable, Args>[Kind],
       'type'
     >,
   ): Field<Args, Types, ['Boolean']> {
@@ -69,7 +75,7 @@ export default class RootFieldBuilder<
 
   floatList<Args extends InputFields<Types>, Nullable extends FieldNullability<['Float']>>(
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['Float'], Nullable, Args, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['Float'], Nullable, Args>[Kind],
       'type'
     >,
   ): Field<Args, Types, ['Float']> {
@@ -77,20 +83,26 @@ export default class RootFieldBuilder<
   }
 
   idList<Args extends InputFields<Types>, Nullable extends FieldNullability<['ID']>>(
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, ['ID'], Nullable, Args, Kind>, 'type'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['ID'], Nullable, Args>[Kind],
+      'type'
+    >,
   ): Field<Args, Types, ['ID']> {
     return this.createField<Args, ['ID'], Nullable>({ ...options, type: ['ID'] });
   }
 
   intList<Args extends InputFields<Types>, Nullable extends FieldNullability<['Int']>>(
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, ['Int'], Nullable, Args, Kind>, 'type'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['Int'], Nullable, Args>[Kind],
+      'type'
+    >,
   ): Field<Args, Types, ['Int']> {
     return this.createField<Args, ['Int'], Nullable>({ ...options, type: ['Int'] });
   }
 
   stringList<Args extends InputFields<Types>, Nullable extends FieldNullability<['String']>>(
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['String'], Nullable, Args, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['String'], Nullable, Args>[Kind],
       'type'
     >,
   ): Field<Args, Types, ['String']> {
@@ -102,7 +114,7 @@ export default class RootFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>
   >(
-    options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind>,
+    options: GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, Type, Nullable, Args>[Kind],
   ): Field<Args, Types, Type> {
     return this.createField(options);
   }

@@ -43,12 +43,11 @@ declare global {
 
     export interface SubscriptionFieldOptions<
       Types extends TypeInfo,
-      ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
-      checkAuth?: CheckAuth<Types, ParentShape, Args>;
+    > {
+      checkAuth?: CheckAuth<Types, Types['Root'], Args>;
     }
   }
 }

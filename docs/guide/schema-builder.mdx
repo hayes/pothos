@@ -14,9 +14,9 @@ The SchemaBuilder takes a TypeParam that extends a Partial
 These types are used as the backing models for the types defined by the SchemaBuilder.
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder, { ExtentDefaultScalars } from '@giraphql/core';
 
-const builder = new SchemaBuilder<{
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   // Type of the context object
   Context: {};
   // parent type in root resolvers (Query, Mutation, Subscription)
@@ -30,11 +30,13 @@ const builder = new SchemaBuilder<{
     Animal: { name: string };
   };
   // Shapes for built-in or custom scalrs
-  Scalar: {
+  Scalar: ExtentDefaultScalars<{
     // Defines a shape for both input (field args) and outout (resolver return types)
     ID: { Input: string; Output: string | number };
-  };
-}>({
+  }>;
+}
+
+const builder = new SchemaBuilder<TypeInfo>({
   // Optionally an array of plugins can be passed to the builder
   plugins: [],
 });

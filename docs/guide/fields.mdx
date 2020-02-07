@@ -53,9 +53,11 @@ Some types like [Objects] and [Interfaces] can be referenced by name if they hav
 defined in the schema builder.
 
 ```typescript
-const builder = new SchemaBuilder<{
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   Object: { Giraffe: { name: string }}};
-}>();
+}
+
+const builder = new SchemaBuilder<TypeInfo>();
 
 const Query = builder.queryType({
   shape: t => ({
@@ -161,9 +163,11 @@ These helpers are not available for root types (Query, Mutation and Subscription
 any other object type or interface.
 
 ```typescript
-const builder = new SchemaBuilder<{
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   Object: { Giraffe: { name: string }}};
-}>();
+}
+
+const builder = new SchemaBuilder<TypeInfo>();
 
 const Giraffe = builder.objectType('Giraffe', shape: t => ({
   name: t.exposeString('name')

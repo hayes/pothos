@@ -1,6 +1,6 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/no-use-before-define */
 import { GraphQLList, GraphQLOutputType, GraphQLInputType, GraphQLNonNull } from 'graphql';
-import { TypeParam, InputField, InputType, FieldNullability } from './types';
+import { TypeParam, InputField, InputType, FieldNullability, ScalarName } from './types';
 import BaseType from './graphql/base';
 import InputObjectType from './graphql/input';
 import { BuildCache } from '.';
@@ -24,7 +24,7 @@ export function typeFromNonListParam(
 }
 
 export function typeFromMaybeNullParam(
-  param: Exclude<TypeParam, [unknown]> | BaseType,
+  param: Exclude<TypeParam<any>, [unknown]> | BaseType,
   cache: BuildCache,
   nullable: boolean,
 ): GraphQLOutputType {
@@ -38,7 +38,7 @@ export function typeFromMaybeNullParam(
 }
 
 export function typeFromParam(
-  param: TypeParam | BaseType | [BaseType],
+  param: TypeParam<any> | BaseType | [BaseType],
   cache: BuildCache,
   nullable: FieldNullability,
 ): GraphQLOutputType {
@@ -65,7 +65,7 @@ export function typeFromParam(
 
 export function isInputName<
   Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo
->(arg: InputField<Types> | InputType<Types> | InputType<Types>[]): arg is string {
+>(arg: InputField<Types> | InputType<Types> | InputType<Types>[]): arg is ScalarName<Types> {
   return typeof arg === 'string';
 }
 

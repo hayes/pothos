@@ -4,6 +4,7 @@ import {
   StructureKind,
   VariableDeclarationKind,
   CodeBlockWriter,
+  PropertySignatureStructure,
 } from 'ts-morph';
 import {
   GraphQLSchema,
@@ -93,11 +94,22 @@ export default class GirphQLConverter {
         kind: StructureKind.ImportDeclaration,
         moduleSpecifier: '@giraphql/core',
         defaultImport: 'SchemaBuilder',
-        namedImports: gqlTypes.find(
-          type => type instanceof GraphQLInputObjectType && isRecursive(type),
-        )
-          ? ['InputObjectOfShape']
-          : [],
+        namedImports: [
+          gqlTypes.find(type => type instanceof GraphQLInputObjectType && isRecursive(type)) &&
+            'InputObjectOfShape',
+          gqlTypes.find(
+            type => type instanceof GraphQLScalarType && !builtins.includes(type.name),
+          ) && 'ExtendDefaultScalars',
+        ].filter(Boolean) as string[],
+      });
+
+      this.sourcefile.addStatements(writer => writer.blankLine());
+
+      this.sourcefile.addInterface({
+        kind: StructureKind.Interface,
+        name: 'TypeInfo',
+        extends: ['GiraphQLSchemaTypes.DefaultTypeInfo'],
+        properties: this.getTypeInfoProperties(),
       });
 
       this.sourcefile.addStatements(writer => writer.blankLine());
@@ -110,11 +122,7 @@ export default class GirphQLConverter {
             kind: StructureKind.VariableDeclaration,
             name: 'builder',
             initializer: writer => {
-              writer.writeLine('new SchemaBuilder<{');
-              writer.indent(() => {
-                this.writeTypeInfo(writer);
-              });
-              writer.writeLine('}>()');
+              writer.writeLine('new SchemaBuilder<TypeInfo>()');
             },
           },
         ],
@@ -628,13 +636,20 @@ export default class GirphQLConverter {
     }
   }
 
-  writeTypeInfo(writer: CodeBlockWriter) {
+  getTypeInfoProperties(): PropertySignatureStructure[] {
     const typeMap = this.schema.getTypeMap();
     const gqlTypes = Object.keys(typeMap)
       .map(typeName => typeMap[typeName])
       .filter(type => type.name.slice(0, 2) !== '__' && !builtins.includes(type.name));
 
-    writer.writeLine('Context: {}');
+    const props: PropertySignatureStructure[] = [
+      {
+        kind: StructureKind.PropertySignature,
+        name: 'Context',
+        type: '{}',
+      },
+    ];
+
     const objects = gqlTypes.filter(
       type =>
         type instanceof GraphQLObjectType &&
@@ -642,41 +657,62 @@ export default class GirphQLConverter {
         type.name !== 'Mutation' &&
         type.name !== 'Subscription',
     ) as GraphQLObjectType[];
+
     if (objects.length !== 0) {
-      writer.writeLine('Object: {');
-      writer.indent(() => {
-        objects.forEach(type => {
-          writer.writeLine(`${type.name}: unknown,`);
-        });
+      props.push({
+        kind: StructureKind.PropertySignature,
+        name: 'Object',
+        type: writer => {
+          writer.writeLine('{');
+          writer.indent(() => {
+            objects.forEach(type => {
+              writer.writeLine(`${type.name}: unknown,`);
+            });
+          });
+          writer.writeLine('}');
+        },
       });
-      writer.writeLine('},');
     }
 
     const interfaces = gqlTypes.filter(
       type => type instanceof GraphQLInterfaceType,
     ) as GraphQLInterfaceType[];
     if (interfaces.length !== 0) {
-      writer.writeLine('Interface: {');
-      writer.indent(() => {
-        interfaces.forEach(type => {
-          writer.writeLine(`${type.name}: unknown,`);
-        });
+      props.push({
+        kind: StructureKind.PropertySignature,
+        name: 'Interface',
+        type: writer => {
+          writer.writeLine('{');
+          writer.indent(() => {
+            interfaces.forEach(type => {
+              writer.writeLine(`${type.name}: unknown,`);
+            });
+          });
+          writer.writeLine('}');
+        },
       });
-      writer.writeLine('},');
     }
 
     const scalars = gqlTypes.filter(
       type => type instanceof GraphQLScalarType,
     ) as GraphQLScalarType[];
     if (scalars.length !== 0) {
-      writer.writeLine('Scalar: {');
-      writer.indent(() => {
-        scalars.forEach(type => {
-          writer.writeLine(`${type.name}: { Input: unknown, Output: unknown },`);
-        });
+      props.push({
+        kind: StructureKind.PropertySignature,
+        name: 'Scalar',
+        type: writer => {
+          writer.writeLine('ExtendDefaultScalars<{');
+          writer.indent(() => {
+            scalars.forEach(type => {
+              writer.writeLine(`${type.name}: { Input: unknown, Output: unknown },`);
+            });
+          });
+          writer.writeLine('}>');
+        },
       });
-      writer.writeLine('},');
     }
+
+    return props;
   }
 
   toString() {

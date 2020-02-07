@@ -1,4 +1,4 @@
-import { TypeParam, CompatibleTypes, FieldNullability, FieldOptionsFromKind } from '../types';
+import { TypeParam, CompatibleTypes, FieldNullability } from '../types';
 import Field from '../graphql/field';
 import RootFieldBuilder from './root';
 
@@ -6,14 +6,14 @@ export default class FieldBuilder<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentShape,
   Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
-> extends RootFieldBuilder<Types, ParentShape> {
+> extends RootFieldBuilder<Types, ParentShape, Kind> {
   exposeBoolean<
     Nullable extends FieldNullability<'Boolean'>,
     Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, 'Boolean', Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'Boolean', Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, 'Boolean'> {
@@ -26,7 +26,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, 'Float', Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'Float', Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, 'Float'> {
@@ -39,7 +39,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, 'ID', Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'ID', Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, 'ID'> {
@@ -52,7 +52,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, 'Int', Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'Int', Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, 'Int'> {
@@ -65,7 +65,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, 'String', Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, 'String', Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, 'String'> {
@@ -78,7 +78,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['Boolean'], Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['Boolean'], Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, ['Boolean']> {
@@ -91,7 +91,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['Float'], Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['Float'], Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, ['Float']> {
@@ -104,7 +104,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['ID'], Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['ID'], Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, ['ID']> {
@@ -117,7 +117,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['Int'], Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['Int'], Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, ['Int']> {
@@ -130,7 +130,7 @@ export default class FieldBuilder<
   >(
     name: Name,
     options: Omit<
-      FieldOptionsFromKind<Types, ParentShape, ['String'], Nullable, {}, Kind>,
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, ['String'], Nullable, {}>[Kind],
       'resolve' | 'type'
     >,
   ): Field<{}, Types, ['String']> {
@@ -143,7 +143,10 @@ export default class FieldBuilder<
     Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>
   >(
     name: Name,
-    options: Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, {}, Kind>, 'resolve'>,
+    options: Omit<
+      GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, Type, Nullable, {}>[Kind],
+      'resolve'
+    >,
   ): Field<{}, Types, Type> {
     return this.exposeField(name, options);
   }

@@ -2,7 +2,7 @@
 
 exports[`Code generator example schema 1`] = `
 "import SchemaBuilder, { InputObjectOfShape } from \\"@giraphql/core\\";
-const builder = new SchemaBuilder<{
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
     Context: {};
     Object: {
         User: unknown;
@@ -13,7 +13,8 @@ const builder = new SchemaBuilder<{
         Shaveable: unknown;
         Countable: unknown;
     };
-}>();
+}
+const builder = new SchemaBuilder<TypeInfo>();
 const SearchResult = builder.unionType('SearchResult', {
     members: ['User', 'Article'],
     resolveType: (parent, context, info) => {
@@ -353,7 +354,7 @@ type User {
 
 exports[`Code generator starwars schema 1`] = `
 "import SchemaBuilder from \\"@giraphql/core\\";
-const builder = new SchemaBuilder<{
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
     Context: {};
     Object: {
         Human: unknown;
@@ -362,7 +363,8 @@ const builder = new SchemaBuilder<{
     Interface: {
         Character: unknown;
     };
-}>();
+}
+const builder = new SchemaBuilder<TypeInfo>();
 const Episode = builder.enumType('Episode', {
     description: \\"One of the films in the Star Wars Trilogy\\",
     values: {

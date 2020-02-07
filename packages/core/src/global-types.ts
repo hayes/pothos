@@ -20,9 +20,9 @@ import {
   InputShapeFromField,
   RootName,
   ShapeFromType,
-  MergedTypeMap,
   InterfaceParam,
   FieldKind,
+  DefaultScalars,
 } from './types';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
@@ -31,30 +31,25 @@ import Builder from './builder';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface SchemaBuilder<PartialTypes extends PartialTypeInfo>
-      extends Builder<MergedTypeMap<PartialTypes>> {}
+    export interface SchemaBuilder<Types extends TypeInfo> extends Builder<Types> {}
 
     export interface FieldBuilder<
-      Types extends GiraphQLSchemaTypes.TypeInfo,
+      Types extends TypeInfo,
       ParentShape,
       Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
     > extends InternalFieldBuilder<Types, ParentShape, Kind> {}
 
     export interface RootFieldBuilder<
-      Types extends GiraphQLSchemaTypes.TypeInfo,
+      Types extends TypeInfo,
       ParentShape,
       Kind extends FieldKind = FieldKind
     > extends InternalRootFieldBuilder<Types, ParentShape, Kind> {}
 
-    export interface InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo>
+    export interface InputFieldBuilder<Types extends TypeInfo>
       extends InternalInputFieldBuilder<Types> {}
 
     export interface TypeInfo {
       Scalar: {
-        [s: string]: {
-          Input: unknown;
-          Output: unknown;
-        };
         String: {
           Input: unknown;
           Output: unknown;
@@ -82,17 +77,12 @@ declare global {
       Context: {};
     }
 
-    export interface PartialTypeInfo {
-      Scalar?: {
-        [s: string]: {
-          Input: unknown;
-          Output: unknown;
-        };
-      };
-      Object?: {};
-      Interface?: {};
-      Root?: {};
-      Context?: {};
+    export interface DefaultTypeInfo extends TypeInfo {
+      Scalar: DefaultScalars;
+      Object: {};
+      Interface: {};
+      Root: {};
+      Context: {};
     }
 
     export interface InputOptions<
@@ -168,6 +158,34 @@ declare global {
       >;
     }
 
+    export interface QueryFieldOptions<
+      Types extends TypeInfo,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, Types['Root'], Type, Nullable, Args> {
+      resolve: Resolver<
+        Types['Root'],
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ShapeFromTypeParam<Types, Type, Nullable>
+      >;
+    }
+
+    export interface MutationFieldOptions<
+      Types extends TypeInfo,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, Types['Root'], Type, Nullable, Args> {
+      resolve: Resolver<
+        Types['Root'],
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ShapeFromTypeParam<Types, Type, Nullable>
+      >;
+    }
+
     export interface InterfaceFieldOptions<
       Types extends TypeInfo,
       ParentShape,
@@ -185,18 +203,31 @@ declare global {
 
     export interface SubscriptionFieldOptions<
       Types extends TypeInfo,
-      ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
+    > extends FieldOptions<Types, Types['Root'], Type, Nullable, Args> {
       resolve: Resolver<
-        ParentShape,
+        Types['Root'],
         InputShapeFromFields<Types, Args>,
         Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>
       >;
-      subscribe: Subscriber<ParentShape, InputShapeFromFields<Types, Args>, Types['Context']>;
+      subscribe: Subscriber<Types['Root'], InputShapeFromFields<Types, Args>, Types['Context']>;
+    }
+
+    export interface FieldOptionsByKind<
+      Types extends TypeInfo,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFields<Types>
+    > {
+      Query: QueryFieldOptions<Types, Type, Nullable, Args>;
+      Mutation: MutationFieldOptions<Types, Type, Nullable, Args>;
+      Subscription: SubscriptionFieldOptions<Types, Type, Nullable, Args>;
+      Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args>;
+      Interface: InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args>;
     }
 
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
@@ -214,25 +245,19 @@ declare global {
     export interface SubscriptionTypeOptions<Types extends TypeInfo>
       extends RootTypeOptions<Types, 'Subscription'> {}
 
-    export interface InputTypeOptions<
-      Types extends GiraphQLSchemaTypes.TypeInfo,
-      Fields extends InputFields<Types>
-    > {
+    export interface InputTypeOptions<Types extends TypeInfo, Fields extends InputFields<Types>> {
       description?: string;
       shape: (t: InputFieldBuilder<Types>) => Fields;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface InterfaceTypeOptions<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> {
+    export interface InterfaceTypeOptions<Types extends TypeInfo, Shape> {
       description?: string;
       shape?: FieldsShape<Types, Shape, 'Interface'>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface UnionOptions<
-      Types extends GiraphQLSchemaTypes.TypeInfo,
-      Member extends keyof Types['Object']
-    > {
+    export interface UnionOptions<Types extends TypeInfo, Member extends keyof Types['Object']> {
       description?: string;
       members: Member[];
       resolveType: (

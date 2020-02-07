@@ -23,11 +23,13 @@ interface Giraffe {
   height: number;
 }
 
-const builder = new SchemaBuilder<{
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   Object: {
     Giraffe: Giraffe;
   };
-}>();
+}
+
+const builder = new SchemaBuilder<TypeInfo>();
 ```
 
 2. Create your object type

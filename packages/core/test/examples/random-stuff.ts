@@ -1,7 +1,7 @@
 import SchemaBuilder, { InputObjectOfShape } from '../../src';
 
 // Define backing models/types
-type Types = {
+interface DefaultTypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   Object: {
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
@@ -19,9 +19,9 @@ type Types = {
     Boolean: { Input: boolean; Output: boolean };
   };
   Context: { userID: number };
-};
+}
 
-const builder = new SchemaBuilder<Types>({ stateful: true });
+const builder = new SchemaBuilder<DefaultTypeInfo>({ stateful: true });
 
 // Create input types
 const Example = builder.inputType('Example', {

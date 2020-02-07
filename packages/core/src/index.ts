@@ -37,7 +37,7 @@ export {
 };
 
 export default SchemaBuilder as {
-  new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
+  new <Types extends GiraphQLSchemaTypes.TypeInfo>(options?: {
     plugins?: BasePlugin[];
     stateful?: boolean;
   }): GiraphQLSchemaTypes.SchemaBuilder<Types>;

@@ -1,10 +1,10 @@
 import SchemaBuilder from '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
-type Types = {
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   Object: { Droid: Droid; Human: Human; String: string };
   Interface: { Character: Character };
   Context: ContextType;
-};
+}
 
-export default new SchemaBuilder<Types>();
+export default new SchemaBuilder<TypeInfo>();

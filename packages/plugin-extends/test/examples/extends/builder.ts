@@ -3,13 +3,13 @@ import { ContextType } from './types';
 import { User } from './data';
 import ExtendsPlugin from '../../../src';
 
-type Types = {
+interface TypeInfo extends GiraphQLSchemaTypes.DefaultTypeInfo {
   Object: {
     User: User;
   };
   Context: ContextType;
-};
+}
 
-export default new SchemaBuilder<Types>({
+export default new SchemaBuilder<TypeInfo>({
   plugins: [new ExtendsPlugin()],
 });
