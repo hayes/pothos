@@ -49,11 +49,11 @@ export type NormalizeNullableFields<T extends object> = {
 
 export type RecursivelyNormalizeNullableFields<T> = T extends object[]
   ? ({
-      [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[K]>;
+      [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
     } &
       {
         [K in OptionalKeys<T[number]>]?:
-          | RecursivelyNormalizeNullableFields<T[K]>
+          | RecursivelyNormalizeNullableFields<T[number][K]>
           | null
           | undefined;
       })[]
