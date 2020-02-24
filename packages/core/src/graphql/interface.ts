@@ -5,8 +5,8 @@ import BaseType from './base';
 import { InterfaceName, FieldMap } from '../types';
 import FieldBuilder from '../fieldUtils/builder';
 import ObjectType from './object';
-import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
+import { BasePlugin, ResolveValueWrapper } from '../plugins';
 
 export default class InterfaceType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -38,13 +38,15 @@ export default class InterfaceType<
     return this.options.shape(new FieldBuilder(this.typename));
   }
 
-  buildType(cache: BuildCache, plugins: BasePlugin[]): GraphQLInterfaceType {
+  buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLInterfaceType {
     let types: ObjectType<GiraphQLSchemaTypes.TypeInfo>[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),
       description: this.description,
-      resolveType: (obj: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+      resolveType: (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+        const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
+
         if (!types) {
           types = cache.getImplementers(this.typename);
         }
@@ -61,7 +63,7 @@ export default class InterfaceType<
         fromEntries(
           Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
-            field.build(key, cache, plugins),
+            field.build(key, cache, plugin),
           ]),
         ),
       extensions: this.options.extensions,

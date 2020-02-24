@@ -21,6 +21,8 @@ import './global-types';
 import RootType from './graphql/root';
 
 // Utils
+export type MaybePromise<T> = T | Promise<T>;
+
 export type RequiredKeys<T extends object> = {
   [K in keyof T]: undefined extends T[K] ? never : null extends T[K] ? never : K;
 }[keyof T];

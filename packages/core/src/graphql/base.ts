@@ -1,6 +1,6 @@
 import { GraphQLType } from 'graphql';
-import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
+import { BasePlugin } from '../plugins';
 
 export default abstract class BaseType<Shape = unknown, InputShape = Shape> {
   typename: string;
@@ -16,5 +16,5 @@ export default abstract class BaseType<Shape = unknown, InputShape = Shape> {
     this.shape = shape;
   }
 
-  abstract buildType(cache: BuildCache, plugins: BasePlugin[]): GraphQLType;
+  abstract buildType(cache: BuildCache, plugins: Required<BasePlugin>): GraphQLType;
 }

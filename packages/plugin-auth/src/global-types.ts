@@ -1,9 +1,25 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { TypeParam, InputFields, FieldNullability, RootName } from '@giraphql/core';
-import { AuthCheckMap, PreResolveAuthCheck, CheckAuth } from './types';
+import { AuthCheckMap, PreResolveAuthCheck, CheckAuth, AuthCheckWithGrants } from './types';
+import AuthMeta from './auth-wrapper';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface FieldWrapData {
+      giraphqlAuth: {
+        parentTypename: string;
+        returnTypename: string;
+        fieldName: string;
+        preResolveCheck?: PreResolveAuthCheck<any>;
+        authChecksFromType: AuthCheckMap<any, any>;
+        authChecks: (string | AuthCheckWithGrants<any, any, any>)[];
+      };
+    }
+
+    export interface ResolverPluginData {
+      giraphqlAuth?: AuthMeta;
+    }
+
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       authChecks?: AuthCheckMap<Types, Types['Root']>;
       defaultAuthChecks?: string[];

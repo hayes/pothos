@@ -2,12 +2,12 @@
 # yarn lockfile v1
 
 
-"@airbnb/config-babel@^2.2.2":
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-babel/-/config-babel-2.2.2.tgz#ef1161388dc6586183b6e21447dd0470d8f94a08"
-  integrity sha512-EEh0z1q+gIYxeEYZfQgGb7i0D2s8XJ871w7GGprlRbPBjb+zOnmGq3w/55eA0eVyddAylShwM2cM1Z9/3JgrTQ==
+"@airbnb/config-babel@^2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-babel/-/config-babel-2.2.3.tgz#3d490beeaa4ec4b2e91fb798f3ac96b2665b1fe8"
+  integrity sha512-NylXe3LmeYyHA/JfmdldWxZ1eh5O0cFOJaN/57tMTeEMHhcCzPTNDTKam8ZlxTg4EqbrFNgQWSwzq0w8iUBYfQ==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
+    "@airbnb/nimbus-common" "^2.1.2"
     "@babel/cli" "^7.8.3"
     "@babel/core" "^7.8.3"
     "@babel/plugin-proposal-class-properties" "^7.8.3"
@@ -17,21 +17,21 @@
     "@babel/preset-env" "^7.8.3"
     "@babel/preset-react" "^7.8.3"
     "@babel/preset-typescript" "^7.8.3"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-babel" "^1.2.0"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-babel" "^1.2.1"
     babel-plugin-graphql-tag "^2.5.0"
     babel-plugin-transform-dev "^2.0.1"
     babel-plugin-transform-react-remove-prop-types "^0.4.24"
     babel-plugin-typescript-to-proptypes "^1.1.0"
 
-"@airbnb/config-eslint@^2.5.1":
-  version "2.5.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-eslint/-/config-eslint-2.5.1.tgz#c4d58c53bcdc5ba3982b136265872e7392b7439e"
-  integrity sha512-k8rToPOUwoG30uEenbKrE/bg7QCxlIEtVEbPFtZZuCQ0x8M5zQrbeRrsSA69FCUbnicm8vtQ+odti+Yd4kQqeA==
+"@airbnb/config-eslint@^2.5.2":
+  version "2.5.2"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-eslint/-/config-eslint-2.5.2.tgz#963621524ac93329a9d3857c9462a7c73da100f7"
+  integrity sha512-hmlzJmYfF1S1wx9ZNZNDBDFTC21MWKdTmjVNsWeOL8VFY3FHtch7gg4lV9edAmiIicOS6Tr5aAufTAiFRNsT7Q==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-eslint" "^1.2.0"
+    "@airbnb/nimbus-common" "^2.1.2"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-eslint" "^1.2.1"
     "@typescript-eslint/eslint-plugin" "^2.17.0"
     "@typescript-eslint/parser" "^2.17.0"
     babel-eslint "^10.0.3"
@@ -47,57 +47,57 @@
     eslint-plugin-react-hooks "^2.3.0"
     eslint-plugin-unicorn "^15.0.1"
 
-"@airbnb/config-jest@^2.2.2":
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-jest/-/config-jest-2.2.2.tgz#2d50245376e67c91e865121e523655046fdc03e7"
-  integrity sha512-Th63Swbe21AnHLb08Lz74uaSuy+4weydLOzNQuyv0SWaCtedJGMB5jdIadCwUMg80uNnpVQSuGnIRH/2TfvmqA==
+"@airbnb/config-jest@^2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-jest/-/config-jest-2.2.3.tgz#badedaa7725d9bce70093a84a9a568e8deaa491a"
+  integrity sha512-OD2AAQMVPcFbQNggR9FnoS6WdzRlw5ishxZqz9AFw7Q5fqj3l4cwh+7X2YYablZhAW2dziSOrXNPMy8MvEQxtA==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
+    "@airbnb/nimbus-common" "^2.1.2"
     "@babel/core" "^7.8.3"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-babel" "^1.2.0"
-    "@beemo/driver-jest" "^1.1.1"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-babel" "^1.2.1"
+    "@beemo/driver-jest" "^1.2.0"
     airbnb-js-shims "^2.2.1"
     dom-storage "^2.1.0"
     jest "^25.1.0"
 
-"@airbnb/config-prettier@^2.1.1":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-prettier/-/config-prettier-2.1.1.tgz#cf18b45555f92309b470634da176ddc9ebb53e81"
-  integrity sha512-lt/q40KUWK3GdQEARGbJG5aCoPaFmlLCIY/9C/0dIYsCT/MmwGBQ6c5ez7JZ5dvWaGZb5Z0eNUnz44+LzHjq/Q==
+"@airbnb/config-prettier@^2.1.2":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-prettier/-/config-prettier-2.1.2.tgz#1ae163565b9406d388320d6c504e759517393a25"
+  integrity sha512-7mt4HSUmO+fmWVMs1coz+aQL66NZMkk7NGFaWSKDmgBSXfb2FcfpoSzAFKzJP288oVm4L+xkhRDLHHT4f99ddA==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-prettier" "^1.2.0"
+    "@airbnb/nimbus-common" "^2.1.2"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-prettier" "^1.2.1"
     prettier "^1.19.1"
 
-"@airbnb/config-typescript@^2.2.2":
-  version "2.2.2"
-  resolved "https://registry.yarnpkg.com/@airbnb/config-typescript/-/config-typescript-2.2.2.tgz#31273392691a63a06eb4efb4f3423a033952f0e1"
-  integrity sha512-Uk6DBCbfGPif6wxeA+5R4bBxTqFgHY2EW4sgfGZlj02oueMn2WTwli8Xk9E5rS2rzn42EYqo9MrOfDh98j5FsQ==
+"@airbnb/config-typescript@^2.2.3":
+  version "2.2.3"
+  resolved "https://registry.yarnpkg.com/@airbnb/config-typescript/-/config-typescript-2.2.3.tgz#a89cc495f4e4d5f0efcbfce9c509445b80d85ad2"
+  integrity sha512-G7PpeYURIrAzwKPF1yfgm/UdoKAUyjGfwWe3YlzoA5HQe6oY7DidIk3DtFNA2un3DcQiXI90vBcLAGe6RN3rjg==
   dependencies:
-    "@beemo/core" "^1.1.1"
-    "@beemo/driver-typescript" "^1.3.0"
+    "@beemo/core" "^1.1.2"
+    "@beemo/driver-typescript" "^1.3.1"
     typescript "^3.7.5"
 
-"@airbnb/nimbus-common@^2.1.1":
-  version "2.1.1"
-  resolved "https://registry.yarnpkg.com/@airbnb/nimbus-common/-/nimbus-common-2.1.1.tgz#8aa441ccd68c368020e47b967873f9523badcfcc"
-  integrity sha512-Nl1B0uze/gA0zvJFl4EVhA5JQZ5djzNIjuZv3qLL/VPTl5ImjJZwUcxTFUV6iD3nASw2vm7DrY1xvL06fiaxLQ==
+"@airbnb/nimbus-common@^2.1.2":
+  version "2.1.2"
+  resolved "https://registry.yarnpkg.com/@airbnb/nimbus-common/-/nimbus-common-2.1.2.tgz#4eb13063473fd0f0b3cfbccc7b72d2d77e98a423"
+  integrity sha512-uDr9M/6nHxEs2GIkd8dOcIwtkwgHwAfVd1Y9mvrUw7lqQpYQazd2bg4E2KrKlJkY227/cbi7kYNt0qhC7FCV8A==
   dependencies:
-    "@beemo/core" "^1.1.1"
-    "@boost/core" "^1.17.0"
+    "@beemo/core" "^1.1.2"
+    "@boost/core" "^1.18.1"
     execa "^4.0.0"
     fast-glob "^3.1.1"
 
-"@airbnb/nimbus@^2.2.3":
-  version "2.2.3"
-  resolved "https://registry.yarnpkg.com/@airbnb/nimbus/-/nimbus-2.2.3.tgz#29ce1135c1674104d4da65ef58cca859b3cd7bdf"
-  integrity sha512-9a1rIsY4nRur7TDxxjrC34KDyiYni0mbp5xt8n/Hjp8/iGQzWWid2EUuM/sZ1jrd4RK92dWsYKUZnaQM1C9Zkg==
+"@airbnb/nimbus@^2.2.4":
+  version "2.2.4"
+  resolved "https://registry.yarnpkg.com/@airbnb/nimbus/-/nimbus-2.2.4.tgz#b6c8e26a917e9030735dbcb252b0278c47e0f2f9"
+  integrity sha512-ZGLdf8DjR+bJq5fA+QFHykFf5J3y61ADuJje+hYVi3qsIGb7fJDG2XLwq7oa8yl8Kw05xn8o9EFDXXNIybT2ow==
   dependencies:
-    "@airbnb/nimbus-common" "^2.1.1"
-    "@beemo/cli" "^1.0.7"
-    "@beemo/core" "^1.1.1"
+    "@airbnb/nimbus-common" "^2.1.2"
+    "@beemo/cli" "^1.0.8"
+    "@beemo/core" "^1.1.2"
     chalk "^3.0.0"
     check-node-version "^4.0.2"
     conventional-changelog-beemo "^1.6.0"
@@ -1084,7 +1084,7 @@
   resolved "https://registry.yarnpkg.com/@bcoe/v8-coverage/-/v8-coverage-0.2.3.tgz#75a2e8b51cb758a7553d6804a5932d7aace75c39"
   integrity sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==
 
-"@beemo/cli@^1.0.7":
+"@beemo/cli@^1.0.8":
   version "1.0.8"
   resolved "https://registry.yarnpkg.com/@beemo/cli/-/cli-1.0.8.tgz#d20b6370c547c73568da927b7d7eb3d61f076f3a"
   integrity sha512-uzPO/5q2/IF+oxtHMpADkSY+/uI9yi73AqkSFK3bsYVUKeF5ZMQ4sCq+6j0aJyS4aIbYLXCxMFNyXOTG+XxzLQ==
@@ -1093,7 +1093,7 @@
     semver "^6.3.0"
     yargs "^15.1.0"
 
-"@beemo/core@^1.1.1":
+"@beemo/core@^1.1.2":
   version "1.1.2"
   resolved "https://registry.yarnpkg.com/@beemo/core/-/core-1.1.2.tgz#ac9310f135b2674a2fd0d880d4a2938eb1ac2362"
   integrity sha512-h25MmOhgnplJVoeYm4PvPyfENNYF4IJCFT0KZ5hc4JCXEox/PE44cgURtc+gGilfSJk4w9667qwmQv2DjyQs5A==
@@ -1122,28 +1122,28 @@
   resolved "https://registry.yarnpkg.com/@beemo/dependency-graph/-/dependency-graph-1.0.1.tgz#572b547a435a3b6e8d964c6caadef5e3d2a7284f"
   integrity sha512-ATco1JiZX+B+J5BdEmMGKPcnrjebOAV1TIe/r1VAydnGTSQLbmqt7H/QAG1+VfPlWB8k+bRBOAiw3HjTTleemg==
 
-"@beemo/driver-babel@^1.2.0":
+"@beemo/driver-babel@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@beemo/driver-babel/-/driver-babel-1.2.1.tgz#fb8217c7787b8371f57b199be1f7033cf736ff25"
   integrity sha512-IaEb9jQRAIaepAH4+WPxCiPrESPKeG3kXWCWm11OiC+iKYyEJu8Wcy3sSRghhFiEARJBoSPJlzUAZ8zNjioEkA==
   dependencies:
     rimraf "^3.0.0"
 
-"@beemo/driver-eslint@^1.2.0":
+"@beemo/driver-eslint@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@beemo/driver-eslint/-/driver-eslint-1.2.1.tgz#05d3d70718fbccda27c79b7ce1a4d3e9b06cbcd8"
   integrity sha512-AH2k9ueLONTwUVEYgfZqDJY7gx+z2CmEP5wfHzQguotPYdWjocqYLy96x897vpl9vkkZZABKu9RNxwz6O2+rdQ==
   dependencies:
     "@boost/event" "^1.2.1"
 
-"@beemo/driver-jest@^1.1.1":
+"@beemo/driver-jest@^1.2.0":
   version "1.2.0"
   resolved "https://registry.yarnpkg.com/@beemo/driver-jest/-/driver-jest-1.2.0.tgz#11927effdebe93f41426c7f12d6b4dd21fea91e9"
   integrity sha512-SEdbSkZ5yYbrTK2uoOg0TQwvzdOv86d1sqlC84DYHxAs06w5tlB/TMbDvL8lMSgWnKMwcDPGCMd85ZFE/5sePQ==
   dependencies:
     "@jest/types" "^24.9.0"
 
-"@beemo/driver-prettier@^1.2.0":
+"@beemo/driver-prettier@^1.2.1":
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/@beemo/driver-prettier/-/driver-prettier-1.2.1.tgz#f3c2e177ff170e567bffd952a06d25d57d895438"
   integrity sha512-TQdNcLjgfudqUO9tgRBHSbcE0xxwws8dHAhe/zM6JaeOiaXU4tspeQLtq8u70rmfQiAHbXzQqyaG5Hc5hiZgGg==
@@ -1151,7 +1151,7 @@
     "@boost/event" "^1.2.1"
     "@types/prettier" "*"
 
-"@beemo/driver-typescript@^1.3.0":
+"@beemo/driver-typescript@^1.3.1":
   version "1.3.1"
   resolved "https://registry.yarnpkg.com/@beemo/driver-typescript/-/driver-typescript-1.3.1.tgz#001fbff870461f33608d0d5a4f6672ed80b3f73a"
   integrity sha512-gSJPefq+GhtgR/cfxLBHO7r2QVWiIDKlQ7e6nNx1+op99pVG4VeAMAlHnoe3PVx39o7ptxt+yikF43cUdrEeOA==
@@ -1170,7 +1170,7 @@
     optimal "^4.1.1"
     pretty-ms "^5.1.0"
 
-"@boost/core@^1.17.0", "@boost/core@^1.18.1":
+"@boost/core@^1.18.1":
   version "1.18.1"
   resolved "https://registry.yarnpkg.com/@boost/core/-/core-1.18.1.tgz#605b2e9118435dc09561107e3622b6aedbfaf057"
   integrity sha512-DOGt9qSmkhJe1i+YUGH6P9lxaP2THARf1WCtMNDpYlY4b7MK+Qt0I+oCMQzoM2ZjxsWeiwN/LgKixXy9VWO48w==
@@ -2889,10 +2889,10 @@
     "@types/istanbul-lib-coverage" "*"
     "@types/istanbul-lib-report" "*"
 
-"@types/jest@^25.1.1":
-  version "25.1.1"
-  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-25.1.1.tgz#dcf65a8ee315b91ad39c0d358ae0ddc5602ab0e9"
-  integrity sha512-bKSZJYZJLzwaoVYNN4W3A0RvKNYsrLm5tsuXaMlfYDxKf4gY2sFrMYneCugNQWGg1gjPW+FHBwNrwPzEi4sIsw==
+"@types/jest@^25.1.2":
+  version "25.1.2"
+  resolved "https://registry.yarnpkg.com/@types/jest/-/jest-25.1.2.tgz#1c4c8770c27906c7d8def5d2033df9dbd39f60da"
+  integrity sha512-EsPIgEsonlXmYV7GzUqcvORsSS9Gqxw/OvkGwHfAdpjduNRxMlhsav0O5Kb0zijc/eXSO/uW6SJt9nwull8AUQ==
   dependencies:
     jest-diff "^25.1.0"
     pretty-format "^25.1.0"
@@ -2960,7 +2960,7 @@
   dependencies:
     "@types/node" "*"
 
-"@types/node@*", "@types/node@>= 8", "@types/node@^13.5.3":
+"@types/node@*", "@types/node@>= 8":
   version "13.5.3"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-13.5.3.tgz#37f1f539b7535b9fb4ef77d59db1847a837b7f17"
   integrity sha512-ZPnWX9PW992w6DUsz3JIXHaSb5v7qmKCVzC3km6SxcDGxk7zmLfYaCJTbktIa5NeywJkkZDhGldKqDIvC5DRrA==
@@ -2969,6 +2969,11 @@
   version "10.17.14"
   resolved "https://registry.yarnpkg.com/@types/node/-/node-10.17.14.tgz#b6c60ebf2fb5e4229fdd751ff9ddfae0f5f31541"
   integrity sha512-G0UmX5uKEmW+ZAhmZ6PLTQ5eu/VPaT+d/tdLd5IFsKRPcbe6lPxocBtcYBFSaLaCW8O60AX90e91Nsp8lVHCNw==
+
+"@types/node@^13.7.0":
+  version "13.7.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-13.7.0.tgz#b417deda18cf8400f278733499ad5547ed1abec4"
+  integrity sha512-GnZbirvmqZUzMgkFn70c74OQpTTUcCzlhQliTzYjQMqg+hVKcDnxdL19Ne3UdYzdMA/+W3eb646FWn/ZaT1NfQ==
 
 "@types/node@^7.0.11":
   version "7.10.9"
@@ -3079,10 +3084,17 @@
   dependencies:
     "@types/yargs-parser" "*"
 
-"@types/yargs@^15.0.0", "@types/yargs@^15.0.1", "@types/yargs@^15.0.2":
+"@types/yargs@^15.0.0", "@types/yargs@^15.0.1":
   version "15.0.2"
   resolved "https://registry.yarnpkg.com/@types/yargs/-/yargs-15.0.2.tgz#0bf292a0369493cee030e2e4f4ff84f5982b028d"
   integrity sha512-hFkuAp58M2xOc1QgJhkFrLMnqa8KWTFRTnzrI1zlEcOfg3DZ0eH3aPAo/N6QlVVu8E4KS4xD1jtEG3rdQYFmIg==
+  dependencies:
+    "@types/yargs-parser" "*"
+
+"@types/yargs@^15.0.3":
+  version "15.0.3"
+  resolved "https://registry.yarnpkg.com/@types/yargs/-/yargs-15.0.3.tgz#41453a0bc7ab393e995d1f5451455638edbd2baf"
+  integrity sha512-XCMQRK6kfpNBixHLyHUsGmXrpEmFFxzMrcnSXFMziHd8CoNJo8l16FkHyQq4x+xbM7E2XL83/O78OD8u+iZTdQ==
   dependencies:
     "@types/yargs-parser" "*"
 
@@ -3555,10 +3567,10 @@ apollo-cache-control@^0.8.11:
     apollo-server-env "^2.4.3"
     graphql-extensions "^0.10.10"
 
-apollo-datasource@^0.6.4:
-  version "0.6.4"
-  resolved "https://registry.yarnpkg.com/apollo-datasource/-/apollo-datasource-0.6.4.tgz#c0d1604b1a97e004844d4b61bd819a9a6b0a409f"
-  integrity sha512-u4eu6Q94q6KuZacZfdo4vCevA81F4QWeTYEXUvoksQMJpiacPHHe0DJrofKVKvxngUp5kCi1RnPXSc6kBY+/oA==
+apollo-datasource@^0.7.0:
+  version "0.7.0"
+  resolved "https://registry.yarnpkg.com/apollo-datasource/-/apollo-datasource-0.7.0.tgz#2a6d82edb2eba21b4ddf21877009ba39ff821945"
+  integrity sha512-Yja12BgNQhzuFGG/5Nw2MQe0hkuQy2+9er09HxeEyAf2rUDIPnhPrn1MDoZTB8MU7UGfjwITC+1ofzKkkrZobA==
   dependencies:
     apollo-server-caching "^0.5.1"
     apollo-server-env "^2.4.3"
@@ -3570,13 +3582,13 @@ apollo-engine-reporting-protobuf@^0.4.4:
   dependencies:
     "@apollo/protobufjs" "^1.0.3"
 
-apollo-engine-reporting@^1.4.14:
-  version "1.4.14"
-  resolved "https://registry.yarnpkg.com/apollo-engine-reporting/-/apollo-engine-reporting-1.4.14.tgz#71a6509ebe86385da43df500cd0940525a3e8674"
-  integrity sha512-cCG9qDOPwbh87ZjQGHgmnP3oPqhqjIZcNmm/lNtWkWXGTlxV/jmUEqpVi+wsDbE5gR7d1OFk6GqSy2ZQh+S+Bw==
+apollo-engine-reporting@^1.5.0:
+  version "1.5.0"
+  resolved "https://registry.yarnpkg.com/apollo-engine-reporting/-/apollo-engine-reporting-1.5.0.tgz#6e3746de14fc87e14c289c0776a2d350e6f50918"
+  integrity sha512-Pe2DelijZ2QHqkqv8E97iOb32l+FIMT2nxpQsuH+nWi+96cCFJJJHjm3RLAPEUuvGOgW9dFYQP3J91EyC5O0tQ==
   dependencies:
     apollo-engine-reporting-protobuf "^0.4.4"
-    apollo-graphql "^0.3.7"
+    apollo-graphql "^0.4.0"
     apollo-server-caching "^0.5.1"
     apollo-server-env "^2.4.3"
     apollo-server-errors "^2.3.4"
@@ -3594,10 +3606,10 @@ apollo-env@^0.6.1:
     node-fetch "^2.2.0"
     sha.js "^2.4.11"
 
-apollo-graphql@^0.3.7:
-  version "0.3.7"
-  resolved "https://registry.yarnpkg.com/apollo-graphql/-/apollo-graphql-0.3.7.tgz#533232ed48b0b6dbcf5635f65e66cf8677a5b768"
-  integrity sha512-ghW16xx9tRcyL38Pw6G5OidMnYn+CNUGZWmvqQgEO2nRy4T0ONPZZBOvGrIMtJQ70oEykNMKGm0zm6PdHdxd8Q==
+apollo-graphql@^0.4.0:
+  version "0.4.0"
+  resolved "https://registry.yarnpkg.com/apollo-graphql/-/apollo-graphql-0.4.0.tgz#dd0afe31a6241b8e2ded20b906c9ee8dfbe03497"
+  integrity sha512-abCHcKln1EGbzSItW087EjBI5wnluikyUqEn4VsdeWHCtdENWpHCn/MnM0+jJa1prNasxN7tCukp4nMpJYYVqg==
   dependencies:
     apollo-env "^0.6.1"
     lodash.sortby "^4.7.0"
@@ -3619,18 +3631,18 @@ apollo-server-caching@^0.5.1:
   dependencies:
     lru-cache "^5.0.0"
 
-apollo-server-core@^2.9.16:
-  version "2.9.16"
-  resolved "https://registry.yarnpkg.com/apollo-server-core/-/apollo-server-core-2.9.16.tgz#b4c869a6babfa6906fbbf1e6facf3b7231dbf777"
-  integrity sha512-4ftdjSfs/3aEare9QNTVSF0yUvXETxiohuDLZ7gmMIQxNnZhUjVXiZL1rYKuIZ12uH7xLvh/DwkXRt6nLG/lZA==
+apollo-server-core@^2.10.0:
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/apollo-server-core/-/apollo-server-core-2.10.0.tgz#b8d51bdffe6529f0e3ca670ee8f1238765cfade4"
+  integrity sha512-x/UK6XvU307W8D/pzTclU04JIjRarcbg5mFPe0nVmO4OTc26uQgKi1WlZkcewXsAUnn+nDwKVn2c2G3dHEgXzQ==
   dependencies:
     "@apollographql/apollo-tools" "^0.4.3"
     "@apollographql/graphql-playground-html" "1.6.24"
     "@types/graphql-upload" "^8.0.0"
     "@types/ws" "^6.0.0"
     apollo-cache-control "^0.8.11"
-    apollo-datasource "^0.6.4"
-    apollo-engine-reporting "^1.4.14"
+    apollo-datasource "^0.7.0"
+    apollo-engine-reporting "^1.5.0"
     apollo-server-caching "^0.5.1"
     apollo-server-env "^2.4.3"
     apollo-server-errors "^2.3.4"
@@ -3659,10 +3671,10 @@ apollo-server-errors@^2.3.4:
   resolved "https://registry.yarnpkg.com/apollo-server-errors/-/apollo-server-errors-2.3.4.tgz#b70ef01322f616cbcd876f3e0168a1a86b82db34"
   integrity sha512-Y0PKQvkrb2Kd18d1NPlHdSqmlr8TgqJ7JQcNIfhNDgdb45CnqZlxL1abuIRhr8tiw8OhVOcFxz2KyglBi8TKdA==
 
-apollo-server-express@^2.9.16:
-  version "2.9.16"
-  resolved "https://registry.yarnpkg.com/apollo-server-express/-/apollo-server-express-2.9.16.tgz#4c30b1769426c010b37943c0fb7766e5825973a0"
-  integrity sha512-ZDc7GP+piUm67alJ0DIE9f36tHcCiNm3PHMLIVJlVE/rcGwzRjV5rardRqeslljQiO2J+1IwXKwJ0/kRrZ4JvQ==
+apollo-server-express@^2.10.0:
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/apollo-server-express/-/apollo-server-express-2.10.0.tgz#7d87ff54e378cdcb135eb3d093f20fca7fc0d1bc"
+  integrity sha512-adDQts4QmkX2ENU7JibV1EwRl3ESnpnpImXIMvg8Cm7kX2wSbzwm8LecQNujwWJtkAPTCEAcnPBDyKwWjTQ6/g==
   dependencies:
     "@apollographql/graphql-playground-html" "1.6.24"
     "@types/accepts" "^1.3.5"
@@ -3670,7 +3682,7 @@ apollo-server-express@^2.9.16:
     "@types/cors" "^2.8.4"
     "@types/express" "4.17.2"
     accepts "^1.3.5"
-    apollo-server-core "^2.9.16"
+    apollo-server-core "^2.10.0"
     apollo-server-types "^0.2.10"
     body-parser "^1.18.3"
     cors "^2.8.4"
@@ -3697,13 +3709,13 @@ apollo-server-types@^0.2.10:
     apollo-server-caching "^0.5.1"
     apollo-server-env "^2.4.3"
 
-apollo-server@^2.9.16:
-  version "2.9.16"
-  resolved "https://registry.yarnpkg.com/apollo-server/-/apollo-server-2.9.16.tgz#c0054ed70ecb637cb3f585ff46fb4a060730076f"
-  integrity sha512-dqB1shkjl9ne7DfSHXDH5sT70llr9zswLL+/g/4zt4/H+k+2pkD1BShQkNIK7PBYcVa8KvRAHXiHTXZ36GCspA==
+apollo-server@^2.10.0, apollo-server@^2.9.16:
+  version "2.10.0"
+  resolved "https://registry.yarnpkg.com/apollo-server/-/apollo-server-2.10.0.tgz#93b924b089f7c4070e88aa29a8b9472c1d5d0f82"
+  integrity sha512-ITXkklSgrNfohFh4juvHWrtLz/82iw9CkBUW+G5T8NxHaqxm1Lpus1Ck2VsXmCgNplYi6mODRjUl087qdlU2Rw==
   dependencies:
-    apollo-server-core "^2.9.16"
-    apollo-server-express "^2.9.16"
+    apollo-server-core "^2.10.0"
+    apollo-server-express "^2.10.0"
     express "^4.0.0"
     graphql-subscriptions "^1.0.0"
     graphql-tools "^4.0.0"
@@ -9016,7 +9028,12 @@ graphql-subscriptions@^1.0.0:
   dependencies:
     iterall "^1.2.1"
 
-graphql-tag@^2.10.1, graphql-tag@^2.9.2:
+graphql-tag@^2.10.1, graphql-tag@^2.10.3:
+  version "2.10.3"
+  resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.10.3.tgz#ea1baba5eb8fc6339e4c4cf049dabe522b0edf03"
+  integrity sha512-4FOv3ZKfA4WdOKJeHdz6B3F/vxBLSgmBcGeAFPf4n1F64ltJUvOOerNj0rsJxONQGdhUMynQIvd6LzB+1J5oKA==
+
+graphql-tag@^2.9.2:
   version "2.10.1"
   resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.10.1.tgz#10aa41f1cd8fae5373eaf11f1f67260a3cad5e02"
   integrity sha512-jApXqWBzNXQ8jYa/HLkZJaVw9jgwNqZkywa2zfFn16Iv1Zb7ELNHkJaXHR7Quvd5SIGsy6Ny7SUKATgnu05uEg==
@@ -11260,10 +11277,10 @@ lines-and-columns@^1.1.6:
   resolved "https://registry.yarnpkg.com/lines-and-columns/-/lines-and-columns-1.1.6.tgz#1c00c743b433cd0a4e80758f7b64a57440d9ff00"
   integrity sha1-HADHQ7QzzQpOgHWPe2SldEDZ/wA=
 
-lint-staged@^10.0.6:
-  version "10.0.6"
-  resolved "https://registry.yarnpkg.com/lint-staged/-/lint-staged-10.0.6.tgz#62d3f49a09a12e4df876dd8667a09d9a2d39495c"
-  integrity sha512-pz3k0J2/+sy2a2pUsMMCpbsChcK8nIyDIf73xAHPqXQRPogBedb0r/nHDKgrtu9v9cZ96Fc60NieoNMQoQU65Q==
+lint-staged@^10.0.7:
+  version "10.0.7"
+  resolved "https://registry.yarnpkg.com/lint-staged/-/lint-staged-10.0.7.tgz#d205f92d9359419a23bc6aa3b6f8546b1998da64"
+  integrity sha512-Byj0F4l7GYUpYYHEqyFH69NiI6ICTg0CeCKbhRorL+ickbzILKUlZLiyCkljZV02wnoh7yH7PmFyYm9PRNwk9g==
   dependencies:
     chalk "^3.0.0"
     commander "^4.0.1"
@@ -17225,15 +17242,10 @@ typedarray@^0.0.6:
   resolved "https://registry.yarnpkg.com/typedarray/-/typedarray-0.0.6.tgz#867ac74e3864187b1d3d47d996a78ec5c8830777"
   integrity sha1-hnrHTjhkGHsdPUfZlqeOxciDB3c=
 
-typescript@3.5.3:
-  version "3.5.3"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.5.3.tgz#c830f657f93f1ea846819e929092f5fe5983e977"
-  integrity sha512-ACzBtm/PhXBDId6a6sDJfroT2pOWt/oOnk4/dElG5G33ZL776N3Y6/6bKZJBFpd+b05F3Ct9qDjMeJmRWtE2/g==
-
-typescript@^3.7.5, typescript@~3.7.2:
-  version "3.7.5"
-  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.7.5.tgz#0692e21f65fd4108b9330238aac11dd2e177a1ae"
-  integrity sha512-/P5lkRXkWHNAbcJIiHPfRoKqyd7bsyCma1hZNUGfn20qm64T6ZBlrzprymeu918H+mB/0rIg2gGK/BXkhhYgBw==
+typescript@3.5.3, typescript@3.8.0-dev.20200207, typescript@^3.7.5, typescript@~3.7.2:
+  version "3.8.0-dev.20200207"
+  resolved "https://registry.yarnpkg.com/typescript/-/typescript-3.8.0-dev.20200207.tgz#d87c32999e44ad809685f76ba10b3c67c7552d6a"
+  integrity sha512-JICbjjqDfx99wFJSIrZLKWNsp2tmAi5NYazcNndcTjpwS1sFOtPwX94oJiEAFan75l0MFaBOWnxUMvyAM9M7ew==
 
 typography-breakpoint-constants@^0.16.19:
   version "0.16.19"

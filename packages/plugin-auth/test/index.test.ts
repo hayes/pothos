@@ -50,11 +50,13 @@ describe('auth example schema', () => {
         contextValue: createContext(1),
       });
 
-      expect(result.data).toEqual({
-        user: {
-          firstName: 'Michael',
-          lastName: 'Hayes',
-          email: 'michael.hayes@example.com',
+      expect(result).toEqual({
+        data: {
+          user: {
+            firstName: 'Michael',
+            lastName: 'Hayes',
+            email: 'michael.hayes@example.com',
+          },
         },
       });
     });

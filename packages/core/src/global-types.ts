@@ -49,6 +49,10 @@ declare global {
     export interface InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo>
       extends InternalInputFieldBuilder<Types> {}
 
+    export interface ResolverPluginData {}
+
+    export interface FieldWrapData {}
+
     export interface TypeInfo {
       Scalar: {
         [s: string]: {

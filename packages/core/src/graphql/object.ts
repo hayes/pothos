@@ -4,9 +4,9 @@ import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import { FieldMap, InterfaceName } from '../types';
 import FieldBuilder from '../fieldUtils/builder';
-import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 import { InterfaceType } from '..';
+import { BasePlugin } from '../plugins';
 
 export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<{}> {
   kind: 'Object' = 'Object';
@@ -49,7 +49,7 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
     return this.options.shape(new FieldBuilder(this.typename));
   }
 
-  buildType(cache: BuildCache, plugins: BasePlugin[]): GraphQLObjectType {
+  buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
@@ -58,7 +58,7 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
         fromEntries(
           Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
-            field.build(key, cache, plugins),
+            field.build(key, cache, plugin),
           ]),
         ),
       extensions: this.options.extensions,
