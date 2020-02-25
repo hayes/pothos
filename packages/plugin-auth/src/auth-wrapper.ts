@@ -1,17 +1,17 @@
 import '@giraphql/core';
 
 export default class AuthMeta {
-  grantedAuth: {
+  grantedPermissions: {
     [s: string]: boolean;
   };
   checkCache: {
     [s: string]: boolean | Promise<boolean>;
   };
 
-  constructor(grantedAuth?: { [s: string]: boolean }) {
+  constructor(grantedPermissions?: { [s: string]: boolean }) {
     this.checkCache = {};
-    this.grantedAuth = {
-      ...grantedAuth,
+    this.grantedPermissions = {
+      ...grantedPermissions,
     };
   }
 }

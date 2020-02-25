@@ -167,11 +167,11 @@ export default class AuthPlugin implements BasePlugin {
   ) {
     const parentType = cache.getType(field.parentTypename);
     const nonListReturnType = Array.isArray(field.type) ? field.type[0] : field.type;
-    const returnTypeName =
+    const returnTypename =
       typeof nonListReturnType === 'string'
         ? nonListReturnType
         : (nonListReturnType as BaseType).typename;
-    const returnType = cache.getType(returnTypeName);
+    const returnType = cache.getType(returnTypename);
 
     const permissionCheck: PermissionsCheck<any, any, any> =
       field.options.permissionsCheck ||
@@ -199,13 +199,15 @@ export default class AuthPlugin implements BasePlugin {
       );
     }
 
+    const grantPermissions = field.options.grantPermissions || null;
+
     data.giraphqlAuth = {
-      returnTypename: returnTypeName,
+      returnTypename,
       fieldName,
       permissionCheck,
       permissionChecksFromType,
-      grantPermissions: field.options.grantPermissions || null,
       preResolveCheck,
+      grantPermissions,
     };
   }
 
@@ -236,13 +238,13 @@ export default class AuthPlugin implements BasePlugin {
       parent.data.giraphqlAuth = new AuthMeta();
     }
 
-    const { grantedAuth, checkCache } = parent.data.giraphqlAuth!;
+    const { grantedPermissions, checkCache } = parent.data.giraphqlAuth!;
 
     const permissionResults = new Map<string, boolean>();
 
     await Promise.all(
       [...permissions].map(async perm => {
-        if (grantedAuth[perm]) {
+        if (grantedPermissions[perm]) {
           permissionResults.set(perm, true);
 
           return;
@@ -276,7 +278,7 @@ export default class AuthPlugin implements BasePlugin {
 
       if (type === 'any') {
         throw new ForbiddenError(
-          `Failed permission check on ${fieldName}. Non of the following permissions checks passed: (${[
+          `Failed permission check on ${fieldName}. One of the following failing checks is required: (${[
             ...failedChecks,
           ].join(', ')})`,
         );
