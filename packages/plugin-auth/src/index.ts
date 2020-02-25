@@ -10,7 +10,7 @@ import {
 import { GraphQLFieldConfig } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
 import './global-types';
-import { AuthGrantMap, PreResolveAuthCheck } from './types';
+import { AuthGrantMap, PreResolveCheck, PermissionsCheck, PermissionMatcher } from './types';
 import AuthMeta from './auth-wrapper';
 
 export { AuthMeta };
@@ -25,24 +25,136 @@ export function mergeAuthGrants(grants: AuthGrantMap, newGrants: AuthGrantMap) {
   });
 }
 
+async function matcherFromCheck(
+  check: PermissionsCheck<any, any, any>,
+  parent: unknown,
+  args: unknown,
+  context: unknown,
+): Promise<PermissionMatcher> {
+  if (typeof check === 'string') {
+    return { all: [check] };
+  }
+
+  if (Array.isArray(check)) {
+    return { all: check };
+  }
+
+  const result = await check(parent, args, context);
+
+  if (typeof result === 'string' || typeof result === 'boolean') {
+    return { all: [result] };
+  }
+
+  if (Array.isArray(result)) {
+    return { all: result };
+  }
+
+  return result;
+}
+
+function permissionsFromMatcher(
+  matcher: PermissionMatcher,
+  fieldName: string,
+  permissionRequired: boolean,
+  set: Set<string> = new Set(),
+) {
+  const list = matcher.all || matcher.any;
+
+  if (permissionRequired && list.length === 0) {
+    throw new ForbiddenError(`No permission checks defined for ${fieldName}`);
+  }
+
+  list.forEach(next => {
+    if (typeof next === 'string') {
+      set.add(next);
+    }
+
+    if (typeof next === 'object') {
+      permissionsFromMatcher(next, fieldName, permissionRequired, set);
+    }
+
+    return set;
+  });
+
+  return set;
+}
+
+function evaluateMatcher(
+  matcher: PermissionMatcher,
+  permissions: Map<string, boolean>,
+  fieldName: string,
+  failedChecks: Set<string> = new Set(),
+): null | { failedChecks: Set<string>; type: 'any' | 'all' } {
+  if (matcher.all) {
+    if (!matcher.all.length) {
+      throw new Error(
+        `Received an "all" permission matcher with an empty empty list of permissions for ${fieldName}`,
+      );
+    }
+
+    for (const perm of matcher.all) {
+      if (typeof perm === 'string' && permissions.get(perm) !== true) {
+        failedChecks.add(perm);
+      } else if (typeof perm === 'object') {
+        evaluateMatcher(perm, permissions, fieldName, failedChecks);
+      } else if (perm === false) {
+        failedChecks.add(
+          '[permissionCheck returned false or returned an "all" PermissionMatcher with a false as a value]',
+        );
+      }
+    }
+
+    if (failedChecks.size === 0) {
+      return null;
+    }
+  } else {
+    if (!matcher.any.length) {
+      throw new Error(
+        `Received an "any" permission matcher with an empty empty list of permissions for ${fieldName}`,
+      );
+    }
+
+    for (const perm of matcher.any) {
+      if (perm === true || (typeof perm === 'string' && permissions.get(perm) === true)) {
+        return null;
+      }
+
+      if (typeof perm === 'string') {
+        failedChecks.add(perm);
+      } else if (typeof perm === 'object') {
+        evaluateMatcher(perm, permissions, fieldName, failedChecks);
+      } else if (perm === false) {
+        failedChecks.add(
+          '[permissionCheck returned an "any" PermissionMatcher with a false as a value]',
+        );
+      }
+    }
+  }
+
+  return {
+    type: matcher.all ? 'all' : 'any',
+    failedChecks,
+  };
+}
+
 export default class AuthPlugin implements BasePlugin {
-  authRequired: boolean;
+  requirePermissionChecks: boolean;
 
   explicitMutationChecks: boolean;
 
   preResolveAuthCheckCache = new WeakMap<
     object,
-    Map<PreResolveAuthCheck<any>, ReturnType<PreResolveAuthCheck<any>>>
+    Map<PreResolveCheck<any>, ReturnType<PreResolveCheck<any>>>
   >();
 
   constructor({
-    authRequired = true,
+    requirePermissionChecks = true,
     explicitMutationChecks = true,
   }: {
-    authRequired?: boolean;
+    requirePermissionChecks?: boolean;
     explicitMutationChecks?: boolean;
   } = {}) {
-    this.authRequired = authRequired;
+    this.requirePermissionChecks = requirePermissionChecks;
     this.explicitMutationChecks = explicitMutationChecks;
   }
 
@@ -61,37 +173,38 @@ export default class AuthPlugin implements BasePlugin {
         : (nonListReturnType as BaseType).typename;
     const returnType = cache.getType(returnTypeName);
 
-    const fieldAuthChecks =
-      (field.options.checkAuth &&
-        (Array.isArray(field.options.checkAuth)
-          ? field.options.checkAuth
-          : [field.options.checkAuth])) ||
+    const permissionCheck: PermissionsCheck<any, any, any> =
+      field.options.permissionsCheck ||
+      (parentType.kind === 'Object' && parentType.options.defaultPermissionCheck) ||
       [];
 
-    let authChecks = fieldAuthChecks;
-
-    if (!field.options.checkAuth) {
-      const defaultAuthChecks =
-        (parentType.kind === 'Object' && parentType.options.defaultAuthChecks) || [];
-
-      authChecks = defaultAuthChecks;
-    }
-
-    const authChecksFromType = (parentType.kind === 'Object' || parentType.kind === 'Root'
-      ? parentType.options.authChecks ?? {}
+    const permissionChecksFromType = (parentType.kind === 'Object' || parentType.kind === 'Root'
+      ? parentType.options.permissions ?? {}
       : {}) as {
       [s: string]: (parent: unknown, context: {}) => boolean | Promise<boolean>;
     };
 
     const preResolveCheck =
-      (returnType.kind === 'Object' && returnType.options.preResolveAuthCheck) || undefined;
+      (returnType.kind === 'Object' && returnType.options.preResolveCheck) || undefined;
+
+    const fieldName = `${field.parentTypename}.${name}`;
+
+    if (
+      this.explicitMutationChecks &&
+      field.parentTypename === 'Mutation' &&
+      (!field.options.permissionsCheck || field.options.permissionsCheck.length === 0)
+    ) {
+      throw new Error(
+        `${fieldName} is missing an explicit permission check which is required for all Mutations (explicitMutationChecks)`,
+      );
+    }
 
     data.giraphqlAuth = {
-      parentTypename: parentType.typename,
       returnTypename: returnTypeName,
-      fieldName: `${field.parentTypename}.${name}`,
-      authChecks,
-      authChecksFromType,
+      fieldName,
+      permissionCheck,
+      permissionChecksFromType,
+      grantPermissions: field.options.grantPermissions || null,
       preResolveCheck,
     };
   }
@@ -104,77 +217,79 @@ export default class AuthPlugin implements BasePlugin {
   ) {
     const {
       preResolveCheck,
-      authChecks,
-      authChecksFromType,
-      parentTypename,
       returnTypename,
       fieldName,
+      permissionCheck,
+      permissionChecksFromType,
+      grantPermissions,
     } = data.giraphqlAuth;
 
-    if (this.explicitMutationChecks && authChecks.length === 0 && parentTypename === 'Mutation') {
-      throw new ForbiddenError(
-        `${fieldName} is missing an explicit auth check which is required for all Mutations (explicitMutationChecks)`,
-      );
-    }
+    const matcher = await matcherFromCheck(permissionCheck, parent.value, args, context);
 
-    if (authChecks.length === 0 && this.authRequired && !preResolveCheck) {
-      throw new ForbiddenError(`No auth checks defined for ${fieldName}`);
-    }
+    const permissions = permissionsFromMatcher(
+      matcher,
+      fieldName,
+      this.requirePermissionChecks && !preResolveCheck,
+    );
 
     if (!parent.data.giraphqlAuth) {
       parent.data.giraphqlAuth = new AuthMeta();
     }
 
-    const newGrants = {};
-
     const { grantedAuth, checkCache } = parent.data.giraphqlAuth!;
 
-    const authResults = await Promise.all(
-      authChecks.map(async authCheck => {
-        const authName = typeof authCheck === 'string' ? authCheck : authCheck.name;
+    const permissionResults = new Map<string, boolean>();
 
-        if (typeof authCheck === 'function') {
-          return Promise.resolve(authCheck(parent.value, args, context)).then(result => {
-            if (result && typeof result === 'object') {
-              mergeAuthGrants(newGrants, result);
-            }
+    await Promise.all(
+      [...permissions].map(async perm => {
+        if (grantedAuth[perm]) {
+          permissionResults.set(perm, true);
 
-            return {
-              result: !!result,
-              authName,
-            };
-          });
+          return;
         }
 
-        if (grantedAuth[authCheck]) {
-          return { result: true, authName };
-        }
-
-        if (authChecksFromType[authCheck]) {
-          if (!checkCache[authCheck]) {
-            checkCache[authCheck] = authChecksFromType[authCheck](parent.value, context);
+        if (permissionChecksFromType[perm]) {
+          if (!checkCache[perm]) {
+            checkCache[perm] = permissionChecksFromType[perm](parent.value, context);
           }
 
-          const result = await checkCache[authCheck];
+          const result = await checkCache[perm];
 
-          return { result, authName };
+          permissionResults.set(perm, result);
+
+          return;
         }
 
-        return { result: false, authName: authCheck };
+        permissionResults.set(perm, false);
       }),
     );
 
-    const failedChecks = authResults
-      .filter(({ result }) => !result)
-      .map(({ authName }) => authName);
+    const failures = evaluateMatcher(matcher, permissionResults, fieldName);
 
-    if (failedChecks.length !== 0) {
+    if (failures) {
+      const { failedChecks, type } = failures;
+      if (failedChecks.size === 1) {
+        throw new ForbiddenError(
+          `Failed permission check on ${fieldName} (${failedChecks.values().next().value})`,
+        );
+      }
+
+      if (type === 'any') {
+        throw new ForbiddenError(
+          `Failed permission check on ${fieldName}. Non of the following permissions checks passed: (${[
+            ...failedChecks,
+          ].join(', ')})`,
+        );
+      }
+
       throw new ForbiddenError(
-        `Failed ${failedChecks.length} auth check${
-          failedChecks.length > 1 ? 's' : ''
-        } on ${fieldName} (${failedChecks.map(n => n || '[anonymous]').join(', ')})`,
+        `Failed permission check on ${fieldName}. The following required permission checks failed: (${[
+          ...failedChecks,
+        ].join(', ')})`,
       );
     }
+
+    const newGrants = {};
 
     if (preResolveCheck) {
       if (!this.preResolveAuthCheckCache.has(context)) {
@@ -195,6 +310,10 @@ export default class AuthPlugin implements BasePlugin {
       if (typeof preResolveResult === 'object') {
         mergeAuthGrants(newGrants, preResolveResult);
       }
+    }
+
+    if (grantPermissions) {
+      mergeAuthGrants(newGrants, await grantPermissions(parent.value, args, context));
     }
 
     return {

@@ -2,22 +2,32 @@ import { InputFields, InputShapeFromFields } from '@giraphql/core';
 
 export type MaybePromise<T> = T | Promise<T>;
 
-export type AuthCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = (
+export type SharedPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = (
   parent: ParentShape,
   context: Types['Context'],
 ) => MaybePromise<boolean>;
 
+export type FieldPermissionCheck<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  ParentShape,
+  Args extends InputFields<Types>
+> = (
+  parent: ParentShape,
+  args: Args,
+  context: Types['Context'],
+) => MaybePromise<boolean | string | string[] | PermissionMatcher>;
+
 export type AuthGrantMap = { [s: string]: boolean };
 
-export type PreResolveAuthCheck<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+export type PreResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo> = (
   context: Types['Context'],
 ) => MaybePromise<boolean | AuthGrantMap>;
 
-export type AuthCheckMap<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = {
-  [s: string]: AuthCheck<Types, ParentShape>;
+export type PermissionCheckMap<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = {
+  [s: string]: SharedPermissionCheck<Types, ParentShape>;
 };
 
-export type AuthCheckWithGrants<
+export type GrantPermissions<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentShape,
   Args extends InputFields<Types>
@@ -25,13 +35,20 @@ export type AuthCheckWithGrants<
   parent: ParentShape,
   args: InputShapeFromFields<Types, Args>,
   context: Types['Context'],
-) => MaybePromise<boolean | AuthGrantMap>;
+) => MaybePromise<AuthGrantMap>;
 
-export type CheckAuth<
+export type PermissionsCheck<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentShape,
   Args extends InputFields<Types>
-> =
-  | string
-  | AuthCheckWithGrants<Types, ParentShape, Args>
-  | (string | AuthCheckWithGrants<Types, ParentShape, Args>)[];
+> = string | string[] | FieldPermissionCheck<Types, ParentShape, Args>;
+
+export type PermissionMatcher =
+  | {
+      any: (string | boolean | PermissionMatcher)[];
+      all?: undefined;
+    }
+  | {
+      all: (string | boolean | PermissionMatcher)[];
+      any?: undefined;
+    };

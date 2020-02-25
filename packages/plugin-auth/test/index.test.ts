@@ -28,7 +28,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on Query.user (readUser)',
+          message: 'Failed permission check on Query.user (readUser)',
         }),
       ]);
     });
@@ -61,7 +61,7 @@ describe('auth example schema', () => {
       });
     });
 
-    test('auth check defined on parent fails', async () => {
+    test('permission check defined on parent fails', async () => {
       const query = gql`
         query {
           user(id: 2) {
@@ -79,7 +79,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.email (readEmail)',
+          message: 'Failed permission check on User.email (readEmail)',
         }),
       ]);
     });
@@ -108,7 +108,7 @@ describe('auth example schema', () => {
       });
     });
 
-    test('granted auth check fails', async () => {
+    test('granted permission check fails', async () => {
       const query = gql`
         query {
           user(id: 2) {
@@ -125,12 +125,12 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.id (readUserId)',
+          message: 'Failed permission check on User.id (readUserId)',
         }),
       ]);
     });
 
-    test('auth check defined on field fails', async () => {
+    test('permission check defined on field fails', async () => {
       const query = gql`
         query {
           user(id: 1) {
@@ -149,7 +149,8 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.lastName (checkAuth)',
+          message:
+            'Failed permission check on User.lastName ([permissionCheck returned false or returned an "all" PermissionMatcher with a false as a value])',
         }),
       ]);
     });
@@ -175,7 +176,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on Query.users (readUser)',
+          message: 'Failed permission check on Query.users (readUser)',
         }),
       ]);
     });
@@ -227,7 +228,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.email (readEmail)',
+          message: 'Failed permission check on User.email (readEmail)',
         }),
       ]);
 
@@ -259,10 +260,10 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.id (readUserId)',
+          message: 'Failed permission check on User.id (readUserId)',
         }),
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.id (readUserId)',
+          message: 'Failed permission check on User.id (readUserId)',
         }),
       ]);
 
@@ -271,7 +272,7 @@ describe('auth example schema', () => {
       });
     });
 
-    test('auth check defined on field fails', async () => {
+    test('permission check defined on field fails', async () => {
       const query = gql`
         query {
           users {
@@ -289,7 +290,8 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.lastName (checkAuth)',
+          message:
+            'Failed permission check on User.lastName ([permissionCheck returned false or returned an "all" PermissionMatcher with a false as a value])',
         }),
       ]);
 
@@ -328,27 +330,6 @@ describe('auth example schema', () => {
           email: 'foo.bar@example.com',
         },
       });
-    });
-
-    test('without auth', async () => {
-      const query = gql`
-        mutation {
-          missingAuth
-        }
-      `;
-
-      const result = await execute({
-        schema: authSchema,
-        document: query,
-        contextValue: createContext(1),
-      });
-
-      expect(result.errors).toEqual([
-        expect.objectContaining({
-          message:
-            'Mutation.missingAuth is missing an explicit auth check which is required for all Mutations (explicitMutationChecks)',
-        }),
-      ]);
     });
   });
 });

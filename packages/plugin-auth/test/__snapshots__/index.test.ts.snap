@@ -3,7 +3,6 @@
 exports[`auth example schema generates expected schema 1`] = `
 "type Mutation {
   createUser(firstName: String!, lastName: String!): User!
-  missingAuth: Int!
 }
 
 type Query {
