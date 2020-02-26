@@ -28,7 +28,8 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on Query.user (readUser)',
+          message:
+            'Permission check on Query.user failed. Missing the following permission: readUser',
         }),
       ]);
     });
@@ -50,16 +51,18 @@ describe('auth example schema', () => {
         contextValue: createContext(1),
       });
 
-      expect(result.data).toEqual({
-        user: {
-          firstName: 'Michael',
-          lastName: 'Hayes',
-          email: 'michael.hayes@example.com',
+      expect(result).toEqual({
+        data: {
+          user: {
+            firstName: 'Michael',
+            lastName: 'Hayes',
+            email: 'michael.hayes@example.com',
+          },
         },
       });
     });
 
-    test('auth check defined on parent fails', async () => {
+    test('permission check defined on parent fails', async () => {
       const query = gql`
         query {
           user(id: 2) {
@@ -77,7 +80,8 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.email (readEmail)',
+          message:
+            'Permission check on User.email failed. Missing the following permission: readEmail',
         }),
       ]);
     });
@@ -106,7 +110,7 @@ describe('auth example schema', () => {
       });
     });
 
-    test('granted auth check fails', async () => {
+    test('granted permission check fails', async () => {
       const query = gql`
         query {
           user(id: 2) {
@@ -123,12 +127,13 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.id (readUserId)',
+          message:
+            'Permission check on User.id failed. Missing the following permission: readUserId',
         }),
       ]);
     });
 
-    test('auth check defined on field fails', async () => {
+    test('permission check defined on field fails', async () => {
       const query = gql`
         query {
           user(id: 1) {
@@ -147,7 +152,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.lastName (checkAuth)',
+          message: 'Permission check on User.lastName failed.',
         }),
       ]);
     });
@@ -173,7 +178,8 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on Query.users (readUser)',
+          message:
+            'Permission check on Query.users failed. Missing the following permission: readUser',
         }),
       ]);
     });
@@ -225,7 +231,8 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.email (readEmail)',
+          message:
+            'Permission check on User.email failed. Missing the following permission: readEmail',
         }),
       ]);
 
@@ -257,10 +264,12 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.id (readUserId)',
+          message:
+            'Permission check on User.id failed. Missing the following permission: readUserId',
         }),
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.id (readUserId)',
+          message:
+            'Permission check on User.id failed. Missing the following permission: readUserId',
         }),
       ]);
 
@@ -269,7 +278,7 @@ describe('auth example schema', () => {
       });
     });
 
-    test('auth check defined on field fails', async () => {
+    test('permission check defined on field fails', async () => {
       const query = gql`
         query {
           users {
@@ -287,7 +296,7 @@ describe('auth example schema', () => {
 
       expect(result.errors).toEqual([
         expect.objectContaining({
-          message: 'Failed 1 auth check on User.lastName (checkAuth)',
+          message: 'Permission check on User.lastName failed.',
         }),
       ]);
 
@@ -327,26 +336,98 @@ describe('auth example schema', () => {
         },
       });
     });
+  });
 
-    test('without auth', async () => {
+  describe('shapes (Unions interfaces and postResolveCheck)', () => {
+    test('query all the shapes', async () => {
       const query = gql`
-        mutation {
-          missingAuth
+        query {
+          square {
+            name
+            size
+          }
+          shapes {
+            name
+            ... on Square {
+              size
+            }
+            ... on Triangle {
+              edges
+            }
+            ... on Circle {
+              area
+            }
+          }
+          polygons {
+            ... on Square {
+              name
+              size
+            }
+            ... on Triangle {
+              name
+              edges
+            }
+          }
         }
       `;
 
       const result = await execute({
         schema: authSchema,
         document: query,
-        contextValue: createContext(1),
+        contextValue: createContext(0),
       });
 
-      expect(result.errors).toEqual([
-        expect.objectContaining({
-          message:
-            'Mutation.missingAuth is missing an explicit auth check which is required for all Mutations (explicitMutationChecks)',
-        }),
-      ]);
+      expect(result).toEqual({
+        data: {
+          square: {
+            name: null,
+            size: 16,
+          },
+          shapes: [
+            null,
+            {
+              name: 'square',
+              size: 16,
+            },
+            {
+              name: 'triangle',
+              edges: null,
+            },
+          ],
+          polygons: [
+            {
+              name: 'square',
+              size: 16,
+            },
+            {
+              name: 'triangle',
+              edges: null,
+            },
+          ],
+        },
+        errors: [
+          expect.objectContaining({
+            message:
+              'Permission check on Shape.name failed. Missing the following permission: readName',
+            path: ['square', 'name'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Triangle.edges failed. Missing the following permission: readTriangle',
+            path: ['polygons', 1, 'edges'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Triangle.edges failed. Missing the following permission: readTriangle',
+            path: ['shapes', 2, 'edges'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Circle.area failed. Missing the following permission: readCircle',
+            path: ['shapes', 0, 'area'],
+          }),
+        ],
+      });
     });
   });
 });

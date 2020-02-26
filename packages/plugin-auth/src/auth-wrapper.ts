@@ -1,35 +1,23 @@
 import '@giraphql/core';
+import { PostResolveCheck } from './types';
 
-export type AuthMeta<Types extends GiraphQLSchemaTypes.TypeInfo> = {
-  grantedAuth: {
+export default class AuthMeta {
+  grantedPermissions: {
     [s: string]: boolean;
   };
   checkCache: {
     [s: string]: boolean | Promise<boolean>;
   };
-};
-
-export default class AuthWrapper<Parent, Types extends GiraphQLSchemaTypes.TypeInfo> {
-  parent: Parent;
-
-  authData: AuthMeta<Types>;
+  postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>;
 
   constructor(
-    parent: Parent,
-    grantedAuth: {
-      [s: string]: boolean;
-    },
+    postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>,
+    grantedPermissions?: { [s: string]: boolean },
   ) {
-    this.parent = parent;
-    this.authData = {
-      checkCache: {},
-      grantedAuth: {
-        ...grantedAuth,
-      },
+    this.checkCache = {};
+    this.postResolveMap = postResolveMap;
+    this.grantedPermissions = {
+      ...grantedPermissions,
     };
-  }
-
-  unwrap() {
-    return this.parent;
   }
 }

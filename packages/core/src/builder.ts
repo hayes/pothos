@@ -20,12 +20,12 @@ import InputObjectType from './graphql/input';
 import InterfaceType from './graphql/interface';
 import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
-import BasePlugin from './plugin';
 import BuildCache from './build-cache';
 import RootType from './graphql/root';
 import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
 import { InputFieldBuilder } from '.';
+import { BasePlugin } from './plugins';
 
 export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   private plugins: BasePlugin[];

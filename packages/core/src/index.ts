@@ -5,7 +5,6 @@ import InterfaceType from './graphql/interface';
 import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
 import InternalInputFieldBuilder from './fieldUtils/input';
-import BasePlugin from './plugin';
 import Field from './graphql/field';
 import BuildCache from './build-cache';
 import InternalFieldBuilder from './fieldUtils/builder';
@@ -16,13 +15,14 @@ import RootFieldSet from './graphql/root-field-set';
 import SchemaBuilder from './builder';
 import BaseType from './graphql/base';
 import { FieldKind } from './types';
+import { BasePlugin } from './plugins';
 
 export * from './types';
 export * from './utils';
+export * from './plugins';
 
 export {
   BaseType,
-  BasePlugin,
   BuildCache,
   EnumType,
   Field,

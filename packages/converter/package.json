@@ -18,6 +18,6 @@
     "yargs": "^15.1.0"
   },
   "devDependencies": {
-    "@types/yargs": "^15.0.2"
+    "@types/yargs": "^15.0.4"
   }
 }

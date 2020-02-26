@@ -11,6 +11,7 @@ import { BasePlugin, FieldBuilder, RootFieldBuilder } from '.';
 import RootFieldSet from './graphql/root-field-set';
 import FieldSet from './graphql/field-set';
 import ScalarType from './graphql/scalar';
+import { mergePlugins } from './plugins';
 
 export default class BuildCache {
   implementations: ImplementedType[];
@@ -21,7 +22,7 @@ export default class BuildCache {
 
   inProgress = new Set<string>();
 
-  plugins: BasePlugin[];
+  plugin: Required<BasePlugin>;
 
   fieldDefinitions: (FieldSet<any> | RootFieldSet<any>)[];
 
@@ -66,7 +67,7 @@ export default class BuildCache {
       });
     });
 
-    this.plugins = plugins ?? [];
+    this.plugin = mergePlugins(plugins || []);
     this.implementations = [...implementations];
     this.fieldDefinitions = [...(fieldDefinitions ?? [])];
     this.mocks = mocks ?? {};
@@ -138,25 +139,13 @@ export default class BuildCache {
         );
       });
 
-    for (const plugin of this.plugins) {
-      if (plugin.updateFields) {
-        fields = plugin.updateFields(entry, fields, this);
-      }
-    }
+    fields = this.plugin.updateFields(entry, fields, this);
 
     return this.updateFields(entry, fields);
   }
 
   updateFields(entry: BuildCacheEntryWithFields, fields: FieldMap): FieldMap {
-    let newFields = fields;
-
-    for (const plugin of this.plugins) {
-      if (plugin.updateFields) {
-        newFields = plugin.updateFields(entry, newFields, this);
-      }
-    }
-
-    return newFields;
+    return this.plugin.updateFields(entry, fields, this);
   }
 
   getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
@@ -231,7 +220,7 @@ export default class BuildCache {
 
   buildType(type: ImplementedType) {
     this.types.set(type.typename, {
-      built: type.buildType(this, this.plugins),
+      built: type.buildType(this, this.plugin),
       kind: type.kind,
       type,
     } as BuildCacheEntry);
@@ -242,12 +231,8 @@ export default class BuildCache {
       this.buildType(type);
     }
 
-    for (const plugin of this.plugins) {
-      if (plugin.visitType) {
-        for (const entry of this.types.values()) {
-          plugin.visitType(entry, this);
-        }
-      }
+    for (const entry of this.types.values()) {
+      this.plugin.visitType(entry, this);
     }
   }
 

@@ -6,6 +6,12 @@ import AuthPlugin from '../../../src';
 type Types = {
   Object: {
     User: User;
+    Circle: { type: 'circle'; radius: number };
+    Square: { type: 'square'; edgeLength: number };
+    Triangle: { type: 'triangle'; edgeLength: number };
+  };
+  Interface: {
+    Shape: { type: string };
   };
   Scalar: {
     ID: { Input: string; Output: string | number };

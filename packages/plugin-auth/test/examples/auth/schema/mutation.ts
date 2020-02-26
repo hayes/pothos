@@ -12,15 +12,12 @@ export default builder.mutationType({
           required: true,
         }),
       },
-      checkAuth: (parent, args, { role }) => role === 'Admin',
+      permissionsCheck: (parent, args, { role }) => role === 'Admin',
       resolve: (parent, { firstName, lastName }, { User }) => {
         const user = User.create(firstName, lastName, 'User');
 
         return user;
       },
-    }),
-    missingAuth: t.int({
-      resolve: () => 123,
     }),
   }),
 });

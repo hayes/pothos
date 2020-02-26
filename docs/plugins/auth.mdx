@@ -5,7 +5,7 @@ menu: Plugins
 
 # Auth Plugin
 
-This plugin provides a way to handle authorization checks throughout your schema.
+This plugin provides a way to handle authorization/permissions checks throughout your schema.
 
 ## Usage
 
@@ -24,23 +24,23 @@ const builder = new SchemaBuilder({
   stateful: true,
   plugins: [
     new AuthPlugin({
-      // when true (default) fields not covered by an auth check will return an Authorization error
-      authRequired: true,
-      // when true (default) mutation fields will not be authroized unless they are protected by a
-      // check defined directly on the mutation field
+      // when true (default) fields not covered by a permission check will return an Authorization error
+      requirePermissionChecks: true,
+      // when true (default) mutation fields will not be authorized unless they are protected by a
+      // permission check defined directly on the mutation field (NOT from `defaultPermissionCheck`).
       explicitMutationChecks: true,
     }),
   ],
 });
 ```
 
-### Add an auth check to a resolver
+### Add a permission check to a resolver
 
 ```ts
 builder.queryType({
   shape: t => ({
     hello: t.string({
-      checkAuth: (parent, args, context) => {
+      permissionCheck: (parent, args, context) => {
         // only say hello to people who capitalize their name
         return name[0] === args[0].toUpperCase(),
       },
@@ -56,20 +56,20 @@ builder.queryType({
 This check will run before the resolver for `Query.hello` runs and will return an authorization
 error for any request where the name is not capitalized.
 
-### Reusing auth checks
+### Reusing permission checks
 
-As you add more fields to your schema, you may want to re-use the same auth checks on multiple
+As you add more fields to your schema, you may want to re-use the same permission checks on multiple
 fields:
 
 ```ts
 builder.queryType({
-  authChecks: {
-    isLoggedIn: (parent, context) => !!context.user,
-    isAdmin: async (parent, context) => {
+  permissions: {
+    user: (parent, context) => !!context.user,
+    admin: async (parent, context) => {
       if (!context.user) {
         return false;
       }
-      // Auth checks can be async
+      // permission checks can be async
       const roles = await context.user.roles();
 
       return roles.includes('Admin');
@@ -77,18 +77,35 @@ builder.queryType({
   },
   shape: t => ({
     helloAdmin: t.string({
-      checkAuth: 'isAdmin',
+      // permissionCheck can be a permission name (striing)
+      permissionCheck: 'admin',
+      resolve: parent => `hello Admin`,
+    }),
+    helloUser: t.string({
+      // permissionCheck can be an array of permission names
+      permissionCheck: ['user'],
       resolve: parent => `hello Admin`,
     }),
     hello: t.string({
-      // checkAuth can be an array of checks
-      checkAuth: [
-        'isLoggedIn',
-        (parent, args, context) => {
-          // only say hello to people who capitalize their name
-          return args.name[0] === args[0].toUpperCase(),
+      // permissionCheck can be a function that returns a boolean, or descriibe a set of permissions
+      // required to resolve the field.
+      permissionCheck: (parent, args, context) => {
+        // only say hello to people who capitalize their name
+        if (args.name[0] === args[0].toUpperCase()) {
+          // return boolean as a basic check
+          return false;
         }
-      ],
+
+        // return name of a permission that is required to read this field
+        return 'user';
+
+        // return a list of permissiion names to requiire multiple permissions
+        return ['user', 'admin']; // or { all: ['user', 'admin'] }
+
+        // permissionCheck can also return a `PermissionMatcher` object for more advanced checks
+        // that depend on complex checks (See API section below for more details)
+        return { any: ['admin', { all: ['user', 'helloAccess'] }] };
+      },
       args: {
         name: t.arg.string({ required: true }),
       },
@@ -98,66 +115,66 @@ builder.queryType({
 });
 ```
 
-the `authChecks` option allows you to create reusable checks that can be referenced by `checkAuth`
+The `permissions` option allows you to create reusable permission checks that can be referenced by
+`permissionCheck` on any field on that type. Permissions defined using `permissions` option do _NOT_
+work with `extends` fields from `@giraphql/plugin-extends` since those fields would have a different
+parent type.
 
-on any field on that type. checks defined `authChecks` do _NOT_ work with `extends` fields from
-`@giraphql/plugin-extends` since those fields would have a different parent type.
-
-If multiple fields of an object use the same auth check, the result of that check will be cached,
+If multiple fields of an object use the same permission, the result of that check will be cached,
 and the check function will only be called once. This caching will only apply for checks called with
 the same `parent` object, so if the check exists on a type that is returned in a list, the check
 will be called for each object in that list.
 
-## Default auth checks
+## Default permission checks
 
-Often most fields on a type will use the same auth check. To make this a little simpler, you can set
-default auth checks for a type that will be applied to any fields that do not explicitly set an auth
-check.
+Often most fields on a type will use the same permission checks. To make this a little simpler, you
+can set default permission checks for a type that will be applied to any fields that do not
+explicitly set a permission check.
 
 ```ts
 builder.queryType({
-  authChecks: {
-    isLoggedIn: (parent, context) => !!context.user,
-    isAdmin: (parent, context) => !!context.user && context.user.isAdmin(),
+  permissions: {
+    user: (parent, context) => !!context.user,
+    admin: (parent, context) => !!context.user && context.user.isAdmin(),
   },
-  defaultAuthChecks: ['isLoggedIn']
+  defaultPermissionCheck: 'user',
   shape: t => ({
     hello: t.string({
-      // uses default isLoggedIn check
+      // uses default user check from `defaultPermissionCheck`
       resolve: (parent, { name }) => `hello, World`,
     }),
     helloAdmin: t.string({
-      // does not user isLoggedIn
-      checkAuth: 'isAdmin',
+      // does NOT use the user check from defaultPermissionCheck
+      permissionCheck: 'admin',
       resolve: (parent, { name }) => `hello Admin`,
     }),
   }),
 });
 ```
 
-## Granting auth checks to children
+## Granting permission checks to children
 
-There are often cases where either it is more efficient to do an auth check once in a parent
+There are often cases where either it is more efficient to do a permission check once in a parent
 resolver, or the context you need to determine if a request should be authorized is not available in
 a child resolver. The naive solution would be to simple do the check in the parent, and not have
-auth checks for you child resolvers. Unfortunatly this is suseptable to creating problems down the
-road if there are new resolvers that expose the same type, but forget that they need to add an auth
-check for the children. To address these kinds of use cases, the auth plugin allows auth checks on a
-field to return a set of checks the child should be authorized for.
+permission checks for you child resolvers. Unfortunatly this is suseptable to creating problems down
+the road if there are new resolvers that expose the same type, but forget that they need to add an
+auth check for the children. To address these kinds of use cases, the auth plugin allows fields to
+defiine a set of permissions to grant to the returned child.
 
 ```ts
 builder.queryType({
   shape: t => ({
     people: t.field({
       type: ['Person'],
-      checkAuth: (parent, { name }, context) => {
-        if (!context.user) {
-          return false;
-        }
-
+      // always allow querying for users, but fields on the returned users still have permission
+      // checks.
+      permissionCheck: () => true,
+      grantPermissions: (parent, { name }, context) => {
+        // conditionally grants user and admin permissions for the returned person
         return {
-          loggedIn: true,
-          isAdmin: context.user.isAdmin(),
+          user: !!context.user,
+          admini: context.user.isAdmin(),
         };
       },
       resolve: (parent, args, { Users }) => Users.getAll(),
@@ -168,20 +185,22 @@ builder.queryType({
 builder.objectType('Person', {
   shape: t => ({
     firstName: t.exposeString('firstName', {
-      checkAuth: 'loggedIn',
+      // check for `user` permission which may have been granted by the grantPermissions option on `Query.people`
+      permissionCheck: 'user',
     }),
     email: t.exposeString('email', {
-      checkAuth: 'isAdmin',
+      // check for `admin` permission which may have been granted by the grantPermissions option on `Query.people`
+      permissionCheck: 'admin',
     }),
   }),
 });
 ```
 
-## Running auth checks for all resolvers for a type
+## Running permission checks for all resolvers for a type
 
 As your schema gets more complicated, some types may be reference by fields on a lot of different
-types. This can make it hard to keep all the auth checks for this popular type in sync and ensure
-that all fields have appropriate auth checks. To make this simpler there is a `preResolveAuthCheck`
+types. This can make it hard to keep all the permission checks for this popular type in sync and
+ensure that all fields have appropriate checks. To make this simpler there is a `preResolveCheck`
 you can add to object types that allows you to define a check that will run before any resolver for
 that type.
 
@@ -197,35 +216,78 @@ builder.queryType({
 
 builder.objectType('Person', {
   // Run before the resolver for Query.people
-  preResolveAuthCheck: context => {
+  preResolveCheck: context => {
     if (!context.user) {
       return false;
     }
 
     return {
-      loggedIn: true,
-      isAdmin: context.user.isAdmin(),
+      readUserFields: true,
+      readEmail: context.user.isAdmin(),
     };
   },
   shape: t => ({
     firstName: t.exposeString('firstName', {
-      checkAuth: 'loggedIn',
+      permissionCheck: 'readUserFields',
     }),
     email: t.exposeString('email', {
-      checkAuth: 'isAdmin',
+      permissionCheck: 'readEmail',
     }),
   }),
 });
 ```
 
-the `preResolveAuthCheck` only receives the `context` object because the `parent` and args will vary
+the `preResolveCheck` only receives the `context` object because the `parent` and args will vary
 depending on which resolver is being called. It can return an map of authorizations the same way an
 auch check on a field can. This approach allows you to define all of the auth for your type in one
 place, and is the recomended path for applications where you want more ridged controls over your
-auth checks.
+permission checks. The check functiion may return a boolean, or a map of permissions.
 
-Because the `preResolveAuthCheck` only receives the context object, it will be run at most once per
+Because the `preResolveCheck` only receives the context object, it will be run at most once per
 request and its result will be cached for subsequent fields of the same kind.
+
+One caviot to note about `preResolveCheck` is that it will _NOT_ run before fields that return
+interfaces or unions that resolve to this type, sine there is no way to determine the resolved type
+of union or interface before it has neen resolved.
+
+If you are using interfaces or unions, you can use a `postResolveCheck` instead. `postResolveCheck`s
+will run for each instance of a type after it has been resolved, and will work with interface and
+unions fields as well.
+
+```ts
+builder.interfaceType('Shape', {
+  shape: t => ({
+    // interface fields
+  }),
+});
+
+builder.objectType('Square', {
+  implements: ['Shape'],
+  isType: parent => parent.type === 'square',
+  // Will execute for each square returned by Query.shapes and grand the readSquare permission
+  // which is required for the size field
+  postResolveCheck: (parent, context, info) => {
+    return { readSquare: true };
+  },
+  shape: t => ({
+    size: t.float({
+      permissionsCheck: 'readSquare',
+      resolve: ({ edgeLength }) => edgeLength ** 2,
+    }),
+  }),
+});
+
+builder.queryFields(t => ({
+  shapes: t.field({
+    type: ['Shape'],
+    // always allow this resolver to execute
+    permissionsCheck: () => true,
+    resolve: () => {
+      return [{ type: 'square', edgeLength: 4 }];
+    },
+  }),
+}));
+```
 
 ## API
 

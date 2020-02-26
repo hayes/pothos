@@ -1,7 +1,7 @@
 import builder from '../builder';
 
 export default builder.queryType({
-  authChecks: {
+  permissions: {
     readUser: (parent, context) => {
       return context.role === 'Admin' || context.role === 'User';
     },
@@ -15,13 +15,11 @@ export default builder.queryType({
         }),
       },
       // require a passing readUser auth check
-      checkAuth: [
-        'readUser',
-        () => ({
-          // grant readUserField auth for returned user
-          readUserField: true,
-        }),
-      ],
+      permissionsCheck: 'readUser',
+      grantPermissions: () => ({
+        // grant readUserField auth for returned user
+        readUserField: true,
+      }),
       resolve: (parent, { id }, { User }) => {
         const user = User.map.get(parseInt(id, 10));
 
@@ -35,13 +33,11 @@ export default builder.queryType({
     users: t.field({
       type: ['User'],
       // require a passing readUser auth check
-      checkAuth: [
-        'readUser',
-        () => ({
-          // grant readUserField auth for returned user
-          readUserField: true,
-        }),
-      ],
+      permissionsCheck: 'readUser',
+      grantPermissions: () => ({
+        // grant readUserField auth for returned user
+        readUserField: true,
+      }),
       nullable: { list: false, items: true },
       resolve: (parent, args, { User }) => {
         const user1 = User.map.get(1);

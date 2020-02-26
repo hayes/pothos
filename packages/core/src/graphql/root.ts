@@ -3,9 +3,9 @@ import { GraphQLObjectType } from 'graphql';
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
 import { FieldMap, RootName } from '../types';
-import BasePlugin from '../plugin';
 import BuildCache from '../build-cache';
 import RootFieldBuilder from '../fieldUtils/root';
+import { BasePlugin } from '../plugins';
 
 export default class RootType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -31,7 +31,7 @@ export default class RootType<
     return this.options.shape(new RootFieldBuilder(this.typename));
   }
 
-  buildType(cache: BuildCache, plugins: BasePlugin[]): GraphQLObjectType {
+  buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLObjectType {
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
@@ -39,7 +39,7 @@ export default class RootType<
         fromEntries(
           Object.entries(cache.getFields(this.typename)).map(([key, field]) => [
             key,
-            field.build(key, cache, plugins),
+            field.build(key, cache, plugin),
           ]),
         ),
       extensions: this.options.extensions,

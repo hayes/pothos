@@ -5,8 +5,8 @@ import fromEntries from 'object.fromentries';
 import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from '../types';
 import { typeFromParam, buildArg } from '../utils';
 import BaseType from './base';
-import BasePlugin from '../plugin';
 import { BuildCache } from '..';
+import { BasePlugin, wrapResolver } from '../plugins';
 
 export default class Field<
   Args extends InputFields<Types>,
@@ -66,7 +66,7 @@ export default class Field<
   build(
     name: string,
     cache: BuildCache,
-    plugins: BasePlugin[],
+    plugin: Required<BasePlugin>,
   ): GraphQLFieldConfig<unknown, unknown> {
     const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
       args: this.buildArgs(cache),
@@ -84,10 +84,10 @@ export default class Field<
       extensions: this.options.extensions,
     };
 
-    return plugins.reduce((config, plugin) => {
-      return plugin.updateFieldConfig
-        ? plugin.updateFieldConfig(name, this as any, config, cache)
-        : config;
-    }, baseConfig);
+    const config = plugin.updateFieldConfig(name, this as any, baseConfig, cache);
+
+    wrapResolver(name, this, config, plugin, cache);
+
+    return config;
   }
 }
