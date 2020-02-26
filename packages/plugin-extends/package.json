@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@giraphql/core": "^0.9.1",
-    "apollo-server": "^2.9.16",
+    "apollo-server": "^2.10.1",
     "graphql": "^14.6.0"
   },
   "devDependencies": {

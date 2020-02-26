@@ -35,6 +35,22 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     plugin => plugin.beforeResolve,
   ) as Pick<Required<BasePlugin>, 'beforeResolve'>[];
 
+  const onInterfaceResolveTypePlugins: Pick<
+    Required<BasePlugin>,
+    'onInterfaceResolveType'
+  >[] = plugins.filter(plugin => plugin.onInterfaceResolveType) as Pick<
+    Required<BasePlugin>,
+    'onInterfaceResolveType'
+  >[];
+
+  const onUnionResolveTypePlugins: Pick<
+    Required<BasePlugin>,
+    'onUnionResolveType'
+  >[] = plugins.filter(plugin => plugin.onUnionResolveType) as Pick<
+    Required<BasePlugin>,
+    'onUnionResolveType'
+  >[];
+
   return {
     visitType(entry: BuildCacheEntry, cache: BuildCache) {
       for (const plugin of visitTypePlugins) {
@@ -110,6 +126,28 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
             }
           : undefined,
       };
+    },
+
+    async onInterfaceResolveType(
+      typename: string,
+      parent: ResolveValueWrapper,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) {
+      for (const plugin of onInterfaceResolveTypePlugins) {
+        await plugin.onInterfaceResolveType(typename, parent, context, info);
+      }
+    },
+
+    async onUnionResolveType(
+      typename: string,
+      parent: ResolveValueWrapper,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) {
+      for (const plugin of onUnionResolveTypePlugins) {
+        await plugin.onUnionResolveType(typename, parent, context, info);
+      }
     },
   };
 }

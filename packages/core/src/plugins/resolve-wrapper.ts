@@ -12,11 +12,14 @@ import { BasePlugin, BuildCache, Field } from '..';
 import { TypeParam } from '../types';
 
 export class ResolveValueWrapper {
+  fieldName: string;
+
   value: unknown;
 
   data: Partial<GiraphQLSchemaTypes.ResolverPluginData> = {};
 
-  constructor(value: unknown) {
+  constructor(fieldName: string, value: unknown) {
+    this.fieldName = fieldName;
     this.value = value;
   }
 
@@ -24,12 +27,12 @@ export class ResolveValueWrapper {
     return this.value;
   }
 
-  static wrap(value: unknown) {
+  static wrap(fieldName: string, value: unknown) {
     if (value instanceof ResolveValueWrapper) {
       return value;
     }
 
-    return new ResolveValueWrapper(value);
+    return new ResolveValueWrapper(fieldName, value);
   }
 }
 
@@ -73,6 +76,7 @@ export function wrapResolver(
 
   const isListResolver = isList(config.type);
   const isScalarResolver = isScalar(config.type);
+  const fieldName = `${field.parentTypename}.${name}`;
 
   plugin.onFieldWrap(name, field, config, partialFieldData, cache);
 
@@ -86,7 +90,7 @@ export function wrapResolver(
     context: object,
     info: GraphQLResolveInfo,
   ) => {
-    const parent = ResolveValueWrapper.wrap(originalParent);
+    const parent = ResolveValueWrapper.wrap(fieldName, originalParent);
 
     const resolveHooks = await plugin.beforeResolve(parent, fieldData, args, context, info);
 
@@ -104,14 +108,14 @@ export function wrapResolver(
       for (const item of result) {
         if (item instanceof Promise) {
           item.then(async resolved => {
-            const wrapped = ResolveValueWrapper.wrap(resolved);
+            const wrapped = ResolveValueWrapper.wrap(fieldName, resolved);
 
             await resolveHooks?.onWrap?.(wrapped);
 
             wrappedResults.push(wrapped);
           });
         } else {
-          const wrapped = ResolveValueWrapper.wrap(item);
+          const wrapped = ResolveValueWrapper.wrap(fieldName, item);
           await resolveHooks?.onWrap?.(wrapped);
 
           wrappedResults.push(wrapped);
@@ -121,7 +125,7 @@ export function wrapResolver(
       return wrappedResults;
     }
 
-    const wrapped = ResolveValueWrapper.wrap(result);
+    const wrapped = ResolveValueWrapper.wrap(fieldName, result);
 
     await resolveHooks?.onWrap?.(wrapped);
 

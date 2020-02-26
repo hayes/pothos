@@ -10,7 +10,13 @@ import {
 import { GraphQLFieldConfig } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
 import './global-types';
-import { AuthGrantMap, PreResolveCheck, PermissionsCheck, PermissionMatcher } from './types';
+import {
+  AuthGrantMap,
+  PreResolveCheck,
+  PermissionsCheck,
+  PermissionMatcher,
+  PostResolveCheck,
+} from './types';
 import AuthMeta from './auth-wrapper';
 
 export { AuthMeta };
@@ -25,12 +31,12 @@ export function mergeAuthGrants(grants: AuthGrantMap, newGrants: AuthGrantMap) {
   });
 }
 
-async function matcherFromCheck(
+async function resolvePermissionCheck(
   check: PermissionsCheck<any, any, any>,
   parent: unknown,
   args: unknown,
   context: unknown,
-): Promise<PermissionMatcher> {
+): Promise<PermissionMatcher | boolean> {
   if (typeof check === 'string') {
     return { all: [check] };
   }
@@ -41,7 +47,7 @@ async function matcherFromCheck(
 
   const result = await check(parent, args, context);
 
-  if (typeof result === 'string' || typeof result === 'boolean') {
+  if (typeof result === 'string') {
     return { all: [result] };
   }
 
@@ -67,9 +73,7 @@ function permissionsFromMatcher(
   list.forEach(next => {
     if (typeof next === 'string') {
       set.add(next);
-    }
-
-    if (typeof next === 'object') {
+    } else {
       permissionsFromMatcher(next, fieldName, permissionRequired, set);
     }
 
@@ -77,6 +81,75 @@ function permissionsFromMatcher(
   });
 
   return set;
+}
+
+async function checkFieldPermissions(
+  required: boolean,
+  parent: ResolveValueWrapper,
+  data: GiraphQLSchemaTypes.FieldWrapData,
+  args: object,
+  context: object,
+) {
+  const { fieldName, permissionChecksFromType, permissionCheck } = data.giraphqlAuth;
+  const checkResult = await resolvePermissionCheck(permissionCheck, parent.value, args, context);
+
+  if (typeof checkResult === 'boolean') {
+    if (!checkResult) {
+      throw new ForbiddenError(`Permission check on ${fieldName} failed.`);
+    }
+
+    return;
+  }
+
+  const permissions = permissionsFromMatcher(checkResult, fieldName, required);
+
+  const { grantedPermissions, checkCache } = parent.data.giraphqlAuth!;
+
+  const permissionResults = new Map<string, boolean>();
+
+  await Promise.all(
+    [...permissions].map(async perm => {
+      if (grantedPermissions[perm]) {
+        permissionResults.set(perm, true);
+
+        return;
+      }
+
+      if (permissionChecksFromType[perm]) {
+        if (!checkCache[perm]) {
+          checkCache[perm] = permissionChecksFromType[perm](parent.value, context);
+        }
+
+        const result = await checkCache[perm];
+
+        permissionResults.set(perm, result);
+
+        return;
+      }
+
+      permissionResults.set(perm, false);
+    }),
+  );
+
+  const failures = evaluateMatcher(checkResult, permissionResults, fieldName);
+
+  if (failures) {
+    const { failedChecks, type } = failures;
+
+    if (type === 'any') {
+      throw new ForbiddenError(
+        `Permission check on ${fieldName} failed. Missing ${
+          failedChecks.size > 1 ? 'one of the following permissions' : 'the following permission'
+        }: ${[...failedChecks].join(', ')})`,
+      );
+    }
+
+    throw new ForbiddenError(
+      `Permission check on ${fieldName} failed. Missing the following permission${
+        failedChecks.size > 1 ? 's' : ''
+      }: ${[...failedChecks].join(', ')}`,
+    );
+  }
 }
 
 function evaluateMatcher(
@@ -97,10 +170,6 @@ function evaluateMatcher(
         failedChecks.add(perm);
       } else if (typeof perm === 'object') {
         evaluateMatcher(perm, permissions, fieldName, failedChecks);
-      } else if (perm === false) {
-        failedChecks.add(
-          '[permissionCheck returned false or returned an "all" PermissionMatcher with a false as a value]',
-        );
       }
     }
 
@@ -115,7 +184,7 @@ function evaluateMatcher(
     }
 
     for (const perm of matcher.any) {
-      if (perm === true || (typeof perm === 'string' && permissions.get(perm) === true)) {
+      if (typeof perm === 'string' && permissions.get(perm) === true) {
         return null;
       }
 
@@ -123,10 +192,6 @@ function evaluateMatcher(
         failedChecks.add(perm);
       } else if (typeof perm === 'object') {
         evaluateMatcher(perm, permissions, fieldName, failedChecks);
-      } else if (perm === false) {
-        failedChecks.add(
-          '[permissionCheck returned an "any" PermissionMatcher with a false as a value]',
-        );
       }
     }
   }
@@ -187,6 +252,9 @@ export default class AuthPlugin implements BasePlugin {
     const preResolveCheck =
       (returnType.kind === 'Object' && returnType.options.preResolveCheck) || undefined;
 
+    const postResolveCheck =
+      (returnType.kind === 'Object' && returnType.options.postResolveCheck) || undefined;
+
     const fieldName = `${field.parentTypename}.${name}`;
 
     if (
@@ -199,6 +267,22 @@ export default class AuthPlugin implements BasePlugin {
       );
     }
 
+    const postResolveMap = new Map<string, PostResolveCheck<any, unknown> | null>();
+
+    if (returnType.kind === 'Interface') {
+      const implementers = cache.getImplementers(returnType.typename);
+
+      implementers.forEach(implementer => {
+        postResolveMap.set(implementer.typename, implementer.options.postResolveCheck || null);
+      });
+    } else if (returnType.kind === 'Union') {
+      const members = returnType.members.map(member => cache.getEntryOfType(member, 'Object').type);
+
+      members.forEach(member => {
+        postResolveMap.set(member.typename, member.options.postResolveCheck || null);
+      });
+    }
+
     const grantPermissions = field.options.grantPermissions || null;
 
     data.giraphqlAuth = {
@@ -207,6 +291,8 @@ export default class AuthPlugin implements BasePlugin {
       permissionCheck,
       permissionChecksFromType,
       preResolveCheck,
+      postResolveCheck,
+      postResolveMap,
       grantPermissions,
     };
   }
@@ -219,77 +305,24 @@ export default class AuthPlugin implements BasePlugin {
   ) {
     const {
       preResolveCheck,
+      postResolveCheck,
       returnTypename,
       fieldName,
-      permissionCheck,
-      permissionChecksFromType,
       grantPermissions,
+      postResolveMap,
     } = data.giraphqlAuth;
 
-    const matcher = await matcherFromCheck(permissionCheck, parent.value, args, context);
-
-    const permissions = permissionsFromMatcher(
-      matcher,
-      fieldName,
-      this.requirePermissionChecks && !preResolveCheck,
-    );
-
     if (!parent.data.giraphqlAuth) {
-      parent.data.giraphqlAuth = new AuthMeta();
+      parent.data.giraphqlAuth = new AuthMeta(postResolveMap);
     }
 
-    const { grantedPermissions, checkCache } = parent.data.giraphqlAuth!;
-
-    const permissionResults = new Map<string, boolean>();
-
-    await Promise.all(
-      [...permissions].map(async perm => {
-        if (grantedPermissions[perm]) {
-          permissionResults.set(perm, true);
-
-          return;
-        }
-
-        if (permissionChecksFromType[perm]) {
-          if (!checkCache[perm]) {
-            checkCache[perm] = permissionChecksFromType[perm](parent.value, context);
-          }
-
-          const result = await checkCache[perm];
-
-          permissionResults.set(perm, result);
-
-          return;
-        }
-
-        permissionResults.set(perm, false);
-      }),
+    await checkFieldPermissions(
+      this.requirePermissionChecks && !preResolveCheck,
+      parent,
+      data,
+      args,
+      context,
     );
-
-    const failures = evaluateMatcher(matcher, permissionResults, fieldName);
-
-    if (failures) {
-      const { failedChecks, type } = failures;
-      if (failedChecks.size === 1) {
-        throw new ForbiddenError(
-          `Failed permission check on ${fieldName} (${failedChecks.values().next().value})`,
-        );
-      }
-
-      if (type === 'any') {
-        throw new ForbiddenError(
-          `Failed permission check on ${fieldName}. One of the following failing checks is required: (${[
-            ...failedChecks,
-          ].join(', ')})`,
-        );
-      }
-
-      throw new ForbiddenError(
-        `Failed permission check on ${fieldName}. The following required permission checks failed: (${[
-          ...failedChecks,
-        ].join(', ')})`,
-      );
-    }
 
     const newGrants = {};
 
@@ -319,9 +352,55 @@ export default class AuthPlugin implements BasePlugin {
     }
 
     return {
-      onWrap(child: ResolveValueWrapper) {
-        child.data.giraphqlAuth = new AuthMeta(newGrants);
+      async onWrap(child: ResolveValueWrapper) {
+        const grants = { ...newGrants };
+
+        if (postResolveCheck) {
+          const postResolveResult = await postResolveCheck(child.value, context);
+
+          if (!postResolveResult) {
+            throw new ForbiddenError(`${returnTypename} postResolveCheck failed for ${fieldName}`);
+          }
+
+          if (typeof postResolveResult === 'object') {
+            mergeAuthGrants(grants, postResolveResult);
+          }
+        }
+
+        child.data.giraphqlAuth = new AuthMeta(postResolveMap, grants);
       },
     };
+  }
+
+  async onInterfaceResolveType(typename: string, parent: ResolveValueWrapper, context: object) {
+    const postResolveCheck = parent.data.giraphqlAuth?.postResolveMap.get(typename);
+
+    if (postResolveCheck) {
+      const postResolveResult = await postResolveCheck(parent.value, context);
+
+      if (!postResolveResult) {
+        throw new ForbiddenError(`${typename} postResolveCheck failed for ${parent.fieldName}`);
+      }
+
+      if (typeof postResolveResult === 'object') {
+        mergeAuthGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
+      }
+    }
+  }
+
+  async onUnionResolveType(typename: string, parent: ResolveValueWrapper, context: object) {
+    const postResolveCheck = parent.data.giraphqlAuth?.postResolveMap.get(typename);
+
+    if (postResolveCheck) {
+      const postResolveResult = await postResolveCheck(parent.value, context);
+
+      if (!postResolveResult) {
+        throw new ForbiddenError(`${typename} postResolveCheck failed for ${parent.fieldName}`);
+      }
+
+      if (typeof postResolveResult === 'object') {
+        mergeAuthGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
+      }
+    }
   }
 }

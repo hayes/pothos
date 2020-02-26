@@ -23,6 +23,11 @@ export type PreResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo> = (
   context: Types['Context'],
 ) => MaybePromise<boolean | AuthGrantMap>;
 
+export type PostResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+  parent: Shape,
+  context: Types['Context'],
+) => MaybePromise<boolean | AuthGrantMap>;
+
 export type PermissionCheckMap<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = {
   [s: string]: SharedPermissionCheck<Types, ParentShape>;
 };
@@ -45,10 +50,10 @@ export type PermissionsCheck<
 
 export type PermissionMatcher =
   | {
-      any: (string | boolean | PermissionMatcher)[];
+      any: (string | PermissionMatcher)[];
       all?: undefined;
     }
   | {
-      all: (string | boolean | PermissionMatcher)[];
+      all: (string | PermissionMatcher)[];
       any?: undefined;
     };

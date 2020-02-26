@@ -1,6 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { TypeParam, InputFields, FieldNullability, RootName } from '@giraphql/core';
-import { PermissionCheckMap, PreResolveCheck, PermissionsCheck, GrantPermissions } from './types';
+import {
+  PermissionCheckMap,
+  PreResolveCheck,
+  PermissionsCheck,
+  GrantPermissions,
+  PostResolveCheck,
+} from './types';
 import AuthMeta from './auth-wrapper';
 
 declare global {
@@ -10,6 +16,8 @@ declare global {
         returnTypename: string;
         fieldName: string;
         preResolveCheck?: PreResolveCheck<any>;
+        postResolveCheck?: PostResolveCheck<any, unknown>;
+        postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>;
         permissionChecksFromType: PermissionCheckMap<any, any>;
         grantPermissions: GrantPermissions<any, any, any> | null;
         permissionCheck: PermissionsCheck<any, any, any>;
@@ -27,6 +35,7 @@ declare global {
 
     export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       preResolveCheck?: PreResolveCheck<Types>;
+      postResolveCheck?: PostResolveCheck<Types, Shape>;
       permissions?: PermissionCheckMap<Types, Shape>;
       defaultPermissionCheck?: string | string[];
     }

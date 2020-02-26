@@ -1,4 +1,5 @@
 import '@giraphql/core';
+import { PostResolveCheck } from './types';
 
 export default class AuthMeta {
   grantedPermissions: {
@@ -7,9 +8,14 @@ export default class AuthMeta {
   checkCache: {
     [s: string]: boolean | Promise<boolean>;
   };
+  postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>;
 
-  constructor(grantedPermissions?: { [s: string]: boolean }) {
+  constructor(
+    postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>,
+    grantedPermissions?: { [s: string]: boolean },
+  ) {
     this.checkCache = {};
+    this.postResolveMap = postResolveMap;
     this.grantedPermissions = {
       ...grantedPermissions,
     };

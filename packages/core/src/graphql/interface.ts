@@ -44,8 +44,9 @@ export default class InterfaceType<
     return new GraphQLInterfaceType({
       name: String(this.typename),
       description: this.description,
-      resolveType: (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+      resolveType: async (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
+        let typename = String(this.typename);
 
         if (!types) {
           types = cache.getImplementers(this.typename);
@@ -53,11 +54,19 @@ export default class InterfaceType<
 
         for (const type of types) {
           if (type.options.isType && type.options.isType(obj as never, context, info)) {
-            return String(type.typename);
+            typename = String(type.typename);
+            break;
           }
         }
 
-        return String(this.typename);
+        await plugin.onInterfaceResolveType(
+          typename,
+          ResolveValueWrapper.wrap(`${info.parentType.name}.${info.fieldName}`, parent),
+          context,
+          info,
+        );
+
+        return typename;
       },
       fields: () =>
         fromEntries(

@@ -247,16 +247,47 @@ Because the `preResolveCheck` only receives the context object, it will be run a
 request and its result will be cached for subsequent fields of the same kind.
 
 One caviot to note about `preResolveCheck` is that it will _NOT_ run before fields that return
-interfaces this type implemnts, since those fields may resolve to another type instead. The current
-workaround for this is to not depend on the `preResolveCheck` granting permissions when implementing
-interfaces. This can be done in one of 3 ways:
+interfaces or unions that resolve to this type, sine there is no way to determine the resolved type
+of union or interface before it has neen resolved.
 
-- Not grantinig permissions from the `preResolveCheck`
-- defining any granted permissions in the `permissions` option as a fallback
-- (less ideal) granting the same permissions (when appropriate) from fields that return the
-  interface.
+If you are using interfaces or unions, you can use a `postResolveCheck` instead. `postResolveCheck`s
+will run for each instance of a type after it has been resolved, and will work with interface and
+unions fields as well.
 
-Eventually there may be a better solution for this use case.
+```ts
+builder.interfaceType('Shape', {
+  shape: t => ({
+    // interface fields
+  }),
+});
+
+builder.objectType('Square', {
+  implements: ['Shape'],
+  isType: parent => parent.type === 'square',
+  // Will execute for each square returned by Query.shapes and grand the readSquare permission
+  // which is required for the size field
+  postResolveCheck: () => {
+    return { readSquare: true };
+  },
+  shape: t => ({
+    size: t.float({
+      permissionsCheck: 'readSquare',
+      resolve: ({ edgeLength }) => edgeLength ** 2,
+    }),
+  }),
+});
+
+builder.queryFields(t => ({
+  shapes: t.field({
+    type: ['Shape'],
+    // always allow this resolver to execute
+    permissionsCheck: () => true,
+    resolve: () => {
+      return [{ type: 'square', edgeLength: 4 }];
+    },
+  }),
+}));
+```
 
 ## API
 

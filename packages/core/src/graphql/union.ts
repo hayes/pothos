@@ -2,7 +2,7 @@ import { GraphQLUnionType, GraphQLResolveInfo } from 'graphql';
 import BaseType from './base';
 import BuildCache from '../build-cache';
 import { ObjectName } from '../types';
-import { ResolveValueWrapper } from '../plugins';
+import { ResolveValueWrapper, BasePlugin } from '../plugins';
 
 export default class UnionType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -23,12 +23,6 @@ export default class UnionType<
 
     this.description = options.description;
 
-    this.resolveType = options.resolveType as (
-      parent: unknown,
-      ctx: unknown,
-      info: unknown,
-    ) => string;
-
     this.options = options;
   }
 
@@ -38,11 +32,23 @@ export default class UnionType<
     return this.options.resolveType(obj, ctx, info);
   };
 
-  buildType(cache: BuildCache) {
+  buildType(cache: BuildCache, plugin: Required<BasePlugin>) {
     return new GraphQLUnionType({
       name: this.typename,
       description: this.description,
-      resolveType: this.resolveType,
+      resolveType: async (parent: unknown, context: object, info: GraphQLResolveInfo) => {
+        const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
+        const typename = await this.options.resolveType(obj, context, info);
+
+        await plugin.onUnionResolveType(
+          typename,
+          ResolveValueWrapper.wrap(`${info.parentType.name}.${info.fieldName}`, parent),
+          context,
+          info,
+        );
+
+        return typename;
+      },
       types: () => this.members.map(member => cache.getBuiltObject(member)),
       extensions: this.options.extensions,
     });

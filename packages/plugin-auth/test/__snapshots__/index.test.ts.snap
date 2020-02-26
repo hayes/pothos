@@ -1,13 +1,37 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`auth example schema generates expected schema 1`] = `
-"type Mutation {
+"type Circle implements Shape {
+  name: String
+  area: Int!
+}
+
+type Mutation {
   createUser(firstName: String!, lastName: String!): User!
 }
+
+union Polygon = Square | Triangle
 
 type Query {
   user(id: ID!): User!
   users: [User]!
+  square: Square
+  shapes: [Shape]!
+  polygons: [Polygon]!
+}
+
+interface Shape {
+  name: String
+}
+
+type Square implements Shape {
+  name: String
+  size: Float!
+}
+
+type Triangle implements Shape {
+  name: String
+  edges: Int
 }
 
 type User {

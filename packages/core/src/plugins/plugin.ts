@@ -40,4 +40,18 @@ export interface BasePlugin {
     onResolve?(value: unknown): MaybePromise<void>;
     onWrap?(child: ResolveValueWrapper): MaybePromise<void>;
   }>;
+
+  onInterfaceResolveType?(
+    typename: string,
+    parent: ResolveValueWrapper,
+    context: object,
+    info: GraphQLResolveInfo,
+  ): MaybePromise<void>;
+
+  onUnionResolveType?(
+    typename: string,
+    parent: ResolveValueWrapper,
+    context: object,
+    info: GraphQLResolveInfo,
+  ): MaybePromise<void>;
 }
