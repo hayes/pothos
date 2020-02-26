@@ -56,9 +56,9 @@ builder.queryType({
 This check will run before the resolver for `Query.hello` runs and will return an authorization
 error for any request where the name is not capitalized.
 
-### Reusing auth checks
+### Reusing permission checks
 
-As you add more fields to your schema, you may want to re-use the same auth checks on multiple
+As you add more fields to your schema, you may want to re-use the same permission checks on multiple
 fields:
 
 ```ts
@@ -69,7 +69,7 @@ builder.queryType({
       if (!context.user) {
         return false;
       }
-      // Auth checks can be async
+      // permission checks can be async
       const roles = await context.user.roles();
 
       return roles.includes('Admin');
@@ -128,8 +128,8 @@ will be called for each object in that list.
 ## Default permission checks
 
 Often most fields on a type will use the same permission checks. To make this a little simpler, you
-can set default auth checks for a type that will be applied to any fields that do not explicitly set
-an auth check.
+can set default permission checks for a type that will be applied to any fields that do not
+explicitly set an auth check.
 
 ```ts
 builder.queryType({
@@ -152,14 +152,14 @@ builder.queryType({
 });
 ```
 
-## Granting auth checks to children
+## Granting permission checks to children
 
 There are often cases where either it is more efficient to do an auth check once in a parent
 resolver, or the context you need to determine if a request should be authorized is not available in
 a child resolver. The naive solution would be to simple do the check in the parent, and not have
-auth checks for you child resolvers. Unfortunatly this is suseptable to creating problems down the
-road if there are new resolvers that expose the same type, but forget that they need to add an auth
-check for the children. To address these kinds of use cases, the auth plugin allows fields to
+permission checks for you child resolvers. Unfortunatly this is suseptable to creating problems down
+the road if there are new resolvers that expose the same type, but forget that they need to add an
+auth check for the children. To address these kinds of use cases, the auth plugin allows fields to
 defiine a set of permissions to grant to the returned child.
 
 ```ts
@@ -196,7 +196,7 @@ builder.objectType('Person', {
 });
 ```
 
-## Running auth checks for all resolvers for a type
+## Running permission checks for all resolvers for a type
 
 As your schema gets more complicated, some types may be reference by fields on a lot of different
 types. This can make it hard to keep all the permission checks for this popular type in sync and
@@ -241,7 +241,7 @@ the `preResolveCheck` only receives the `context` object because the `parent` an
 depending on which resolver is being called. It can return an map of authorizations the same way an
 auch check on a field can. This approach allows you to define all of the auth for your type in one
 place, and is the recomended path for applications where you want more ridged controls over your
-auth checks. The check functiion may return a boolean, or a map of permissions.
+permission checks. The check functiion may return a boolean, or a map of permissions.
 
 Because the `preResolveCheck` only receives the context object, it will be run at most once per
 request and its result will be cached for subsequent fields of the same kind.
