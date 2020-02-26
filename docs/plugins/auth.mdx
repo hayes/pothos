@@ -26,7 +26,7 @@ const builder = new SchemaBuilder({
     new AuthPlugin({
       // when true (default) fields not covered by a permission check will return an Authorization error
       requirePermissionChecks: true,
-      // when true (default) mutation fields will not be authroized unless they are protected by a
+      // when true (default) mutation fields will not be authorized unless they are protected by a
       // permission check defined directly on the mutation field (NOT from `defaultPermissionCheck`).
       explicitMutationChecks: true,
     }),
@@ -34,7 +34,7 @@ const builder = new SchemaBuilder({
 });
 ```
 
-### Add an auth check to a resolver
+### Add a permission check to a resolver
 
 ```ts
 builder.queryType({
@@ -115,9 +115,9 @@ builder.queryType({
 });
 ```
 
-the `permissions` option allows you to create reusable permission checks that can be referenced by
-`permissionCheck` on any field on that type. permissions defined in the `permissions` do _NOT_ work
-with `extends` fields from `@giraphql/plugin-extends` since those fields would have a different
+The `permissions` option allows you to create reusable permission checks that can be referenced by
+`permissionCheck` on any field on that type. Permissions defined using `permissions` option do _NOT_
+work with `extends` fields from `@giraphql/plugin-extends` since those fields would have a different
 parent type.
 
 If multiple fields of an object use the same permission, the result of that check will be cached,
@@ -129,7 +129,7 @@ will be called for each object in that list.
 
 Often most fields on a type will use the same permission checks. To make this a little simpler, you
 can set default permission checks for a type that will be applied to any fields that do not
-explicitly set an auth check.
+explicitly set a permission check.
 
 ```ts
 builder.queryType({
@@ -154,7 +154,7 @@ builder.queryType({
 
 ## Granting permission checks to children
 
-There are often cases where either it is more efficient to do an auth check once in a parent
+There are often cases where either it is more efficient to do a permission check once in a parent
 resolver, or the context you need to determine if a request should be authorized is not available in
 a child resolver. The naive solution would be to simple do the check in the parent, and not have
 permission checks for you child resolvers. Unfortunatly this is suseptable to creating problems down
@@ -266,7 +266,7 @@ builder.objectType('Square', {
   isType: parent => parent.type === 'square',
   // Will execute for each square returned by Query.shapes and grand the readSquare permission
   // which is required for the size field
-  postResolveCheck: () => {
+  postResolveCheck: (parent, context, info) => {
     return { readSquare: true };
   },
   shape: t => ({
