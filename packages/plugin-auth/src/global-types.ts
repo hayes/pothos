@@ -50,7 +50,8 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
+      Args extends InputFields<Types>,
+      ResolveShape
     > {
       // TODO add parent shape to FieldOptions
       permissionsCheck?: PermissionsCheck<Types, ParentShape, Args>;
@@ -63,7 +64,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
       permissionsCheck?: PermissionsCheck<Types, ParentShape, Args>;
       grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
     }
@@ -73,8 +74,9 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
+      Args extends InputFields<Types>,
+      ResolveShape
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveShape> {
       permissionsCheck?: PermissionsCheck<Types, ParentShape, Args>;
       grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
     }

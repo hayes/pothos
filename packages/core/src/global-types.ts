@@ -141,7 +141,8 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
+      Args extends InputFields<Types>,
+      ResolveShape
     > {
       type: Type;
       args?: Args;
@@ -150,7 +151,7 @@ declare global {
       deprecationReason?: string;
       extensions?: Readonly<Record<string, unknown>>;
       resolve?: Resolver<
-        ParentShape,
+        ResolveShape,
         InputShapeFromFields<Types, Args>,
         Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>
@@ -163,7 +164,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
@@ -178,7 +179,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
       resolve?: Resolver<
         ParentShape,
         InputShapeFromFields<Types, Args>,
@@ -192,15 +193,21 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args> {
+      Args extends InputFields<Types>,
+      ResolveShape
+    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveShape> {
       resolve: Resolver<
-        ParentShape,
+        ResolveShape,
         InputShapeFromFields<Types, Args>,
         Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>
       >;
-      subscribe: Subscriber<ParentShape, InputShapeFromFields<Types, Args>, Types['Context']>;
+      subscribe: Subscriber<
+        ParentShape,
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ResolveShape
+      >;
     }
 
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {

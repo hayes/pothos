@@ -303,12 +303,12 @@ export type Resolver<Parent, Args, Context, Type> = (
   info: GraphQLResolveInfo,
 ) => Readonly<Type | Promise<Type> | (Type extends unknown[] ? Promise<Type[number]>[] : never)>;
 
-export type Subscriber<Parent, Args, Context> = (
+export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => AsyncIterator<unknown>;
+) => AsyncIterator<Shape>;
 
 export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
 
@@ -346,12 +346,20 @@ export type FieldOptionsFromKind<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFields<Types>,
-  Kind extends FieldKind
+  Kind extends FieldKind,
+  ResolveShape
 > = Kind extends 'Query' | 'Mutation' | 'Object'
   ? GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args>
   : Kind extends 'Interface'
   ? GiraphQLSchemaTypes.InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args>
-  : GiraphQLSchemaTypes.SubscriptionFieldOptions<Types, ParentShape, Type, Nullable, Args>;
+  : GiraphQLSchemaTypes.SubscriptionFieldOptions<
+      Types,
+      ParentShape,
+      Type,
+      Nullable,
+      Args,
+      ResolveShape
+    >;
 
 export type CompatibleInterfaceParam<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> =
   | CompatibleInterfaceNames<Types, Shape>
@@ -425,7 +433,7 @@ export type Resolvers<Parent = unknown, Context = unknown> = {
     | Resolver<Parent, unknown, Context, unknown>
     | {
         resolve: Resolver<Parent, unknown, Context, unknown>;
-        subscribe: Subscriber<Parent, unknown, Context>;
+        subscribe: Subscriber<Parent, unknown, Context, unknown>;
       };
 };
 

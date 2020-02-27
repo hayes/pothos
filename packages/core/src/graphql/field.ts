@@ -21,12 +21,19 @@ export default class Field<
 
   type: Type;
 
-  options: GiraphQLSchemaTypes.FieldOptions<any, unknown, TypeParam<any>, FieldNullability, any>;
+  options: GiraphQLSchemaTypes.FieldOptions<
+    any,
+    unknown,
+    TypeParam<any>,
+    FieldNullability,
+    any,
+    unknown
+  >;
 
   parentTypename: string;
 
   constructor(
-    options: GiraphQLSchemaTypes.FieldOptions<Types, any, Type, FieldNullability<Type>, Args>,
+    options: GiraphQLSchemaTypes.FieldOptions<Types, any, Type, FieldNullability<Type>, Args, any>,
     parentTypename: string,
   ) {
     this.options = options;

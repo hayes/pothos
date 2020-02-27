@@ -271,10 +271,11 @@ builder.objectType(
 
 builder.subscriptionType({
   shape: t => ({
-    event: t.string({
-      resolve: () => 'yup',
-      async *subscribe() {
-        yield await Promise.resolve('123');
+    event: t.field({
+      type: 'String',
+      resolve: parent => parent.toLocaleLowerCase(),
+      subscribe: () => {
+        return {} as AsyncIterator<string>;
       },
     }),
   }),

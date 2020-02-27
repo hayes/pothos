@@ -14,7 +14,7 @@ export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, P
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>
   >(
-    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args>,
+    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any>,
   ): Field<Args, Types, Type> {
     return new Field(
       {
@@ -43,36 +43,5 @@ export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, P
       },
       this.typename,
     );
-  }
-
-  protected fieldTypeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <Args extends InputFields<Types>, Nullable extends FieldNullability<Type>>(
-      options: Omit<
-        GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args>,
-        'type'
-      >,
-    ): Field<Args, Types, Type> => {
-      const mergedOptions = {
-        ...options,
-        type,
-      };
-
-      return this.createField(mergedOptions);
-    };
-  }
-
-  protected exposeHelper<Type extends TypeParam<Types>>(type: Type) {
-    return <
-      Nullable extends boolean,
-      Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>
-    >(
-      name: Name,
-      options: Omit<
-        GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}>,
-        'resolve' | 'type'
-      > = {},
-    ): Field<{}, Types, Type> => {
-      return this.exposeField<Type, Nullable, Name>(name, { ...options, type });
-    };
   }
 }
