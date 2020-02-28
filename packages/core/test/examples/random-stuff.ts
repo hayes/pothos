@@ -273,10 +273,12 @@ builder.subscriptionType({
   shape: t => ({
     event: t.field({
       type: 'String',
-      resolve: parent => parent.toLocaleLowerCase(),
       subscribe: () => {
-        return {} as AsyncIterator<string>;
+        return (async function* subscribe() {
+          yield '123';
+        })();
       },
+      resolve: parent => parent.toLocaleLowerCase(),
     }),
   }),
 });

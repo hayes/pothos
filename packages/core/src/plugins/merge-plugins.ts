@@ -1,11 +1,5 @@
 import { BasePlugin, Field } from '..';
-import {
-  TypeParam,
-  BuildCacheEntryWithFields,
-  FieldMap,
-  BuildCacheEntry,
-  MaybePromise,
-} from '../types';
+import { TypeParam, BuildCacheEntry, MaybePromise, ImplementedType } from '../types';
 import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
 import BuildCache from '../build-cache';
 import { ResolveValueWrapper } from './resolve-wrapper';
@@ -14,10 +8,6 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
   const visitTypePlugins: Pick<Required<BasePlugin>, 'visitType'>[] = plugins.filter(
     plugin => plugin.visitType,
   ) as Pick<Required<BasePlugin>, 'visitType'>[];
-
-  const updateFieldsPlugins: Pick<Required<BasePlugin>, 'updateFields'>[] = plugins.filter(
-    plugin => plugin.updateFields,
-  ) as Pick<Required<BasePlugin>, 'updateFields'>[];
 
   const updateFieldConfigPlugins: Pick<
     Required<BasePlugin>,
@@ -51,17 +41,19 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     'onUnionResolveType'
   >[];
 
+  const onTypePlugins: Pick<Required<BasePlugin>, 'onType'>[] = plugins.filter(
+    plugin => plugin.onType,
+  ) as Pick<Required<BasePlugin>, 'onType'>[];
+
+  const onFieldsPlugins: Pick<Required<BasePlugin>, 'onField'>[] = plugins.filter(
+    plugin => plugin.onField,
+  ) as Pick<Required<BasePlugin>, 'onField'>[];
+
   return {
     visitType(entry: BuildCacheEntry, cache: BuildCache) {
       for (const plugin of visitTypePlugins) {
         plugin.visitType(entry, cache);
       }
-    },
-    updateFields(entry: BuildCacheEntryWithFields, fields: FieldMap, cache: BuildCache) {
-      return updateFieldsPlugins.reduce(
-        (newFields, plugin) => plugin.updateFields(entry, newFields, cache),
-        fields,
-      );
     },
 
     updateFieldConfig(
@@ -147,6 +139,23 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     ) {
       for (const plugin of onUnionResolveTypePlugins) {
         await plugin.onUnionResolveType(typename, parent, context, info);
+      }
+    },
+
+    async onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+      for (const plugin of onTypePlugins) {
+        await plugin.onType(type, builder);
+      }
+    },
+
+    async onField(
+      type: ImplementedType,
+      name: string,
+      field: Field<{}, any, TypeParam<any>>,
+      builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
+    ) {
+      for (const plugin of onFieldsPlugins) {
+        await plugin.onField(type, name, field, builder);
       }
     },
   };

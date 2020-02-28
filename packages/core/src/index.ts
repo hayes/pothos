@@ -9,12 +9,14 @@ import Field from './graphql/field';
 import BuildCache from './build-cache';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
-import RootType from './graphql/root';
 import FieldSet from './graphql/field-set';
 import RootFieldSet from './graphql/root-field-set';
 import SchemaBuilder from './builder';
 import BaseType from './graphql/base';
-import { FieldKind } from './types';
+import QueryType from './graphql/query';
+import SubscriptionType from './graphql/subscription';
+import MutationType from './graphql/mutation';
+import { FieldKind, MergedTypeMap } from './types';
 import { BasePlugin } from './plugins';
 
 export * from './types';
@@ -30,7 +32,9 @@ export {
   InputObjectType,
   InterfaceType,
   ObjectType,
-  RootType,
+  QueryType,
+  SubscriptionType,
+  MutationType,
   RootFieldSet,
   ScalarType,
   UnionType,
@@ -40,7 +44,7 @@ export default SchemaBuilder as {
   new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
     plugins?: BasePlugin[];
     stateful?: boolean;
-  }): GiraphQLSchemaTypes.SchemaBuilder<Types>;
+  }): GiraphQLSchemaTypes.SchemaBuilder<MergedTypeMap<Types>>;
 };
 
 export const FieldBuilder = InternalFieldBuilder as {

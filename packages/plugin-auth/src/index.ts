@@ -243,7 +243,10 @@ export default class AuthPlugin implements BasePlugin {
       (parentType.kind === 'Object' && parentType.options.defaultPermissionCheck) ||
       [];
 
-    const permissionChecksFromType = (parentType.kind === 'Object' || parentType.kind === 'Root'
+    const permissionChecksFromType = (parentType.kind === 'Object' ||
+    parentType.kind === 'Query' ||
+    parentType.kind === 'Mutation' ||
+    parentType.kind === 'Subscription'
       ? parentType.options.permissions ?? {}
       : {}) as {
       [s: string]: (parent: unknown, context: {}) => boolean | Promise<boolean>;

@@ -5,38 +5,30 @@ import {
   FieldMap,
   ResolverMap,
   Resolver,
-  BuildCacheEntryWithFields,
+  RootName,
 } from './types';
-import { BasePlugin, FieldBuilder, RootFieldBuilder } from '.';
-import RootFieldSet from './graphql/root-field-set';
-import FieldSet from './graphql/field-set';
+import { BasePlugin } from '.';
 import ScalarType from './graphql/scalar';
-import { mergePlugins } from './plugins';
 
 export default class BuildCache {
   implementations: ImplementedType[];
 
   types = new Map<string, BuildCacheEntry>();
 
-  fields = new Map<string, FieldMap>();
-
-  inProgress = new Set<string>();
-
   plugin: Required<BasePlugin>;
 
-  fieldDefinitions: (FieldSet<any> | RootFieldSet<any>)[];
+  fieldDefinitions: Map<string, FieldMap[]>;
 
   mocks: ResolverMap;
 
   constructor(
     implementations: ImplementedType[],
+    plugin: Required<BasePlugin>,
     {
-      plugins,
       fieldDefinitions,
       mocks,
     }: {
-      plugins?: BasePlugin[];
-      fieldDefinitions?: (FieldSet<any> | RootFieldSet<any>)[];
+      fieldDefinitions?: Map<string, FieldMap[]>;
       mocks?: ResolverMap;
     } = {},
   ) {
@@ -67,9 +59,9 @@ export default class BuildCache {
       });
     });
 
-    this.plugin = mergePlugins(plugins || []);
+    this.plugin = plugin;
     this.implementations = [...implementations];
-    this.fieldDefinitions = [...(fieldDefinitions ?? [])];
+    this.fieldDefinitions = fieldDefinitions || new Map();
     this.mocks = mocks ?? {};
   }
 
@@ -127,83 +119,35 @@ export default class BuildCache {
   }
 
   getInterfaceFields(entry: Extract<BuildCacheEntry, { kind: 'Interface' }>): FieldMap {
-    let fields = entry.type.getFields();
-
-    this.fieldDefinitions
-      .filter(set => set.forType === entry.type.typename)
-      .forEach(set => {
-        fields = this.mergeFields(
-          entry.type.typename,
-          fields,
-          (set as FieldSet<any>).shape(new FieldBuilder(entry.type.typename)),
-        );
-      });
-
-    fields = this.plugin.updateFields(entry, fields, this);
-
-    return this.updateFields(entry, fields);
-  }
-
-  updateFields(entry: BuildCacheEntryWithFields, fields: FieldMap): FieldMap {
-    return this.plugin.updateFields(entry, fields, this);
+    return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+      (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
+      {} as FieldMap,
+    );
   }
 
   getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
-    const parentFields = entry.type.interfaces.reduce(
-      (all, type) =>
-        this.mergeFields(
-          entry.type.typename,
-          all,
-          this.getEntryOfType(type, 'Interface').type.getFields(),
-        ),
+    const interfaceFields = entry.type.interfaces.reduce(
+      (all, type) => this.mergeFields(entry.type.typename, all, this.getFields(type)),
       {} as FieldMap,
     );
 
-    let fields = this.mergeFields(entry.type.typename, parentFields, entry.type.getFields(), true);
-
-    this.fieldDefinitions
-      .filter(set => set.forType === entry.type.typename)
-      .forEach(set => {
-        fields = this.mergeFields(
-          entry.type.typename,
-          fields,
-          (set as FieldSet<any>).shape(new FieldBuilder(entry.type.typename)),
-        );
-      });
-
-    return this.updateFields(entry, fields);
+    return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+      (fields, newFields, i) => this.mergeFields(entry.type.typename, fields, newFields),
+      interfaceFields,
+    );
   }
 
-  getRootFields(entry: Extract<BuildCacheEntry, { kind: 'Root' }>): FieldMap {
-    let fields = entry.type.getFields();
-
-    this.fieldDefinitions
-      .filter(set => set.forType === entry.type.typename)
-      .forEach(set => {
-        fields = this.mergeFields(
-          entry.type.typename,
-          fields,
-          (set as RootFieldSet<any>).shape(new RootFieldBuilder(entry.type.typename)),
-        );
-      });
-
-    return this.updateFields(entry, fields);
+  getRootFields(entry: Extract<BuildCacheEntry, { kind: RootName }>): FieldMap {
+    return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+      (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
+      {} as FieldMap,
+    );
   }
 
   getFields(typename: string): FieldMap {
-    if (this.fields.has(typename)) {
-      return this.fields.get(typename)!;
-    }
-
-    if (this.inProgress.has(typename)) {
-      throw new Error(`Found circular reference while building fields for ${typename}`);
-    }
-
-    this.inProgress.add(typename);
-
     const entry = this.getEntry(typename);
 
-    if (entry.kind === 'Root') {
+    if (entry.kind === 'Query' || entry.kind === 'Mutation' || entry.kind === 'Subscription') {
       return this.getRootFields(entry);
     }
 
@@ -261,7 +205,9 @@ export default class BuildCache {
       entry.kind === 'Object' ||
       entry.kind === 'Interface' ||
       entry.kind === 'Union' ||
-      entry.kind === 'Root'
+      entry.kind === 'Query' ||
+      entry.kind === 'Mutation' ||
+      entry.kind === 'Subscription'
     ) {
       throw new Error(`${name} is of type ${entry.type}, expected valid input type`);
     }

@@ -20,7 +20,6 @@ import {
   InputShapeFromField,
   RootName,
   ShapeFromType,
-  MergedTypeMap,
   InterfaceParam,
   FieldKind,
 } from './types';
@@ -31,8 +30,7 @@ import Builder from './builder';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface SchemaBuilder<PartialTypes extends PartialTypeInfo>
-      extends Builder<MergedTypeMap<PartialTypes>> {}
+    export interface SchemaBuilder<Types extends TypeInfo> extends Builder<Types> {}
 
     export interface FieldBuilder<
       Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -167,6 +165,34 @@ declare global {
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
       resolve: Resolver<
         ParentShape,
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ShapeFromTypeParam<Types, Type, Nullable>
+      >;
+    }
+
+    export interface QueryFieldOptions<
+      Types extends TypeInfo,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, Types['Root'], Type, Nullable, Args, Types['Root']> {
+      resolve: Resolver<
+        Types['Root'],
+        InputShapeFromFields<Types, Args>,
+        Types['Context'],
+        ShapeFromTypeParam<Types, Type, Nullable>
+      >;
+    }
+
+    export interface MutationFieldOptions<
+      Types extends TypeInfo,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFields<Types>
+    > extends FieldOptions<Types, Types['Root'], Type, Nullable, Args, Types['Root']> {
+      resolve: Resolver<
+        Types['Root'],
         InputShapeFromFields<Types, Args>,
         Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>

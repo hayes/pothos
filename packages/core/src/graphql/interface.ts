@@ -2,8 +2,7 @@ import { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { InterfaceName, FieldMap } from '../types';
-import FieldBuilder from '../fieldUtils/builder';
+import { InterfaceName } from '../types';
 import ObjectType from './object';
 import BuildCache from '../build-cache';
 import { BasePlugin, ResolveValueWrapper } from '../plugins';
@@ -28,14 +27,6 @@ export default class InterfaceType<
     this.description = options.description;
 
     this.options = options;
-  }
-
-  getFields(): FieldMap {
-    if (!this.options.shape) {
-      return {};
-    }
-
-    return this.options.shape(new FieldBuilder(this.typename));
   }
 
   buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLInterfaceType {

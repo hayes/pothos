@@ -4,6 +4,8 @@ export default class RootFieldSet<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Kind extends RootName = RootName
 > {
+  kind: 'RootFieldSet' = 'RootFieldSet';
+
   forType: RootName;
 
   shape: RootFieldsShape<any, Kind>;

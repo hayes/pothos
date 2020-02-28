@@ -18,7 +18,9 @@ import EnumType from './graphql/enum';
 import ScalarType from './graphql/scalar';
 
 import './global-types';
-import RootType from './graphql/root';
+import QueryType from './graphql/query';
+import MutationType from './graphql/mutation';
+import SubscriptionType from './graphql/subscription';
 
 // Utils
 export type MaybePromise<T> = T | Promise<T>;
@@ -308,7 +310,7 @@ export type Subscriber<Parent, Args, Context, Shape> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => AsyncIterator<Shape>;
+) => AsyncIterable<Shape>;
 
 export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
 
@@ -340,6 +342,17 @@ export type FieldMap = {
   [s: string]: Field<{}, any, TypeParam>;
 };
 
+export type RootOptionsFromKind<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Kind extends RootName
+> = Kind extends 'Query'
+  ? GiraphQLSchemaTypes.QueryTypeOptions<Types>
+  : Kind extends 'Mutation'
+  ? GiraphQLSchemaTypes.MutationTypeOptions<Types>
+  : Kind extends 'Subscription'
+  ? GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>
+  : never;
+
 export type FieldOptionsFromKind<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentShape,
@@ -348,7 +361,11 @@ export type FieldOptionsFromKind<
   Args extends InputFields<Types>,
   Kind extends FieldKind,
   ResolveShape
-> = Kind extends 'Query' | 'Mutation' | 'Object'
+> = Kind extends 'Query'
+  ? GiraphQLSchemaTypes.QueryFieldOptions<Types, Type, Nullable, Args>
+  : Kind extends 'Mutation'
+  ? GiraphQLSchemaTypes.MutationFieldOptions<Types, Type, Nullable, Args>
+  : Kind extends 'Object'
   ? GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args>
   : Kind extends 'Interface'
   ? GiraphQLSchemaTypes.InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args>
@@ -389,8 +406,9 @@ export type ImplementedType =
   | EnumType
   | ScalarType<any, any>
   | InputObjectType<any, {}, string>
-  | RootType<any, 'Query' | 'Mutation'>
-  | RootType<any, 'Subscription'>;
+  | QueryType<any>
+  | MutationType<any>
+  | SubscriptionType<any>;
 
 export type BuildCacheEntryWithFields =
   | {
@@ -404,9 +422,19 @@ export type BuildCacheEntryWithFields =
       kind: 'Interface';
     }
   | {
-      type: RootType<any, RootName>;
+      type: QueryType<any>;
       built: GraphQLObjectType;
-      kind: 'Root';
+      kind: 'Query';
+    }
+  | {
+      type: MutationType<any>;
+      built: GraphQLObjectType;
+      kind: 'Mutation';
+    }
+  | {
+      type: SubscriptionType<any>;
+      built: GraphQLObjectType;
+      kind: 'Subscription';
     };
 
 export type BuildCacheEntry =

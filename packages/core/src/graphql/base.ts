@@ -9,7 +9,16 @@ export default abstract class BaseType<Shape = unknown, InputShape = Shape> {
 
   inputShape?: InputShape;
 
-  abstract kind: 'Object' | 'Union' | 'Interface' | 'Enum' | 'Scalar' | 'InputObject' | 'Root';
+  abstract kind:
+    | 'Object'
+    | 'Union'
+    | 'Interface'
+    | 'Enum'
+    | 'Scalar'
+    | 'InputObject'
+    | 'Query'
+    | 'Mutation'
+    | 'Subscription';
 
   constructor(name: string, shape?: Shape) {
     this.typename = name;

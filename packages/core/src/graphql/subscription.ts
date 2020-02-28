@@ -2,33 +2,22 @@ import { GraphQLObjectType } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { FieldMap, RootName } from '../types';
 import BuildCache from '../build-cache';
-import RootFieldBuilder from '../fieldUtils/root';
 import { BasePlugin } from '../plugins';
 
-export default class RootType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends RootName
-> extends BaseType<Types['Root']> {
-  kind: 'Root' = 'Root';
+export default class SubscriptionType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<
+  Types['Root']
+> {
+  kind: 'Subscription' = 'Subscription';
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.RootTypeOptions<Types, RootName>;
+  options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>;
 
-  constructor(name: Name, options: GiraphQLSchemaTypes.RootTypeOptions<Types, Name>) {
-    super(name);
+  constructor(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>) {
+    super('Subscription');
 
     this.options = options;
-  }
-
-  getFields(): FieldMap {
-    if (!this.options.shape) {
-      return {};
-    }
-
-    return this.options.shape(new RootFieldBuilder(this.typename));
   }
 
   buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLObjectType {

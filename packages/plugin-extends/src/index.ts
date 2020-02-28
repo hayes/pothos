@@ -1,30 +1,28 @@
 import {
   BasePlugin,
-  BuildCache,
-  FieldMap,
-  FieldBuilder,
-  BuildCacheEntryWithFields,
+  ImplementedType,
+  RootFieldsShape,
+  RootFieldSet,
+  RootName,
+  FieldSet,
 } from '@giraphql/core';
 import './global-types';
 
 export default class ExtendsPlugin implements BasePlugin {
-  updateFields(entry: BuildCacheEntryWithFields, fields: FieldMap, cache: BuildCache) {
-    return this.mergeFields(entry.type.typename, fields, cache);
-  }
-
-  private mergeFields(typename: string, existingFields: FieldMap, cache: BuildCache) {
-    let fields = existingFields;
-
-    cache.types.forEach(entry => {
-      if (entry.kind === 'Object' && entry.type.options.extends) {
-        const shape = entry.type.options.extends[typename];
+  onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+    if (type.kind === 'Object') {
+      const extendsMap = type.options.extends || {};
+      Object.keys(extendsMap).forEach(key => {
+        const shape = extendsMap[key];
 
         if (shape) {
-          fields = cache.mergeFields(typename, fields, shape(new FieldBuilder(typename)));
+          if (key === 'Query' || key === 'Mutation' || key === 'Subscription') {
+            builder._addFields(new RootFieldSet(key, shape as RootFieldsShape<any, RootName>));
+          } else {
+            builder._addFields(new FieldSet(key, shape));
+          }
         }
-      }
-    });
-
-    return fields;
+      });
+    }
   }
 }

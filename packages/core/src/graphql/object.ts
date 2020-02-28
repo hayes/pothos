@@ -2,8 +2,7 @@ import { GraphQLObjectType } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { FieldMap, InterfaceName } from '../types';
-import FieldBuilder from '../fieldUtils/builder';
+import { InterfaceName } from '../types';
 import BuildCache from '../build-cache';
 import { InterfaceType } from '..';
 import { BasePlugin } from '../plugins';
@@ -39,14 +38,6 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
         ? iface
         : (iface as InterfaceType<Types, InterfaceName<Types>>).typename,
     );
-  }
-
-  getFields(): FieldMap {
-    if (!this.options.shape) {
-      return {};
-    }
-
-    return this.options.shape(new FieldBuilder(this.typename));
   }
 
   buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLObjectType {
