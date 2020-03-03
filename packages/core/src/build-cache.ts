@@ -127,14 +127,16 @@ export default class BuildCache {
 
   getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
     const interfaceFields = entry.type.interfaces.reduce(
-      (all, type) => this.mergeFields(entry.type.typename, all, this.getFields(type)),
+      (all, type) => this.mergeFields(entry.type.typename, all, this.getFields(type), true),
       {} as FieldMap,
     );
 
-    return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+    const objectFields = (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
       (fields, newFields, i) => this.mergeFields(entry.type.typename, fields, newFields),
-      interfaceFields,
+      {} as FieldMap,
     );
+
+    return this.mergeFields(entry.type.typename, interfaceFields, objectFields, true);
   }
 
   getRootFields(entry: Extract<BuildCacheEntry, { kind: RootName }>): FieldMap {

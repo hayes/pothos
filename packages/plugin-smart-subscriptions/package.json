@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/converter",
+  "name": "@giraphql/plugin-smart-subscriptions",
   "version": "0.11.0-alpha.1",
   "description": "",
   "main": "lib/index.js",
@@ -12,12 +12,12 @@
     "access": "public"
   },
   "dependencies": {
-    "@giraphql/core": "^0.11.0-alpha.1",
+    "@giraphql/core": "0.11.0-alpha.1",
+    "apollo-server": "^2.10.1",
     "graphql": "^14.6.0",
-    "ts-morph": "^7.0.0",
-    "yargs": "^15.1.0"
+    "graphql-subscriptions": "^1.1.0"
   },
   "devDependencies": {
-    "@types/yargs": "^15.0.4"
+    "graphql-tag": "^2.10.1"
   }
 }
