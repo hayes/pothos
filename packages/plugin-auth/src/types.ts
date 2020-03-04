@@ -1,5 +1,10 @@
 import { InputFields, InputShapeFromFields, MaybePromise } from '@giraphql/core';
 
+export interface AuthPluginOptions {
+  requirePermissionChecks?: boolean;
+  explicitMutationChecks?: boolean;
+}
+
 export type SharedPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = (
   parent: ParentShape,
   context: Types['Context'],

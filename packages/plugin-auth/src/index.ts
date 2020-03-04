@@ -16,6 +16,7 @@ import {
   PermissionsCheck,
   PermissionMatcher,
   PostResolveCheck,
+  AuthPluginOptions,
 } from './types';
 import AuthMeta from './auth-wrapper';
 
@@ -224,10 +225,7 @@ export default class AuthPlugin implements BasePlugin {
   constructor({
     requirePermissionChecks = true,
     explicitMutationChecks = true,
-  }: {
-    requirePermissionChecks?: boolean;
-    explicitMutationChecks?: boolean;
-  } = {}) {
+  }: AuthPluginOptions = {}) {
     this.requirePermissionChecks = requirePermissionChecks;
     this.explicitMutationChecks = explicitMutationChecks;
   }

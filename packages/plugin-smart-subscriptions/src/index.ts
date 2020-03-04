@@ -14,6 +14,10 @@ import SubscriptionManager from './manager';
 
 export { MergedAsyncIterator, SubscriptionManager };
 
+export interface SmartSubscriptionOptions<Context extends object> {
+  subscribe: (name: string, context: Context) => AsyncIterator<unknown>;
+}
+
 export function rootName(path: GraphQLResolveInfo['path']): string {
   if (path.prev) {
     return rootName(path.prev);
@@ -27,7 +31,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
 
   subscribe: (name: string, context: Context) => AsyncIterator<unknown>;
 
-  constructor(options: { subscribe: (name: string, context: Context) => AsyncIterator<unknown> }) {
+  constructor(options: SmartSubscriptionOptions<Context>) {
     this.subscribe = options.subscribe;
   }
 
