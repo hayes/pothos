@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/consistent-type-assertions */
 import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
 import Field from '../graphql/field';
 

@@ -19,8 +19,6 @@ export default new SchemaBuilder<TypeInfo>({
   plugins: [
     new SmartSubscriptionPlugin<ContextType>({
       subscribe: (name, { pubsub }) => {
-        console.log('subscribe to ', name);
-
         return pubsub.asyncIterator(name);
       },
     }),

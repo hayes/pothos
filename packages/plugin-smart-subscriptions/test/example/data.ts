@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 export class Poll {
   static map = new Map<number, Poll>();
 

@@ -6,6 +6,7 @@ export default class SubscriptionManager {
   activeSubscriptions = new Map<string, AsyncIterator<unknown>>();
 
   nextSubscriptions = new Map<string, AsyncIterator<unknown>>();
+
   subscribeToName: (name: string) => AsyncIterator<unknown>;
 
   constructor(subscribe: (name: string) => AsyncIterator<unknown>) {
@@ -64,6 +65,7 @@ export default class SubscriptionManager {
       next: () => {
         [...this.activeSubscriptions.keys()].forEach(name => {
           if (!this.nextSubscriptions.has(name)) {
+            // eslint-disable-next-line no-unused-expressions
             this.activeSubscriptions.get(name)?.return?.(null);
           }
         });

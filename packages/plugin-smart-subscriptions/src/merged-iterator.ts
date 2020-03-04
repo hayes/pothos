@@ -146,13 +146,13 @@ export default class MergedAsyncIterator<T> implements AsyncIterator<T>, AsyncIt
   }
 
   sendResult(data: IteratorResult<T>) {
-    if (this.pendingPulls.length) {
+    if (this.pendingPulls.length === 0) {
+      this.resultQueue.push(data.value);
+    } else {
       this.pendingPulls.shift()!.resolve({
         value: data.value,
         done: false,
       });
-    } else {
-      this.resultQueue.push(data.value);
     }
   }
 
@@ -206,6 +206,7 @@ export default class MergedAsyncIterator<T> implements AsyncIterator<T>, AsyncIt
     this.stop();
 
     this.iterators.forEach(iter => {
+      // eslint-disable-next-line no-unused-expressions
       iter.throw?.(error).catch(() => {});
     });
 

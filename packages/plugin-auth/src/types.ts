@@ -1,6 +1,4 @@
-import { InputFields, InputShapeFromFields } from '@giraphql/core';
-
-export type MaybePromise<T> = T | Promise<T>;
+import { InputFields, InputShapeFromFields, MaybePromise } from '@giraphql/core';
 
 export type SharedPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = (
   parent: ParentShape,

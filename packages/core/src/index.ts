@@ -43,7 +43,6 @@ export {
 export default SchemaBuilder as {
   new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
     plugins?: BasePlugin[];
-    stateful?: boolean;
   }): GiraphQLSchemaTypes.SchemaBuilder<MergedTypeMap<Types>>;
 };
 

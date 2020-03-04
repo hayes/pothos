@@ -20,7 +20,8 @@ function testIterator(
     throwCalls: 0,
     returnCalls: 0,
     next() {
-      this.nextCalls++;
+      this.nextCalls += 1;
+
       if (errorAfter !== null && offset >= errorAfter) {
         return Promise.reject(new Error(`Rejected after ${errorAfter} results`));
       }
@@ -29,25 +30,27 @@ function testIterator(
         return new Promise(resolve => {
           setTimeout(() => {
             resolve({
-              value: results[offset++],
-              done: results.length <= offset,
+              value: results[offset],
+              done: results.length <= (offset += 1),
             });
           }, delay);
         });
       }
-      return Promise.resolve({
-        value: results[offset++],
-        done: results.length <= offset,
+      const result = Promise.resolve({
+        value: results[offset],
+        done: results.length <= (offset += 1),
       });
+
+      return result;
     },
 
     throw(error: unknown) {
-      this.throwCalls++;
+      this.throwCalls += 1;
       return Promise.reject(error);
     },
 
     return(val: unknown) {
-      this.returnCalls++;
+      this.returnCalls += 1;
       return Promise.resolve({
         value: val,
         done: true as const,
@@ -304,7 +307,7 @@ describe('MergedAsyncIterator', () => {
     expect(numbers.throwCalls).toEqual(1);
     expect(letters.throwCalls).toEqual(1);
 
-    expect(throwP).rejects.toMatchObject({ message: 'Hi' });
+    await expect(throwP).rejects.toMatchObject({ message: 'Hi' });
   });
 
   test('throw while pending', async () => {
@@ -336,7 +339,7 @@ describe('MergedAsyncIterator', () => {
       done: true,
     });
 
-    expect(throwP).rejects.toMatchObject({ message: 'Hi' });
+    await expect(throwP).rejects.toMatchObject({ message: 'Hi' });
   });
 
   test('throw when partially done', async () => {
@@ -365,7 +368,7 @@ describe('MergedAsyncIterator', () => {
       done: true,
     });
 
-    expect(throwP).rejects.toMatchObject({ message: 'Hi' });
+    await expect(throwP).rejects.toMatchObject({ message: 'Hi' });
   });
 
   test('debounce', async () => {

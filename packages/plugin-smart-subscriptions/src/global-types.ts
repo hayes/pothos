@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { TypeParam, FieldNullability, InputFields } from '@giraphql/core';
-import { SubscriptionManager } from '.';
 import { GraphQLResolveInfo } from 'graphql';
+import { SubscriptionManager } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

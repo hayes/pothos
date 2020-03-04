@@ -21,7 +21,7 @@ type Types = {
   Context: { userID: number };
 };
 
-const builder = new SchemaBuilder<Types>({ stateful: true });
+const builder = new SchemaBuilder<Types>({});
 
 // Create input types
 const Example = builder.inputType('Example', {
@@ -275,7 +275,7 @@ builder.subscriptionType({
       type: 'String',
       subscribe: () => {
         return (async function* subscribe() {
-          yield '123';
+          yield await Promise.resolve('123');
         })();
       },
       resolve: parent => parent.toLocaleLowerCase(),

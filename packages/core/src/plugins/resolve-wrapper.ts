@@ -78,8 +78,6 @@ export function wrapResolver(
   const isScalarResolver = isScalar(config.type);
   const fieldName = `${field.parentTypename}.${name}`;
 
-  plugin.onFieldWrap(name, field, config, partialFieldData, cache);
-
   // assume that onFieldWrap plugins added required props, if plugins fail to do this,
   // they are breaking the plugin contract.
   const fieldData = partialFieldData as GiraphQLSchemaTypes.FieldWrapData;
@@ -116,6 +114,7 @@ export function wrapResolver(
           });
         } else {
           const wrapped = ResolveValueWrapper.wrap(fieldName, item);
+          // eslint-disable-next-line no-await-in-loop
           await resolveHooks?.onWrap?.(wrapped);
 
           wrappedResults.push(wrapped);
@@ -134,5 +133,7 @@ export function wrapResolver(
 
   wrappedResolver.unwrap = () => originalResolver;
 
-  config.resolve = wrappedResolver;
+  config.resolve = wrappedResolver; // eslint-disable-line no-param-reassign
+
+  plugin.onFieldWrap(name, field, config, partialFieldData, cache);
 }

@@ -83,6 +83,56 @@ function permissionsFromMatcher(
   return set;
 }
 
+function evaluateMatcher(
+  matcher: PermissionMatcher,
+  permissions: Map<string, boolean>,
+  fieldName: string,
+  failedChecks: Set<string> = new Set(),
+): null | { failedChecks: Set<string>; type: 'any' | 'all' } {
+  if (matcher.all) {
+    if (matcher.all.length === 0) {
+      throw new Error(
+        `Received an "all" permission matcher with an empty empty list of permissions for ${fieldName}`,
+      );
+    }
+
+    for (const perm of matcher.all) {
+      if (typeof perm === 'string' && permissions.get(perm) !== true) {
+        failedChecks.add(perm);
+      } else if (typeof perm === 'object') {
+        evaluateMatcher(perm, permissions, fieldName, failedChecks);
+      }
+    }
+
+    if (failedChecks.size === 0) {
+      return null;
+    }
+  } else {
+    if (matcher.any.length === 0) {
+      throw new Error(
+        `Received an "any" permission matcher with an empty empty list of permissions for ${fieldName}`,
+      );
+    }
+
+    for (const perm of matcher.any) {
+      if (typeof perm === 'string' && permissions.get(perm) === true) {
+        return null;
+      }
+
+      if (typeof perm === 'string') {
+        failedChecks.add(perm);
+      } else if (typeof perm === 'object') {
+        evaluateMatcher(perm, permissions, fieldName, failedChecks);
+      }
+    }
+  }
+
+  return {
+    type: matcher.all ? 'all' : 'any',
+    failedChecks,
+  };
+}
+
 async function checkFieldPermissions(
   required: boolean,
   parent: ResolveValueWrapper,
@@ -91,6 +141,15 @@ async function checkFieldPermissions(
   context: object,
 ) {
   const { fieldName, permissionChecksFromType, permissionCheck } = data.giraphqlAuth;
+
+  if (Array.isArray(permissionCheck) && permissionCheck.length === 0) {
+    if (required) {
+      throw new ForbiddenError(`Missing permission check on ${fieldName}.`);
+    }
+
+    return;
+  }
+
   const checkResult = await resolvePermissionCheck(permissionCheck, parent.value, args, context);
 
   if (typeof checkResult === 'boolean') {
@@ -150,56 +209,6 @@ async function checkFieldPermissions(
       }: ${[...failedChecks].join(', ')}`,
     );
   }
-}
-
-function evaluateMatcher(
-  matcher: PermissionMatcher,
-  permissions: Map<string, boolean>,
-  fieldName: string,
-  failedChecks: Set<string> = new Set(),
-): null | { failedChecks: Set<string>; type: 'any' | 'all' } {
-  if (matcher.all) {
-    if (!matcher.all.length) {
-      throw new Error(
-        `Received an "all" permission matcher with an empty empty list of permissions for ${fieldName}`,
-      );
-    }
-
-    for (const perm of matcher.all) {
-      if (typeof perm === 'string' && permissions.get(perm) !== true) {
-        failedChecks.add(perm);
-      } else if (typeof perm === 'object') {
-        evaluateMatcher(perm, permissions, fieldName, failedChecks);
-      }
-    }
-
-    if (failedChecks.size === 0) {
-      return null;
-    }
-  } else {
-    if (!matcher.any.length) {
-      throw new Error(
-        `Received an "any" permission matcher with an empty empty list of permissions for ${fieldName}`,
-      );
-    }
-
-    for (const perm of matcher.any) {
-      if (typeof perm === 'string' && permissions.get(perm) === true) {
-        return null;
-      }
-
-      if (typeof perm === 'string') {
-        failedChecks.add(perm);
-      } else if (typeof perm === 'object') {
-        evaluateMatcher(perm, permissions, fieldName, failedChecks);
-      }
-    }
-  }
-
-  return {
-    type: matcher.all ? 'all' : 'any',
-    failedChecks,
-  };
 }
 
 export default class AuthPlugin implements BasePlugin {
@@ -370,6 +379,7 @@ export default class AuthPlugin implements BasePlugin {
           }
         }
 
+        // eslint-disable-next-line require-atomic-updates
         child.data.giraphqlAuth = new AuthMeta(postResolveMap, grants);
       },
     };

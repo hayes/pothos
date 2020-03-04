@@ -1,6 +1,7 @@
+/* eslint-disable no-await-in-loop */
+import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
 import { BasePlugin, Field } from '..';
 import { TypeParam, BuildCacheEntry, MaybePromise, ImplementedType } from '../types';
-import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
 import BuildCache from '../build-cache';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
@@ -93,30 +94,32 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       for (const plugin of beforeResolvePlugins) {
         const hooks = await plugin.beforeResolve(parent, data, args, context, info);
 
-        if (hooks && hooks.onResolve) {
+        if (hooks?.onResolve) {
           onResolveFns.push(hooks.onResolve);
         }
 
-        if (hooks && hooks.onWrap) {
+        if (hooks?.onWrap) {
           onWrapFns.push(hooks.onWrap);
         }
       }
 
       return {
-        onResolve: onResolveFns.length
-          ? async (value: unknown) => {
-              for (const fn of onResolveFns) {
-                await fn(value);
-              }
-            }
-          : undefined,
-        onWrap: onWrapFns.length
-          ? async (child: ResolveValueWrapper) => {
-              for (const fn of onWrapFns) {
-                await fn(child);
-              }
-            }
-          : undefined,
+        onResolve:
+          onResolveFns.length === 0
+            ? undefined
+            : async (value: unknown) => {
+                for (const fn of onResolveFns) {
+                  await fn(value);
+                }
+              },
+        onWrap:
+          onWrapFns.length === 0
+            ? undefined
+            : async (child: ResolveValueWrapper) => {
+                for (const fn of onWrapFns) {
+                  await fn(child);
+                }
+              },
       };
     },
 
@@ -142,20 +145,20 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       }
     },
 
-    async onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+    onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
       for (const plugin of onTypePlugins) {
-        await plugin.onType(type, builder);
+        plugin.onType(type, builder);
       }
     },
 
-    async onField(
+    onField(
       type: ImplementedType,
       name: string,
       field: Field<{}, any, TypeParam<any>>,
       builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
     ) {
       for (const plugin of onFieldsPlugins) {
-        await plugin.onField(type, name, field, builder);
+        plugin.onField(type, name, field, builder);
       }
     },
   };

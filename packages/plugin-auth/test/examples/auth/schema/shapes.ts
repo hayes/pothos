@@ -91,7 +91,7 @@ builder.queryFields(t => ({
     grantPermissions: () => ({
       readName: true,
     }),
-    resolve: async () => {
+    resolve: () => {
       return [
         { type: 'square' as const, edgeLength: 4 },
         { type: 'triangle' as const, edgeLength: 5 },

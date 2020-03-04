@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import {
   BasePlugin,
   ResolveValueWrapper,
@@ -30,12 +31,6 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     this.subscribe = options.subscribe;
   }
 
-  onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
-    if (type.kind !== 'Query') {
-      return;
-    }
-  }
-
   onField(
     type: ImplementedType,
     name: string,
@@ -58,7 +53,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
         [name]: t.field({
           ...options,
           subscribe: (parent, args, context, info) => {
-            const manager = new SubscriptionManager(name => this.subscribe(name, context));
+            const manager = new SubscriptionManager(subName => this.subscribe(subName, context));
 
             this.setSubscriptionManager(manager, context, info);
 
@@ -166,6 +161,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     return {
       onWrap: (child: ResolveValueWrapper) => {
         if (manager) {
+          // eslint-disable-next-line no-unused-expressions
           data.smartSubscriptions.objectSubscription?.(manager, child.value, context, info);
         }
 

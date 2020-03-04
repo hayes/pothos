@@ -17,9 +17,9 @@ export default class ExtendsPlugin implements BasePlugin {
 
         if (shape) {
           if (key === 'Query' || key === 'Mutation' || key === 'Subscription') {
-            builder._addFields(new RootFieldSet(key, shape as RootFieldsShape<any, RootName>));
+            builder.addFields(new RootFieldSet(key, shape as RootFieldsShape<any, RootName>));
           } else {
-            builder._addFields(new FieldSet(key, shape));
+            builder.addFields(new FieldSet(key, shape));
           }
         }
       });
