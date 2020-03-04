@@ -52,7 +52,7 @@ export default class InterfaceType<
 
         await plugin.onInterfaceResolveType(
           typename,
-          ResolveValueWrapper.wrap(`${info.parentType.name}.${info.fieldName}`, parent),
+          ResolveValueWrapper.wrap(parent),
           context,
           info,
         );

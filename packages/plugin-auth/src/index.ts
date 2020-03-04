@@ -7,7 +7,7 @@ import {
   BuildCache,
   ResolveValueWrapper,
 } from '@giraphql/core';
-import { GraphQLFieldConfig } from 'graphql';
+import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
 import './global-types';
 import {
@@ -383,14 +383,21 @@ export default class AuthPlugin implements BasePlugin {
     };
   }
 
-  async onInterfaceResolveType(typename: string, parent: ResolveValueWrapper, context: object) {
+  async onInterfaceResolveType(
+    typename: string,
+    parent: ResolveValueWrapper,
+    context: object,
+    info: GraphQLResolveInfo,
+  ) {
     const postResolveCheck = parent.data.giraphqlAuth?.postResolveMap.get(typename);
 
     if (postResolveCheck) {
       const postResolveResult = await postResolveCheck(parent.value, context);
 
       if (!postResolveResult) {
-        throw new ForbiddenError(`${typename} postResolveCheck failed for ${parent.fieldName}`);
+        throw new ForbiddenError(
+          `${typename} postResolveCheck failed for ${info.parentType.name}.${info.fieldName}`,
+        );
       }
 
       if (typeof postResolveResult === 'object') {
@@ -399,14 +406,21 @@ export default class AuthPlugin implements BasePlugin {
     }
   }
 
-  async onUnionResolveType(typename: string, parent: ResolveValueWrapper, context: object) {
+  async onUnionResolveType(
+    typename: string,
+    parent: ResolveValueWrapper,
+    context: object,
+    info: GraphQLResolveInfo,
+  ) {
     const postResolveCheck = parent.data.giraphqlAuth?.postResolveMap.get(typename);
 
     if (postResolveCheck) {
       const postResolveResult = await postResolveCheck(parent.value, context);
 
       if (!postResolveResult) {
-        throw new ForbiddenError(`${typename} postResolveCheck failed for ${parent.fieldName}`);
+        throw new ForbiddenError(
+          `${typename} postResolveCheck failed for ${info.parentType.name}.${info.fieldName}`,
+        );
       }
 
       if (typeof postResolveResult === 'object') {

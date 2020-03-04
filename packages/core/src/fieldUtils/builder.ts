@@ -8,8 +8,8 @@ export default class FieldBuilder<
   Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
 > extends RootFieldBuilder<Types, ParentShape, Kind> {
   exposeBoolean<
-    Nullable extends FieldNullability<'Boolean'>,
-    Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>,
+    Nullable extends FieldNullability<'Boolean'> = false
   >(
     name: Name,
     options: Omit<
@@ -21,8 +21,8 @@ export default class FieldBuilder<
   }
 
   exposeFloat<
-    Nullable extends FieldNullability<'Float'>,
-    Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>,
+    Nullable extends FieldNullability<'Float'> = false
   >(
     name: Name,
     options: Omit<
@@ -34,8 +34,8 @@ export default class FieldBuilder<
   }
 
   exposeID<
-    Nullable extends FieldNullability<'ID'>,
-    Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>,
+    Nullable extends FieldNullability<'ID'> = false
   >(
     name: Name,
     options: Omit<
@@ -47,8 +47,8 @@ export default class FieldBuilder<
   }
 
   exposeInt<
-    Nullable extends FieldNullability<'Int'>,
-    Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>,
+    Nullable extends FieldNullability<'Int'> = false
   >(
     name: Name,
     options: Omit<
@@ -60,8 +60,8 @@ export default class FieldBuilder<
   }
 
   exposeString<
-    Nullable extends FieldNullability<'String'>,
-    Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>,
+    Nullable extends FieldNullability<'String'> = false
   >(
     name: Name,
     options: Omit<
@@ -73,8 +73,8 @@ export default class FieldBuilder<
   }
 
   exposeBooleanList<
-    Nullable extends FieldNullability<['Boolean']>,
-    Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>,
+    Nullable extends FieldNullability<['Boolean']> = false
   >(
     name: Name,
     options: Omit<
@@ -86,8 +86,8 @@ export default class FieldBuilder<
   }
 
   exposeFloatList<
-    Nullable extends FieldNullability<['Float']>,
-    Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>,
+    Nullable extends FieldNullability<['Float']> = false
   >(
     name: Name,
     options: Omit<
@@ -99,8 +99,8 @@ export default class FieldBuilder<
   }
 
   exposeIDList<
-    Nullable extends FieldNullability<['ID']>,
-    Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>,
+    Nullable extends FieldNullability<['ID']> = false
   >(
     name: Name,
     options: Omit<
@@ -112,8 +112,8 @@ export default class FieldBuilder<
   }
 
   exposeIntList<
-    Nullable extends FieldNullability<['Int']>,
-    Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>,
+    Nullable extends FieldNullability<['Int']> = false
   >(
     name: Name,
     options: Omit<
@@ -125,8 +125,8 @@ export default class FieldBuilder<
   }
 
   exposeStringList<
-    Nullable extends FieldNullability<['String']>,
-    Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>,
+    Nullable extends FieldNullability<['String']> = false
   >(
     name: Name,
     options: Omit<

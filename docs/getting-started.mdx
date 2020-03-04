@@ -23,7 +23,7 @@ import SchemaBuilder from '@giraphql/core';
 
 const builder = new SchemaBuilder();
 
-const Query = builder.queryType({
+builder.queryType({
   shape: t => ({
     hello: t.string({
       args: {
@@ -34,7 +34,7 @@ const Query = builder.queryType({
   }),
 });
 
-const schema = builder.toSchema([Query]);
+const schema = builder.toSchema();
 ```
 
 ## Create a server

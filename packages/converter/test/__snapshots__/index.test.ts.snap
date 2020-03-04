@@ -395,6 +395,7 @@ const Character = builder.interfaceType('Character', {
         friends: t.field({
             description: \\"The friends of the character, or an empty list if they have none.\\",
             type: ['Character'],
+            nullable: { list: false, items: true },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         appearsIn: t.field({
@@ -485,7 +486,7 @@ exports[`Code generator starwars schema 2`] = `
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character!]!
+  friends: [Character]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn(id: ID!): [Episode!]!
@@ -500,7 +501,7 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character!]!
+  friends: [Character]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn(id: ID!): [Episode!]!
@@ -530,7 +531,7 @@ type Human implements Character {
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character!]!
+  friends: [Character]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn(id: ID!): [Episode!]!

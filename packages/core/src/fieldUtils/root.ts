@@ -18,8 +18,8 @@ export default class RootFieldBuilder<
 
   boolean<
     Args extends InputFields<Types>,
-    Nullable extends FieldNullability<'Boolean'>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<'Boolean'> = false
   >(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, 'Boolean', Nullable, Args, Kind, ResolveShape>,
@@ -64,8 +64,8 @@ export default class RootFieldBuilder<
 
   string<
     Args extends InputFields<Types>,
-    Nullable extends FieldNullability<'String'>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<'String'> = false
   >(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, 'String', Nullable, Args, Kind, ResolveShape>,
@@ -80,8 +80,8 @@ export default class RootFieldBuilder<
 
   booleanList<
     Args extends InputFields<Types>,
-    Nullable extends FieldNullability<['Boolean']>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<['Boolean']> = false
   >(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['Boolean'], Nullable, Args, Kind, ResolveShape>,
@@ -93,8 +93,8 @@ export default class RootFieldBuilder<
 
   floatList<
     Args extends InputFields<Types>,
-    Nullable extends FieldNullability<['Float']>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<['Float']> = false
   >(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['Float'], Nullable, Args, Kind, ResolveShape>,
@@ -115,8 +115,8 @@ export default class RootFieldBuilder<
 
   intList<
     Args extends InputFields<Types>,
-    Nullable extends FieldNullability<['Int']>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<['Int']> = false
   >(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['Int'], Nullable, Args, Kind, ResolveShape>,
@@ -128,8 +128,8 @@ export default class RootFieldBuilder<
 
   stringList<
     Args extends InputFields<Types>,
-    Nullable extends FieldNullability<['String']>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<['String']> = false
   >(
     options: Omit<
       FieldOptionsFromKind<Types, ParentShape, ['String'], Nullable, Args, Kind, ResolveShape>,
@@ -142,8 +142,8 @@ export default class RootFieldBuilder<
   field<
     Args extends InputFields<Types>,
     Type extends TypeParam<Types>,
-    Nullable extends FieldNullability<Type>,
-    ResolveShape
+    ResolveShape,
+    Nullable extends FieldNullability<Type> = false
   >(
     options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape>,
   ): Field<Args, Types, Type> {

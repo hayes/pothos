@@ -40,12 +40,7 @@ export default class UnionType<
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
         const typename = await this.options.resolveType(obj, context, info);
 
-        await plugin.onUnionResolveType(
-          typename,
-          ResolveValueWrapper.wrap(`${info.parentType.name}.${info.fieldName}`, parent),
-          context,
-          info,
-        );
+        await plugin.onUnionResolveType(typename, ResolveValueWrapper.wrap(parent), context, info);
 
         return typename;
       },

@@ -9,7 +9,11 @@ export default builder.interfaceType('Character', {
     friends: t.field({
       type: ['Character'],
       description: 'The friends of the character, or an empty list if they have none.',
-      resolve: character => getFriends(character),
+      nullable: { list: false, items: true },
+      resolve: character => {
+        // Testing Promise<Promise<Character>[]> to handle complicated async cases
+        return getFriends(character);
+      },
     }),
     appearsIn: t.field({
       type: [Episode],

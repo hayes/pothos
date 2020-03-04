@@ -303,14 +303,14 @@ export type Resolver<Parent, Args, Context, Type> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => Readonly<Type | Promise<Type> | (Type extends unknown[] ? Promise<Type[number]>[] : never)>;
+) => MaybePromise<Readonly<Type | (Type extends unknown[] ? Promise<Type[number]>[] : never)>>;
 
 export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => AsyncIterable<Shape>;
+) => AsyncIterator<Shape>;
 
 export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
 

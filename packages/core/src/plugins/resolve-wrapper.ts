@@ -12,14 +12,11 @@ import { BasePlugin, BuildCache, Field } from '..';
 import { TypeParam } from '../types';
 
 export class ResolveValueWrapper {
-  fieldName: string;
-
   value: unknown;
 
   data: Partial<GiraphQLSchemaTypes.ResolverPluginData> = {};
 
-  constructor(fieldName: string, value: unknown) {
-    this.fieldName = fieldName;
+  constructor(value: unknown) {
     this.value = value;
   }
 
@@ -27,12 +24,12 @@ export class ResolveValueWrapper {
     return this.value;
   }
 
-  static wrap(fieldName: string, value: unknown) {
+  static wrap(value: unknown) {
     if (value instanceof ResolveValueWrapper) {
       return value;
     }
 
-    return new ResolveValueWrapper(fieldName, value);
+    return new ResolveValueWrapper(value);
   }
 }
 
@@ -72,11 +69,12 @@ export function wrapResolver(
   cache: BuildCache,
 ) {
   const originalResolver = config.resolve || defaultFieldResolver;
-  const partialFieldData: Partial<GiraphQLSchemaTypes.FieldWrapData> = {};
+  const partialFieldData: Partial<GiraphQLSchemaTypes.FieldWrapData> = {
+    resolve: originalResolver,
+  };
 
   const isListResolver = isList(config.type);
   const isScalarResolver = isScalar(config.type);
-  const fieldName = `${field.parentTypename}.${name}`;
 
   // assume that onFieldWrap plugins added required props, if plugins fail to do this,
   // they are breaking the plugin contract.
@@ -88,11 +86,11 @@ export function wrapResolver(
     context: object,
     info: GraphQLResolveInfo,
   ) => {
-    const parent = ResolveValueWrapper.wrap(fieldName, originalParent);
+    const parent = ResolveValueWrapper.wrap(originalParent);
 
     const resolveHooks = await plugin.beforeResolve(parent, fieldData, args, context, info);
 
-    const result = await originalResolver(parent.value, args, context, info);
+    const result = await fieldData.resolve(parent.value, args, context, info);
 
     await resolveHooks?.onResolve?.(result);
 
@@ -104,27 +102,21 @@ export function wrapResolver(
       const wrappedResults: unknown[] = [];
 
       for (const item of result) {
-        if (item instanceof Promise) {
-          item.then(async resolved => {
-            const wrapped = ResolveValueWrapper.wrap(fieldName, resolved);
+        wrappedResults.push(
+          Promise.resolve(item).then(async resolved => {
+            const wrapped = ResolveValueWrapper.wrap(resolved);
 
             await resolveHooks?.onWrap?.(wrapped);
 
-            wrappedResults.push(wrapped);
-          });
-        } else {
-          const wrapped = ResolveValueWrapper.wrap(fieldName, item);
-          // eslint-disable-next-line no-await-in-loop
-          await resolveHooks?.onWrap?.(wrapped);
-
-          wrappedResults.push(wrapped);
-        }
+            return wrapped;
+          }),
+        );
       }
 
       return wrappedResults;
     }
 
-    const wrapped = ResolveValueWrapper.wrap(fieldName, result);
+    const wrapped = ResolveValueWrapper.wrap(result);
 
     await resolveHooks?.onWrap?.(wrapped);
 

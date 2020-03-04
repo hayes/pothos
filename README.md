@@ -11,7 +11,7 @@ import { ApolloServer } from 'apollo-server';
 
 const builder = new SchemaBuilder();
 
-const Query = builder.queryType({
+builder.queryType({
     shape: t => ({
         hello: t.string({
             args: {
@@ -23,7 +23,7 @@ const Query = builder.queryType({
 });
 
 const server = new ApolloServer({
-    schema: builder.toSchema([Query]),
+    schema: builder.toSchema(),
 });
 
 server.listen(3000);

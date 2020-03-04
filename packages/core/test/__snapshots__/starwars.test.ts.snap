@@ -19,7 +19,7 @@ exports[`starwars example generates expected schema 1`] = `
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character!]!
+  friends: [Character]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn(id: ID!): [Episode!]!
@@ -34,7 +34,7 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character!]!
+  friends: [Character]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn(id: ID!): [Episode!]!
@@ -64,7 +64,7 @@ type Human implements Character {
   name: String!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character!]!
+  friends: [Character]!
 
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn(id: ID!): [Episode!]!

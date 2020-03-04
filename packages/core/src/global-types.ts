@@ -4,6 +4,7 @@ import {
   GraphQLScalarSerializer,
   GraphQLScalarValueParser,
   GraphQLScalarLiteralParser,
+  GraphQLFieldResolver,
 } from 'graphql';
 import {
   EnumValues,
@@ -49,7 +50,9 @@ declare global {
 
     export interface ResolverPluginData {}
 
-    export interface FieldWrapData {}
+    export interface FieldWrapData {
+      resolve: GraphQLFieldResolver<unknown, object>;
+    }
 
     export interface TypeInfo {
       Scalar: {
