@@ -3,7 +3,7 @@ import builder from '../builder';
 builder.interfaceType('Shape', {
   shape: t => ({
     name: t.exposeString('type', {
-      permissionsCheck: 'readName',
+      permissionCheck: 'readName',
       nullable: true,
     }),
   }),
@@ -64,7 +64,7 @@ builder.queryFields(t => ({
   square: t.field({
     type: 'Square',
     nullable: true,
-    permissionsCheck: () => true,
+    permissionCheck: () => true,
     resolve: () => {
       return { type: 'square' as const, edgeLength: 4 };
     },
@@ -72,7 +72,7 @@ builder.queryFields(t => ({
   shapes: t.field({
     type: ['Shape'],
     nullable: { items: true, list: false },
-    permissionsCheck: () => true,
+    permissionCheck: () => true,
     grantPermissions: () => ({
       readName: true,
     }),
@@ -87,7 +87,7 @@ builder.queryFields(t => ({
   polygons: t.field({
     type: [Polygon],
     nullable: { items: true, list: false },
-    permissionsCheck: () => true,
+    permissionCheck: () => true,
     grantPermissions: () => ({
       readName: true,
     }),

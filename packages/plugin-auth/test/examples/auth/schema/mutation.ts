@@ -12,7 +12,7 @@ export default builder.mutationType({
           required: true,
         }),
       },
-      permissionsCheck: (parent, args, { role }) => role === 'Admin',
+      permissionCheck: (parent, args, { role }) => role === 'Admin',
       resolve: (parent, { firstName, lastName }, { User }) => {
         const user = User.create(firstName, lastName, 'User');
 

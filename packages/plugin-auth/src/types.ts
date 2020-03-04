@@ -45,7 +45,7 @@ export type GrantPermissions<
   context: Types['Context'],
 ) => MaybePromise<AuthGrantMap>;
 
-export type PermissionsCheck<
+export type PermissionCheck<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   ParentShape,
   Args extends InputFields<Types>

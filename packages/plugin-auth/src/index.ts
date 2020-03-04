@@ -13,7 +13,7 @@ import './global-types';
 import {
   AuthGrantMap,
   PreResolveCheck,
-  PermissionsCheck,
+  PermissionCheck,
   PermissionMatcher,
   PostResolveCheck,
   AuthPluginOptions,
@@ -33,7 +33,7 @@ export function mergeAuthGrants(grants: AuthGrantMap, newGrants: AuthGrantMap) {
 }
 
 async function resolvePermissionCheck(
-  check: PermissionsCheck<any, any, any>,
+  check: PermissionCheck<any, any, any>,
   parent: unknown,
   args: unknown,
   context: unknown,
@@ -245,8 +245,8 @@ export default class AuthPlugin implements BasePlugin {
         : (nonListReturnType as BaseType).typename;
     const returnType = cache.getType(returnTypename);
 
-    const permissionCheck: PermissionsCheck<any, any, any> =
-      field.options.permissionsCheck ||
+    const permissionCheck: PermissionCheck<any, any, any> =
+      field.options.permissionCheck ||
       (parentType.kind === 'Object' && parentType.options.defaultPermissionCheck) ||
       [];
 
@@ -270,7 +270,7 @@ export default class AuthPlugin implements BasePlugin {
     if (
       this.explicitMutationChecks &&
       field.parentTypename === 'Mutation' &&
-      (!field.options.permissionsCheck || field.options.permissionsCheck.length === 0)
+      (!field.options.permissionCheck || field.options.permissionCheck.length === 0)
     ) {
       throw new Error(
         `${fieldName} is missing an explicit permission check which is required for all Mutations (explicitMutationChecks)`,

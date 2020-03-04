@@ -15,7 +15,7 @@ export default builder.queryType({
         }),
       },
       // require a passing readUser auth check
-      permissionsCheck: 'readUser',
+      permissionCheck: 'readUser',
       grantPermissions: () => ({
         // grant readUserField auth for returned user
         readUserField: true,
@@ -33,7 +33,7 @@ export default builder.queryType({
     users: t.field({
       type: ['User'],
       // require a passing readUser auth check
-      permissionsCheck: 'readUser',
+      permissionCheck: 'readUser',
       grantPermissions: () => ({
         // grant readUserField auth for returned user
         readUserField: true,

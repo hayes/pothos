@@ -271,7 +271,7 @@ builder.objectType('Square', {
   },
   shape: t => ({
     size: t.float({
-      permissionsCheck: 'readSquare',
+      permissionCheck: 'readSquare',
       resolve: ({ edgeLength }) => edgeLength ** 2,
     }),
   }),
@@ -281,7 +281,7 @@ builder.queryFields(t => ({
   shapes: t.field({
     type: ['Shape'],
     // always allow this resolver to execute
-    permissionsCheck: () => true,
+    permissionCheck: () => true,
     resolve: () => {
       return [{ type: 'square', edgeLength: 4 }];
     },

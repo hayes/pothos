@@ -3,7 +3,7 @@ import { TypeParam, InputFields, FieldNullability, RootName } from '@giraphql/co
 import {
   PermissionCheckMap,
   PreResolveCheck,
-  PermissionsCheck,
+  PermissionCheck,
   GrantPermissions,
   PostResolveCheck,
 } from './types';
@@ -20,7 +20,7 @@ declare global {
         postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>;
         permissionChecksFromType: PermissionCheckMap<any, any>;
         grantPermissions: GrantPermissions<any, any, any> | null;
-        permissionCheck: PermissionsCheck<any, any, any>;
+        permissionCheck: PermissionCheck<any, any, any>;
       };
     }
 
@@ -54,7 +54,7 @@ declare global {
       ResolveShape
     > {
       // TODO add parent shape to FieldOptions
-      permissionsCheck?: PermissionsCheck<Types, ParentShape, Args>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
       grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
     }
 
@@ -65,7 +65,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
-      permissionsCheck?: PermissionsCheck<Types, ParentShape, Args>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
       grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
     }
 
@@ -77,7 +77,7 @@ declare global {
       Args extends InputFields<Types>,
       ResolveShape
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveShape> {
-      permissionsCheck?: PermissionsCheck<Types, ParentShape, Args>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
       grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
     }
   }

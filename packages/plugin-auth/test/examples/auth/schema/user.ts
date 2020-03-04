@@ -16,14 +16,14 @@ export default builder.objectType('User', {
   },
   shape: t => ({
     id: t.exposeID('id', {
-      permissionsCheck: ['readUserId'],
+      permissionCheck: ['readUserId'],
     }),
     firstName: t.exposeString('firstName', {}),
     lastName: t.exposeString('lastName', {
-      permissionsCheck: (parent, args, { user }) => parent.lastName === user?.lastName,
+      permissionCheck: (parent, args, { user }) => parent.lastName === user?.lastName,
     }),
     email: t.exposeString('email', {
-      permissionsCheck: 'readEmail',
+      permissionCheck: 'readEmail',
     }),
   }),
 });
