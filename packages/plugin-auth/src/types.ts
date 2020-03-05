@@ -49,8 +49,10 @@ export type PermissionMatcher =
   | {
       any: (string | PermissionMatcher)[];
       all?: undefined;
+      sequential?: boolean;
     }
   | {
       all: (string | PermissionMatcher)[];
       any?: undefined;
+      sequential?: boolean;
     };

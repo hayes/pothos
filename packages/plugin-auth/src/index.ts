@@ -63,37 +63,14 @@ async function resolvePermissionCheck(
   return result;
 }
 
-function permissionsFromMatcher(
+async function evaluateMatcher(
   matcher: PermissionMatcher,
   fieldName: string,
-  permissionRequired: boolean,
-  set: Set<string> = new Set(),
-) {
-  const list = matcher.all || matcher.any;
-
-  if (permissionRequired && list.length === 0) {
-    throw new ForbiddenError(`No permission checks defined for ${fieldName}`);
-  }
-
-  list.forEach(next => {
-    if (typeof next === 'string') {
-      set.add(next);
-    } else {
-      permissionsFromMatcher(next, fieldName, permissionRequired, set);
-    }
-
-    return set;
-  });
-
-  return set;
-}
-
-function evaluateMatcher(
-  matcher: PermissionMatcher,
-  permissions: Map<string, boolean>,
-  fieldName: string,
+  getResult: (perm: string) => Promise<boolean>,
   failedChecks: Set<string> = new Set(),
-): null | { failedChecks: Set<string>; type: 'any' | 'all' } {
+): Promise<null | { failedChecks: Set<string>; type: 'any' | 'all' }> {
+  const pending: Promise<unknown>[] = [];
+
   if (matcher.all) {
     if (matcher.all.length === 0) {
       throw new Error(
@@ -102,12 +79,26 @@ function evaluateMatcher(
     }
 
     for (const perm of matcher.all) {
-      if (typeof perm === 'string' && permissions.get(perm) !== true) {
-        failedChecks.add(perm);
-      } else if (typeof perm === 'object') {
-        evaluateMatcher(perm, permissions, fieldName, failedChecks);
+      const permPromise =
+        typeof perm === 'string'
+          ? getResult(perm).then(result => {
+              if (!result) {
+                failedChecks.add(perm);
+              }
+            })
+          : evaluateMatcher(perm, fieldName, getResult, failedChecks).then(result => !result);
+
+      if (matcher.sequential) {
+        // eslint-disable-next-line no-await-in-loop
+        if (!(await permPromise)) {
+          break;
+        }
+      } else {
+        pending.push(permPromise);
       }
     }
+
+    await Promise.all(pending);
 
     if (failedChecks.size === 0) {
       return null;
@@ -120,15 +111,29 @@ function evaluateMatcher(
     }
 
     for (const perm of matcher.any) {
-      if (typeof perm === 'string' && permissions.get(perm) === true) {
-        return null;
-      }
+      const permPromise =
+        typeof perm === 'string'
+          ? getResult(perm).then(result => {
+              if (!result) {
+                failedChecks.add(perm);
+              }
+            })
+          : evaluateMatcher(perm, fieldName, getResult, failedChecks).then(result => !result);
 
-      if (typeof perm === 'string') {
-        failedChecks.add(perm);
-      } else if (typeof perm === 'object') {
-        evaluateMatcher(perm, permissions, fieldName, failedChecks);
+      if (matcher.sequential) {
+        // eslint-disable-next-line no-await-in-loop
+        if (await permPromise) {
+          return null;
+        }
+      } else {
+        pending.push(permPromise);
       }
+    }
+
+    const results = await Promise.all(pending);
+
+    if (results.find(value => value)) {
+      return null;
     }
   }
 
@@ -165,37 +170,35 @@ async function checkFieldPermissions(
     return;
   }
 
-  const permissions = permissionsFromMatcher(checkResult, fieldName, required);
-
   const { grantedPermissions, checkCache } = parent.data.giraphqlAuth!;
 
   const permissionResults = new Map<string, boolean>();
 
-  await Promise.all(
-    [...permissions].map(async perm => {
-      if (grantedPermissions[perm]) {
-        permissionResults.set(perm, true);
+  const failures = await evaluateMatcher(checkResult, fieldName, async perm => {
+    if (permissionResults.has(perm)) {
+      return permissionResults.has(perm);
+    }
 
-        return;
+    if (grantedPermissions[perm]) {
+      permissionResults.set(perm, true);
+
+      return true;
+    }
+
+    if (permissionChecksFromType[perm]) {
+      if (!checkCache[perm]) {
+        checkCache[perm] = permissionChecksFromType[perm](parent.value, context);
       }
 
-      if (permissionChecksFromType[perm]) {
-        if (!checkCache[perm]) {
-          checkCache[perm] = permissionChecksFromType[perm](parent.value, context);
-        }
+      const result = await checkCache[perm];
 
-        const result = await checkCache[perm];
+      permissionResults.set(perm, result);
 
-        permissionResults.set(perm, result);
+      return result;
+    }
 
-        return;
-      }
-
-      permissionResults.set(perm, false);
-    }),
-  );
-
-  const failures = evaluateMatcher(checkResult, permissionResults, fieldName);
+    return false;
+  });
 
   if (failures) {
     const { failedChecks, type } = failures;
