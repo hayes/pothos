@@ -1,5 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { TypeParam, InputFields, FieldNullability, RootName } from '@giraphql/core';
+import {
+  TypeParam,
+  InputFields,
+  FieldNullability,
+  RootName,
+  InputShapeFromFields,
+} from '@giraphql/core';
 import {
   PermissionCheckMap,
   PreResolveCheck,
@@ -54,8 +60,8 @@ declare global {
       Args extends InputFields<Types>,
       ResolveShape
     > {
-      permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
-      grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
+      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
     }
 
     export interface InterfaceFieldOptions<
@@ -65,8 +71,8 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
-      permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
-      grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
+      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
     }
 
     export interface SubscriptionFieldOptions<
@@ -77,8 +83,8 @@ declare global {
       Args extends InputFields<Types>,
       ResolveShape
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveShape> {
-      permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
-      grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
+      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
     }
   }
 }

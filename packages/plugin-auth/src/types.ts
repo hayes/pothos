@@ -1,4 +1,4 @@
-import { InputFields, InputShapeFromFields, MaybePromise } from '@giraphql/core';
+import { MaybePromise } from '@giraphql/core';
 
 export interface AuthPluginOptions {
   requirePermissionChecks?: boolean;
@@ -10,11 +10,7 @@ export type SharedPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Pa
   context: Types['Context'],
 ) => MaybePromise<boolean>;
 
-export type FieldPermissionCheck<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentShape,
-  Args extends InputFields<Types>
-> = (
+export type FieldPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape, Args> = (
   parent: ParentShape,
   args: Args,
   context: Types['Context'],
@@ -35,23 +31,19 @@ export type PermissionCheckMap<Types extends GiraphQLSchemaTypes.TypeInfo, Paren
   [s: string]: SharedPermissionCheck<Types, ParentShape>;
 };
 
-export type GrantPermissions<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentShape,
-  Args extends InputFields<Types>
-> =
+export type GrantPermissions<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape, Args> =
   | PermissionGrantMap
   | ((
       parent: ParentShape,
-      args: InputShapeFromFields<Types, Args>,
+      args: Args,
       context: Types['Context'],
     ) => MaybePromise<PermissionGrantMap>);
 
-export type PermissionCheck<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  ParentShape,
-  Args extends InputFields<Types>
-> = string | string[] | PermissionMatcher | FieldPermissionCheck<Types, ParentShape, Args>;
+export type PermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape, Args> =
+  | string
+  | string[]
+  | PermissionMatcher
+  | FieldPermissionCheck<Types, ParentShape, Args>;
 
 export type PermissionMatcher =
   | {
