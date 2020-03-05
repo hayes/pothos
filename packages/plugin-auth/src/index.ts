@@ -11,7 +11,7 @@ import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
 import { ForbiddenError } from 'apollo-server';
 import './global-types';
 import {
-  AuthGrantMap,
+  PermissionGrantMap,
   PreResolveCheck,
   PermissionCheck,
   PermissionMatcher,
@@ -24,7 +24,7 @@ export { AuthMeta };
 
 export * from './types';
 
-export function mergeAuthGrants(grants: AuthGrantMap, newGrants: AuthGrantMap) {
+export function mergePermGrants(grants: PermissionGrantMap, newGrants: PermissionGrantMap) {
   Object.keys(newGrants).forEach(key => {
     if (!grants[key] && newGrants[key]) {
       grants[key] = true;
@@ -44,6 +44,10 @@ async function resolvePermissionCheck(
 
   if (Array.isArray(check)) {
     return { all: check };
+  }
+
+  if (typeof check !== 'function') {
+    return check;
   }
 
   const result = await check(parent, args, context);
@@ -270,7 +274,9 @@ export default class AuthPlugin implements BasePlugin {
     if (
       this.explicitMutationChecks &&
       field.parentTypename === 'Mutation' &&
-      (!field.options.permissionCheck || field.options.permissionCheck.length === 0)
+      (!field.options.permissionCheck ||
+        (Array.isArray(field.options.permissionCheck) &&
+          field.options.permissionCheck.length === 0))
     ) {
       throw new Error(
         `${fieldName} is missing an explicit permission check which is required for all Mutations (explicitMutationChecks)`,
@@ -353,12 +359,16 @@ export default class AuthPlugin implements BasePlugin {
       }
 
       if (typeof preResolveResult === 'object') {
-        mergeAuthGrants(newGrants, preResolveResult);
+        mergePermGrants(newGrants, preResolveResult);
       }
     }
 
     if (grantPermissions) {
-      mergeAuthGrants(newGrants, await grantPermissions(parent.value, args, context));
+      const grants =
+        typeof grantPermissions === 'function'
+          ? await grantPermissions(parent.value, args, context)
+          : grantPermissions;
+      mergePermGrants(newGrants, grants);
     }
 
     return {
@@ -373,7 +383,7 @@ export default class AuthPlugin implements BasePlugin {
           }
 
           if (typeof postResolveResult === 'object') {
-            mergeAuthGrants(grants, postResolveResult);
+            mergePermGrants(grants, postResolveResult);
           }
         }
 
@@ -401,7 +411,7 @@ export default class AuthPlugin implements BasePlugin {
       }
 
       if (typeof postResolveResult === 'object') {
-        mergeAuthGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
+        mergePermGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
       }
     }
   }
@@ -424,7 +434,7 @@ export default class AuthPlugin implements BasePlugin {
       }
 
       if (typeof postResolveResult === 'object') {
-        mergeAuthGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
+        mergePermGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
       }
     }
   }

@@ -6,6 +6,7 @@ import {
   PermissionCheck,
   GrantPermissions,
   PostResolveCheck,
+  PermissionMatcher,
 } from './types';
 import AuthMeta from './auth-wrapper';
 
@@ -30,19 +31,19 @@ declare global {
 
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       permissions?: PermissionCheckMap<Types, Types['Root']>;
-      defaultPermissionCheck?: string | string[];
+      defaultPermissionCheck?: string | string[] | PermissionMatcher;
     }
 
     export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       preResolveCheck?: PreResolveCheck<Types>;
       postResolveCheck?: PostResolveCheck<Types, Shape>;
       permissions?: PermissionCheckMap<Types, Shape>;
-      defaultPermissionCheck?: string | string[];
+      defaultPermissionCheck?: string | string[] | PermissionMatcher;
     }
 
     export interface InterfaceTypeOptions<Types extends TypeInfo, Shape> {
       permissionChecks?: PermissionCheckMap<Types, Shape>;
-      defaultPermissionCheck?: string | string[];
+      defaultPermissionCheck?: string | string[] | PermissionMatcher;
     }
 
     export interface FieldOptions<
@@ -53,7 +54,6 @@ declare global {
       Args extends InputFields<Types>,
       ResolveShape
     > {
-      // TODO add parent shape to FieldOptions
       permissionCheck?: PermissionCheck<Types, ParentShape, Args>;
       grantPermissions?: GrantPermissions<Types, ParentShape, Args>;
     }
