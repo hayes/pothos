@@ -85,6 +85,8 @@ async function evaluateMatcher(
               if (!result) {
                 failedChecks.add(perm);
               }
+
+              return result;
             })
           : evaluateMatcher(perm, fieldName, getResult, failedChecks).then(result => !result);
 
@@ -117,6 +119,7 @@ async function evaluateMatcher(
               if (!result) {
                 failedChecks.add(perm);
               }
+              return result;
             })
           : evaluateMatcher(perm, fieldName, getResult, failedChecks).then(result => !result);
 
