@@ -13,6 +13,8 @@ import {
   GrantPermissions,
   PostResolveCheck,
   PermissionMatcher,
+  UnionPostResolveCheck,
+  InterfacePostResolveCheck,
 } from './types';
 import AuthMeta from './auth-wrapper';
 
@@ -22,9 +24,11 @@ declare global {
       giraphqlAuth: {
         returnTypename: string;
         fieldName: string;
-        preResolveCheck?: PreResolveCheck<any>;
-        postResolveCheck?: PostResolveCheck<any, unknown>;
+        preResolveCheckMap?: Map<string, PreResolveCheck<any>>;
         postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>;
+        postResolveCheck?: PostResolveCheck<any, unknown>;
+        postResolveUnionCheck?: UnionPostResolveCheck<any, any>;
+        postResolveInterfaceCheck?: InterfacePostResolveCheck<any, unknown>;
         permissionChecksFromType: PermissionCheckMap<any, any>;
         grantPermissions: GrantPermissions<any, any, any> | null;
         permissionCheck: PermissionCheck<any, any, any>;
@@ -48,8 +52,17 @@ declare global {
     }
 
     export interface InterfaceTypeOptions<Types extends TypeInfo, Shape> {
+      preResolveCheck?: PreResolveCheck<Types>;
+      postResolveCheck?: InterfacePostResolveCheck<Types, Shape>;
       permissionChecks?: PermissionCheckMap<Types, Shape>;
       defaultPermissionCheck?: string | string[] | PermissionMatcher;
+      skipImplementorPreResolveChecks?: boolean;
+    }
+
+    export interface UnionOptions<Types extends TypeInfo, Member extends keyof Types['Object']> {
+      preResolveCheck?: PreResolveCheck<Types>;
+      postResolveCheck?: UnionPostResolveCheck<Types, Member>;
+      skipMemberPreResolveChecks?: boolean;
     }
 
     export interface FieldOptions<

@@ -106,6 +106,8 @@ export function wrapResolver(
           Promise.resolve(item).then(async resolved => {
             const wrapped = ResolveValueWrapper.wrap(resolved);
 
+            wrapped.data.parentFieldData = fieldData;
+
             await resolveHooks?.onWrap?.(wrapped);
 
             return wrapped;

@@ -17,6 +17,8 @@ import {
   PermissionMatcher,
   PostResolveCheck,
   AuthPluginOptions,
+  UnionPostResolveCheck,
+  InterfacePostResolveCheck,
 } from './types';
 import AuthMeta from './auth-wrapper';
 
@@ -24,10 +26,10 @@ export { AuthMeta };
 
 export * from './types';
 
-export function mergePermGrants(grants: PermissionGrantMap, newGrants: PermissionGrantMap) {
+export function mergePermGrants(grants: Set<string>, newGrants: PermissionGrantMap) {
   Object.keys(newGrants).forEach(key => {
-    if (!grants[key] && newGrants[key]) {
-      grants[key] = true;
+    if (newGrants[key]) {
+      grants.add(key);
     }
   });
 }
@@ -182,7 +184,7 @@ async function checkFieldPermissions(
       return permissionResults.has(perm);
     }
 
-    if (grantedPermissions[perm]) {
+    if (grantedPermissions.has(perm)) {
       permissionResults.set(perm, true);
 
       return true;
@@ -232,12 +234,20 @@ export default class AuthPlugin implements BasePlugin {
     Map<PreResolveCheck<any>, ReturnType<PreResolveCheck<any>>>
   >();
 
+  skipPreResolveOnInterfaces: boolean;
+
+  skipPreResolveOnUnions: boolean;
+
   constructor({
     requirePermissionChecks = true,
     explicitMutationChecks = true,
+    skipPreResolveOnInterfaces = false,
+    skipPreResolveOnUnions = false,
   }: AuthPluginOptions = {}) {
     this.requirePermissionChecks = requirePermissionChecks;
     this.explicitMutationChecks = explicitMutationChecks;
+    this.skipPreResolveOnInterfaces = skipPreResolveOnInterfaces;
+    this.skipPreResolveOnUnions = skipPreResolveOnUnions;
   }
 
   onFieldWrap(
@@ -269,11 +279,59 @@ export default class AuthPlugin implements BasePlugin {
       [s: string]: (parent: unknown, context: {}) => boolean | Promise<boolean>;
     };
 
-    const preResolveCheck =
-      (returnType.kind === 'Object' && returnType.options.preResolveCheck) || undefined;
-
+    const postResolveMap = new Map<string, PostResolveCheck<any, unknown> | null>();
+    const preResolveCheckMap = new Map<string, PreResolveCheck<any>>();
+    let postResolveUnionCheck: UnionPostResolveCheck<any, any> | undefined;
+    let postResolveInterfaceCheck: InterfacePostResolveCheck<any, unknown> | undefined;
     const postResolveCheck =
       (returnType.kind === 'Object' && returnType.options.postResolveCheck) || undefined;
+
+    if (returnType.kind === 'Object' && returnType.options.preResolveCheck) {
+      preResolveCheckMap.set(returnType.typename, returnType.options.preResolveCheck);
+    }
+
+    if (returnType.kind === 'Interface') {
+      if (returnType.options.preResolveCheck) {
+        preResolveCheckMap.set(returnType.typename, returnType.options.preResolveCheck);
+      }
+
+      postResolveInterfaceCheck = returnType.options.postResolveCheck;
+
+      const implementers = cache.getImplementers(returnType.typename);
+
+      implementers.forEach(implementer => {
+        postResolveMap.set(implementer.typename, implementer.options.postResolveCheck || null);
+
+        if (
+          !this.skipPreResolveOnInterfaces &&
+          !returnType.options.skipImplementorPreResolveChecks &&
+          implementer.options.preResolveCheck
+        ) {
+          preResolveCheckMap.set(implementer.typename, implementer.options.preResolveCheck);
+        }
+      });
+    }
+
+    if (returnType.kind === 'Union') {
+      if (returnType.options.preResolveCheck) {
+        preResolveCheckMap.set(returnType.typename, returnType.options.preResolveCheck);
+      }
+
+      postResolveUnionCheck = returnType.options.postResolveCheck;
+
+      const members = returnType.members.map(member => cache.getEntryOfType(member, 'Object').type);
+
+      members.forEach(member => {
+        postResolveMap.set(member.typename, member.options.postResolveCheck || null);
+        if (
+          member.options.preResolveCheck &&
+          !this.skipPreResolveOnUnions &&
+          !returnType.options.skipMemberPreResolveChecks
+        ) {
+          preResolveCheckMap.set(member.typename, member.options.preResolveCheck);
+        }
+      });
+    }
 
     const fieldName = `${field.parentTypename}.${name}`;
 
@@ -289,22 +347,6 @@ export default class AuthPlugin implements BasePlugin {
       );
     }
 
-    const postResolveMap = new Map<string, PostResolveCheck<any, unknown> | null>();
-
-    if (returnType.kind === 'Interface') {
-      const implementers = cache.getImplementers(returnType.typename);
-
-      implementers.forEach(implementer => {
-        postResolveMap.set(implementer.typename, implementer.options.postResolveCheck || null);
-      });
-    } else if (returnType.kind === 'Union') {
-      const members = returnType.members.map(member => cache.getEntryOfType(member, 'Object').type);
-
-      members.forEach(member => {
-        postResolveMap.set(member.typename, member.options.postResolveCheck || null);
-      });
-    }
-
     const grantPermissions = field.options.grantPermissions || null;
 
     data.giraphqlAuth = {
@@ -312,10 +354,12 @@ export default class AuthPlugin implements BasePlugin {
       fieldName,
       permissionCheck,
       permissionChecksFromType,
-      preResolveCheck,
+      preResolveCheckMap,
       postResolveCheck,
       postResolveMap,
       grantPermissions,
+      postResolveUnionCheck,
+      postResolveInterfaceCheck,
     };
   }
 
@@ -324,48 +368,66 @@ export default class AuthPlugin implements BasePlugin {
     data: GiraphQLSchemaTypes.FieldWrapData,
     args: object,
     context: object,
+    info: GraphQLResolveInfo,
   ) {
     const {
-      preResolveCheck,
+      preResolveCheckMap,
       postResolveCheck,
       returnTypename,
       fieldName,
       grantPermissions,
-      postResolveMap,
     } = data.giraphqlAuth;
 
     if (!parent.data.giraphqlAuth) {
-      parent.data.giraphqlAuth = new AuthMeta(postResolveMap);
+      parent.data.giraphqlAuth = new AuthMeta();
     }
 
     await checkFieldPermissions(
-      this.requirePermissionChecks && !preResolveCheck,
+      this.requirePermissionChecks && !preResolveCheckMap?.has(info.parentType.name),
       parent,
       data,
       args,
       context,
     );
 
-    const newGrants = {};
+    const newGrants = new Set<string>();
 
-    if (preResolveCheck) {
+    if (preResolveCheckMap?.size !== 0) {
       if (!this.preResolveAuthCheckCache.has(context)) {
         this.preResolveAuthCheckCache.set(context, new Map());
       }
       const preResolveCache = this.preResolveAuthCheckCache.get(context)!;
 
-      if (!preResolveCache.has(preResolveCheck)) {
-        preResolveCache.set(preResolveCheck, preResolveCheck(context));
+      const preResolvePromises: Promise<{
+        name: string;
+        result: boolean | PermissionGrantMap;
+      }>[] = [];
+
+      for (const [name, preResolveCheck] of preResolveCheckMap!) {
+        if (!preResolveCache.has(preResolveCheck)) {
+          preResolveCache.set(preResolveCheck, preResolveCheck(context));
+        }
+
+        preResolvePromises.push(
+          Promise.resolve(preResolveCache.get(preResolveCheck)!).then(result => ({ name, result })),
+        );
       }
 
-      const preResolveResult = await preResolveCache.get(preResolveCheck);
+      const results = await Promise.all(preResolvePromises);
+      const failedChecks: string[] = [];
 
-      if (!preResolveResult) {
-        throw new ForbiddenError(`${returnTypename} preResolveCheck failed for ${fieldName}`);
-      }
+      results.forEach(({ name, result }) => {
+        if (!result) {
+          failedChecks.push(name);
+        } else if (typeof result === 'object') {
+          mergePermGrants(newGrants, result);
+        }
+      });
 
-      if (typeof preResolveResult === 'object') {
-        mergePermGrants(newGrants, preResolveResult);
+      if (failedChecks.length !== 0) {
+        throw new ForbiddenError(
+          `preResolveCheck failed on ${fieldName} for ${failedChecks.join(', ')}`,
+        );
       }
     }
 
@@ -379,10 +441,10 @@ export default class AuthPlugin implements BasePlugin {
 
     return {
       async onWrap(child: ResolveValueWrapper) {
-        const grants = { ...newGrants };
+        const grants = new Set(newGrants);
 
         if (postResolveCheck) {
-          const postResolveResult = await postResolveCheck(child.value, context);
+          const postResolveResult = await postResolveCheck(child.value, context, grants);
 
           if (!postResolveResult) {
             throw new ForbiddenError(`${returnTypename} postResolveCheck failed for ${fieldName}`);
@@ -394,7 +456,7 @@ export default class AuthPlugin implements BasePlugin {
         }
 
         // eslint-disable-next-line require-atomic-updates
-        child.data.giraphqlAuth = new AuthMeta(postResolveMap, grants);
+        child.data.giraphqlAuth = new AuthMeta(grants);
       },
     };
   }
@@ -405,10 +467,33 @@ export default class AuthPlugin implements BasePlugin {
     context: object,
     info: GraphQLResolveInfo,
   ) {
-    const postResolveCheck = parent.data.giraphqlAuth?.postResolveMap.get(typename);
+    const interfacePostResolveCheck =
+      parent.data.parentFieldData?.giraphqlAuth.postResolveInterfaceCheck;
+    const postResolveCheck = parent.data.parentFieldData?.giraphqlAuth.postResolveMap.get(typename);
+    const grants = parent.data.giraphqlAuth!.grantedPermissions!;
+    const returnTypename = parent.data.parentFieldData?.giraphqlAuth.returnTypename;
+
+    if (interfacePostResolveCheck) {
+      const postResolveResult = await interfacePostResolveCheck(
+        typename,
+        parent.value,
+        context,
+        grants,
+      );
+
+      if (!postResolveResult) {
+        throw new ForbiddenError(
+          `${returnTypename} postResolveCheck failed for ${info.parentType.name}.${info.fieldName}`,
+        );
+      }
+
+      if (typeof postResolveResult === 'object') {
+        mergePermGrants(grants, postResolveResult);
+      }
+    }
 
     if (postResolveCheck) {
-      const postResolveResult = await postResolveCheck(parent.value, context);
+      const postResolveResult = await postResolveCheck(parent.value, context, grants);
 
       if (!postResolveResult) {
         throw new ForbiddenError(
@@ -417,7 +502,7 @@ export default class AuthPlugin implements BasePlugin {
       }
 
       if (typeof postResolveResult === 'object') {
-        mergePermGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
+        mergePermGrants(grants, postResolveResult);
       }
     }
   }
@@ -428,10 +513,32 @@ export default class AuthPlugin implements BasePlugin {
     context: object,
     info: GraphQLResolveInfo,
   ) {
-    const postResolveCheck = parent.data.giraphqlAuth?.postResolveMap.get(typename);
+    const unionPostResolveCheck = parent.data.parentFieldData?.giraphqlAuth.postResolveUnionCheck;
+    const postResolveCheck = parent.data.parentFieldData?.giraphqlAuth.postResolveMap.get(typename);
+    const grants = parent.data.giraphqlAuth!.grantedPermissions;
+    const returnTypename = parent.data.parentFieldData?.giraphqlAuth.returnTypename;
+
+    if (unionPostResolveCheck) {
+      const postResolveResult = await unionPostResolveCheck(
+        typename,
+        parent.value,
+        context,
+        grants,
+      );
+
+      if (!postResolveResult) {
+        throw new ForbiddenError(
+          `${returnTypename} postResolveCheck failed for ${info.parentType.name}.${info.fieldName}`,
+        );
+      }
+
+      if (typeof postResolveResult === 'object') {
+        mergePermGrants(grants, postResolveResult);
+      }
+    }
 
     if (postResolveCheck) {
-      const postResolveResult = await postResolveCheck(parent.value, context);
+      const postResolveResult = await postResolveCheck(parent.value, context, grants);
 
       if (!postResolveResult) {
         throw new ForbiddenError(
@@ -440,7 +547,7 @@ export default class AuthPlugin implements BasePlugin {
       }
 
       if (typeof postResolveResult === 'object') {
-        mergePermGrants(parent.data.giraphqlAuth!.grantedPermissions, postResolveResult);
+        mergePermGrants(grants, postResolveResult);
       }
     }
   }

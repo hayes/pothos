@@ -48,7 +48,9 @@ declare global {
     export interface InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo>
       extends InternalInputFieldBuilder<Types> {}
 
-    export interface ResolverPluginData {}
+    export interface ResolverPluginData {
+      parentFieldData?: GiraphQLSchemaTypes.FieldWrapData;
+    }
 
     export interface FieldWrapData {
       resolve: GraphQLFieldResolver<unknown, object>;

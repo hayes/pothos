@@ -3,6 +3,8 @@ import { MaybePromise } from '@giraphql/core';
 export interface AuthPluginOptions {
   requirePermissionChecks?: boolean;
   explicitMutationChecks?: boolean;
+  skipPreResolveOnInterfaces?: boolean;
+  skipPreResolveOnUnions?: boolean;
 }
 
 export type SharedPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = (
@@ -25,6 +27,24 @@ export type PreResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo> = (
 export type PostResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
   parent: Shape,
   context: Types['Context'],
+  grantedPermissions: Set<string>,
+) => MaybePromise<boolean | PermissionGrantMap>;
+
+export type InterfacePostResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+  typename: keyof Types['Object'],
+  parent: Shape,
+  context: Types['Context'],
+  grantedPermissions: Set<string>,
+) => MaybePromise<boolean | PermissionGrantMap>;
+
+export type UnionPostResolveCheck<
+  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Member extends keyof Types['Object']
+> = (
+  typename: Member,
+  parent: Types['Object'][Member],
+  context: Types['Context'],
+  grantedPermissions: Set<string>,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type PermissionCheckMap<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = {
