@@ -38,7 +38,7 @@ describe('Code generator', () => {
 
     expect(result).toMatchSnapshot();
     expect(result.trim()).toEqual(printSchema(exampleSchema).trim());
-  });
+  }, 10000);
 
   test('starwars schema', async () => {
     const converter = new GirphQLConverter(starwarsSchema);
@@ -49,5 +49,5 @@ describe('Code generator', () => {
 
     expect(result).toMatchSnapshot();
     expect(result.trim()).toEqual(printSchema(starwarsSchema).trim());
-  });
+  }, 10000);
 });

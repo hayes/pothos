@@ -120,6 +120,8 @@ export function wrapResolver(
 
     const wrapped = ResolveValueWrapper.wrap(result);
 
+    wrapped.data.parentFieldData = fieldData;
+
     await resolveHooks?.onWrap?.(wrapped);
 
     return wrapped;

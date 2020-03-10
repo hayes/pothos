@@ -15,24 +15,14 @@ import {
   PermissionMatcher,
   UnionPostResolveCheck,
   InterfacePostResolveCheck,
+  AuthFieldData,
 } from './types';
-import AuthMeta from './auth-wrapper';
+import { AuthMeta } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface FieldWrapData {
-      giraphqlAuth: {
-        returnTypename: string;
-        fieldName: string;
-        preResolveCheckMap?: Map<string, PreResolveCheck<any>>;
-        postResolveMap: Map<string, PostResolveCheck<any, unknown> | null>;
-        postResolveCheck?: PostResolveCheck<any, unknown>;
-        postResolveUnionCheck?: UnionPostResolveCheck<any, any>;
-        postResolveInterfaceCheck?: InterfacePostResolveCheck<any, unknown>;
-        permissionChecksFromType: PermissionCheckMap<any, any>;
-        grantPermissions: GrantPermissions<any, any, any> | null;
-        permissionCheck: PermissionCheck<any, any, any>;
-      };
+      giraphqlAuth: AuthFieldData;
     }
 
     export interface ResolverPluginData {
