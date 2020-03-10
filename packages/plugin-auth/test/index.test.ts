@@ -339,12 +339,34 @@ describe('auth example schema', () => {
   });
 
   describe('shapes (Unions interfaces and postResolveCheck)', () => {
-    test('query all the shapes', async () => {
+    test('query lots of shapes', async () => {
       const query = gql`
         query {
           square {
             name
             size
+          }
+          squareWithoutCheck {
+            name
+            size
+          }
+          rectangle(width: 10, height: 4) {
+            area
+          }
+          rectangleFailsPermission: rectangle(height: 10, width: 4) {
+            area
+          }
+          rectangleFailsPostResolve: rectangle(width: 10, height: -4) {
+            area
+          }
+          rectangleNoGrantFromPreResolve: rectangle(height: 0, width: 1) {
+            area
+          }
+          rectangleNoGrantFromPostResolve: rectangle(height: 1, width: 1) {
+            area
+          }
+          oval {
+            area
           }
           shapes {
             name
@@ -383,6 +405,21 @@ describe('auth example schema', () => {
             name: null,
             size: 16,
           },
+          squareWithoutCheck: null,
+          rectangle: {
+            area: 40,
+          },
+          rectangleFailsPermission: {
+            area: null,
+          },
+          rectangleFailsPostResolve: null,
+          rectangleNoGrantFromPostResolve: {
+            area: null,
+          },
+          rectangleNoGrantFromPreResolve: {
+            area: null,
+          },
+          oval: null,
           shapes: [
             null,
             {
@@ -407,9 +444,36 @@ describe('auth example schema', () => {
         },
         errors: [
           expect.objectContaining({
+            message: 'Missing permission check on Query.squareWithoutCheck.',
+            path: ['squareWithoutCheck'],
+          }),
+          expect.objectContaining({
+            message: 'preResolveCheck failed for Query.oval on Oval',
+            path: ['oval'],
+          }),
+          expect.objectContaining({
+            message: 'postResolveCheck failed for Query.rectangle on Rectangle',
+            path: ['rectangleFailsPostResolve'],
+          }),
+          expect.objectContaining({
             message:
               'Permission check on Shape.name failed. Missing the following permission: readName',
             path: ['square', 'name'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permission: readRectangle',
+            path: ['rectangleFailsPermission', 'area'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permission: preResolve',
+            path: ['rectangleNoGrantFromPreResolve', 'area'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permissions: postResolve, readRectangle',
+            path: ['rectangleNoGrantFromPostResolve', 'area'],
           }),
           expect.objectContaining({
             message:
@@ -425,6 +489,368 @@ describe('auth example schema', () => {
             message:
               'Permission check on Circle.area failed. Missing the following permission: readCircle',
             path: ['shapes', 0, 'area'],
+          }),
+        ],
+      });
+    });
+
+    test('postResolveHook on interface implementors', async () => {
+      const query = gql`
+        query {
+          thingWithCorners(width: 10, height: 4) {
+            ... on Rectangle {
+              area
+            }
+          }
+          failsPermission: thingWithCorners(height: 10, width: 4) {
+            ... on Rectangle {
+              area
+            }
+          }
+          failsPostResolve: thingWithCorners(width: 10, height: -4) {
+            ... on Rectangle {
+              area
+            }
+          }
+          noGrantFromPreResolve: thingWithCorners(height: 0, width: 1) {
+            ... on Rectangle {
+              area
+            }
+          }
+          noGrantFromPostResolve: thingWithCorners(height: 1, width: 1) {
+            ... on Rectangle {
+              area
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(0),
+      });
+
+      expect(result).toEqual({
+        data: {
+          thingWithCorners: {
+            area: 40,
+          },
+          failsPermission: {
+            area: null,
+          },
+          failsPostResolve: null,
+          noGrantFromPostResolve: {
+            area: null,
+          },
+          noGrantFromPreResolve: {
+            area: null,
+          },
+        },
+        errors: [
+          expect.objectContaining({
+            message: 'postResolveCheck failed for Query.thingWithCorners on Rectangle',
+            path: ['failsPostResolve'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permission: readRectangle',
+            path: ['failsPermission', 'area'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permission: preResolve',
+            path: ['noGrantFromPreResolve', 'area'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permissions: postResolve, readRectangle',
+            path: ['noGrantFromPostResolve', 'area'],
+          }),
+        ],
+      });
+    });
+
+    test('preResolveHook on interface implementors', async () => {
+      const query = gql`
+        query {
+          ovalThing {
+            __typename
+            ... on Oval {
+              area
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(0),
+      });
+
+      expect(result).toEqual({
+        data: {
+          ovalThing: null,
+        },
+        errors: [
+          expect.objectContaining({
+            message: 'preResolveCheck failed for Query.ovalThing on Oval',
+            path: ['ovalThing'],
+          }),
+        ],
+      });
+    });
+
+    test('preResolveHook on union members', async () => {
+      const query = gql`
+        query {
+          roundThing(oval: false) {
+            __typename
+            ... on Circle {
+              area
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(0),
+      });
+
+      expect(result).toEqual({
+        data: {
+          roundThing: null,
+        },
+        errors: [
+          expect.objectContaining({
+            message: 'preResolveCheck failed for Query.roundThing on Oval',
+            path: ['roundThing'],
+          }),
+        ],
+      });
+    });
+
+    test('postResolveHook on union members', async () => {
+      const query = gql`
+        query {
+          cornerUnion(width: 10, height: 4) {
+            ... on Rectangle {
+              area
+            }
+          }
+          failsPermission: cornerUnion(height: 10, width: 4) {
+            ... on Rectangle {
+              area
+            }
+          }
+          failsPostResolve: cornerUnion(width: 10, height: -4) {
+            ... on Rectangle {
+              area
+            }
+          }
+          noGrantFromPreResolve: cornerUnion(height: 0, width: 1) {
+            ... on Rectangle {
+              area
+            }
+          }
+          noGrantFromPostResolve: cornerUnion(height: 1, width: 1) {
+            ... on Rectangle {
+              area
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(0),
+      });
+
+      expect(result).toEqual({
+        data: {
+          cornerUnion: {
+            area: 40,
+          },
+          failsPermission: {
+            area: null,
+          },
+          failsPostResolve: null,
+          noGrantFromPostResolve: {
+            area: null,
+          },
+          noGrantFromPreResolve: {
+            area: null,
+          },
+        },
+        errors: [
+          expect.objectContaining({
+            message: 'postResolveCheck failed for Query.cornerUnion on Rectangle',
+            path: ['failsPostResolve'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permission: readRectangle',
+            path: ['failsPermission', 'area'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permission: preResolve',
+            path: ['noGrantFromPreResolve', 'area'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Rectangle.area failed. Missing the following permissions: postResolve, readRectangle',
+            path: ['noGrantFromPostResolve', 'area'],
+          }),
+        ],
+      });
+    });
+
+    test('preResolveCheck on unions', async () => {
+      const query = gql`
+        query {
+          preResolvePassUnion {
+            ... on Line {
+              length
+            }
+          }
+          preResolveFailUnion {
+            ... on Line {
+              length
+            }
+          }
+          postResolvePassUnion {
+            ... on Line {
+              length
+            }
+          }
+          postResolveFailUnion {
+            ... on Line {
+              length
+            }
+          }
+          skipMemberPreResolveUnion {
+            ... on Line {
+              length
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(0),
+      });
+
+      expect(result).toEqual({
+        data: {
+          preResolvePassUnion: {
+            length: 3,
+          },
+          preResolveFailUnion: null,
+          postResolvePassUnion: {
+            length: 3,
+          },
+          postResolveFailUnion: null,
+          skipMemberPreResolveUnion: {
+            length: null,
+          },
+        },
+        errors: [
+          expect.objectContaining({
+            message: 'preResolveCheck failed for Query.preResolveFailUnion on PreResolveFailUnion',
+            path: ['preResolveFailUnion'],
+          }),
+          expect.objectContaining({
+            message:
+              'postResolveCheck failed for Query.postResolveFailUnion on PostResolveFailUnion',
+            path: ['postResolveFailUnion'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Line.length failed. Missing the following permission: ranPreResolve',
+            path: ['skipMemberPreResolveUnion', 'length'],
+          }),
+        ],
+      });
+    });
+
+    test('preResolveCheck on interfaces', async () => {
+      const query = gql`
+        query {
+          line {
+            length
+          }
+          interfacePreResolvePass {
+            ... on Line {
+              length
+            }
+          }
+          interfacePreResolveFail {
+            ... on Line {
+              length
+            }
+          }
+          interfacePostResolvePass {
+            ... on Line {
+              length
+            }
+          }
+          interfacePostResolveFail {
+            ... on Line {
+              length
+            }
+          }
+          skipImplementorPreResolveChecks {
+            ... on Line {
+              length
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: authSchema,
+        document: query,
+        contextValue: createContext(0),
+      });
+
+      expect(result).toEqual({
+        data: {
+          line: {
+            length: 3,
+          },
+          interfacePreResolvePass: {
+            length: 3,
+          },
+          interfacePreResolveFail: null,
+          interfacePostResolvePass: {
+            length: 3,
+          },
+          interfacePostResolveFail: null,
+          skipImplementorPreResolveChecks: {
+            length: null,
+          },
+        },
+        errors: [
+          expect.objectContaining({
+            message: 'preResolveCheck failed for Query.interfacePreResolveFail on PreResolveFail',
+            path: ['interfacePreResolveFail'],
+          }),
+          expect.objectContaining({
+            message:
+              'postResolveCheck failed for Query.interfacePostResolveFail on PostResolveFail',
+            path: ['interfacePostResolveFail'],
+          }),
+          expect.objectContaining({
+            message:
+              'Permission check on Line.length failed. Missing the following permission: ranPreResolve',
+            path: ['skipImplementorPreResolveChecks', 'length'],
           }),
         ],
       });

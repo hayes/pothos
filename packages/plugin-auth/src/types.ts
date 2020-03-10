@@ -1,4 +1,5 @@
 import { MaybePromise } from '@giraphql/core';
+import { GrantedPermissions } from './grant-map';
 
 export interface AuthPluginOptions {
   requirePermissionChecks?: boolean;
@@ -18,7 +19,7 @@ export type FieldPermissionCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Par
   context: Types['Context'],
 ) => MaybePromise<boolean | string | string[] | PermissionMatcher>;
 
-export type PermissionGrantMap = { [s: string]: boolean };
+export type PermissionGrantMap = { [s: string]: boolean | undefined };
 
 export type PreResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo> = (
   context: Types['Context'],
@@ -27,14 +28,14 @@ export type PreResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo> = (
 export type PostResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
   parent: Shape,
   context: Types['Context'],
-  grantedPermissions: Set<string>,
+  grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type InterfacePostResolveCheck<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
   typename: keyof Types['Object'],
   parent: Shape,
   context: Types['Context'],
-  grantedPermissions: Set<string>,
+  grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type UnionPostResolveCheck<
@@ -44,7 +45,7 @@ export type UnionPostResolveCheck<
   typename: Member,
   parent: Types['Object'][Member],
   context: Types['Context'],
-  grantedPermissions: Set<string>,
+  grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type PermissionCheckMap<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> = {
@@ -76,3 +77,19 @@ export type PermissionMatcher =
       any?: undefined;
       sequential?: boolean;
     };
+
+export interface AuthFieldData {
+  returnTypename: string;
+  fieldName: string;
+  fieldParentTypename: string;
+  resolveChecks: ResolveChecksForType;
+  permissionCheckers: PermissionCheckMap<any, any>;
+  grantPermissions: GrantPermissions<any, any, any> | null;
+  permissionCheck: PermissionCheck<any, any, any>;
+}
+
+export interface ResolveChecksForType {
+  grantAsShared?: string;
+  preResolveMap: Map<string, PreResolveCheck<any>>;
+  postResolveMap: Map<string, Map<string, PostResolveCheck<any, unknown>>>;
+}
