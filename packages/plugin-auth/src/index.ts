@@ -1,8 +1,15 @@
 /* eslint-disable no-param-reassign */
-import { BasePlugin, TypeParam, Field, BuildCache, ResolveValueWrapper } from '@giraphql/core';
+import {
+  BasePlugin,
+  TypeParam,
+  Field,
+  BuildCache,
+  ResolveValueWrapper,
+  MaybePromise,
+} from '@giraphql/core';
 import { GraphQLFieldConfig } from 'graphql';
 import './global-types';
-import { PreResolveCheck, AuthPluginOptions } from './types';
+import { PreResolveCheck, AuthPluginOptions, PermissionGrantMap } from './types';
 import AuthMeta from './auth-meta';
 import GrantMap, { GrantedPermissions } from './grant-map';
 import { checkFieldPermissions } from './check-field-permissions';
@@ -21,7 +28,7 @@ export default class AuthPlugin implements BasePlugin {
 
   preResolveAuthCheckCache = new WeakMap<
     object,
-    Map<PreResolveCheck<any>, ReturnType<PreResolveCheck<any>>>
+    Map<PreResolveCheck<any>, MaybePromise<boolean | PermissionGrantMap>>
   >();
 
   skipPreResolveOnInterfaces: boolean;
