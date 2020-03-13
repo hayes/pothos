@@ -162,13 +162,13 @@ export function wrapResolver(
 
           return {
             next: async () => {
-              const value = await iter.next();
+              const { done, value } = await iter.next();
 
               const wrapped = ResolveValueWrapper.wrap(value);
 
               await subscribeHook?.onWrap?.(wrapped);
 
-              return wrapped;
+              return { value: wrapped, done };
             },
             return: iter.return?.bind(iter),
             throw: iter.throw?.bind(iter),
