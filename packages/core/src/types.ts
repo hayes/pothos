@@ -310,7 +310,7 @@ export type Subscriber<Parent, Args, Context, Shape> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => AsyncIterator<Shape>;
+) => AsyncIterable<Shape>;
 
 export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
 

@@ -63,10 +63,27 @@ export default class AuthPlugin implements BasePlugin {
     args: object,
     context: object,
   ) {
-    const { resolveChecks, returnTypename, grantPermissions } = data.giraphqlAuth;
+    const {
+      resolveChecks,
+      returnTypename,
+      grantPermissions,
+      fieldParentTypename,
+    } = data.giraphqlAuth;
 
     if (!parent.data.giraphqlAuth) {
       parent.data.giraphqlAuth = new AuthMeta();
+    }
+
+    if (fieldParentTypename === 'Subscription') {
+      return {
+        async onWrap(child: ResolveValueWrapper) {
+          child.data.giraphqlAuth = new AuthMeta(
+            parent.data.giraphqlAuth?.grantedPermissions.clone(),
+          );
+
+          return runPostResolveChecks(returnTypename, data, child, context);
+        },
+      };
     }
 
     await checkFieldPermissions(
@@ -93,6 +110,44 @@ export default class AuthPlugin implements BasePlugin {
         child.data.giraphqlAuth = new AuthMeta(newGrants);
 
         return runPostResolveChecks(returnTypename, data, child, context);
+      },
+    };
+  }
+
+  async beforeSubscribe(
+    parent: ResolveValueWrapper,
+    data: GiraphQLSchemaTypes.FieldWrapData,
+    args: object,
+    context: object,
+  ) {
+    const { resolveChecks, returnTypename, grantPermissions } = data.giraphqlAuth;
+
+    if (!parent.data.giraphqlAuth) {
+      parent.data.giraphqlAuth = new AuthMeta();
+    }
+
+    await checkFieldPermissions(
+      this.requirePermissionChecks && !resolveChecks.preResolveMap.has(returnTypename),
+      parent,
+      data,
+      args,
+      context,
+    );
+
+    const newGrants = await runPreResolveChecks(data, context, this);
+
+    if (grantPermissions) {
+      const grants =
+        typeof grantPermissions === 'function'
+          ? await grantPermissions(parent.value, args, context)
+          : grantPermissions;
+
+      newGrants.mergeSharedGrants(grants);
+    }
+
+    return {
+      onWrap(child: ResolveValueWrapper) {
+        child.data.giraphqlAuth = new AuthMeta(newGrants);
       },
     };
   }

@@ -42,6 +42,17 @@ export interface BasePlugin {
     onWrap?(child: ResolveValueWrapper): MaybePromise<void>;
   }>;
 
+  beforeSubscribe?(
+    parent: ResolveValueWrapper,
+    data: GiraphQLSchemaTypes.FieldWrapData,
+    args: object,
+    context: object,
+    info: GraphQLResolveInfo,
+  ): MaybePromise<{
+    onSubscribe?(value: unknown): MaybePromise<void>;
+    onWrap?(child: ResolveValueWrapper): MaybePromise<void>;
+  }>;
+
   onInterfaceResolveType?(
     typename: string,
     parent: ResolveValueWrapper,

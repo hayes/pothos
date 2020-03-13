@@ -40,7 +40,8 @@ export default class SubscriptionManager {
     let first = true;
 
     const primed = {
-      ...iterator,
+      throw: iterator.throw?.bind(iterator),
+      return: iterator.return?.bind(iterator),
       next: () => {
         if (first) {
           first = false;

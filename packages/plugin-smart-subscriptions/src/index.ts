@@ -61,7 +61,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
 
             this.setSubscriptionManager(manager, context, info);
 
-            return manager[Symbol.asyncIterator]();
+            return manager;
           },
         }),
       }));

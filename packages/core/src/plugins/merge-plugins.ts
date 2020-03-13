@@ -26,6 +26,10 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     plugin => plugin.beforeResolve,
   ) as Pick<Required<BasePlugin>, 'beforeResolve'>[];
 
+  const beforeSubscribePlugins: Pick<Required<BasePlugin>, 'beforeSubscribe'>[] = plugins.filter(
+    plugin => plugin.beforeSubscribe,
+  ) as Pick<Required<BasePlugin>, 'beforeSubscribe'>[];
+
   const onInterfaceResolveTypePlugins: Pick<
     Required<BasePlugin>,
     'onInterfaceResolveType'
@@ -109,6 +113,48 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
             ? undefined
             : async (value: unknown) => {
                 for (const fn of onResolveFns) {
+                  await fn(value);
+                }
+              },
+        onWrap:
+          onWrapFns.length === 0
+            ? undefined
+            : async (child: ResolveValueWrapper) => {
+                for (const fn of onWrapFns) {
+                  await fn(child);
+                }
+              },
+      };
+    },
+
+    async beforeSubscribe(
+      parent: ResolveValueWrapper,
+      data: GiraphQLSchemaTypes.FieldWrapData,
+      args: object,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) {
+      const onSubscribeFns: ((value: unknown) => MaybePromise<void>)[] = [];
+      const onWrapFns: ((child: ResolveValueWrapper) => MaybePromise<void>)[] = [];
+
+      for (const plugin of beforeSubscribePlugins) {
+        const hooks = await plugin.beforeSubscribe(parent, data, args, context, info);
+
+        if (hooks?.onSubscribe) {
+          onSubscribeFns.push(hooks.onSubscribe);
+        }
+
+        if (hooks?.onWrap) {
+          onWrapFns.push(hooks.onWrap);
+        }
+      }
+
+      return {
+        onSubscribe:
+          onSubscribeFns.length === 0
+            ? undefined
+            : async (value: unknown) => {
+                for (const fn of onSubscribeFns) {
                   await fn(value);
                 }
               },

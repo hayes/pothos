@@ -69,6 +69,7 @@ export function wrapResolver(
   cache: BuildCache,
 ) {
   const originalResolver = config.resolve || defaultFieldResolver;
+  const originalSubscribe = config.subscribe;
   const partialFieldData: Partial<GiraphQLSchemaTypes.FieldWrapData> = {
     resolve: originalResolver,
   };
@@ -126,6 +127,58 @@ export function wrapResolver(
 
     return wrapped;
   };
+
+  if (originalSubscribe) {
+    const wrappedSubscribe = async (
+      originalParent: unknown,
+      args: {},
+      context: object,
+      info: GraphQLResolveInfo,
+    ) => {
+      const parent = ResolveValueWrapper.wrap(originalParent);
+
+      const subscribeHook = await plugin.beforeSubscribe(parent, fieldData, args, context, info);
+
+      const result: AsyncIterable<unknown> = await originalSubscribe(
+        parent.value,
+        args,
+        context,
+        info,
+      );
+
+      await subscribeHook?.onSubscribe?.(result);
+
+      if (!result) {
+        return result;
+      }
+
+      return {
+        [Symbol.asyncIterator]: () => {
+          if (typeof result[Symbol.asyncIterator] !== 'function') {
+            return result;
+          }
+
+          const iter = result[Symbol.asyncIterator]();
+
+          return {
+            next: async () => {
+              const value = await iter.next();
+
+              const wrapped = ResolveValueWrapper.wrap(value);
+
+              await subscribeHook?.onWrap?.(wrapped);
+
+              return wrapped;
+            },
+            return: iter.return?.bind(iter),
+            throw: iter.throw?.bind(iter),
+          };
+        },
+      };
+    };
+
+    config.subscribe = wrappedSubscribe; // eslint-disable-line no-param-reassign
+  }
 
   wrappedResolver.unwrap = () => originalResolver;
 

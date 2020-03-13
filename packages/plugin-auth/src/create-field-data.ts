@@ -171,7 +171,8 @@ export function createFieldData(
 
   const permissionCheck: PermissionCheck<any, any, any> =
     field.options.permissionCheck ||
-    (parentType.kind === 'Object' && parentType.options.defaultPermissionCheck) ||
+    ((parentType.kind === 'Object' || parentType.kind === 'Interface') &&
+      parentType.options.defaultPermissionCheck) ||
     [];
 
   const permissionCheckers: {
