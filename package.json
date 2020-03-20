@@ -52,12 +52,10 @@
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
-      "yarn run prettier",
-      "git add"
+      "yarn run prettier"
     ],
     "*.md": [
-      "yarn run prettier --tab-width 4",
-      "git add"
+      "yarn run prettier --tab-width 4"
     ]
   },
   "husky": {
