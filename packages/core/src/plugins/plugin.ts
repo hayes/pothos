@@ -1,4 +1,4 @@
-import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
+import { GraphQLFieldConfig, GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { BuildCacheEntry, TypeParam, MaybePromise, ImplementedType } from '../types';
 import Field from '../graphql/field';
 import BuildCache from '../build-cache';
@@ -30,6 +30,10 @@ export interface BasePlugin {
     field: Field<{}, any, TypeParam<any>>,
     builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
   ): void;
+
+  beforeBuild?(builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
+
+  afterBuild?(schema: GraphQLSchema, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
 
   beforeResolve?(
     parent: ResolveValueWrapper,

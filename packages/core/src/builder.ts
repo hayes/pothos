@@ -287,6 +287,8 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     extensions?: Record<string, unknown>;
     mocks?: ResolverMap;
   } = {}) {
+    this.plugin.beforeBuild(this);
+
     if (this.pendingFields.size) {
       throw new Error(
         `Fields defined without defining type (${[...this.pendingFields.keys()].join(', ')}).`,
@@ -316,6 +318,8 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
       directives: directives as GraphQLDirective[],
       types: builtTypes,
     });
+
+    this.plugin.afterBuild(schema, this);
 
     return schema;
   }

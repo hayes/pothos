@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
+import { GraphQLFieldConfig, GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import { BasePlugin, Field } from '..';
 import { TypeParam, BuildCacheEntry, MaybePromise, ImplementedType } from '../types';
 import BuildCache from '../build-cache';
@@ -50,9 +50,17 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     plugin => plugin.onType,
   ) as Pick<Required<BasePlugin>, 'onType'>[];
 
-  const onFieldsPlugins: Pick<Required<BasePlugin>, 'onField'>[] = plugins.filter(
+  const onFieldPlugins: Pick<Required<BasePlugin>, 'onField'>[] = plugins.filter(
     plugin => plugin.onField,
   ) as Pick<Required<BasePlugin>, 'onField'>[];
+
+  const beforeBuildPlugins: Pick<Required<BasePlugin>, 'beforeBuild'>[] = plugins.filter(
+    plugin => plugin.beforeBuild,
+  ) as Pick<Required<BasePlugin>, 'beforeBuild'>[];
+
+  const afterBuildPlugins: Pick<Required<BasePlugin>, 'afterBuild'>[] = plugins.filter(
+    plugin => plugin.afterBuild,
+  ) as Pick<Required<BasePlugin>, 'afterBuild'>[];
 
   return {
     visitType(entry: BuildCacheEntry, cache: BuildCache) {
@@ -203,8 +211,20 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       field: Field<{}, any, TypeParam<any>>,
       builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
     ) {
-      for (const plugin of onFieldsPlugins) {
+      for (const plugin of onFieldPlugins) {
         plugin.onField(type, name, field, builder);
+      }
+    },
+
+    beforeBuild(builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+      for (const plugin of beforeBuildPlugins) {
+        plugin.beforeBuild(builder);
+      }
+    },
+
+    afterBuild(schema: GraphQLSchema, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+      for (const plugin of afterBuildPlugins) {
+        plugin.afterBuild(schema, builder);
       }
     },
   };
