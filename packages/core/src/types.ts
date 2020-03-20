@@ -211,7 +211,14 @@ export type ObjectName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types
 
 export type RootName = 'Query' | 'Mutation' | 'Subscription';
 
-export type FieldKind = RootName | 'Object' | 'Interface';
+export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
+  GiraphQLSchemaTypes.TypeInfo,
+  {},
+  TypeParam<GiraphQLSchemaTypes.TypeInfo>,
+  boolean,
+  {},
+  {}
+>;
 
 export type ScalarNameWithInputShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = {
   [K in keyof Types['Scalar']]: Types['Scalar'][K]['Input'] extends Shape ? K : never;
@@ -352,22 +359,14 @@ export type FieldOptionsFromKind<
   Args extends InputFields<Types>,
   Kind extends FieldKind,
   ResolveShape
-> = Kind extends 'Query'
-  ? GiraphQLSchemaTypes.QueryFieldOptions<Types, Type, Nullable, Args>
-  : Kind extends 'Mutation'
-  ? GiraphQLSchemaTypes.MutationFieldOptions<Types, Type, Nullable, Args>
-  : Kind extends 'Object'
-  ? GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args>
-  : Kind extends 'Interface'
-  ? GiraphQLSchemaTypes.InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args>
-  : GiraphQLSchemaTypes.SubscriptionFieldOptions<
-      Types,
-      ParentShape,
-      Type,
-      Nullable,
-      Args,
-      ResolveShape
-    >;
+> = GiraphQLSchemaTypes.FieldOptionsByKind<
+  Types,
+  ParentShape,
+  Type,
+  Nullable,
+  Args,
+  ResolveShape
+>[Kind];
 
 export type CompatibleInterfaceParam<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> =
   | CompatibleInterfaceNames<Types, Shape>

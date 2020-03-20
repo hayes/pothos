@@ -306,5 +306,33 @@ declare global {
       parseLiteral?: GraphQLScalarLiteralParser<InputShape>;
       extensions?: Readonly<Record<string, unknown>>;
     }
+
+    export interface FieldOptionsByKind<
+      Types extends GiraphQLSchemaTypes.TypeInfo,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFields<Types>,
+      ResolveShape
+    > {
+      Query: QueryFieldOptions<Types, Type, Nullable, Args>;
+      Mutation: MutationFieldOptions<Types, Type, Nullable, Args>;
+      Subscription: SubscriptionFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveShape
+      >;
+      Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args>;
+      Interface: GiraphQLSchemaTypes.InterfaceFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args
+      >;
+    }
   }
 }
