@@ -23,6 +23,7 @@ import {
   ShapeFromType,
   InterfaceParam,
   FieldKind,
+  MergedScalars,
 } from './types';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
@@ -100,6 +101,15 @@ declare global {
       Interface?: {};
       Root?: {};
       Context?: {};
+    }
+
+    export interface MergedTypeMap<Partial extends GiraphQLSchemaTypes.PartialTypeInfo>
+      extends GiraphQLSchemaTypes.TypeInfo {
+      Scalar: Partial['Scalar'] & MergedScalars<Partial['Scalar'] & {}>;
+      Object: Partial['Object'] & {};
+      Interface: Partial['Interface'] & {};
+      Root: Partial['Root'] & {};
+      Context: Partial['Context'] & {};
     }
 
     export interface InputOptions<

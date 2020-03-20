@@ -16,7 +16,7 @@ import BaseType from './graphql/base';
 import QueryType from './graphql/query';
 import SubscriptionType from './graphql/subscription';
 import MutationType from './graphql/mutation';
-import { FieldKind, MergedTypeMap } from './types';
+import { FieldKind } from './types';
 import { BasePlugin } from './plugins';
 
 export * from './types';
@@ -43,7 +43,7 @@ export {
 export default SchemaBuilder as {
   new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
     plugins?: BasePlugin[];
-  }): GiraphQLSchemaTypes.SchemaBuilder<MergedTypeMap<Types>>;
+  }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.MergedTypeMap<Types>>;
 };
 
 export const FieldBuilder = InternalFieldBuilder as {

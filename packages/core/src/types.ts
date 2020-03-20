@@ -73,15 +73,6 @@ export type RecursivelyNormalizeNullableFields<T> = T extends object[]
   : NormalizeNullable<T>;
 
 // TypeMap
-export interface MergedTypeMap<Partial extends GiraphQLSchemaTypes.PartialTypeInfo>
-  extends GiraphQLSchemaTypes.TypeInfo {
-  Scalar: Partial['Scalar'] & MergedScalars<Partial['Scalar'] & {}>;
-  Object: Partial['Object'] & {};
-  Interface: Partial['Interface'] & {};
-  Root: Partial['Root'] & {};
-  Context: Partial['Context'] & {};
-}
-
 export type MergedScalars<Partial extends { [s: string]: { Input: unknown; Output: unknown } }> = {
   [K in keyof DefaultScalars]: Partial[K] extends { Input: unknown; Output: unknown }
     ? Partial[K]
