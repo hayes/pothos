@@ -18,6 +18,7 @@ import SubscriptionType from './graphql/subscription';
 import MutationType from './graphql/mutation';
 import { FieldKind } from './types';
 import { BasePlugin } from './plugins';
+import BaseInputType from './graphql/base-input';
 
 export * from './types';
 export * from './utils';
@@ -25,6 +26,7 @@ export * from './plugins';
 
 export {
   BaseType,
+  BaseInputType,
   BuildCache,
   EnumType,
   Field,

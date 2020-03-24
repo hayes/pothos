@@ -1,7 +1,10 @@
 import { GraphQLScalarType } from 'graphql';
-import BaseType from './base';
+import { BaseInputType } from '..';
 
-export default class ScalarType<InputShape, OutputShape> extends BaseType<OutputShape, InputShape> {
+export default class ScalarType<InputShape, OutputShape> extends BaseInputType<
+  OutputShape,
+  InputShape
+> {
   kind: 'Scalar' = 'Scalar';
 
   options: GiraphQLSchemaTypes.ScalarOptions<unknown, unknown>;

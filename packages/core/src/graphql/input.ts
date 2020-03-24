@@ -6,12 +6,13 @@ import BaseType from './base';
 import { buildArg } from '../utils';
 import InputFieldBuilder from '../fieldUtils/input';
 import BuildCache from '../build-cache';
+import BaseInputType from './base-input';
 
 export default class InputObjectType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Shape,
   Name extends string
-> extends BaseType<never, Shape> {
+> extends BaseInputType<never, Shape> {
   kind: 'InputObject' = 'InputObject';
 
   options: GiraphQLSchemaTypes.InputTypeOptions<any, any>;

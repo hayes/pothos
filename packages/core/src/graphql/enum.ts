@@ -1,13 +1,13 @@
 import { GraphQLEnumType, GraphQLEnumValueConfigMap, GraphQLEnumValueConfig } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import BaseType from './base';
 import { EnumValues, ShapeFromEnumValues } from '../types';
+import BaseInputType from './base-input';
 
 export default class EnumType<
   Values extends EnumValues = EnumValues,
   Shape extends string = ShapeFromEnumValues<Values>
-> extends BaseType<Shape> {
+> extends BaseInputType<Shape> {
   values: GraphQLEnumValueConfigMap;
 
   description?: string;

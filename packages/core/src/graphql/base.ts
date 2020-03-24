@@ -2,12 +2,10 @@ import { GraphQLType } from 'graphql';
 import BuildCache from '../build-cache';
 import { BasePlugin } from '../plugins';
 
-export default abstract class BaseType<Shape = unknown, InputShape = Shape> {
+export default abstract class BaseType<Shape = unknown> {
   typename: string;
 
   shape?: Shape;
-
-  inputShape?: InputShape;
 
   abstract kind:
     | 'Object'

@@ -21,6 +21,7 @@ import './global-types';
 import QueryType from './graphql/query';
 import MutationType from './graphql/mutation';
 import SubscriptionType from './graphql/subscription';
+import { BaseInputType } from '.';
 
 // Utils
 export type MaybePromise<T> = T | Promise<T>;
@@ -160,9 +161,7 @@ export type TypeParam<Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchem
 
 // Input types
 export type InputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
-  | InputObjectType<Types, {}, string>
-  | ScalarType<Types, ScalarName<Types>>
-  | EnumType
+  | BaseInputType
   | ScalarName<Types>;
 
 export type InputObjectOfShape<Shape> = InputObjectType<
@@ -289,7 +288,7 @@ export type InputShapeFromNonListField<
 export type InputShapeFromType<
   Types extends GiraphQLSchemaTypes.TypeInfo,
   Type extends InputType<Types>
-> = Type extends BaseType
+> = Type extends BaseInputType
   ? NonNullable<Type['inputShape']>
   : Type extends ScalarName<Types>
   ? Types['Scalar'][Type]['Input']
