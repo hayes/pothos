@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-smart-subscriptions",
-  "version": "0.13.2",
+  "version": "0.13.3",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@giraphql/core": "^0.15.0",
+    "@giraphql/core": "^0.16.0",
     "apollo-server": "^2.10.1",
     "graphql": "^14.6.0",
     "graphql-subscriptions": "^1.1.0"
