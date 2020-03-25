@@ -25,7 +25,7 @@ declare global {
         subscriptions: SubscriptionManager,
         parent: unknown,
         args: {},
-        context: object,
+        context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
     }
