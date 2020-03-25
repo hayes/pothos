@@ -112,7 +112,13 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
 
     if (field.parentTypename === 'Subscription') {
       const queryFields = cache.getFields('Query');
+
       const queryField = queryFields[name];
+
+      if (!queryField) {
+        return;
+      }
+
       const options = queryField.options as GiraphQLSchemaTypes.QueryFieldOptions<
         any,
         TypeParam<any>,
