@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { TypeParam, FieldNullability, InputFields } from '@giraphql/core';
+import { TypeParam, FieldNullability, InputFields, InputShapeFromFields } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 import { SubscriptionManager } from '.';
 
@@ -23,8 +23,8 @@ declare global {
       smartSubscription?: boolean;
       subscribe?: (
         subscriptions: SubscriptionManager,
-        parent: unknown,
-        args: {},
+        parent: Types['Root'],
+        args: InputShapeFromFields<Types, Args>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
@@ -39,8 +39,8 @@ declare global {
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
       subscribe?: (
         subscriptions: SubscriptionManager,
-        parent: unknown,
-        args: {},
+        parent: ParentShape,
+        args: InputShapeFromFields<Types, Args>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;

@@ -141,7 +141,13 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     >;
 
     if (options.subscribe) {
-      data.smartSubscriptions.subscribe = options.subscribe;
+      data.smartSubscriptions.subscribe = options.subscribe as (
+        subscriptions: SubscriptionManager,
+        parent: unknown,
+        args: {},
+        context: object,
+        info: GraphQLResolveInfo,
+      ) => void;
     }
   }
 
