@@ -1,4 +1,4 @@
-import { BaseType } from '..';
+import BaseType from './base';
 
 export default abstract class BaseInputType<Shape = unknown, InputShape = Shape> extends BaseType<
   Shape
