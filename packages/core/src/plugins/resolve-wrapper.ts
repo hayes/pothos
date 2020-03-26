@@ -12,24 +12,31 @@ import { BasePlugin, BuildCache, Field } from '..';
 import { TypeParam } from '../types';
 
 export class ResolveValueWrapper {
+  parent: ResolveValueWrapper | null;
+
   value: unknown;
 
   data: Partial<GiraphQLSchemaTypes.ResolverPluginData> = {};
 
-  constructor(value: unknown) {
+  constructor(value: unknown, parent: ResolveValueWrapper | null = null) {
     this.value = value;
+    this.parent = parent;
   }
 
   unwrap() {
     return this.value;
   }
 
-  static wrap(value: unknown) {
+  static wrap(value: unknown, parent: ResolveValueWrapper | null = null) {
     if (value instanceof ResolveValueWrapper) {
       return value;
     }
 
-    return new ResolveValueWrapper(value);
+    return new ResolveValueWrapper(value, parent);
+  }
+
+  child(value: unknown) {
+    return new ResolveValueWrapper(value, this);
   }
 }
 
@@ -93,6 +100,16 @@ export function wrapResolver(
 
     const result = await fieldData.resolve(parent.value, args, context, info);
 
+    async function wrapChild(child: unknown, index: number | null) {
+      const wrapped = parent.child(child);
+
+      wrapped.data.parentFieldData = fieldData;
+
+      await resolveHooks?.onWrap?.(wrapped, index, (next: unknown) => wrapChild(child, index));
+
+      return wrapped;
+    }
+
     await resolveHooks?.onResolve?.(result);
 
     if (result === null || result === undefined || isScalarResolver) {
@@ -100,32 +117,10 @@ export function wrapResolver(
     }
 
     if (isListResolver && assertArray(result)) {
-      const wrappedResults: unknown[] = [];
-
-      for (const item of result) {
-        wrappedResults.push(
-          Promise.resolve(item).then(async resolved => {
-            const wrapped = ResolveValueWrapper.wrap(resolved);
-
-            wrapped.data.parentFieldData = fieldData;
-
-            await resolveHooks?.onWrap?.(wrapped);
-
-            return wrapped;
-          }),
-        );
-      }
-
-      return wrappedResults;
+      return result.map((item, i) => Promise.resolve(item).then(value => wrapChild(value, i)));
     }
 
-    const wrapped = ResolveValueWrapper.wrap(result);
-
-    wrapped.data.parentFieldData = fieldData;
-
-    await resolveHooks?.onWrap?.(wrapped);
-
-    return wrapped;
+    return wrapChild(result, null);
   };
 
   if (originalSubscribe) {
@@ -164,7 +159,7 @@ export function wrapResolver(
             next: async () => {
               const { done, value } = await iter.next();
 
-              const wrapped = ResolveValueWrapper.wrap(value);
+              const wrapped = parent.child(value);
 
               await subscribeHook?.onWrap?.(wrapped);
 
