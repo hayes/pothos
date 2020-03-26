@@ -1,5 +1,5 @@
 import { GraphQLScalarType } from 'graphql';
-import { BaseInputType } from '..';
+import BaseInputType from './base-input';
 
 export default class ScalarType<InputShape, OutputShape> extends BaseInputType<
   OutputShape,
