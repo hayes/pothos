@@ -8,12 +8,13 @@ import {
 } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 import { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
+import ResolverCache from './resolver-cache';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       subscribe?: (
-        subscriptions: TypeSubscriptionManager,
+        subscriptions: TypeSubscriptionManager<Shape>,
         parent: Shape,
         context: Types['Context'],
         info: GraphQLResolveInfo,
@@ -55,9 +56,8 @@ declare global {
 
     export interface ResolverPluginData {
       smartSubscriptions: {
-        cache: Map<string, unknown>;
+        cache: ResolverCache;
         refetch: () => void;
-        parentPath?: string;
         replace?: (p: MaybePromise<unknown>) => void;
         subscriptionByType: {
           [k: string]:

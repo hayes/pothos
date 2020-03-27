@@ -1,16 +1,6 @@
 /* eslint-disable no-await-in-loop */
-import { MaybePromise } from '@giraphql/core';
-import { MergedAsyncIterator, FieldSubscriptionManager, TypeSubscriptionManager } from '..';
-
-export type RefetchFunction<T, ParentShape> = (val: T) => ParentShape;
-export type IteratorFilterFunction<T = unknown> = (val: T) => boolean;
-export type IteratorCallback<T = unknown> = (val: T) => MaybePromise<void>;
-export type IteratorCacheInvalidator<T = unknown> = (val: T) => void;
-
-export interface RegisterOptions<T = unknown> {
-  filter?: IteratorFilterFunction<T>;
-  onValue?: IteratorCallback<T>;
-}
+import { MergedAsyncIterator } from '..';
+import { RegisterOptions } from '../types';
 
 export default class SubscriptionManager {
   iterator: MergedAsyncIterator<unknown>;
@@ -43,19 +33,8 @@ export default class SubscriptionManager {
     this.iterator.pushValue(null);
   }
 
-  forField(refetch: () => MaybePromise<void>) {
-    return new FieldSubscriptionManager(this, refetch);
-  }
-
-  forType(
-    replace: (promise: MaybePromise<unknown>) => void,
-    refetchParent: () => MaybePromise<void>,
-  ) {
-    return new TypeSubscriptionManager(this, replace, refetchParent);
-  }
-
   addOptions(name: string, options: RegisterOptions) {
-    if (this.nextOptions.has(name)) {
+    if (!this.nextOptions.has(name)) {
       this.nextOptions.set(name, []);
     }
 
@@ -92,7 +71,9 @@ export default class SubscriptionManager {
     return allowed;
   }
 
-  register<T>(name: string, options: RegisterOptions<T>) {
+  register<T>({ name, ...options }: RegisterOptions<T>) {
+    this.addOptions(name, options as RegisterOptions);
+
     if (this.nextSubscriptions.has(name)) {
       return;
     }
@@ -102,8 +83,6 @@ export default class SubscriptionManager {
 
       return;
     }
-
-    this.addOptions(name, options as RegisterOptions);
 
     const iterator = this.subscribeToName(name);
 

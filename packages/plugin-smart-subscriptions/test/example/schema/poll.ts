@@ -4,7 +4,15 @@ const POLLS = 'polls';
 
 builder.objectType('Poll', {
   subscribe: (subscriptions, parent, context) => {
-    subscriptions.register(`poll/${parent.id}`);
+    subscriptions.register(`poll/${parent.id}`, {
+      filter: () => {
+        return true;
+      },
+      invalidateCache: () => {},
+      refetch: () => {
+        return context.Poll.map.get(parent.id)!;
+      },
+    });
   },
   shape: t => ({
     id: t.exposeID('id', {}),
@@ -36,7 +44,22 @@ builder.queryFields(t => ({
     smartSubscription: true,
     subscribe: subscriptions => subscriptions.register('polls'),
     resolve: (root, args, { Poll }) => {
+      console.log('getting polls');
+
       return [...Poll.map.values()];
+    },
+  }),
+  poll: t.field({
+    type: 'Poll',
+    smartSubscription: true,
+    nullable: true,
+    args: {
+      id: t.arg.int({ required: true }),
+    },
+    resolve: (root, args, { Poll }) => {
+      console.log('getting poll', args.id);
+
+      return Poll.map.get(args.id);
     },
   }),
 }));

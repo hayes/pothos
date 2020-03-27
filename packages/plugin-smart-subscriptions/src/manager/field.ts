@@ -1,24 +1,20 @@
 import { MaybePromise } from '@giraphql/core';
 import { SubscriptionManager } from '..';
-import { IteratorFilterFunction, IteratorCacheInvalidator } from '.';
+import { RegisterFieldSubscriptionOptions } from '../types';
+import BaseSubscriptionManager from './base';
 
-export interface RegisterFieldSubscriptionOptions<T> {
-  filter?: IteratorFilterFunction<T>;
-  invalidateCache?: IteratorCacheInvalidator<T>;
-}
-
-export default class FieldSubscriptionManager {
-  manager: SubscriptionManager;
-
+export default class FieldSubscriptionManager extends BaseSubscriptionManager {
   refetch: () => MaybePromise<void>;
 
   constructor(manager: SubscriptionManager, refetch: () => MaybePromise<void>) {
-    this.manager = manager;
+    super(manager);
+
     this.refetch = refetch;
   }
 
   register<T>(name: string, { filter, invalidateCache }: RegisterFieldSubscriptionOptions<T> = {}) {
-    this.manager.register<T>(name, {
+    this.addRegistration<T>({
+      name,
       filter,
       onValue: value => {
         if (invalidateCache) {

@@ -7,6 +7,8 @@ export const pubsub = new PubSub();
 
 const server = new ApolloServer({
   schema,
+  debug: true,
+  tracing: true,
   context: () => ({
     Poll,
     pubsub,
