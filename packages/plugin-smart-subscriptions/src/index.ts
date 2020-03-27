@@ -14,10 +14,12 @@ import MergedAsyncIterator from './merged-iterator';
 import SubscriptionManager from './manager';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
-import { SmartSubscriptionOptions, WrappedResolver } from './types';
+import { SmartSubscriptionOptions } from './types';
 import { rootName } from './utils';
 import ResolverCache, { CacheForField } from './resolver-cache';
 import BaseSubscriptionManager from './manager/base';
+import wrapField from './wrap-field';
+import createFieldData from './create-field-data';
 
 export {
   MergedAsyncIterator,
@@ -33,7 +35,7 @@ export * from './types';
 export * from './utils';
 
 export default class SmartSubscriptionsPlugin<Context extends object> implements BasePlugin {
-  managerMap = new WeakMap<Context, Map<string, SubscriptionManager>>();
+  managerMap = new WeakMap<object, Map<string, SubscriptionManager>>();
 
   subscribe: (name: string, context: Context) => AsyncIterator<unknown>;
 
@@ -76,7 +78,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     }
   }
 
-  setSubscriptionManager(manager: SubscriptionManager, context: Context, info: GraphQLResolveInfo) {
+  setSubscriptionManager(manager: SubscriptionManager, context: object, info: GraphQLResolveInfo) {
     if (!this.managerMap.has(context)) {
       this.managerMap.set(context, new Map());
     }
@@ -84,7 +86,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     this.managerMap.get(context)!.set(rootName(info.path), manager);
   }
 
-  getSubscriptionManager(context: Context, info: GraphQLResolveInfo) {
+  getSubscriptionManager(context: object, info: GraphQLResolveInfo) {
     return this.managerMap.get(context)?.get(rootName(info.path));
   }
 
@@ -95,100 +97,8 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
     buildCache: BuildCache,
   ) {
-    data.smartSubscriptions = { subscriptionByType: {}, canRefetch: false };
-
-    const originalResolve = config.resolve!;
-
-    const wrappedResolver: WrappedResolver<Context> = (maybeWrappedParent, args, context, info) => {
-      if (!this.getSubscriptionManager(context, info)) {
-        return originalResolve(maybeWrappedParent, args, context, info);
-      }
-
-      const parentWrapper = ResolveValueWrapper.wrap(maybeWrappedParent);
-
-      const { cache } = parentWrapper.data.smartSubscriptions!;
-
-      return cache.resolve(parentWrapper, args, context, info, originalResolve);
-    };
-
-    wrappedResolver.unwrap = () => (originalResolve as WrappedResolver).unwrap();
-
-    config.resolve = wrappedResolver as WrappedResolver;
-
-    const nonListType = Array.isArray(field.type) ? field.type[0] : field.type;
-    const typename = typeof nonListType === 'object' ? nonListType.typename : nonListType;
-    const fieldType = buildCache.getEntry(typename);
-
-    if (fieldType.kind === 'Object') {
-      data.smartSubscriptions.objectSubscription = fieldType.type.options.subscribe;
-      data.smartSubscriptions.canRefetch =
-        (field.options as GiraphQLSchemaTypes.ObjectFieldOptions<
-          any,
-          {},
-          TypeParam<any>,
-          boolean,
-          {}
-        >).canRefetch || false;
-    } else if (fieldType.kind === 'Interface') {
-      const implementers = buildCache.getImplementers(typename);
-
-      implementers.forEach(obj => {
-        data.smartSubscriptions!.subscriptionByType[obj.typename] = obj.options.subscribe;
-      });
-    } else if (fieldType.kind === 'Union') {
-      fieldType.type.members.forEach(memberName => {
-        data.smartSubscriptions!.subscriptionByType[memberName] = buildCache.getEntryOfType(
-          memberName,
-          'Object',
-        ).type.options.subscribe;
-      });
-    }
-
-    if (field.parentTypename === 'Subscription') {
-      const queryFields = buildCache.getFields('Query');
-
-      const queryField = queryFields[name];
-
-      if (!queryField) {
-        return;
-      }
-
-      const options = queryField.options as GiraphQLSchemaTypes.QueryFieldOptions<
-        any,
-        TypeParam<any>,
-        boolean,
-        {}
-      >;
-
-      if (options.subscribe && options.smartSubscription) {
-        data.smartSubscriptions.subscribe = options.subscribe;
-      }
-
-      return;
-    }
-    const type = buildCache.getEntry(field.parentTypename);
-
-    if (type.kind !== 'Object') {
-      return;
-    }
-
-    const options = field.options as GiraphQLSchemaTypes.ObjectFieldOptions<
-      any,
-      {},
-      TypeParam<any>,
-      boolean,
-      {}
-    >;
-
-    if (options.subscribe) {
-      data.smartSubscriptions.subscribe = options.subscribe as (
-        subscriptions: FieldSubscriptionManager,
-        parent: unknown,
-        args: {},
-        context: object,
-        info: GraphQLResolveInfo,
-      ) => void;
-    }
+    wrapField(config, (context, info) => this.getSubscriptionManager(context, info));
+    createFieldData(name, field, data, buildCache);
   }
 
   beforeResolve(
@@ -245,34 +155,20 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
           (data.smartSubscriptions.objectSubscription ||
             Object.keys(data.smartSubscriptions.subscriptionByType).length !== 0)
         ) {
-          const replace = (promise: MaybePromise<unknown>) => {
-            const cacheEntry = Promise.resolve(promise).then(value => wrapChild(value));
+          child.data.smartSubscriptions.typeSubscriptionManager = childCache.managerForType(
+            info,
+            manager,
+            promise => {
+              const cacheEntry = Promise.resolve(promise).then(value => wrapChild(value));
 
-            if (index === null) {
-              cache.setResult(info, cacheEntry);
-            } else {
-              const cacheResult = cache.get(info)?.result;
-
-              if (!cacheResult || !Array.isArray(cacheResult)) {
-                throw new TypeError(
-                  `Expected cache for ${info.parentType.name}.${info.fieldName} to be an Array`,
-                );
-              }
-
-              cacheResult[index] = cacheEntry;
-            }
-          };
-
-          child.data.smartSubscriptions.replace = replace;
+              cache.replace(cacheEntry, info, index);
+            },
+            child.data.smartSubscriptions.refetch,
+          );
 
           if (data.smartSubscriptions.objectSubscription) {
             data.smartSubscriptions.objectSubscription(
-              childCache.managerForType(
-                info,
-                manager,
-                replace,
-                child.data.smartSubscriptions.refetch,
-              ),
+              child.data.smartSubscriptions.typeSubscriptionManager,
               child.value,
               context,
               info,
@@ -323,12 +219,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
 
     if (manager && cache && subscribe) {
       subscribe(
-        cache.managerForType(
-          info,
-          manager,
-          parent.data.smartSubscriptions?.replace!,
-          parent.data.smartSubscriptions?.refetch!,
-        ),
+        parent.data.smartSubscriptions!.typeSubscriptionManager!,
         parent.value,
         context,
         info,
@@ -348,12 +239,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
 
     if (manager && cache && subscribe) {
       subscribe(
-        cache.managerForType(
-          info,
-          manager,
-          parent.data.smartSubscriptions?.replace!,
-          parent.data.smartSubscriptions?.refetch!,
-        ),
+        parent.data.smartSubscriptions!.typeSubscriptionManager!,
         parent.value,
         context,
         info,

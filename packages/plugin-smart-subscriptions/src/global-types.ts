@@ -1,11 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
-  TypeParam,
-  FieldNullability,
-  InputFields,
-  InputShapeFromFields,
-  MaybePromise,
-} from '@giraphql/core';
+import { TypeParam, FieldNullability, InputFields, InputShapeFromFields } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 import { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
 import ResolverCache from './resolver-cache';
@@ -58,7 +52,7 @@ declare global {
       smartSubscriptions: {
         cache: ResolverCache;
         refetch: () => void;
-        replace?: (p: MaybePromise<unknown>) => void;
+        typeSubscriptionManager?: TypeSubscriptionManager;
         subscriptionByType: {
           [k: string]:
             | undefined

@@ -25,9 +25,10 @@ export default class ResolverCache {
     manager: SubscriptionManager,
     refetch: () => MaybePromise<void>,
   ) {
+    const path = stringPath(info.path);
     const fieldManager = new FieldSubscriptionManager(manager, refetch);
 
-    this.getOrCreate(info).fieldManagers.push(fieldManager);
+    this.getOrCreate(path).fieldManagers.push(fieldManager);
 
     return fieldManager;
   }
@@ -38,22 +39,19 @@ export default class ResolverCache {
     replace: (promise: MaybePromise<unknown>) => void,
     refetchParent: () => MaybePromise<void>,
   ) {
+    const path = stringPath(info.path);
     const typeManager = new TypeSubscriptionManager(manager, replace, refetchParent);
 
-    this.getOrCreate(info);
+    this.getOrCreate(path);
 
     return typeManager;
   }
 
-  has(info: GraphQLResolveInfo) {
-    const path = stringPath(info.path);
-
+  has(path: string) {
     return this.fields.has(path);
   }
 
-  get(info: GraphQLResolveInfo) {
-    const path = stringPath(info.path);
-
+  get(path: string) {
     return this.fields.get(path);
   }
 
@@ -63,9 +61,7 @@ export default class ResolverCache {
     return this.fields.delete(path);
   }
 
-  getOrCreate(info: GraphQLResolveInfo) {
-    const path = stringPath(info.path);
-
+  getOrCreate(path: string) {
     if (this.fields.has(path)) {
       return this.fields.get(path)!;
     }
@@ -76,8 +72,8 @@ export default class ResolverCache {
     return cache;
   }
 
-  setResult(info: GraphQLResolveInfo, result: unknown) {
-    this.getOrCreate(info).result = result;
+  setResult(path: string, result: unknown) {
+    this.getOrCreate(path).result = result;
   }
 
   async resolve(
@@ -87,8 +83,10 @@ export default class ResolverCache {
     info: GraphQLResolveInfo,
     resolver: GraphQLFieldResolver<unknown, object>,
   ) {
-    if (this.has(info)) {
-      const cache = this.get(info)!;
+    const path = stringPath(info.path);
+
+    if (this.has(path)) {
+      const cache = this.get(path)!;
 
       cache.reRegister();
 
@@ -97,8 +95,26 @@ export default class ResolverCache {
 
     const result = await resolver(parent, args, context, info);
 
-    this.setResult(info, result);
+    this.setResult(path, result);
 
     return result;
+  }
+
+  replace(cacheEntry: MaybePromise<unknown>, info: GraphQLResolveInfo, index: null | number) {
+    const path = stringPath(info.path);
+
+    if (index === null) {
+      this.setResult(path, cacheEntry);
+    } else {
+      const cacheResult = this.get(path)?.result;
+
+      if (!cacheResult || !Array.isArray(cacheResult)) {
+        throw new TypeError(
+          `Expected cache for ${info.parentType.name}.${info.fieldName} to be an Array`,
+        );
+      }
+
+      cacheResult[index] = cacheEntry;
+    }
   }
 }

@@ -23,6 +23,7 @@ builder.objectType('Poll', {
     answers: t.exposeStringList('answers', {}),
     results: t.field({
       type: ['PollResult'],
+      // canRefetch: true,
       resolve: parent => {
         return [...parent.results].map(([answer, count]) => ({
           answer,
@@ -34,7 +35,16 @@ builder.objectType('Poll', {
 });
 
 builder.objectType('PollResult', {}, t => ({
-  answer: t.exposeString('answer', {}),
+  answer: t.exposeString('answer', {
+    // subscribe: (subscriptions, parent, context) => {
+    //   subscriptions.register(`poll/1`, {
+    //     filter: () => {
+    //       return true;
+    //     },
+    //     invalidateCache: () => {},
+    //   });
+    // },
+  }),
   count: t.exposeInt('count', {}),
 }));
 
@@ -44,8 +54,6 @@ builder.queryFields(t => ({
     smartSubscription: true,
     subscribe: subscriptions => subscriptions.register('polls'),
     resolve: (root, args, { Poll }) => {
-      console.log('getting polls');
-
       return [...Poll.map.values()];
     },
   }),
@@ -57,8 +65,6 @@ builder.queryFields(t => ({
       id: t.arg.int({ required: true }),
     },
     resolve: (root, args, { Poll }) => {
-      console.log('getting poll', args.id);
-
       return Poll.map.get(args.id);
     },
   }),
