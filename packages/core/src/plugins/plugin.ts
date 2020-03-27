@@ -43,7 +43,11 @@ export interface BasePlugin {
     info: GraphQLResolveInfo,
   ): MaybePromise<{
     onResolve?(value: unknown): MaybePromise<void>;
-    onWrap?(child: ResolveValueWrapper): MaybePromise<void>;
+    onWrap?(
+      child: ResolveValueWrapper,
+      index: number | null,
+      wrap: (child: unknown) => MaybePromise<ResolveValueWrapper>,
+    ): MaybePromise<void>;
   }>;
 
   beforeSubscribe?(

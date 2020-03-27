@@ -35,7 +35,11 @@ export default class InterfaceType<
     return new GraphQLInterfaceType({
       name: String(this.typename),
       description: this.description,
-      resolveType: async (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+      resolveType: async (
+        parent: ResolveValueWrapper,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
         let typename = String(this.typename);
 
@@ -50,12 +54,7 @@ export default class InterfaceType<
           }
         }
 
-        await plugin.onInterfaceResolveType(
-          typename,
-          ResolveValueWrapper.wrap(parent),
-          context,
-          info,
-        );
+        await plugin.onInterfaceResolveType(typename, parent, context, info);
 
         return typename;
       },

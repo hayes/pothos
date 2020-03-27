@@ -1,13 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { TypeParam, FieldNullability, InputFields, InputShapeFromFields } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
-import { SubscriptionManager } from '.';
+import { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
+import ResolverCache from './resolver-cache';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       subscribe?: (
-        subscriptions: SubscriptionManager,
+        subscriptions: TypeSubscriptionManager<Shape>,
         parent: Shape,
         context: Types['Context'],
         info: GraphQLResolveInfo,
@@ -22,7 +23,7 @@ declare global {
     > {
       smartSubscription?: boolean;
       subscribe?: (
-        subscriptions: SubscriptionManager,
+        subscriptions: FieldSubscriptionManager,
         parent: Types['Root'],
         args: InputShapeFromFields<Types, Args>,
         context: Types['Context'],
@@ -38,21 +39,25 @@ declare global {
       Args extends InputFields<Types>
     > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
       subscribe?: (
-        subscriptions: SubscriptionManager,
+        subscriptions: FieldSubscriptionManager,
         parent: ParentShape,
         args: InputShapeFromFields<Types, Args>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
+      canRefetch?: boolean;
     }
 
     export interface ResolverPluginData {
       smartSubscriptions: {
+        cache: ResolverCache;
+        refetch: () => void;
+        typeSubscriptionManager?: TypeSubscriptionManager;
         subscriptionByType: {
           [k: string]:
             | undefined
             | ((
-                subscriptions: SubscriptionManager,
+                subscriptions: TypeSubscriptionManager,
                 parent: unknown,
                 context: object,
                 info: GraphQLResolveInfo,
@@ -64,23 +69,24 @@ declare global {
     export interface FieldWrapData {
       smartSubscriptions: {
         subscribe?: (
-          subscriptions: SubscriptionManager,
+          subscriptions: FieldSubscriptionManager,
           parent: unknown,
           args: {},
           context: object,
           info: GraphQLResolveInfo,
         ) => void;
         objectSubscription?: (
-          subscriptions: SubscriptionManager,
+          subscriptions: TypeSubscriptionManager,
           parent: unknown,
           context: object,
           info: GraphQLResolveInfo,
         ) => void;
+        canRefetch: boolean;
         subscriptionByType: {
           [k: string]:
             | undefined
             | ((
-                subscriptions: SubscriptionManager,
+                subscriptions: TypeSubscriptionManager,
                 parent: unknown,
                 context: object,
                 info: GraphQLResolveInfo,

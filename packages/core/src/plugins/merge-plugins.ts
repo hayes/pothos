@@ -101,7 +101,11 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       info: GraphQLResolveInfo,
     ) {
       const onResolveFns: ((value: unknown) => MaybePromise<void>)[] = [];
-      const onWrapFns: ((child: ResolveValueWrapper) => MaybePromise<void>)[] = [];
+      const onWrapFns: ((
+        child: ResolveValueWrapper,
+        index: number | null,
+        wrap: (child: unknown) => MaybePromise<ResolveValueWrapper>,
+      ) => MaybePromise<void>)[] = [];
 
       for (const plugin of beforeResolvePlugins) {
         const hooks = await plugin.beforeResolve(parent, data, args, context, info);
@@ -127,9 +131,13 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
         onWrap:
           onWrapFns.length === 0
             ? undefined
-            : async (child: ResolveValueWrapper) => {
+            : async (
+                child: ResolveValueWrapper,
+                index: number | null,
+                wrap: (child: unknown) => MaybePromise<ResolveValueWrapper>,
+              ) => {
                 for (const fn of onWrapFns) {
-                  await fn(child);
+                  await fn(child, index, wrap);
                 }
               },
       };

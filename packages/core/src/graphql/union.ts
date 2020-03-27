@@ -36,11 +36,15 @@ export default class UnionType<
     return new GraphQLUnionType({
       name: this.typename,
       description: this.description,
-      resolveType: async (parent: unknown, context: object, info: GraphQLResolveInfo) => {
+      resolveType: async (
+        parent: ResolveValueWrapper,
+        context: object,
+        info: GraphQLResolveInfo,
+      ) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
         const typename = await this.options.resolveType(obj, context, info);
 
-        await plugin.onUnionResolveType(typename, ResolveValueWrapper.wrap(parent), context, info);
+        await plugin.onUnionResolveType(typename, parent, context, info);
 
         return typename;
       },

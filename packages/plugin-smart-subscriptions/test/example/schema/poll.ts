@@ -4,7 +4,15 @@ const POLLS = 'polls';
 
 builder.objectType('Poll', {
   subscribe: (subscriptions, parent, context) => {
-    subscriptions.register(`poll/${parent.id}`);
+    subscriptions.register(`poll/${parent.id}`, {
+      filter: () => {
+        return true;
+      },
+      invalidateCache: () => {},
+      refetch: () => {
+        return context.Poll.map.get(parent.id)!;
+      },
+    });
   },
   shape: t => ({
     id: t.exposeID('id', {}),
@@ -15,6 +23,7 @@ builder.objectType('Poll', {
     answers: t.exposeStringList('answers', {}),
     results: t.field({
       type: ['PollResult'],
+      // canRefetch: true,
       resolve: parent => {
         return [...parent.results].map(([answer, count]) => ({
           answer,
@@ -26,7 +35,16 @@ builder.objectType('Poll', {
 });
 
 builder.objectType('PollResult', {}, t => ({
-  answer: t.exposeString('answer', {}),
+  answer: t.exposeString('answer', {
+    // subscribe: (subscriptions, parent, context) => {
+    //   subscriptions.register(`poll/1`, {
+    //     filter: () => {
+    //       return true;
+    //     },
+    //     invalidateCache: () => {},
+    //   });
+    // },
+  }),
   count: t.exposeInt('count', {}),
 }));
 
@@ -37,6 +55,17 @@ builder.queryFields(t => ({
     subscribe: subscriptions => subscriptions.register('polls'),
     resolve: (root, args, { Poll }) => {
       return [...Poll.map.values()];
+    },
+  }),
+  poll: t.field({
+    type: 'Poll',
+    smartSubscription: true,
+    nullable: true,
+    args: {
+      id: t.arg.int({ required: true }),
+    },
+    resolve: (root, args, { Poll }) => {
+      return Poll.map.get(args.id);
     },
   }),
 }));
