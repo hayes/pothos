@@ -29,11 +29,11 @@ export default function createFieldData(
   } else if (fieldType.kind === 'Interface') {
     const implementers = buildCache.getImplementers(typename);
 
-    implementers.forEach(obj => {
+    implementers.forEach((obj) => {
       data.smartSubscriptions!.subscriptionByType[obj.typename] = obj.options.subscribe;
     });
   } else if (fieldType.kind === 'Union') {
-    fieldType.type.members.forEach(memberName => {
+    fieldType.type.members.forEach((memberName) => {
       data.smartSubscriptions!.subscriptionByType[memberName] = buildCache.getEntryOfType(
         memberName,
         'Object',

@@ -16,7 +16,7 @@ export default class FieldSubscriptionManager extends BaseSubscriptionManager {
     this.addRegistration<T>({
       name,
       filter,
-      onValue: value => {
+      onValue: (value) => {
         if (invalidateCache) {
           invalidateCache(value);
         }

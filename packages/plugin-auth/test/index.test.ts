@@ -1,11 +1,13 @@
-import { printSchema, execute } from 'graphql';
+import { printSchema, execute, lexicographicSortSchema } from 'graphql';
 import gql from 'graphql-tag';
 import authSchema from './examples/auth/schema';
 import { createContext } from './examples/auth/data';
 
 describe('auth example schema', () => {
   test('generates expected schema', () => {
-    expect(printSchema(authSchema)).toMatchSnapshot();
+    expect(
+      printSchema(lexicographicSortSchema(lexicographicSortSchema(authSchema))),
+    ).toMatchSnapshot();
   });
 
   describe('query user', () => {

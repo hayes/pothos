@@ -22,7 +22,7 @@ export default async function runPostResolveChecks(
       postResolvePromises.push(
         Promise.resolve(
           postResolveCheck(parent.value, context, grants.permissionsForType(name)),
-        ).then(result => ({
+        ).then((result) => ({
           name,
           result,
         })),

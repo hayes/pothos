@@ -123,7 +123,7 @@ export default class SubscriptionManager {
       return: this.iterator.return,
       throw: this.iterator.throw,
       next: () => {
-        [...this.activeSubscriptions.keys()].forEach(name => {
+        [...this.activeSubscriptions.keys()].forEach((name) => {
           if (!this.nextSubscriptions.has(name)) {
             // eslint-disable-next-line no-unused-expressions
             this.activeSubscriptions.get(name)?.return?.(null);

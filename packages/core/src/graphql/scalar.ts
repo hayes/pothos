@@ -9,7 +9,10 @@ export default class ScalarType<InputShape, OutputShape> extends BaseInputType<
 
   options: GiraphQLSchemaTypes.ScalarOptions<unknown, unknown>;
 
-  constructor(name: string, options: GiraphQLSchemaTypes.ScalarOptions<InputShape, OutputShape>) {
+  constructor(
+    name: string,
+    options: Omit<GiraphQLSchemaTypes.ScalarOptions<InputShape, OutputShape>, 'name'>,
+  ) {
     super(name);
 
     this.options = options;
@@ -17,7 +20,7 @@ export default class ScalarType<InputShape, OutputShape> extends BaseInputType<
 
   buildType() {
     return new GraphQLScalarType({
-      name: this.options.name,
+      name: this.typename,
       description: this.options.description,
       serialize: this.options.serialize,
       parseLiteral: this.options.parseLiteral,

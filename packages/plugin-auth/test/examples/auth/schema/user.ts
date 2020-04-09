@@ -2,7 +2,7 @@ import builder from '../builder';
 
 export default builder.objectType('User', {
   defaultPermissionCheck: 'readUserField',
-  preResolveCheck: context => {
+  preResolveCheck: (context) => {
     if (!context.user || context.user.id > 2) {
       return false;
     }
@@ -12,9 +12,9 @@ export default builder.objectType('User', {
     };
   },
   permissions: {
-    readEmail: parent => !!(parent.id % 2),
+    readEmail: (parent) => !!(parent.id % 2),
   },
-  shape: t => ({
+  shape: (t) => ({
     id: t.exposeID('id', {
       permissionCheck: ['readUserId'],
     }),

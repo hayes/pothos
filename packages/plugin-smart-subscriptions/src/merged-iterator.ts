@@ -63,8 +63,8 @@ export default class MergedAsyncIterator<T> implements AsyncIterator<T>, AsyncIt
     this.nextPending.set(iter, true);
 
     iter.next().then(
-      res => this.handleResult(res, iter),
-      error => this.handleError(error),
+      (res) => this.handleResult(res, iter),
+      (error) => this.handleError(error),
     );
   }
 
@@ -194,7 +194,7 @@ export default class MergedAsyncIterator<T> implements AsyncIterator<T>, AsyncIt
   return = async () => {
     this.stop();
 
-    await Promise.all([...this.iterators].map(iter => iter.return?.()));
+    await Promise.all([...this.iterators].map((iter) => iter.return?.()));
 
     return {
       value: undefined,
@@ -205,7 +205,7 @@ export default class MergedAsyncIterator<T> implements AsyncIterator<T>, AsyncIt
   throw = async (error: any) => {
     this.stop();
 
-    this.iterators.forEach(iter => {
+    this.iterators.forEach((iter) => {
       // eslint-disable-next-line no-unused-expressions
       iter.throw?.(error).catch(() => {});
     });

@@ -44,12 +44,11 @@ export default class BuildCache {
 
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
 
-    scalars.forEach(scalar => {
+    scalars.forEach((scalar) => {
       this.types.set(scalar.name, {
         kind: 'Scalar',
         built: scalar,
         type: new ScalarType(scalar.name, {
-          name: scalar.name,
           description: scalar.description ?? undefined,
           serialize: scalar.serialize,
           parseLiteral: scalar.parseLiteral,
@@ -105,7 +104,7 @@ export default class BuildCache {
 
   mergeFields(typename: string, base: FieldMap, newFields: FieldMap, allowOverwrite = false) {
     if (!allowOverwrite) {
-      Object.keys(newFields).forEach(key => {
+      Object.keys(newFields).forEach((key) => {
         if (base[key]) {
           throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
         }
@@ -230,7 +229,7 @@ export default class BuildCache {
   getImplementers(typename: string) {
     const implementers = [];
     for (const entry of this.types.values()) {
-      if (entry.kind === 'Object' && entry.type.interfaces.find(type => type === typename)) {
+      if (entry.kind === 'Object' && entry.type.interfaces.find((type) => type === typename)) {
         implementers.push(entry.type);
       }
     }

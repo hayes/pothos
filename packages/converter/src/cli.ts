@@ -9,14 +9,14 @@ import GiraphQLConverter from '.';
 export default yargs.command(
   'convert <path>',
   'convert SDL to GiraphQL',
-  args => {
+  (args) => {
     args.option('out', { type: 'string', description: 'path to write output to' });
     args.alias('o', 'out');
     args.option('types', { type: 'array', description: 'list of types to output' });
     args.alias('t', 'types');
     args.positional('path', { description: 'path to SDL file', type: 'string' });
   },
-  argv => {
+  (argv) => {
     const inputPath = path.resolve(process.cwd(), argv.path as string);
 
     if (!fs.existsSync(inputPath)) {

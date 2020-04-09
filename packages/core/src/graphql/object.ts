@@ -33,7 +33,7 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
     this.options = options;
 
     this.description = options.description;
-    this.interfaces = (options.implements ?? []).map(iface =>
+    this.interfaces = (options.implements ?? []).map((iface) =>
       typeof iface === 'string'
         ? iface
         : (iface as InterfaceType<Types, InterfaceName<Types>>).typename,
@@ -44,7 +44,8 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
     return new GraphQLObjectType({
       name: String(this.typename),
       description: this.description,
-      interfaces: () => this.interfaces.map(type => cache.getEntryOfType(type, 'Interface').built),
+      interfaces: () =>
+        this.interfaces.map((type) => cache.getEntryOfType(type, 'Interface').built),
       fields: () =>
         fromEntries(
           Object.entries(cache.getFields(this.typename)).map(([key, field]) => [

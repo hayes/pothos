@@ -1,4 +1,4 @@
-import { printSchema, execute } from 'graphql';
+import { printSchema, execute, lexicographicSortSchema } from 'graphql';
 import gql from 'graphql-tag';
 import starwarsSchema from './examples/starwars/schema';
 
@@ -6,7 +6,7 @@ import builder from './examples/starwars/builder';
 
 describe('starwars example', () => {
   test('generates expected schema', () => {
-    expect(printSchema(starwarsSchema)).toMatchSnapshot();
+    expect(printSchema(lexicographicSortSchema(starwarsSchema))).toMatchSnapshot();
   });
 
   describe('queries', () => {

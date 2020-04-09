@@ -1,7 +1,7 @@
 import exampleSchema from '@giraphql/core/test/examples/random-stuff';
 import starwarsSchema from '@giraphql/core/test/examples/starwars/schema';
 import { spawn } from 'child_process';
-import { printSchema } from 'graphql';
+import { printSchema, lexicographicSortSchema } from 'graphql';
 import GirphQLConverter from '../src';
 
 function execTS(script: string) {
@@ -11,8 +11,8 @@ function execTS(script: string) {
       stdio: ['pipe', 'pipe', 'inherit'],
     });
 
-    child.on('error', err => reject(err));
-    child.stdout.on('data', chunk => chunks.push(chunk));
+    child.on('error', (err) => reject(err));
+    child.stdout.on('data', (chunk) => chunks.push(chunk));
     child.stdout.on('end', () => resolve(Buffer.concat(chunks).toString()));
 
     child.stdin.write(script);
@@ -21,7 +21,7 @@ function execTS(script: string) {
 }
 
 async function printGeneratedSchema(converter: GirphQLConverter) {
-  const script = `import { printSchema } from 'graphql'\n${converter.toString()}\n\nconsole.log(printSchema(schema))`;
+  const script = `import { printSchema, lexicographicSortSchema } from 'graphql'\n${converter.toString()}\n\nconsole.log(printSchema(lexicographicSortSchema(schema)))`;
 
   const result = await execTS(script);
 
@@ -37,7 +37,7 @@ describe('Code generator', () => {
     const result = await printGeneratedSchema(converter);
 
     expect(result).toMatchSnapshot();
-    expect(result.trim()).toEqual(printSchema(exampleSchema).trim());
+    expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(exampleSchema)).trim());
   }, 10000);
 
   test('starwars schema', async () => {
@@ -48,6 +48,6 @@ describe('Code generator', () => {
     const result = await printGeneratedSchema(converter);
 
     expect(result).toMatchSnapshot();
-    expect(result.trim()).toEqual(printSchema(starwarsSchema).trim());
+    expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(starwarsSchema)).trim());
   }, 10000);
 });

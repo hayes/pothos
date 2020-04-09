@@ -1,14 +1,14 @@
 import builder from '../builder';
 
 export default builder.objectType('User', {
-  shape: t => ({
+  shape: (t) => ({
     id: t.exposeID('id', {}),
     firstName: t.exposeString('firstName', {}),
     lastName: t.exposeString('lastName', {}),
     email: t.exposeString('email', {}),
   }),
   extends: {
-    Query: t => ({
+    Query: (t) => ({
       user: t.field({
         type: 'User',
         args: {
@@ -25,7 +25,7 @@ export default builder.objectType('User', {
         },
       }),
     }),
-    Mutation: t => ({
+    Mutation: (t) => ({
       createUser: t.field({
         type: 'User',
         args: {
@@ -59,7 +59,7 @@ export default builder.objectType('User', {
         },
       }),
     }),
-    Subscription: t => ({
+    Subscription: (t) => ({
       user: t.field({
         type: 'User',
         args: {

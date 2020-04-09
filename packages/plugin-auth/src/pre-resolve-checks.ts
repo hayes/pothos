@@ -29,7 +29,7 @@ export default async function runPreResolveChecks(
       }
 
       preResolvePromises.push(
-        Promise.resolve(preResolveCache.get(preResolveCheck)!).then(result => ({ name, result })),
+        Promise.resolve(preResolveCache.get(preResolveCheck)!).then((result) => ({ name, result })),
       );
     }
 

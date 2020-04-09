@@ -2,8 +2,8 @@
 
 exports[`extends example schema generates expected schema 1`] = `
 "type Mutation {
-  createUser(firstName: String!, lastName: String!): User!
   createAdmin(firstName: String!, lastName: String!): User!
+  createUser(firstName: String!, lastName: String!): User!
 }
 
 type Query {
@@ -15,10 +15,10 @@ type Subscription {
 }
 
 type User {
-  id: ID!
-  firstName: String!
-  lastName: String!
   email: String!
+  firstName: String!
+  id: ID!
+  lastName: String!
 }
 "
 `;

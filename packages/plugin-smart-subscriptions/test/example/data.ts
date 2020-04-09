@@ -19,7 +19,7 @@ export class Poll {
 
     this.results = new Map();
 
-    this.answers.forEach(answer => {
+    this.answers.forEach((answer) => {
       this.results.set(answer, 0);
     });
 

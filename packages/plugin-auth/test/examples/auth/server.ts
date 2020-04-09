@@ -4,7 +4,7 @@ import { createContext } from './data';
 
 const server = new ApolloServer({
   schema,
-  context: ctx => {
+  context: (ctx) => {
     const userID = parseInt((ctx.req.headers['x-user-id'] as string) || '0', 10);
 
     return createContext(userID);

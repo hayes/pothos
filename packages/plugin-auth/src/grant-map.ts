@@ -60,7 +60,7 @@ export default class GrantMap {
   }
 
   mergeGrants(type: string, newGrants: PermissionGrantMap) {
-    Object.keys(newGrants).forEach(key => {
+    Object.keys(newGrants).forEach((key) => {
       if (newGrants[key]) {
         this.addPermission(type, key);
       }
@@ -68,7 +68,7 @@ export default class GrantMap {
   }
 
   mergeSharedGrants(newGrants: PermissionGrantMap) {
-    Object.keys(newGrants).forEach(key => {
+    Object.keys(newGrants).forEach((key) => {
       if (newGrants[key]) {
         this.addSharedPermission(key);
       }

@@ -2,25 +2,25 @@
 
 exports[`auth example schema generates expected schema 1`] = `
 "type Circle implements Shape {
-  name: String
   area: Int!
+  name: String
 }
 
 union CornerUnion = Rectangle | Square
 
-type Line implements PreResolvePass & PostResolvePass & SkipImplementorPreResolve {
-  name: String!
+type Line implements PostResolvePass & PreResolvePass & SkipImplementorPreResolve {
   length: Float
+  name: String!
 }
 
 type LinePostResolveFail implements PostResolveFail {
-  name: String!
   length: Float
+  name: String!
 }
 
 type LinePreResolveFail implements PreResolveFail {
-  name: String!
   length: Float
+  name: String!
 }
 
 type Mutation {
@@ -28,15 +28,15 @@ type Mutation {
 }
 
 type Oval implements OvalThing {
-  ovalField: Boolean!
   area: Int!
+  ovalField: Boolean!
 }
 
 interface OvalThing {
   ovalField: Boolean!
 }
 
-union Polygon = Square | Triangle | Rectangle
+union Polygon = Rectangle | Square | Triangle
 
 interface PostResolveFail {
   name: String!
@@ -63,38 +63,38 @@ interface PreResolvePass {
 union PreResolvePassUnion = Line
 
 type Query {
-  user(id: ID!): User!
-  users: [User]!
+  cornerUnion(height: Int!, width: Int!): CornerUnion
+  interfacePostResolveFail: PostResolveFail
+  interfacePostResolvePass: PostResolvePass
+  interfacePreResolveFail: PreResolveFail
+  interfacePreResolvePass: PreResolvePass
+  line: Line!
+  oval: Oval
+  ovalThing(oval: Boolean): RoundThings
+  polygons: [Polygon]!
+  postResolveFailUnion: PostResolveFailUnion
+  postResolvePassUnion: PostResolvePassUnion
+  preResolveFailUnion: PreResolveFailUnion
+  preResolvePassUnion: PreResolvePassUnion
+  rectangle(height: Int!, width: Int!): Rectangle
+  roundThing(oval: Boolean): RoundThings
+  shapes: [Shape]!
+  skipImplementorPreResolveChecks: SkipImplementorPreResolve
+  skipMemberPreResolveUnion: SkipImplementorPreResolveUnion
   square: Square
   squareWithoutCheck: Square
-  rectangle(width: Int!, height: Int!): Rectangle
-  oval: Oval
-  shapes: [Shape]!
-  polygons: [Polygon]!
-  roundThing(oval: Boolean): RoundThings
-  ovalThing(oval: Boolean): RoundThings
-  thingWithCorners(width: Int!, height: Int!): ThingWithCorners
-  cornerUnion(width: Int!, height: Int!): CornerUnion
-  interfacePreResolvePass: PreResolvePass
-  interfacePreResolveFail: PreResolveFail
-  interfacePostResolvePass: PostResolvePass
-  interfacePostResolveFail: PostResolveFail
-  skipImplementorPreResolveChecks: SkipImplementorPreResolve
-  preResolvePassUnion: PreResolvePassUnion
-  preResolveFailUnion: PreResolveFailUnion
-  postResolvePassUnion: PostResolvePassUnion
-  postResolveFailUnion: PostResolveFailUnion
-  skipMemberPreResolveUnion: SkipImplementorPreResolveUnion
-  line: Line!
+  thingWithCorners(height: Int!, width: Int!): ThingWithCorners
+  user(id: ID!): User!
+  users: [User]!
 }
 
 type Rectangle implements Shape & ThingWithCorners {
-  name: String
-  hasCorners: Boolean!
   area: Int
+  hasCorners: Boolean!
+  name: String
 }
 
-union RoundThings = Oval | Circle
+union RoundThings = Circle | Oval
 
 interface Shape {
   name: String
@@ -104,7 +104,7 @@ interface SkipImplementorPreResolve {
   name: String!
 }
 
-union SkipImplementorPreResolveUnion = Oval | Line
+union SkipImplementorPreResolveUnion = Line | Oval
 
 type Square implements Shape {
   name: String
@@ -116,15 +116,15 @@ interface ThingWithCorners {
 }
 
 type Triangle implements Shape {
-  name: String
   edges: Int
+  name: String
 }
 
 type User {
-  id: ID!
-  firstName: String!
-  lastName: String!
   email: String!
+  firstName: String!
+  id: ID!
+  lastName: String!
 }
 "
 `;

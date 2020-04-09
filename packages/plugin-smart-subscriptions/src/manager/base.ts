@@ -12,7 +12,7 @@ export default class BaseSubscriptionManager {
   }
 
   reRegister() {
-    this.registrations.forEach(options => this.manager.register(options));
+    this.registrations.forEach((options) => this.manager.register(options));
   }
 
   constructor(manager: SubscriptionManager) {

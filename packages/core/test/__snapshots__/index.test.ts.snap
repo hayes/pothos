@@ -26,32 +26,32 @@ input Example2 {
 }
 
 type Query {
-  user: User!
-  stuff: [stuff!]!
   sheep: Sheep!
+  stuff: [stuff!]!
+  user: User!
 }
 
-union SearchResult = User | Article
+union SearchResult = Article | User
 
 interface Shaveable {
+  extendMePlease: String!
   id: ID!
   shaved: Boolean!
-  extendMePlease: String!
 }
 
-type Sheep implements Shaveable & Countable {
+type Sheep implements Countable & Shaveable {
+  color(id: ID): String!
+  count(max: Int!): Int!
+  extendMePlease: String!
   id: ID!
   shaved: Boolean!
-  extendMePlease: String!
-  count(max: Int!): Int!
-  color(id: ID): String!
   thing: stuff!
 }
 
 enum stuff {
-  Beats
-  Bears
   BattlestarGalactica
+  Bears
+  Beats
 }
 
 type Subscription {
@@ -59,22 +59,22 @@ type Subscription {
 }
 
 type User {
-  id: ID!
+  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!
-  firstName: String!
-  lastName: String!
   firstBornChild: User!
+  firstName: String!
+  friends: [User!]!
+  id: ID!
+  lastName: String!
+  list(ids: [ID!]!): [ID!]!
+  newField: String!
+  notSparseList(ids: [ID!]!): [ID]
+  optional: String
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!
   related: SearchResult!
-  friends: [User!]!
-  stuff: [String!]!
-  optional: String
-  list(ids: [ID!]!): [ID!]!
   sparseList(ids: [ID]!): [ID]!
-  notSparseList(ids: [ID!]!): [ID]
-  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
-  newField: String!
+  stuff: [String!]!
 }
 "
 `;
@@ -82,9 +82,9 @@ type User {
 exports[`Giraffe schema generates expected schema 1`] = `
 "\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
 type Giraffe {
-  name: String!
   age: Int!
   height(unit: LengthUnit! = Meters): Float!
+  name: String!
 }
 
 enum LengthUnit {
@@ -101,9 +101,9 @@ type Query {
 exports[`Stateful schema generates expected schema 1`] = `
 "\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
 type Giraffe {
-  name: String!
   age: Int!
   height(unit: LengthUnit! = Meters): Float!
+  name: String!
 }
 
 enum LengthUnit {

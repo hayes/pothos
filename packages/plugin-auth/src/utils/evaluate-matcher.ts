@@ -19,13 +19,13 @@ export async function evaluateMatcher(
     for (const perm of matcher.all) {
       const permPromise =
         typeof perm === 'string'
-          ? getResult(perm).then(result => {
+          ? getResult(perm).then((result) => {
               if (!result) {
                 failedChecks.add(perm);
               }
               return result;
             })
-          : evaluateMatcher(perm, fieldName, getResult, failedChecks).then(result => !result);
+          : evaluateMatcher(perm, fieldName, getResult, failedChecks).then((result) => !result);
       if (matcher.sequential) {
         // eslint-disable-next-line no-await-in-loop
         if (!(await permPromise)) {
@@ -48,13 +48,13 @@ export async function evaluateMatcher(
     for (const perm of matcher.any) {
       const permPromise =
         typeof perm === 'string'
-          ? getResult(perm).then(result => {
+          ? getResult(perm).then((result) => {
               if (!result) {
                 failedChecks.add(perm);
               }
               return result;
             })
-          : evaluateMatcher(perm, fieldName, getResult, failedChecks).then(result => !result);
+          : evaluateMatcher(perm, fieldName, getResult, failedChecks).then((result) => !result);
       if (matcher.sequential) {
         // eslint-disable-next-line no-await-in-loop
         if (await permPromise) {
@@ -65,7 +65,7 @@ export async function evaluateMatcher(
       }
     }
     const results = await Promise.all(pending);
-    if (results.find(value => value)) {
+    if (results.find((value) => value)) {
       return null;
     }
   }

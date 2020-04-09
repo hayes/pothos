@@ -30,7 +30,7 @@ export default class InputObjectType<
     const fields = this.options.shape(new InputFieldBuilder());
 
     return fromEntries(
-      Object.keys(fields).map(key => {
+      Object.keys(fields).map((key) => {
         const field = fields[key];
         return [
           key,

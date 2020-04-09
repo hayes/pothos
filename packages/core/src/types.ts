@@ -319,18 +319,32 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
     }[keyof Values]
   : never;
 
-export type FieldsShape<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Shape,
-  Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
-> = (
-  t: GiraphQLSchemaTypes.FieldBuilder<Types, Shape, Kind>,
+export type ObjectFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+  t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
 ) => {
   [s: string]: Field<{}, Types, TypeParam<Types>>;
 };
 
-export type RootFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Kind extends RootName> = (
-  t: GiraphQLSchemaTypes.RootFieldBuilder<Types, Types['Root'], Kind>,
+export type InterfaceFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+  t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
+) => {
+  [s: string]: Field<{}, Types, TypeParam<Types>>;
+};
+
+export type QueryFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
+) => {
+  [s: string]: Field<{}, Types, TypeParam<Types>>;
+};
+
+export type MutationFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
+) => {
+  [s: string]: Field<{}, Types, TypeParam<Types>>;
+};
+
+export type SubscriptionFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
 ) => {
   [s: string]: Field<{}, Types, TypeParam<Types>>;
 };

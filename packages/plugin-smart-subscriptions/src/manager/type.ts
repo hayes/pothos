@@ -27,7 +27,7 @@ export default class TypeSubscriptionManager<
     this.addRegistration<T>({
       name,
       filter,
-      onValue: value => {
+      onValue: (value) => {
         if (invalidateCache) {
           invalidateCache(value);
         }

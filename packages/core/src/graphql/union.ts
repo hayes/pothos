@@ -48,7 +48,7 @@ export default class UnionType<
 
         return typename;
       },
-      types: () => this.members.map(member => cache.getBuiltObject(member)),
+      types: () => this.members.map((member) => cache.getBuiltObject(member)),
       extensions: this.options.extensions,
     });
   }

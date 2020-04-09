@@ -45,7 +45,7 @@ export default class Field<
 
   protected buildArgs(cache: BuildCache): GraphQLFieldConfigArgumentMap {
     return fromEntries(
-      Object.keys(this.args).map(key => {
+      Object.keys(this.args).map((key) => {
         const arg = this.args[key];
 
         return [

@@ -7,33 +7,33 @@ import { ResolveValueWrapper } from './resolve-wrapper';
 
 export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
   const visitTypePlugins: Pick<Required<BasePlugin>, 'visitType'>[] = plugins.filter(
-    plugin => plugin.visitType,
+    (plugin) => plugin.visitType,
   ) as Pick<Required<BasePlugin>, 'visitType'>[];
 
   const updateFieldConfigPlugins: Pick<
     Required<BasePlugin>,
     'updateFieldConfig'
-  >[] = plugins.filter(plugin => plugin.updateFieldConfig) as Pick<
+  >[] = plugins.filter((plugin) => plugin.updateFieldConfig) as Pick<
     Required<BasePlugin>,
     'updateFieldConfig'
   >[];
 
   const onFieldWrapPlugins: Pick<Required<BasePlugin>, 'onFieldWrap'>[] = plugins.filter(
-    plugin => plugin.onFieldWrap,
+    (plugin) => plugin.onFieldWrap,
   ) as Pick<Required<BasePlugin>, 'onFieldWrap'>[];
 
   const beforeResolvePlugins: Pick<Required<BasePlugin>, 'beforeResolve'>[] = plugins.filter(
-    plugin => plugin.beforeResolve,
+    (plugin) => plugin.beforeResolve,
   ) as Pick<Required<BasePlugin>, 'beforeResolve'>[];
 
   const beforeSubscribePlugins: Pick<Required<BasePlugin>, 'beforeSubscribe'>[] = plugins.filter(
-    plugin => plugin.beforeSubscribe,
+    (plugin) => plugin.beforeSubscribe,
   ) as Pick<Required<BasePlugin>, 'beforeSubscribe'>[];
 
   const onInterfaceResolveTypePlugins: Pick<
     Required<BasePlugin>,
     'onInterfaceResolveType'
-  >[] = plugins.filter(plugin => plugin.onInterfaceResolveType) as Pick<
+  >[] = plugins.filter((plugin) => plugin.onInterfaceResolveType) as Pick<
     Required<BasePlugin>,
     'onInterfaceResolveType'
   >[];
@@ -41,25 +41,25 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
   const onUnionResolveTypePlugins: Pick<
     Required<BasePlugin>,
     'onUnionResolveType'
-  >[] = plugins.filter(plugin => plugin.onUnionResolveType) as Pick<
+  >[] = plugins.filter((plugin) => plugin.onUnionResolveType) as Pick<
     Required<BasePlugin>,
     'onUnionResolveType'
   >[];
 
   const onTypePlugins: Pick<Required<BasePlugin>, 'onType'>[] = plugins.filter(
-    plugin => plugin.onType,
+    (plugin) => plugin.onType,
   ) as Pick<Required<BasePlugin>, 'onType'>[];
 
   const onFieldPlugins: Pick<Required<BasePlugin>, 'onField'>[] = plugins.filter(
-    plugin => plugin.onField,
+    (plugin) => plugin.onField,
   ) as Pick<Required<BasePlugin>, 'onField'>[];
 
   const beforeBuildPlugins: Pick<Required<BasePlugin>, 'beforeBuild'>[] = plugins.filter(
-    plugin => plugin.beforeBuild,
+    (plugin) => plugin.beforeBuild,
   ) as Pick<Required<BasePlugin>, 'beforeBuild'>[];
 
   const afterBuildPlugins: Pick<Required<BasePlugin>, 'afterBuild'>[] = plugins.filter(
-    plugin => plugin.afterBuild,
+    (plugin) => plugin.afterBuild,
   ) as Pick<Required<BasePlugin>, 'afterBuild'>[];
 
   return {

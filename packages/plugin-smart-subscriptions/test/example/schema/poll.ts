@@ -14,7 +14,7 @@ builder.objectType('Poll', {
       },
     });
   },
-  shape: t => ({
+  shape: (t) => ({
     id: t.exposeID('id', {}),
     updatedAt: t.string({
       resolve: () => new Date().toISOString(),
@@ -24,7 +24,7 @@ builder.objectType('Poll', {
     results: t.field({
       type: ['PollResult'],
       // canRefetch: true,
-      resolve: parent => {
+      resolve: (parent) => {
         return [...parent.results].map(([answer, count]) => ({
           answer,
           count,
@@ -34,7 +34,7 @@ builder.objectType('Poll', {
   }),
 });
 
-builder.objectType('PollResult', {}, t => ({
+builder.objectType('PollResult', {}, (t) => ({
   answer: t.exposeString('answer', {
     // subscribe: (subscriptions, parent, context) => {
     //   subscriptions.register(`poll/1`, {
@@ -48,11 +48,11 @@ builder.objectType('PollResult', {}, t => ({
   count: t.exposeInt('count', {}),
 }));
 
-builder.queryFields(t => ({
+builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
     smartSubscription: true,
-    subscribe: subscriptions => subscriptions.register('polls'),
+    subscribe: (subscriptions) => subscriptions.register('polls'),
     resolve: (root, args, { Poll }) => {
       return [...Poll.map.values()];
     },
@@ -70,7 +70,7 @@ builder.queryFields(t => ({
   }),
 }));
 
-builder.mutationFields(t => ({
+builder.mutationFields((t) => ({
   createPoll: t.field({
     type: 'Poll',
     args: {

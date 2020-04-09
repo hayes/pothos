@@ -61,11 +61,11 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     >;
 
     if (options.smartSubscription) {
-      builder.subscriptionFields(t => ({
+      builder.subscriptionFields((t) => ({
         [name]: t.field({
           ...options,
           subscribe: (parent, args, context, info) => {
-            const manager = new SubscriptionManager(ResolveValueWrapper.wrap(parent), subName =>
+            const manager = new SubscriptionManager(ResolveValueWrapper.wrap(parent), (subName) =>
               this.subscribe(subName, context),
             );
 
@@ -158,8 +158,8 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
           child.data.smartSubscriptions.typeSubscriptionManager = childCache.managerForType(
             info,
             manager,
-            promise => {
-              const cacheEntry = Promise.resolve(promise).then(value => wrapChild(value));
+            (promise) => {
+              const cacheEntry = Promise.resolve(promise).then((value) => wrapChild(value));
 
               cache.replace(cacheEntry, info, index);
             },
@@ -191,7 +191,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
     const cache = new ResolverCache();
 
     return {
-      onWrap: child => {
+      onWrap: (child) => {
         const manager = this.getSubscriptionManager(context, info);
 
         if (!manager) {

@@ -18,10 +18,10 @@ const LengthUnit = builder.enumType('LengthUnit', {
 
 builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
-  shape: t => ({
+  shape: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: parent => {
+      resolve: (parent) => {
         const today = new Date(new Date().toDateString());
         const birthday = new Date(parent.birthday.toDateString());
         const ageDifMs = Number(today) - Number(birthday);
@@ -44,7 +44,7 @@ builder.objectType('Giraffe', {
 });
 
 builder.queryType({
-  shape: t => ({
+  shape: (t) => ({
     giraffe: t.field({
       type: 'Giraffe',
       resolve: () => ({ name: 'James', heightInMeters: 5.2, birthday: new Date(2012, 11, 12) }),

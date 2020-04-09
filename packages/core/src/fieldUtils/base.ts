@@ -38,7 +38,7 @@ export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, P
       {
         ...options,
         // @ts-ignore
-        resolve: parent => parent[name],
+        resolve: (parent) => parent[name],
       },
       this.typename,
     );

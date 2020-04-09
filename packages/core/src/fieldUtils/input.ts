@@ -29,9 +29,11 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
   callableBuilder() {
     const builder: InputFieldBuilder<Types>['type'] = this.type.bind(this);
 
-    ([...Object.keys(this), 'type', 'list'] as (keyof InputFieldBuilder<Types>)[]).forEach(key => {
-      ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
-    });
+    ([...Object.keys(this), 'type', 'list'] as (keyof InputFieldBuilder<Types>)[]).forEach(
+      (key) => {
+        ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
+      },
+    );
 
     return builder as InputFieldBuilder<Types> & typeof builder;
   }

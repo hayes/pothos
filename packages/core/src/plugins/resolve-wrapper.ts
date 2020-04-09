@@ -117,7 +117,7 @@ export function wrapResolver(
     }
 
     if (isListResolver && assertArray(result)) {
-      return result.map((item, i) => Promise.resolve(item).then(value => wrapChild(value, i)));
+      return result.map((item, i) => Promise.resolve(item).then((value) => wrapChild(value, i)));
     }
 
     return wrapChild(result, null);

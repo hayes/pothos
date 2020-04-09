@@ -22,7 +22,7 @@ export default class EnumType<
     this.options = options;
 
     this.values = Array.isArray(options.values)
-      ? fromEntries(options.values.map(key => [key, {}]))
+      ? fromEntries(options.values.map((key) => [key, {}]))
       : fromEntries(
           Object.entries(options.values)
             .map(([key, value]) => {

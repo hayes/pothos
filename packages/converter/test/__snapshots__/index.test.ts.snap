@@ -6,12 +6,12 @@ const builder = new SchemaBuilder<{
     Context: {};
     Object: {
         User: unknown;
-        Article: unknown;
         Sheep: unknown;
+        Article: unknown;
     };
     Interface: {
-        Shaveable: unknown;
         Countable: unknown;
+        Shaveable: unknown;
     };
 }>();
 const SearchResult = builder.unionType('SearchResult', {
@@ -76,22 +76,6 @@ const Example2: InputObjectOfShape<Example2Shape> = builder.inputType('Example2'
         }),
     }),
 });
-const Shaveable = builder.interfaceType('Shaveable', {
-    shape: t => ({
-        id: t.field({
-            type: 'ID',
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        }),
-        shaved: t.field({
-            type: 'Boolean',
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        }),
-        extendMePlease: t.field({
-            type: 'String',
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        })
-    }),
-});
 const Countable = builder.interfaceType('Countable', {
     shape: t => ({
         count: t.field({
@@ -105,18 +89,18 @@ const Countable = builder.interfaceType('Countable', {
         })
     }),
 });
-builder.queryType({
+const Shaveable = builder.interfaceType('Shaveable', {
     shape: t => ({
-        user: t.field({
-            type: 'User',
+        id: t.field({
+            type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
-        stuff: t.field({
-            type: [stuff],
+        shaved: t.field({
+            type: 'Boolean',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
-        sheep: t.field({
-            type: 'Sheep',
+        extendMePlease: t.field({
+            type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
@@ -229,16 +213,6 @@ builder.objectType('User', {
         })
     }),
 });
-builder.objectType('Article', {
-    description: \\"shape can be last arg\\",
-    shape: t => ({
-        title: t.field({
-            description: \\"Title of the article, probably click bait\\",
-            type: 'String',
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        })
-    }),
-});
 builder.objectType('Sheep', {
     implements: [Shaveable, Countable],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
@@ -254,6 +228,32 @@ builder.objectType('Sheep', {
         }),
         thing: t.field({
             type: stuff,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
+builder.queryType({
+    shape: t => ({
+        user: t.field({
+            type: 'User',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        stuff: t.field({
+            type: [stuff],
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        sheep: t.field({
+            type: 'Sheep',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
+builder.objectType('Article', {
+    description: \\"shape can be last arg\\",
+    shape: t => ({
+        title: t.field({
+            description: \\"Title of the article, probably click bait\\",
+            type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
@@ -297,32 +297,32 @@ input Example2 {
 }
 
 type Query {
-  user: User!
-  stuff: [stuff!]!
   sheep: Sheep!
+  stuff: [stuff!]!
+  user: User!
 }
 
-union SearchResult = User | Article
+union SearchResult = Article | User
 
 interface Shaveable {
+  extendMePlease: String!
   id: ID!
   shaved: Boolean!
-  extendMePlease: String!
 }
 
-type Sheep implements Shaveable & Countable {
+type Sheep implements Countable & Shaveable {
+  color(id: ID): String!
+  count(max: Int!): Int!
+  extendMePlease: String!
   id: ID!
   shaved: Boolean!
-  extendMePlease: String!
-  count(max: Int!): Int!
-  color(id: ID): String!
   thing: stuff!
 }
 
 enum stuff {
-  Beats
-  Bears
   BattlestarGalactica
+  Bears
+  Beats
 }
 
 type Subscription {
@@ -330,22 +330,22 @@ type Subscription {
 }
 
 type User {
-  id: ID!
+  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!
-  firstName: String!
-  lastName: String!
   firstBornChild: User!
+  firstName: String!
+  friends: [User!]!
+  id: ID!
+  lastName: String!
+  list(ids: [ID!]!): [ID!]!
+  newField: String!
+  notSparseList(ids: [ID!]!): [ID]
+  optional: String
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!
   related: SearchResult!
-  friends: [User!]!
-  stuff: [String!]!
-  optional: String
-  list(ids: [ID!]!): [ID!]!
   sparseList(ids: [ID]!): [ID]!
-  notSparseList(ids: [ID!]!): [ID]
-  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
-  newField: String!
+  stuff: [String!]!
 }
 
 "
@@ -356,8 +356,8 @@ exports[`Code generator starwars schema 1`] = `
 const builder = new SchemaBuilder<{
     Context: {};
     Object: {
-        Human: unknown;
         Droid: unknown;
+        Human: unknown;
     };
     Interface: {
         Character: unknown;
@@ -410,6 +410,31 @@ const Character = builder.interfaceType('Character', {
         })
     }),
 });
+builder.objectType('Droid', {
+    description: \\"A mechanical creature in the Star Wars universe.\\",
+    implements: [Character],
+    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    shape: t => ({
+        primaryFunction: t.field({
+            description: \\"The primary function of the droid.\\",
+            type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
+builder.objectType('Human', {
+    description: \\"A humanoid creature in the Star Wars universe.\\",
+    implements: [Character],
+    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    shape: t => ({
+        homePlanet: t.field({
+            description: \\"The home planet of the human, or null if unknown.\\",
+            type: 'String',
+            nullable: true,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
 builder.queryType({
     shape: t => ({
         hero: t.field({
@@ -448,63 +473,38 @@ builder.queryType({
         })
     }),
 });
-builder.objectType('Human', {
-    description: \\"A humanoid creature in the Star Wars universe.\\",
-    implements: [Character],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
-        homePlanet: t.field({
-            description: \\"The home planet of the human, or null if unknown.\\",
-            type: 'String',
-            nullable: true,
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        })
-    }),
-});
-builder.objectType('Droid', {
-    description: \\"A mechanical creature in the Star Wars universe.\\",
-    implements: [Character],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
-        primaryFunction: t.field({
-            description: \\"The primary function of the droid.\\",
-            type: 'String',
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        })
-    }),
-});
 export const schema = builder.toSchema();
 "
 `;
 
 exports[`Code generator starwars schema 2`] = `
 "interface Character {
+  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  appearsIn(id: ID!): [Episode!]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friends: [Character]!
+
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
-
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character]!
-
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
 }
 
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
+  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  appearsIn(id: ID!): [Episode!]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friends: [Character]!
+
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
-
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character]!
-
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
 
   \\"\\"\\"The primary function of the droid.\\"\\"\\"
   primaryFunction: String!
@@ -512,35 +512,39 @@ type Droid implements Character {
 
 \\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
 enum Episode {
-  \\"\\"\\"Released in 1977.\\"\\"\\"
-  NEWHOPE
-
   \\"\\"\\"Released in 1980.\\"\\"\\"
   EMPIRE
 
   \\"\\"\\"Released in 1983\\"\\"\\"
   JEDI
+
+  \\"\\"\\"Released in 1977.\\"\\"\\"
+  NEWHOPE
 }
 
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
+  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  appearsIn(id: ID!): [Episode!]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friends: [Character]!
+
+  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  homePlanet: String
+
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
-
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
-  friends: [Character]!
-
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
-
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
-  homePlanet: String
 }
 
 type Query {
+  droid(
+    \\"\\"\\"id of the character\\"\\"\\"
+    id: ID!
+  ): Droid!
   hero(
     \\"\\"\\"
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
@@ -551,10 +555,6 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
-  droid(
-    \\"\\"\\"id of the character\\"\\"\\"
-    id: ID!
-  ): Droid!
   r2d2: Droid!
 }
 

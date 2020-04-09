@@ -8,14 +8,12 @@ import {
 } from 'graphql';
 import {
   EnumValues,
-  FieldsShape,
   ShapeFromTypeParam,
   TypeParam,
   InputFields,
   Resolver,
   InputShapeFromFields,
   FieldNullability,
-  RootFieldsShape,
   Subscriber,
   InputType,
   InputShapeFromField,
@@ -24,6 +22,11 @@ import {
   InterfaceParam,
   FieldKind,
   MergedScalars,
+  ObjectFieldsShape,
+  QueryFieldsShape,
+  MutationFieldsShape,
+  SubscriptionFieldsShape,
+  InterfaceFieldsShape,
 } from './types';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
@@ -45,6 +48,23 @@ declare global {
       ParentShape,
       Kind extends FieldKind = FieldKind
     > extends InternalRootFieldBuilder<Types, ParentShape, Kind> {}
+
+    export interface QueryFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape>
+      extends RootFieldBuilder<Types, ParentShape, 'Query'> {}
+
+    export interface MutationFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape>
+      extends RootFieldBuilder<Types, ParentShape, 'Mutation'> {}
+
+    export interface SubscriptionFieldBuilder<
+      Types extends GiraphQLSchemaTypes.TypeInfo,
+      ParentShape
+    > extends RootFieldBuilder<Types, ParentShape, 'Subscription'> {}
+
+    export interface ObjectFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape>
+      extends FieldBuilder<Types, ParentShape, 'Object'> {}
+
+    export interface InterfaceFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape>
+      extends FieldBuilder<Types, ParentShape, 'Interface'> {}
 
     export interface InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo>
       extends InternalInputFieldBuilder<Types> {}
@@ -130,7 +150,7 @@ declare global {
 
     export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
       description?: string;
-      shape?: FieldsShape<Types, Shape, 'Object'>;
+      shape?: ObjectFieldsShape<Types, Shape>;
       extensions?: Readonly<Record<string, unknown>>;
       implements?: undefined;
       isType?: undefined;
@@ -253,18 +273,23 @@ declare global {
 
     export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
       description?: string;
-      shape?: RootFieldsShape<Types, Type>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
     export interface QueryTypeOptions<Types extends TypeInfo>
-      extends RootTypeOptions<Types, 'Query'> {}
+      extends RootTypeOptions<Types, 'Query'> {
+      shape?: QueryFieldsShape<Types>;
+    }
 
     export interface MutationTypeOptions<Types extends TypeInfo>
-      extends RootTypeOptions<Types, 'Mutation'> {}
+      extends RootTypeOptions<Types, 'Mutation'> {
+      shape?: MutationFieldsShape<Types>;
+    }
 
     export interface SubscriptionTypeOptions<Types extends TypeInfo>
-      extends RootTypeOptions<Types, 'Subscription'> {}
+      extends RootTypeOptions<Types, 'Subscription'> {
+      shape?: SubscriptionFieldsShape<Types>;
+    }
 
     export interface InputTypeOptions<
       Types extends GiraphQLSchemaTypes.TypeInfo,
@@ -277,7 +302,7 @@ declare global {
 
     export interface InterfaceTypeOptions<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> {
       description?: string;
-      shape?: FieldsShape<Types, Shape, 'Interface'>;
+      shape?: InterfaceFieldsShape<Types, Shape>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
@@ -296,7 +321,6 @@ declare global {
     }
 
     export interface ScalarOptions<InputShape, OutputShape> {
-      name: string;
       description?: string;
       // Serializes an internal value to include in a response.
       serialize: GraphQLScalarSerializer<OutputShape>;

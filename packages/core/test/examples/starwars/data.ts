@@ -96,7 +96,7 @@ const droidData: { [key in string]: Droid } = {
  */
 function getCharacter(id: string) {
   // Returning a promise just to illustrate GraphQL.js's support.
-  return new Promise(resolve => setTimeout(() => resolve(humanData[id] || droidData[id]), 5));
+  return new Promise((resolve) => setTimeout(() => resolve(humanData[id] || droidData[id]), 5));
 }
 
 /**
@@ -104,7 +104,7 @@ function getCharacter(id: string) {
  */
 export function getFriends(character: Character) {
   // Notice that GraphQL accepts Arrays of Promises.
-  return character.friends.map(id => getCharacter(id) as Promise<Human | null>);
+  return character.friends.map((id) => getCharacter(id) as Promise<Human | null>);
 }
 
 /**
@@ -119,7 +119,7 @@ export function getHero(episode?: number): Character {
   return artoo;
 }
 
-export const allHumans = Object.keys(humanData).map(key => humanData[key]);
+export const allHumans = Object.keys(humanData).map((key) => humanData[key]);
 
 /**
  * Allows us to query for the human with the given id.
@@ -128,7 +128,7 @@ export function getHuman(id: string | number): Human {
   return humanData[id];
 }
 
-export const allDroids = Object.keys(droidData).map(key => droidData[key]);
+export const allDroids = Object.keys(droidData).map((key) => droidData[key]);
 
 /**
  * Allows us to query for the droid with the given id.

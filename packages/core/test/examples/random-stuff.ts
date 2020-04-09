@@ -25,7 +25,7 @@ const builder = new SchemaBuilder<Types>({});
 
 // Create input types
 const Example = builder.inputType('Example', {
-  shape: t => ({
+  shape: (t) => ({
     id: t.id({ required: true }),
     id2: t.int({ required: false }),
     ids: t.idList({ required: true }),
@@ -46,7 +46,7 @@ interface ExampleShape {
 }
 
 const Example2: InputObjectOfShape<ExampleShape> = builder.inputType('Example2', {
-  shape: t => ({
+  shape: (t) => ({
     example: t.type(Example, { required: true }),
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
@@ -57,14 +57,14 @@ const Example2: InputObjectOfShape<ExampleShape> = builder.inputType('Example2',
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   members: ['User', 'Article'],
-  resolveType: parent => {
+  resolveType: (parent) => {
     return Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article';
   },
 });
 
 // Creating an ObjectType and its resolvers
 builder.objectType('User', {
-  shape: t => ({
+  shape: (t) => ({
     // add a scalar field
     id: t.id({ resolve: () => 5 }),
     // parent is inferred from model shapes defined in builder
@@ -105,7 +105,7 @@ builder.objectType('User', {
     }),
     // Using a union type
     related: t.field({
-      resolve: parent => {
+      resolve: (parent) => {
         return {
           body: 'stuff',
           title: 'hi',
@@ -116,7 +116,7 @@ builder.objectType('User', {
     }),
     // Lists
     friends: t.field({
-      resolve: parent => {
+      resolve: (parent) => {
         return [parent];
       },
       type: ['User'],
@@ -137,7 +137,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map(n => Number.parseInt(n, 10)),
+      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -181,12 +181,12 @@ builder.objectType('User', {
   }),
 });
 
-builder.objectFields('User', t => ({
+builder.objectFields('User', (t) => ({
   newField: t.string({ resolve: () => 'hii' }),
 }));
 
 builder.interfaceType('Countable', {
-  shape: t => ({
+  shape: (t) => ({
     count: t.int({
       args: {
         max: t.arg.int({ required: true }),
@@ -197,7 +197,7 @@ builder.interfaceType('Countable', {
 });
 
 const Shaveable = builder.interfaceType('Shaveable', {
-  shape: t => ({
+  shape: (t) => ({
     id: t.id({
       resolve: () => 5,
     }),
@@ -216,7 +216,7 @@ builder.objectType('Sheep', {
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
   isType: () => true,
-  shape: t => ({
+  shape: (t) => ({
     color: t.string({
       args: {
         id: t.arg.id(),
@@ -231,7 +231,7 @@ builder.objectType('Sheep', {
 });
 
 builder.queryType({
-  shape: t => ({
+  shape: (t) => ({
     user: t.field({
       resolve: () => ({
         firstName: 'user',
@@ -261,7 +261,7 @@ builder.objectType(
   {
     description: 'shape can be last arg',
   },
-  t => ({
+  (t) => ({
     title: t.string({
       description: 'Title of the article, probably click bait',
       resolve: () => 'Things are happening!',
@@ -270,7 +270,7 @@ builder.objectType(
 );
 
 builder.subscriptionType({
-  shape: t => ({
+  shape: (t) => ({
     event: t.field({
       type: 'String',
       subscribe: () => {
@@ -278,7 +278,7 @@ builder.subscriptionType({
           yield await Promise.resolve('123');
         })();
       },
-      resolve: parent => parent.toLocaleLowerCase(),
+      resolve: (parent) => parent.toLocaleLowerCase(),
     }),
   }),
 });

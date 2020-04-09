@@ -37,7 +37,7 @@ function getObjectChecks(type: ObjectType<any>, cache: BuildCache) {
     postResolveMap.set(type.typename, type.options.postResolveCheck);
   }
 
-  type.interfaces.forEach(name => {
+  type.interfaces.forEach((name) => {
     const interfaceType = cache.getEntryOfType(name, 'Interface').type;
 
     if (interfaceType.options.preResolveCheck) {
@@ -66,7 +66,7 @@ function getInterfaceChecks(
 
   const implementers = cache.getImplementers(type.typename);
 
-  implementers.forEach(implementer => {
+  implementers.forEach((implementer) => {
     const implementerChecks = getObjectChecks(implementer, cache);
 
     if (!plugin.skipPreResolveOnInterfaces && !type.options.skipImplementorPreResolveChecks) {
@@ -96,8 +96,8 @@ function getUnionChecks(
     preResolveMap.set(type.typename, type.options.preResolveCheck);
   }
 
-  const members = type.members.map(member => cache.getEntryOfType(member, 'Object').type);
-  members.forEach(member => {
+  const members = type.members.map((member) => cache.getEntryOfType(member, 'Object').type);
+  members.forEach((member) => {
     const memberChecks = getObjectChecks(member, cache);
 
     if (!plugin.skipPreResolveOnUnions && !type.options.skipMemberPreResolveChecks) {

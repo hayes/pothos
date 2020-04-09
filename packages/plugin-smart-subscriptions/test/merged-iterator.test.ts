@@ -27,7 +27,7 @@ function testIterator(
       }
 
       if (delayAll || delayN === offset) {
-        return new Promise(resolve => {
+        return new Promise((resolve) => {
           setTimeout(() => {
             resolve({
               value: results[offset],

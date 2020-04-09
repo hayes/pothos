@@ -31,7 +31,7 @@ export async function checkFieldPermissions(
   const { grantedPermissions, checkCache } = parent.data.giraphqlAuth!;
   const permissionResults = new Map<string, boolean>();
 
-  const failures = await evaluateMatcher(checkResult, fieldName, async perm => {
+  const failures = await evaluateMatcher(checkResult, fieldName, async (perm) => {
     if (permissionResults.has(perm)) {
       return permissionResults.has(perm);
     }
