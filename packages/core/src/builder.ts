@@ -16,6 +16,11 @@ import {
   MutationFieldsShape,
   SubscriptionFieldsShape,
   InterfaceFieldsShape,
+  ObjectFieldThunk,
+  InterfaceFieldThunk,
+  QueryFieldThunk,
+  MutationFieldThunk,
+  SubscriptionFieldThunk,
 } from './types';
 import ObjectType from './graphql/object';
 import UnionType from './graphql/union';
@@ -89,6 +94,14 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addFields(name, shape(new ObjectFieldBuilder(name)));
   }
 
+  objectField<Type extends ObjectName<Types>>(
+    name: Type,
+    fieldName: string,
+    field: ObjectFieldThunk<Types, Types['Object'][Type]>,
+  ) {
+    return this.addFields(name, { [fieldName]: field(new ObjectFieldBuilder(name)) });
+  }
+
   queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, shape?: QueryFieldsShape<Types>) {
     const type = this.addType(new QueryType<Types>(options));
 
@@ -105,6 +118,10 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   queryFields(shape: QueryFieldsShape<Types>) {
     return this.addFields('Query', shape(new QueryFieldBuilder()));
+  }
+
+  queryField(name: string, field: QueryFieldThunk<Types>) {
+    return this.addFields('Query', { [name]: field(new QueryFieldBuilder()) });
   }
 
   mutationType(
@@ -128,6 +145,10 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     return this.addFields('Mutation', shape(new MutationFieldBuilder()));
   }
 
+  mutationField(name: string, field: MutationFieldThunk<Types>) {
+    return this.addFields('Mutation', { [name]: field(new MutationFieldBuilder()) });
+  }
+
   subscriptionType(
     options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>,
     shape?: SubscriptionFieldsShape<Types>,
@@ -147,6 +168,10 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   subscriptionFields(shape: SubscriptionFieldsShape<Types>) {
     return this.addFields('Subscription', shape(new SubscriptionFieldBuilder()));
+  }
+
+  subscriptionField(name: string, field: SubscriptionFieldThunk<Types>) {
+    return this.addFields('Subscription', { [name]: field(new SubscriptionFieldBuilder()) });
   }
 
   args<Shape extends InputFields<Types>>(
@@ -178,6 +203,14 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     shape: InterfaceFieldsShape<Types, Types['Interface'][Type]>,
   ) {
     return this.addFields(name, shape(new InterfaceFieldBuilder(name)));
+  }
+
+  interfaceField<Type extends InterfaceName<Types>>(
+    name: Type,
+    fieldName: string,
+    field: InterfaceFieldThunk<Types, Types['Interface'][Type]>,
+  ) {
+    return this.addFields(name, { [fieldName]: field(new InterfaceFieldBuilder(name)) });
   }
 
   unionType<Member extends ObjectName<Types>, Name extends string>(

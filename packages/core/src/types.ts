@@ -349,6 +349,26 @@ export type SubscriptionFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> 
   [s: string]: Field<{}, Types, TypeParam<Types>>;
 };
 
+export type ObjectFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+  t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
+) => Field<{}, Types, TypeParam<Types>>;
+
+export type InterfaceFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+  t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
+) => Field<{}, Types, TypeParam<Types>>;
+
+export type QueryFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
+) => Field<{}, Types, TypeParam<Types>>;
+
+export type MutationFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
+) => Field<{}, Types, TypeParam<Types>>;
+
+export type SubscriptionFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo> = (
+  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
+) => Field<{}, Types, TypeParam<Types>>;
+
 export type FieldMap = {
   [s: string]: Field<{}, any, TypeParam>;
 };
