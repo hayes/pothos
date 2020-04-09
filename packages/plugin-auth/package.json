@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-auth",
-  "version": "0.20.0",
+  "version": "0.20.1",
   "description": "",
   "main": "lib/index.js",
   "scripts": {
@@ -12,7 +12,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@giraphql/core": "^0.18.0",
+    "@giraphql/core": "^0.19.0",
     "apollo-server": "^2.10.1",
     "graphql": "^14.6.0"
   },
