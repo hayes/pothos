@@ -6,10 +6,7 @@ import SmartSubscriptionPlugin from '../../src';
 interface TypeInfo {
   Object: {
     Poll: Poll;
-    PollResult: {
-      answer: string;
-      count: number;
-    };
+    Answer: { id: number; value: string; count: number };
   };
   Context: ContextType;
   SmartSubscriptions: string;

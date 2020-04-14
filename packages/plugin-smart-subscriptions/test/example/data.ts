@@ -3,24 +3,23 @@ export class Poll {
 
   static lastID = 0;
 
+  static lastAnswerID = 0;
+
   id: number;
 
   question: string;
 
-  answers: string[];
-
-  results: Map<string, number>;
+  answers: { id: number; value: string; count: number }[];
 
   constructor(question: string, answers: string[]) {
     this.id = Poll.lastID + 1;
 
     this.question = question;
-    this.answers = answers;
 
-    this.results = new Map();
+    this.answers = answers.map((value) => {
+      Poll.lastAnswerID += 1;
 
-    this.answers.forEach((answer) => {
-      this.results.set(answer, 0);
+      return { value, id: Poll.lastAnswerID, count: 0 };
     });
 
     Poll.lastID = this.id;

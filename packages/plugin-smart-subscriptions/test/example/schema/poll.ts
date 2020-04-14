@@ -3,14 +3,10 @@ import builder from '../builder';
 const POLLS = 'polls';
 
 builder.objectType('Poll', {
-  subscribe: (subscriptions, parent, context) => {
-    subscriptions.register(`poll/${parent.id}`, {
-      filter: () => {
-        return true;
-      },
-      invalidateCache: () => {},
+  subscribe: (subscriptions, poll, context) => {
+    subscriptions.register(`poll/${poll.id}`, {
       refetch: () => {
-        return context.Poll.map.get(parent.id)!;
+        return context.Poll.map.get(poll.id)!;
       },
     });
   },
@@ -20,51 +16,46 @@ builder.objectType('Poll', {
       resolve: () => new Date().toISOString(),
     }),
     question: t.exposeString('question', {}),
-    answers: t.exposeStringList('answers', {}),
-    results: t.field({
-      type: ['PollResult'],
-      // canRefetch: true,
-      resolve: (parent) => {
-        return [...parent.results].map(([answer, count]) => ({
-          answer,
-          count,
-        }));
+    answers: t.field({
+      type: ['Answer'],
+      resolve: (parent, args, context, info) => {
+        console.log(info.operation.name?.value, 'fetching answer for poll', parent.id);
+
+        return parent.answers;
       },
     }),
   }),
 });
 
-builder.objectType('PollResult', {}, (t) => ({
-  answer: t.exposeString('answer', {
-    // subscribe: (subscriptions, parent, context) => {
-    //   subscriptions.register(`poll/1`, {
-    //     filter: () => {
-    //       return true;
-    //     },
-    //     invalidateCache: () => {},
-    //   });
-    // },
+builder.objectType('Answer', {
+  shape: (t) => ({
+    id: t.exposeID('id', {}),
+    value: t.exposeString('value', {}),
+    count: t.exposeInt('count', {}),
   }),
-  count: t.exposeInt('count', {}),
-}));
+});
 
 builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
     smartSubscription: true,
     subscribe: (subscriptions) => subscriptions.register('polls'),
-    resolve: (root, args, { Poll }) => {
+    resolve: (root, args, { Poll }, info) => {
+      console.log(info.operation.name?.value, 'fetching all polls');
+
       return [...Poll.map.values()];
     },
   }),
   poll: t.field({
     type: 'Poll',
-    smartSubscription: true,
     nullable: true,
     args: {
       id: t.arg.int({ required: true }),
     },
-    resolve: (root, args, { Poll }) => {
+    smartSubscription: true,
+    resolve: (root, args, { Poll }, info) => {
+      console.log(info.operation.name?.value, 'fetching poll', args.id);
+
       return Poll.map.get(args.id);
     },
   }),
@@ -89,22 +80,27 @@ builder.mutationFields((t) => ({
     type: 'Poll',
     args: {
       id: t.arg.id({ required: true }),
-      answer: t.arg.string({ required: true }),
+      answer: t.arg.int({ required: true }),
     },
-    resolve: (root, args, { Poll, pubsub }) => {
+    resolve: (root, args, { Poll, pubsub }, info) => {
+      console.log(info.operation.name?.value, 'answering poll', args.id, 'with', args.answer);
+
       const poll = Poll.map.get(Number(args.id));
 
       if (!poll) {
         throw new Error(`Poll ${args.id} not found`);
       }
 
-      if (!poll.results.has(args.answer)) {
+      const answer = poll.answers.find((a) => a.id === args.answer);
+
+      if (!answer) {
         throw new Error(`Invalid answer for poll ${args.id}`);
       }
 
-      poll.results.set(args.answer, poll.results.get(args.answer)! + 1);
+      answer.count += 1;
 
       pubsub.publish(`poll/${args.id}`, {});
+      pubsub.publish(`poll-result/${args.answer}`, {});
 
       return poll;
     },
