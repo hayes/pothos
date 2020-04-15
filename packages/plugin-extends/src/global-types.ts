@@ -13,9 +13,9 @@ declare global {
       extends?: {
         [K in ObjectName<Types>]?: ObjectFieldsShape<Types, Types['Object'][K]>;
       } & {
-        Query: QueryFieldsShape<Types>;
-        Mutation: MutationFieldsShape<Types>;
-        Subscription: SubscriptionFieldsShape<Types>;
+        Query?: QueryFieldsShape<Types>;
+        Mutation?: MutationFieldsShape<Types>;
+        Subscription?: SubscriptionFieldsShape<Types>;
       };
     }
   }
