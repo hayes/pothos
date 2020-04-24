@@ -101,11 +101,19 @@ export function wrapResolver(
     const result = await fieldData.resolve(parent.value, args, context, info);
 
     async function wrapChild(child: unknown, index: number | null) {
+      if (child == null) {
+        return null;
+      }
+
       const wrapped = parent.child(child);
 
       wrapped.data.parentFieldData = fieldData;
 
-      await resolveHooks?.onWrap?.(wrapped, index, (next: unknown) => wrapChild(child, index));
+      await resolveHooks?.onWrap?.(
+        wrapped,
+        index,
+        async (next: unknown) => (await wrapChild(child, index))!,
+      );
 
       return wrapped;
     }
@@ -113,7 +121,7 @@ export function wrapResolver(
     await resolveHooks?.onResolve?.(result);
 
     if (result === null || result === undefined || isScalarResolver) {
-      return result;
+      return result as unknown;
     }
 
     if (isListResolver && assertArray(result)) {
