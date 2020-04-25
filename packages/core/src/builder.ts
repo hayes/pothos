@@ -47,7 +47,7 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
   private types = new Map<string, ImplementedType>();
 
-  private pendingFields = new Map<string, FieldMap[]>();
+  private pendingFields = new Map<string, (() => FieldMap)[]>();
 
   private fields = new Map<string, FieldMap[]>();
 
@@ -77,11 +77,11 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     );
 
     if (shape) {
-      this.addFields(name, shape(new ObjectFieldBuilder(name)));
+      this.addFields(name, () => shape(new ObjectFieldBuilder(name)));
     }
 
     if (options.shape) {
-      this.addFields(name, options.shape(new ObjectFieldBuilder(name)));
+      this.addFields(name, () => options.shape!(new ObjectFieldBuilder(name)));
     }
 
     return type;
@@ -91,7 +91,7 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     name: Type,
     shape: ObjectFieldsShape<Types, Types['Object'][Type]>,
   ) {
-    return this.addFields(name, shape(new ObjectFieldBuilder(name)));
+    return this.addFields(name, () => shape(new ObjectFieldBuilder(name)));
   }
 
   objectField<Type extends ObjectName<Types>>(
@@ -99,29 +99,29 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     fieldName: string,
     field: ObjectFieldThunk<Types, Types['Object'][Type]>,
   ) {
-    return this.addFields(name, { [fieldName]: field(new ObjectFieldBuilder(name)) });
+    return this.addFields(name, () => ({ [fieldName]: field(new ObjectFieldBuilder(name)) }));
   }
 
   queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, shape?: QueryFieldsShape<Types>) {
     const type = this.addType(new QueryType<Types>(options));
 
     if (shape) {
-      this.addFields('Query', shape(new QueryFieldBuilder()));
+      this.addFields('Query', () => shape(new QueryFieldBuilder()));
     }
 
     if (options.shape) {
-      this.addFields('Query', options.shape(new QueryFieldBuilder()));
+      this.addFields('Query', () => options.shape!(new QueryFieldBuilder()));
     }
 
     return type;
   }
 
   queryFields(shape: QueryFieldsShape<Types>) {
-    return this.addFields('Query', shape(new QueryFieldBuilder()));
+    return this.addFields('Query', () => shape(new QueryFieldBuilder()));
   }
 
   queryField(name: string, field: QueryFieldThunk<Types>) {
-    return this.addFields('Query', { [name]: field(new QueryFieldBuilder()) });
+    return this.addFields('Query', () => ({ [name]: field(new QueryFieldBuilder()) }));
   }
 
   mutationType(
@@ -131,22 +131,22 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     const type = this.addType(new MutationType<Types>(options));
 
     if (shape) {
-      this.addFields('Mutation', shape(new MutationFieldBuilder()));
+      this.addFields('Mutation', () => shape(new MutationFieldBuilder()));
     }
 
     if (options.shape) {
-      this.addFields('Mutation', options.shape(new MutationFieldBuilder()));
+      this.addFields('Mutation', () => options.shape!(new MutationFieldBuilder()));
     }
 
     return type;
   }
 
   mutationFields(shape: MutationFieldsShape<Types>) {
-    return this.addFields('Mutation', shape(new MutationFieldBuilder()));
+    return this.addFields('Mutation', () => shape(new MutationFieldBuilder()));
   }
 
   mutationField(name: string, field: MutationFieldThunk<Types>) {
-    return this.addFields('Mutation', { [name]: field(new MutationFieldBuilder()) });
+    return this.addFields('Mutation', () => ({ [name]: field(new MutationFieldBuilder()) }));
   }
 
   subscriptionType(
@@ -156,22 +156,24 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     const type = this.addType(new SubscriptionType<Types>(options));
 
     if (shape) {
-      this.addFields('Subscription', shape(new SubscriptionFieldBuilder()));
+      this.addFields('Subscription', () => shape(new SubscriptionFieldBuilder()));
     }
 
     if (options.shape) {
-      this.addFields('Subscription', options.shape(new SubscriptionFieldBuilder()));
+      this.addFields('Subscription', () => options.shape!(new SubscriptionFieldBuilder()));
     }
 
     return type;
   }
 
   subscriptionFields(shape: SubscriptionFieldsShape<Types>) {
-    return this.addFields('Subscription', shape(new SubscriptionFieldBuilder()));
+    return this.addFields('Subscription', () => shape(new SubscriptionFieldBuilder()));
   }
 
   subscriptionField(name: string, field: SubscriptionFieldThunk<Types>) {
-    return this.addFields('Subscription', { [name]: field(new SubscriptionFieldBuilder()) });
+    return this.addFields('Subscription', () => ({
+      [name]: field(new SubscriptionFieldBuilder()),
+    }));
   }
 
   args<Shape extends InputFields<Types>>(
@@ -188,11 +190,11 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     const type = this.addType(new InterfaceType<Types, Type>(name, options));
 
     if (shape) {
-      this.addFields(name, shape(new InterfaceFieldBuilder(name)));
+      this.addFields(name, () => shape(new InterfaceFieldBuilder(name)));
     }
 
     if (options.shape) {
-      this.addFields(name, options.shape(new InterfaceFieldBuilder(name)));
+      this.addFields(name, () => options.shape!(new InterfaceFieldBuilder(name)));
     }
 
     return type;
@@ -202,7 +204,7 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     name: Type,
     shape: InterfaceFieldsShape<Types, Types['Interface'][Type]>,
   ) {
-    return this.addFields(name, shape(new InterfaceFieldBuilder(name)));
+    return this.addFields(name, () => shape(new InterfaceFieldBuilder(name)));
   }
 
   interfaceField<Type extends InterfaceName<Types>>(
@@ -210,7 +212,7 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
     fieldName: string,
     field: InterfaceFieldThunk<Types, Types['Interface'][Type]>,
   ) {
-    return this.addFields(name, { [fieldName]: field(new InterfaceFieldBuilder(name)) });
+    return this.addFields(name, () => ({ [fieldName]: field(new InterfaceFieldBuilder(name)) }));
   }
 
   unionType<Member extends ObjectName<Types>, Name extends string>(
@@ -324,6 +326,26 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
   } = {}) {
     this.plugin.beforeBuild(this);
 
+    this.types.forEach((type) => {
+      const pending = this.pendingFields.get(type.typename);
+
+      if (pending) {
+        this.pendingFields.delete(type.typename);
+        for (const fieldThunk of pending) {
+          const fields = fieldThunk();
+          if (this.fields.has(type.typename)) {
+            this.fields.get(type.typename)!.push(fields);
+          } else {
+            this.fields.set(type.typename, [fields]);
+          }
+
+          Object.keys(fields).forEach((fieldName) => {
+            this.plugin.onField(type, fieldName, fields[fieldName], this);
+          });
+        }
+      }
+    });
+
     if (this.pendingFields.size) {
       throw new Error(
         `Fields defined without defining type (${[...this.pendingFields.keys()].join(', ')}).`,
@@ -364,32 +386,11 @@ export default class SchemaBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
 
     this.plugin.onType(type, this);
 
-    const pending = this.pendingFields.get(type.typename);
-
-    if (pending) {
-      this.pendingFields.delete(type.typename);
-      for (const fields of pending) {
-        this.addFields(type.typename, fields);
-      }
-    }
-
     return type;
   }
 
-  addFields(typename: string, fields: FieldMap) {
-    const type = this.types.get(typename);
-
-    if (type) {
-      if (this.fields.has(typename)) {
-        this.fields.get(typename)!.push(fields);
-      } else {
-        this.fields.set(typename, [fields]);
-      }
-
-      Object.keys(fields).forEach((fieldName) => {
-        this.plugin.onField(type, fieldName, fields[fieldName], this);
-      });
-    } else if (this.pendingFields.has(typename)) {
+  addFields(typename: string, fields: () => FieldMap) {
+    if (this.pendingFields.has(typename)) {
       this.pendingFields.get(typename)!.push(fields);
     } else {
       this.pendingFields.set(typename, [fields]);

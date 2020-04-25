@@ -29,17 +29,17 @@ export default class ExtendsPlugin implements BasePlugin {
 
         if (shape) {
           if (key === 'Query') {
-            builder.addFields(key, (shape as QueryFieldsShape<any>)(new QueryFieldBuilder()));
+            builder.addFields(key, () => (shape as QueryFieldsShape<any>)(new QueryFieldBuilder()));
           } else if (key === 'Mutation') {
-            builder.addFields(key, (shape as MutationFieldsShape<any>)(new MutationFieldBuilder()));
+            builder.addFields(key, () =>
+              (shape as MutationFieldsShape<any>)(new MutationFieldBuilder()),
+            );
           } else if (key === 'Subscription') {
-            builder.addFields(
-              key,
+            builder.addFields(key, () =>
               (shape as SubscriptionFieldsShape<any>)(new SubscriptionFieldBuilder()),
             );
           } else {
-            builder.addFields(
-              key,
+            builder.addFields(key, () =>
               (shape as ObjectFieldsShape<any, object>)(new ObjectFieldBuilder(key)),
             );
           }
