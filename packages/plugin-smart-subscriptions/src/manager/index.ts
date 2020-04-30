@@ -1,39 +1,191 @@
 /* eslint-disable no-await-in-loop */
-import { MergedAsyncIterator } from '..';
 import { RegisterOptions } from '../types';
 
-export default class SubscriptionManager {
-  iterator: MergedAsyncIterator<unknown>;
+export default class SubscriptionManager implements AsyncIterator<unknown> {
+  activeSubscriptions = new Set<string>();
 
-  activeSubscriptions = new Map<string, AsyncIterator<unknown>>();
-
-  nextSubscriptions = new Map<string, AsyncIterator<unknown>>();
+  nextSubscriptions = new Set<string>();
 
   activeOptions = new Map<string, RegisterOptions[]>();
 
   nextOptions = new Map<string, RegisterOptions[]>();
 
-  subscribeToName: <T>(name: string) => AsyncIterator<T>;
+  subscribeToName: (
+    name: string,
+    cb: (err: unknown, data: unknown) => void,
+  ) => Promise<void> | void;
+
+  unsubscribeFromName: (name: string) => Promise<void> | void;
+
+  // Always trigger on first pull to push initial state to client
+  pendingEvent = true;
+
+  pendingError: unknown;
 
   value: unknown;
 
-  constructor(value: unknown, subscribe: (name: string) => AsyncIterator<unknown>) {
-    this.subscribeToName = subscribe as <T>(name: string) => AsyncIterator<T>;
+  resolveNext: ((done?: boolean) => void) | null = null;
+
+  rejectNext: ((err: unknown) => void) | null = null;
+
+  stopped = false;
+
+  debounceDelay: number | null = null;
+
+  debounceRef: NodeJS.Timeout | null = null;
+
+  constructor({
+    value,
+    debounceDelay,
+    subscribe,
+    unsubscribe,
+  }: {
+    value: unknown;
+    debounceDelay?: number | null;
+    subscribe: (name: string, cb: (err: unknown, data: unknown) => void) => Promise<void> | void;
+    unsubscribe: (name: string) => Promise<void> | void;
+  }) {
+    this.subscribeToName = subscribe;
+    this.unsubscribeFromName = unsubscribe;
 
     this.value = value;
 
-    this.iterator = new MergedAsyncIterator<unknown>([], {
-      closeWhenExhausted: false,
-      unref: true,
-      debounce: 10,
-      debounceFirst: true,
-    });
-
-    // Trigger initial fetch
-    this.iterator.pushValue(null);
+    this.debounceDelay = debounceDelay ?? null;
   }
 
-  addOptions(name: string, options: RegisterOptions) {
+  register<T>({ name, ...options }: RegisterOptions<T>) {
+    if (this.stopped) {
+      return;
+    }
+
+    this.addOptions(name, options as RegisterOptions);
+
+    if (this.nextSubscriptions.has(name)) {
+      return;
+    }
+
+    this.nextSubscriptions.add(name);
+
+    if (this.activeSubscriptions.has(name)) {
+      return;
+    }
+
+    const maybePromise = this.subscribeToName(name, (err, value) => {
+      if (err) {
+        this.handleError(err);
+      } else {
+        this.handleValue(name, value);
+      }
+    });
+
+    if (maybePromise) {
+      maybePromise.catch((error) => this.handleError(error));
+    }
+  }
+
+  [Symbol.asyncIterator]() {
+    return this;
+  }
+
+  async return() {
+    if (this.pendingError) {
+      throw this.pendingError;
+    }
+
+    await this.stop();
+
+    return {
+      done: true,
+      value: this.value,
+    };
+  }
+
+  throw(error: unknown) {
+    this.handleError(error);
+
+    return Promise.reject<IteratorResult<unknown>>(error);
+  }
+
+  async next(): Promise<IteratorResult<unknown>> {
+    if (this.pendingError) {
+      throw this.pendingError;
+    }
+
+    if (this.stopped) {
+      return {
+        done: true,
+        value: this.value,
+      };
+    }
+
+    for (const name of this.activeSubscriptions) {
+      if (!this.nextSubscriptions.has(name)) {
+        await this.unsubscribeFromName(name);
+      }
+    }
+
+    this.activeSubscriptions = this.nextSubscriptions;
+    this.nextSubscriptions = new Set();
+    this.activeOptions = this.nextOptions;
+    this.nextOptions = new Map();
+
+    if (this.pendingEvent) {
+      this.pendingEvent = false;
+
+      return {
+        done: false,
+        value: this.value,
+      };
+    }
+
+    return new Promise<IteratorResult<unknown>>((resolve, reject) => {
+      this.resolveNext = (done = false) => {
+        this.resolveNext = null;
+        this.rejectNext = null;
+        resolve({
+          done,
+          value: this.value,
+        });
+      };
+      this.rejectNext = (err) => {
+        this.resolveNext = null;
+        this.rejectNext = null;
+        reject(err);
+      };
+    });
+  }
+
+  private async stop() {
+    if (this.stopped) {
+      return;
+    }
+
+    if (this.debounceRef) {
+      clearTimeout(this.debounceRef);
+      this.debounceRef = null;
+    }
+
+    this.stopped = true;
+
+    const names = new Set([...this.activeSubscriptions, ...this.nextSubscriptions]);
+
+    this.activeSubscriptions = new Set();
+    this.nextSubscriptions = new Set();
+    this.activeOptions = new Map();
+    this.nextOptions = new Map();
+
+    if (this.pendingError && this.rejectNext) {
+      this.rejectNext(this.pendingError);
+    } else if (this.resolveNext) {
+      this.resolveNext(true);
+    }
+
+    for (const name of names) {
+      await this.unsubscribeFromName(name);
+    }
+  }
+
+  private addOptions(name: string, options: RegisterOptions) {
     if (!this.nextOptions.has(name)) {
       this.nextOptions.set(name, []);
     }
@@ -41,7 +193,7 @@ export default class SubscriptionManager {
     this.nextOptions.get(name)!.push(options);
   }
 
-  async filterValue(name: string, value: unknown) {
+  private async filterValue(name: string, value: unknown) {
     const optionsList = this.activeOptions.get(name);
 
     if (!optionsList) {
@@ -71,72 +223,52 @@ export default class SubscriptionManager {
     return allowed;
   }
 
-  register<T>({ name, ...options }: RegisterOptions<T>) {
-    this.addOptions(name, options as RegisterOptions);
+  private handleError(err: unknown) {
+    this.pendingError = err;
 
-    if (this.nextSubscriptions.has(name)) {
-      return;
+    if (this.rejectNext) {
+      this.rejectNext(err);
     }
 
-    if (this.activeSubscriptions.has(name)) {
-      this.nextSubscriptions.set(name, this.activeSubscriptions.get(name)!);
-
-      return;
-    }
-
-    const iterator = this.subscribeToName(name);
-
-    const pullValue = async () => {
-      let nextVal = await iterator.next();
-
-      while (!(await this.filterValue(name, nextVal))) {
-        nextVal = await iterator.next();
-      }
-
-      return nextVal;
-    };
-
-    const firstResult = pullValue();
-
-    let first = true;
-
-    const primed = {
-      throw: iterator.throw?.bind(iterator),
-      return: iterator.return?.bind(iterator),
-      next: () => {
-        if (first) {
-          first = false;
-
-          return firstResult;
-        }
-
-        return pullValue();
-      },
-    };
-
-    this.nextSubscriptions.set(name, primed);
-    this.iterator.add(primed);
+    this.stop();
   }
 
-  [Symbol.asyncIterator](): AsyncIterator<unknown> {
-    return {
-      return: this.iterator.return,
-      throw: this.iterator.throw,
-      next: () => {
-        [...this.activeSubscriptions.keys()].forEach((name) => {
-          if (!this.nextSubscriptions.has(name)) {
-            // eslint-disable-next-line no-unused-expressions
-            this.activeSubscriptions.get(name)?.return?.(null);
-          }
-        });
+  private async handleValue(name: string, value: unknown) {
+    if (this.stopped) {
+      return;
+    }
 
-        this.activeSubscriptions = this.nextSubscriptions;
-        this.nextSubscriptions = new Map();
-        this.activeOptions = this.nextOptions;
-        this.nextOptions = new Map();
+    const allowed = await this.filterValue(name, value);
 
-        return this.iterator.next().then(({ done }) => ({ done, value: this.value }));
-      },
-    };
+    if (!allowed) {
+      return;
+    }
+
+    if (this.debounceRef) {
+      return;
+    }
+
+    if (this.debounceDelay === null) {
+      this.pushValue();
+    } else {
+      this.debounceRef = setTimeout(() => {
+        this.debounceRef = null;
+        this.pushValue();
+      }, this.debounceDelay);
+
+      this.debounceRef.unref();
+    }
+  }
+
+  private pushValue() {
+    if (this.stopped) {
+      return;
+    }
+
+    if (this.resolveNext) {
+      this.resolveNext();
+    } else {
+      this.pendingEvent = true;
+    }
   }
 }

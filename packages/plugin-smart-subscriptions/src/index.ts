@@ -37,10 +37,20 @@ export * from './utils';
 export default class SmartSubscriptionsPlugin<Context extends object> implements BasePlugin {
   managerMap = new WeakMap<object, Map<string, SubscriptionManager>>();
 
-  subscribe: (name: string, context: Context) => AsyncIterator<unknown>;
+  debounceDelay: number | null;
+
+  subscribe: (
+    name: string,
+    context: Context,
+    cb: (err: unknown, data: unknown) => void,
+  ) => Promise<void> | void;
+
+  unsubscribe: (name: string, context: Context) => Promise<void> | void;
 
   constructor(options: SmartSubscriptionOptions<Context>) {
     this.subscribe = options.subscribe;
+    this.unsubscribe = options.unsubscribe;
+    this.debounceDelay = options.debounceDelay ?? 10;
   }
 
   onField(
@@ -65,9 +75,12 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
         [name]: t.field({
           ...options,
           subscribe: (parent, args, context, info) => {
-            const manager = new SubscriptionManager(ResolveValueWrapper.wrap(parent), (subName) =>
-              this.subscribe(subName, context),
-            );
+            const manager = new SubscriptionManager({
+              value: ResolveValueWrapper.wrap(parent),
+              debounceDelay: this.debounceDelay,
+              subscribe: (subName, cb) => this.subscribe(subName, context, cb),
+              unsubscribe: (subName) => this.unsubscribe(subName, context),
+            });
 
             this.setSubscriptionManager(manager, context, info);
 

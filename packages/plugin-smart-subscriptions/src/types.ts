@@ -2,7 +2,13 @@ import { GraphQLFieldResolver } from 'graphql';
 import { MaybePromise } from '@giraphql/core';
 
 export interface SmartSubscriptionOptions<Context extends object> {
-  subscribe: (name: string, context: Context) => AsyncIterator<unknown>;
+  debounceDelay?: number | null;
+  subscribe: (
+    name: string,
+    context: Context,
+    cb: (err: unknown, data?: unknown) => void,
+  ) => Promise<void> | void;
+  unsubscribe: (name: string, context: Context) => Promise<void> | void;
 }
 
 export type WrappedResolver<Context = object> = GraphQLFieldResolver<unknown, Context> & {
