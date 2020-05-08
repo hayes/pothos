@@ -1,33 +1,37 @@
-import { GraphQLFieldConfig, GraphQLResolveInfo, GraphQLSchema } from 'graphql';
-import { BuildCacheEntry, TypeParam, MaybePromise, ImplementedType } from '../types';
-import Field from '../graphql/field';
+import {
+  GraphQLFieldConfig,
+  GraphQLResolveInfo,
+  GraphQLSchema,
+  GraphQLType,
+  GraphQLField,
+  GraphQLNamedType,
+} from 'graphql';
+import { MaybePromise } from '../types';
 import BuildCache from '../build-cache';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
 export interface BasePlugin {
-  visitType?(entry: BuildCacheEntry, cache: BuildCache): void;
+  visitType?(type: GraphQLNamedType, cache: BuildCache): void;
 
   updateFieldConfig?(
     name: string,
-    field: Field<{}, any, TypeParam<any>>,
     config: GraphQLFieldConfig<unknown, unknown>,
     cache: BuildCache,
   ): GraphQLFieldConfig<unknown, unknown>;
 
   onFieldWrap?(
     name: string,
-    field: Field<{}, any, TypeParam<any>>,
-    config: GraphQLFieldConfig<unknown, object>,
+    field: GraphQLField<unknown, object>,
     data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
     cache: BuildCache,
   ): void;
 
-  onType?(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
+  onType?(type: GraphQLType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
 
   onField?(
-    type: ImplementedType,
+    type: GraphQLType,
     name: string,
-    field: Field<{}, any, TypeParam<any>>,
+    field: GraphQLFieldConfig<unknown, object>,
     builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
   ): void;
 

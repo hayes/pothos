@@ -1,7 +1,7 @@
-import { TypeParam, InputFields, CompatibleTypes, FieldNullability } from '../types';
+import { TypeParam, InputFields, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
 import Field from '../graphql/field';
 
-export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, ParentShape> {
+export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   typename: string;
 
   constructor(name: string) {
@@ -13,14 +13,9 @@ export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, P
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>
   >(
-    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any>,
-  ): Field<Args, Types, Type> {
-    return new Field(
-      {
-        ...options,
-      },
-      this.typename,
-    );
+    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
+  ): Field {
+    return new Field(options as GiraphQLSchemaTypes.FieldOptions, this.typename);
   }
 
   protected exposeField<
@@ -30,15 +25,15 @@ export default class BaseFieldUtil<Types extends GiraphQLSchemaTypes.TypeInfo, P
   >(
     name: Name,
     options: Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}>,
+      GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
       'resolve'
     >,
   ) {
-    return new Field<{}, Types, Type>(
+    return new Field(
       {
-        ...options,
-        // @ts-ignore
-        resolve: (parent) => parent[name],
+        ...(options as GiraphQLSchemaTypes.FieldOptions),
+
+        resolve: (parent) => (parent as { [s: string]: Readonly<unknown> })[name as string],
       },
       this.typename,
     );

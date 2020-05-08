@@ -1,7 +1,13 @@
 /* eslint-disable no-await-in-loop */
-import { GraphQLFieldConfig, GraphQLResolveInfo, GraphQLSchema } from 'graphql';
-import { BasePlugin, Field } from '..';
-import { TypeParam, BuildCacheEntry, MaybePromise, ImplementedType } from '../types';
+import {
+  GraphQLFieldConfig,
+  GraphQLResolveInfo,
+  GraphQLSchema,
+  GraphQLNamedType,
+  GraphQLField,
+} from 'graphql';
+import { BasePlugin } from '..';
+import { MaybePromise } from '../types';
 import BuildCache from '../build-cache';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
@@ -63,33 +69,31 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
   ) as Pick<Required<BasePlugin>, 'afterBuild'>[];
 
   return {
-    visitType(entry: BuildCacheEntry, cache: BuildCache) {
+    visitType(type: GraphQLNamedType, cache: BuildCache) {
       for (const plugin of visitTypePlugins) {
-        plugin.visitType(entry, cache);
+        plugin.visitType(type, cache);
       }
     },
 
     updateFieldConfig(
       name: string,
-      field: Field<{}, any, TypeParam<any>>,
       config: GraphQLFieldConfig<unknown, unknown>,
       cache: BuildCache,
     ) {
       return updateFieldConfigPlugins.reduce(
-        (newConfig, plugin) => plugin.updateFieldConfig(name, field, newConfig, cache),
+        (newConfig, plugin) => plugin.updateFieldConfig(name, newConfig, cache),
         config,
       );
     },
 
     onFieldWrap(
       name: string,
-      field: Field<{}, any, TypeParam<any>>,
-      config: GraphQLFieldConfig<unknown, unknown>,
+      field: GraphQLField<unknown, object>,
       data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
       cache: BuildCache,
     ) {
       for (const plugin of onFieldWrapPlugins) {
-        plugin.onFieldWrap(name, field, config, data, cache);
+        plugin.onFieldWrap(name, field, data, cache);
       }
     },
 
@@ -207,16 +211,16 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       }
     },
 
-    onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+    onType(type: GraphQLNamedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
       for (const plugin of onTypePlugins) {
         plugin.onType(type, builder);
       }
     },
 
     onField(
-      type: ImplementedType,
+      type: GraphQLNamedType,
       name: string,
-      field: Field<{}, any, TypeParam<any>>,
+      field: GraphQLFieldConfig<unknown, object>,
       builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
     ) {
       for (const plugin of onFieldPlugins) {

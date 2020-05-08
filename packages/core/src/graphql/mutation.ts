@@ -5,16 +5,14 @@ import BaseType from './base';
 import BuildCache from '../build-cache';
 import { BasePlugin } from '../plugins';
 
-export default class MutationType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<
-  Types['Root']
-> {
+export default class MutationType extends BaseType {
   kind: 'Mutation' = 'Mutation';
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.MutationTypeOptions<Types>;
+  options: GiraphQLSchemaTypes.MutationTypeOptions;
 
-  constructor(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>) {
+  constructor(options: GiraphQLSchemaTypes.MutationTypeOptions) {
     super('Mutation');
 
     this.options = options;

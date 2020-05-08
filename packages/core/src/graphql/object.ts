@@ -2,12 +2,11 @@ import { GraphQLObjectType } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { InterfaceName } from '../types';
 import BuildCache from '../build-cache';
 import { InterfaceType } from '..';
 import { BasePlugin } from '../plugins';
 
-export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<{}> {
+export default class ObjectType extends BaseType {
   kind: 'Object' = 'Object';
 
   description?: string;
@@ -21,8 +20,8 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
   constructor(
     name: string,
     options:
-      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, any>
-      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, any, []>,
+      | GiraphQLSchemaTypes.ObjectTypeOptions
+      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions,
   ) {
     super(name);
 
@@ -34,9 +33,7 @@ export default class ObjectType<Types extends GiraphQLSchemaTypes.TypeInfo> exte
 
     this.description = options.description;
     this.interfaces = (options.implements ?? []).map((iface) =>
-      typeof iface === 'string'
-        ? iface
-        : (iface as InterfaceType<Types, InterfaceName<Types>>).typename,
+      typeof iface === 'string' ? iface : (iface as InterfaceType).typename,
     );
   }
 

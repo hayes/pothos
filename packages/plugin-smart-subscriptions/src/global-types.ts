@@ -19,7 +19,8 @@ declare global {
       Types extends TypeInfo,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
+      Args extends InputFields<Types>,
+      ResolveReturnShape
     > {
       smartSubscription?: boolean;
       subscribe?: (
@@ -36,8 +37,9 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
+      Args extends InputFields<Types>,
+      ResolveReturnShape
+    > {
       subscribe?: (
         subscriptions: FieldSubscriptionManager,
         parent: ParentShape,

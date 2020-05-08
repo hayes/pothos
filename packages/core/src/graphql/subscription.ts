@@ -5,16 +5,14 @@ import BaseType from './base';
 import BuildCache from '../build-cache';
 import { BasePlugin } from '../plugins';
 
-export default class SubscriptionType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<
-  Types['Root']
-> {
+export default class SubscriptionType extends BaseType {
   kind: 'Subscription' = 'Subscription';
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>;
+  options: GiraphQLSchemaTypes.SubscriptionTypeOptions;
 
-  constructor(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>) {
+  constructor(options: GiraphQLSchemaTypes.SubscriptionTypeOptions) {
     super('Subscription');
 
     this.options = options;

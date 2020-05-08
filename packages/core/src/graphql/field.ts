@@ -8,37 +8,23 @@ import BaseType from './base';
 import { BuildCache } from '..';
 import { BasePlugin, wrapResolver } from '../plugins';
 
-export default class Field<
-  Args extends InputFields<Types>,
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends TypeParam<Types>
-> {
-  shape?: ShapeFromTypeParam<Types, Type, true>;
+export default class Field {
+  shape?: ShapeFromTypeParam;
 
-  nullable: FieldNullability<Type>;
+  nullable: FieldNullability;
 
-  args: Args = {} as Args;
+  args: InputFields;
 
-  type: Type;
+  type: TypeParam;
 
-  options: GiraphQLSchemaTypes.FieldOptions<
-    any,
-    unknown,
-    TypeParam<any>,
-    FieldNullability,
-    any,
-    unknown
-  >;
+  options: GiraphQLSchemaTypes.FieldOptions;
 
   parentTypename: string;
 
-  constructor(
-    options: GiraphQLSchemaTypes.FieldOptions<Types, any, Type, FieldNullability<Type>, Args, any>,
-    parentTypename: string,
-  ) {
+  constructor(options: GiraphQLSchemaTypes.FieldOptions, parentTypename: string) {
     this.options = options;
     this.nullable = options.nullable ?? false;
-    this.args = options.args ? options.args! : ({} as Args);
+    this.args = options.args ? options.args! : ({} as InputFields);
     this.type = options.type;
     this.parentTypename = parentTypename;
   }

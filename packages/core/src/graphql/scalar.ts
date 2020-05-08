@@ -1,18 +1,12 @@
 import { GraphQLScalarType } from 'graphql';
 import BaseInputType from './base-input';
 
-export default class ScalarType<InputShape, OutputShape> extends BaseInputType<
-  OutputShape,
-  InputShape
-> {
+export default class ScalarType extends BaseInputType {
   kind: 'Scalar' = 'Scalar';
 
   options: GiraphQLSchemaTypes.ScalarOptions<unknown, unknown>;
 
-  constructor(
-    name: string,
-    options: Omit<GiraphQLSchemaTypes.ScalarOptions<InputShape, OutputShape>, 'name'>,
-  ) {
+  constructor(name: string, options: Omit<GiraphQLSchemaTypes.ScalarOptions, 'name'>) {
     super(name);
 
     this.options = options;

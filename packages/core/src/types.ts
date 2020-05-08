@@ -9,7 +9,6 @@ import {
   GraphQLResolveInfo,
 } from 'graphql';
 import InputObjectType from './graphql/input';
-import BaseType from './graphql/base';
 import InterfaceType from './graphql/interface';
 import Field from './graphql/field';
 import ObjectType from './graphql/object';
@@ -21,10 +20,146 @@ import './global-types';
 import QueryType from './graphql/query';
 import MutationType from './graphql/mutation';
 import SubscriptionType from './graphql/subscription';
-import { BaseInputType } from '.';
+import ObjectRef from './refs/object';
+import InterfaceRef from './refs/interface';
+
+export interface MergedSchemaTypes<Info extends GiraphQLSchemaTypes.TypeInfo> extends SchemaTypes {
+  outputShapes: { [K in keyof Info['Object']]: Info['Object'][K] } &
+    { [K in keyof Info['Interface']]: Info['Interface'][K] } &
+    { [K in keyof Info['Scalar']]: Info['Scalar'][K]['Output'] };
+  inputShapes: { [K in keyof Info['Scalar']]: Info['Scalar'][K]['Input'] };
+  context: Info['Context'];
+  root: Info['Root'];
+  objects: Extract<keyof Info['Object'], string>;
+  interfaces: Extract<keyof Info['Interface'], string>;
+  scalars: Extract<keyof Info['Scalar'], string>;
+}
+
+export interface SchemaTypes {
+  outputShapes: {
+    ID: unknown;
+    Int: unknown;
+    Float: unknown;
+    String: unknown;
+    Boolean: unknown;
+  };
+  inputShapes: {
+    ID: unknown;
+    Int: unknown;
+    Float: unknown;
+    String: unknown;
+    Boolean: unknown;
+  };
+  context: object;
+  objects: string;
+  interfaces: string;
+  scalars: string;
+  root: unknown;
+}
+
+export const inputShapeKey = Symbol.for('GiraphQL.inputShapeKey');
+export const outputShapeKey = Symbol.for('GiraphQL.outputShapeKey');
+
+export interface OutputRef {
+  [outputShapeKey]: unknown;
+  name: string;
+  kind: 'Object' | 'Interface' | 'Scalar' | 'Enum' | 'Union';
+}
+
+export interface InputRef {
+  [outputShapeKey]: unknown;
+  name: string;
+  kind: 'InputObject' | 'Scalar' | 'Enum';
+}
+
+export type OutputShape<T, Types extends SchemaTypes = SchemaTypes> = T extends {
+  [outputShapeKey]: infer U;
+}
+  ? U
+  : T extends { new (...args: unknown[]): infer U }
+  ? U extends {
+      [outputShapeKey]: infer V;
+    }
+    ? V
+    : U
+  : T extends keyof Types['outputShapes']
+  ? Types['outputShapes'][T]
+  : never;
+
+export type InputShape<T, Types extends SchemaTypes = SchemaTypes> = T extends {
+  [inputShapeKey]: infer U;
+}
+  ? U
+  : T extends { new (...args: unknown[]): infer U }
+  ? U extends {
+      [inputShapeKey]: infer V;
+    }
+    ? V
+    : U
+  : T extends keyof Types['inputShapes']
+  ? Types['inputShapes'][T]
+  : never;
+
+export type OutputType<Types extends SchemaTypes = SchemaTypes> =
+  | keyof Types['outputShapes']
+  | {
+      [outputShapeKey]: unknown;
+    }
+  | {
+      new (...args: unknown[]): unknown;
+    };
+
+export type OutputTypeWithShape<Types extends SchemaTypes = SchemaTypes, Shape = unknown> =
+  | NamedOutputTypeWithShape<Types, Shape>
+  | {
+      [outputShapeKey]: Shape;
+    }
+  | {
+      new (...args: unknown[]): Shape;
+    };
+
+export type NamedOutputTypeWithShape<Types extends SchemaTypes, Shape> = {
+  [K in keyof Types['outputShapes']]: Types['outputShapes'][K] extends Shape ? K : never;
+}[keyof Types['outputShapes']];
+
+export type TypeParam<Types extends SchemaTypes = SchemaTypes> =
+  | OutputType<Types>
+  | [OutputType<Types>];
+
+export type ObjectParam<Types extends SchemaTypes, Shape = unknown> =
+  | Extract<NamedOutputTypeWithShape<Types, Shape>, Types['objects']>
+  | ObjectRef<unknown>
+  | {
+      new (...args: unknown[]): Shape;
+    };
+
+export type InterfaceParam<Types extends SchemaTypes, Shape = unknown> =
+  | Extract<NamedOutputTypeWithShape<Types, Shape>, Types['interfaces']>
+  | InterfaceRef<unknown>;
+
+export type WithFieldsParam<Types extends SchemaTypes> =
+  | ObjectParam<Types>
+  | InterfaceParam<Types>
+  | RootName;
+
+export type ScalarName<Types extends SchemaTypes> = Types['scalars'] &
+  keyof Types['outputShapes'] &
+  keyof Types['inputShapes'];
+
+export type OutputTypeRef<Shape = unknown> = {
+  [outputShapeKey]: Shape;
+};
+
+export type InputType<Types extends SchemaTypes> =
+  | keyof Types['outputShapes']
+  | {
+      [inputShapeKey]: unknown;
+    };
 
 // Utils
 export type MaybePromise<T> = T | Promise<T>;
+
+export type MaybePromiseWithInference<T, U> = U extends Promise<unknown> ? Promise<T> : T;
 
 export type RequiredKeys<T extends object> = {
   [K in keyof T]: undefined extends T[K] ? never : null extends T[K] ? never : K;
@@ -88,89 +223,33 @@ export interface DefaultScalars {
   Boolean: { Input: boolean; Output: boolean };
 }
 
-// Output types
-export type OptionalShapeFromTypeParam<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Param extends TypeParam<Types>
-> = Param extends ObjectName<Types>
-  ? Types['Object'][Param]
-  : Param extends InterfaceName<Types>
-  ? Types['Interface'][Param]
-  : Param extends ScalarName<Types>
-  ? Types['Scalar'][Param]['Output']
-  : Param extends BaseType
-  ? Param['shape']
-  : never;
-
 export type ShapeFromListTypeParam<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Param extends [NonListTypeParam<Types>],
+  Types extends SchemaTypes,
+  Param extends [OutputType<Types>],
   Nullable extends FieldNullability<Param>
 > = Nullable extends true
-  ? ShapeFromNonListTypeParam<Types, Param[0], false>[] | undefined | null
+  ? OutputShape<Param[0], Types>[] | undefined | null
   : Nullable extends false
-  ? ShapeFromNonListTypeParam<Types, Param[0], false>[]
+  ? OutputShape<Param[0], Types>[]
   : Nullable extends { list: infer List; items: infer Items }
   ? Items extends boolean
     ? List extends true
-      ? ShapeFromNonListTypeParam<Types, Param[0], Items>[] | undefined | null
-      : ShapeFromNonListTypeParam<Types, Param[0], Items>[]
+      ? OutputShape<Param[0], Types>[] | undefined | null
+      : OutputShape<Param[0], Types>[]
     : never
   : never;
 
-export type OutputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
-  | ObjectName<Types>
-  | InterfaceName<Types>
-  | ScalarName<Types>
-  | BaseType;
-
-export type ShapeFromType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Param extends ObjectName<Types> | InterfaceName<Types> | ScalarName<Types> | BaseType
-> = NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
-
 export type ShapeFromTypeParam<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Param extends TypeParam<Types>,
-  Nullable extends FieldNullability<Param>
-> = Param extends RootName
-  ? Types['Root']
-  : Param extends [NonListTypeParam<Types>]
+  Types extends SchemaTypes = SchemaTypes,
+  Param extends TypeParam<Types> = TypeParam<Types>,
+  Nullable extends FieldNullability<Param> = FieldNullability<Param>
+> = Param extends [OutputType<Types>]
   ? ShapeFromListTypeParam<Types, Param, Nullable>
   : Nullable extends true
-  ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
-  : NonNullable<OptionalShapeFromTypeParam<Types, Param>>;
+  ? OutputShape<Param, Types> | undefined | null
+  : OutputShape<Param, Types>;
 
-export type ShapeFromNonListTypeParam<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Param extends TypeParam<Types>,
-  Nullable extends boolean
-> = Nullable extends true
-  ? OptionalShapeFromTypeParam<Types, Param> | undefined | null
-  : Nullable extends false
-  ? NonNullable<OptionalShapeFromTypeParam<Types, Param>>
-  : never;
-
-export type NonListTypeParam<
-  Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo
-> = ObjectName<Types> | InterfaceName<Types> | ScalarName<Types> | BaseType<unknown>;
-
-export type TypeParam<Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo> =
-  | NonListTypeParam<Types>
-  | [NonListTypeParam<Types>];
-
-// Input types
-export type InputType<Types extends GiraphQLSchemaTypes.TypeInfo> =
-  | BaseInputType
-  | ScalarName<Types>;
-
-export type InputObjectOfShape<Shape> = InputObjectType<
-  any,
-  RecursivelyNormalizeNullableFields<Shape>,
-  string
->;
-
-export type InputField<Types extends GiraphQLSchemaTypes.TypeInfo> =
+export type InputField<Types extends SchemaTypes> =
   | InputType<Types>
   | InputType<Types>[]
   | {
@@ -197,39 +276,30 @@ export type FieldNullability<Param = [unknown]> =
             }
       : boolean);
 
-export type ScalarName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Scalar'] & string;
-
-export type InterfaceName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Interface'] &
-  string;
-
-export type InterfaceParam<Types extends GiraphQLSchemaTypes.TypeInfo> =
-  | InterfaceName<Types>
-  | InterfaceType<Types, InterfaceName<Types>>;
-
-export type ObjectName<Types extends GiraphQLSchemaTypes.TypeInfo> = keyof Types['Object'] & string;
-
 export type RootName = 'Query' | 'Mutation' | 'Subscription';
 
 export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
-  GiraphQLSchemaTypes.TypeInfo,
+  SchemaTypes,
   {},
-  TypeParam<GiraphQLSchemaTypes.TypeInfo>,
+  TypeParam<SchemaTypes>,
   boolean,
+  {},
   {},
   {}
 >;
 
-export type ScalarNameWithInputShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = {
-  [K in keyof Types['Scalar']]: Types['Scalar'][K]['Input'] extends Shape ? K : never;
-}[keyof Types['Scalar']] &
-  ScalarName<Types>;
+export type ScalarNameWithInputShape<Types extends SchemaTypes, Shape> = {
+  [K in Types['scalars'] & keyof Types['inputShapes']]: Types['inputShapes'][K] extends Shape
+    ? K
+    : never;
+}[Types['scalars'] & keyof Types['inputShapes']];
 
-export type InputFields<Types extends GiraphQLSchemaTypes.TypeInfo> = {
+export type InputFields<Types extends SchemaTypes = SchemaTypes> = {
   [s: string]: InputField<Types>;
 };
 
 export type InputShapeFromFields<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   Fields extends InputFields<Types>,
   Nulls = null | undefined
 > = NormalizeNullableFields<
@@ -239,13 +309,13 @@ export type InputShapeFromFields<
 >;
 
 export type InputShapeFromField<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   Field extends InputField<Types>,
   Nulls = null | undefined
 > = Field extends InputType<Types>
-  ? InputShapeFromType<Types, Field>
+  ? InputShape<Field, Types> | Nulls
   : Field extends InputType<Types>[]
-  ? NonNullable<InputShapeFromType<Types, Field[number]>>[] | Nulls
+  ? InputShape<Field, Types>[] | Nulls
   : Field extends {
       type: InputType<Types>;
     }
@@ -257,50 +327,52 @@ export type InputShapeFromField<
   : never;
 
 export type InputShapeFromListField<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   Field extends {
     type: InputType<Types>[];
     required?: boolean | { list: boolean; items: boolean };
   },
   Nulls = null | undefined
-> = Field['required'] extends boolean
-  ? Field['required'] extends true
-    ? NonNullable<InputShapeFromType<Types, Field['type'][number]>>[]
-    : InputShapeFromType<Types, Field['type'][number]>[] | Nulls
+> = Field['required'] extends true
+  ? InputShape<Field['type'][number], Types>[]
+  : Field['required'] extends false
+  ? InputShape<Field['type'][number], Types>[] | Nulls
   : Field['required'] extends { list: infer List; items: infer Items }
   ? List extends true
     ? Items extends true
-      ? NonNullable<InputShapeFromType<Types, Field['type'][number]>>[]
-      : (InputShapeFromType<Types, Field['type'][number]> | Nulls)[]
+      ? InputShape<Field['type'][number], Types>[]
+      : (InputShape<Field['type'][number], Types> | Nulls)[]
     : Items extends true
-    ? NonNullable<InputShapeFromType<Types, Field['type'][number]>>[] | Nulls
-    : (InputShapeFromType<Types, Field['type'][number]> | Nulls)[] | Nulls
+    ? InputShape<Field['type'][number], Types>[] | Nulls
+    : (InputShape<Field['type'][number], Types> | Nulls)[] | Nulls
   : never;
 
 export type InputShapeFromNonListField<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   Field extends { type: InputType<Types>; required?: boolean },
   Nulls = null | undefined
 > = Field['required'] extends true
-  ? NonNullable<InputShapeFromType<Types, Field['type']>>
-  : InputShapeFromType<Types, Field['type']> | Nulls;
-
-export type InputShapeFromType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Type extends InputType<Types>
-> = Type extends BaseInputType
-  ? NonNullable<Type['inputShape']>
-  : Type extends ScalarName<Types>
-  ? Types['Scalar'][Type]['Input']
-  : never;
+  ? InputShape<Field['type'], Types>
+  : InputShape<Field['type'], Types> | Nulls;
 
 // Resolvers
-export type Resolver<Parent, Args, Context, Type> = (
+export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   parent: Parent,
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => MaybePromise<Readonly<Type | (Type extends unknown[] ? Promise<Type[number]>[] : never)>>;
+) => Return &
+  MaybePromiseWithInference<
+    Readonly<
+      | Type
+      | (Type extends unknown[]
+          ? Return extends MaybePromise<Promise<unknown>[]>
+            ? Promise<Type[number]>[]
+            : never
+          : never)
+    >,
+    Return
+  >;
 
 export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,
@@ -319,62 +391,62 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
     }[keyof Values]
   : never;
 
-export type ObjectFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
 ) => {
-  [s: string]: Field<{}, Types, TypeParam<Types>>;
+  [s: string]: Field;
 };
 
-export type InterfaceFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+export type InterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
 ) => {
-  [s: string]: Field<{}, Types, TypeParam<Types>>;
+  [s: string]: Field;
 };
 
-export type QueryFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> = (
-  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
+export type QueryFieldsShape<Types extends SchemaTypes> = (
+  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['root']>,
 ) => {
-  [s: string]: Field<{}, Types, TypeParam<Types>>;
+  [s: string]: Field;
 };
 
-export type MutationFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> = (
-  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
+export type MutationFieldsShape<Types extends SchemaTypes> = (
+  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['root']>,
 ) => {
-  [s: string]: Field<{}, Types, TypeParam<Types>>;
+  [s: string]: Field;
 };
 
-export type SubscriptionFieldsShape<Types extends GiraphQLSchemaTypes.TypeInfo> = (
-  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
+export type SubscriptionFieldsShape<Types extends SchemaTypes> = (
+  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['root']>,
 ) => {
-  [s: string]: Field<{}, Types, TypeParam<Types>>;
+  [s: string]: Field;
 };
 
-export type ObjectFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+export type ObjectFieldThunk<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
-) => Field<{}, Types, TypeParam<Types>>;
+) => Field;
 
-export type InterfaceFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = (
+export type InterfaceFieldThunk<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
-) => Field<{}, Types, TypeParam<Types>>;
+) => Field;
 
-export type QueryFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo> = (
-  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
-) => Field<{}, Types, TypeParam<Types>>;
+export type QueryFieldThunk<Types extends SchemaTypes> = (
+  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['root']>,
+) => Field;
 
-export type MutationFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo> = (
-  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
-) => Field<{}, Types, TypeParam<Types>>;
+export type MutationFieldThunk<Types extends SchemaTypes> = (
+  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['root']>,
+) => Field;
 
-export type SubscriptionFieldThunk<Types extends GiraphQLSchemaTypes.TypeInfo> = (
-  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
-) => Field<{}, Types, TypeParam<Types>>;
+export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
+  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['root']>,
+) => Field;
 
 export type FieldMap = {
-  [s: string]: Field<{}, any, TypeParam>;
+  [s: string]: Field;
 };
 
 export type RootOptionsFromKind<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   Kind extends RootName
 > = Kind extends 'Query'
   ? GiraphQLSchemaTypes.QueryTypeOptions<Types>
@@ -385,33 +457,40 @@ export type RootOptionsFromKind<
   : never;
 
 export type FieldOptionsFromKind<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   ParentShape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFields<Types>,
   Kind extends FieldKind,
-  ResolveShape
+  ResolveShape,
+  ResolveReturnShape
 > = GiraphQLSchemaTypes.FieldOptionsByKind<
   Types,
   ParentShape,
   Type,
   Nullable,
   Args,
-  ResolveShape
+  ResolveShape,
+  ResolveReturnShape
 >[Kind];
 
-export type CompatibleInterfaceParam<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> =
-  | CompatibleInterfaceNames<Types, Shape>
-  | InterfaceType<Types, CompatibleInterfaceNames<Types, Shape>>;
+export type CompatibleInterfaceParam<Types extends SchemaTypes, Shape> = CompatibleInterfaceNames<
+  Types,
+  Shape
+>;
 
-export type CompatibleInterfaceNames<Types extends GiraphQLSchemaTypes.TypeInfo, Shape> = {
-  [K in InterfaceName<Types>]: Shape extends NonNullable<Types['Interface'][K]> ? K : never;
-}[InterfaceName<Types>] &
-  InterfaceName<Types>;
+// TODO add reference based interface params
+// | InterfaceType<Types, CompatibleInterfaceNames<Types, Shape>>;
+
+export type CompatibleInterfaceNames<Types extends SchemaTypes, Shape> = {
+  [K in Types['interfaces'] & keyof Types['outputShapes']]: Shape extends Types['outputShapes'][K]
+    ? K
+    : never;
+}[Types['interfaces'] & keyof Types['outputShapes']];
 
 export type CompatibleTypes<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
+  Types extends SchemaTypes,
   ParentShape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>
@@ -423,39 +502,39 @@ export type CompatibleTypes<
 
 // All types
 export type ImplementedType =
-  | ObjectType<any>
-  | InterfaceType<any, InterfaceName<any>, any>
-  | UnionType<any, any>
+  | ObjectType
+  | InterfaceType
+  | UnionType
   | EnumType
-  | ScalarType<any, any>
-  | InputObjectType<any, {}, string>
-  | QueryType<any>
-  | MutationType<any>
-  | SubscriptionType<any>;
+  | ScalarType
+  | InputObjectType
+  | QueryType
+  | MutationType
+  | SubscriptionType;
 
 export type BuildCacheEntryWithFields =
   | {
-      type: ObjectType<any>;
+      type: ObjectType;
       built: GraphQLObjectType;
       kind: 'Object';
     }
   | {
-      type: InterfaceType<any, any>;
+      type: InterfaceType;
       built: GraphQLInterfaceType;
       kind: 'Interface';
     }
   | {
-      type: QueryType<any>;
+      type: QueryType;
       built: GraphQLObjectType;
       kind: 'Query';
     }
   | {
-      type: MutationType<any>;
+      type: MutationType;
       built: GraphQLObjectType;
       kind: 'Mutation';
     }
   | {
-      type: SubscriptionType<any>;
+      type: SubscriptionType;
       built: GraphQLObjectType;
       kind: 'Subscription';
     };
@@ -463,18 +542,18 @@ export type BuildCacheEntryWithFields =
 export type BuildCacheEntry =
   | BuildCacheEntryWithFields
   | {
-      type: UnionType<any, any>;
+      type: UnionType;
       built: GraphQLUnionType;
       kind: 'Union';
     }
   | { type: EnumType; built: GraphQLEnumType; kind: 'Enum' }
   | {
-      type: ScalarType<any, any>;
+      type: ScalarType;
       built: GraphQLScalarType;
       kind: 'Scalar';
     }
   | {
-      type: InputObjectType<any, {}, string>;
+      type: InputObjectType;
       built: GraphQLInputObjectType;
       kind: 'InputObject';
     };

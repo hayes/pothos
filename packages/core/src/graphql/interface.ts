@@ -2,26 +2,18 @@ import { GraphQLInterfaceType, GraphQLResolveInfo } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import BaseType from './base';
-import { InterfaceName } from '../types';
 import ObjectType from './object';
 import BuildCache from '../build-cache';
 import { BasePlugin, ResolveValueWrapper } from '../plugins';
 
-export default class InterfaceType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Name extends InterfaceName<Types>,
-  Shape = Types['Interface'][Name]
-> extends BaseType<Shape> {
+export default class InterfaceType extends BaseType {
   kind: 'Interface' = 'Interface';
 
   description?: string;
 
   options: GiraphQLSchemaTypes.InterfaceTypeOptions<any, any>;
 
-  constructor(
-    name: Name,
-    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Types['Interface'][Name]>,
-  ) {
+  constructor(name: string, options: GiraphQLSchemaTypes.InterfaceTypeOptions) {
     super(name);
 
     this.description = options.description;
@@ -30,16 +22,12 @@ export default class InterfaceType<
   }
 
   buildType(cache: BuildCache, plugin: Required<BasePlugin>): GraphQLInterfaceType {
-    let types: ObjectType<GiraphQLSchemaTypes.TypeInfo>[];
+    let types: ObjectType[];
 
     return new GraphQLInterfaceType({
       name: String(this.typename),
       description: this.description,
-      resolveType: async (
-        parent: ResolveValueWrapper,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => {
+      resolveType: async (parent: ResolveValueWrapper, context: {}, info: GraphQLResolveInfo) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
         let typename = String(this.typename);
 

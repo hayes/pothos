@@ -1,13 +1,13 @@
 /* eslint-disable no-use-before-define, @typescript-eslint/no-use-before-define */
 import { GraphQLList, GraphQLOutputType, GraphQLInputType, GraphQLNonNull } from 'graphql';
-import { TypeParam, InputField, InputType, FieldNullability } from './types';
+import { TypeParam, InputField, InputType, FieldNullability, SchemaTypes } from './types';
 import BaseType from './graphql/base';
 import InputObjectType from './graphql/input';
 import { BuildCache } from '.';
 
 export function typeFromNonListParam(
-  param: Exclude<TypeParam<any>, [unknown]> | BaseType,
-  cache: BuildCache,
+  param: Exclude<TypeParam<any>, [unknown]>,
+  cache: BuildCache<SchemaTypes>,
 ): GraphQLOutputType {
   if (typeof param === 'string') {
     return cache.getBuilt(param);
@@ -63,20 +63,20 @@ export function typeFromParam(
   return typeFromMaybeNullParam(param as Exclude<typeof param, [unknown]>, cache, listNullable);
 }
 
-export function isInputName<
-  Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo
->(arg: InputField<Types> | InputType<Types> | InputType<Types>[]): arg is string {
+export function isInputName<Types extends SchemaTypes = SchemaTypes>(
+  arg: InputField<Types> | InputType<Types> | InputType<Types>[],
+): arg is string {
   return typeof arg === 'string';
 }
 
-export function buildRequiredArg<Types extends GiraphQLSchemaTypes.TypeInfo>(
+export function buildRequiredArg<Types extends SchemaTypes>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
   cache: BuildCache,
 ) {
   return new GraphQLNonNull(buildArg(arg, cache));
 }
 
-export function buildArg<Types extends GiraphQLSchemaTypes.TypeInfo = GiraphQLSchemaTypes.TypeInfo>(
+export function buildArg<Types extends SchemaTypes = SchemaTypes>(
   arg: InputField<Types> | InputType<Types> | InputType<Types>[],
   cache: BuildCache,
   nullableListItems = false,

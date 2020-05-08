@@ -1,26 +1,19 @@
-import { GraphQLInputObjectType, GraphQLInputFieldConfigMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { InputFields } from '../types';
-import BaseType from './base';
-import { buildArg } from '../utils';
+import { GraphQLInputFieldConfigMap, GraphQLInputObjectType } from 'graphql';
+
 import InputFieldBuilder from '../fieldUtils/input';
 import BuildCache from '../build-cache';
 import BaseInputType from './base-input';
+import { buildArg } from '../utils';
+import { BaseType } from '..';
 
-export default class InputObjectType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Shape,
-  Name extends string
-> extends BaseInputType<never, Shape> {
+export default class InputObjectType extends BaseInputType {
   kind: 'InputObject' = 'InputObject';
 
   options: GiraphQLSchemaTypes.InputTypeOptions<any, any>;
 
-  constructor(
-    name: Name,
-    options: GiraphQLSchemaTypes.InputTypeOptions<Types, InputFields<Types>>,
-  ) {
+  constructor(name: string, options: GiraphQLSchemaTypes.InputTypeOptions) {
     super(name);
 
     this.options = options;
@@ -47,7 +40,7 @@ export default class InputObjectType<
           },
         ];
       }),
-    );
+    ) as GraphQLInputFieldConfigMap;
   }
 
   buildType(cache: BuildCache) {

@@ -67,6 +67,7 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
       any,
       TypeParam<any>,
       any,
+      {},
       {}
     >;
 

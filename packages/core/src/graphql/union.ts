@@ -1,22 +1,18 @@
 import { GraphQLUnionType, GraphQLResolveInfo } from 'graphql';
 import BaseType from './base';
 import BuildCache from '../build-cache';
-import { ObjectName } from '../types';
 import { ResolveValueWrapper, BasePlugin } from '../plugins';
 
-export default class UnionType<
-  Types extends GiraphQLSchemaTypes.TypeInfo,
-  Member extends ObjectName<Types>
-> extends BaseType<Types['Object'][Member]> {
+export default class UnionType extends BaseType {
   kind: 'Union' = 'Union';
 
   description?: string;
 
   members: string[];
 
-  options: GiraphQLSchemaTypes.UnionOptions<any, any>;
+  options: GiraphQLSchemaTypes.UnionOptions;
 
-  constructor(name: string, options: GiraphQLSchemaTypes.UnionOptions<Types, Member>) {
+  constructor(name: string, options: GiraphQLSchemaTypes.UnionOptions) {
     super(name);
 
     this.members = options.members;

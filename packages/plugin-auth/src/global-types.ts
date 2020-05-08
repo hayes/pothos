@@ -61,7 +61,8 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>,
-      ResolveShape
+      ResolveShape,
+      ResolveReturnShape
     > {
       permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
       grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
@@ -72,8 +73,18 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
+      Args extends InputFields<Types>,
+      ResolveReturnShape
+    >
+      extends FieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ParentShape,
+        ResolveReturnShape
+      > {
       permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
       grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
     }
@@ -84,8 +95,18 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields<Types>,
-      ResolveShape
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveShape> {
+      ResolveShape,
+      ResolveReturnShape
+    >
+      extends FieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveShape,
+        ResolveReturnShape
+      > {
       permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
       grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
     }

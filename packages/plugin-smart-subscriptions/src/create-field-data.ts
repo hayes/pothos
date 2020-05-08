@@ -24,6 +24,7 @@ export default function createFieldData(
         {},
         TypeParam<any>,
         boolean,
+        {},
         {}
       >).canRefetch || false;
   } else if (fieldType.kind === 'Interface') {
@@ -54,6 +55,7 @@ export default function createFieldData(
       any,
       TypeParam<any>,
       boolean,
+      {},
       {}
     >;
 
@@ -74,6 +76,7 @@ export default function createFieldData(
     {},
     TypeParam<any>,
     boolean,
+    {},
     {}
   >;
 

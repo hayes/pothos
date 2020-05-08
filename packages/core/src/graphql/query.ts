@@ -5,16 +5,14 @@ import BaseType from './base';
 import BuildCache from '../build-cache';
 import { BasePlugin } from '../plugins';
 
-export default class QueryType<Types extends GiraphQLSchemaTypes.TypeInfo> extends BaseType<
-  Types['Root']
-> {
+export default class QueryType extends BaseType {
   kind: 'Query' = 'Query';
 
   description?: string;
 
-  options: GiraphQLSchemaTypes.QueryTypeOptions<Types>;
+  options: GiraphQLSchemaTypes.QueryTypeOptions;
 
-  constructor(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>) {
+  constructor(options: GiraphQLSchemaTypes.QueryTypeOptions) {
     super('Query');
 
     this.options = options;

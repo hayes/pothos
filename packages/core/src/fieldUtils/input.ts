@@ -1,7 +1,7 @@
 /* eslint-disable no-dupe-class-members, lines-between-class-members */
-import { InputType, InputShapeFromField } from '../types';
+import { InputType, InputShapeFromField, SchemaTypes } from '../types';
 
-export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
+export default class InputFieldBuilder<Types extends SchemaTypes> {
   bool = this.helper('Boolean');
 
   boolean = this.helper('Boolean');
@@ -26,7 +26,7 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
 
   stringList = this.helper(['String']);
 
-  callableBuilder() {
+  callableBuilder(): InputFieldBuilder<Types>['type'] & InputFieldBuilder<Types> {
     const builder: InputFieldBuilder<Types>['type'] = this.type.bind(this);
 
     ([...Object.keys(this), 'type', 'list'] as (keyof InputFieldBuilder<Types>)[]).forEach(

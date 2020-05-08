@@ -1,260 +1,254 @@
-import { GraphQLString, GraphQLInt, GraphQLID, GraphQLFloat, GraphQLBoolean } from 'graphql';
 import {
-  BuildCacheEntry,
-  ImplementedType,
-  FieldMap,
-  ResolverMap,
-  Resolver,
-  RootName,
-} from './types';
+  GraphQLString,
+  GraphQLInt,
+  GraphQLID,
+  GraphQLFloat,
+  GraphQLBoolean,
+  GraphQLNamedType,
+} from 'graphql';
+import { ResolverMap, SchemaTypes, OutputType, ObjectParam, RootName } from './types';
 import { BasePlugin } from '.';
-import ScalarType from './graphql/scalar';
+import ConfigStore from './config-store';
 
-export default class BuildCache {
-  implementations: ImplementedType[];
-
-  types = new Map<string, BuildCacheEntry>();
+export default class BuildCache<Types extends SchemaTypes = SchemaTypes> {
+  types: Map<OutputType<Types> | RootName, GraphQLNamedType> = new Map<
+    OutputType<Types> | RootName,
+    GraphQLNamedType
+  >();
 
   plugin: Required<BasePlugin>;
 
-  fieldDefinitions: Map<string, FieldMap[]>;
-
   mocks: ResolverMap;
 
+  configStore: ConfigStore<Types>;
+
   constructor(
-    implementations: ImplementedType[],
+    configStore: ConfigStore<Types>,
     plugin: Required<BasePlugin>,
     {
-      fieldDefinitions,
       mocks,
     }: {
-      fieldDefinitions?: Map<string, FieldMap[]>;
       mocks?: ResolverMap;
     } = {},
   ) {
-    const seenTypes = new Set<string>();
-
-    for (const type of implementations) {
-      if (seenTypes.has(type.typename)) {
-        throw new Error(`Received multiple implementations of type ${type.typename}`);
-      }
-
-      seenTypes.add(type.typename);
-    }
-
-    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
-
-    scalars.forEach((scalar) => {
-      this.types.set(scalar.name, {
-        kind: 'Scalar',
-        built: scalar,
-        type: new ScalarType(scalar.name, {
-          description: scalar.description ?? undefined,
-          serialize: scalar.serialize,
-          parseLiteral: scalar.parseLiteral,
-          parseValue: scalar.parseValue,
-          extensions: scalar.extensions ?? undefined,
-        }),
-      });
-    });
-
+    this.configStore = configStore;
     this.plugin = plugin;
-    this.implementations = [...implementations];
-    this.fieldDefinitions = fieldDefinitions || new Map();
+    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
+    scalars.forEach((scalar) => {
+      this.addType(scalar.name as OutputType<Types>, scalar);
+    });
     this.mocks = mocks ?? {};
   }
 
-  addImplementation(impl: ImplementedType) {
-    this.implementations.push(impl);
-  }
-
-  resolverMock(
-    typename: string,
-    fieldName: string,
-  ): Resolver<unknown, unknown, unknown, unknown> | null {
-    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
-
-    if (!fieldMock) {
-      return null;
+  addType(ref: OutputType<Types> | RootName, type: GraphQLNamedType) {
+    if (this.types.has(ref)) {
+      throw new Error(
+        `reference or name has already been used to create another type (${type.name})`,
+      );
     }
 
-    if (typeof fieldMock === 'function') {
-      return fieldMock;
-    }
-
-    return fieldMock.resolve || null;
+    this.types.set(ref, type);
   }
 
-  subscribeMock(
-    typename: string,
-    fieldName: string,
-  ): Resolver<unknown, unknown, unknown, unknown> | null {
-    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
-
-    if (!fieldMock) {
-      return null;
-    }
-
-    if (typeof fieldMock === 'function') {
-      return null;
-    }
-
-    return fieldMock.subscribe || null;
+  objectFields(ref: ObjectParam<Types>) {
+    return {};
   }
 
-  mergeFields(typename: string, base: FieldMap, newFields: FieldMap, allowOverwrite = false) {
-    if (!allowOverwrite) {
-      Object.keys(newFields).forEach((key) => {
-        if (base[key]) {
-          throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
-        }
-      });
-    }
-
-    return {
-      ...base,
-      ...newFields,
-    };
+  interfacesForObject(ref: ObjectParam<Types>) {
+    return [];
   }
 
-  getInterfaceFields(entry: Extract<BuildCacheEntry, { kind: 'Interface' }>): FieldMap {
-    return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
-      (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
-      {} as FieldMap,
-    );
-  }
+  // addImplementation(impl: ImplementedType) {
+  //   this.implementations.push(impl);
+  // }
 
-  getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
-    const interfaceFields = entry.type.interfaces.reduce(
-      (all, type) => this.mergeFields(entry.type.typename, all, this.getFields(type), true),
-      {} as FieldMap,
-    );
+  // resolverMock(
+  //   typename: string,
+  //   fieldName: string,
+  // ): Resolver<unknown, unknown, unknown, unknown> | null {
+  //   const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
 
-    const objectFields = (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
-      (fields, newFields, i) => this.mergeFields(entry.type.typename, fields, newFields),
-      {} as FieldMap,
-    );
+  //   if (!fieldMock) {
+  //     return null;
+  //   }
 
-    return this.mergeFields(entry.type.typename, interfaceFields, objectFields, true);
-  }
+  //   if (typeof fieldMock === 'function') {
+  //     return fieldMock;
+  //   }
 
-  getRootFields(entry: Extract<BuildCacheEntry, { kind: RootName }>): FieldMap {
-    return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
-      (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
-      {} as FieldMap,
-    );
-  }
+  //   return fieldMock.resolve || null;
+  // }
 
-  getFields(typename: string): FieldMap {
-    const entry = this.getEntry(typename);
+  // subscribeMock(
+  //   typename: string,
+  //   fieldName: string,
+  // ): Resolver<unknown, unknown, unknown, unknown> | null {
+  //   const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
 
-    if (entry.kind === 'Query' || entry.kind === 'Mutation' || entry.kind === 'Subscription') {
-      return this.getRootFields(entry);
-    }
+  //   if (!fieldMock) {
+  //     return null;
+  //   }
 
-    if (entry.kind === 'Interface') {
-      return this.getInterfaceFields(entry);
-    }
+  //   if (typeof fieldMock === 'function') {
+  //     return null;
+  //   }
 
-    if (entry.kind === 'Object') {
-      return this.getObjectFields(entry);
-    }
+  //   return fieldMock.subscribe || null;
+  // }
 
-    throw new Error(`Type ${entry.kind} does not have fields to resolve`);
-  }
+  // mergeFields(typename: string, base: FieldMap, newFields: FieldMap, allowOverwrite = false) {
+  //   if (!allowOverwrite) {
+  //     Object.keys(newFields).forEach((key) => {
+  //       if (base[key]) {
+  //         throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
+  //       }
+  //     });
+  //   }
 
-  buildType(type: ImplementedType) {
-    this.types.set(type.typename, {
-      built: type.buildType(this, this.plugin),
-      kind: type.kind,
-      type,
-    } as BuildCacheEntry);
-  }
+  //   return {
+  //     ...base,
+  //     ...newFields,
+  //   };
+  // }
 
-  buildAll() {
-    for (const type of this.implementations) {
-      this.buildType(type);
-    }
+  // getInterfaceFields(entry: Extract<BuildCacheEntry, { kind: 'Interface' }>): FieldMap {
+  //   return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+  //     (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
+  //     {} as FieldMap,
+  //   );
+  // }
 
-    for (const entry of this.types.values()) {
-      this.plugin.visitType(entry, this);
-    }
-  }
+  // getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
+  //   const interfaceFields = entry.type.interfaces.reduce(
+  //     (all, type) => this.mergeFields(entry.type.typename, all, this.getFields(type), true),
+  //     {} as FieldMap,
+  //   );
 
-  has(name: string) {
-    return this.types.has(name);
-  }
+  //   const objectFields = (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+  //     (fields, newFields, i) => this.mergeFields(entry.type.typename, fields, newFields),
+  //     {} as FieldMap,
+  //   );
 
-  set(name: string, entry: BuildCacheEntry) {
-    return this.types.set(name, entry);
-  }
+  //   return this.mergeFields(entry.type.typename, interfaceFields, objectFields, true);
+  // }
 
-  getBuilt(name: string) {
-    const entry = this.getEntry(name);
+  // getRootFields(entry: Extract<BuildCacheEntry, { kind: RootName }>): FieldMap {
+  //   return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
+  //     (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
+  //     {} as FieldMap,
+  //   );
+  // }
 
-    if (entry.kind === 'InputObject') {
-      throw new Error(`${name} is of type ${entry.type}, expected valid output type`);
-    }
+  // getFields(typename: string): FieldMap {
+  //   const entry = this.getEntry(typename);
 
-    return entry.built;
-  }
+  //   if (entry.kind === 'Query' || entry.kind === 'Mutation' || entry.kind === 'Subscription') {
+  //     return this.getRootFields(entry);
+  //   }
 
-  getBuiltInput(name: string) {
-    const entry = this.getEntry(name);
+  //   if (entry.kind === 'Interface') {
+  //     return this.getInterfaceFields(entry);
+  //   }
 
-    if (
-      entry.kind === 'Object' ||
-      entry.kind === 'Interface' ||
-      entry.kind === 'Union' ||
-      entry.kind === 'Query' ||
-      entry.kind === 'Mutation' ||
-      entry.kind === 'Subscription'
-    ) {
-      throw new Error(`${name} is of type ${entry.type}, expected valid input type`);
-    }
+  //   if (entry.kind === 'Object') {
+  //     return this.getObjectFields(entry);
+  //   }
 
-    return entry.built;
-  }
+  //   throw new Error(`Type ${entry.kind} does not have fields to resolve`);
+  // }
 
-  getType(name: string) {
-    return this.getEntry(name).type;
-  }
+  // buildType(type: ImplementedType) {
+  //   this.types.set(type.typename, {
+  //     built: type.buildType(this, this.plugin),
+  //     kind: type.kind,
+  //     type,
+  //   } as BuildCacheEntry);
+  // }
 
-  getBuiltObject(name: string) {
-    const entry = this.getEntryOfType(name, 'Object');
+  // buildAll() {
+  //   for (const type of this.implementations) {
+  //     this.buildType(type);
+  //   }
 
-    return entry.built;
-  }
+  //   for (const entry of this.types.values()) {
+  //     this.plugin.visitType(entry, this);
+  //   }
+  // }
 
-  getImplementers(typename: string) {
-    const implementers = [];
-    for (const entry of this.types.values()) {
-      if (entry.kind === 'Object' && entry.type.interfaces.find((type) => type === typename)) {
-        implementers.push(entry.type);
-      }
-    }
+  // has(name: string) {
+  //   return this.types.has(name);
+  // }
 
-    return implementers;
-  }
+  // set(name: string, entry: BuildCacheEntry) {
+  //   return this.types.set(name, entry);
+  // }
 
-  getEntryOfType<Type extends BuildCacheEntry['kind']>(
-    name: string,
-    type: Type,
-  ): Extract<BuildCacheEntry, { kind: Type }> {
-    const entry = this.getEntry(name);
+  // getBuilt(name: string) {
+  //   const entry = this.getEntry(name);
 
-    if (entry.kind !== type) {
-      throw new Error(`Found ${name} of kind ${entry.type.kind}, expected ${type}`);
-    }
+  //   if (entry.kind === 'InputObject') {
+  //     throw new Error(`${name} is of type ${entry.type}, expected valid output type`);
+  //   }
 
-    return entry as Extract<BuildCacheEntry, { kind: Type }>;
-  }
+  //   return entry.built;
+  // }
 
-  getEntry(name: string): BuildCacheEntry {
-    if (!this.types.has(name)) {
-      throw new Error(`${name} not found in type store`);
-    }
+  // getBuiltInput(name: string) {
+  //   const entry = this.getEntry(name);
 
-    return this.types.get(name)!;
-  }
+  //   if (
+  //     entry.kind === 'Object' ||
+  //     entry.kind === 'Interface' ||
+  //     entry.kind === 'Union' ||
+  //     entry.kind === 'Query' ||
+  //     entry.kind === 'Mutation' ||
+  //     entry.kind === 'Subscription'
+  //   ) {
+  //     throw new Error(`${name} is of type ${entry.type}, expected valid input type`);
+  //   }
+
+  //   return entry.built;
+  // }
+
+  // getType(name: string) {
+  //   return this.getEntry(name).type;
+  // }
+
+  // getBuiltObject(name: string) {
+  //   const entry = this.getEntryOfType(name, 'Object');
+
+  //   return entry.built;
+  // }
+
+  // getImplementers(typename: string) {
+  //   const implementers = [];
+  //   for (const entry of this.types.values()) {
+  //     if (entry.kind === 'Object' && entry.type.interfaces.find((type) => type === typename)) {
+  //       implementers.push(entry.type);
+  //     }
+  //   }
+
+  //   return implementers;
+  // }
+
+  // getEntryOfType<Type extends BuildCacheEntry['kind']>(
+  //   name: string,
+  //   type: Type,
+  // ): Extract<BuildCacheEntry, { kind: Type }> {
+  //   const entry = this.getEntry(name);
+
+  //   if (entry.kind !== type) {
+  //     throw new Error(`Found ${name} of kind ${entry.type.kind}, expected ${type}`);
+  //   }
+
+  //   return entry as Extract<BuildCacheEntry, { kind: Type }>;
+  // }
+
+  // getEntry(name: string): BuildCacheEntry {
+  //   if (!this.types.has(name)) {
+  //     throw new Error(`${name} not found in type store`);
+  //   }
+
+  //   return this.types.get(name)!;
+  // }
 }
