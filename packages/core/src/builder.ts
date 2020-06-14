@@ -68,6 +68,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         >,
     shape?: ObjectFieldsShape<Types, OutputShape<Type, Types>>,
   ) {
+    if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
+      throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
+    }
+
     const ref = new ObjectRef<OutputShape<Type, Types>>(name);
     this.configStore.associateRefWithName(ref, name);
 

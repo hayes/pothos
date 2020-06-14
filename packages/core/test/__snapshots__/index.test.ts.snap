@@ -68,7 +68,7 @@ type User {
   lastName: String!
   list(ids: [ID!]!): [ID!]!
   newField: String!
-  notSparseList(ids: [ID!]!): [ID]
+  notSparseList(ids: [ID!]!): [ID!]
   optional: String
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!

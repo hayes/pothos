@@ -32,12 +32,7 @@ import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
 import InternalInputFieldBuilder from './fieldUtils/input';
 import Builder from './builder';
-import {
-  UnionToIntersection,
-  FieldRequiredness,
-  InputShapeFromTypeParam,
-  InputShapeFromFields,
-} from '.';
+import { FieldRequiredness, InputShapeFromTypeParam, InputShapeFromFields } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
