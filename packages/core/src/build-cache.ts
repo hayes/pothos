@@ -5,25 +5,32 @@ import {
   GraphQLFloat,
   GraphQLBoolean,
   GraphQLNamedType,
+  GraphQLEnumType,
+  GraphQLInterfaceType,
+  GraphQLObjectType,
+  GraphQLScalarType,
+  GraphQLUnionType,
+  GraphQLFieldConfigMap,
+  GraphQLOutputType,
+  GraphQLInputObjectType,
+  GraphQLInputType,
+  GraphQLInputFieldConfigMap,
 } from 'graphql';
-import { ResolverMap, SchemaTypes, OutputType, ObjectParam, RootName } from './types';
-import { BasePlugin } from '.';
+import { ResolverMap } from './types';
+import { BasePlugin, assertNever, Resolver, FieldMap, InputFieldMap } from '.';
 import ConfigStore from './config-store';
 
-export default class BuildCache<Types extends SchemaTypes = SchemaTypes> {
-  types: Map<OutputType<Types> | RootName, GraphQLNamedType> = new Map<
-    OutputType<Types> | RootName,
-    GraphQLNamedType
-  >();
+export default class BuildCache {
+  types = new Map<string, GraphQLNamedType>();
 
   plugin: Required<BasePlugin>;
 
   mocks: ResolverMap;
 
-  configStore: ConfigStore<Types>;
+  configStore: ConfigStore<any>;
 
   constructor(
-    configStore: ConfigStore<Types>,
+    configStore: ConfigStore<any>,
     plugin: Required<BasePlugin>,
     {
       mocks,
@@ -35,12 +42,76 @@ export default class BuildCache<Types extends SchemaTypes = SchemaTypes> {
     this.plugin = plugin;
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
     scalars.forEach((scalar) => {
-      this.addType(scalar.name as OutputType<Types>, scalar);
+      this.addType(scalar.name, scalar);
     });
     this.mocks = mocks ?? {};
   }
 
-  addType(ref: OutputType<Types> | RootName, type: GraphQLNamedType) {
+  getOutputType(name: string): GraphQLOutputType {
+    const type = this.types.get(name);
+
+    if (!type) {
+      throw new TypeError(`Missing implementation of for type ${name}`);
+    }
+
+    if (type instanceof GraphQLInputObjectType) {
+      throw new TypeError(
+        `Expected ${name} to be an output type but it was defined as an InputObject`,
+      );
+    }
+
+    return type;
+  }
+
+  getObjectType(name: string) {
+    const type = this.getOutputType(name);
+
+    if (!(type instanceof GraphQLObjectType)) {
+      throw new TypeError(`Expected ${type} to be a GraphQLObject`);
+    }
+
+    return type;
+  }
+
+  getInterfaceType(name: string) {
+    const type = this.getOutputType(name);
+
+    if (!(type instanceof GraphQLInterfaceType)) {
+      throw new TypeError(`Expected ${type} to be an GraphQLInterface`);
+    }
+
+    return type;
+  }
+
+  getInputType(name: string): GraphQLInputType {
+    const type = this.types.get(name);
+
+    if (!type) {
+      throw new TypeError(`Missing implementation of for type ${name}`);
+    }
+
+    if (type instanceof GraphQLObjectType) {
+      throw new TypeError(
+        `Expected ${name} to be an output type but it was defined as an InputObject`,
+      );
+    }
+
+    if (type instanceof GraphQLInterfaceType) {
+      throw new TypeError(
+        `Expected ${name} to be an output type but it was defined as an InputObject`,
+      );
+    }
+
+    if (type instanceof GraphQLUnionType) {
+      throw new TypeError(
+        `Expected ${name} to be an output type but it was defined as an InputObject`,
+      );
+    }
+
+    return type;
+  }
+
+  addType(ref: string, type: GraphQLNamedType) {
     if (this.types.has(ref)) {
       throw new Error(
         `reference or name has already been used to create another type (${type.name})`,
@@ -50,205 +121,210 @@ export default class BuildCache<Types extends SchemaTypes = SchemaTypes> {
     this.types.set(ref, type);
   }
 
-  objectFields(ref: ObjectParam<Types>) {
-    return {};
+  resolverMock(
+    typename: string,
+    fieldName: string,
+  ): Resolver<unknown, unknown, unknown, unknown> | null {
+    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
+
+    if (!fieldMock) {
+      return null;
+    }
+
+    if (typeof fieldMock === 'function') {
+      return fieldMock;
+    }
+
+    return fieldMock.resolve || null;
   }
 
-  interfacesForObject(ref: ObjectParam<Types>) {
-    return [];
+  subscribeMock(
+    typename: string,
+    fieldName: string,
+  ): Resolver<unknown, unknown, unknown, unknown> | null {
+    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
+
+    if (!fieldMock) {
+      return null;
+    }
+
+    if (typeof fieldMock === 'function') {
+      return null;
+    }
+
+    return fieldMock.subscribe || null;
   }
 
-  // addImplementation(impl: ImplementedType) {
-  //   this.implementations.push(impl);
-  // }
+  private buildFields(fields: FieldMap): GraphQLFieldConfigMap<unknown, object> {
+    const built: GraphQLFieldConfigMap<unknown, object> = {};
 
-  // resolverMock(
-  //   typename: string,
-  //   fieldName: string,
-  // ): Resolver<unknown, unknown, unknown, unknown> | null {
-  //   const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
+    Object.keys(fields).forEach((fieldName) => {
+      built[fieldName] = fields[fieldName].build(fieldName, this, this.plugin);
+    });
 
-  //   if (!fieldMock) {
-  //     return null;
-  //   }
+    return built;
+  }
 
-  //   if (typeof fieldMock === 'function') {
-  //     return fieldMock;
-  //   }
+  private buildInputFields(fields: InputFieldMap): GraphQLInputFieldConfigMap {
+    const built: GraphQLInputFieldConfigMap = {};
 
-  //   return fieldMock.resolve || null;
-  // }
+    Object.keys(fields).forEach((fieldName) => {
+      built[fieldName] = fields[fieldName].build(this);
+    });
 
-  // subscribeMock(
-  //   typename: string,
-  //   fieldName: string,
-  // ): Resolver<unknown, unknown, unknown, unknown> | null {
-  //   const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
+    return built;
+  }
 
-  //   if (!fieldMock) {
-  //     return null;
-  //   }
+  private mergeFields(
+    typename: string,
+    base: GraphQLFieldConfigMap<unknown, object>,
+    newFields: GraphQLFieldConfigMap<unknown, object>,
+    allowOverwrite = false,
+  ): GraphQLFieldConfigMap<unknown, object> {
+    if (!allowOverwrite) {
+      Object.keys(newFields).forEach((key) => {
+        if (base[key]) {
+          throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
+        }
+      });
+    }
 
-  //   if (typeof fieldMock === 'function') {
-  //     return null;
-  //   }
+    return {
+      ...base,
+      ...newFields,
+    };
+  }
 
-  //   return fieldMock.subscribe || null;
-  // }
+  private mergeInputFields(
+    typename: string,
+    base: GraphQLInputFieldConfigMap,
+    newFields: GraphQLInputFieldConfigMap,
+  ): GraphQLInputFieldConfigMap {
+    Object.keys(newFields).forEach((key) => {
+      if (base[key]) {
+        throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
+      }
+    });
 
-  // mergeFields(typename: string, base: FieldMap, newFields: FieldMap, allowOverwrite = false) {
-  //   if (!allowOverwrite) {
-  //     Object.keys(newFields).forEach((key) => {
-  //       if (base[key]) {
-  //         throw new Error(`Duplicate field definition detected for field ${key} in ${typename}`);
-  //       }
-  //     });
-  //   }
+    return {
+      ...base,
+      ...newFields,
+    };
+  }
 
-  //   return {
-  //     ...base,
-  //     ...newFields,
-  //   };
-  // }
+  private getInterfaceFields(type: GraphQLInterfaceType): GraphQLFieldConfigMap<unknown, object> {
+    return this.configStore
+      .getFields(type.name)
+      .reduce(
+        (fields, newFields) => this.mergeFields(type.name, fields, this.buildFields(newFields)),
+        {} as GraphQLFieldConfigMap<unknown, object>,
+      );
+  }
 
-  // getInterfaceFields(entry: Extract<BuildCacheEntry, { kind: 'Interface' }>): FieldMap {
-  //   return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
-  //     (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
-  //     {} as FieldMap,
-  //   );
-  // }
+  private getObjectFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
+    const interfaceFields = type
+      .getInterfaces()
+      .reduce((all, iface) => this.mergeFields(type.name, all, this.getFields(iface), true), {});
 
-  // getObjectFields(entry: Extract<BuildCacheEntry, { kind: 'Object' }>): FieldMap {
-  //   const interfaceFields = entry.type.interfaces.reduce(
-  //     (all, type) => this.mergeFields(entry.type.typename, all, this.getFields(type), true),
-  //     {} as FieldMap,
-  //   );
+    const objectFields = this.configStore
+      .getFields(type.name)
+      .reduce(
+        (fields, newFields, i) => this.mergeFields(type.name, fields, this.buildFields(newFields)),
+        {} as GraphQLFieldConfigMap<unknown, object>,
+      );
 
-  //   const objectFields = (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
-  //     (fields, newFields, i) => this.mergeFields(entry.type.typename, fields, newFields),
-  //     {} as FieldMap,
-  //   );
+    return this.mergeFields(type.name, interfaceFields, objectFields, true);
+  }
 
-  //   return this.mergeFields(entry.type.typename, interfaceFields, objectFields, true);
-  // }
+  private getRootFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
+    return this.configStore
+      .getFields(type.name)
+      .reduce(
+        (fields, newFields) => this.mergeFields(type.name, fields, this.buildFields(newFields)),
+        {} as GraphQLFieldConfigMap<unknown, object>,
+      );
+  }
 
-  // getRootFields(entry: Extract<BuildCacheEntry, { kind: RootName }>): FieldMap {
-  //   return (this.fieldDefinitions.get(entry.type.typename) || []).reduce(
-  //     (fields, newFields) => this.mergeFields(entry.type.typename, fields, newFields),
-  //     {} as FieldMap,
-  //   );
-  // }
+  private getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
+    if (type instanceof GraphQLObjectType) {
+      if (type.name === 'Query' || type.name === 'Mutation' || type.name === 'Subscription') {
+        return this.getRootFields(type);
+      }
 
-  // getFields(typename: string): FieldMap {
-  //   const entry = this.getEntry(typename);
+      return this.getObjectFields(type);
+    }
 
-  //   if (entry.kind === 'Query' || entry.kind === 'Mutation' || entry.kind === 'Subscription') {
-  //     return this.getRootFields(entry);
-  //   }
+    if (type instanceof GraphQLInterfaceType) {
+      return this.getInterfaceFields(type);
+    }
 
-  //   if (entry.kind === 'Interface') {
-  //     return this.getInterfaceFields(entry);
-  //   }
+    throw new Error(`Type ${type.name} does not have fields to resolve`);
+  }
 
-  //   if (entry.kind === 'Object') {
-  //     return this.getObjectFields(entry);
-  //   }
+  private getInputFields(type: GraphQLInputObjectType): GraphQLInputFieldConfigMap {
+    return this.configStore
+      .getInputFields(type.name)
+      .reduce(
+        (fields, newFields) =>
+          this.mergeInputFields(type.name, fields, this.buildInputFields(newFields)),
+        {} as GraphQLInputFieldConfigMap,
+      );
+  }
 
-  //   throw new Error(`Type ${entry.kind} does not have fields to resolve`);
-  // }
+  buildAll() {
+    this.configStore.nameToKind.forEach((kind, name) => {
+      let type: GraphQLNamedType;
 
-  // buildType(type: ImplementedType) {
-  //   this.types.set(type.typename, {
-  //     built: type.buildType(this, this.plugin),
-  //     kind: type.kind,
-  //     type,
-  //   } as BuildCacheEntry);
-  // }
+      switch (kind) {
+        case 'enums':
+          this.addType(name, new GraphQLEnumType(this.configStore.enums.get(name)!));
+          break;
+        case 'inputs':
+          type = new GraphQLInputObjectType({
+            ...this.configStore.inputs.get(name)!,
+            fields: () => this.getInputFields(type as GraphQLInputObjectType),
+          });
+          this.addType(name, type);
+          break;
+        case 'interfaces':
+          type = new GraphQLInterfaceType({
+            ...this.configStore.interfaces.get(name)!,
+            fields: () => this.getFields(type),
+          });
+          this.addType(name, type);
+          break;
+        case 'objects':
+          type = new GraphQLObjectType({
+            ...this.configStore.objects.get(name)!,
+            fields: () => this.getFields(type),
+            interfaces: () =>
+              this.configStore
+                .getImplementedInterfaces(name)
+                .map((iface) => this.getInterfaceType(this.configStore.getNameFromRef(iface))),
+          });
 
-  // buildAll() {
-  //   for (const type of this.implementations) {
-  //     this.buildType(type);
-  //   }
+          this.addType(name, type);
+          break;
+        case 'scalars':
+          this.addType(name, new GraphQLScalarType(this.configStore.scalars.get(name)!));
+          break;
+        case 'unions':
+          this.addType(
+            name,
+            new GraphQLUnionType({
+              ...this.configStore.unions.get(name)!,
+              types: () =>
+                this.configStore.getUnionMembers(name).map((member) => this.getObjectType(member)),
+            }),
+          );
+          break;
+        default:
+          assertNever(kind);
+      }
+    });
 
-  //   for (const entry of this.types.values()) {
-  //     this.plugin.visitType(entry, this);
-  //   }
-  // }
-
-  // has(name: string) {
-  //   return this.types.has(name);
-  // }
-
-  // set(name: string, entry: BuildCacheEntry) {
-  //   return this.types.set(name, entry);
-  // }
-
-  // getBuilt(name: string) {
-  //   const entry = this.getEntry(name);
-
-  //   if (entry.kind === 'InputObject') {
-  //     throw new Error(`${name} is of type ${entry.type}, expected valid output type`);
-  //   }
-
-  //   return entry.built;
-  // }
-
-  // getBuiltInput(name: string) {
-  //   const entry = this.getEntry(name);
-
-  //   if (
-  //     entry.kind === 'Object' ||
-  //     entry.kind === 'Interface' ||
-  //     entry.kind === 'Union' ||
-  //     entry.kind === 'Query' ||
-  //     entry.kind === 'Mutation' ||
-  //     entry.kind === 'Subscription'
-  //   ) {
-  //     throw new Error(`${name} is of type ${entry.type}, expected valid input type`);
-  //   }
-
-  //   return entry.built;
-  // }
-
-  // getType(name: string) {
-  //   return this.getEntry(name).type;
-  // }
-
-  // getBuiltObject(name: string) {
-  //   const entry = this.getEntryOfType(name, 'Object');
-
-  //   return entry.built;
-  // }
-
-  // getImplementers(typename: string) {
-  //   const implementers = [];
-  //   for (const entry of this.types.values()) {
-  //     if (entry.kind === 'Object' && entry.type.interfaces.find((type) => type === typename)) {
-  //       implementers.push(entry.type);
-  //     }
-  //   }
-
-  //   return implementers;
-  // }
-
-  // getEntryOfType<Type extends BuildCacheEntry['kind']>(
-  //   name: string,
-  //   type: Type,
-  // ): Extract<BuildCacheEntry, { kind: Type }> {
-  //   const entry = this.getEntry(name);
-
-  //   if (entry.kind !== type) {
-  //     throw new Error(`Found ${name} of kind ${entry.type.kind}, expected ${type}`);
-  //   }
-
-  //   return entry as Extract<BuildCacheEntry, { kind: Type }>;
-  // }
-
-  // getEntry(name: string): BuildCacheEntry {
-  //   if (!this.types.has(name)) {
-  //     throw new Error(`${name} not found in type store`);
-  //   }
-
-  //   return this.types.get(name)!;
-  // }
+    for (const entry of this.types.values()) {
+      this.plugin.visitType(entry, this);
+    }
+  }
 }

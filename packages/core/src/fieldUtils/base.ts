@@ -9,7 +9,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   }
 
   protected createField<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>
   >(

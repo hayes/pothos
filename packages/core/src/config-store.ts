@@ -5,10 +5,10 @@ import {
   GraphQLScalarTypeConfig,
   GraphQLEnumTypeConfig,
   GraphQLInputObjectTypeConfig,
-  GraphQLFieldConfigMap,
 } from 'graphql';
 import { OutputType, SchemaTypes, FieldMap, WithFieldsParam, RootName } from './types';
 import { BasePlugin } from './plugins';
+import { InputType, InputFieldMap } from '.';
 
 type GraphQLKinds = 'objects' | 'interfaces' | 'unions' | 'enums' | 'scalars' | 'inputs';
 
@@ -17,37 +17,56 @@ export default class ConfigStore<Types extends SchemaTypes> {
     this.plugin = plugin;
   }
 
-  private plugin: Required<BasePlugin>;
+  nameToKind = new Map<string, GraphQLKinds>();
 
-  private pending = true;
-
-  private nameToKind = new Map<string, GraphQLKinds>();
-
-  private objects = new Map<
+  objects = new Map<
     string,
     Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'>
   >();
 
-  private interfaces = new Map<
-    string,
-    Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'>
+  interfaces = new Map<string, Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'>>();
+
+  unions = new Map<string, Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'>>();
+
+  enums = new Map<string, GraphQLEnumTypeConfig>();
+
+  scalars = new Map<string, GraphQLScalarTypeConfig<unknown, unknown>>();
+
+  inputs = new Map<string, Omit<GraphQLInputObjectTypeConfig, 'fields'>>();
+
+  plugin: Required<BasePlugin>;
+
+  private unionMembers = new Map<string, OutputType<Types>[]>();
+
+  private implementedInterfaces = new Map<string, OutputType<Types>[]>();
+
+  private fields = new Map<string, FieldMap[]>();
+
+  private inputFields = new Map<string, InputFieldMap[]>();
+
+  private refsToName = new Map<OutputType<Types> | InputType<Types> | RootName, string>();
+
+  private pendingFields = new Map<
+    OutputType<Types> | InputType<Types> | RootName,
+    (() => FieldMap)[]
   >();
 
-  private unions = new Map<string, Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'>>();
+  private pendingInputFields = new Map<
+    OutputType<Types> | InputType<Types> | RootName,
+    (() => InputFieldMap)[]
+  >();
 
-  private enums = new Map<string, GraphQLEnumTypeConfig>();
+  private pending = true;
 
-  private scalars = new Map<string, GraphQLScalarTypeConfig<unknown, unknown>>();
+  hasRef(ref: unknown) {
+    return this.refsToName.has(ref as OutputType<Types> | InputType<Types>);
+  }
 
-  private inputs = new Map<string, Omit<GraphQLInputObjectTypeConfig, 'fields'>>();
+  getNameFromRef(ref: OutputType<Types> | InputType<Types> | RootName) {
+    if (typeof ref === 'string') {
+      return ref;
+    }
 
-  private fields = new Map<WithFieldsParam<Types>, FieldMap[]>();
-
-  private refsToName = new Map<OutputType<Types> | RootName, string>();
-
-  private pendingFields = new Map<OutputType<Types> | RootName, (() => FieldMap)[]>();
-
-  getNameFromRef(ref: OutputType<Types> | RootName) {
     if (!this.refsToName.has(ref)) {
       throw new Error('No typename registered for ref');
     }
@@ -55,20 +74,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
     return this.refsToName.get(ref)!;
   }
 
-  associateRefWithName(ref: OutputType<Types>, type: string) {
-    if (this.refsToName.has(ref)) {
-      throw new Error(`Ref cannot be associated with multiple type names`);
-    }
-
+  associateRefWithName(ref: OutputType<Types> | InputType<Types>, type: string) {
     this.refsToName.set(ref, type);
-  }
-
-  registerUniqueName(name: string, kind: GraphQLKinds) {
-    if (this.nameToKind.has(name)) {
-      throw new Error(`Duplicate typename ${name}`);
-    }
-
-    this.nameToKind.set(name, kind);
   }
 
   addObjectConfig(config: Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'>) {
@@ -101,17 +108,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
     this.inputs.set(config.name, config);
   }
 
-  addFieldConfig(
-    ref: WithFieldsParam<Types>,
-    config: () => GraphQLFieldConfigMap<unknown, object>,
-  ) {
-    if (!this.fields.has(ref)) {
-      this.fields.set(ref, []);
-    }
-
-    // this.fields.get(ref)!.push(config);
-  }
-
   addFields(type: WithFieldsParam<Types>, fields: () => FieldMap) {
     if (this.pending) {
       if (this.pendingFields.has(type)) {
@@ -124,6 +120,46 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
   }
 
+  addInputFields(type: InputType<Types>, fields: () => InputFieldMap) {
+    if (this.pending) {
+      if (this.pendingInputFields.has(type)) {
+        this.pendingInputFields.get(type)!.push(fields);
+      } else {
+        this.pendingInputFields.set(type, [fields]);
+      }
+    } else {
+      this.buildInputFields(type, fields());
+    }
+  }
+
+  addUnionMembers(type: string, members: OutputType<Types>[]) {
+    if (!this.unionMembers.has(type)) {
+      this.unionMembers.set(type, []);
+    }
+
+    this.unionMembers.get(type)!.push(...members);
+  }
+
+  getUnionMembers(type: string) {
+    return (this.unionMembers.get(type) || []).map((ref) => this.getNameFromRef(ref));
+  }
+
+  setImplementedInterfaces(type: string, interfaces: OutputType<Types>[]) {
+    this.implementedInterfaces.set(type, interfaces);
+  }
+
+  getImplementedInterfaces(type: string) {
+    return this.implementedInterfaces.get(type) || [];
+  }
+
+  getFields(name: string) {
+    return this.fields.get(name) || [];
+  }
+
+  getInputFields(name: string) {
+    return this.inputFields.get(name) || [];
+  }
+
   buildPendingFields() {
     if (!this.pending) {
       return;
@@ -131,13 +167,29 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     this.pending = false;
 
-    this.refsToName.forEach((name, ref) => {
+    const namesAndRefs = [
+      ...this.refsToName.values(),
+      ...this.refsToName.keys(),
+      'Query',
+      'Mutation',
+      'Subscription',
+    ] as (OutputType<Types> | RootName)[];
+
+    namesAndRefs.forEach((ref) => {
       if (this.pendingFields.has(ref)) {
         this.pendingFields.get(ref)!.forEach((fn) => {
           this.buildFields(ref as WithFieldsParam<Types>, fn());
         });
 
         this.pendingFields.delete(ref);
+      }
+
+      if (this.pendingInputFields.has(ref)) {
+        this.pendingInputFields.get(ref)!.forEach((fn) => {
+          this.buildInputFields(ref as InputType<Types>, fn());
+        });
+
+        this.pendingInputFields.delete(ref);
       }
     });
 
@@ -150,15 +202,33 @@ export default class ConfigStore<Types extends SchemaTypes> {
   }
 
   buildFields(typeRef: WithFieldsParam<Types>, fields: FieldMap) {
-    this.getNameFromRef(typeRef);
+    const name = this.getNameFromRef(typeRef);
 
-    if (this.fields.has(typeRef)) {
-      this.fields.get(typeRef)!.push(fields);
+    if (this.fields.has(name)) {
+      this.fields.get(name)!.push(fields);
     } else {
-      this.fields.set(typeRef, [fields]);
+      this.fields.set(name, [fields]);
     }
     Object.keys(fields).forEach((fieldName) => {
       // this.plugin.onField(type, fieldName, fields[fieldName], this);
     });
+  }
+
+  buildInputFields(typeRef: InputType<Types>, fields: InputFieldMap) {
+    const name = this.getNameFromRef(typeRef);
+
+    if (this.inputFields.has(name)) {
+      this.inputFields.get(name)!.push(fields);
+    } else {
+      this.inputFields.set(name, [fields]);
+    }
+  }
+
+  private registerUniqueName(name: string, kind: GraphQLKinds) {
+    if (this.nameToKind.has(name)) {
+      throw new Error(`Duplicate typename ${name}`);
+    }
+
+    this.nameToKind.set(name, kind);
   }
 }

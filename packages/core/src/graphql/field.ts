@@ -2,15 +2,12 @@
 import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, ShapeFromTypeParam, FieldNullability } from '../types';
-import { typeFromParam, buildArg } from '../utils';
-import BaseType from './base';
+import { TypeParam, InputFields, FieldNullability } from '../types';
+import { typeFromParam } from '../utils';
 import { BuildCache } from '..';
 import { BasePlugin, wrapResolver } from '../plugins';
 
 export default class Field {
-  shape?: ShapeFromTypeParam;
-
   nullable: FieldNullability;
 
   args: InputFields;
@@ -34,34 +31,17 @@ export default class Field {
       Object.keys(this.args).map((key) => {
         const arg = this.args[key];
 
-        return [
-          key,
-          {
-            description:
-              typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
-                ? undefined
-                : arg.description,
-            required:
-              typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
-                ? false
-                : arg.required ?? false,
-            type: buildArg(arg, cache),
-            defaultValue:
-              typeof arg !== 'object' || arg instanceof BaseType || Array.isArray(arg)
-                ? undefined
-                : arg.default,
-          },
-        ];
+        return [key, arg.build(cache)];
       }),
-    );
+    ) as GraphQLFieldConfigArgumentMap;
   }
 
   build(
     name: string,
     cache: BuildCache,
     plugin: Required<BasePlugin>,
-  ): GraphQLFieldConfig<unknown, unknown> {
-    const baseConfig: GraphQLFieldConfig<unknown, unknown> = {
+  ): GraphQLFieldConfig<unknown, object> {
+    const baseConfig: GraphQLFieldConfig<unknown, object> = {
       args: this.buildArgs(cache),
       description: this.options.description,
       resolve:
@@ -77,9 +57,9 @@ export default class Field {
       extensions: this.options.extensions,
     };
 
-    const config = plugin.updateFieldConfig(name, this as any, baseConfig, cache);
+    const config = plugin.updateFieldConfig(name, baseConfig, cache);
 
-    wrapResolver(name, this, config, plugin, cache);
+    wrapResolver(name, config, plugin, cache);
 
     return config;
   }

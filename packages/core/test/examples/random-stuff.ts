@@ -1,4 +1,5 @@
-import SchemaBuilder, { InputObjectOfShape } from '../../src';
+import { printSchema } from 'graphql';
+import SchemaBuilder, { InputObjectRef, RecursivelyNormalizeNullableFields } from '../../src';
 
 // Define backing models/types
 type Types = {
@@ -45,12 +46,14 @@ interface ExampleShape {
   more: ExampleShape;
 }
 
-const Example2: InputObjectOfShape<ExampleShape> = builder.inputType('Example2', {
+const Example2: InputObjectRef<RecursivelyNormalizeNullableFields<
+  ExampleShape
+>> = builder.inputType('Example2', {
   shape: (t) => ({
-    example: t.type(Example, { required: true }),
+    example: t.type({ type: Example, required: true }),
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
-    more: t.type(Example2, { required: true }),
+    more: t.type({ type: Example2, required: true }),
   }),
 });
 
@@ -86,7 +89,7 @@ builder.objectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        example: t.arg.type(Example, { required: true }),
+        example: t.arg.type({ type: Example, required: true }),
         firstN: t.arg.int({ required: true }),
       },
       resolve: (parent, args) => {
@@ -96,8 +99,8 @@ builder.objectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: t.arg.type(Example2, { required: true }),
-        firstN: t.arg.id(),
+        example2: t.arg.type({ type: Example2, required: true }),
+        firstN: t.arg.id({}),
       },
       resolve: (parent, args) => {
         return Number.parseInt(args.example2.more.more.more.example.id, 10);
@@ -165,7 +168,7 @@ builder.objectType('User', {
       },
       nullable: {
         list: true,
-        items: true,
+        items: false,
       },
       resolve: (parent, args) => args.ids,
     }),
@@ -173,7 +176,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({
           required: { items: true, list: true },
-          default: ['abc'],
+          defaultValue: ['abc'],
         }),
       },
       resolve: (parent, args) => [123, ...args.ids],
@@ -219,7 +222,7 @@ builder.objectType('Sheep', {
   shape: (t) => ({
     color: t.string({
       args: {
-        id: t.arg.id(),
+        id: t.arg.id({}),
       },
       resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),

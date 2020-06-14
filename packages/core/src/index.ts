@@ -1,9 +1,3 @@
-import ObjectType from './graphql/object';
-import UnionType from './graphql/union';
-import InputObjectType from './graphql/input';
-import InterfaceType from './graphql/interface';
-import EnumType from './graphql/enum';
-import ScalarType from './graphql/scalar';
 import InternalInputFieldBuilder from './fieldUtils/input';
 import Field from './graphql/field';
 import BuildCache from './build-cache';
@@ -15,34 +9,27 @@ import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
 import InternalObjectFieldBuilder from './fieldUtils/object';
 import InternalInterfaceFieldBuilder from './fieldUtils/interface';
 import SchemaBuilder from './builder';
-import QueryType from './graphql/query';
-import SubscriptionType from './graphql/subscription';
-import MutationType from './graphql/mutation';
-import { FieldKind, SchemaTypes } from './types';
+import { FieldKind, SchemaTypes, MergedSchemaTypes } from './types';
 import { BasePlugin } from './plugins';
+import EnumRef from './refs/enum';
+import InputObjectRef from './refs/input';
+import InterfaceRef from './refs/interface';
+import ObjectRef from './refs/object';
+import ScalarRef from './refs/scalar';
+import UnionRef from './refs/union';
 
 export * from './types';
 export * from './utils';
 export * from './plugins';
 
-export {
-  BuildCache,
-  EnumType,
-  Field,
-  InputObjectType,
-  InterfaceType,
-  ObjectType,
-  QueryType,
-  SubscriptionType,
-  MutationType,
-  ScalarType,
-  UnionType,
-};
+export { BuildCache, Field, EnumRef, InputObjectRef, InterfaceRef, ObjectRef, ScalarRef, UnionRef };
 
 export default SchemaBuilder as {
   new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
     plugins?: BasePlugin[];
-  }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.MergedTypeMap<Types>>;
+  }): GiraphQLSchemaTypes.SchemaBuilder<
+    MergedSchemaTypes<GiraphQLSchemaTypes.MergedTypeMap<Types>>
+  >;
 };
 
 export const FieldBuilder = InternalFieldBuilder as {

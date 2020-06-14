@@ -12,11 +12,9 @@ import {
   TypeParam,
   InputFields,
   Resolver,
-  InputShapeFromFields,
   FieldNullability,
   Subscriber,
   InputType,
-  InputShapeFromField,
   RootName,
   FieldKind,
   MergedScalars,
@@ -34,6 +32,12 @@ import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
 import InternalInputFieldBuilder from './fieldUtils/input';
 import Builder from './builder';
+import {
+  UnionToIntersection,
+  FieldRequiredness,
+  InputShapeFromTypeParam,
+  InputShapeFromFields,
+} from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -133,13 +137,15 @@ declare global {
     }
 
     export interface InputOptions<
-      Types extends SchemaTypes,
-      Type extends InputType<Types> | [InputType<Types>],
-      Req extends boolean | { list: boolean; items: boolean }
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
     > {
+      type: Type;
       description?: string;
       required?: Req;
-      default?: NonNullable<InputShapeFromField<Types, Type>>;
+      defaultValue?: NonNullable<InputShapeFromTypeParam<Types, Type, Req>>;
+      extensions?: Readonly<Record<string, unknown>>;
     }
 
     export interface EnumTypeOptions<Values extends EnumValues = EnumValues> {
@@ -156,12 +162,22 @@ declare global {
       isType?: undefined;
     }
 
+    type ValidateInterfaces<
+      Shape,
+      Types extends SchemaTypes,
+      Interfaces extends InterfaceParam<Types>
+    > = Interfaces extends InterfaceParam<Types>
+      ? Shape extends OutputShape<Interfaces, Types>
+        ? Interfaces
+        : 'Object shape must extends interface shape'
+      : never;
+
     export interface ObjectTypeWithInterfaceOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
     > extends Omit<ObjectTypeOptions<Types, Shape>, 'implements' | 'isType'> {
-      implements: Interfaces;
+      implements: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
       isType: (
         obj: OutputShape<Interfaces[number], Types>,
         context: Types['context'],
@@ -174,7 +190,7 @@ declare global {
       ParentShape = unknown,
       Type extends TypeParam<Types> = TypeParam<Types>,
       Nullable extends FieldNullability<Type> = FieldNullability<Type>,
-      Args extends InputFields<Types> = InputFields<Types>,
+      Args extends InputFields = InputFields,
       ResolveShape = unknown,
       ResolveReturnShape = unknown
     > {
@@ -186,7 +202,7 @@ declare global {
       extensions?: Readonly<Record<string, unknown>>;
       resolve?: Resolver<
         ResolveShape,
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
@@ -198,7 +214,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveReturnShape
     >
       extends FieldOptions<
@@ -212,7 +228,7 @@ declare global {
       > {
       resolve: Resolver<
         ParentShape,
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
@@ -223,7 +239,7 @@ declare global {
       Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveReturnShape
     >
       extends FieldOptions<
@@ -237,7 +253,7 @@ declare global {
       > {
       resolve: Resolver<
         Types['root'],
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
@@ -248,7 +264,7 @@ declare global {
       Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveReturnShape
     >
       extends FieldOptions<
@@ -262,7 +278,7 @@ declare global {
       > {
       resolve: Resolver<
         Types['root'],
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
@@ -274,7 +290,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveReturnShape
     >
       extends FieldOptions<
@@ -288,7 +304,7 @@ declare global {
       > {
       resolve?: Resolver<
         ParentShape,
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
@@ -300,7 +316,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveShape,
       ResolveReturnShape
     >
@@ -315,14 +331,14 @@ declare global {
       > {
       resolve: Resolver<
         ResolveShape,
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
       subscribe: Subscriber<
         ParentShape,
-        InputShapeFromFields<Types, Args>,
+        InputShapeFromFields<Args>,
         Types['context'],
         ResolveShape
       >;
@@ -350,7 +366,7 @@ declare global {
 
     export interface InputTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Fields extends InputFields<Types> = InputFields<Types>
+      Fields extends InputFields = InputFields
     > {
       description?: string;
       shape: (t: InputFieldBuilder<Types>) => Fields;
@@ -396,7 +412,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveShape,
       ResolveReturnShape
     > {

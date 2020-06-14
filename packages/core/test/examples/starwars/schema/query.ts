@@ -14,7 +14,8 @@ export default builder.queryType({
     hero: t.field({
       type: 'Character',
       args: {
-        episode: t.arg(Episode, {
+        episode: t.arg({
+          type: Episode,
           required: true,
           description:
             'If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.',

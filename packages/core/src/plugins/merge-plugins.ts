@@ -1,11 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import {
-  GraphQLFieldConfig,
-  GraphQLResolveInfo,
-  GraphQLSchema,
-  GraphQLNamedType,
-  GraphQLField,
-} from 'graphql';
+import { GraphQLFieldConfig, GraphQLResolveInfo, GraphQLSchema, GraphQLNamedType } from 'graphql';
 import { BasePlugin } from '..';
 import { MaybePromise } from '../types';
 import BuildCache from '../build-cache';
@@ -77,7 +71,7 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
 
     updateFieldConfig(
       name: string,
-      config: GraphQLFieldConfig<unknown, unknown>,
+      config: GraphQLFieldConfig<unknown, object>,
       cache: BuildCache,
     ) {
       return updateFieldConfigPlugins.reduce(
@@ -88,12 +82,12 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
 
     onFieldWrap(
       name: string,
-      field: GraphQLField<unknown, object>,
+      config: GraphQLFieldConfig<unknown, object>,
       data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
       cache: BuildCache,
     ) {
       for (const plugin of onFieldWrapPlugins) {
-        plugin.onFieldWrap(name, field, data, cache);
+        plugin.onFieldWrap(name, config, data, cache);
       }
     },
 

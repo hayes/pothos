@@ -7,7 +7,6 @@ import {
   GraphQLEnumType,
   GraphQLFieldConfig,
   GraphQLResolveInfo,
-  GraphQLField,
 } from 'graphql';
 import { BasePlugin, BuildCache } from '..';
 
@@ -70,7 +69,6 @@ export function assertArray(value: unknown): value is unknown[] {
 
 export function wrapResolver(
   name: string,
-  field: GraphQLField<unknown, object>,
   config: GraphQLFieldConfig<unknown, object>,
   plugin: Required<BasePlugin>,
   cache: BuildCache,
@@ -187,5 +185,5 @@ export function wrapResolver(
 
   config.resolve = wrappedResolver; // eslint-disable-line no-param-reassign
 
-  plugin.onFieldWrap(name, field, partialFieldData, cache);
+  plugin.onFieldWrap(name, config, partialFieldData, cache);
 }

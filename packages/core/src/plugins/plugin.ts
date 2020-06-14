@@ -15,13 +15,13 @@ export interface BasePlugin {
 
   updateFieldConfig?(
     name: string,
-    config: GraphQLFieldConfig<unknown, unknown>,
+    config: GraphQLFieldConfig<unknown, object>,
     cache: BuildCache,
-  ): GraphQLFieldConfig<unknown, unknown>;
+  ): GraphQLFieldConfig<unknown, object>;
 
   onFieldWrap?(
     name: string,
-    field: GraphQLField<unknown, object>,
+    config: GraphQLFieldConfig<unknown, object>,
     data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
     cache: BuildCache,
   ): void;

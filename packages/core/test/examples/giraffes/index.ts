@@ -1,4 +1,4 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '../../../src';
 
 interface Giraffe {
   name: string;
@@ -32,9 +32,10 @@ builder.objectType('Giraffe', {
     }),
     height: t.float({
       args: {
-        unit: t.arg(LengthUnit, {
+        unit: t.arg({
+          type: LengthUnit,
           required: true,
-          default: 'Meters',
+          defaultValue: 'Meters',
         }),
       },
       resolve: (parent, args) =>

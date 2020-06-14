@@ -20,7 +20,7 @@ export default class RootFieldBuilder<
   >().callableBuilder();
 
   boolean<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<'Boolean'> = false
@@ -46,7 +46,7 @@ export default class RootFieldBuilder<
   }
 
   float<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     Nullable extends FieldNullability<'Float'>,
     ResolveShape,
     ResolveReturnShape
@@ -72,7 +72,7 @@ export default class RootFieldBuilder<
   }
 
   id<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     Nullable extends FieldNullability<'ID'>,
     ResolveShape,
     ResolveReturnShape
@@ -95,7 +95,7 @@ export default class RootFieldBuilder<
   }
 
   int<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     Nullable extends FieldNullability<'Int'>,
     ResolveShape,
     ResolveReturnShape
@@ -118,7 +118,7 @@ export default class RootFieldBuilder<
   }
 
   string<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<'String'> = false
@@ -144,7 +144,7 @@ export default class RootFieldBuilder<
   }
 
   booleanList<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Boolean']> = false
@@ -167,7 +167,7 @@ export default class RootFieldBuilder<
   }
 
   floatList<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Float']> = false
@@ -190,7 +190,7 @@ export default class RootFieldBuilder<
   }
 
   idList<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     Nullable extends FieldNullability<['ID']>,
     ResolveShape,
     ResolveReturnShape
@@ -213,7 +213,7 @@ export default class RootFieldBuilder<
   }
 
   intList<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Int']> = false
@@ -236,7 +236,7 @@ export default class RootFieldBuilder<
   }
 
   stringList<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['String']> = false
@@ -259,7 +259,7 @@ export default class RootFieldBuilder<
   }
 
   field<
-    Args extends InputFields<Types>,
+    Args extends InputFields,
     Type extends TypeParam<Types>,
     ResolveShape,
     ResolveReturnShape,

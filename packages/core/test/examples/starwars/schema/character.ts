@@ -20,10 +20,9 @@ export default builder.interfaceType('Character', {
       description: 'Which movies they appear in.',
       resolve: (o) => o.appearsIn,
       args: {
-        id: {
+        id: t.arg.id({
           required: true,
-          type: 'ID',
-        },
+        }),
       },
     }),
   }),

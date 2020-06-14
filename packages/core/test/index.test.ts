@@ -10,7 +10,7 @@ describe('Example schema', () => {
 });
 
 describe('Giraffe schema', () => {
-  test('generates expected schema', () => {
+  test.only('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(giraffeSchema))).toMatchSnapshot();
   });
 });
