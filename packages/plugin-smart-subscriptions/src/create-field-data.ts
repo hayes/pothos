@@ -1,49 +1,66 @@
 /* eslint-disable no-param-reassign */
-import { Field, TypeParam, BuildCache } from '@giraphql/core';
-import { GraphQLResolveInfo } from 'graphql';
+import {
+  BuildCache,
+  getObjectFieldOptions,
+  getObjectOptions,
+  getQueryFieldOptions,
+} from '@giraphql/core';
+import {
+  GraphQLResolveInfo,
+  GraphQLNamedType,
+  GraphQLFieldConfig,
+  GraphQLObjectType,
+  GraphQLInterfaceType,
+  GraphQLUnionType,
+  GraphQLType,
+  GraphQLNonNull,
+  GraphQLList,
+} from 'graphql';
 
 import './global-types';
 import { FieldSubscriptionManager } from '.';
 
+function unwrapType(type: GraphQLType): GraphQLNamedType {
+  if (type instanceof GraphQLNonNull) {
+    return unwrapType(type.ofType);
+  }
+
+  if (type instanceof GraphQLList) {
+    return unwrapType(type.ofType);
+  }
+
+  return type;
+}
+
 export default function createFieldData(
+  parentType: GraphQLObjectType | GraphQLInterfaceType,
   name: string,
-  field: Field<{}, any, TypeParam<any>>,
+  config: GraphQLFieldConfig<unknown, object>,
   data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
   buildCache: BuildCache,
 ) {
   data.smartSubscriptions = { subscriptionByType: {}, canRefetch: false };
-  const nonListType = Array.isArray(field.type) ? field.type[0] : field.type;
-  const typename = typeof nonListType === 'object' ? nonListType.typename : nonListType;
-  const fieldType = buildCache.getEntry(typename);
+  const fieldType = unwrapType(config.type);
 
-  if (fieldType.kind === 'Object') {
-    data.smartSubscriptions.objectSubscription = fieldType.type.options.subscribe;
-    data.smartSubscriptions.canRefetch =
-      (field.options as GiraphQLSchemaTypes.ObjectFieldOptions<
-        any,
-        {},
-        TypeParam<any>,
-        boolean,
-        {},
-        {}
-      >).canRefetch || false;
-  } else if (fieldType.kind === 'Interface') {
-    const implementers = buildCache.getImplementers(typename);
+  if (parentType instanceof GraphQLObjectType && fieldType instanceof GraphQLObjectType) {
+    const options = getObjectFieldOptions(parentType, config, name);
+    data.smartSubscriptions.objectSubscription = getObjectOptions(fieldType).subscribe;
+    data.smartSubscriptions.canRefetch = options.canRefetch || false;
+  } else if (fieldType instanceof GraphQLInterfaceType) {
+    const implementers = buildCache.getImplementers(fieldType);
 
     implementers.forEach((obj) => {
-      data.smartSubscriptions!.subscriptionByType[obj.typename] = obj.options.subscribe;
+      data.smartSubscriptions!.subscriptionByType[obj.name] = getObjectOptions(obj).subscribe;
     });
-  } else if (fieldType.kind === 'Union') {
-    fieldType.type.members.forEach((memberName) => {
-      data.smartSubscriptions!.subscriptionByType[memberName] = buildCache.getEntryOfType(
-        memberName,
-        'Object',
-      ).type.options.subscribe;
+  } else if (fieldType instanceof GraphQLUnionType) {
+    fieldType.getTypes().forEach((member) => {
+      data.smartSubscriptions!.subscriptionByType[member.name] = getObjectOptions(member).subscribe;
     });
   }
 
-  if (field.parentTypename === 'Subscription') {
-    const queryFields = buildCache.getFields('Query');
+  if (parentType.name === 'Subscription') {
+    const queryType = buildCache.getObjectType('Query');
+    const queryFields = buildCache.getFields(queryType);
 
     const queryField = queryFields[name];
 
@@ -51,13 +68,7 @@ export default function createFieldData(
       return;
     }
 
-    const options = queryField.options as GiraphQLSchemaTypes.QueryFieldOptions<
-      any,
-      TypeParam<any>,
-      boolean,
-      {},
-      {}
-    >;
+    const options = getQueryFieldOptions(queryType, queryField, name);
 
     if (options.subscribe && options.smartSubscription) {
       data.smartSubscriptions.subscribe = options.subscribe;
@@ -65,20 +76,12 @@ export default function createFieldData(
 
     return;
   }
-  const type = buildCache.getEntry(field.parentTypename);
 
-  if (type.kind !== 'Object') {
+  if (!(parentType instanceof GraphQLObjectType)) {
     return;
   }
 
-  const options = field.options as GiraphQLSchemaTypes.ObjectFieldOptions<
-    any,
-    {},
-    TypeParam<any>,
-    boolean,
-    {},
-    {}
-  >;
+  const options = getObjectFieldOptions(parentType, config, name);
 
   if (options.subscribe) {
     data.smartSubscriptions.subscribe = options.subscribe as (

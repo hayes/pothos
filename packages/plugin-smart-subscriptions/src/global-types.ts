@@ -1,50 +1,56 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { TypeParam, FieldNullability, InputFields, InputShapeFromFields } from '@giraphql/core';
+import {
+  TypeParam,
+  FieldNullability,
+  InputFields,
+  InputShapeFromFields,
+  SchemaTypes,
+} from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 import { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
 import ResolverCache from './resolver-cache';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
+    export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       subscribe?: (
         subscriptions: TypeSubscriptionManager<Shape>,
         parent: Shape,
-        context: Types['Context'],
+        context: Types['context'],
         info: GraphQLResolveInfo,
       ) => void;
     }
 
     export interface QueryFieldOptions<
-      Types extends TypeInfo,
+      Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveReturnShape
     > {
       smartSubscription?: boolean;
       subscribe?: (
         subscriptions: FieldSubscriptionManager,
-        parent: Types['Root'],
-        args: InputShapeFromFields<Types, Args>,
-        context: Types['Context'],
+        parent: Types['root'],
+        args: InputShapeFromFields<Args>,
+        context: Types['context'],
         info: GraphQLResolveInfo,
       ) => void;
     }
 
     export interface ObjectFieldOptions<
-      Types extends TypeInfo,
+      Types extends SchemaTypes,
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
+      Args extends InputFields,
       ResolveReturnShape
     > {
       subscribe?: (
         subscriptions: FieldSubscriptionManager,
         parent: ParentShape,
-        args: InputShapeFromFields<Types, Args>,
-        context: Types['Context'],
+        args: InputShapeFromFields<Args>,
+        context: Types['context'],
         info: GraphQLResolveInfo,
       ) => void;
       canRefetch?: boolean;

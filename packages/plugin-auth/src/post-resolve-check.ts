@@ -1,16 +1,17 @@
 import { ResolveValueWrapper } from '@giraphql/core/src';
 import { ForbiddenError } from 'apollo-server';
+import { GraphQLNamedType } from 'graphql';
 import { PermissionGrantMap } from './types';
 
 export default async function runPostResolveChecks(
-  typename: string,
+  type: GraphQLNamedType,
   data: GiraphQLSchemaTypes.FieldWrapData,
   parent: ResolveValueWrapper,
   context: object,
 ) {
   const grants = parent.data.giraphqlAuth!.grantedPermissions;
   const { resolveChecks, fieldName } = data.giraphqlAuth;
-  const postResolveCheckMap = resolveChecks.postResolveMap.get(typename);
+  const postResolveCheckMap = resolveChecks.postResolveMap.get(type);
 
   if (postResolveCheckMap && postResolveCheckMap?.size !== 0) {
     const postResolvePromises: Promise<{
@@ -18,12 +19,12 @@ export default async function runPostResolveChecks(
       result: boolean | PermissionGrantMap;
     }>[] = [];
 
-    for (const [name, postResolveCheck] of postResolveCheckMap!) {
+    for (const [checkType, postResolveCheck] of postResolveCheckMap!) {
       postResolvePromises.push(
         Promise.resolve(
-          postResolveCheck(parent.value, context, grants.permissionsForType(name)),
+          postResolveCheck(parent.value, context, grants.permissionsForType(checkType.name)),
         ).then((result) => ({
-          name,
+          name: checkType.name,
           result,
         })),
       );

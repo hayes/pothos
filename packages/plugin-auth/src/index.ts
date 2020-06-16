@@ -1,13 +1,6 @@
 /* eslint-disable no-param-reassign */
-import {
-  BasePlugin,
-  TypeParam,
-  Field,
-  BuildCache,
-  ResolveValueWrapper,
-  MaybePromise,
-} from '@giraphql/core';
-import { GraphQLFieldConfig } from 'graphql';
+import { BasePlugin, BuildCache, ResolveValueWrapper, MaybePromise } from '@giraphql/core';
+import { GraphQLFieldConfig, GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
 import './global-types';
 import { PreResolveCheck, AuthPluginOptions, PermissionGrantMap } from './types';
 import AuthMeta from './auth-meta';
@@ -48,13 +41,13 @@ export default class AuthPlugin implements BasePlugin {
   }
 
   onFieldWrap(
+    parentType: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
-    field: Field<{}, any, TypeParam<any>>,
     config: GraphQLFieldConfig<unknown, unknown>,
     data: GiraphQLSchemaTypes.FieldWrapData,
     cache: BuildCache,
   ) {
-    data.giraphqlAuth = createFieldData(name, field, cache, this);
+    data.giraphqlAuth = createFieldData(parentType, name, config, cache, this);
   }
 
   async beforeResolve(
@@ -63,31 +56,26 @@ export default class AuthPlugin implements BasePlugin {
     args: object,
     context: object,
   ) {
-    const {
-      resolveChecks,
-      returnTypename,
-      grantPermissions,
-      fieldParentTypename,
-    } = data.giraphqlAuth;
+    const { resolveChecks, grantPermissions, parentType, unwrappedReturnType } = data.giraphqlAuth;
 
     if (!parent.data.giraphqlAuth) {
       parent.data.giraphqlAuth = new AuthMeta();
     }
 
-    if (fieldParentTypename === 'Subscription') {
+    if (parentType.name === 'Subscription') {
       return {
         async onWrap(child: ResolveValueWrapper) {
           child.data.giraphqlAuth = new AuthMeta(
             parent.data.giraphqlAuth?.grantedPermissions.clone(),
           );
 
-          return runPostResolveChecks(returnTypename, data, child, context);
+          return runPostResolveChecks(unwrappedReturnType, data, child, context);
         },
       };
     }
 
     await checkFieldPermissions(
-      this.requirePermissionChecks && !resolveChecks.preResolveMap.has(returnTypename),
+      this.requirePermissionChecks && !resolveChecks.preResolveMap.has(unwrappedReturnType),
       parent,
       data,
       args,
@@ -109,7 +97,7 @@ export default class AuthPlugin implements BasePlugin {
       async onWrap(child: ResolveValueWrapper) {
         child.data.giraphqlAuth = new AuthMeta(newGrants);
 
-        return runPostResolveChecks(returnTypename, data, child, context);
+        return runPostResolveChecks(unwrappedReturnType, data, child, context);
       },
     };
   }
@@ -120,14 +108,14 @@ export default class AuthPlugin implements BasePlugin {
     args: object,
     context: object,
   ) {
-    const { resolveChecks, returnTypename, grantPermissions } = data.giraphqlAuth;
+    const { resolveChecks, unwrappedReturnType, grantPermissions } = data.giraphqlAuth;
 
     if (!parent.data.giraphqlAuth) {
       parent.data.giraphqlAuth = new AuthMeta();
     }
 
     await checkFieldPermissions(
-      this.requirePermissionChecks && !resolveChecks.preResolveMap.has(returnTypename),
+      this.requirePermissionChecks && !resolveChecks.preResolveMap.has(unwrappedReturnType),
       parent,
       data,
       args,
@@ -152,11 +140,15 @@ export default class AuthPlugin implements BasePlugin {
     };
   }
 
-  async onInterfaceResolveType(typename: string, parent: ResolveValueWrapper, context: object) {
-    return runPostResolveChecks(typename, parent.data.parentFieldData!, parent, context);
+  async onInterfaceResolveType(
+    type: GraphQLObjectType,
+    parent: ResolveValueWrapper,
+    context: object,
+  ) {
+    return runPostResolveChecks(type, parent.data.parentFieldData!, parent, context);
   }
 
-  async onUnionResolveType(typename: string, parent: ResolveValueWrapper, context: object) {
-    return runPostResolveChecks(typename, parent.data.parentFieldData!, parent, context);
+  async onUnionResolveType(type: GraphQLObjectType, parent: ResolveValueWrapper, context: object) {
+    return runPostResolveChecks(type, parent.data.parentFieldData!, parent, context);
   }
 }

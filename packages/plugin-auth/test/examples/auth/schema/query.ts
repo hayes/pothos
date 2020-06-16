@@ -10,7 +10,7 @@ export default builder.queryType({
     user: t.field({
       type: 'User',
       args: {
-        id: t.arg('ID', {
+        id: t.arg.id({
           required: true,
         }),
       },

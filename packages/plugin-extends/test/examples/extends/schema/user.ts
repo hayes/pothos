@@ -29,7 +29,7 @@ export default builder.objectType('User', {
       createUser: t.field({
         type: 'User',
         args: {
-          firstName: t.arg('String', {
+          firstName: t.arg.string({
             required: true,
           }),
           lastName: t.arg.string({
@@ -45,7 +45,7 @@ export default builder.objectType('User', {
       createAdmin: t.field({
         type: 'User',
         args: {
-          firstName: t.arg('String', {
+          firstName: t.arg.string({
             required: true,
           }),
           lastName: t.arg.string({

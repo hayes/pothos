@@ -40,6 +40,21 @@ export interface SchemaTypes {
   root: unknown;
 }
 
+export type ArgBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.InputFieldBuilder<
+  Types
+>['field'] &
+  Omit<GiraphQLSchemaTypes.InputFieldBuilder<Types>, 'field'>;
+
+export type ValidateInterfaces<
+  Shape,
+  Types extends SchemaTypes,
+  Interfaces extends InterfaceParam<Types>
+> = Interfaces extends InterfaceParam<Types>
+  ? Shape extends OutputShape<Interfaces, Types>
+    ? Interfaces
+    : 'Object shape must extends interface shape'
+  : never;
+
 export const outputShapeKey = Symbol.for('GiraphQL.outputShapeKey');
 export const inputShapeKey = Symbol.for('GiraphQL.inputShapeKey');
 export const partialInputShapeKey = Symbol.for('GiraphQL.partialInputShapeKey');

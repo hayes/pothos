@@ -1,13 +1,14 @@
+import { BuildCache, getObjectOptions, getInterfaceOptions, getUnionOptions } from '@giraphql/core';
 import {
-  BaseType,
-  TypeParam,
-  Field,
-  BuildCache,
-  ObjectType,
-  InterfaceType,
-  UnionType,
-  ImplementedType,
-} from '@giraphql/core';
+  GraphQLFieldConfig,
+  GraphQLObjectType,
+  GraphQLInterfaceType,
+  GraphQLType,
+  GraphQLNamedType,
+  GraphQLNonNull,
+  GraphQLList,
+  GraphQLUnionType,
+} from 'graphql';
 import {
   PreResolveCheck,
   PermissionCheck,
@@ -25,30 +26,44 @@ function mergeMap<K, V>(left: Map<K, V>, right: Map<K, V>) {
   return left;
 }
 
-function getObjectChecks(type: ObjectType<any>, cache: BuildCache) {
-  const preResolveMap = new Map<string, PreResolveCheck<any>>();
-  const postResolveMap = new Map<string, PostResolveCheck<any, unknown>>();
-
-  if (type.options.preResolveCheck) {
-    preResolveMap.set(type.typename, type.options.preResolveCheck);
+function unwrapType(type: GraphQLType): GraphQLNamedType {
+  if (type instanceof GraphQLNonNull) {
+    return unwrapType(type.ofType);
   }
 
-  if (type.options.postResolveCheck) {
-    postResolveMap.set(type.typename, type.options.postResolveCheck);
+  if (type instanceof GraphQLList) {
+    return unwrapType(type.ofType);
   }
 
-  type.interfaces.forEach((name) => {
-    const interfaceType = cache.getEntryOfType(name, 'Interface').type;
+  return type;
+}
 
-    if (interfaceType.options.preResolveCheck) {
-      preResolveMap.set(interfaceType.typename, interfaceType.options.preResolveCheck);
+function getObjectChecks(type: GraphQLObjectType, cache: BuildCache) {
+  const preResolveMap = new Map<GraphQLNamedType, PreResolveCheck<any>>();
+  const postResolveMap = new Map<GraphQLNamedType, PostResolveCheck<any, unknown>>();
+
+  const options = getObjectOptions(type);
+
+  if (options.preResolveCheck) {
+    preResolveMap.set(type, options.preResolveCheck);
+  }
+
+  if (options.postResolveCheck) {
+    postResolveMap.set(type, options.postResolveCheck);
+  }
+
+  type.getInterfaces().forEach((interfaceType) => {
+    const interfaceOptions = getInterfaceOptions(interfaceType);
+
+    if (interfaceOptions.preResolveCheck) {
+      preResolveMap.set(interfaceType, interfaceOptions.preResolveCheck);
     }
 
-    const interfacePostResolveCheck = interfaceType.options.postResolveCheck;
+    const interfacePostResolveCheck = interfaceOptions.postResolveCheck;
 
     if (interfacePostResolveCheck) {
-      postResolveMap.set(interfaceType.typename, (parent, context, grantedPermissions) =>
-        interfacePostResolveCheck(type.typename, parent, context, grantedPermissions),
+      postResolveMap.set(interfaceType, (parent, context, grantedPermissions) =>
+        interfacePostResolveCheck(type.name, parent, context, grantedPermissions),
       );
     }
   });
@@ -57,97 +72,105 @@ function getObjectChecks(type: ObjectType<any>, cache: BuildCache) {
 }
 
 function getInterfaceChecks(
-  type: InterfaceType<any, any>,
+  type: GraphQLInterfaceType,
   cache: BuildCache,
   plugin: AuthPlugin,
 ): ResolveChecksForType {
-  const preResolveMap = new Map<string, PreResolveCheck<any>>();
-  const postResolveMap = new Map<string, Map<string, PostResolveCheck<any, unknown>>>();
+  const preResolveMap = new Map<GraphQLNamedType, PreResolveCheck<any>>();
+  const postResolveMap = new Map<
+    GraphQLNamedType,
+    Map<GraphQLNamedType, PostResolveCheck<any, unknown>>
+  >();
 
-  const implementers = cache.getImplementers(type.typename);
+  const implementers = cache.getImplementers(type);
+
+  const interfaceOptions = getInterfaceOptions(type);
 
   implementers.forEach((implementer) => {
     const implementerChecks = getObjectChecks(implementer, cache);
 
-    if (!plugin.skipPreResolveOnInterfaces && !type.options.skipImplementorPreResolveChecks) {
+    if (!plugin.skipPreResolveOnInterfaces && !interfaceOptions.skipImplementorPreResolveChecks) {
       mergeMap(preResolveMap, implementerChecks.preResolveMap);
     }
 
-    postResolveMap.set(implementer.typename, implementerChecks.postResolveMap);
+    postResolveMap.set(implementer, implementerChecks.postResolveMap);
   });
 
-  if (type.options.preResolveCheck) {
-    preResolveMap.set(type.typename, type.options.preResolveCheck);
+  if (interfaceOptions.preResolveCheck) {
+    preResolveMap.set(type, interfaceOptions.preResolveCheck);
   }
 
   return { preResolveMap, postResolveMap };
 }
 
 function getUnionChecks(
-  type: UnionType<any, any>,
+  type: GraphQLUnionType,
   cache: BuildCache,
   plugin: AuthPlugin,
 ): ResolveChecksForType {
-  const preResolveMap = new Map<string, PreResolveCheck<any>>();
-  const postResolveMap = new Map<string, Map<string, PostResolveCheck<any, unknown>>>();
-  const { postResolveCheck } = type.options;
+  const preResolveMap = new Map<GraphQLNamedType, PreResolveCheck<any>>();
+  const postResolveMap = new Map<
+    GraphQLNamedType,
+    Map<GraphQLNamedType, PostResolveCheck<any, unknown>>
+  >();
+  const options = getUnionOptions(type);
+  const { postResolveCheck } = options;
 
-  if (type.options.preResolveCheck) {
-    preResolveMap.set(type.typename, type.options.preResolveCheck);
+  if (options.preResolveCheck) {
+    preResolveMap.set(type, options.preResolveCheck);
   }
 
-  const members = type.members.map((member) => cache.getEntryOfType(member, 'Object').type);
-  members.forEach((member) => {
+  type.getTypes().forEach((member) => {
     const memberChecks = getObjectChecks(member, cache);
 
-    if (!plugin.skipPreResolveOnUnions && !type.options.skipMemberPreResolveChecks) {
+    if (!plugin.skipPreResolveOnUnions && !options.skipMemberPreResolveChecks) {
       mergeMap(preResolveMap, memberChecks.preResolveMap);
     }
 
     if (postResolveCheck) {
       postResolveMap.set(
-        member.typename,
+        member,
         mergeMap(
           new Map([
             [
-              type.typename,
-              (parent, context, perms) => postResolveCheck(member.typename, parent, context, perms),
+              type,
+              (parent, context, perms) => postResolveCheck(member.name, parent, context, perms),
             ],
           ]),
           memberChecks.postResolveMap,
         ),
       );
     } else {
-      postResolveMap.set(member.typename, memberChecks.postResolveMap);
+      postResolveMap.set(member, memberChecks.postResolveMap);
     }
   });
 
   return {
     preResolveMap,
     postResolveMap,
-    grantAsShared: type.typename,
+    grantAsShared: type.name,
   };
 }
 
 function getChecks(
-  type: ImplementedType,
+  type: GraphQLNamedType,
   cache: BuildCache,
   plugin: AuthPlugin,
 ): ResolveChecksForType {
-  if (type.kind === 'Object') {
+  if (type instanceof GraphQLObjectType) {
     const objectChecks = getObjectChecks(type, cache);
 
     return {
       preResolveMap: objectChecks.preResolveMap,
-      postResolveMap: new Map([[type.typename, objectChecks.postResolveMap]]),
+      postResolveMap: new Map([[type, objectChecks.postResolveMap]]),
     };
   }
 
-  if (type.kind === 'Interface') {
+  if (type instanceof GraphQLInterfaceType) {
     return getInterfaceChecks(type, cache, plugin);
   }
 
-  if (type.kind === 'Union') {
+  if (type instanceof GraphQLUnionType) {
     return getUnionChecks(type, cache, plugin);
   }
 
@@ -155,57 +178,54 @@ function getChecks(
 }
 
 export function createFieldData(
+  parentType: GraphQLObjectType | GraphQLInterfaceType,
   name: string,
-  field: Field<{}, any, TypeParam<any>>,
+  config: GraphQLFieldConfig<unknown, object>,
   cache: BuildCache,
   plugin: AuthPlugin,
 ): AuthFieldData {
-  const parentType = cache.getType(field.parentTypename);
-  const fieldParentTypename = field.parentTypename;
-  const nonListReturnType = Array.isArray(field.type) ? field.type[0] : field.type;
-  const returnTypename =
-    typeof nonListReturnType === 'string'
-      ? nonListReturnType
-      : (nonListReturnType as BaseType).typename;
-  const returnType = cache.getType(returnTypename);
+  const returnType = unwrapType(config.type);
+  const typeOptions:
+    | GiraphQLSchemaTypes.ObjectTypeOptions
+    | GiraphQLSchemaTypes.InterfaceTypeOptions =
+    parentType.extensions && parentType.extensions.giraphqlOptions;
+  const fieldOptions:
+    | GiraphQLSchemaTypes.ObjectFieldOptions<any, any, any, any, any, any>
+    | GiraphQLSchemaTypes.InterfaceFieldOptions<any, any, any, any, any, any> =
+    config.extensions && config.extensions.giraphqlOptions;
 
   const permissionCheck: PermissionCheck<any, any, any> =
-    field.options.permissionCheck ||
-    ((parentType.kind === 'Object' || parentType.kind === 'Interface') &&
-      parentType.options.defaultPermissionCheck) ||
-    [];
+    fieldOptions.permissionCheck || typeOptions.defaultPermissionCheck || [];
 
   const permissionCheckers: {
     [s: string]: (parent: unknown, context: {}) => boolean | Promise<boolean>;
   } =
-    parentType.kind === 'Object' ||
-    parentType.kind === 'Query' ||
-    parentType.kind === 'Mutation' ||
-    parentType.kind === 'Subscription'
-      ? parentType.options.permissions ?? {}
+    parentType instanceof GraphQLObjectType
+      ? (typeOptions as GiraphQLSchemaTypes.ObjectTypeOptions).permissions ?? {}
       : {};
 
-  const fieldName = `${field.parentTypename}.${name}`;
+  const fieldName = `${parentType.name}.${name}`;
 
   if (
     plugin.explicitMutationChecks &&
-    field.parentTypename === 'Mutation' &&
-    (!field.options.permissionCheck ||
-      (Array.isArray(field.options.permissionCheck) && field.options.permissionCheck.length === 0))
+    parentType.name === 'Mutation' &&
+    (!fieldOptions.permissionCheck ||
+      (Array.isArray(fieldOptions.permissionCheck) && fieldOptions.permissionCheck.length === 0))
   ) {
     throw new Error(
       `${fieldName} is missing an explicit permission check which is required for all Mutations (explicitMutationChecks)`,
     );
   }
 
-  const grantPermissions = field.options.grantPermissions || null;
+  const grantPermissions = fieldOptions.grantPermissions || null;
 
   const resolveChecks = getChecks(returnType, cache, plugin);
 
   return {
     resolveChecks,
-    returnTypename,
-    fieldParentTypename,
+    unwrappedReturnType: returnType,
+    returnType: config.type,
+    parentType,
     fieldName,
     permissionCheck,
     permissionCheckers,

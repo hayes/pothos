@@ -1,4 +1,3 @@
-import { printSchema } from 'graphql';
 import SchemaBuilder, { InputObjectRef, RecursivelyNormalizeNullableFields } from '../../src';
 
 // Define backing models/types
@@ -50,10 +49,10 @@ const Example2: InputObjectRef<RecursivelyNormalizeNullableFields<
   ExampleShape
 >> = builder.inputType('Example2', {
   shape: (t) => ({
-    example: t.type({ type: Example, required: true }),
+    example: t.field({ type: Example, required: true }),
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
-    more: t.type({ type: Example2, required: true }),
+    more: t.field({ type: Example2, required: true }),
   }),
 });
 
@@ -89,7 +88,7 @@ builder.objectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        example: t.arg.type({ type: Example, required: true }),
+        example: t.arg({ type: Example, required: true }),
         firstN: t.arg.int({ required: true }),
       },
       resolve: (parent, args) => {
@@ -99,7 +98,7 @@ builder.objectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: t.arg.type({ type: Example2, required: true }),
+        example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id({}),
       },
       resolve: (parent, args) => {

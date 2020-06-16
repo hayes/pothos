@@ -2,14 +2,18 @@
 import {
   BasePlugin,
   ResolveValueWrapper,
-  ImplementedType,
-  Field,
-  TypeParam,
   BuildCache,
   MaybePromise,
+  getQueryFieldOptions,
 } from '@giraphql/core';
 import './global-types';
-import { GraphQLResolveInfo, GraphQLFieldConfig } from 'graphql';
+import {
+  GraphQLResolveInfo,
+  GraphQLFieldConfig,
+  GraphQLObjectType,
+  GraphQLNamedType,
+  GraphQLInterfaceType,
+} from 'graphql';
 import MergedAsyncIterator from './merged-iterator';
 import SubscriptionManager from './manager';
 import FieldSubscriptionManager from './manager/field';
@@ -54,22 +58,16 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
   }
 
   onField(
-    type: ImplementedType,
+    type: GraphQLNamedType,
     name: string,
-    field: Field<{}, any, TypeParam<any>>,
+    config: GraphQLFieldConfig<unknown, object>,
     builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
   ) {
-    if (type.kind !== 'Query') {
+    if (type.name !== 'Query') {
       return;
     }
 
-    const options = field.options as GiraphQLSchemaTypes.QueryFieldOptions<
-      any,
-      TypeParam<any>,
-      any,
-      {},
-      {}
-    >;
+    const options = getQueryFieldOptions(type as GraphQLObjectType, config, name);
 
     if (options.smartSubscription) {
       builder.subscriptionFields((t) => ({
@@ -105,14 +103,15 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
   }
 
   onFieldWrap(
+    type: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
-    field: Field<{}, any, TypeParam<any>>,
     config: GraphQLFieldConfig<unknown, object>,
     data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
     buildCache: BuildCache,
   ) {
     wrapField(config, (context, info) => this.getSubscriptionManager(context, info));
-    createFieldData(name, field, data, buildCache);
+
+    createFieldData(type, name, config, data, buildCache);
   }
 
   beforeResolve(
@@ -222,13 +221,13 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
   }
 
   onInterfaceResolveType(
-    typename: string,
+    type: GraphQLObjectType,
     parent: ResolveValueWrapper,
     context: Context,
     info: GraphQLResolveInfo,
   ) {
     const manager = this.getSubscriptionManager(context, info);
-    const subscribe = parent.data.smartSubscriptions?.subscriptionByType[typename];
+    const subscribe = parent.data.smartSubscriptions?.subscriptionByType[type.name];
     const cache = parent.data.smartSubscriptions?.cache;
 
     if (manager && cache && subscribe) {
@@ -242,13 +241,13 @@ export default class SmartSubscriptionsPlugin<Context extends object> implements
   }
 
   onUnionResolveType(
-    typename: string,
+    type: GraphQLNamedType,
     parent: ResolveValueWrapper,
     context: Context,
     info: GraphQLResolveInfo,
   ) {
     const manager = this.getSubscriptionManager(context, info);
-    const subscribe = parent.data.smartSubscriptions?.subscriptionByType[typename];
+    const subscribe = parent.data.smartSubscriptions?.subscriptionByType[type.name];
     const cache = parent.data.smartSubscriptions?.cache;
 
     if (manager && cache && subscribe) {

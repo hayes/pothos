@@ -23,13 +23,16 @@ export default async function runPreResolveChecks(
       result: boolean | PermissionGrantMap;
     }>[] = [];
 
-    for (const [name, preResolveCheck] of preResolveCheckMap!) {
+    for (const [type, preResolveCheck] of preResolveCheckMap!) {
       if (!preResolveCache.has(preResolveCheck)) {
         preResolveCache.set(preResolveCheck, preResolveCheck(context));
       }
 
       preResolvePromises.push(
-        Promise.resolve(preResolveCache.get(preResolveCheck)!).then((result) => ({ name, result })),
+        Promise.resolve(preResolveCache.get(preResolveCheck)!).then((result) => ({
+          name: type.name,
+          result,
+        })),
       );
     }
 

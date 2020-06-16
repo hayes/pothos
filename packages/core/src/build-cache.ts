@@ -164,11 +164,14 @@ export default class BuildCache {
     return fieldMock.subscribe || null;
   }
 
-  private buildFields(fields: FieldMap): GraphQLFieldConfigMap<unknown, object> {
+  private buildFields(
+    type: GraphQLObjectType | GraphQLInterfaceType,
+    fields: FieldMap,
+  ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
 
     Object.keys(fields).forEach((fieldName) => {
-      built[fieldName] = fields[fieldName].build(fieldName, this, this.plugin);
+      built[fieldName] = fields[fieldName].build(type, fieldName, this, this.plugin);
     });
 
     return built;
@@ -225,7 +228,8 @@ export default class BuildCache {
     return this.configStore
       .getFields(type.name)
       .reduce(
-        (fields, newFields) => this.mergeFields(type.name, fields, this.buildFields(newFields)),
+        (fields, newFields) =>
+          this.mergeFields(type.name, fields, this.buildFields(type, newFields)),
         {} as GraphQLFieldConfigMap<unknown, object>,
       );
   }
@@ -238,7 +242,8 @@ export default class BuildCache {
     const objectFields = this.configStore
       .getFields(type.name)
       .reduce(
-        (fields, newFields, i) => this.mergeFields(type.name, fields, this.buildFields(newFields)),
+        (fields, newFields, i) =>
+          this.mergeFields(type.name, fields, this.buildFields(type, newFields)),
         {} as GraphQLFieldConfigMap<unknown, object>,
       );
 
@@ -249,12 +254,13 @@ export default class BuildCache {
     return this.configStore
       .getFields(type.name)
       .reduce(
-        (fields, newFields) => this.mergeFields(type.name, fields, this.buildFields(newFields)),
+        (fields, newFields) =>
+          this.mergeFields(type.name, fields, this.buildFields(type, newFields)),
         {} as GraphQLFieldConfigMap<unknown, object>,
       );
   }
 
-  private getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
+  getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
     if (type instanceof GraphQLObjectType) {
       if (type.name === 'Query' || type.name === 'Mutation' || type.name === 'Subscription') {
         return this.getRootFields(type);
@@ -370,7 +376,7 @@ export default class BuildCache {
           return resolved;
         }
 
-        await this.plugin.onInterfaceResolveType(resolved.name, parent, context, info);
+        await this.plugin.onInterfaceResolveType(resolved, parent, context, info);
 
         return resolved;
       },
@@ -392,11 +398,12 @@ export default class BuildCache {
           return typeOrTypename;
         }
 
-        const typename = typeof typeOrTypename === 'string' ? typeOrTypename : typeOrTypename.name;
+        const type =
+          typeof typeOrTypename === 'string' ? this.getObjectType(typeOrTypename) : typeOrTypename;
 
-        await this.plugin.onUnionResolveType(typename, parent, context, info);
+        await this.plugin.onUnionResolveType(type, parent, context, info);
 
-        return typename;
+        return typeOrTypename;
       },
     });
   }

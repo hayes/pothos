@@ -1,5 +1,12 @@
 /* eslint-disable no-await-in-loop */
-import { GraphQLFieldConfig, GraphQLResolveInfo, GraphQLSchema, GraphQLNamedType } from 'graphql';
+import {
+  GraphQLFieldConfig,
+  GraphQLResolveInfo,
+  GraphQLSchema,
+  GraphQLNamedType,
+  GraphQLObjectType,
+  GraphQLInterfaceType,
+} from 'graphql';
 import { BasePlugin } from '..';
 import { MaybePromise } from '../types';
 import BuildCache from '../build-cache';
@@ -81,13 +88,14 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     },
 
     onFieldWrap(
+      type: GraphQLObjectType | GraphQLInterfaceType,
       name: string,
       config: GraphQLFieldConfig<unknown, object>,
       data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
       cache: BuildCache,
     ) {
       for (const plugin of onFieldWrapPlugins) {
-        plugin.onFieldWrap(name, config, data, cache);
+        plugin.onFieldWrap(type, name, config, data, cache);
       }
     },
 
@@ -184,24 +192,24 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     },
 
     async onInterfaceResolveType(
-      typename: string,
+      type: GraphQLObjectType,
       parent: ResolveValueWrapper,
       context: object,
       info: GraphQLResolveInfo,
     ) {
       for (const plugin of onInterfaceResolveTypePlugins) {
-        await plugin.onInterfaceResolveType(typename, parent, context, info);
+        await plugin.onInterfaceResolveType(type, parent, context, info);
       }
     },
 
     async onUnionResolveType(
-      typename: string,
+      type: GraphQLObjectType,
       parent: ResolveValueWrapper,
       context: object,
       info: GraphQLResolveInfo,
     ) {
       for (const plugin of onUnionResolveTypePlugins) {
-        await plugin.onUnionResolveType(typename, parent, context, info);
+        await plugin.onUnionResolveType(type, parent, context, info);
       }
     },
 

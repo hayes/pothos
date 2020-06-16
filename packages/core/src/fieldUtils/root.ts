@@ -9,15 +9,14 @@ import {
 import Field from '../graphql/field';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
+import { ArgBuilder } from '..';
 
 export default class RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind
 > extends BaseFieldUtil<Types, ParentShape> {
-  arg: InputFieldBuilder<Types> & InputFieldBuilder<Types>['type'] = new InputFieldBuilder<
-    Types
-  >().callableBuilder();
+  arg: ArgBuilder<Types> = new InputFieldBuilder<Types>().argBuilder();
 
   boolean<
     Args extends InputFields,

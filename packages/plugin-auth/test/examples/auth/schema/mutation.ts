@@ -5,7 +5,7 @@ export default builder.mutationType({
     createUser: t.field({
       type: 'User',
       args: {
-        firstName: t.arg('String', {
+        firstName: t.arg.string({
           required: true,
         }),
         lastName: t.arg.string({

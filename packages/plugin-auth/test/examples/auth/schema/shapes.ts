@@ -319,7 +319,7 @@ builder.queryFields((t) => ({
   }),
   roundThing: t.field({
     type: RoundThings,
-    args: { oval: t.arg.bool() },
+    args: { oval: t.arg.bool({}) },
     nullable: true,
     permissionCheck: () => true,
     resolve: (parent, args) => {
@@ -329,7 +329,7 @@ builder.queryFields((t) => ({
   }),
   ovalThing: t.field({
     type: RoundThings,
-    args: { oval: t.arg.bool() },
+    args: { oval: t.arg.bool({}) },
     nullable: true,
     permissionCheck: () => true,
     resolve: (parent, args) => {

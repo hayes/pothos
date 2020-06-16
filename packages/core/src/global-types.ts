@@ -32,7 +32,12 @@ import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
 import InternalInputFieldBuilder from './fieldUtils/input';
 import Builder from './builder';
-import { FieldRequiredness, InputShapeFromTypeParam, InputShapeFromFields } from '.';
+import {
+  FieldRequiredness,
+  InputShapeFromTypeParam,
+  InputShapeFromFields,
+  ValidateInterfaces,
+} from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -156,16 +161,6 @@ declare global {
       implements?: undefined;
       isType?: undefined;
     }
-
-    type ValidateInterfaces<
-      Shape,
-      Types extends SchemaTypes,
-      Interfaces extends InterfaceParam<Types>
-    > = Interfaces extends InterfaceParam<Types>
-      ? Shape extends OutputShape<Interfaces, Types>
-        ? Interfaces
-        : 'Object shape must extends interface shape'
-      : never;
 
     export interface ObjectTypeWithInterfaceOptions<
       Types extends SchemaTypes = SchemaTypes,
@@ -308,7 +303,6 @@ declare global {
 
     export interface SubscriptionFieldOptions<
       Types extends SchemaTypes,
-      ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFields,
@@ -317,7 +311,7 @@ declare global {
     >
       extends FieldOptions<
         Types,
-        ParentShape,
+        Types['root'],
         Type,
         Nullable,
         Args,
@@ -332,7 +326,7 @@ declare global {
         ResolveReturnShape
       >;
       subscribe: Subscriber<
-        ParentShape,
+        Types['root'],
         InputShapeFromFields<Args>,
         Types['context'],
         ResolveShape
@@ -377,7 +371,7 @@ declare global {
       extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface UnionOptions<
+    export interface UnionTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Member extends ObjectParam<Types> = ObjectParam<Types>
     > {
@@ -391,7 +385,7 @@ declare global {
       extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface ScalarOptions<InputShape = unknown, OutputShape = unknown> {
+    export interface ScalarTypeOptions<InputShape = unknown, OutputShape = unknown> {
       description?: string;
       // Serializes an internal value to include in a response.
       serialize: GraphQLScalarSerializer<OutputShape>;
@@ -415,7 +409,6 @@ declare global {
       Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
       Subscription: SubscriptionFieldOptions<
         Types,
-        ParentShape,
         Type,
         Nullable,
         Args,

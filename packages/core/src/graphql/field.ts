@@ -1,5 +1,10 @@
 /* eslint-disable @typescript-eslint/consistent-type-assertions */
-import { GraphQLFieldConfig, GraphQLFieldConfigArgumentMap } from 'graphql';
+import {
+  GraphQLFieldConfig,
+  GraphQLFieldConfigArgumentMap,
+  GraphQLInterfaceType,
+  GraphQLObjectType,
+} from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
 import { TypeParam, InputFields, FieldNullability } from '../types';
@@ -37,6 +42,7 @@ export default class Field {
   }
 
   build(
+    type: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
     cache: BuildCache,
     plugin: Required<BasePlugin>,
@@ -59,7 +65,7 @@ export default class Field {
 
     const config = plugin.updateFieldConfig(name, baseConfig, cache);
 
-    wrapResolver(name, config, plugin, cache);
+    wrapResolver(type, name, config, plugin, cache);
 
     return config;
   }

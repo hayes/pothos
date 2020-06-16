@@ -3,8 +3,9 @@ import {
   GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLType,
-  GraphQLField,
   GraphQLNamedType,
+  GraphQLInterfaceType,
+  GraphQLObjectType,
 } from 'graphql';
 import { MaybePromise } from '../types';
 import BuildCache from '../build-cache';
@@ -20,6 +21,7 @@ export interface BasePlugin {
   ): GraphQLFieldConfig<unknown, object>;
 
   onFieldWrap?(
+    type: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
     config: GraphQLFieldConfig<unknown, object>,
     data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
@@ -66,14 +68,14 @@ export interface BasePlugin {
   }>;
 
   onInterfaceResolveType?(
-    typename: string,
+    type: GraphQLObjectType,
     parent: ResolveValueWrapper,
     context: object,
     info: GraphQLResolveInfo,
   ): MaybePromise<void>;
 
   onUnionResolveType?(
-    typename: string,
+    type: GraphQLObjectType,
     parent: ResolveValueWrapper,
     context: object,
     info: GraphQLResolveInfo,

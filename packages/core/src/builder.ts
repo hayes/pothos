@@ -268,7 +268,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   unionType<Member extends ObjectParam<Types>>(
     name: string,
-    options: GiraphQLSchemaTypes.UnionOptions<Types, Member>,
+    options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>,
   ) {
     const ref = new UnionRef<OutputShape<Member, Types>>(name);
     this.configStore.associateRefWithName(ref, name);
@@ -311,7 +311,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   scalarType<Name extends ScalarName<Types>>(
     name: Name,
-    options: GiraphQLSchemaTypes.ScalarOptions<InputShape<Name, Types>, OutputShape<Name, Types>>,
+    options: GiraphQLSchemaTypes.ScalarTypeOptions<
+      InputShape<Name, Types>,
+      OutputShape<Name, Types>
+    >,
   ) {
     const ref = new ScalarRef<InputShape<Name, Types>, OutputShape<Name, Types>>(name);
 

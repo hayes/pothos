@@ -10,7 +10,7 @@ export async function checkFieldPermissions(
   args: object,
   context: object,
 ) {
-  const { fieldName, fieldParentTypename, permissionCheckers, permissionCheck } = data.giraphqlAuth;
+  const { fieldName, parentType, permissionCheckers, permissionCheck } = data.giraphqlAuth;
 
   if (Array.isArray(permissionCheck) && permissionCheck.length === 0) {
     if (required) {
@@ -36,7 +36,7 @@ export async function checkFieldPermissions(
       return permissionResults.has(perm);
     }
 
-    if (grantedPermissions.hasPermission(fieldParentTypename, perm)) {
+    if (grantedPermissions.hasPermission(parentType.name, perm)) {
       permissionResults.set(perm, true);
       return true;
     }
