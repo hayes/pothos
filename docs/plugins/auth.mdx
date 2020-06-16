@@ -263,7 +263,7 @@ builder.interfaceType('Shape', {
 });
 
 builder.objectType('Square', {
-  implements: ['Shape'],
+  interfaces: ['Shape'],
   isType: (parent) => parent.type === 'square',
   // Will execute for each square returned by Query.shapes and grand the readSquare permission
   // which is required for the size field

@@ -78,14 +78,14 @@ type RootTypeOptions = {
 
 ```typescript
 type ObjectTypeOptions = {
-  implements?: Interfaces;
+  interfaces?: Interfaces;
   description?: string;
   fields: FieldsShape;
   isType: (obj: InterfaceShape) => boolean;
 };
 ```
 
-- `implements`: an array of interfaces implemented by this object type. Items in this array can
+- `interfaces`: an array of interfaces implemented by this object type. Items in this array can
   either be a key of the `Interface` property in [`TypeInfo`], or be an Interface type create by
   [`interfaceType`]. The backing model for the object type must `extend` the backing model of all
   interfaces in this list.

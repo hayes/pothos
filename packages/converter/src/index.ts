@@ -236,7 +236,7 @@ export default class GirphQLConverter {
         this.writeDescription(writer, type);
         if (type.getInterfaces().length !== 0) {
           writer.writeLine(
-            `implements: [${type
+            `interfaces: [${type
               .getInterfaces()
               .map((i) => i.name)
               .join(', ')}],`,

@@ -274,6 +274,6 @@ export default class RootFieldBuilder<
       ResolveReturnShape
     >,
   ) {
-    return this.createField(options as GiraphQLSchemaTypes.FieldOptions);
+    return this.createField<Args, Type, Nullable>(options);
   }
 }

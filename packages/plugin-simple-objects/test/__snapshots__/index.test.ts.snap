@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`extends example schema generates expected schema 1`] = `
+"type ContactInfo {
+  email: String!
+  phoneNUmber: String
+}
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  user(id: ID!): User!
+}
+
+type User implements Node {
+  contactInfo: ContactInfo!
+  firstName: String!
+  id: ID!
+  lastName: String!
+}
+"
+`;

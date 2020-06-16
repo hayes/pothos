@@ -92,8 +92,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       this.configStore.addFields(ref, () => options.fields!(new ObjectFieldBuilder(name)));
     }
 
-    if (options.implements) {
-      this.configStore.setImplementedInterfaces(name, options.implements);
+    if (options.interfaces) {
+      this.configStore.setImplementedInterfaces(name, options.interfaces);
     }
 
     return ref;

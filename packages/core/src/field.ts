@@ -65,7 +65,7 @@ export default class Field<T> {
       extensions: this.options.extensions,
     };
 
-    const config = plugin.updateFieldConfig(name, baseConfig, cache);
+    const config = plugin.updateFieldConfig(type, name, baseConfig, cache);
 
     wrapResolver(type, name, config, plugin, cache);
 

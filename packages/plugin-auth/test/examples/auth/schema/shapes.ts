@@ -22,7 +22,7 @@ builder.interfaceType('ThingWithCorners', {
 });
 
 builder.objectType('Square', {
-  implements: ['Shape'],
+  interfaces: ['Shape'],
   isType: (parent) => parent.type === 'square',
   defaultPermissionCheck: 'readSquare',
   postResolveCheck: () => {
@@ -40,7 +40,7 @@ builder.objectType('Square', {
 });
 
 builder.objectType('Triangle', {
-  implements: ['Shape'],
+  interfaces: ['Shape'],
   isType: (parent) => parent.type === 'triangle',
   defaultPermissionCheck: 'readTriangle',
   fields: (t) => ({
@@ -52,7 +52,7 @@ builder.objectType('Triangle', {
 });
 
 builder.objectType('Circle', {
-  implements: ['Shape'],
+  interfaces: ['Shape'],
   isType: (parent) => parent.type === 'circle',
   defaultPermissionCheck: 'readCircle',
   fields: (t) => ({
@@ -63,7 +63,7 @@ builder.objectType('Circle', {
 });
 
 builder.objectType('Line', {
-  implements: ['PreResolvePass', 'PostResolvePass', 'SkipImplementorPreResolve'],
+  interfaces: ['PreResolvePass', 'PostResolvePass', 'SkipImplementorPreResolve'],
   isType: (parent) => parent.type === 'line',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
@@ -75,7 +75,7 @@ builder.objectType('Line', {
 });
 
 builder.objectType('LinePreResolveFail', {
-  implements: ['PreResolveFail'],
+  interfaces: ['PreResolveFail'],
   isType: (parent) => parent.type === 'line-pre-resolve-fail',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
@@ -87,7 +87,7 @@ builder.objectType('LinePreResolveFail', {
 });
 
 builder.objectType('LinePostResolveFail', {
-  implements: ['PostResolveFail'],
+  interfaces: ['PostResolveFail'],
   isType: (parent) => parent.type === 'line-post-resolve-fail',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
@@ -99,7 +99,7 @@ builder.objectType('LinePostResolveFail', {
 });
 
 builder.objectType('Oval', {
-  implements: ['OvalThing'],
+  interfaces: ['OvalThing'],
   isType: () => {
     throw new Error('Should not get here');
   },
@@ -116,7 +116,7 @@ builder.objectType('Oval', {
 });
 
 builder.objectType('Rectangle', {
-  implements: ['Shape', 'ThingWithCorners'],
+  interfaces: ['Shape', 'ThingWithCorners'],
   preResolveCheck: () => {
     return {
       preResolve: true,

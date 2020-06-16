@@ -3,7 +3,7 @@ import builder from '../builder';
 
 export default builder.objectType('Human', {
   description: 'A humanoid creature in the Star Wars universe.',
-  implements: [Character],
+  interfaces: [Character],
   isType: (item) => item.type === 'Human',
   fields: (t) => ({
     homePlanet: t.string({

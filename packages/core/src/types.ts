@@ -261,6 +261,8 @@ export type ShapeFromTypeParam<
   Nullable extends FieldNullability<Param>
 > = Param extends [OutputType<Types>]
   ? ShapeFromListTypeParam<Types, Param, Nullable>
+  : FieldNullability<Param> extends Nullable
+  ? OutputShape<Param, Types>
   : Nullable extends true
   ? OutputShape<Param, Types> | undefined | null
   : OutputShape<Param, Types>;

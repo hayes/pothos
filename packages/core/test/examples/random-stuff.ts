@@ -214,7 +214,7 @@ const Stuff = builder.enumType('stuff', {
 });
 
 builder.objectType('Sheep', {
-  implements: [Shaveable, 'Countable'],
+  interfaces: [Shaveable, 'Countable'],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
   isType: () => true,

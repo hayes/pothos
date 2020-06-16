@@ -158,7 +158,7 @@ declare global {
       description?: string;
       fields?: ObjectFieldsShape<Types, Shape>;
       extensions?: Readonly<Record<string, unknown>>;
-      implements?: undefined;
+      interfaces?: undefined;
       isType?: undefined;
     }
 
@@ -166,8 +166,8 @@ declare global {
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
-    > extends Omit<ObjectTypeOptions<Types, Shape>, 'implements' | 'isType'> {
-      implements: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+    > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isType'> {
+      interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
       isType: (
         obj: OutputShape<Interfaces[number], Types>,
         context: Types['context'],

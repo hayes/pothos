@@ -77,12 +77,13 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     },
 
     updateFieldConfig(
+      type: GraphQLObjectType | GraphQLInterfaceType,
       name: string,
       config: GraphQLFieldConfig<unknown, object>,
       cache: BuildCache,
     ) {
       return updateFieldConfigPlugins.reduce(
-        (newConfig, plugin) => plugin.updateFieldConfig(name, newConfig, cache),
+        (newConfig, plugin) => plugin.updateFieldConfig(type, name, newConfig, cache),
         config,
       );
     },

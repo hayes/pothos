@@ -5,7 +5,6 @@
 3. class/enum based definitions
 4. Modular graph API
 5. Error numbering
-6. simpleObject plugin
-7. relay plugin
-8. prisma plugin
-9. releases and change logs
+6. relay plugin
+7. prisma plugin
+8. releases and change logs

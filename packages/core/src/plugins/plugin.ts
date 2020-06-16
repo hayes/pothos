@@ -15,6 +15,7 @@ export interface BasePlugin {
   visitType?(type: GraphQLNamedType, cache: BuildCache): void;
 
   updateFieldConfig?(
+    type: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
     config: GraphQLFieldConfig<unknown, object>,
     cache: BuildCache,
@@ -33,7 +34,7 @@ export interface BasePlugin {
   onField?(
     type: GraphQLType,
     name: string,
-    field: GraphQLFieldConfig<unknown, object>,
+    config: GraphQLFieldConfig<unknown, object>,
     builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
   ): void;
 
