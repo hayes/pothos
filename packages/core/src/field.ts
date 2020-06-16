@@ -7,10 +7,10 @@ import {
 } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, FieldNullability } from '../types';
-import { typeFromParam } from '../utils';
-import { BuildCache } from '..';
-import { BasePlugin, wrapResolver } from '../plugins';
+import { TypeParam, InputFields, FieldNullability } from './types';
+import { typeFromParam } from './utils';
+import { BuildCache } from '.';
+import { BasePlugin, wrapResolver } from './plugins';
 
 export default class Field {
   nullable: FieldNullability;

@@ -1,5 +1,5 @@
 import { InputType, SchemaTypes } from '../types';
-import InputField from '../graphql/input-field';
+import InputField from '../input-field';
 import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder } from '..';
 
 export default class InputFieldBuilder<Types extends SchemaTypes> {

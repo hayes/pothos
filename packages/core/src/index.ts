@@ -1,5 +1,5 @@
 import InternalInputFieldBuilder from './fieldUtils/input';
-import Field from './graphql/field';
+import Field from './field';
 import BuildCache from './build-cache';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';

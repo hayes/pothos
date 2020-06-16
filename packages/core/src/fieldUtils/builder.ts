@@ -5,7 +5,7 @@ import {
   FieldNullability,
   SchemaTypes,
 } from '../types';
-import Field from '../graphql/field';
+import Field from '../field';
 import RootFieldBuilder from './root';
 
 export default class FieldBuilder<

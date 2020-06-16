@@ -4,7 +4,7 @@ import './global-types';
 import ObjectRef from './refs/object';
 import InterfaceRef from './refs/interface';
 import { Field } from '.';
-import InputField from './graphql/input-field';
+import InputField from './input-field';
 
 export interface MergedSchemaTypes<Info extends GiraphQLSchemaTypes.TypeInfo> extends SchemaTypes {
   outputShapes: { [K in keyof Info['Object']]: Info['Object'][K] } &
@@ -311,6 +311,10 @@ export type InputShapeFromFields<Fields extends InputFields> = NormalizeNullable
   }
 >;
 
+export type InputFieldsFromShape<Shape extends object> = {
+  [K in keyof Shape]: InputField<Shape[K]>;
+};
+
 export type InputShapeFromField<Field extends InputField<unknown>> = Field extends InputField<
   infer T
 >
@@ -468,6 +472,14 @@ export type CompatibleInterfaceParam<Types extends SchemaTypes, Shape> = Compati
   Types,
   Shape
 >;
+
+export type ObjectTypeOptions<
+  Types extends SchemaTypes,
+  Shape,
+  Interfaces extends InterfaceParam<Types>[]
+> =
+  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>;
 
 // TODO add reference based interface params
 // | InterfaceType<Types, CompatibleInterfaceNames<Types, Shape>>;

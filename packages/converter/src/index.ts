@@ -93,11 +93,6 @@ export default class GirphQLConverter {
         kind: StructureKind.ImportDeclaration,
         moduleSpecifier: '@giraphql/core',
         defaultImport: 'SchemaBuilder',
-        namedImports: gqlTypes.find(
-          (type) => type instanceof GraphQLInputObjectType && isRecursive(type),
-        )
-          ? ['InputObjectOfShape']
-          : [],
       });
 
       this.sourcefile.addStatements((writer) => writer.blankLine());
@@ -316,27 +311,50 @@ export default class GirphQLConverter {
     const recursive = isRecursive(type);
     if (recursive) {
       this.inputTypeShape(type);
-    }
 
-    this.sourcefile.addVariableStatement({
-      kind: StructureKind.VariableStatement,
-      declarationKind: VariableDeclarationKind.Const,
-      declarations: [
-        {
-          kind: StructureKind.VariableDeclaration,
-          name: type.name,
-          type: recursive ? `InputObjectOfShape<${type.name}Shape>` : undefined,
-          initializer: (writer) => {
-            writer.writeLine(`builder.inputType('${type.name}', {`);
-            writer.indent(() => {
-              this.writeDescription(writer, type);
-              this.writeInputShape(writer, type);
-            });
-            writer.writeLine('})');
+      this.sourcefile.addVariableStatement({
+        kind: StructureKind.VariableStatement,
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [
+          {
+            kind: StructureKind.VariableDeclaration,
+            name: type.name,
+            initializer: (writer) => {
+              writer.writeLine(`builder.inputRef<${type.name}Shape>('${type.name}')`);
+            },
           },
-        },
-      ],
-    });
+        ],
+      });
+
+      this.sourcefile.addStatements((writer) => {
+        writer.newLine();
+        writer.writeLine(`${type.name}.implement({`);
+        writer.indent(() => {
+          this.writeDescription(writer, type);
+          this.writeInputShape(writer, type);
+        });
+        writer.writeLine('})');
+      });
+    } else {
+      this.sourcefile.addVariableStatement({
+        kind: StructureKind.VariableStatement,
+        declarationKind: VariableDeclarationKind.Const,
+        declarations: [
+          {
+            kind: StructureKind.VariableDeclaration,
+            name: type.name,
+            initializer: (writer) => {
+              writer.writeLine(`builder.inputType('${type.name}', {`);
+              writer.indent(() => {
+                this.writeDescription(writer, type);
+                this.writeInputShape(writer, type);
+              });
+              writer.writeLine('})');
+            },
+          },
+        ],
+      });
+    }
   }
 
   inputTypeShape(type: GraphQLInputObjectType) {
@@ -441,11 +459,12 @@ export default class GirphQLConverter {
       const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);
 
       fields.forEach((field) => {
-        writer.write(`${field.name}: t.type(`);
-        this.writeType(writer, field.type);
-        writer.write(', {');
-        writer.newLine();
+        writer.writeLine(`${field.name}: t.field({`);
         writer.indent(() => {
+          writer.write('type: ');
+          this.writeType(writer, field.type);
+          writer.write(',');
+          writer.newLine();
           this.writeDescription(writer, field);
           writer.write('required: ');
           this.writeRequiredness(writer, field.type);
@@ -604,18 +623,19 @@ export default class GirphQLConverter {
       writer.write('args: {');
       writer.indent(() => {
         type.args.forEach((arg) => {
-          writer.write(`${arg.name}: t.arg.type(`);
-          this.writeType(writer, arg.type);
-          writer.write(', {');
-          writer.newLine();
+          writer.writeLine(`${arg.name}: t.arg({`);
           writer.indent(() => {
+            writer.write('type: ');
+            this.writeType(writer, arg.type);
+            writer.write(',');
+            writer.newLine();
             this.writeDescription(writer, arg);
             writer.write('required: ');
             this.writeRequiredness(writer, arg.type);
             writer.write(',');
             writer.newLine();
             if (arg.defaultValue != null) {
-              writer.write(`default: ${JSON.stringify(arg.defaultValue)}`);
+              writer.write(`defaultValue: ${JSON.stringify(arg.defaultValue)}`);
               writer.write(',');
               writer.newLine();
             }

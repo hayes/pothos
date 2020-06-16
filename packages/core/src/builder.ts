@@ -36,6 +36,7 @@ import {
   SubscriptionFieldBuilder,
   InterfaceFieldBuilder,
   InputShapeFromFields,
+  ObjectTypeOptions,
 } from '.';
 import { BasePlugin, mergePlugins } from './plugins';
 import ConfigStore from './config-store';
@@ -45,7 +46,7 @@ import EnumRef from './refs/enum';
 import ScalarRef from './refs/scalar';
 import ObjectRef from './refs/object';
 import { normalizeEnumValues } from './utils';
-import InputObjectRef from './refs/input';
+import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   private plugin: Required<BasePlugin>;
@@ -57,22 +58,20 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore = new ConfigStore<Types>(this.plugin);
   }
 
-  objectType<Interfaces extends InterfaceParam<Types>[], Type extends Types['objects']>(
-    name: Type,
-    options:
-      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, OutputShape<Type, Types>>
-      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
-          Types,
-          OutputShape<Type, Types>,
-          Interfaces
-        >,
-    shape?: ObjectFieldsShape<Types, OutputShape<Type, Types>>,
+  objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
+    param: Param,
+    options: ObjectTypeOptions<Types, OutputShape<Param, Types>, Interfaces>,
+    shape?: ObjectFieldsShape<Types, OutputShape<Param, Types>>,
   ) {
+    const name = typeof param === 'string' ? param : (param as { name: string }).name;
+
     if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
     }
 
-    const ref = new ObjectRef<OutputShape<Type, Types>>(name);
+    const ref: ObjectRef<OutputShape<Param, Types>> =
+      param instanceof ObjectRef ? param : new ObjectRef<OutputShape<Param, Types>>(name);
+
     this.configStore.associateRefWithName(ref, name);
 
     this.configStore.addObjectConfig({
@@ -117,6 +116,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addFields(ref, () => ({
       [fieldName]: field(new ObjectFieldBuilder(this.configStore.getNameFromRef(ref))),
     }));
+  }
+
+  objectRef<T>(name: string) {
+    return new ObjectRef<T>(name);
   }
 
   queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, shape?: QueryFieldsShape<Types>) {
@@ -216,12 +219,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return shape(new InputFieldBuilder<Types>());
   }
 
-  interfaceType<Type extends Types['interfaces']>(
-    name: Type,
-    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Type, Types>>,
-    shape?: InterfaceFieldsShape<Types, OutputShape<Type, Types>>,
+  interfaceType<Param extends InterfaceParam<Types>>(
+    param: Param,
+    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Param, Types>>,
+    shape?: InterfaceFieldsShape<Types, OutputShape<Param, Types>>,
   ) {
-    const ref = new InterfaceRef<OutputShape<Type, Types>>(name);
+    const name = typeof param === 'string' ? param : (param as { name: string }).name;
+    const ref: InterfaceRef<OutputShape<Param, Types>> =
+      param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Param, Types>>(name);
 
     const typename = ref.name;
 
@@ -264,6 +269,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addFields(ref, () => ({
       [fieldName]: field(new InterfaceFieldBuilder(this.configStore.getNameFromRef(ref))),
     }));
+  }
+
+  interfaceRef<T>(name: string) {
+    return new InterfaceRef<T>(name);
   }
 
   unionType<Member extends ObjectParam<Types>>(
@@ -353,11 +362,16 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return ref;
   }
 
-  inputType<Name extends string, Fields extends InputFields>(
-    name: Name,
+  inputType<Param extends string | InputObjectRef<unknown>, Fields extends InputFields>(
+    param: Param,
     options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>,
   ): InputObjectRef<InputShapeFromFields<Fields>> {
-    const ref = new InputObjectRef<InputShapeFromFields<Fields>>(name);
+    const name = typeof param === 'string' ? param : (param as { name: string }).name;
+
+    const ref: InputObjectRef<InputShapeFromFields<Fields>> =
+      param instanceof InputObjectRef
+        ? param
+        : new InputObjectRef<InputShapeFromFields<Fields>>(name);
 
     this.configStore.associateRefWithName(ref, name);
 
@@ -373,6 +387,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addInputFields(ref, () => options.shape(new InputFieldBuilder()));
 
     return ref;
+  }
+
+  inputRef<T extends object>(name: string): ImplementableInputObjectRef<Types, T> {
+    return new ImplementableInputObjectRef<Types, T>(this, name);
   }
 
   toSchema({

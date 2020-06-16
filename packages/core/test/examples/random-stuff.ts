@@ -1,4 +1,4 @@
-import SchemaBuilder, { InputObjectRef, RecursivelyNormalizeNullableFields } from '../../src';
+import SchemaBuilder from '../../src';
 
 // Define backing models/types
 type Types = {
@@ -45,9 +45,9 @@ interface ExampleShape {
   more: ExampleShape;
 }
 
-const Example2: InputObjectRef<RecursivelyNormalizeNullableFields<
-  ExampleShape
->> = builder.inputType('Example2', {
+const Example2 = builder.inputRef<ExampleShape>('Example2');
+
+Example2.implement({
   shape: (t) => ({
     example: t.field({ type: Example, required: true }),
     id: t.id({ required: false }),

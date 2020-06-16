@@ -1,5 +1,5 @@
 import { TypeParam, InputFields, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
-import Field from '../graphql/field';
+import Field from '../field';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   typename: string;

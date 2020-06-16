@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Code generator example schema 1`] = `
-"import SchemaBuilder, { InputObjectOfShape } from \\"@giraphql/core\\";
+"import SchemaBuilder from \\"@giraphql/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
     Object: {
@@ -35,16 +35,20 @@ const stuff = builder.enumType('stuff', {
 });
 const Example = builder.inputType('Example', {
     shape: t => ({
-        id: t.type('ID', {
+        id: t.field({
+            type: 'ID',
             required: true,
         }),
-        id2: t.type('Int', {
+        id2: t.field({
+            type: 'Int',
             required: false,
         }),
-        ids: t.type(['ID'], {
+        ids: t.field({
+            type: ['ID'],
             required: { list: true, items: true },
         }),
-        ids2: t.type(['Int'], {
+        ids2: t.field({
+            type: ['Int'],
             required: { list: false, items: true },
         }),
     }),
@@ -60,18 +64,23 @@ interface Example2Shape {
     ids: string[];
     more: Example2Shape;
 }
-const Example2: InputObjectOfShape<Example2Shape> = builder.inputType('Example2', {
+const Example2 = builder.inputRef<Example2Shape>('Example2');
+Example2.implement({
     shape: t => ({
-        example: t.type(Example, {
+        example: t.field({
+            type: Example,
             required: true,
         }),
-        id: t.type('ID', {
+        id: t.field({
+            type: 'ID',
             required: false,
         }),
-        ids: t.type(['ID'], {
+        ids: t.field({
+            type: ['ID'],
             required: { list: true, items: true },
         }),
-        more: t.type(Example2, {
+        more: t.field({
+            type: Example2,
             required: true,
         }),
     }),
@@ -80,7 +89,8 @@ const Countable = builder.interfaceType('Countable', {
     shape: t => ({
         count: t.field({
             args: {
-                max: t.arg.type('Int', {
+                max: t.arg({
+                    type: 'Int',
                     required: true,
                 }),
             },
@@ -107,6 +117,10 @@ const Shaveable = builder.interfaceType('Shaveable', {
 });
 builder.objectType('User', {
     shape: t => ({
+        newField: t.field({
+            type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
         id: t.field({
             type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -129,10 +143,12 @@ builder.objectType('User', {
         }),
         partialName: t.field({
             args: {
-                example: t.arg.type(Example, {
+                example: t.arg({
+                    type: Example,
                     required: true,
                 }),
-                firstN: t.arg.type('Int', {
+                firstN: t.arg({
+                    type: 'Int',
                     required: true,
                 }),
             },
@@ -141,10 +157,12 @@ builder.objectType('User', {
         }),
         recursiveArgs: t.field({
             args: {
-                example2: t.arg.type(Example2, {
+                example2: t.arg({
+                    type: Example2,
                     required: true,
                 }),
-                firstN: t.arg.type('ID', {
+                firstN: t.arg({
+                    type: 'ID',
                     required: false,
                 }),
             },
@@ -170,7 +188,8 @@ builder.objectType('User', {
         }),
         list: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: true },
                 }),
             },
@@ -179,7 +198,8 @@ builder.objectType('User', {
         }),
         sparseList: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: false },
                 }),
             },
@@ -189,26 +209,24 @@ builder.objectType('User', {
         }),
         notSparseList: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: true },
                 }),
             },
             type: ['ID'],
-            nullable: { list: true, items: true },
+            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         defaultArgs: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: true },
-                    default: [\\"abc\\"],
+                    defaultValue: [\\"abc\\"],
                 }),
             },
             type: ['ID'],
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        }),
-        newField: t.field({
-            type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
@@ -219,7 +237,8 @@ builder.objectType('Sheep', {
     shape: t => ({
         color: t.field({
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     required: false,
                 }),
             },
@@ -339,7 +358,7 @@ type User {
   lastName: String!
   list(ids: [ID!]!): [ID!]!
   newField: String!
-  notSparseList(ids: [ID!]!): [ID]
+  notSparseList(ids: [ID!]!): [ID!]
   optional: String
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!
@@ -401,7 +420,8 @@ const Character = builder.interfaceType('Character', {
         appearsIn: t.field({
             description: \\"Which movies they appear in.\\",
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     required: true,
                 }),
             },
@@ -439,7 +459,8 @@ builder.queryType({
     shape: t => ({
         hero: t.field({
             args: {
-                episode: t.arg.type(Episode, {
+                episode: t.arg({
+                    type: Episode,
                     description: \\"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.\\",
                     required: true,
                 }),
@@ -449,7 +470,8 @@ builder.queryType({
         }),
         human: t.field({
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     description: \\"id of the character\\",
                     required: true,
                 }),
@@ -459,7 +481,8 @@ builder.queryType({
         }),
         droid: t.field({
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     description: \\"id of the character\\",
                     required: true,
                 }),

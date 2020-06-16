@@ -6,7 +6,7 @@ import {
   FieldKind,
   SchemaTypes,
 } from '../types';
-import Field from '../graphql/field';
+import Field from '../field';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
 import { ArgBuilder } from '..';
