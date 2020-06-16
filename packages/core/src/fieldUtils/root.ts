@@ -6,7 +6,6 @@ import {
   FieldKind,
   SchemaTypes,
 } from '../types';
-import Field from '../field';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
 import { ArgBuilder } from '..';
@@ -37,7 +36,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, 'Boolean', Nullable>({
       ...options,
       type: 'Boolean',
@@ -63,7 +62,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, 'Float', Nullable>({
       ...options,
       type: 'Float',
@@ -89,7 +88,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, 'ID', Nullable>({ ...options, type: 'ID' });
   }
 
@@ -112,7 +111,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, 'Int', Nullable>({ ...options, type: 'Int' });
   }
 
@@ -135,7 +134,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, 'String', Nullable>({
       ...options,
       type: 'String',
@@ -161,7 +160,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, ['Boolean'], Nullable>({ ...options, type: ['Boolean'] });
   }
 
@@ -184,7 +183,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, ['Float'], Nullable>({ ...options, type: ['Float'] });
   }
 
@@ -207,7 +206,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, ['ID'], Nullable>({ ...options, type: ['ID'] });
   }
 
@@ -230,7 +229,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, ['Int'], Nullable>({ ...options, type: ['Int'] });
   }
 
@@ -253,7 +252,7 @@ export default class RootFieldBuilder<
       >,
       'type'
     >,
-  ): Field {
+  ) {
     return this.createField<Args, ['String'], Nullable>({ ...options, type: ['String'] });
   }
 
@@ -274,7 +273,7 @@ export default class RootFieldBuilder<
       ResolveShape,
       ResolveReturnShape
     >,
-  ): Field {
+  ) {
     return this.createField(options as GiraphQLSchemaTypes.FieldOptions);
   }
 }

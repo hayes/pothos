@@ -421,7 +421,7 @@ export default class GirphQLConverter {
             .reduce((all, fields) => [...all, ...fields], [] as string[])
         : [];
     const fields = Object.keys(fieldMap).map((f) => fieldMap[f]);
-    writer.writeLine('shape: t => ({');
+    writer.writeLine('fields: t => ({');
     writer.indent(() => {
       fields.forEach((field) => {
         if (inheritedFields.includes(field.name)) {
@@ -453,7 +453,7 @@ export default class GirphQLConverter {
   }
 
   writeInputShape(writer: CodeBlockWriter, type: GraphQLInputObjectType) {
-    writer.writeLine('shape: t => ({');
+    writer.writeLine('fields: t => ({');
     writer.indent(() => {
       const fieldMap = type.getFields();
       const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);

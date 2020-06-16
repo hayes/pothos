@@ -12,7 +12,7 @@ import { ApolloServer } from 'apollo-server';
 const builder = new SchemaBuilder();
 
 builder.queryType({
-    shape: (t) => ({
+    fields: (t) => ({
         hello: t.string({
             args: {
                 name: t.arg.string(),

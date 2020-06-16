@@ -38,7 +38,7 @@ const builder = new SchemaBuilder({
 
 ```ts
 builder.queryType({
-  shape: t => ({
+  fields: t => ({
     hello: t.string({
       permissionCheck: (parent, args, context) => {
         // only say hello to people who capitalize their name
@@ -75,16 +75,16 @@ builder.queryType({
       return roles.includes('Admin');
     },
   },
-  shape: t => ({
+  fields: (t) => ({
     helloAdmin: t.string({
       // permissionCheck can be a permission name (striing)
       permissionCheck: 'admin',
-      resolve: parent => `hello Admin`,
+      resolve: (parent) => `hello Admin`,
     }),
     helloUser: t.string({
       // permissionCheck can be an array of permission names
       permissionCheck: ['user'],
-      resolve: parent => `hello Admin`,
+      resolve: (parent) => `hello Admin`,
     }),
     hello: t.string({
       // permissionCheck can be a function that returns a boolean, or descriibe a set of permissions
@@ -138,7 +138,7 @@ builder.queryType({
     admin: (parent, context) => !!context.user && context.user.isAdmin(),
   },
   defaultPermissionCheck: 'user',
-  shape: t => ({
+  fields: (t) => ({
     hello: t.string({
       // uses default user check from `defaultPermissionCheck`
       resolve: (parent, { name }) => `hello, World`,
@@ -164,7 +164,7 @@ defiine a set of permissions to grant to the returned child.
 
 ```ts
 builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     people: t.field({
       type: ['Person'],
       // always allow querying for users, but fields on the returned users still have permission
@@ -183,7 +183,7 @@ builder.queryType({
 });
 
 builder.objectType('Person', {
-  shape: t => ({
+  fields: (t) => ({
     firstName: t.exposeString('firstName', {
       // check for `user` permission which may have been granted by the grantPermissions option on `Query.people`
       permissionCheck: 'user',
@@ -206,7 +206,7 @@ that type.
 
 ```ts
 builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     people: t.field({
       type: ['Person'],
       resolve: (parent, args, { Users }) => Users.getAll(),
@@ -216,7 +216,7 @@ builder.queryType({
 
 builder.objectType('Person', {
   // Run before the resolver for Query.people
-  preResolveCheck: context => {
+  preResolveCheck: (context) => {
     if (!context.user) {
       return false;
     }
@@ -226,7 +226,7 @@ builder.objectType('Person', {
       readEmail: context.user.isAdmin(),
     };
   },
-  shape: t => ({
+  fields: (t) => ({
     firstName: t.exposeString('firstName', {
       permissionCheck: 'readUserFields',
     }),
@@ -257,20 +257,20 @@ has been resolved, and will work with interface and unions fields as well.
 
 ```ts
 builder.interfaceType('Shape', {
-  shape: t => ({
+  fields: (t) => ({
     // interface fields
   }),
 });
 
 builder.objectType('Square', {
   implements: ['Shape'],
-  isType: parent => parent.type === 'square',
+  isType: (parent) => parent.type === 'square',
   // Will execute for each square returned by Query.shapes and grand the readSquare permission
   // which is required for the size field
   postResolveCheck: (parent, context, info) => {
     return { readSquare: true };
   },
-  shape: t => ({
+  fields: (t) => ({
     size: t.float({
       permissionCheck: 'readSquare',
       resolve: ({ edgeLength }) => edgeLength ** 2,
@@ -278,7 +278,7 @@ builder.objectType('Square', {
   }),
 });
 
-builder.queryFields(t => ({
+builder.queryFields((t) => ({
   shapes: t.field({
     type: ['Shape'],
     // always allow this resolver to execute

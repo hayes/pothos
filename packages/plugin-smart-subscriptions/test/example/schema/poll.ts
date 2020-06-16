@@ -10,7 +10,7 @@ builder.objectType('Poll', {
       },
     });
   },
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {}),
     updatedAt: t.string({
       resolve: () => new Date().toISOString(),
@@ -28,7 +28,7 @@ builder.objectType('Poll', {
 });
 
 builder.objectType('Answer', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {}),
     value: t.exposeString('value', {}),
     count: t.exposeInt('count', {}),

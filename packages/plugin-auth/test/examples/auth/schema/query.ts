@@ -6,7 +6,7 @@ export default builder.queryType({
       return context.role === 'Admin' || context.role === 'User';
     },
   },
-  shape: (t) => ({
+  fields: (t) => ({
     user: t.field({
       type: 'User',
       args: {

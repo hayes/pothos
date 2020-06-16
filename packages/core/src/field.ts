@@ -9,10 +9,12 @@ import {
 import fromEntries from 'object.fromentries';
 import { TypeParam, InputFields, FieldNullability } from './types';
 import { typeFromParam } from './utils';
-import { BuildCache } from '.';
+import { BuildCache, outputFieldShapeKey } from '.';
 import { BasePlugin, wrapResolver } from './plugins';
 
-export default class Field {
+export default class Field<T> {
+  [outputFieldShapeKey]: T;
+
   nullable: FieldNullability;
 
   args: InputFields;

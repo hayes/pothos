@@ -5,7 +5,6 @@ import {
   FieldNullability,
   SchemaTypes,
 } from '../types';
-import Field from '../field';
 import RootFieldBuilder from './root';
 
 export default class FieldBuilder<
@@ -32,7 +31,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<'Boolean', Nullable, Name>(name, { ...options, type: 'Boolean' });
   }
 
@@ -55,7 +54,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<'Float', Nullable, Name>(name, { ...options, type: 'Float' });
   }
 
@@ -78,7 +77,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<'ID', Nullable, Name>(name, { ...options, type: 'ID' });
   }
 
@@ -101,7 +100,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<'Int', Nullable, Name>(name, { ...options, type: 'Int' });
   }
 
@@ -124,7 +123,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<'String', Nullable, Name>(name, { ...options, type: 'String' });
   }
 
@@ -147,7 +146,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<['Boolean'], Nullable, Name>(name, { ...options, type: ['Boolean'] });
   }
 
@@ -170,7 +169,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<['Float'], Nullable, Name>(name, { ...options, type: ['Float'] });
   }
 
@@ -193,7 +192,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<['ID'], Nullable, Name>(name, { ...options, type: ['ID'] });
   }
 
@@ -216,7 +215,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<['Int'], Nullable, Name>(name, { ...options, type: ['Int'] });
   }
 
@@ -239,7 +238,7 @@ export default class FieldBuilder<
       >,
       'resolve' | 'type'
     >,
-  ): Field {
+  ) {
     return this.exposeField<['String'], Nullable, Name>(name, { ...options, type: ['String'] });
   }
 
@@ -263,7 +262,7 @@ export default class FieldBuilder<
       >,
       'resolve'
     >,
-  ): Field {
+  ) {
     return this.exposeField(name, options);
   }
 }

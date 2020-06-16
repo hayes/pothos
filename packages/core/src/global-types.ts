@@ -156,7 +156,7 @@ declare global {
 
     export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown> {
       description?: string;
-      shape?: ObjectFieldsShape<Types, Shape>;
+      fields?: ObjectFieldsShape<Types, Shape>;
       extensions?: Readonly<Record<string, unknown>>;
       implements?: undefined;
       isType?: undefined;
@@ -340,17 +340,17 @@ declare global {
 
     export interface QueryTypeOptions<Types extends SchemaTypes = SchemaTypes>
       extends RootTypeOptions<Types, 'Query'> {
-      shape?: QueryFieldsShape<Types>;
+      fields?: QueryFieldsShape<Types>;
     }
 
     export interface MutationTypeOptions<Types extends SchemaTypes = SchemaTypes>
       extends RootTypeOptions<Types, 'Mutation'> {
-      shape?: MutationFieldsShape<Types>;
+      fields?: MutationFieldsShape<Types>;
     }
 
     export interface SubscriptionTypeOptions<Types extends SchemaTypes = SchemaTypes>
       extends RootTypeOptions<Types, 'Subscription'> {
-      shape?: SubscriptionFieldsShape<Types>;
+      fields?: SubscriptionFieldsShape<Types>;
     }
 
     export interface InputTypeOptions<
@@ -358,7 +358,7 @@ declare global {
       Fields extends InputFields = InputFields
     > {
       description?: string;
-      shape: (t: InputFieldBuilder<Types>) => Fields;
+      fields: (t: InputFieldBuilder<Types>) => Fields;
       extensions?: Readonly<Record<string, unknown>>;
     }
 
@@ -367,7 +367,7 @@ declare global {
       Shape = unknown
     > {
       description?: string;
-      shape?: InterfaceFieldsShape<Types, Shape>;
+      fields?: InterfaceFieldsShape<Types, Shape>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 

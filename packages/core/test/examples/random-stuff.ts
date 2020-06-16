@@ -25,7 +25,7 @@ const builder = new SchemaBuilder<Types>({});
 
 // Create input types
 const Example = builder.inputType('Example', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.id({ required: true }),
     id2: t.int({ required: false }),
     ids: t.idList({ required: true }),
@@ -48,7 +48,7 @@ interface ExampleShape {
 const Example2 = builder.inputRef<ExampleShape>('Example2');
 
 Example2.implement({
-  shape: (t) => ({
+  fields: (t) => ({
     example: t.field({ type: Example, required: true }),
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
@@ -66,7 +66,7 @@ const SearchResult = builder.unionType('SearchResult', {
 
 // Creating an ObjectType and its resolvers
 builder.objectType('User', {
-  shape: (t) => ({
+  fields: (t) => ({
     // add a scalar field
     id: t.id({ resolve: () => 5 }),
     // parent is inferred from model shapes defined in builder
@@ -188,7 +188,7 @@ builder.objectFields('User', (t) => ({
 }));
 
 builder.interfaceType('Countable', {
-  shape: (t) => ({
+  fields: (t) => ({
     count: t.int({
       args: {
         max: t.arg.int({ required: true }),
@@ -199,7 +199,7 @@ builder.interfaceType('Countable', {
 });
 
 const Shaveable = builder.interfaceType('Shaveable', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.id({
       resolve: () => 5,
     }),
@@ -218,7 +218,7 @@ builder.objectType('Sheep', {
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
   isType: () => true,
-  shape: (t) => ({
+  fields: (t) => ({
     color: t.string({
       args: {
         id: t.arg.id({}),
@@ -233,7 +233,7 @@ builder.objectType('Sheep', {
 });
 
 builder.queryType({
-  shape: (t) => ({
+  fields: (t) => ({
     user: t.field({
       resolve: () => ({
         firstName: 'user',
@@ -272,7 +272,7 @@ builder.objectType(
 );
 
 builder.subscriptionType({
-  shape: (t) => ({
+  fields: (t) => ({
     event: t.field({
       type: 'String',
       subscribe: () => {

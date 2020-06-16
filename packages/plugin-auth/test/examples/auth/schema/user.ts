@@ -14,7 +14,7 @@ export default builder.objectType('User', {
   permissions: {
     readEmail: (parent) => !!(parent.id % 2),
   },
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {
       permissionCheck: ['readUserId'],
     }),

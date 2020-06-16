@@ -1,7 +1,7 @@
 import builder from '../builder';
 
 export default builder.objectType('User', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {}),
     firstName: t.exposeString('firstName', {}),
     lastName: t.exposeString('lastName', {}),

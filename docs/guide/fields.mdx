@@ -16,7 +16,7 @@ Scalar fields can be difined a couple of different ways:
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     id: t.id({ resolve: () => '123' }),
     int: t.int({ resolve: () => 123 }),
     float: t.float({ resolve: () => 1.23 }),
@@ -35,7 +35,7 @@ const Query = builder.queryType({
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: t => ({
     name: t.field({
       description: 'Name field'
       type: 'String',
@@ -58,7 +58,7 @@ const builder = new SchemaBuilder<{
 }>();
 
 const Query = builder.queryType({
-  shape: t => ({
+  fields: t => ({
     giraffe: t.field({
       description: 'A giraffe'
       type: 'Giraffe',
@@ -76,15 +76,17 @@ const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Giraffe = builder.objectType('Giraffe', shape: t => ({
-  preferredNeckLengthUnit: t.field({
-    type: LengthUnit,
-    resolve: () => 'Feet',
-  })
-}));
+fields Giraffe = builder.objectType('Giraffe', {
+  fields: t => ({
+    preferredNeckLengthUnit: t.field({
+      type: LengthUnit,
+      resolve: () => 'Feet',
+    }),
+  }),
+});
 
 const Query = builder.queryType({
-  shape: t => ({
+  fields: t => ({
     giraffe: t.field({
       type: 'Giraffe',
       resolve: () => ({ name: 'Gina' }),
@@ -99,7 +101,7 @@ To create a list field, you can wrap the the type in an array
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: t => ({
     giraffes: t.field({
       description: 'multiple giraffes'
       type: ['Giraffe'],
@@ -121,7 +123,7 @@ often desirable to make fields in your schema nullable.
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     nullableField: t.field({
       type: 'String',
       nullable: true,
@@ -165,9 +167,11 @@ const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
 }>();
 
-const Giraffe = builder.objectType('Giraffe', shape: t => ({
-  name: t.exposeString('name')
-}));
+fields Giraffe = builder.objectType('Giraffe', {
+  fields: t => ({
+    name: t.exposeString('name')
+  }),
+});
 ```
 
 The available expose helpers are:
@@ -189,7 +193,7 @@ Arguments for a field can defined in the options for a field:
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     giraffeByName: t.field({
       type: 'Giraffe',
       args: {

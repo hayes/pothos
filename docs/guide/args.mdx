@@ -15,7 +15,7 @@ Scalar args can be difined a couple of different ways:
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     withArgs: t.stringList({
       args: {
         id: t.arg.id({}),
@@ -39,7 +39,7 @@ const Query = builder.queryType({
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     string: t.string({
       args: {
         string: t.arg.type('String', {
@@ -56,7 +56,7 @@ const Query = builder.queryType({
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     string: t.string({
       args: {
         string: t.arg('String', {
@@ -81,7 +81,7 @@ const LengthUnit = builder.enumType('LengthUnit', {
 });
 
 const Giraffe = builder.objectType('Giraffe', {
-  shape: t => ({
+  fields: t => ({
     height: t.float({
       args: {
         unit: t.arg(LengthUnit, {}),
@@ -100,7 +100,7 @@ argument options.
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     nullableArgs: t.stringList({
       args: {
         optional: t.arg.string({}),
@@ -128,7 +128,7 @@ To create a list argument, you can wrap the the type in an array or use one of t
 
 ```typescript
 const Query = builder.queryType({
-  shape: t => ({
+  fields: t => ({
     giraffeNameChecker: t.booleanList({
       {
         args: {

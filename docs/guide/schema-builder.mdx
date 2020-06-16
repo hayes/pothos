@@ -48,7 +48,7 @@ builder.objectType(
   // typechecked as one of the types provided above in the Object shape (In this case only Giraffe)
   'Giraffe',
   {
-    shape: t => ({
+    fields: t => ({
       name: t.exposeString(
         // typechecked as one string property from the Giraffe shape defined above (in this case only name)
         'name',

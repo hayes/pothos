@@ -10,7 +10,7 @@ const characterArgs = builder.args((t) => ({
 }));
 
 export default builder.queryType({
-  shape: (t) => ({
+  fields: (t) => ({
     hero: t.field({
       type: 'Character',
       args: {

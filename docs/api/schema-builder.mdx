@@ -61,12 +61,12 @@ type SchemaBuilderOptions = {
 ```typescript
 type RootTypeOptions = {
   description?: string;
-  shape: FieldsShape;
+  fields: FieldsShape;
 };
 ```
 
 - `description`: A description of the current type
-- `shape`: a function that receives a [`FieldBuilder`], and returns an object of field names to
+- `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field definitons. See [`FieldBuilder`] for more details.
 
 ## `objectType(name, options)`
@@ -80,7 +80,7 @@ type RootTypeOptions = {
 type ObjectTypeOptions = {
   implements?: Interfaces;
   description?: string;
-  shape: FieldsShape;
+  fields: FieldsShape;
   isType: (obj: InterfaceShape) => boolean;
 };
 ```
@@ -105,7 +105,7 @@ type ObjectTypeOptions = {
 ```typescript
 type InterfaceTypeOptions = {
   description?: string;
-  shape: FieldsShape;
+  fields: FieldsShape;
 };
 ```
 
@@ -168,7 +168,7 @@ type UnionTypeOptions = {
 ```typescript
 type InputTypeOptions = {
   description?: string;
-  shape: InputShape;
+  fields: InputShape;
 };
 ```
 

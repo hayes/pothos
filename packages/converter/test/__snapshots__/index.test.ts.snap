@@ -34,7 +34,7 @@ const stuff = builder.enumType('stuff', {
     },
 });
 const Example = builder.inputType('Example', {
-    shape: t => ({
+    fields: t => ({
         id: t.field({
             type: 'ID',
             required: true,
@@ -66,7 +66,7 @@ interface Example2Shape {
 }
 const Example2 = builder.inputRef<Example2Shape>('Example2');
 Example2.implement({
-    shape: t => ({
+    fields: t => ({
         example: t.field({
             type: Example,
             required: true,
@@ -86,7 +86,7 @@ Example2.implement({
     }),
 });
 const Countable = builder.interfaceType('Countable', {
-    shape: t => ({
+    fields: t => ({
         count: t.field({
             args: {
                 max: t.arg({
@@ -100,7 +100,7 @@ const Countable = builder.interfaceType('Countable', {
     }),
 });
 const Shaveable = builder.interfaceType('Shaveable', {
-    shape: t => ({
+    fields: t => ({
         id: t.field({
             type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -116,7 +116,7 @@ const Shaveable = builder.interfaceType('Shaveable', {
     }),
 });
 builder.objectType('User', {
-    shape: t => ({
+    fields: t => ({
         newField: t.field({
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -234,7 +234,7 @@ builder.objectType('User', {
 builder.objectType('Sheep', {
     implements: [Shaveable, Countable],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
+    fields: t => ({
         color: t.field({
             args: {
                 id: t.arg({
@@ -252,7 +252,7 @@ builder.objectType('Sheep', {
     }),
 });
 builder.queryType({
-    shape: t => ({
+    fields: t => ({
         user: t.field({
             type: 'User',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -269,7 +269,7 @@ builder.queryType({
 });
 builder.objectType('Article', {
     description: \\"shape can be last arg\\",
-    shape: t => ({
+    fields: t => ({
         title: t.field({
             description: \\"Title of the article, probably click bait\\",
             type: 'String',
@@ -278,7 +278,7 @@ builder.objectType('Article', {
     }),
 });
 builder.subscriptionType({
-    shape: t => ({
+    fields: t => ({
         event: t.field({
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -400,7 +400,7 @@ const Episode = builder.enumType('Episode', {
     },
 });
 const Character = builder.interfaceType('Character', {
-    shape: t => ({
+    fields: t => ({
         id: t.field({
             description: \\"The id of the character\\",
             type: 'ID',
@@ -434,7 +434,7 @@ builder.objectType('Droid', {
     description: \\"A mechanical creature in the Star Wars universe.\\",
     implements: [Character],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
+    fields: t => ({
         primaryFunction: t.field({
             description: \\"The primary function of the droid.\\",
             type: 'String',
@@ -446,7 +446,7 @@ builder.objectType('Human', {
     description: \\"A humanoid creature in the Star Wars universe.\\",
     implements: [Character],
     isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
+    fields: t => ({
         homePlanet: t.field({
             description: \\"The home planet of the human, or null if unknown.\\",
             type: 'String',
@@ -456,7 +456,7 @@ builder.objectType('Human', {
     }),
 });
 builder.queryType({
-    shape: t => ({
+    fields: t => ({
         hero: t.field({
             args: {
                 episode: t.arg({

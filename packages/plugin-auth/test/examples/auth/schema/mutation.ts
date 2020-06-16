@@ -1,7 +1,7 @@
 import builder from '../builder';
 
 export default builder.mutationType({
-  shape: (t) => ({
+  fields: (t) => ({
     createUser: t.field({
       type: 'User',
       args: {

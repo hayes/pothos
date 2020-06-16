@@ -57,7 +57,8 @@ export type ValidateInterfaces<
 
 export const outputShapeKey = Symbol.for('GiraphQL.outputShapeKey');
 export const inputShapeKey = Symbol.for('GiraphQL.inputShapeKey');
-export const partialInputShapeKey = Symbol.for('GiraphQL.partialInputShapeKey');
+export const inputFieldShapeKey = Symbol.for('GiraphQL.inputFieldShapeKey');
+export const outputFieldShapeKey = Symbol.for('GiraphQL.outputFieldShapeKey');
 
 export interface OutputRef {
   [outputShapeKey]: unknown;
@@ -74,7 +75,7 @@ export interface InputRef {
 export interface PartialInput {
   kind: 'InputField' | 'FieldArgument';
 
-  [partialInputShapeKey]: unknown;
+  [inputFieldShapeKey]: unknown;
 }
 
 export type OutputShape<T, Types extends SchemaTypes> = T extends {
@@ -383,55 +384,55 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
 export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
 ) => {
-  [s: string]: Field;
+  [s: string]: Field<unknown>;
 };
 
 export type InterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
 ) => {
-  [s: string]: Field;
+  [s: string]: Field<unknown>;
 };
 
 export type QueryFieldsShape<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['root']>,
 ) => {
-  [s: string]: Field;
+  [s: string]: Field<unknown>;
 };
 
 export type MutationFieldsShape<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['root']>,
 ) => {
-  [s: string]: Field;
+  [s: string]: Field<unknown>;
 };
 
 export type SubscriptionFieldsShape<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['root']>,
 ) => {
-  [s: string]: Field;
+  [s: string]: Field<unknown>;
 };
 
 export type ObjectFieldThunk<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
-) => Field;
+) => Field<unknown>;
 
 export type InterfaceFieldThunk<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
-) => Field;
+) => Field<unknown>;
 
 export type QueryFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['root']>,
-) => Field;
+) => Field<unknown>;
 
 export type MutationFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['root']>,
-) => Field;
+) => Field<unknown>;
 
 export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['root']>,
-) => Field;
+) => Field<unknown>;
 
 export type FieldMap = {
-  [s: string]: Field;
+  [s: string]: Field<unknown>;
 };
 
 export type InputFieldMap = {

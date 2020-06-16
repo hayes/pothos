@@ -1,5 +1,6 @@
 import { TypeParam, InputFields, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
 import Field from '../field';
+import { ShapeFromTypeParam } from '..';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   typename: string;
@@ -14,7 +15,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
     Nullable extends FieldNullability<Type>
   >(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
-  ): Field {
+  ): Field<ShapeFromTypeParam<Types, Type, Nullable>> {
     return new Field(options as GiraphQLSchemaTypes.FieldOptions, this.typename);
   }
 
@@ -28,7 +29,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
       GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
       'resolve'
     >,
-  ) {
+  ): Field<ShapeFromTypeParam<Types, Type, Nullable>> {
     return new Field(
       {
         ...(options as GiraphQLSchemaTypes.FieldOptions),

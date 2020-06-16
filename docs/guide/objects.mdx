@@ -35,7 +35,7 @@ const builder = new SchemaBuilder<{
 ```typescript
 builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
-  shape: t => ({}),
+  fields: (t) => ({}),
 });
 ```
 
@@ -44,10 +44,10 @@ builder.objectType('Giraffe', {
 ```typescript
 builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
-  shape: t => ({
+  fields: (t) => ({
     name: t.exposeString('name'),
     age: t.int({
-      resolve: parent => {
+      resolve: (parent) => {
         // Do some date math to get an aproximate age from a birthday
         const today = new Date(new Date().toDateString());
         const birthday = new Date(parent.birthday.toDateString());
@@ -58,7 +58,7 @@ builder.objectType('Giraffe', {
       },
     }),
     height: t.float({
-      resolve: parent => parent.heightMeters,
+      resolve: (parent) => parent.heightMeters,
     }),
   }),
 });
@@ -68,7 +68,7 @@ builder.objectType('Giraffe', {
 
 ```typescript
 builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     giraffe: t.field({
       type: Giraffe,
       resolve: () => ({ name: 'James', heightMeters: 5.2, birthday: new Date(2012, 11, 12) }),

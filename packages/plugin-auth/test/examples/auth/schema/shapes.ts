@@ -1,7 +1,7 @@
 import builder from '../builder';
 
 builder.interfaceType('Shape', {
-  shape: (t) => ({
+  fields: (t) => ({
     name: t.exposeString('type', {
       permissionCheck: 'readName',
       nullable: true,
@@ -10,13 +10,13 @@ builder.interfaceType('Shape', {
 });
 
 builder.interfaceType('OvalThing', {
-  shape: (t) => ({
+  fields: (t) => ({
     ovalField: t.boolean({}),
   }),
 });
 
 builder.interfaceType('ThingWithCorners', {
-  shape: (t) => ({
+  fields: (t) => ({
     hasCorners: t.boolean({ resolve: () => true }),
   }),
 });
@@ -32,7 +32,7 @@ builder.objectType('Square', {
       readName: true,
     };
   },
-  shape: (t) => ({
+  fields: (t) => ({
     size: t.float({
       resolve: ({ edgeLength }) => edgeLength ** 2,
     }),
@@ -43,7 +43,7 @@ builder.objectType('Triangle', {
   implements: ['Shape'],
   isType: (parent) => parent.type === 'triangle',
   defaultPermissionCheck: 'readTriangle',
-  shape: (t) => ({
+  fields: (t) => ({
     edges: t.int({
       nullable: true,
       resolve: () => 3,
@@ -55,7 +55,7 @@ builder.objectType('Circle', {
   implements: ['Shape'],
   isType: (parent) => parent.type === 'circle',
   defaultPermissionCheck: 'readCircle',
-  shape: (t) => ({
+  fields: (t) => ({
     area: t.int({
       resolve: ({ radius }) => Math.PI * radius ** 2,
     }),
@@ -67,7 +67,7 @@ builder.objectType('Line', {
   isType: (parent) => parent.type === 'line',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
-  shape: (t) => ({
+  fields: (t) => ({
     length: t.exposeFloat('length', {
       nullable: true,
     }),
@@ -79,7 +79,7 @@ builder.objectType('LinePreResolveFail', {
   isType: (parent) => parent.type === 'line-pre-resolve-fail',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
-  shape: (t) => ({
+  fields: (t) => ({
     length: t.exposeFloat('length', {
       nullable: true,
     }),
@@ -91,7 +91,7 @@ builder.objectType('LinePostResolveFail', {
   isType: (parent) => parent.type === 'line-post-resolve-fail',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
-  shape: (t) => ({
+  fields: (t) => ({
     length: t.exposeFloat('length', {
       nullable: true,
     }),
@@ -106,7 +106,7 @@ builder.objectType('Oval', {
   preResolveCheck() {
     return false;
   },
-  shape: (t) => ({
+  fields: (t) => ({
     area: t.int({
       resolve: () => {
         throw new Error('Should not get here');
@@ -146,7 +146,7 @@ builder.objectType('Rectangle', {
   },
   isType: (parent) => parent.type === 'rectangle',
   defaultPermissionCheck: ['readRectangle', 'preResolve', 'postResolve'],
-  shape: (t) => ({
+  fields: (t) => ({
     area: t.int({
       nullable: true,
       resolve: ({ width, height }) => width * height,
@@ -200,32 +200,32 @@ const CornerUnion = builder.unionType('CornerUnion', {
 
 builder.interfaceType('PreResolvePass', {
   preResolveCheck: () => true,
-  shape: (t) => ({
+  fields: (t) => ({
     name: t.exposeString('type', {}),
   }),
 });
 builder.interfaceType('PreResolveFail', {
   preResolveCheck: () => false,
-  shape: (t) => ({
+  fields: (t) => ({
     name: t.exposeString('type', {}),
   }),
 });
 builder.interfaceType('PostResolvePass', {
   postResolveCheck: () => true,
-  shape: (t) => ({
+  fields: (t) => ({
     name: t.exposeString('type', {}),
   }),
 });
 builder.interfaceType('PostResolveFail', {
   postResolveCheck: () => false,
-  shape: (t) => ({
+  fields: (t) => ({
     name: t.exposeString('type', {}),
   }),
 });
 
 builder.interfaceType('SkipImplementorPreResolve', {
   skipImplementorPreResolveChecks: true,
-  shape: (t) => ({
+  fields: (t) => ({
     name: t.exposeString('type', {}),
   }),
 });

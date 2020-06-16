@@ -3,7 +3,7 @@ import { Episode } from './episode';
 import { getFriends } from '../data';
 
 export default builder.interfaceType('Character', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', { description: 'The id of the character' }),
     name: t.exposeString('name', { description: 'The name of the character' }),
     friends: t.field({
