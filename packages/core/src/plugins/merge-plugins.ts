@@ -221,7 +221,7 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
     },
 
     onField(
-      type: GraphQLNamedType,
+      type: GraphQLObjectType | GraphQLInterfaceType,
       name: string,
       field: GraphQLFieldConfig<unknown, object>,
       builder: GiraphQLSchemaTypes.SchemaBuilder<any>,

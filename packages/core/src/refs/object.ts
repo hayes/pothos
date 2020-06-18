@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import { outputShapeKey, OutputRef } from '../types';
-import { SchemaTypes, InterfaceParam, ObjectTypeOptions } from '..';
+import { SchemaTypes, ObjectTypeOptions } from '..';
 
 export default class ObjectRef<T> implements OutputRef {
   kind = 'Object' as const;
@@ -14,11 +14,7 @@ export default class ObjectRef<T> implements OutputRef {
   }
 }
 
-export class ImplementableObjectRef<
-  Types extends SchemaTypes,
-  Shape,
-  Interfaces extends InterfaceParam<Types>[]
-> extends ObjectRef<Shape> {
+export class ImplementableObjectRef<Types extends SchemaTypes, Shape> extends ObjectRef<Shape> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
@@ -27,7 +23,7 @@ export class ImplementableObjectRef<
     this.builder = builder;
   }
 
-  implement(options: ObjectTypeOptions<Types, Shape, Interfaces>) {
+  implement(options: ObjectTypeOptions<Types, Shape, []>) {
     this.builder.objectType(this, options);
   }
 }

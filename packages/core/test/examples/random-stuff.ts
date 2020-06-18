@@ -58,7 +58,7 @@ Example2.implement({
 
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
-  members: ['User', 'Article'],
+  types: ['User', 'Article'],
   resolveType: (parent) => {
     return Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article';
   },

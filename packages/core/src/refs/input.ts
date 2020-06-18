@@ -27,7 +27,7 @@ export class ImplementableInputObjectRef<
   }
 
   implement(
-    options: GiraphQLSchemaTypes.InputTypeOptions<
+    options: GiraphQLSchemaTypes.InputObjectTypeOptions<
       Types,
       InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
     >,

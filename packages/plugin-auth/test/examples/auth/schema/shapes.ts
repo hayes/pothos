@@ -155,7 +155,7 @@ builder.objectType('Rectangle', {
 });
 
 const Polygon = builder.unionType('Polygon', {
-  members: ['Square', 'Triangle', 'Rectangle'],
+  types: ['Square', 'Triangle', 'Rectangle'],
   resolveType: (parent) => {
     switch (parent.type) {
       case 'square':
@@ -171,7 +171,7 @@ const Polygon = builder.unionType('Polygon', {
 });
 
 const RoundThings = builder.unionType('RoundThings', {
-  members: ['Oval', 'Circle'],
+  types: ['Oval', 'Circle'],
   resolveType: (parent) => {
     switch (parent.type) {
       case 'circle':
@@ -185,7 +185,7 @@ const RoundThings = builder.unionType('RoundThings', {
 });
 
 const CornerUnion = builder.unionType('CornerUnion', {
-  members: ['Rectangle', 'Square'],
+  types: ['Rectangle', 'Square'],
   resolveType: (parent) => {
     switch (parent.type) {
       case 'rectangle':
@@ -233,27 +233,27 @@ builder.interfaceType('SkipImplementorPreResolve', {
 const PreResolvePassUnion = builder.unionType('PreResolvePassUnion', {
   resolveType: () => 'Line',
   preResolveCheck: () => true,
-  members: ['Line'],
+  types: ['Line'],
 });
 const PreResolveFailUnion = builder.unionType('PreResolveFailUnion', {
   resolveType: () => 'Line',
   preResolveCheck: () => false,
-  members: ['Line'],
+  types: ['Line'],
 });
 const PostResolvePassUnion = builder.unionType('PostResolvePassUnion', {
   resolveType: () => 'Line',
   postResolveCheck: () => true,
-  members: ['Line'],
+  types: ['Line'],
 });
 const PostResolveFailUnion = builder.unionType('PostResolveFailUnion', {
   resolveType: () => 'Line',
   postResolveCheck: () => false,
-  members: ['Line'],
+  types: ['Line'],
 });
 const SkipImplementorPreResolveUnion = builder.unionType('SkipImplementorPreResolveUnion', {
   resolveType: () => 'Line',
   skipMemberPreResolveChecks: true,
-  members: ['Oval', 'Line'],
+  types: ['Oval', 'Line'],
 });
 
 builder.queryFields((t) => ({

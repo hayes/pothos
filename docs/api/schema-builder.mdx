@@ -123,17 +123,17 @@ type InterfaceTypeOptions = {
 ```typescript
 type UnionTypeOptions = {
   description?: string;
-  members: Member[];
+  types: Member[];
   resolveType: (parent: UnionShape, context) => TypeName | Promise<TypeName>;
 };
 ```
 
 - `description`: A description of the current type
-- `members`: an array of objects included in the union type. Items in this array can either be a key
+- `types`: an array of objects included in the union type. Items in this array can either be a key
   of the `Object` property in [`TypeInfo`], or be an Object type create by [`objectType`].
 - `resolveType`: A function called when resolving the type of a union value. `parent` will be a
-  union of the backing models of the types provided in `members`. This function should return the
-  name of one of the union member types.
+  union of the backing models of the types provided in `types`. This function should return the name
+  of one of the union member types.
 
 ## `enumType(name, options)`
 

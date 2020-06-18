@@ -32,7 +32,7 @@ export interface BasePlugin {
   onType?(type: GraphQLType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
 
   onField?(
-    type: GraphQLType,
+    type: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
     config: GraphQLFieldConfig<unknown, object>,
     builder: GiraphQLSchemaTypes.SchemaBuilder<any>,

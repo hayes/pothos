@@ -15,7 +15,7 @@ const builder = new SchemaBuilder<{
     };
 }>();
 const SearchResult = builder.unionType('SearchResult', {
-    members: ['User', 'Article'],
+    types: ['User', 'Article'],
     resolveType: (parent, context, info) => {
         throw new Error('Not implemented');
     }

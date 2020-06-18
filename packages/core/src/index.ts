@@ -12,9 +12,9 @@ import SchemaBuilder from './builder';
 import { FieldKind, SchemaTypes, MergedSchemaTypes } from './types';
 import { BasePlugin } from './plugins';
 import EnumRef from './refs/enum';
-import InputObjectRef from './refs/input';
-import InterfaceRef from './refs/interface';
-import ObjectRef from './refs/object';
+import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
+import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
 
@@ -22,7 +22,19 @@ export * from './types';
 export * from './utils';
 export * from './plugins';
 
-export { BuildCache, Field, EnumRef, InputObjectRef, InterfaceRef, ObjectRef, ScalarRef, UnionRef };
+export {
+  BuildCache,
+  Field,
+  EnumRef,
+  InputObjectRef,
+  InterfaceRef,
+  ObjectRef,
+  ScalarRef,
+  UnionRef,
+  ImplementableObjectRef,
+  ImplementableInterfaceRef,
+  ImplementableInputObjectRef,
+};
 
 export default SchemaBuilder as {
   new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {

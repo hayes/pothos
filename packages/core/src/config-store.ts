@@ -1,44 +1,15 @@
-import {
-  GraphQLObjectTypeConfig,
-  GraphQLInterfaceTypeConfig,
-  GraphQLUnionTypeConfig,
-  GraphQLScalarTypeConfig,
-  GraphQLEnumTypeConfig,
-  GraphQLInputObjectTypeConfig,
-} from 'graphql';
 import { OutputType, SchemaTypes, FieldMap, WithFieldsParam, RootName } from './types';
 import { BasePlugin } from './plugins';
-import { InputType, InputFieldMap } from '.';
-
-type GraphQLKinds = 'objects' | 'interfaces' | 'unions' | 'enums' | 'scalars' | 'inputs';
+import { InputType, InputFieldMap, GiraphQLTypeConfig } from '.';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   constructor(plugin: Required<BasePlugin>) {
     this.plugin = plugin;
   }
 
-  nameToKind = new Map<string, GraphQLKinds>();
-
-  objects = new Map<
-    string,
-    Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'>
-  >();
-
-  interfaces = new Map<string, Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'>>();
-
-  unions = new Map<string, Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'>>();
-
-  enums = new Map<string, GraphQLEnumTypeConfig>();
-
-  scalars = new Map<string, GraphQLScalarTypeConfig<unknown, unknown>>();
-
-  inputs = new Map<string, Omit<GraphQLInputObjectTypeConfig, 'fields'>>();
-
   plugin: Required<BasePlugin>;
 
-  private unionMembers = new Map<string, OutputType<Types>[]>();
-
-  private implementedInterfaces = new Map<string, OutputType<Types>[]>();
+  typeConfigs = new Map<string, GiraphQLTypeConfig>();
 
   private fields = new Map<string, FieldMap[]>();
 
@@ -78,34 +49,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
     this.refsToName.set(ref, type);
   }
 
-  addObjectConfig(config: Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'>) {
-    this.registerUniqueName(config.name, 'objects');
-    this.objects.set(config.name, config);
-  }
+  addTypeConfig(config: GiraphQLTypeConfig) {
+    const { name } = config;
 
-  addInterfaceConfig(config: Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'>) {
-    this.registerUniqueName(config.name, 'interfaces');
-    this.interfaces.set(config.name, config);
-  }
+    if (this.typeConfigs.has(name)) {
+      throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
+    }
 
-  addUnionConfig(config: Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'>) {
-    this.registerUniqueName(config.name, 'unions');
-    this.unions.set(config.name, config);
-  }
-
-  addEnumConfig(config: GraphQLEnumTypeConfig) {
-    this.registerUniqueName(config.name, 'enums');
-    this.enums.set(config.name, config);
-  }
-
-  addScalarConfig(config: GraphQLScalarTypeConfig<unknown, unknown>) {
-    this.registerUniqueName(config.name, 'scalars');
-    this.scalars.set(config.name, config);
-  }
-
-  addInputConfig(config: Omit<GraphQLInputObjectTypeConfig, 'fields'>) {
-    this.registerUniqueName(config.name, 'inputs');
-    this.inputs.set(config.name, config);
+    this.typeConfigs.set(config.name, config);
   }
 
   addFields(type: WithFieldsParam<Types>, fields: () => FieldMap) {
@@ -130,26 +81,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
     } else {
       this.buildInputFields(type, fields());
     }
-  }
-
-  addUnionMembers(type: string, members: OutputType<Types>[]) {
-    if (!this.unionMembers.has(type)) {
-      this.unionMembers.set(type, []);
-    }
-
-    this.unionMembers.get(type)!.push(...members);
-  }
-
-  getUnionMembers(type: string) {
-    return (this.unionMembers.get(type) || []).map((ref) => this.getNameFromRef(ref));
-  }
-
-  setImplementedInterfaces(type: string, interfaces: OutputType<Types>[]) {
-    this.implementedInterfaces.set(type, interfaces);
-  }
-
-  getImplementedInterfaces(type: string) {
-    return this.implementedInterfaces.get(type) || [];
   }
 
   getFields(name: string) {
@@ -222,13 +153,5 @@ export default class ConfigStore<Types extends SchemaTypes> {
     } else {
       this.inputFields.set(name, [fields]);
     }
-  }
-
-  private registerUniqueName(name: string, kind: GraphQLKinds) {
-    if (this.nameToKind.has(name)) {
-      throw new Error(`Duplicate typename ${name}`);
-    }
-
-    this.nameToKind.set(name, kind);
   }
 }

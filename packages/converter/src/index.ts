@@ -284,7 +284,7 @@ export default class GirphQLConverter {
             writer.writeLine(`builder.unionType('${type.name}', {`);
             writer.indent(() => {
               this.writeDescription(writer, type);
-              writer.writeLine(`members: [${type.getTypes().map((t) => `'${t.name}'`)}],`);
+              writer.writeLine(`types: [${type.getTypes().map((t) => `'${t.name}'`)}],`);
               writer.writeLine(
                 `resolveType: (parent, context, info) => throw new Error('Not implemented')`,
               );

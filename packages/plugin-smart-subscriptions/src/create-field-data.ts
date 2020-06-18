@@ -59,8 +59,8 @@ export default function createFieldData(
   }
 
   if (parentType.name === 'Subscription') {
-    const queryType = buildCache.getObjectType('Query');
-    const queryFields = buildCache.getFields(queryType);
+    const queryType = buildCache.getTypeOfKind('Query', 'Object');
+    const queryFields = queryType.getFields();
 
     const queryField = queryFields[name];
 

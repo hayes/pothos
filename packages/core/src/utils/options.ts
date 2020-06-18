@@ -140,14 +140,14 @@ export function getEnumOptions(
 
 export function getInputObjectOptions(
   type: GraphQLInputObjectType | GraphQLInputObjectTypeConfig,
-): GiraphQLSchemaTypes.InputTypeOptions {
+): GiraphQLSchemaTypes.InputObjectTypeOptions {
   const options = type.extensions && type.extensions.giraphqlOptions;
 
   if (!options) {
     throw new Error(`Missing giraphql options for ${type.name}`);
   }
 
-  return options as GiraphQLSchemaTypes.InputTypeOptions;
+  return options as GiraphQLSchemaTypes.InputObjectTypeOptions;
 }
 
 export function getTypeOptions(type: GraphQLNamedType) {

@@ -355,7 +355,7 @@ declare global {
       fields?: SubscriptionFieldsShape<Types>;
     }
 
-    export interface InputTypeOptions<
+    export interface InputObjectTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Fields extends InputFields = InputFields
     > {
@@ -378,7 +378,7 @@ declare global {
       Member extends ObjectParam<Types> = ObjectParam<Types>
     > {
       description?: string;
-      members: Member[];
+      types: Member[];
       resolveType: (
         parent: OutputShape<Member, Types>,
         context: Types['context'],

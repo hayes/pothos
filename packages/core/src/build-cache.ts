@@ -15,28 +15,43 @@ import {
   GraphQLInputObjectType,
   GraphQLInputType,
   GraphQLInputFieldConfigMap,
-  GraphQLObjectTypeConfig,
-  GraphQLUnionTypeConfig,
-  GraphQLInterfaceTypeConfig,
-  GraphQLInputObjectTypeConfig,
-  GraphQLScalarTypeConfig,
-  GraphQLEnumTypeConfig,
 } from 'graphql';
 import { ResolverMap } from './types';
-import { BasePlugin, assertNever, Resolver, FieldMap, InputFieldMap } from '.';
+import {
+  BasePlugin,
+  assertNever,
+  Resolver,
+  FieldMap,
+  InputFieldMap,
+  GiraphQLObjectTypeConfig,
+  GiraphQLQueryTypeConfig,
+  GiraphQLSubscriptionTypeConfig,
+  GiraphQLMutationTypeConfig,
+  GiraphQLInterfaceTypeConfig,
+  GiraphQLUnionTypeConfig,
+  GiraphQLInputObjectTypeConfig,
+  GiraphQLScalarTypeConfig,
+  GiraphQLEnumTypeConfig,
+  GiraphQLKindToGraphQLType,
+  GiraphQLTypeKind,
+  OutputType,
+  SchemaTypes,
+  InputType,
+  ImplementableInputObjectRef,
+} from '.';
 import ConfigStore from './config-store';
 import { ResolveValueWrapper } from './plugins';
 
 export default class BuildCache {
   types = new Map<string, GraphQLNamedType>();
 
-  plugin: Required<BasePlugin>;
-
-  mocks: ResolverMap;
-
   configStore: ConfigStore<any>;
 
-  implementers = new Map<string, GraphQLObjectType[]>();
+  private plugin: Required<BasePlugin>;
+
+  private mocks: ResolverMap;
+
+  private implementers = new Map<string, GraphQLObjectType[]>();
 
   constructor(
     configStore: ConfigStore<any>,
@@ -56,78 +71,116 @@ export default class BuildCache {
     this.mocks = mocks ?? {};
   }
 
-  getOutputType(name: string): GraphQLOutputType {
+  getType(ref: string | OutputType<SchemaTypes> | InputType<SchemaTypes>) {
+    const name = this.configStore.getNameFromRef(ref);
     const type = this.types.get(name);
 
     if (!type) {
       throw new TypeError(`Missing implementation of for type ${name}`);
     }
 
+    return type;
+  }
+
+  getOutputType(ref: string | OutputType<SchemaTypes>): GraphQLOutputType {
+    const type = this.getType(ref);
+
     if (type instanceof GraphQLInputObjectType) {
       throw new TypeError(
-        `Expected ${name} to be an output type but it was defined as an InputObject`,
+        `Expected ${ref} to be an output type but it was defined as an InputObject`,
       );
     }
 
     return type;
   }
 
-  getObjectType(name: string) {
-    const type = this.getOutputType(name);
-
-    if (!(type instanceof GraphQLObjectType)) {
-      throw new TypeError(`Expected ${type} to be a GraphQLObject`);
-    }
-
-    return type;
-  }
-
-  getInterfaceType(name: string) {
-    const type = this.getOutputType(name);
-
-    if (!(type instanceof GraphQLInterfaceType)) {
-      throw new TypeError(`Expected ${type} to be an GraphQLInterface`);
-    }
-
-    return type;
-  }
-
-  getInputType(name: string): GraphQLInputType {
-    const type = this.types.get(name);
+  getInputType(ref: string | InputType<SchemaTypes>): GraphQLInputType {
+    const type = this.getType(ref);
 
     if (!type) {
-      throw new TypeError(`Missing implementation of for type ${name}`);
+      throw new TypeError(`Missing implementation of for type ${ref}`);
     }
 
     if (type instanceof GraphQLObjectType) {
       throw new TypeError(
-        `Expected ${name} to be an output type but it was defined as an InputObject`,
+        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLObjectType`,
       );
     }
 
     if (type instanceof GraphQLInterfaceType) {
       throw new TypeError(
-        `Expected ${name} to be an output type but it was defined as an InputObject`,
+        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLInterfaceType`,
       );
     }
 
     if (type instanceof GraphQLUnionType) {
       throw new TypeError(
-        `Expected ${name} to be an output type but it was defined as an InputObject`,
+        `Expected ${ref} to be an input type but it was defined as an GraphQLUnionType`,
       );
     }
 
     return type;
   }
 
-  addType(ref: string, type: GraphQLNamedType) {
-    if (this.types.has(ref)) {
-      throw new Error(
-        `reference or name has already been used to create another type (${type.name})`,
-      );
+  getTypeOfKind<T extends GiraphQLTypeKind>(
+    ref: string | OutputType<SchemaTypes> | InputType<SchemaTypes>,
+    kind: T,
+  ): GiraphQLKindToGraphQLType<T> {
+    const type = this.getType(ref);
+
+    switch (kind) {
+      case 'Object':
+      case 'Query':
+      case 'Mutation':
+      case 'Subscription':
+        if (type instanceof GraphQLObjectType) {
+          return type as GiraphQLKindToGraphQLType<T>;
+        }
+        break;
+      case 'Interface':
+        if (type instanceof GraphQLInterfaceType) {
+          return type as GiraphQLKindToGraphQLType<T>;
+        }
+        break;
+      case 'Union':
+        if (type instanceof GraphQLUnionType) {
+          return type as GiraphQLKindToGraphQLType<T>;
+        }
+        break;
+      case 'Enum':
+        if (type instanceof GraphQLEnumType) {
+          return type as GiraphQLKindToGraphQLType<T>;
+        }
+        break;
+      case 'Scalar':
+        if (type instanceof GraphQLScalarType) {
+          return type as GiraphQLKindToGraphQLType<T>;
+        }
+        break;
+      case 'InputObject':
+        if (type instanceof GraphQLScalarType) {
+          return type as GiraphQLKindToGraphQLType<T>;
+        }
+        break;
+      default:
+        break;
     }
 
-    this.types.set(ref, type);
+    throw new Error(`Expected ${ref} to be of type ${kind}`);
+  }
+
+  getImplementers(iface: GraphQLInterfaceType) {
+    if (this.implementers.has(iface.name)) {
+      return this.implementers.get(iface.name)!;
+    }
+
+    const implementers = [...this.types.values()].filter(
+      (type) => type instanceof GraphQLObjectType && type.getInterfaces().includes(iface),
+    ) as GraphQLObjectType[];
+
+    this.implementers.set(iface.name, implementers);
+
+    return implementers;
   }
 
   resolverMock(
@@ -162,6 +215,52 @@ export default class BuildCache {
     }
 
     return fieldMock.subscribe || null;
+  }
+
+  buildAll() {
+    this.configStore.typeConfigs.forEach((config) => {
+      const { name } = config;
+
+      switch (config.kind) {
+        case 'Enum':
+          this.addType(name, this.buildEnum(config));
+          break;
+        case 'InputObject':
+          this.addType(name, this.buildInputObject(config));
+          break;
+        case 'Interface':
+          this.addType(name, this.buildInterface(config));
+          break;
+        case 'Scalar':
+          this.addType(name, this.buildScalar(config));
+          break;
+        case 'Union':
+          this.addType(name, this.buildUnion(config));
+          break;
+        case 'Object':
+        case 'Query':
+        case 'Mutation':
+        case 'Subscription':
+          this.addType(name, this.buildObject(config));
+          break;
+        default:
+          assertNever(config);
+      }
+    });
+
+    for (const entry of this.types.values()) {
+      this.plugin.visitType(entry, this);
+    }
+  }
+
+  private addType(ref: string, type: GraphQLNamedType) {
+    if (this.types.has(ref)) {
+      throw new Error(
+        `reference or name has already been used to create another type (${type.name})`,
+      );
+    }
+
+    this.types.set(ref, type);
   }
 
   private buildFields(
@@ -260,7 +359,7 @@ export default class BuildCache {
       );
   }
 
-  getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
+  private getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
     if (type instanceof GraphQLObjectType) {
       if (type.name === 'Query' || type.name === 'Mutation' || type.name === 'Subscription') {
         return this.getRootFields(type);
@@ -286,59 +385,27 @@ export default class BuildCache {
       );
   }
 
-  getImplementers(iface: GraphQLInterfaceType) {
-    if (this.implementers.has(iface.name)) {
-      return this.implementers.get(iface.name)!;
-    }
-
-    const implementers = [...this.types.values()].filter(
-      (type) => type instanceof GraphQLObjectType && type.getInterfaces().includes(iface),
-    ) as GraphQLObjectType[];
-
-    this.implementers.set(iface.name, implementers);
-
-    return implementers;
-  }
-
-  buildAll() {
-    this.configStore.nameToKind.forEach((kind, name) => {
-      switch (kind) {
-        case 'enums':
-          this.addType(name, this.buildEnum(this.configStore.enums.get(name)!));
-          break;
-        case 'inputs':
-          this.addType(name, this.buildInputObject(this.configStore.inputs.get(name)!));
-          break;
-        case 'interfaces':
-          this.addType(name, this.buildInterface(this.configStore.interfaces.get(name)!));
-          break;
-        case 'objects':
-          this.addType(name, this.buildObject(this.configStore.objects.get(name)!));
-          break;
-        case 'scalars':
-          this.addType(name, this.buildScalar(this.configStore.scalars.get(name)!));
-          break;
-        case 'unions':
-          this.addType(name, this.buildUnion(this.configStore.unions.get(name)!));
-          break;
-        default:
-          assertNever(kind);
-      }
-    });
-
-    for (const entry of this.types.values()) {
-      this.plugin.visitType(entry, this);
-    }
-  }
-
-  private buildObject(config: Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields'>) {
+  private buildObject(
+    config:
+      | GiraphQLObjectTypeConfig
+      | GiraphQLQueryTypeConfig
+      | GiraphQLMutationTypeConfig
+      | GiraphQLSubscriptionTypeConfig,
+  ) {
     const type: GraphQLObjectType = new GraphQLObjectType({
       ...config,
+      extensions: {
+        ...config.extensions,
+        giraphqlOptions: config.giraphqlOptions,
+      },
       fields: () => this.getFields(type),
-      interfaces: () =>
-        this.configStore
-          .getImplementedInterfaces(config.name)
-          .map((iface) => this.getInterfaceType(this.configStore.getNameFromRef(iface))),
+      interfaces:
+        config.kind === 'Object'
+          ? () =>
+              (config as GiraphQLObjectTypeConfig).interfaces.map((iface) =>
+                this.getTypeOfKind(iface, 'Interface'),
+              )
+          : undefined,
       isTypeOf:
         config.isTypeOf &&
         (async (parent, context, info) => {
@@ -351,9 +418,13 @@ export default class BuildCache {
     return type;
   }
 
-  private buildInterface(config: Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'>) {
+  private buildInterface(config: GiraphQLInterfaceTypeConfig) {
     const type: GraphQLInterfaceType = new GraphQLInterfaceType({
       ...config,
+      extensions: {
+        ...config.extensions,
+        giraphqlOptions: config.giraphqlOptions,
+      },
       fields: () => this.getFields(type),
       resolveType: async (parent, context, info) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
@@ -385,11 +456,14 @@ export default class BuildCache {
     return type;
   }
 
-  private buildUnion(config: Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'>) {
+  private buildUnion(config: GiraphQLUnionTypeConfig) {
     return new GraphQLUnionType({
       ...config,
-      types: () =>
-        this.configStore.getUnionMembers(config.name).map((member) => this.getObjectType(member)),
+      extensions: {
+        ...config.extensions,
+        giraphqlOptions: config.giraphqlOptions,
+      },
+      types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
       resolveType: async (parent, context, info, abstractType) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
 
@@ -400,7 +474,9 @@ export default class BuildCache {
         }
 
         const type =
-          typeof typeOrTypename === 'string' ? this.getObjectType(typeOrTypename) : typeOrTypename;
+          typeof typeOrTypename === 'string'
+            ? this.getTypeOfKind(typeOrTypename, 'Object')
+            : typeOrTypename;
 
         await this.plugin.onUnionResolveType(type, parent, context, info);
 
@@ -409,20 +485,36 @@ export default class BuildCache {
     });
   }
 
-  private buildInputObject(config: Omit<GraphQLInputObjectTypeConfig, 'fields'>) {
+  private buildInputObject(config: GiraphQLInputObjectTypeConfig) {
     const type: GraphQLInputType = new GraphQLInputObjectType({
-      ...this.configStore.inputs.get(config.name)!,
+      ...config,
+      extensions: {
+        ...config.extensions,
+        giraphqlOptions: config.giraphqlOptions,
+      },
       fields: () => this.getInputFields(type as GraphQLInputObjectType),
     });
 
     return type;
   }
 
-  private buildScalar(config: GraphQLScalarTypeConfig<unknown, unknown>) {
-    return new GraphQLScalarType(config);
+  private buildScalar(config: GiraphQLScalarTypeConfig) {
+    return new GraphQLScalarType({
+      ...config,
+      extensions: {
+        ...config.extensions,
+        giraphqlOptions: config.giraphqlOptions,
+      },
+    });
   }
 
-  private buildEnum(config: GraphQLEnumTypeConfig) {
-    return new GraphQLEnumType(config);
+  private buildEnum(config: GiraphQLEnumTypeConfig) {
+    return new GraphQLEnumType({
+      ...config,
+      extensions: {
+        ...config.extensions,
+        giraphqlOptions: config.giraphqlOptions,
+      },
+    });
   }
 }

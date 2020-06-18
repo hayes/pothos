@@ -26,7 +26,6 @@ import {
   InterfaceParam,
   ShapeFromEnumValues,
   ScalarName,
-  ResolverMap,
 } from './types';
 import BuildCache from './build-cache';
 import {
@@ -38,16 +37,27 @@ import {
   InterfaceFieldBuilder,
   InputShapeFromFields,
   ObjectTypeOptions,
+  GiraphQLQueryTypeConfig,
+  GiraphQLObjectTypeConfig,
+  GiraphQLMutationTypeConfig,
+  GiraphQLSubscriptionTypeConfig,
+  GiraphQLInterfaceTypeConfig,
+  GiraphQLUnionTypeConfig,
+  GiraphQLEnumTypeConfig,
+  GiraphQLScalarTypeConfig,
+  ImplementableInputObjectRef,
+  ResolverMap,
+  InputObjectRef,
+  GiraphQLInputObjectTypeConfig,
 } from '.';
 import { BasePlugin, mergePlugins } from './plugins';
 import ConfigStore from './config-store';
-import InterfaceRef from './refs/interface';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import UnionRef from './refs/union';
 import EnumRef from './refs/enum';
 import ScalarRef from './refs/scalar';
-import ObjectRef from './refs/object';
+import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import { normalizeEnumValues } from './utils';
-import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   private plugin: Required<BasePlugin>;
@@ -75,15 +85,16 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.associateRefWithName(ref, name);
 
-    this.configStore.addObjectConfig({
+    const config: GiraphQLObjectTypeConfig = {
+      kind: 'Object',
       name,
+      interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
       isTypeOf: options.isType as GraphQLIsTypeOfFn<unknown, Types['context']>,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: options as GiraphQLSchemaTypes.ObjectTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     if (shape) {
       this.configStore.addFields(ref, () => shape(new ObjectFieldBuilder(name, this)));
@@ -91,10 +102,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     if (options.fields) {
       this.configStore.addFields(ref, () => options.fields!(new ObjectFieldBuilder(name, this)));
-    }
-
-    if (options.interfaces) {
-      this.configStore.setImplementedInterfaces(name, options.interfaces);
     }
 
     return ref;
@@ -119,19 +126,15 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }));
   }
 
-  objectRef<T>(name: string) {
-    return new ObjectRef<T>(name);
-  }
-
   queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, shape?: QueryFieldsShape<Types>) {
-    this.configStore.addObjectConfig({
+    const config: GiraphQLQueryTypeConfig = {
+      kind: 'Query',
       name: 'Query',
       description: options.description,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.QueryTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     if (shape) {
       this.configStore.addFields('Query', () => shape(new QueryFieldBuilder(this)));
@@ -154,14 +157,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     options: GiraphQLSchemaTypes.MutationTypeOptions<Types>,
     fields?: MutationFieldsShape<Types>,
   ) {
-    this.configStore.addObjectConfig({
+    const config: GiraphQLMutationTypeConfig = {
+      kind: 'Mutation',
       name: 'Mutation',
       description: options.description,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.MutationTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     if (fields) {
       this.configStore.addFields('Mutation', () => fields(new MutationFieldBuilder(this)));
@@ -186,14 +189,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>,
     fields?: SubscriptionFieldsShape<Types>,
   ) {
-    this.configStore.addObjectConfig({
+    const config: GiraphQLSubscriptionTypeConfig = {
+      kind: 'Subscription',
       name: 'Subscription',
       description: options.description,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.SubscriptionTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     if (fields) {
       this.configStore.addFields('Subscription', () => fields(new SubscriptionFieldBuilder(this)));
@@ -233,14 +236,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const typename = ref.name;
 
-    this.configStore.addInterfaceConfig({
+    const config: GiraphQLInterfaceTypeConfig = {
+      kind: 'Interface',
       name: typename,
       description: options.description,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InterfaceTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     this.configStore.associateRefWithName(ref, typename);
 
@@ -276,10 +279,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }));
   }
 
-  interfaceRef<T>(name: string) {
-    return new InterfaceRef<T>(name);
-  }
-
   unionType<Member extends ObjectParam<Types>>(
     name: string,
     options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>,
@@ -287,17 +286,16 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const ref = new UnionRef<OutputShape<Member, Types>>(name);
     this.configStore.associateRefWithName(ref, name);
 
-    this.configStore.addUnionMembers(name, options.members);
-
-    this.configStore.addUnionConfig({
+    const config: GiraphQLUnionTypeConfig = {
+      kind: 'Union',
       name,
+      types: (options.types || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
       resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.UnionTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     return ref;
   }
@@ -311,15 +309,15 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const values = normalizeEnumValues(options);
 
-    this.configStore.addEnumConfig({
+    const config: GiraphQLEnumTypeConfig = {
+      kind: 'Enum',
       name,
       values,
       description: options.description,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.EnumTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     return ref;
   }
@@ -335,42 +333,40 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.associateRefWithName(ref, name);
 
-    this.configStore.addScalarConfig({
+    const config: GiraphQLScalarTypeConfig = {
+      kind: 'Scalar',
       name,
       description: options.description,
       parseLiteral: options.parseLiteral,
       parseValue: options.parseValue,
       serialize: options.serialize,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.ScalarTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     return ref;
   }
 
-  addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType) {
-    const ref = new ScalarRef<InputShape<Name, Types>, OutputShape<Name, Types>>(name);
+  addScalarType<Name extends ScalarName<Types>>(
+    name: Name,
+    scalar: GraphQLScalarType,
+    options: Omit<
+      GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Name, Types>, OutputShape<Name, Types>>,
+      'description' | 'parseLiteral' | 'parseValue' | 'serialize'
+    >,
+  ) {
     const config = scalar.toConfig();
 
-    this.configStore.associateRefWithName(ref, name);
-
-    this.configStore.addScalarConfig({
+    return this.scalarType<Name>(name, {
       ...config,
-      name,
-      extensions: {
-        ...config.extensions,
-        giraphqlOptions: {},
-      },
-    });
-
-    return ref;
+      ...options,
+    } as GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Name, Types>, OutputShape<Name, Types>>);
   }
 
   inputType<Param extends string | InputObjectRef<unknown>, Fields extends InputFields>(
     param: Param,
-    options: GiraphQLSchemaTypes.InputTypeOptions<Types, Fields>,
+    options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>,
   ): InputObjectRef<InputShapeFromFields<Fields>> {
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
 
@@ -381,14 +377,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.associateRefWithName(ref, name);
 
-    this.configStore.addInputConfig({
+    const config: GiraphQLInputObjectTypeConfig = {
+      kind: 'InputObject',
       name,
       description: options.description,
-      extensions: {
-        ...options.extensions,
-        giraphqlOptions: options,
-      },
-    });
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputObjectTypeOptions,
+    };
+
+    this.configStore.addTypeConfig(config);
 
     this.configStore.addInputFields(ref, () => options.fields(new InputFieldBuilder(this)));
 
@@ -397,6 +393,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   inputRef<T extends object>(name: string): ImplementableInputObjectRef<Types, T> {
     return new ImplementableInputObjectRef<Types, T>(this, name);
+  }
+
+  objectRef<T>(name: string): ImplementableObjectRef<Types, T> {
+    return new ImplementableObjectRef<Types, T>(this, name);
+  }
+
+  interfaceRef<T>(name: string): ImplementableInterfaceRef<Types, T> {
+    return new ImplementableInterfaceRef<Types, T>(this, name);
   }
 
   toSchema({
