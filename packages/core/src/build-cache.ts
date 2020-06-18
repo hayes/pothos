@@ -392,6 +392,7 @@ export default class BuildCache {
         this.configStore.getUnionMembers(config.name).map((member) => this.getObjectType(member)),
       resolveType: async (parent, context, info, abstractType) => {
         const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
+
         const typeOrTypename = await config.resolveType!(obj, context, info, abstractType);
 
         if (!typeOrTypename) {

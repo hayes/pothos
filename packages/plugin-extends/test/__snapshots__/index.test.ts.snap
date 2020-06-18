@@ -1,18 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`extends example schema generates expected schema 1`] = `
-"type Mutation {
-  createAdmin(firstName: String!, lastName: String!): User!
-  createUser(firstName: String!, lastName: String!): User!
-}
+"type Mutation
 
-type Query {
-  user(id: ID!): User!
-}
+type Query
 
-type Subscription {
-  user(id: ID!): User!
-}
+type Subscription
 
 type User {
   email: String!

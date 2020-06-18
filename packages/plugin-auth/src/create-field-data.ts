@@ -1,4 +1,11 @@
-import { BuildCache, getObjectOptions, getInterfaceOptions, getUnionOptions } from '@giraphql/core';
+import {
+  BuildCache,
+  getObjectOptions,
+  getInterfaceOptions,
+  getUnionOptions,
+  getOutputFieldOptions,
+  getOutputTypeWithFieldOptions,
+} from '@giraphql/core';
 import {
   GraphQLFieldConfig,
   GraphQLObjectType,
@@ -185,14 +192,8 @@ export function createFieldData(
   plugin: AuthPlugin,
 ): AuthFieldData {
   const returnType = unwrapType(config.type);
-  const typeOptions:
-    | GiraphQLSchemaTypes.ObjectTypeOptions
-    | GiraphQLSchemaTypes.InterfaceTypeOptions =
-    parentType.extensions && parentType.extensions.giraphqlOptions;
-  const fieldOptions:
-    | GiraphQLSchemaTypes.ObjectFieldOptions<any, any, any, any, any, any>
-    | GiraphQLSchemaTypes.InterfaceFieldOptions<any, any, any, any, any, any> =
-    config.extensions && config.extensions.giraphqlOptions;
+  const typeOptions = getOutputTypeWithFieldOptions(parentType);
+  const fieldOptions = getOutputFieldOptions(parentType, config, name);
 
   const permissionCheck: PermissionCheck<any, any, any> =
     fieldOptions.permissionCheck || typeOptions.defaultPermissionCheck || [];

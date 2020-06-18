@@ -43,17 +43,19 @@ declare global {
   export namespace GiraphQLSchemaTypes {
     export interface SchemaBuilder<Types extends SchemaTypes> extends Builder<Types> {}
 
-    export interface FieldBuilder<
-      Types extends SchemaTypes,
-      ParentShape,
-      Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
-    > extends InternalFieldBuilder<Types, ParentShape, Kind> {}
-
     export interface RootFieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
       Kind extends FieldKind = FieldKind
     > extends InternalRootFieldBuilder<Types, ParentShape, Kind> {}
+
+    export interface FieldBuilder<
+      Types extends SchemaTypes,
+      ParentShape,
+      Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
+    >
+      extends RootFieldBuilder<Types, ParentShape, Kind>,
+        InternalFieldBuilder<Types, ParentShape, Kind> {}
 
     export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape>
       extends RootFieldBuilder<Types, ParentShape, 'Query'> {}

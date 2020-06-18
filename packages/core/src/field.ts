@@ -62,7 +62,10 @@ export default class Field<T> {
         cache.subscribeMock(this.parentTypename, name) ??
         (this.options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
       type: typeFromParam(this.type, cache, this.nullable),
-      extensions: this.options.extensions,
+      extensions: {
+        ...this.options.extensions,
+        giraphqlOptions: this.options,
+      },
     };
 
     const config = plugin.updateFieldConfig(type, name, baseConfig, cache);

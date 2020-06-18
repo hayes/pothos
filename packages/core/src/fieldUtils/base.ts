@@ -5,8 +5,11 @@ import { ShapeFromTypeParam } from '..';
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   typename: string;
 
-  constructor(name: string) {
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+
+  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
     this.typename = name;
+    this.builder = builder;
   }
 
   protected createField<

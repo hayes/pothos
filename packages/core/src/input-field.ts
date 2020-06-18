@@ -25,8 +25,11 @@ export default class InputField<T> implements PartialInput {
     return {
       description: this.options.description,
       defaultValue: this.options.defaultValue,
-      extensions: this.options.extensions,
       type: inputTypeFromParam(this.type, cache, this.required),
+      extensions: {
+        ...this.options.extensions,
+        giraphqlOptions: this.options,
+      },
     };
   }
 }

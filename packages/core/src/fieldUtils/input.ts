@@ -3,6 +3,12 @@ import InputField from '../input-field';
 import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder } from '..';
 
 export default class InputFieldBuilder<Types extends SchemaTypes> {
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+    this.builder = builder;
+  }
+
   bool = this.helper('Boolean');
 
   boolean = this.helper('Boolean');
@@ -31,7 +37,8 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
     const builder: InputFieldBuilder<Types>['field'] = this.field.bind(this);
 
     ([...Object.keys(this)] as (keyof InputFieldBuilder<Types>)[]).forEach((key) => {
-      ((builder as unknown) as { [s: string]: unknown })[key] = this[key].bind(this);
+      ((builder as unknown) as { [s: string]: unknown })[key] =
+        typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
     });
 
     return builder as ArgBuilder<Types>;

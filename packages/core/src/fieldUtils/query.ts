@@ -5,7 +5,7 @@ export default class QueryFieldBuilder<
   Types extends SchemaTypes,
   ParentShape
 > extends RootFieldBuilder<Types, ParentShape, 'Query'> {
-  constructor() {
-    super('Query');
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+    super('Query', builder);
   }
 }

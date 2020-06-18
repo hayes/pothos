@@ -45,42 +45,44 @@ export const FieldBuilder = InternalFieldBuilder as {
 export const RootFieldBuilder = InternalRootFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind>(
     name: string,
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   ): GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 };
 
 export const QueryFieldBuilder = InternalQueryFieldBuilder as {
-  new <Types extends SchemaTypes, ParentShape>(): GiraphQLSchemaTypes.QueryFieldBuilder<
-    Types,
-    ParentShape
-  >;
+  new <Types extends SchemaTypes, ParentShape>(
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  ): GiraphQLSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
 };
 
 export const MutationFieldBuilder = InternalMutationFieldBuilder as {
-  new <Types extends SchemaTypes, ParentShape>(): GiraphQLSchemaTypes.RootFieldBuilder<
-    Types,
-    ParentShape
-  >;
+  new <Types extends SchemaTypes, ParentShape>(
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  ): GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape>;
 };
 
 export const SubscriptionFieldBuilder = InternalSubscriptionFieldBuilder as {
-  new <Types extends SchemaTypes, ParentShape>(): GiraphQLSchemaTypes.SubscriptionFieldBuilder<
-    Types,
-    ParentShape
-  >;
+  new <Types extends SchemaTypes, ParentShape>(
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  ): GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
 };
 
 export const ObjectFieldBuilder = InternalObjectFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     name: string,
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   ): GiraphQLSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
 };
 
 export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     name: string,
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   ): GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
 };
 
 export const InputFieldBuilder = InternalInputFieldBuilder as {
-  new <Types extends SchemaTypes>(): GiraphQLSchemaTypes.InputFieldBuilder<Types>;
+  new <Types extends SchemaTypes>(
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  ): GiraphQLSchemaTypes.InputFieldBuilder<Types>;
 };

@@ -1,0 +1,22 @@
+{
+  "name": "@giraphql/plugin-relay",
+  "version": "0.1.0",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@giraphql/core": "^0.20.3",
+    "apollo-server": "^2.12.0",
+    "graphql": "^15.0.0"
+  },
+  "devDependencies": {
+    "graphql-tag": "^2.10.1"
+  }
+}

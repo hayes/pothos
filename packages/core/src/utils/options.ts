@@ -186,6 +186,26 @@ export function getTypeOptions(type: GraphQLNamedType) {
   return getObjectOptions(type);
 }
 
+export function getOutputTypeWithFieldOptions(type: GraphQLObjectType | GraphQLInterfaceType) {
+  if (type instanceof GraphQLInterfaceType) {
+    return getInterfaceOptions(type);
+  }
+
+  if (type.name === 'Query') {
+    return getQueryOptions(type);
+  }
+
+  if (type.name === 'Mutation') {
+    return getMutationOptions(type);
+  }
+
+  if (type.name === 'Subscription') {
+    return getSubscriptionOptions(type);
+  }
+
+  return getObjectOptions(type);
+}
+
 export function getObjectFieldOptions(
   type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
   field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,

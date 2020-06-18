@@ -13,7 +13,9 @@ const ContactInfo = builder.simpleObject('ContactInfo', {
 
 const Node = builder.simpleInterface('Node', {
   fields: (t) => ({
-    id: t.id({}),
+    id: t.id({
+      nullable: false,
+    }),
   }),
 });
 
@@ -24,6 +26,7 @@ const UserType = builder.simpleObject('User', {
     lastName: t.string({}),
     contactInfo: t.field({
       type: ContactInfo,
+      nullable: false,
     }),
   }),
 });
