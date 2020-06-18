@@ -13,11 +13,11 @@
   },
   "dependencies": {
     "@giraphql/core": "^0.20.3",
-    "graphql": "^15.0.0",
-    "ts-morph": "^7.0.2",
+    "graphql": "^15.1.0",
+    "ts-morph": "^7.1.2",
     "yargs": "^15.3.1"
   },
   "devDependencies": {
-    "@types/yargs": "^15.0.4"
+    "@types/yargs": "^15.0.5"
   }
 }
