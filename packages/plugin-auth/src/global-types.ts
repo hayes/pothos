@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   TypeParam,
-  InputFields,
+  InputFieldMap,
   FieldNullability,
   RootName,
   InputShapeFromFields,
@@ -65,7 +65,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields,
+      Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape
     > {
@@ -78,7 +78,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields,
+      Args extends InputFieldMap,
       ResolveReturnShape
     >
       extends FieldOptions<
@@ -98,7 +98,7 @@ declare global {
       Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields,
+      Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape
     >

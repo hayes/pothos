@@ -3,7 +3,7 @@ import {
   SchemaTypes,
   ObjectRef,
   InterfaceRef,
-  InputFields,
+  InputFieldMap,
   FieldNullability,
   TypeParam,
   FieldMap,
@@ -36,7 +36,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields,
+      Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape
     > {

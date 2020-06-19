@@ -1,32 +1,23 @@
 import {
   GraphQLObjectType,
-  GraphQLObjectTypeConfig,
   GraphQLInterfaceType,
-  GraphQLInterfaceTypeConfig,
   GraphQLUnionType,
-  GraphQLUnionTypeConfig,
   GraphQLScalarType,
-  GraphQLScalarTypeConfig,
   GraphQLEnumType,
-  GraphQLEnumTypeConfig,
   GraphQLNamedType,
   GraphQLInputObjectType,
-  GraphQLInputObjectTypeConfig,
   GraphQLField,
-  GraphQLFieldConfig,
 } from 'graphql';
 import {
   SchemaTypes,
   TypeParam,
   FieldNullability,
-  InputFields,
   InputTypeParam,
   FieldRequiredness,
+  InputFieldMap,
 } from '..';
 
-export function getObjectOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
-): GiraphQLSchemaTypes.ObjectTypeOptions {
+export function getObjectOptions(type: GraphQLObjectType): GiraphQLSchemaTypes.ObjectTypeOptions {
   if (type.name === 'Query' || type.name === 'Mutation' || type.name === 'Subscription') {
     throw new TypeError(
       `Cant get object options for ${type.name}.  use get${type.name}Options instead`,
@@ -42,9 +33,7 @@ export function getObjectOptions(
   return options as GiraphQLSchemaTypes.ObjectTypeOptions;
 }
 
-export function getQueryOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
-): GiraphQLSchemaTypes.QueryTypeOptions {
+export function getQueryOptions(type: GraphQLObjectType): GiraphQLSchemaTypes.QueryTypeOptions {
   if (type.name !== 'Query') {
     throw new TypeError(`Expected Query type but got ${type.name}`);
   }
@@ -59,7 +48,7 @@ export function getQueryOptions(
 }
 
 export function getMutationOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
+  type: GraphQLObjectType,
 ): GiraphQLSchemaTypes.MutationTypeOptions {
   if (type.name !== 'Mutation') {
     throw new TypeError(`Expected Mutation type but got ${type.name}`);
@@ -75,7 +64,7 @@ export function getMutationOptions(
 }
 
 export function getSubscriptionOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
+  type: GraphQLObjectType,
 ): GiraphQLSchemaTypes.SubscriptionTypeOptions {
   if (type.name !== 'Subscription') {
     throw new TypeError(`Expected Subscription type but got ${type.name}`);
@@ -91,7 +80,7 @@ export function getSubscriptionOptions(
 }
 
 export function getInterfaceOptions(
-  type: GraphQLInterfaceType | GraphQLInterfaceTypeConfig<unknown, object>,
+  type: GraphQLInterfaceType,
 ): GiraphQLSchemaTypes.InterfaceTypeOptions {
   const options = type.extensions && type.extensions.giraphqlOptions;
 
@@ -102,9 +91,7 @@ export function getInterfaceOptions(
   return options as GiraphQLSchemaTypes.InterfaceTypeOptions;
 }
 
-export function getUnionOptions(
-  type: GraphQLUnionType | GraphQLUnionTypeConfig<unknown, object>,
-): GiraphQLSchemaTypes.UnionTypeOptions {
+export function getUnionOptions(type: GraphQLUnionType): GiraphQLSchemaTypes.UnionTypeOptions {
   const options = type.extensions && type.extensions.giraphqlOptions;
 
   if (!options) {
@@ -114,9 +101,7 @@ export function getUnionOptions(
   return options as GiraphQLSchemaTypes.UnionTypeOptions;
 }
 
-export function getScalarOptions(
-  type: GraphQLScalarType | GraphQLScalarTypeConfig<unknown, unknown>,
-): GiraphQLSchemaTypes.ScalarTypeOptions {
+export function getScalarOptions(type: GraphQLScalarType): GiraphQLSchemaTypes.ScalarTypeOptions {
   const options = type.extensions && type.extensions.giraphqlOptions;
 
   if (!options) {
@@ -126,9 +111,7 @@ export function getScalarOptions(
   return options as GiraphQLSchemaTypes.ScalarTypeOptions;
 }
 
-export function getEnumOptions(
-  type: GraphQLEnumType | GraphQLEnumTypeConfig,
-): GiraphQLSchemaTypes.EnumTypeOptions {
+export function getEnumOptions(type: GraphQLEnumType): GiraphQLSchemaTypes.EnumTypeOptions {
   const options = type.extensions && type.extensions.giraphqlOptions;
 
   if (!options) {
@@ -139,7 +122,7 @@ export function getEnumOptions(
 }
 
 export function getInputObjectOptions(
-  type: GraphQLInputObjectType | GraphQLInputObjectTypeConfig,
+  type: GraphQLInputObjectType,
 ): GiraphQLSchemaTypes.InputObjectTypeOptions {
   const options = type.extensions && type.extensions.giraphqlOptions;
 
@@ -207,15 +190,15 @@ export function getOutputTypeWithFieldOptions(type: GraphQLObjectType | GraphQLI
 }
 
 export function getObjectFieldOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  type: GraphQLObjectType,
+  field: GraphQLField<unknown, object>,
   name: string,
 ): GiraphQLSchemaTypes.ObjectFieldOptions<
   SchemaTypes,
   unknown,
   TypeParam<SchemaTypes>,
-  FieldNullability,
-  InputFields,
+  FieldNullability<TypeParam<SchemaTypes>>,
+  InputFieldMap,
   unknown
 > {
   if (type.name === 'Query' || type.name === 'Mutation' || type.name === 'Subscription') {
@@ -234,21 +217,21 @@ export function getObjectFieldOptions(
     SchemaTypes,
     unknown,
     TypeParam<SchemaTypes>,
-    FieldNullability,
-    InputFields,
+    FieldNullability<TypeParam<SchemaTypes>>,
+    InputFieldMap,
     unknown
   >;
 }
 
 export function getQueryFieldOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  type: GraphQLObjectType,
+  field: GraphQLField<unknown, object>,
   name: string,
 ): GiraphQLSchemaTypes.QueryFieldOptions<
   SchemaTypes,
   TypeParam<SchemaTypes>,
-  FieldNullability,
-  InputFields,
+  FieldNullability<TypeParam<SchemaTypes>>,
+  InputFieldMap,
   unknown
 > {
   if (type.name !== 'Query') {
@@ -264,21 +247,21 @@ export function getQueryFieldOptions(
   return options as GiraphQLSchemaTypes.QueryFieldOptions<
     SchemaTypes,
     TypeParam<SchemaTypes>,
-    FieldNullability,
-    InputFields,
+    FieldNullability<TypeParam<SchemaTypes>>,
+    InputFieldMap,
     unknown
   >;
 }
 
 export function getMutationFieldOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  type: GraphQLObjectType,
+  field: GraphQLField<unknown, object>,
   name: string,
 ): GiraphQLSchemaTypes.MutationFieldOptions<
   SchemaTypes,
   TypeParam<SchemaTypes>,
-  FieldNullability,
-  InputFields,
+  FieldNullability<TypeParam<SchemaTypes>>,
+  InputFieldMap,
   unknown
 > {
   if (type.name !== 'Mutation') {
@@ -294,21 +277,21 @@ export function getMutationFieldOptions(
   return options as GiraphQLSchemaTypes.MutationFieldOptions<
     SchemaTypes,
     TypeParam<SchemaTypes>,
-    FieldNullability,
-    InputFields,
+    FieldNullability<TypeParam<SchemaTypes>>,
+    InputFieldMap,
     unknown
   >;
 }
 
 export function getSubscriptionFieldOptions(
-  type: GraphQLObjectType | GraphQLObjectTypeConfig<unknown, object>,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  type: GraphQLObjectType,
+  field: GraphQLField<unknown, object>,
   name: string,
 ): GiraphQLSchemaTypes.SubscriptionFieldOptions<
   SchemaTypes,
   TypeParam<SchemaTypes>,
-  FieldNullability,
-  InputFields,
+  FieldNullability<TypeParam<SchemaTypes>>,
+  InputFieldMap,
   unknown,
   unknown
 > {
@@ -325,23 +308,23 @@ export function getSubscriptionFieldOptions(
   return options as GiraphQLSchemaTypes.SubscriptionFieldOptions<
     SchemaTypes,
     TypeParam<SchemaTypes>,
-    FieldNullability,
-    InputFields,
+    FieldNullability<TypeParam<SchemaTypes>>,
+    InputFieldMap,
     unknown,
     unknown
   >;
 }
 
 export function getInterfaceFieldOptions(
-  type: GraphQLInterfaceType | GraphQLInterfaceTypeConfig<unknown, object>,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  type: GraphQLInterfaceType,
+  field: GraphQLField<unknown, object>,
   name: string,
 ): GiraphQLSchemaTypes.InterfaceFieldOptions<
   SchemaTypes,
   unknown,
   TypeParam<SchemaTypes>,
-  FieldNullability,
-  InputFields,
+  FieldNullability<TypeParam<SchemaTypes>>,
+  InputFieldMap,
   unknown
 > {
   const options = field.extensions && field.extensions.giraphqlOptions;
@@ -354,33 +337,37 @@ export function getInterfaceFieldOptions(
     SchemaTypes,
     unknown,
     TypeParam<SchemaTypes>,
-    FieldNullability,
-    InputFields,
+    FieldNullability<TypeParam<SchemaTypes>>,
+    InputFieldMap,
     unknown
   >;
 }
 
 export function getInputFieldOptions(
-  type: GraphQLInputObjectType | GraphQLInputObjectTypeConfig,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  type: GraphQLInputObjectType,
+  field: GraphQLField<unknown, object>,
   name: string,
-): GiraphQLSchemaTypes.InputOptions<SchemaTypes, InputTypeParam<SchemaTypes>, FieldRequiredness> {
+): GiraphQLSchemaTypes.InputFieldOptions<
+  SchemaTypes,
+  InputTypeParam<SchemaTypes>,
+  FieldRequiredness<TypeParam<SchemaTypes>>
+> {
   const options = field.extensions && field.extensions.giraphqlOptions;
 
   if (!options) {
     throw new Error(`Missing giraphql input field options for ${type.name}.${name}`);
   }
 
-  return options as GiraphQLSchemaTypes.InputOptions<
+  return options as GiraphQLSchemaTypes.InputFieldOptions<
     SchemaTypes,
     InputTypeParam<SchemaTypes>,
-    FieldRequiredness
+    FieldRequiredness<TypeParam<SchemaTypes>>
   >;
 }
 
 export function getOutputFieldOptions(
   type: GraphQLObjectType | GraphQLInterfaceType,
-  field: GraphQLField<unknown, object> | GraphQLFieldConfig<unknown, object>,
+  field: GraphQLField<unknown, object>,
   name: string,
 ) {
   if (type instanceof GraphQLInterfaceType) {

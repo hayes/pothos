@@ -45,16 +45,16 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
   }
 
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
-    options: GiraphQLSchemaTypes.InputOptions<Types, Type, Req>,
+    options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
   ) {
     return new InputField<InputShapeFromTypeParam<Types, Type, Req>>(
-      (options as unknown) as GiraphQLSchemaTypes.InputOptions,
+      (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions,
     );
   }
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
-      options: Omit<GiraphQLSchemaTypes.InputOptions<Types, Type, Req>, 'type'>,
+      options: Omit<GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>, 'type'>,
     ) => {
       return this.field({
         ...options,

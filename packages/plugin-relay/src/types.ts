@@ -2,7 +2,7 @@ import {
   SchemaTypes,
   OutputType,
   FieldNullability,
-  InputFields,
+  InputFieldMap,
   Resolver,
   InputShapeFromFields,
   ShapeFromTypeParam,
@@ -51,7 +51,7 @@ export interface ConnectionFieldOptions<
   ParentShape,
   Type extends OutputType<Types>,
   Nullable extends FieldNullability<Type>,
-  Args extends InputFields,
+  Args extends InputFieldMap,
   ResolveReturnShape
 > {
   type: Type;

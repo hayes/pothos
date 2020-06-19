@@ -1,6 +1,6 @@
-import { TypeParam, InputFields, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
+import { TypeParam, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
 import Field from '../field';
-import { ShapeFromTypeParam } from '..';
+import { ShapeFromTypeParam, InputFieldMap } from '..';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   typename: string;
@@ -13,7 +13,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   }
 
   protected createField<
-    Args extends InputFields,
+    Args extends InputFieldMap,
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>
   >(

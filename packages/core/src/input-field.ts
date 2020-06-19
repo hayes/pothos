@@ -12,9 +12,9 @@ export default class InputField<T> implements PartialInput {
 
   type: InputType<SchemaTypes> | [InputType<SchemaTypes>];
 
-  options: GiraphQLSchemaTypes.InputOptions;
+  options: GiraphQLSchemaTypes.InputFieldOptions;
 
-  constructor(options: GiraphQLSchemaTypes.InputOptions) {
+  constructor(options: GiraphQLSchemaTypes.InputFieldOptions) {
     this.options = options;
     this.required = options.required ?? false;
     this.type = options.type;

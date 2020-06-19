@@ -1,17 +1,24 @@
 import { GraphQLOutputType, GraphQLNonNull, GraphQLList, GraphQLInputType } from 'graphql';
-import { BuildCache, TypeParam, InputTypeParam, FieldNullability, FieldRequiredness } from '..';
+import {
+  BuildCache,
+  TypeParam,
+  InputTypeParam,
+  FieldNullability,
+  FieldRequiredness,
+  SchemaTypes,
+  OutputType,
+  InputType,
+} from '..';
 
 export function typeFromNonListParam(
   param: Exclude<TypeParam<any>, [unknown]>,
   cache: BuildCache,
 ): GraphQLOutputType {
-  const name = cache.configStore.getNameFromRef(param);
-
-  return cache.getOutputType(name);
+  return cache.getOutputType(param as OutputType<SchemaTypes>);
 }
 
-export function typeFromMaybeNullParam(
-  param: Exclude<TypeParam, [unknown]>,
+export function typeFromMaybeNullParam<Types extends SchemaTypes>(
+  param: Exclude<TypeParam<Types>, [unknown]>,
   cache: BuildCache,
   nullable: boolean,
 ): GraphQLOutputType {
@@ -24,10 +31,10 @@ export function typeFromMaybeNullParam(
   return new GraphQLNonNull(type);
 }
 
-export function typeFromParam(
-  param: TypeParam,
+export function typeFromParam<Types extends SchemaTypes>(
+  param: TypeParam<Types>,
   cache: BuildCache,
-  nullable: FieldNullability,
+  nullable: FieldNullability<[unknown]>,
 ): GraphQLOutputType {
   const itemNullable = typeof nullable === 'object' ? nullable.items : false;
   const listNullable = typeof nullable === 'object' ? nullable.list : !!nullable;
@@ -54,13 +61,11 @@ export function inputTypeFromNonListParam(
   param: Exclude<InputTypeParam<any>, [unknown]>,
   cache: BuildCache,
 ): GraphQLInputType {
-  const name = cache.configStore.getNameFromRef(param);
-
-  return cache.getInputType(name);
+  return cache.getInputType(param as InputType<SchemaTypes>);
 }
 
-export function inputTypeFromMaybeRequiredParam(
-  param: Exclude<InputTypeParam, [unknown]>,
+export function inputTypeFromMaybeRequiredParam<Types extends SchemaTypes>(
+  param: InputType<Types>,
   cache: BuildCache,
   required: boolean,
 ): GraphQLInputType {
@@ -73,10 +78,10 @@ export function inputTypeFromMaybeRequiredParam(
   return new GraphQLNonNull(type);
 }
 
-export function inputTypeFromParam(
-  param: InputTypeParam,
+export function inputTypeFromParam<Types extends SchemaTypes>(
+  param: InputTypeParam<Types>,
   cache: BuildCache,
-  required: FieldRequiredness,
+  required: FieldRequiredness<[unknown]>,
 ): GraphQLInputType {
   const itemRequired = typeof required === 'object' ? required.items : true;
   const listRequired = typeof required === 'object' ? required.list : !!required;
@@ -96,9 +101,5 @@ export function inputTypeFromParam(
     return new GraphQLNonNull(listType);
   }
 
-  return inputTypeFromMaybeRequiredParam(
-    param as Exclude<typeof param, [unknown]>,
-    cache,
-    listRequired,
-  );
+  return inputTypeFromMaybeRequiredParam(param, cache, listRequired);
 }

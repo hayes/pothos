@@ -7,19 +7,19 @@ import {
 } from 'graphql';
 // @ts-ignore
 import fromEntries from 'object.fromentries';
-import { TypeParam, InputFields, FieldNullability } from './types';
+import { TypeParam, InputFieldMap, FieldNullability } from './types';
 import { typeFromParam } from './utils';
-import { BuildCache, outputFieldShapeKey } from '.';
+import { BuildCache, outputFieldShapeKey, SchemaTypes } from '.';
 import { BasePlugin, wrapResolver } from './plugins';
 
 export default class Field<T> {
   [outputFieldShapeKey]: T;
 
-  nullable: FieldNullability;
+  nullable: FieldNullability<TypeParam<SchemaTypes>>;
 
-  args: InputFields;
+  args: InputFieldMap;
 
-  type: TypeParam;
+  type: TypeParam<SchemaTypes>;
 
   options: GiraphQLSchemaTypes.FieldOptions;
 
@@ -28,7 +28,7 @@ export default class Field<T> {
   constructor(options: GiraphQLSchemaTypes.FieldOptions, parentTypename: string) {
     this.options = options;
     this.nullable = options.nullable ?? false;
-    this.args = options.args ? options.args! : ({} as InputFields);
+    this.args = options.args ? options.args! : ({} as InputFieldMap);
     this.type = options.type;
     this.parentTypename = parentTypename;
   }

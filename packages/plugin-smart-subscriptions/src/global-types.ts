@@ -2,7 +2,7 @@
 import {
   TypeParam,
   FieldNullability,
-  InputFields,
+  InputFieldMap,
   InputShapeFromFields,
   SchemaTypes,
 } from '@giraphql/core';
@@ -25,7 +25,7 @@ declare global {
       Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields,
+      Args extends InputFieldMap,
       ResolveReturnShape
     > {
       smartSubscription?: boolean;
@@ -43,7 +43,7 @@ declare global {
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields,
+      Args extends InputFieldMap,
       ResolveReturnShape
     > {
       subscribe?: (

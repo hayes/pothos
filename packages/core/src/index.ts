@@ -1,3 +1,5 @@
+import './types/global';
+
 import InternalInputFieldBuilder from './fieldUtils/input';
 import Field from './field';
 import BuildCache from './build-cache';
@@ -17,6 +19,7 @@ import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
+import InputField from './input-field';
 
 export * from './types';
 export * from './utils';
@@ -25,6 +28,7 @@ export * from './plugins';
 export {
   BuildCache,
   Field,
+  InputField,
   EnumRef,
   InputObjectRef,
   InterfaceRef,

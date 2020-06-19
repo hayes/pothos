@@ -45,7 +45,7 @@ import { ResolveValueWrapper } from './plugins';
 export default class BuildCache {
   types = new Map<string, GraphQLNamedType>();
 
-  configStore: ConfigStore<any>;
+  private configStore: ConfigStore<any>;
 
   private plugin: Required<BasePlugin>;
 
@@ -72,7 +72,7 @@ export default class BuildCache {
   }
 
   getType(ref: string | OutputType<SchemaTypes> | InputType<SchemaTypes>) {
-    const name = this.configStore.getNameFromRef(ref);
+    const { name } = this.configStore.resolveImplementedRef(ref);
     const type = this.types.get(name);
 
     if (!type) {
