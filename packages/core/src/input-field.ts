@@ -1,10 +1,10 @@
 import { GraphQLInputFieldConfig, GraphQLArgumentConfig } from 'graphql';
 // @ts-ignore
 import { inputTypeFromParam } from './utils';
-import { BuildCache, InputType, SchemaTypes, inputFieldShapeKey, PartialInput } from '.';
+import { BuildCache, InputType, SchemaTypes, inputFieldShapeKey, InputFieldRef } from '.';
 
-export default class InputField<T> implements PartialInput {
-  kind: 'InputField' = 'InputField';
+export default class InputField<T> implements InputFieldRef {
+  kind: 'InputObject' = 'InputObject';
 
   [inputFieldShapeKey]: T;
 

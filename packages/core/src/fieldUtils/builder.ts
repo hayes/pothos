@@ -4,13 +4,15 @@ import {
   FieldOptionsFromKind,
   FieldNullability,
   SchemaTypes,
+  RootName,
+  FieldKind,
 } from '../types';
 import RootFieldBuilder from './root';
 
 export default class FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
+  Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>
 > extends RootFieldBuilder<Types, ParentShape, Kind> {
   exposeBoolean<
     Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>,

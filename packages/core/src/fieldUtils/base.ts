@@ -1,15 +1,18 @@
 import { TypeParam, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
 import Field from '../field';
-import { ShapeFromTypeParam, InputFieldMap } from '..';
+import { ShapeFromTypeParam, InputFieldMap, FieldKind } from '..';
 
-export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
+export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   typename: string;
 
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+  kind: Kind;
+
+  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind) {
     this.typename = name;
     this.builder = builder;
+    this.kind = kind;
   }
 
   protected createField<
@@ -19,7 +22,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
   >(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
   ): Field<ShapeFromTypeParam<Types, Type, Nullable>> {
-    return new Field(options as GiraphQLSchemaTypes.FieldOptions, this.typename);
+    return new Field(options as GiraphQLSchemaTypes.FieldOptions, this.typename, this.kind);
   }
 
   protected exposeField<
@@ -40,6 +43,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape> {
         resolve: (parent) => (parent as { [s: string]: Readonly<unknown> })[name as string],
       },
       this.typename,
+      this.kind,
     );
   }
 }

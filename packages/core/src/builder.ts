@@ -227,7 +227,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   args<Shape extends InputFieldMap>(
     fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Shape,
   ): Shape {
-    return fields(new InputFieldBuilder<Types>(this));
+    return fields(new InputFieldBuilder<Types>(this, 'Arg'));
   }
 
   interfaceType<Param extends InterfaceParam<Types>>(
@@ -383,7 +383,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.addTypeConfig(config, ref);
 
-    this.configStore.buildInputFields(ref, options.fields(new InputFieldBuilder(this)));
+    this.configStore.buildInputFields(
+      ref,
+      options.fields(new InputFieldBuilder(this, 'InputObject')),
+    );
 
     return ref;
   }

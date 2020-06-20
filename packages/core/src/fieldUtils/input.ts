@@ -5,8 +5,11 @@ import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder } from '..';
 export default class InputFieldBuilder<Types extends SchemaTypes> {
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+  kind: 'InputObject' | 'Arg';
+
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: 'InputObject' | 'Arg') {
     this.builder = builder;
+    this.kind = kind;
   }
 
   bool = this.helper('Boolean');

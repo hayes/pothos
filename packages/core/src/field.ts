@@ -9,7 +9,7 @@ import {
 import fromEntries from 'object.fromentries';
 import { TypeParam, InputFieldMap, FieldNullability } from './types';
 import { typeFromParam } from './utils';
-import { BuildCache, outputFieldShapeKey, SchemaTypes } from '.';
+import { BuildCache, outputFieldShapeKey, SchemaTypes, RootName, InputField } from '.';
 import { BasePlugin, wrapResolver } from './plugins';
 
 export default class Field<T> {
@@ -25,12 +25,19 @@ export default class Field<T> {
 
   parentTypename: string;
 
-  constructor(options: GiraphQLSchemaTypes.FieldOptions, parentTypename: string) {
+  kind: 'Object' | 'Interface' | RootName;
+
+  constructor(
+    options: GiraphQLSchemaTypes.FieldOptions,
+    parentTypename: string,
+    kind: 'Object' | 'Interface' | RootName,
+  ) {
     this.options = options;
     this.nullable = options.nullable ?? false;
     this.args = options.args ? options.args! : ({} as InputFieldMap);
     this.type = options.type;
     this.parentTypename = parentTypename;
+    this.kind = kind;
   }
 
   protected buildArgs(cache: BuildCache): GraphQLFieldConfigArgumentMap {
@@ -38,7 +45,7 @@ export default class Field<T> {
       Object.keys(this.args).map((key) => {
         const arg = this.args[key];
 
-        return [key, arg.build(cache)];
+        return [key, (arg as InputField<unknown>).build(cache)];
       }),
     ) as GraphQLFieldConfigArgumentMap;
   }

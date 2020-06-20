@@ -13,8 +13,8 @@ export default class RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind
-> extends BaseFieldUtil<Types, ParentShape> {
-  arg: ArgBuilder<Types> = new InputFieldBuilder<Types>(this.builder).argBuilder();
+> extends BaseFieldUtil<Types, ParentShape, Kind> {
+  arg: ArgBuilder<Types> = new InputFieldBuilder<Types>(this.builder, 'Arg').argBuilder();
 
   boolean<
     Args extends InputFieldMap,

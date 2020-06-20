@@ -43,7 +43,7 @@ export {
 export default SchemaBuilder as {
   new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo>>(options?: {
     plugins?: BasePlugin[];
-  }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.MergedTypeMap<Types>>;
+  }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 
 export const FieldBuilder = InternalFieldBuilder as {
@@ -60,6 +60,7 @@ export const RootFieldBuilder = InternalRootFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind>(
     name: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    kind: FieldKind,
   ): GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 };
 
@@ -72,7 +73,7 @@ export const QueryFieldBuilder = InternalQueryFieldBuilder as {
 export const MutationFieldBuilder = InternalMutationFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-  ): GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape>;
+  ): GiraphQLSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
 };
 
 export const SubscriptionFieldBuilder = InternalSubscriptionFieldBuilder as {
@@ -85,6 +86,7 @@ export const ObjectFieldBuilder = InternalObjectFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     name: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    kind?: FieldKind,
   ): GiraphQLSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
 };
 
@@ -92,11 +94,13 @@ export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     name: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    kind?: FieldKind,
   ): GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
 };
 
 export const InputFieldBuilder = InternalInputFieldBuilder as {
   new <Types extends SchemaTypes>(
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    kind: 'InputObject' | 'Arg',
   ): GiraphQLSchemaTypes.InputFieldBuilder<Types>;
 };

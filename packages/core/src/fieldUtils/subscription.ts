@@ -6,6 +6,6 @@ export default class SubscriptionFieldBuilder<
   ParentShape
 > extends RootFieldBuilder<Types, ParentShape, 'Subscription'> {
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super('Subscription', builder);
+    super('Subscription', builder, 'Subscription');
   }
 }

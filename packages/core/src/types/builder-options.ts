@@ -11,6 +11,9 @@ import {
   ShapeFromTypeParam,
   NormalizeNullableFields,
   OutputShape,
+  InputFieldRef,
+  FieldRef,
+  inputFieldShapeKey,
 } from '..';
 
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
@@ -99,11 +102,11 @@ export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
 ) => Field<unknown>;
 
 export type FieldMap = {
-  [s: string]: Field<unknown>;
+  [s: string]: FieldRef;
 };
 
 export type InputFieldMap = {
-  [s: string]: InputField<unknown>;
+  [s: string]: InputFieldRef;
 };
 
 export type FieldOptionsFromKind<
@@ -158,9 +161,9 @@ export type InputFieldsFromShape<Shape extends object> = {
   [K in keyof Shape]: InputField<Shape[K]>;
 };
 
-export type InputShapeFromField<Field extends InputField<unknown>> = Field extends InputField<
-  infer T
->
+export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
+  [inputFieldShapeKey]: infer T;
+}
   ? T
   : never;
 
