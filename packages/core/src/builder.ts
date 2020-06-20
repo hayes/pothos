@@ -61,9 +61,9 @@ import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import { normalizeEnumValues } from './utils';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
-  private plugin: Required<BasePlugin>;
+  configStore: ConfigStore<Types>;
 
-  private configStore: ConfigStore<Types>;
+  private plugin: Required<BasePlugin>;
 
   constructor(options: { plugins?: BasePlugin[] } = {}) {
     this.plugin = mergePlugins(options.plugins ?? []);
@@ -86,6 +86,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const config: GiraphQLObjectTypeConfig = {
       kind: 'Object',
+      graphqlKind: 'Object',
       name,
       interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
@@ -133,6 +134,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, shape?: QueryFieldsShape<Types>) {
     const config: GiraphQLQueryTypeConfig = {
       kind: 'Query',
+      graphqlKind: 'Object',
       name: 'Query',
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.QueryTypeOptions,
@@ -163,6 +165,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     const config: GiraphQLMutationTypeConfig = {
       kind: 'Mutation',
+      graphqlKind: 'Object',
       name: 'Mutation',
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.MutationTypeOptions,
@@ -195,6 +198,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     const config: GiraphQLSubscriptionTypeConfig = {
       kind: 'Subscription',
+      graphqlKind: 'Object',
       name: 'Subscription',
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.SubscriptionTypeOptions,
@@ -243,6 +247,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const config: GiraphQLInterfaceTypeConfig = {
       kind: 'Interface',
+      graphqlKind: 'Interface',
       name: typename,
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InterfaceTypeOptions,
@@ -290,6 +295,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const config: GiraphQLUnionTypeConfig = {
       kind: 'Union',
+      graphqlKind: 'Union',
       name,
       types: (options.types || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
@@ -312,6 +318,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const config: GiraphQLEnumTypeConfig = {
       kind: 'Enum',
+      graphqlKind: 'Enum',
       name,
       values,
       description: options.description,
@@ -334,6 +341,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const config: GiraphQLScalarTypeConfig = {
       kind: 'Scalar',
+      graphqlKind: 'Scalar',
       name,
       description: options.description,
       parseLiteral: options.parseLiteral,
@@ -376,6 +384,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const config: GiraphQLInputObjectTypeConfig = {
       kind: 'InputObject',
+      graphqlKind: 'InputObject',
       name,
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputObjectTypeOptions,

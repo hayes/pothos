@@ -1,4 +1,4 @@
-import { SchemaTypes, Field, FieldMap, NullableToOptional } from '@giraphql/core';
+import { SchemaTypes, FieldMap, NullableToOptional, FieldRef } from '@giraphql/core';
 
 export type SimpleObjectFieldsShape<Types extends SchemaTypes, Fields extends FieldMap> = (
   t: GiraphQLSchemaTypes.RootFieldBuilder<Types, unknown, 'SimpleObject'>,
@@ -10,6 +10,6 @@ export type SimpleInterfaceFieldsShape<Types extends SchemaTypes, Fields extends
 
 export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<
   {
-    [K in keyof Fields]: Fields[K] extends Field<infer T> ? T : never;
+    [K in keyof Fields]: Fields[K] extends FieldRef<infer T> ? T : never;
   }
 >;

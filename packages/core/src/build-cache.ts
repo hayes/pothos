@@ -38,8 +38,6 @@ import {
   SchemaTypes,
   InputType,
   ImplementableInputObjectRef,
-  InputField,
-  Field,
 } from '.';
 import ConfigStore from './config-store';
 import { ResolveValueWrapper } from './plugins';
@@ -272,12 +270,12 @@ export default class BuildCache {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
 
     Object.keys(fields).forEach((fieldName) => {
-      built[fieldName] = (fields[fieldName] as Field<unknown>).build(
-        type,
-        fieldName,
-        this,
-        this.plugin,
-      );
+      // built[fieldName] = (fields[fieldName] as Field<unknown>).build(
+      //   type,
+      //   fieldName,
+      //   this,
+      //   this.plugin,
+      // );
     });
 
     return built;
@@ -287,7 +285,7 @@ export default class BuildCache {
     const built: GraphQLInputFieldConfigMap = {};
 
     Object.keys(fields).forEach((fieldName) => {
-      built[fieldName] = (fields[fieldName] as InputField<unknown>).build(this);
+      // built[fieldName] = (fields[fieldName] as InputField<unknown>).build(this);
     });
 
     return built;

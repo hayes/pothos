@@ -1,6 +1,12 @@
 import { TypeParam, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
-import Field from '../field';
-import { ShapeFromTypeParam, InputFieldMap, FieldKind } from '..';
+import {
+  ShapeFromTypeParam,
+  InputFieldMap,
+  FieldKind,
+  FieldRef,
+  GiraphQLInputFieldConfig,
+} from '..';
+import { typeFromParam } from '../utils';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   typename: string;
@@ -21,8 +27,35 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
     Nullable extends FieldNullability<Type>
   >(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
-  ): Field<ShapeFromTypeParam<Types, Type, Nullable>> {
-    return new Field(options as GiraphQLSchemaTypes.FieldOptions, this.typename, this.kind);
+  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>> {
+    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>> = {} as any;
+
+    const args: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
+
+    if (options.args) {
+      Object.keys(options.args).forEach((name) => {
+        args[name] = this.builder.configStore.getInputFieldConfig(options.args![name], name);
+      });
+    }
+
+    this.builder.configStore.addFieldRef(ref, (name) => {
+      return {
+        kind: this.kind as FieldKind,
+        name,
+        args,
+        type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? false),
+        options: options as any,
+        description: options.description,
+        resolve:
+          (options as { resolve?: (...args: unknown[]) => unknown }).resolve ??
+          (() => {
+            throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+          }),
+        subscribe: (options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
+      };
+    });
+
+    return ref;
   }
 
   protected exposeField<
@@ -35,15 +68,13 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
       'resolve'
     >,
-  ): Field<ShapeFromTypeParam<Types, Type, Nullable>> {
-    return new Field(
-      {
-        ...(options as GiraphQLSchemaTypes.FieldOptions),
-
-        resolve: (parent) => (parent as { [s: string]: Readonly<unknown> })[name as string],
-      },
-      this.typename,
-      this.kind,
-    );
+  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>> {
+    return this.createField({
+      ...options,
+      resolve: (parent) =>
+        (parent as { [s: string]: Readonly<ShapeFromTypeParam<Types, Type, Nullable>> })[
+          name as string
+        ],
+    });
   }
 }

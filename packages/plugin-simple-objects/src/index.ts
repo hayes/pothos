@@ -5,7 +5,6 @@ import SchemaBuilder, {
   FieldMap,
   InterfaceRef,
   InterfaceParam,
-  Field,
 } from '@giraphql/core';
 import './global-types';
 import { OutputShapeFromFields } from './types';
@@ -32,8 +31,9 @@ proto.simpleObject = function simpleObject<
       const fields = originalFields(t);
 
       Object.keys(fields).forEach((key) => {
-        (fields[key] as Field<unknown>).options.resolve = (parent) =>
-          (parent as Record<string, unknown>)[key] as Readonly<unknown>;
+        const config = this.configStore.getFieldConfig(fields[key], key);
+
+        config.resolve = (parent) => (parent as Record<string, unknown>)[key] as Readonly<unknown>;
       });
 
       return fields;
@@ -62,8 +62,9 @@ proto.simpleInterface = function simpleInterface<
       const fields = originalFields(t);
 
       Object.keys(fields).forEach((key) => {
-        (fields[key] as Field<unknown>).options.resolve = (parent) =>
-          (parent as Record<string, unknown>)[key] as Readonly<unknown>;
+        const config = this.configStore.getFieldConfig(fields[key], key);
+
+        config.resolve = (parent) => (parent as Record<string, unknown>)[key] as Readonly<unknown>;
       });
 
       return fields;

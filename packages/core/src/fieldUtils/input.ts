@@ -1,6 +1,12 @@
 import { InputType, SchemaTypes } from '../types';
-import InputField from '../input-field';
-import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder } from '..';
+import {
+  FieldRequiredness,
+  InputShapeFromTypeParam,
+  ArgBuilder,
+  InputFieldRef,
+  InputTypeParam,
+} from '..';
+import { inputTypeFromParam } from '../utils';
 
 export default class InputFieldBuilder<Types extends SchemaTypes> {
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
@@ -50,9 +56,28 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
     options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
   ) {
-    return new InputField<InputShapeFromTypeParam<Types, Type, Req>>(
-      (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions,
-    );
+    const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>> = {} as any;
+
+    this.builder.configStore.addInputFieldRef(ref, (name) => {
+      return {
+        name,
+        kind: this.kind,
+        type: inputTypeFromParam<Types>(
+          options.type,
+          this.builder.configStore,
+          options.required ?? false,
+        ),
+        options: options as GiraphQLSchemaTypes.InputFieldOptions<
+          Types,
+          InputTypeParam<Types>,
+          FieldRequiredness<[unknown]>
+        >,
+        description: options.description,
+        defaultValue: options.defaultValue,
+      };
+    });
+
+    return ref;
   }
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {

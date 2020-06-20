@@ -31,23 +31,27 @@ import {
 export interface GiraphQLQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Query';
+  graphqlKind: 'Object';
   giraphqlOptions: GiraphQLSchemaTypes.QueryTypeOptions;
 }
 export interface GiraphQLMutationTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Mutation';
+  graphqlKind: 'Object';
   giraphqlOptions: GiraphQLSchemaTypes.MutationTypeOptions;
 }
 
 export interface GiraphQLSubscriptionTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Subscription';
+  graphqlKind: 'Object';
   giraphqlOptions: GiraphQLSchemaTypes.SubscriptionTypeOptions;
 }
 
 export interface GiraphQLObjectTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Object';
+  graphqlKind: 'Object';
   interfaces: ObjectParam<SchemaTypes>[];
   giraphqlOptions: GiraphQLSchemaTypes.ObjectTypeOptions;
 }
@@ -55,29 +59,34 @@ export interface GiraphQLObjectTypeConfig
 export interface GiraphQLInterfaceTypeConfig
   extends Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'> {
   kind: 'Interface';
+  graphqlKind: 'Interface';
   giraphqlOptions: GiraphQLSchemaTypes.InterfaceTypeOptions;
 }
 
 export interface GiraphQLUnionTypeConfig
   extends Omit<GraphQLUnionTypeConfig<unknown, object>, 'types'> {
   kind: 'Union';
+  graphqlKind: 'Union';
   types: ObjectParam<SchemaTypes>[];
   giraphqlOptions: GiraphQLSchemaTypes.UnionTypeOptions;
 }
 
 export interface GiraphQLEnumTypeConfig extends GraphQLEnumTypeConfig {
   kind: 'Enum';
+  graphqlKind: 'Enum';
   giraphqlOptions: GiraphQLSchemaTypes.EnumTypeOptions;
 }
 
 export interface GiraphQLScalarTypeConfig extends GraphQLScalarTypeConfig<unknown, unknown> {
   kind: 'Scalar';
+  graphqlKind: 'Scalar';
   giraphqlOptions: GiraphQLSchemaTypes.ScalarTypeOptions;
 }
 
 export interface GiraphQLInputObjectTypeConfig
   extends Omit<GraphQLInputObjectTypeConfig, 'fields'> {
   kind: 'InputObject';
+  graphqlKind: 'InputObject';
   giraphqlOptions: GiraphQLSchemaTypes.InputObjectTypeOptions;
 }
 
@@ -113,8 +122,8 @@ export type GiraphQLFieldKindToConfig<
   ? Omit<GraphQLFieldConfig<unknown, object>, 'type' | 'args'> & {
       kind: Kind;
       name: string;
-      type: GiraphQLOutputFieldConfig<Types>;
-      args: { [name: string]: GiraphQLInputFieldType<Types> };
+      type: GiraphQLOutputFieldType<Types>;
+      args: { [name: string]: GiraphQLInputFieldConfig<Types> };
       options: FieldOptionsFromKind<
         Types,
         unknown,
@@ -130,9 +139,9 @@ export type GiraphQLFieldKindToConfig<
 
 export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
   extends Omit<GraphQLInputFieldConfig, 'type'> {
-  kind: 'InputField';
+  kind: 'InputObject' | 'Arg';
   name: string;
-  type: GiraphQLInputFieldConfig<Types>;
+  type: GiraphQLInputFieldType<Types>;
   options: GiraphQLSchemaTypes.InputFieldOptions<
     Types,
     InputTypeParam<Types>,
@@ -159,9 +168,13 @@ export type GiraphQLOutputFieldType<Types extends SchemaTypes> =
     }
   | {
       kind: 'List';
-      type: Exclude<GiraphQLFieldKind, { kind: 'List' }>;
+      type: GiraphQLNameOutputFieldType<Types>;
       nullable: boolean;
     };
+export type GiraphQLNameOutputFieldType<Types extends SchemaTypes> = Exclude<
+  GiraphQLOutputFieldType<Types>,
+  { kind: 'List' }
+>;
 
 export type GiraphQLInputFieldType<Types extends SchemaTypes> =
   | {
@@ -171,6 +184,11 @@ export type GiraphQLInputFieldType<Types extends SchemaTypes> =
     }
   | {
       kind: 'List';
-      type: Exclude<GiraphQLFieldKind, { kind: 'List' }>;
+      type: GiraphQLNameInputFieldType<Types>;
       required: boolean;
     };
+
+export type GiraphQLNameInputFieldType<Types extends SchemaTypes> = Exclude<
+  GiraphQLInputFieldType<Types>,
+  { kind: 'List' }
+>;

@@ -4,10 +4,10 @@ import {
   InputFieldMap,
   FieldNullability,
   FieldKind,
-  Field,
   OutputType,
   FieldOptionsFromKind,
   ObjectRef,
+  FieldRef,
 } from '@giraphql/core';
 import {
   ConnectionFieldOptions,
@@ -66,7 +66,7 @@ declare global {
           Types,
           ConnectionShapeFromResolve<Types, Type, Nullable, ResolveReturnShape>['edges'][number]
         >,
-      ): Field<unknown>;
+      ): FieldRef<unknown>; // TODO type this correctly
     }
   }
 }

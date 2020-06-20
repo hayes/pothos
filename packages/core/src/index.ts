@@ -1,7 +1,6 @@
 import './types/global';
 
 import InternalInputFieldBuilder from './fieldUtils/input';
-import Field from './field';
 import BuildCache from './build-cache';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalRootFieldBuilder from './fieldUtils/root';
@@ -19,7 +18,8 @@ import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
-import InputField from './input-field';
+import FieldRef from './refs/field';
+import InputFieldRef from './refs/input-field';
 
 export * from './types';
 export * from './utils';
@@ -27,8 +27,6 @@ export * from './plugins';
 
 export {
   BuildCache,
-  Field,
-  InputField,
   EnumRef,
   InputObjectRef,
   InterfaceRef,
@@ -38,6 +36,8 @@ export {
   ImplementableObjectRef,
   ImplementableInterfaceRef,
   ImplementableInputObjectRef,
+  FieldRef,
+  InputFieldRef,
 };
 
 export default SchemaBuilder as {

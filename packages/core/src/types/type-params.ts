@@ -45,16 +45,6 @@ export interface InputRef {
   kind: 'InputObject' | 'Scalar' | 'Enum';
 }
 
-export interface FieldRef {
-  [outputFieldShapeKey]: unknown;
-  kind: 'Object' | 'Interface' | RootName;
-}
-
-export interface InputFieldRef {
-  [inputFieldShapeKey]: unknown;
-  kind: 'InputObject' | 'Arg';
-}
-
 export type OutputType<Types extends SchemaTypes> =
   | keyof Types['outputShapes']
   | {

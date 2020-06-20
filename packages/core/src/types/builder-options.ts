@@ -3,8 +3,6 @@ import {
   MaybePromiseWithInference,
   MaybePromise,
   SchemaTypes,
-  Field,
-  InputField,
   TypeParam,
   FieldNullability,
   InterfaceParam,
@@ -53,53 +51,43 @@ export type ShapeFromEnumValues<Values extends EnumValues> = Values extends read
 
 export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
-) => {
-  [s: string]: Field<unknown>;
-};
+) => FieldMap;
 
 export type InterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
-) => {
-  [s: string]: Field<unknown>;
-};
+) => FieldMap;
 
 export type QueryFieldsShape<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
-) => {
-  [s: string]: Field<unknown>;
-};
+) => FieldMap;
 
 export type MutationFieldsShape<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
-) => {
-  [s: string]: Field<unknown>;
-};
+) => FieldMap;
 
 export type SubscriptionFieldsShape<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
-) => {
-  [s: string]: Field<unknown>;
-};
+) => FieldMap;
 
 export type ObjectFieldThunk<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
-) => Field<unknown>;
+) => FieldRef<unknown>;
 
 export type InterfaceFieldThunk<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
-) => Field<unknown>;
+) => FieldRef<unknown>;
 
 export type QueryFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
-) => Field<unknown>;
+) => FieldRef<unknown>;
 
 export type MutationFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
-) => Field<unknown>;
+) => FieldRef<unknown>;
 
 export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
-) => Field<unknown>;
+) => FieldRef<unknown>;
 
 export type FieldMap = {
   [s: string]: FieldRef;
@@ -158,7 +146,7 @@ export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullab
 >;
 
 export type InputFieldsFromShape<Shape extends object> = {
-  [K in keyof Shape]: InputField<Shape[K]>;
+  [K in keyof Shape]: InputFieldRef<Shape[K]>;
 };
 
 export type InputShapeFromField<Field extends InputFieldRef> = Field extends {

@@ -1,6 +1,16 @@
 import { SchemaTypes, FieldMap } from './types';
 import { BasePlugin } from './plugins';
-import { InputType, InputFieldMap, GiraphQLTypeConfig, GiraphQLTypeKind, ConfigurableRef } from '.';
+import {
+  InputType,
+  InputFieldMap,
+  GiraphQLTypeConfig,
+  GiraphQLTypeKind,
+  ConfigurableRef,
+  FieldRef,
+  InputFieldRef,
+  GiraphQLInputFieldConfig,
+  GiraphQLOutputFieldConfig,
+} from '.';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   constructor(plugin: Required<BasePlugin>) {
@@ -10,6 +20,13 @@ export default class ConfigStore<Types extends SchemaTypes> {
   plugin: Required<BasePlugin>;
 
   typeConfigs = new Map<string, GiraphQLTypeConfig>();
+
+  private fieldRefs = new WeakMap<FieldRef, (name: string) => GiraphQLOutputFieldConfig<Types>>();
+
+  private inputFieldRefs = new WeakMap<
+    InputFieldRef,
+    (name: string) => GiraphQLInputFieldConfig<Types>
+  >();
 
   private fields = new Map<string, FieldMap[]>();
 
@@ -26,6 +43,41 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   hasRef(ref: unknown) {
     return this.refsToName.has(ref as ConfigurableRef<Types>);
+  }
+
+  addFieldRef(ref: FieldRef, getConfig: (name: string) => GiraphQLOutputFieldConfig<Types>) {
+    if (this.fieldRefs.has(ref)) {
+      throw new Error(`FieldRef ${ref} has already been added to config store`);
+    }
+
+    this.fieldRefs.set(ref, getConfig);
+  }
+
+  getFieldConfig(ref: FieldRef, name: string) {
+    if (!this.fieldRefs.has(ref)) {
+      throw new Error(`FieldRef ${ref} has not been added to config store`);
+    }
+
+    return this.fieldRefs.get(ref)!(name);
+  }
+
+  addInputFieldRef(
+    ref: InputFieldRef,
+    getConfig: (name: string) => GiraphQLInputFieldConfig<Types>,
+  ) {
+    if (this.inputFieldRefs.has(ref)) {
+      throw new Error(`InputFieldRef ${ref} has already been added to config store`);
+    }
+
+    this.inputFieldRefs.set(ref, getConfig);
+  }
+
+  getInputFieldConfig(ref: InputFieldRef, name: string) {
+    if (!this.inputFieldRefs.has(ref)) {
+      throw new Error(`InputFieldRef ${ref} has not been added to config store`);
+    }
+
+    return this.inputFieldRefs.get(ref)!(name);
   }
 
   associateRefWithName(ref: ConfigurableRef<Types>, name: string) {
