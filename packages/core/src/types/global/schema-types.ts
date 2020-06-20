@@ -9,58 +9,41 @@ import './classes';
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface TypeInfo {
-      Scalar: {
+      Scalars: {
         [s: string]: {
           Input: unknown;
           Output: unknown;
         };
-        String: {
-          Input: unknown;
-          Output: unknown;
-        };
-        ID: {
-          Input: unknown;
-          Output: unknown;
-        };
-        Int: {
-          Input: unknown;
-          Output: unknown;
-        };
-        Float: {
-          Input: unknown;
-          Output: unknown;
-        };
-        Boolean: {
-          Input: unknown;
-          Output: unknown;
-        };
       };
-      Object: {};
-      Root: {};
-      Interface: {};
+      Objects: {};
+      Interfaces: {};
+      Root: object;
       Context: object;
     }
 
-    export interface PartialTypeInfo {
-      Scalar?: {
-        [s: string]: {
-          Input: unknown;
-          Output: unknown;
-        };
-      };
-      Object?: {};
-      Interface?: {};
-      Root?: {};
-      Context?: {};
-    }
-
-    export interface MergedTypeMap<Partial extends GiraphQLSchemaTypes.PartialTypeInfo>
+    export interface MergedTypeMap<PartialTypes extends Partial<GiraphQLSchemaTypes.TypeInfo>>
       extends SchemaTypes {
-      Scalar: Partial['Scalar'] & MergedScalars<Partial['Scalar'] & {}>;
-      Object: Partial['Object'] & {};
-      Interface: Partial['Interface'] & {};
-      Root: Partial['Root'] & {};
-      Context: Partial['Context'] & {};
+      Scalars: MergedScalars<PartialTypes>;
+      Objects: PartialTypes['Objects'] & {};
+      Interfaces: PartialTypes['Interfaces'] & {};
+      Root: PartialTypes['Root'] & {};
+      Context: PartialTypes['Context'] & {};
+      outputShapes: { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] } &
+        { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } &
+        {
+          [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
+            Output: infer T;
+          }
+            ? T
+            : never;
+        };
+      inputShapes: {
+        [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
+          Input: infer T;
+        }
+          ? T
+          : never;
+      };
     }
   }
 }

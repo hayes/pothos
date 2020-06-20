@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  ObjectFieldsShape,
   QueryFieldsShape,
   MutationFieldsShape,
   SubscriptionFieldsShape,
@@ -11,7 +10,7 @@ declare global {
   export namespace GiraphQLSchemaTypes {
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       extends?: {
-        [K in Types['objects']]?: ObjectFieldsShape<Types, Types['objects']>;
+        [K in keyof Types['Objects']]?: Types['Objects'][K];
       } & {
         Query?: QueryFieldsShape<Types>;
         Mutation?: MutationFieldsShape<Types>;

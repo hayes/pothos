@@ -11,7 +11,7 @@ import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
 import InternalObjectFieldBuilder from './fieldUtils/object';
 import InternalInterfaceFieldBuilder from './fieldUtils/interface';
 import SchemaBuilder from './builder';
-import { FieldKind, SchemaTypes, MergedSchemaTypes } from './types';
+import { FieldKind, SchemaTypes } from './types';
 import { BasePlugin } from './plugins';
 import EnumRef from './refs/enum';
 import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
@@ -41,11 +41,9 @@ export {
 };
 
 export default SchemaBuilder as {
-  new <Types extends GiraphQLSchemaTypes.PartialTypeInfo>(options?: {
+  new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo>>(options?: {
     plugins?: BasePlugin[];
-  }): GiraphQLSchemaTypes.SchemaBuilder<
-    MergedSchemaTypes<GiraphQLSchemaTypes.MergedTypeMap<Types>>
-  >;
+  }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.MergedTypeMap<Types>>;
 };
 
 export const FieldBuilder = InternalFieldBuilder as {

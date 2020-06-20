@@ -7,7 +7,7 @@ interface Giraffe {
 }
 
 const builder = new SchemaBuilder<{
-  Object: {
+  Objects: {
     Giraffe: Giraffe;
   };
 }>();

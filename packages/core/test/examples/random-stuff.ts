@@ -2,26 +2,31 @@ import SchemaBuilder from '../../src';
 
 // Define backing models/types
 type Types = {
-  Object: {
+  Objects: {
     User: { firstName: string; lastName: string };
     Article: { title: string; body: string };
     Sheep: { name: string; count: number; shaved: boolean };
   };
-  Interface: {
+  Interfaces: {
     Countable: { count: number };
     Shaveable: { shaved: boolean };
   };
-  Scalar: {
+  Scalars: {
     String: { Input: string; Output: string };
     ID: { Input: string; Output: string | number };
     Int: { Input: number; Output: number };
     Float: { Input: number; Output: number };
     Boolean: { Input: boolean; Output: boolean };
+    Date: { Input: string; Output: String };
   };
   Context: { userID: number };
 };
 
 const builder = new SchemaBuilder<Types>({});
+
+builder.scalarType('Date', {
+  serialize: (date) => date,
+});
 
 // Create input types
 const Example = builder.inputType('Example', {
@@ -30,6 +35,9 @@ const Example = builder.inputType('Example', {
     id2: t.int({ required: false }),
     ids: t.idList({ required: true }),
     ids2: t.intList({ required: false }),
+    date: t.field({
+      type: 'Date',
+    }),
   }),
 });
 
@@ -39,6 +47,7 @@ interface ExampleShape {
     id2?: number;
     ids: string[];
     ids2?: number[];
+    date?: string;
   };
   id?: string;
   ids: string[];

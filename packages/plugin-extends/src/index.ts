@@ -18,7 +18,7 @@ export default class ExtendsPlugin implements BasePlugin {
       const extendsMap = getObjectOptions(type).extends || {};
 
       Object.keys(extendsMap).forEach((key) => {
-        const shape = extendsMap[key];
+        const shape = extendsMap[key as keyof typeof extendsMap];
 
         if (shape) {
           if (key === 'Query') {

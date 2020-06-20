@@ -33,7 +33,7 @@ declare global {
       resolve?: Resolver<
         ResolveShape,
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
@@ -59,7 +59,7 @@ declare global {
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
@@ -74,17 +74,17 @@ declare global {
     >
       extends FieldOptions<
         Types,
-        Types['root'],
+        Types['Root'],
         Type,
         Nullable,
         Args,
-        Types['root'],
+        Types['Root'],
         ResolveReturnShape
       > {
       resolve: Resolver<
-        Types['root'],
+        Types['Root'],
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
@@ -99,17 +99,17 @@ declare global {
     >
       extends FieldOptions<
         Types,
-        Types['root'],
+        Types['Root'],
         Type,
         Nullable,
         Args,
-        Types['root'],
+        Types['Root'],
         ResolveReturnShape
       > {
       resolve: Resolver<
-        Types['root'],
+        Types['Root'],
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
@@ -135,7 +135,7 @@ declare global {
       resolve?: Resolver<
         ParentShape,
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
@@ -151,7 +151,7 @@ declare global {
     >
       extends FieldOptions<
         Types,
-        Types['root'],
+        Types['Root'],
         Type,
         Nullable,
         Args,
@@ -161,14 +161,14 @@ declare global {
       resolve: Resolver<
         ResolveShape,
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
       subscribe: Subscriber<
-        Types['root'],
+        Types['Root'],
         InputShapeFromFields<Args>,
-        Types['context'],
+        Types['Context'],
         ResolveShape
       >;
     }

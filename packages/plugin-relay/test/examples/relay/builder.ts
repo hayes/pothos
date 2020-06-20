@@ -4,7 +4,7 @@ import { Poll } from './data';
 import RelayPlugin from '../../../src';
 
 interface TypeInfo {
-  Object: {
+  Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
   };

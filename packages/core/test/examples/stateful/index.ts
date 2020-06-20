@@ -6,11 +6,13 @@ interface Giraffe {
   heightInMeters: number;
 }
 
-const builder = new SchemaBuilder<{
-  Object: {
+interface Types {
+  Objects: {
     Giraffe: Giraffe;
   };
-}>();
+}
+
+const builder = new SchemaBuilder<Types>();
 
 const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },

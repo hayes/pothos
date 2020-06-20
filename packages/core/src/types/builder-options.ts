@@ -61,19 +61,19 @@ export type InterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
 };
 
 export type QueryFieldsShape<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['root']>,
+  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
 ) => {
   [s: string]: Field<unknown>;
 };
 
 export type MutationFieldsShape<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['root']>,
+  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
 ) => {
   [s: string]: Field<unknown>;
 };
 
 export type SubscriptionFieldsShape<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['root']>,
+  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
 ) => {
   [s: string]: Field<unknown>;
 };
@@ -87,15 +87,15 @@ export type InterfaceFieldThunk<Types extends SchemaTypes, Shape> = (
 ) => Field<unknown>;
 
 export type QueryFieldThunk<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['root']>,
+  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
 ) => Field<unknown>;
 
 export type MutationFieldThunk<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['root']>,
+  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
 ) => Field<unknown>;
 
 export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['root']>,
+  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
 ) => Field<unknown>;
 
 export type FieldMap = {
@@ -143,7 +143,7 @@ export type ValidateInterfaces<
   Types extends SchemaTypes,
   Interfaces extends InterfaceParam<Types>
 > = Interfaces extends InterfaceParam<Types>
-  ? Shape extends OutputShape<Interfaces, Types>
+  ? Shape extends OutputShape<Types, Interfaces>
     ? Interfaces
     : 'Object shape must extends interface shape'
   : never;
@@ -180,7 +180,7 @@ export type CompatibleTypes<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>
 > = {
-  [K in keyof ParentShape]: ParentShape[K] extends ShapeFromTypeParam<Types, Type, Nullable>
+  [K in keyof ParentShape]-?: ParentShape[K] extends ShapeFromTypeParam<Types, Type, Nullable>
     ? K
     : never;
 }[keyof ParentShape];

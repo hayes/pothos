@@ -58,7 +58,7 @@ export interface ConnectionFieldOptions<
   resolve: Resolver<
     ParentShape,
     InputShapeFromFields<Args>,
-    Types['context'],
+    Types['Context'],
     ConnectionShapeForType<Types, Type, Nullable>,
     ResolveReturnShape
   >;

@@ -32,7 +32,7 @@ declare global {
     }
 
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
-      permissions?: PermissionCheckMap<Types, Types['root']>;
+      permissions?: PermissionCheckMap<Types, Types['Root']>;
       defaultPermissionCheck?: string | string[] | PermissionMatcher;
     }
 
@@ -104,15 +104,15 @@ declare global {
     >
       extends FieldOptions<
         Types,
-        Types['root'],
+        Types['Root'],
         Type,
         Nullable,
         Args,
         ResolveShape,
         ResolveReturnShape
       > {
-      permissionCheck?: PermissionCheck<Types, Types['root'], InputShapeFromFields<Args>>;
-      grantPermissions?: GrantPermissions<Types, Types['root'], InputShapeFromFields<Args>>;
+      permissionCheck?: PermissionCheck<Types, Types['Root'], InputShapeFromFields<Args>>;
+      grantPermissions?: GrantPermissions<Types, Types['Root'], InputShapeFromFields<Args>>;
     }
   }
 }

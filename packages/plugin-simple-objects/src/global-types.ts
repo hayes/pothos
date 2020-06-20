@@ -19,7 +19,7 @@ declare global {
       simpleObject<
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
-        Shape extends OutputShapeFromFields<Fields> & OutputShape<Interfaces[number], Types>
+        Shape extends OutputShapeFromFields<Fields> & OutputShape<Types, Interfaces[number]>
       >(
         name: string,
         options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,

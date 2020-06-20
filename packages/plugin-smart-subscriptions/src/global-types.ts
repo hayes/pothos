@@ -16,7 +16,7 @@ declare global {
       subscribe?: (
         subscriptions: TypeSubscriptionManager<Shape>,
         parent: Shape,
-        context: Types['context'],
+        context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
     }
@@ -31,9 +31,9 @@ declare global {
       smartSubscription?: boolean;
       subscribe?: (
         subscriptions: FieldSubscriptionManager,
-        parent: Types['root'],
+        parent: Types['Root'],
         args: InputShapeFromFields<Args>,
-        context: Types['context'],
+        context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
     }
@@ -50,7 +50,7 @@ declare global {
         subscriptions: FieldSubscriptionManager,
         parent: ParentShape,
         args: InputShapeFromFields<Args>,
-        context: Types['context'],
+        context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
       canRefetch?: boolean;

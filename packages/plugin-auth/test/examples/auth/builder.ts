@@ -4,7 +4,7 @@ import { User } from './data';
 import AuthPlugin from '../../../src';
 
 type Types = {
-  Object: {
+  Objects: {
     User: User;
     Circle: { type: 'circle'; radius: number };
     Square: { type: 'square'; edgeLength: number };
@@ -16,7 +16,7 @@ type Types = {
     LinePostResolveFail: { type: 'line-post-resolve-fail'; length: number };
     Point: { type: 'point' };
   };
-  Interface: {
+  Interfaces: {
     Shape: { type: string };
     Thing: { type: string };
     ThingWithCorners: { type: string };
@@ -28,7 +28,7 @@ type Types = {
     PostResolveFail: { type: string };
     SkipImplementorPreResolve: { type: string };
   };
-  Scalar: {
+  Scalars: {
     ID: { Input: string; Output: string | number };
   };
   Context: ContextType;

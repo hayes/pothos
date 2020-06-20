@@ -44,8 +44,8 @@ declare global {
     > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isType'> {
       interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
       isType: (
-        obj: OutputShape<Interfaces[number], Types>,
-        context: Types['context'],
+        obj: OutputShape<Types, Interfaces[number]>,
+        context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => boolean;
     }
@@ -95,8 +95,8 @@ declare global {
       description?: string;
       types: Member[];
       resolveType: (
-        parent: OutputShape<Member, Types>,
-        context: Types['context'],
+        parent: OutputShape<Types, Member>,
+        context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => Member | Promise<Member>;
       extensions?: Readonly<Record<string, unknown>>;

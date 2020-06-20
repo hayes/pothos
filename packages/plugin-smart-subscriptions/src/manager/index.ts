@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { RegisterOptions } from '../types';
 
-export default class SubscriptionManager implements AsyncIterator<unknown> {
+export default class SubscriptionManager implements AsyncIterator<object> {
   activeSubscriptions = new Set<string>();
 
   nextSubscriptions = new Set<string>();
@@ -22,7 +22,7 @@ export default class SubscriptionManager implements AsyncIterator<unknown> {
 
   pendingError: unknown;
 
-  value: unknown;
+  value: object;
 
   resolveNext: ((done?: boolean) => void) | null = null;
 
@@ -40,7 +40,7 @@ export default class SubscriptionManager implements AsyncIterator<unknown> {
     subscribe,
     unsubscribe,
   }: {
-    value: unknown;
+    value: object;
     debounceDelay?: number | null;
     subscribe: (name: string, cb: (err: unknown, data: unknown) => void) => Promise<void> | void;
     unsubscribe: (name: string) => Promise<void> | void;
@@ -103,10 +103,10 @@ export default class SubscriptionManager implements AsyncIterator<unknown> {
   throw(error: unknown) {
     this.handleError(error);
 
-    return Promise.reject<IteratorResult<unknown>>(error);
+    return Promise.reject<IteratorResult<object>>(error);
   }
 
-  async next(): Promise<IteratorResult<unknown>> {
+  async next(): Promise<IteratorResult<object>> {
     if (this.pendingError) {
       throw this.pendingError;
     }
@@ -138,7 +138,7 @@ export default class SubscriptionManager implements AsyncIterator<unknown> {
       };
     }
 
-    return new Promise<IteratorResult<unknown>>((resolve, reject) => {
+    return new Promise<IteratorResult<object>>((resolve, reject) => {
       this.resolveNext = (done = false) => {
         this.resolveNext = null;
         this.rejectNext = null;

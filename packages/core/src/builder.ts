@@ -72,8 +72,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
     param: Param,
-    options: ObjectTypeOptions<Types, OutputShape<Param, Types>, Interfaces>,
-    shape?: ObjectFieldsShape<Types, OutputShape<Param, Types>>,
+    options: ObjectTypeOptions<Types, OutputShape<Types, Param>, Interfaces>,
+    shape?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
   ) {
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
 
@@ -81,22 +81,25 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
     }
 
-    const ref: ObjectRef<OutputShape<Param, Types>> =
-      param instanceof ObjectRef ? param : new ObjectRef<OutputShape<Param, Types>>(name);
+    const ref: ObjectRef<OutputShape<Types, Param>> =
+      param instanceof ObjectRef ? param : new ObjectRef<OutputShape<Types, Param>>(name);
 
     const config: GiraphQLObjectTypeConfig = {
       kind: 'Object',
       name,
       interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
-      isTypeOf: options.isType as GraphQLIsTypeOfFn<unknown, Types['context']>,
+      isTypeOf: options.isType as GraphQLIsTypeOfFn<unknown, Types['Context']>,
       giraphqlOptions: options as GiraphQLSchemaTypes.ObjectTypeOptions,
     };
 
     this.configStore.addTypeConfig(config, ref);
 
     if (shape) {
-      this.configStore.buildFields(ref, shape(new ObjectFieldBuilder(name, this)));
+      this.configStore.buildFields(
+        ref,
+        shape(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)),
+      );
     }
 
     if (options.fields) {
@@ -108,7 +111,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   objectFields<Type extends ObjectParam<Types>>(
     ref: Type,
-    fields: ObjectFieldsShape<Types, OutputShape<Type, Types>>,
+    fields: ObjectFieldsShape<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.resolveRef(ref, ({ name }) => {
       this.configStore.buildFields(ref, fields(new ObjectFieldBuilder(name, this)));
@@ -118,7 +121,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   objectField<Type extends ObjectParam<Types>>(
     ref: Type,
     fieldName: string,
-    field: ObjectFieldThunk<Types, OutputShape<Type, Types>>,
+    field: ObjectFieldThunk<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.resolveRef(ref, ({ name }) => {
       this.configStore.buildFields(ref, {
@@ -229,12 +232,12 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   interfaceType<Param extends InterfaceParam<Types>>(
     param: Param,
-    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Param, Types>>,
-    fields?: InterfaceFieldsShape<Types, OutputShape<Param, Types>>,
+    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Types, Param>>,
+    fields?: InterfaceFieldsShape<Types, OutputShape<Types, Param>>,
   ) {
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
-    const ref: InterfaceRef<OutputShape<Param, Types>> =
-      param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Param, Types>>(name);
+    const ref: InterfaceRef<OutputShape<Types, Param>> =
+      param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Types, Param>>(name);
 
     const typename = ref.name;
 
@@ -260,7 +263,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   interfaceFields<Type extends InterfaceParam<Types>>(
     ref: Type,
-    fields: InterfaceFieldsShape<Types, OutputShape<Type, Types>>,
+    fields: InterfaceFieldsShape<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.resolveRef(ref, ({ name }) => {
       this.configStore.buildFields(ref, fields(new InterfaceFieldBuilder(name, this)));
@@ -270,7 +273,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   interfaceField<Type extends InterfaceParam<Types>>(
     ref: Type,
     fieldName: string,
-    field: InterfaceFieldThunk<Types, OutputShape<Type, Types>>,
+    field: InterfaceFieldThunk<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.resolveRef(ref, ({ name }) => {
       this.configStore.buildFields(ref, {
@@ -283,7 +286,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     name: string,
     options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>,
   ) {
-    const ref = new UnionRef<OutputShape<Member, Types>>(name);
+    const ref = new UnionRef<OutputShape<Types, Member>>(name);
 
     const config: GiraphQLUnionTypeConfig = {
       kind: 'Union',
@@ -323,11 +326,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   scalarType<Name extends ScalarName<Types>>(
     name: Name,
     options: GiraphQLSchemaTypes.ScalarTypeOptions<
-      InputShape<Name, Types>,
-      OutputShape<Name, Types>
+      InputShape<Types, Name>,
+      OutputShape<Types, Name>
     >,
   ) {
-    const ref = new ScalarRef<InputShape<Name, Types>, OutputShape<Name, Types>>(name);
+    const ref = new ScalarRef<InputShape<Types, Name>, OutputShape<Types, Name>>(name);
 
     const config: GiraphQLScalarTypeConfig = {
       kind: 'Scalar',
@@ -348,7 +351,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     name: Name,
     scalar: GraphQLScalarType,
     options: Omit<
-      GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Name, Types>, OutputShape<Name, Types>>,
+      GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Types, Name>, OutputShape<Types, Name>>,
       'description' | 'parseLiteral' | 'parseValue' | 'serialize'
     >,
   ) {
@@ -357,7 +360,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return this.scalarType<Name>(name, {
       ...config,
       ...options,
-    } as GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Name, Types>, OutputShape<Name, Types>>);
+    } as GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Types, Name>, OutputShape<Types, Name>>);
   }
 
   inputType<Param extends string | InputObjectRef<unknown>, Fields extends InputFieldMap>(

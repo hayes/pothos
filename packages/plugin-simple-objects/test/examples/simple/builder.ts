@@ -4,6 +4,12 @@ import SimpleObjectsPlugin from '../../../src';
 
 type Types = {
   Context: ContextType;
+  Scalars: {
+    ID: {
+      Input: string;
+      Output: string | number;
+    };
+  };
 };
 
 export default new SchemaBuilder<Types>({

@@ -11,38 +11,38 @@ export interface AuthPluginOptions {
 
 export type SharedPermissionCheck<Types extends SchemaTypes, ParentShape> = (
   parent: ParentShape,
-  context: Types['context'],
+  context: Types['Context'],
 ) => MaybePromise<boolean>;
 
 export type FieldPermissionCheck<Types extends SchemaTypes, ParentShape, Args> = (
   parent: ParentShape,
   args: Args,
-  context: Types['context'],
+  context: Types['Context'],
 ) => MaybePromise<boolean | string | string[] | PermissionMatcher>;
 
 export type PermissionGrantMap = { [s: string]: boolean | undefined };
 
 export type PreResolveCheck<Types extends SchemaTypes> = (
-  context: Types['context'],
+  context: Types['Context'],
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type PostResolveCheck<Types extends SchemaTypes, Shape> = (
   parent: Shape,
-  context: Types['context'],
+  context: Types['Context'],
   grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type InterfacePostResolveCheck<Types extends SchemaTypes, Shape> = (
   type: string,
   parent: Shape,
-  context: Types['context'],
+  context: Types['Context'],
   grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
 export type UnionPostResolveCheck<Types extends SchemaTypes, Member extends ObjectParam<Types>> = (
   typename: string,
-  parent: OutputShape<Member, Types>,
-  context: Types['context'],
+  parent: OutputShape<Types, Member>,
+  context: Types['Context'],
   grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
@@ -55,7 +55,7 @@ export type GrantPermissions<Types extends SchemaTypes, ParentShape, Args> =
   | ((
       parent: ParentShape,
       args: Args,
-      context: Types['context'],
+      context: Types['Context'],
     ) => MaybePromise<PermissionGrantMap>);
 
 export type PermissionCheck<Types extends SchemaTypes, ParentShape, Args> =

@@ -4,7 +4,7 @@ import { User } from './data';
 import ExtendsPlugin from '../../../src';
 
 type Types = {
-  Object: {
+  Objects: {
     User: User;
   };
   Context: ContextType;
