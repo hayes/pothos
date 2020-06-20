@@ -45,7 +45,7 @@ export default class AuthPlugin implements BasePlugin {
     name: string,
     config: GraphQLFieldConfig<unknown, unknown>,
     data: GiraphQLSchemaTypes.FieldWrapData,
-    cache: BuildCache,
+    cache: BuildCache<any>,
   ) {
     data.giraphqlAuth = createFieldData(parentType, name, config, cache, this);
   }

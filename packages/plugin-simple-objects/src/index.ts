@@ -31,7 +31,7 @@ proto.simpleObject = function simpleObject<
       const fields = originalFields(t);
 
       Object.keys(fields).forEach((key) => {
-        const config = this.configStore.getFieldConfig(fields[key], key);
+        const config = this.configStore.getFieldConfig(fields[key], key, 'Object');
 
         config.resolve = (parent) => (parent as Record<string, unknown>)[key] as Readonly<unknown>;
       });
@@ -62,7 +62,7 @@ proto.simpleInterface = function simpleInterface<
       const fields = originalFields(t);
 
       Object.keys(fields).forEach((key) => {
-        const config = this.configStore.getFieldConfig(fields[key], key);
+        const config = this.configStore.getFieldConfig(fields[key], key, 'Interface');
 
         config.resolve = (parent) => (parent as Record<string, unknown>)[key] as Readonly<unknown>;
       });

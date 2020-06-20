@@ -6,6 +6,6 @@ export default class ObjectFieldBuilder<
   ParentShape
 > extends FieldBuilder<Types, ParentShape, 'Object'> {
   constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super(name, builder, 'Object');
+    super(name, builder, 'Object', 'Object');
   }
 }

@@ -31,6 +31,11 @@ declare global {
       ): InterfaceRef<Shape>;
     }
 
+    export interface GiraphQLKindToGraphQLType {
+      SimpleObject: 'Object';
+      SimpleInterface: 'Interface';
+    }
+
     export interface FieldOptionsByKind<
       Types extends SchemaTypes,
       ParentShape,

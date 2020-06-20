@@ -74,7 +74,7 @@ export function wrapResolver(
   name: string,
   config: GraphQLFieldConfig<unknown, object>,
   plugin: Required<BasePlugin>,
-  cache: BuildCache,
+  cache: BuildCache<any>,
 ) {
   const originalResolver = config.resolve || defaultFieldResolver;
   const originalSubscribe = config.subscribe;

@@ -34,7 +34,7 @@ export default class ExtendsPlugin implements BasePlugin {
               (shape as SubscriptionFieldsShape<any>)(new SubscriptionFieldBuilder(builder)),
             );
           } else {
-            builder.objectFields(key, () => shape(new ObjectFieldBuilder(key, builder)));
+            builder.objectFields(key, () => shape(new ObjectFieldBuilder(key, builder) as never));
           }
         }
       });

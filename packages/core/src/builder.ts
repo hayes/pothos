@@ -114,7 +114,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     ref: Type,
     fields: ObjectFieldsShape<Types, OutputShape<Types, Type>>,
   ) {
-    this.configStore.resolveRef(ref, ({ name }) => {
+    this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.buildFields(ref, fields(new ObjectFieldBuilder(name, this)));
     });
   }
@@ -124,7 +124,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fieldName: string,
     field: ObjectFieldThunk<Types, OutputShape<Types, Type>>,
   ) {
-    this.configStore.resolveRef(ref, ({ name }) => {
+    this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.buildFields(ref, {
         [fieldName]: field(new ObjectFieldBuilder(name, this)),
       });
@@ -234,9 +234,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return fields(new InputFieldBuilder<Types>(this, 'Arg'));
   }
 
-  interfaceType<Param extends InterfaceParam<Types>>(
+  interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(
     param: Param,
-    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Types, Param>>,
+    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Types, Param>, Interfaces>,
     fields?: InterfaceFieldsShape<Types, OutputShape<Types, Param>>,
   ) {
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
@@ -249,6 +249,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       kind: 'Interface',
       graphqlKind: 'Interface',
       name: typename,
+      interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InterfaceTypeOptions,
     };
@@ -270,7 +271,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     ref: Type,
     fields: InterfaceFieldsShape<Types, OutputShape<Types, Type>>,
   ) {
-    this.configStore.resolveRef(ref, ({ name }) => {
+    this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.buildFields(ref, fields(new InterfaceFieldBuilder(name, this)));
     });
   }
@@ -280,7 +281,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fieldName: string,
     field: InterfaceFieldThunk<Types, OutputShape<Types, Type>>,
   ) {
-    this.configStore.resolveRef(ref, ({ name }) => {
+    this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.buildFields(ref, {
         [fieldName]: field(new InterfaceFieldBuilder(name, this)),
       });
@@ -392,10 +393,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.addTypeConfig(config, ref);
 
-    this.configStore.buildInputFields(
-      ref,
-      options.fields(new InputFieldBuilder(this, 'InputObject')),
-    );
+    this.configStore.buildFields(ref, options.fields(new InputFieldBuilder(this, 'InputObject')));
 
     return ref;
   }

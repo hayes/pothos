@@ -15,10 +15,18 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
 
   kind: Kind;
 
-  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind) {
+  graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[Kind];
+
+  constructor(
+    name: string,
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    kind: Kind,
+    graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[Kind],
+  ) {
     this.typename = name;
     this.builder = builder;
     this.kind = kind;
+    this.graphqlKind = graphqlKind;
   }
 
   protected createField<
@@ -34,13 +42,14 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
 
     if (options.args) {
       Object.keys(options.args).forEach((name) => {
-        args[name] = this.builder.configStore.getInputFieldConfig(options.args![name], name);
+        args[name] = this.builder.configStore.getFieldConfig(options.args![name], name, 'Arg');
       });
     }
 
     this.builder.configStore.addFieldRef(ref, (name) => {
       return {
-        kind: this.kind as FieldKind,
+        kind: this.kind as any,
+        graphqlKind: this.graphqlKind as GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
         name,
         args,
         type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? false),

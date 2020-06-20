@@ -18,7 +18,7 @@ export function typeFromNonListParam<Types extends SchemaTypes>(
   configStore: ConfigStore<Types>,
   nullable: boolean,
 ): GiraphQLNameOutputFieldType<Types> {
-  const typeConfig = configStore.resolveImplementedRef(ref);
+  const typeConfig = configStore.getTypeConfig(ref);
 
   if (typeConfig.graphqlKind !== 'InputObject') {
     return {
@@ -57,7 +57,7 @@ export function inputTypeFromNonListParam<Types extends SchemaTypes>(
   configStore: ConfigStore<Types>,
   required: boolean,
 ): GiraphQLNameInputFieldType<Types> {
-  const typeConfig = configStore.resolveImplementedRef(ref);
+  const typeConfig = configStore.getTypeConfig(ref);
 
   if (
     typeConfig.kind === 'InputObject' ||

@@ -70,7 +70,7 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
   ) as Pick<Required<BasePlugin>, 'afterBuild'>[];
 
   return {
-    visitType(type: GraphQLNamedType, cache: BuildCache) {
+    visitType(type: GraphQLNamedType, cache: BuildCache<any>) {
       for (const plugin of visitTypePlugins) {
         plugin.visitType(type, cache);
       }
@@ -80,7 +80,7 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       type: GraphQLObjectType | GraphQLInterfaceType,
       name: string,
       config: GraphQLFieldConfig<unknown, object>,
-      cache: BuildCache,
+      cache: BuildCache<any>,
     ) {
       return updateFieldConfigPlugins.reduce(
         (newConfig, plugin) => plugin.updateFieldConfig(type, name, newConfig, cache),
@@ -93,7 +93,7 @@ export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
       name: string,
       config: GraphQLFieldConfig<unknown, object>,
       data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
-      cache: BuildCache,
+      cache: BuildCache<any>,
     ) {
       for (const plugin of onFieldWrapPlugins) {
         plugin.onFieldWrap(type, name, config, data, cache);

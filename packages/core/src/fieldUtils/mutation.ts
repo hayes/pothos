@@ -6,6 +6,6 @@ export default class MutationFieldBuilder<
   ParentShape
 > extends RootFieldBuilder<Types, ParentShape, 'Mutation'> {
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super('Mutation', builder, 'Mutation');
+    super('Mutation', builder, 'Mutation', 'Object');
   }
 }

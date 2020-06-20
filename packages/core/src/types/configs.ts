@@ -57,9 +57,10 @@ export interface GiraphQLObjectTypeConfig
 }
 
 export interface GiraphQLInterfaceTypeConfig
-  extends Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields'> {
+  extends Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Interface';
   graphqlKind: 'Interface';
+  interfaces: ObjectParam<SchemaTypes>[];
   giraphqlOptions: GiraphQLSchemaTypes.InterfaceTypeOptions;
 }
 
@@ -103,43 +104,39 @@ export type GiraphQLTypeConfig =
 
 export type GiraphQLTypeKind = GiraphQLTypeConfig['kind'];
 
-export type GiraphQLKindToGraphQLType<T extends GiraphQLTypeKind> = {
+export type GiraphQLKindToGraphQLTypeClass<T extends GiraphQLTypeKind> = {
   Object: GraphQLObjectType;
-  Query: GraphQLObjectType;
-  Mutation: GraphQLObjectType;
-  Subscription: GraphQLObjectType;
   Interface: GraphQLInterfaceType;
   Union: GraphQLUnionType;
   Enum: GraphQLEnumType;
   Scalar: GraphQLScalarType;
   InputObject: GraphQLInputObjectType;
-}[T];
+}[GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[T]];
 
-export type GiraphQLFieldKindToConfig<
-  Types extends SchemaTypes,
-  Kind extends FieldKind
-> = Kind extends FieldKind
-  ? Omit<GraphQLFieldConfig<unknown, object>, 'type' | 'args'> & {
-      kind: Kind;
-      name: string;
-      type: GiraphQLOutputFieldType<Types>;
-      args: { [name: string]: GiraphQLInputFieldConfig<Types> };
-      options: FieldOptionsFromKind<
-        Types,
-        unknown,
-        TypeParam<Types>,
-        FieldNullability<[unknown]>,
-        InputFieldMap,
-        Kind,
-        unknown,
-        unknown
-      >;
-    }
-  : never;
+export type GiraphQLFieldKindToConfig<Types extends SchemaTypes, Kind extends FieldKind> = {
+  [K in FieldKind]: Omit<GraphQLFieldConfig<unknown, object>, 'type' | 'args'> & {
+    kind: K;
+    graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[K];
+    name: string;
+    type: GiraphQLOutputFieldType<Types>;
+    args: { [name: string]: GiraphQLInputFieldConfig<Types> };
+    options: FieldOptionsFromKind<
+      Types,
+      unknown,
+      TypeParam<Types>,
+      FieldNullability<[unknown]>,
+      InputFieldMap,
+      K,
+      unknown,
+      unknown
+    >;
+  };
+}[Kind];
 
 export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
   extends Omit<GraphQLInputFieldConfig, 'type'> {
   kind: 'InputObject' | 'Arg';
+  graphqlKind: 'InputObject' | 'Arg';
   name: string;
   type: GiraphQLInputFieldType<Types>;
   options: GiraphQLSchemaTypes.InputFieldOptions<
@@ -158,7 +155,7 @@ export type GiraphQLFieldConfig<Types extends SchemaTypes> =
   | GiraphQLOutputFieldConfig<Types>
   | GiraphQLInputFieldConfig<Types>;
 
-export type GiraphQLFieldKind = GiraphQLTypeConfig['kind'];
+export type GraphQLFieldKind = GiraphQLFieldConfig<SchemaTypes>['graphqlKind'];
 
 export type GiraphQLOutputFieldType<Types extends SchemaTypes> =
   | {

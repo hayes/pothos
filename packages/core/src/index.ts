@@ -61,6 +61,7 @@ export const RootFieldBuilder = InternalRootFieldBuilder as {
     name: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
     kind: FieldKind,
+    graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
   ): GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 };
 
@@ -86,7 +87,6 @@ export const ObjectFieldBuilder = InternalObjectFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     name: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    kind?: FieldKind,
   ): GiraphQLSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
 };
 
@@ -94,7 +94,6 @@ export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as {
   new <Types extends SchemaTypes, ParentShape>(
     name: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    kind?: FieldKind,
   ): GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
 };
 

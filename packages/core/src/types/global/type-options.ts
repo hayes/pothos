@@ -81,10 +81,12 @@ declare global {
 
     export interface InterfaceTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Shape = unknown
+      Shape = unknown,
+      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
     > {
       description?: string;
       fields?: InterfaceFieldsShape<Types, Shape>;
+      interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
       extensions?: Readonly<Record<string, unknown>>;
     }
 

@@ -155,15 +155,16 @@ export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
   ? T
   : never;
 
-export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
-  SchemaTypes,
-  {},
-  TypeParam<SchemaTypes>,
-  boolean,
-  {},
-  {},
-  {}
->;
+export type FieldKind = keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType &
+  keyof GiraphQLSchemaTypes.FieldOptionsByKind<
+    SchemaTypes,
+    {},
+    TypeParam<SchemaTypes>,
+    boolean,
+    {},
+    {},
+    {}
+  >;
 
 export type CompatibleTypes<
   Types extends SchemaTypes,

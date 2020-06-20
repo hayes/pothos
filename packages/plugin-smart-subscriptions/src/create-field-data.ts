@@ -37,7 +37,7 @@ export default function createFieldData(
   name: string,
   config: GraphQLFieldConfig<unknown, object>,
   data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
-  buildCache: BuildCache,
+  buildCache: BuildCache<any>,
 ) {
   data.smartSubscriptions = { subscriptionByType: {}, canRefetch: false };
   const fieldType = unwrapType(config.type);

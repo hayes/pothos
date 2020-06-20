@@ -58,10 +58,11 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
   ) {
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>> = {} as any;
 
-    this.builder.configStore.addInputFieldRef(ref, (name) => {
+    this.builder.configStore.addFieldRef(ref, (name) => {
       return {
         name,
         kind: this.kind,
+        graphqlKind: this.kind,
         type: inputTypeFromParam<Types>(
           options.type,
           this.builder.configStore,

@@ -12,13 +12,13 @@ import BuildCache from '../build-cache';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
 export interface BasePlugin {
-  visitType?(type: GraphQLNamedType, cache: BuildCache): void;
+  visitType?(type: GraphQLNamedType, cache: BuildCache<any>): void;
 
   updateFieldConfig?(
     type: GraphQLObjectType | GraphQLInterfaceType,
     name: string,
     config: GraphQLFieldConfig<unknown, object>,
-    cache: BuildCache,
+    cache: BuildCache<any>,
   ): GraphQLFieldConfig<unknown, object>;
 
   onFieldWrap?(
@@ -26,7 +26,7 @@ export interface BasePlugin {
     name: string,
     config: GraphQLFieldConfig<unknown, object>,
     data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
-    cache: BuildCache,
+    cache: BuildCache<any>,
   ): void;
 
   onType?(type: GraphQLType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;

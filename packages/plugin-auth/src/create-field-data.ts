@@ -45,7 +45,7 @@ function unwrapType(type: GraphQLType): GraphQLNamedType {
   return type;
 }
 
-function getObjectChecks(type: GraphQLObjectType, cache: BuildCache) {
+function getObjectChecks(type: GraphQLObjectType, cache: BuildCache<any>) {
   const preResolveMap = new Map<GraphQLNamedType, PreResolveCheck<any>>();
   const postResolveMap = new Map<GraphQLNamedType, PostResolveCheck<any, unknown>>();
 
@@ -80,7 +80,7 @@ function getObjectChecks(type: GraphQLObjectType, cache: BuildCache) {
 
 function getInterfaceChecks(
   type: GraphQLInterfaceType,
-  cache: BuildCache,
+  cache: BuildCache<any>,
   plugin: AuthPlugin,
 ): ResolveChecksForType {
   const preResolveMap = new Map<GraphQLNamedType, PreResolveCheck<any>>();
@@ -112,7 +112,7 @@ function getInterfaceChecks(
 
 function getUnionChecks(
   type: GraphQLUnionType,
-  cache: BuildCache,
+  cache: BuildCache<any>,
   plugin: AuthPlugin,
 ): ResolveChecksForType {
   const preResolveMap = new Map<GraphQLNamedType, PreResolveCheck<any>>();
@@ -161,7 +161,7 @@ function getUnionChecks(
 
 function getChecks(
   type: GraphQLNamedType,
-  cache: BuildCache,
+  cache: BuildCache<any>,
   plugin: AuthPlugin,
 ): ResolveChecksForType {
   if (type instanceof GraphQLObjectType) {
@@ -188,7 +188,7 @@ export function createFieldData(
   parentType: GraphQLObjectType | GraphQLInterfaceType,
   name: string,
   config: GraphQLFieldConfig<unknown, object>,
-  cache: BuildCache,
+  cache: BuildCache<any>,
   plugin: AuthPlugin,
 ): AuthFieldData {
   const returnType = unwrapType(config.type);

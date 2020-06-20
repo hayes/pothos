@@ -8,6 +8,18 @@ import './classes';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface GiraphQLKindToGraphQLType {
+      Object: 'Object';
+      Query: 'Object';
+      Mutation: 'Object';
+      Subscription: 'Object';
+      Interface: 'Interface';
+      Union: 'Union';
+      Enum: 'Enum';
+      Scalar: 'Scalar';
+      InputObject: 'InputObject';
+    }
+
     export interface TypeInfo {
       Scalars: {
         [s: string]: {

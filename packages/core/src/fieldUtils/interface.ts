@@ -6,6 +6,6 @@ export default class InterfaceFieldBuilder<
   ParentShape
 > extends FieldBuilder<Types, ParentShape, 'Interface'> {
   constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super(name, builder, 'Interface');
+    super(name, builder, 'Interface', 'Interface');
   }
 }
