@@ -4,16 +4,25 @@ exports[`Code generator example schema 1`] = `
 "import SchemaBuilder from \\"@giraphql/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
-    Object: {
+    Objects: {
         User: unknown;
         Sheep: unknown;
         Article: unknown;
     };
-    Interface: {
+    Interfaces: {
         Countable: unknown;
         Shaveable: unknown;
     };
+    Scalars: {
+        Date: {
+            Input: never;
+            Output: never;
+        };
+    };
 }>();
+builder.scalarType('Date', {
+    serialize: () => { throw new Error('Not implemented'); },
+});
 const SearchResult = builder.unionType('SearchResult', {
     types: ['User', 'Article'],
     resolveType: (parent, context, info) => {
@@ -51,17 +60,22 @@ const Example = builder.inputType('Example', {
             type: ['Int'],
             required: { list: false, items: true },
         }),
+        date: t.field({
+            type: 'Date',
+            required: false,
+        }),
     }),
 });
 interface Example2Shape {
     example: {
-        id: string;
+        id: (string | number);
         id2: number | null | undefined;
-        ids: string[];
+        ids: (string | number)[];
         ids2: number[] | null | undefined;
+        date: unknown | null | undefined;
     };
-    id: string | null | undefined;
-    ids: string[];
+    id: (string | number) | null | undefined;
+    ids: (string | number)[];
     more: Example2Shape;
 }
 const Example2 = builder.inputRef<Example2Shape>('Example2');
@@ -117,10 +131,6 @@ const Shaveable = builder.interfaceType('Shaveable', {
 });
 builder.objectType('User', {
     fields: t => ({
-        newField: t.field({
-            type: 'String',
-            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
-        }),
         id: t.field({
             type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -228,6 +238,10 @@ builder.objectType('User', {
             },
             type: ['ID'],
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        newField: t.field({
+            type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
@@ -301,7 +315,10 @@ interface Countable {
   count(max: Int!): Int!
 }
 
+scalar Date
+
 input Example {
+  date: Date
   id: ID!
   id2: Int
   ids: [ID!]!
@@ -374,11 +391,11 @@ exports[`Code generator starwars schema 1`] = `
 "import SchemaBuilder from \\"@giraphql/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
-    Object: {
+    Objects: {
         Droid: unknown;
         Human: unknown;
     };
-    Interface: {
+    Interfaces: {
         Character: unknown;
     };
 }>();

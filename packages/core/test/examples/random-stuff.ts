@@ -12,11 +12,6 @@ type Types = {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    String: { Input: string; Output: string };
-    ID: { Input: string; Output: string | number };
-    Int: { Input: number; Output: number };
-    Float: { Input: number; Output: number };
-    Boolean: { Input: boolean; Output: boolean };
     Date: { Input: string; Output: String };
   };
   Context: { userID: number };
@@ -43,14 +38,14 @@ const Example = builder.inputType('Example', {
 
 interface ExampleShape {
   example: {
-    id: string;
+    id: string | number;
     id2?: number;
-    ids: string[];
+    ids: (string | number)[];
     ids2?: number[];
     date?: string;
   };
-  id?: string;
-  ids: string[];
+  id?: string | number;
+  ids: (string | number)[];
   more: ExampleShape;
 }
 
@@ -111,7 +106,7 @@ builder.objectType('User', {
         firstN: t.arg.id({}),
       },
       resolve: (parent, args) => {
-        return Number.parseInt(args.example2.more.more.more.example.id, 10);
+        return Number.parseInt(String(args.example2.more.more.more.example.id), 10);
       },
     }),
     // Using a union type
@@ -148,7 +143,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
+      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
     }),
     sparseList: t.idList({
       args: {

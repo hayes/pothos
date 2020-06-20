@@ -300,7 +300,6 @@ export default class GirphQLConverter {
     this.sourcefile.addStatements((writer) => {
       writer.writeLine(`builder.scalarType('${type.name}', {`);
       writer.indent(() => {
-        writer.writeLine(`name: '${type.name}',`);
         writer.writeLine(`serialize: () => { throw new Error('Not implemented') },`);
       });
       writer.writeLine('})');
@@ -538,7 +537,7 @@ export default class GirphQLConverter {
           writer.write('number');
           break;
         case 'ID':
-          writer.write('string');
+          writer.write('(string | number)');
           break;
         case 'Boolean':
           writer.write('boolean');
@@ -663,7 +662,7 @@ export default class GirphQLConverter {
         type.name !== 'Subscription',
     ) as GraphQLObjectType[];
     if (objects.length !== 0) {
-      writer.writeLine('Object: {');
+      writer.writeLine('Objects: {');
       writer.indent(() => {
         objects.forEach((type) => {
           writer.writeLine(`${type.name}: unknown,`);
@@ -676,7 +675,7 @@ export default class GirphQLConverter {
       (type) => type instanceof GraphQLInterfaceType,
     ) as GraphQLInterfaceType[];
     if (interfaces.length !== 0) {
-      writer.writeLine('Interface: {');
+      writer.writeLine('Interfaces: {');
       writer.indent(() => {
         interfaces.forEach((type) => {
           writer.writeLine(`${type.name}: unknown,`);
@@ -689,10 +688,10 @@ export default class GirphQLConverter {
       (type) => type instanceof GraphQLScalarType,
     ) as GraphQLScalarType[];
     if (scalars.length !== 0) {
-      writer.writeLine('Scalar: {');
+      writer.writeLine('Scalars: {');
       writer.indent(() => {
         scalars.forEach((type) => {
-          writer.writeLine(`${type.name}: { Input: unknown, Output: unknown },`);
+          writer.writeLine(`${type.name}: { Input: never, Output: never },`);
         });
       });
       writer.writeLine('},');
