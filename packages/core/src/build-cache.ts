@@ -1,9 +1,4 @@
 import {
-  GraphQLString,
-  GraphQLInt,
-  GraphQLID,
-  GraphQLFloat,
-  GraphQLBoolean,
   GraphQLNamedType,
   GraphQLEnumType,
   GraphQLInterfaceType,
@@ -16,6 +11,13 @@ import {
   GraphQLInputType,
   GraphQLInputFieldConfigMap,
   GraphQLFieldConfigArgumentMap,
+  GraphQLNonNull,
+  GraphQLList,
+  GraphQLID,
+  GraphQLBoolean,
+  GraphQLString,
+  GraphQLFloat,
+  GraphQLInt,
 } from 'graphql';
 import { ResolverMap } from './types';
 import {
@@ -39,6 +41,8 @@ import {
   ImplementableInputObjectRef,
   GiraphQLOutputFieldConfig,
   GiraphQLInputFieldConfig,
+  GiraphQLInputFieldType,
+  GiraphQLOutputFieldType,
 } from '.';
 import ConfigStore from './config-store';
 import { ResolveValueWrapper } from './plugins';
@@ -65,15 +69,12 @@ export default class BuildCache<Types extends SchemaTypes> {
   ) {
     this.configStore = configStore;
     this.plugin = plugin;
-    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
-    scalars.forEach((scalar) => {
-      this.addType(scalar.name, scalar);
-    });
     this.mocks = mocks ?? {};
   }
 
   getType(ref: string | OutputType<Types> | InputType<Types>) {
     const { name } = this.configStore.getTypeConfig(ref);
+
     const type = this.types.get(name);
 
     if (!type) {
@@ -264,6 +265,37 @@ export default class BuildCache<Types extends SchemaTypes> {
     this.types.set(ref, type);
   }
 
+  private buildOutputTypeParam(type: GiraphQLOutputFieldType<Types>): GraphQLOutputType {
+    if (type.kind === 'List') {
+      if (type.nullable) {
+        return new GraphQLList(this.buildOutputTypeParam(type.type));
+      }
+      return new GraphQLNonNull(new GraphQLList(this.buildOutputTypeParam(type.type)));
+    }
+
+    if (type.nullable) {
+      return this.getOutputType(type.ref);
+    }
+
+    return new GraphQLNonNull(this.getOutputType(type.ref));
+  }
+
+  private buildInputTypeParam(type: GiraphQLInputFieldType<Types>): GraphQLInputType {
+    if (type.kind === 'List') {
+      if (type.required) {
+        return new GraphQLNonNull(new GraphQLList(this.buildInputTypeParam(type.type)));
+      }
+
+      return new GraphQLList(this.buildInputTypeParam(type.type));
+    }
+
+    if (type.required) {
+      return new GraphQLNonNull(this.getInputType(type.ref));
+    }
+
+    return this.getInputType(type.ref);
+  }
+
   private buildFields(
     type: GraphQLObjectType | GraphQLInterfaceType,
     fields: Record<string, GiraphQLOutputFieldConfig<Types>>,
@@ -274,7 +306,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
       built[fieldName] = {
         ...config,
-        type: config.type as any,
+        type: this.buildOutputTypeParam(config.type),
         args: this.buildInputFields(config.args),
         extensions: {
           ...config.extensions,
@@ -298,7 +330,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
       built[fieldName] = {
         ...config,
-        type: config.type as any,
+        type: this.buildInputTypeParam(config.type),
         extensions: {
           ...config.extensions,
           giraphqlOptions: config.options,
@@ -476,6 +508,26 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildScalar(config: GiraphQLScalarTypeConfig) {
+    if (config.name === 'ID') {
+      return GraphQLID;
+    }
+
+    if (config.name === 'Int') {
+      return GraphQLInt;
+    }
+
+    if (config.name === 'Float') {
+      return GraphQLFloat;
+    }
+
+    if (config.name === 'Boolean') {
+      return GraphQLBoolean;
+    }
+
+    if (config.name === 'String') {
+      return GraphQLString;
+    }
+
     return new GraphQLScalarType({
       ...config,
       extensions: {

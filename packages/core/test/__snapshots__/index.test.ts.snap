@@ -11,7 +11,10 @@ interface Countable {
   count(max: Int!): Int!
 }
 
+scalar Date
+
 input Example {
+  date: Date
   id: ID!
   id2: Int
   ids: [ID!]!

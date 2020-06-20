@@ -5,6 +5,11 @@ import {
   GraphQLIsTypeOfFn,
   GraphQLObjectType,
   GraphQLTypeResolver,
+  GraphQLID,
+  GraphQLInt,
+  GraphQLFloat,
+  GraphQLString,
+  GraphQLBoolean,
 } from 'graphql';
 
 import {
@@ -68,6 +73,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   constructor(options: { plugins?: BasePlugin[] } = {}) {
     this.plugin = mergePlugins(options.plugins ?? []);
     this.configStore = new ConfigStore<Types>(this.plugin);
+
+    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
+    scalars.forEach((scalar) => {
+      this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
+    });
   }
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(

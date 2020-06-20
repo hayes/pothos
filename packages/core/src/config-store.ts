@@ -89,6 +89,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     if (ref) {
       this.associateRefWithName(ref, name);
+
+      if (this.pendingRefResolutions.has(ref)) {
+        this.pendingRefResolutions.get(ref)!.forEach((cb) => cb(config));
+      }
+    }
+
+    if (this.pendingRefResolutions.has(name as ConfigurableRef<Types>)) {
+      this.pendingRefResolutions.get(name as ConfigurableRef<Types>)!.forEach((cb) => cb(config));
     }
   }
 
@@ -119,6 +127,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
   onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: GiraphQLTypeConfig) => void) {
     if (this.refsToName.has(ref)) {
       cb(this.getTypeConfig(ref));
+    } else if (typeof ref === 'string' && this.typeConfigs.has(ref)) {
+      cb(this.typeConfigs.get(ref)!);
     } else if (!this.pending) {
       throw new Error(`Ref ${ref} has not been implemented`);
     } else if (this.pendingRefResolutions.has(ref)) {
@@ -172,8 +182,10 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
       const fieldConfig = this.getFieldConfig(fields[fieldName], fieldName);
 
-      if (fieldConfig.kind !== typeConfig.graphqlKind) {
-        throw new TypeError('test');
+      if (fieldConfig.graphqlKind !== typeConfig.graphqlKind) {
+        throw new TypeError(
+          `${typeConfig.name}.${fieldName} was defined as a ${fieldConfig.graphqlKind} field but ${typeConfig.name} is a ${typeConfig.graphqlKind}`,
+        );
       }
 
       existingFields[fieldName] = fieldConfig;
