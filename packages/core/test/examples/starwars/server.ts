@@ -5,4 +5,6 @@ const server = new ApolloServer({
   schema,
 });
 
-server.listen(3000);
+server.listen(3000, () => {
+  console.log('🚀 Server started at http://127.0.0.1:3000');
+});

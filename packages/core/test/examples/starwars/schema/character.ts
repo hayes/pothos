@@ -19,11 +19,6 @@ export default builder.interfaceType('Character', {
       type: [Episode],
       description: 'Which movies they appear in.',
       resolve: (o) => o.appearsIn,
-      args: {
-        id: t.arg.id({
-          required: true,
-        }),
-      },
     }),
   }),
 });

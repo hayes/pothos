@@ -18,7 +18,7 @@ describe('starwars example', () => {
             primaryFunction
             friends {
               name
-              appearsIn(id: 4)
+              appearsIn
               ... on Human {
                 homePlanet
               }
@@ -32,7 +32,7 @@ describe('starwars example', () => {
             homePlanet
             friends {
               name
-              appearsIn(id: 4)
+              appearsIn
             }
           }
           hero(episode: NEWHOPE) {
@@ -47,6 +47,7 @@ describe('starwars example', () => {
       const result = await execute({
         schema: starwarsSchema,
         document: query,
+        contextValue: {},
       });
 
       expect(result).toMatchSnapshot();
@@ -75,6 +76,7 @@ describe('mocked', () => {
     const result = await execute({
       schema: mockedSchema,
       document: query,
+      contextValue: {},
     });
 
     expect(result).toMatchSnapshot();

@@ -4,6 +4,7 @@ import {
   GraphQLResolveInfo,
   GraphQLTypeResolver,
   GraphQLAbstractType,
+  GraphQLIsTypeOfFn,
 } from 'graphql';
 import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType } from '..';
 import { ResolveValueWrapper } from './resolve-wrapper';
@@ -26,6 +27,10 @@ function getRequestData(context: object) {
 
   const data = {};
 
+  if (typeof context !== 'object' || !context) {
+    throw new TypeError('Expected context to be a unique object');
+  }
+
   requestDataStore.set(context, data);
 
   return data;
@@ -47,7 +52,7 @@ export function wrapResolver<Types extends SchemaTypes>(
 
   const isListResolver = config.type.kind === 'List';
   const fieldKind = getFieldKind(config.type);
-  const isScalarResolver = fieldKind === 'Scalar';
+  const isScalarResolver = fieldKind === 'Scalar' || fieldKind === 'Enum';
 
   const wrappedResolver = async (
     originalParent: unknown,
@@ -113,6 +118,8 @@ export function wrapResolver<Types extends SchemaTypes>(
       );
 
       resolveHooks.onWrappedResolve?.(wrappedList);
+
+      return wrappedList;
     }
 
     return wrapChild(result, null);
@@ -221,5 +228,19 @@ export function wrapResolveType<Types extends SchemaTypes>(
     }
 
     return type;
+  };
+}
+
+export function wrapIsTypeOf<Types extends SchemaTypes>(
+  originalIsTypeOfFn: GraphQLIsTypeOfFn<unknown, Types['Context']>,
+) {
+  return async function isTypeOf(
+    originalParent: unknown,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) {
+    const parent = ResolveValueWrapper.wrap(originalParent);
+
+    return originalIsTypeOfFn(parent, context, info);
   };
 }

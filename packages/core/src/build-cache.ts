@@ -57,7 +57,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private mocks: ResolverMap;
 
-  private implementers = new Map<string, GraphQLObjectType[]>();
+  private implementers = new Map<string, GiraphQLObjectTypeConfig[]>();
 
   constructor(
     configStore: ConfigStore<any>,
@@ -177,9 +177,11 @@ export default class BuildCache<Types extends SchemaTypes> {
       return this.implementers.get(iface.name)!;
     }
 
-    const implementers = [...this.types.values()].filter(
-      (type) => type instanceof GraphQLObjectType && type.getInterfaces().includes(iface),
-    ) as GraphQLObjectType[];
+    const implementers = [...this.configStore.typeConfigs.values()].filter(
+      (type) =>
+        type.kind === 'Object' &&
+        type.interfaces.find((i) => this.configStore.getTypeConfig(i).name === iface.name),
+    ) as GiraphQLObjectTypeConfig[];
 
     this.implementers.set(iface.name, implementers);
 
@@ -393,13 +395,14 @@ export default class BuildCache<Types extends SchemaTypes> {
     return this.buildInputFields(this.configStore.getFields(type.name, 'InputObject'));
   }
 
-  private buildObject(
-    config:
-      | GiraphQLObjectTypeConfig
-      | GiraphQLQueryTypeConfig
-      | GiraphQLMutationTypeConfig
-      | GiraphQLSubscriptionTypeConfig,
-  ) {
+  private buildObject({
+    isTypeOf,
+    ...config
+  }:
+    | GiraphQLObjectTypeConfig
+    | GiraphQLQueryTypeConfig
+    | GiraphQLMutationTypeConfig
+    | GiraphQLSubscriptionTypeConfig) {
     const type: GraphQLObjectType = new GraphQLObjectType({
       ...config,
       extensions: {
@@ -414,11 +417,6 @@ export default class BuildCache<Types extends SchemaTypes> {
                 this.getTypeOfKind(iface, 'Interface'),
               )
           : undefined,
-      isTypeOf:
-        config.isTypeOf &&
-        (async (parent, context, info) => {
-          return config.isTypeOf!(parent, context, info);
-        }),
     });
 
     return type;
@@ -451,7 +449,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
         const resolved = results.find((result) => !!result);
 
-        return resolved;
+        return resolved?.name;
       }),
     });
 
