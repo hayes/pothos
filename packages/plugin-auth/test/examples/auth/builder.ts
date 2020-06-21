@@ -1,7 +1,7 @@
 import SchemaBuilder from '@giraphql/core';
+import '../../../src';
 import { ContextType } from './backing-models';
 import { User } from './data';
-import AuthPlugin from '../../../src';
 
 type Types = {
   Objects: {
@@ -35,5 +35,8 @@ type Types = {
 };
 
 export default new SchemaBuilder<Types>({
-  plugins: [new AuthPlugin()],
+  authOptions: {
+    skipPreResolveOnUnions: false,
+    skipPreResolveOnInterfaces: false,
+  },
 });

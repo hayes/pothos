@@ -1,49 +1,54 @@
-import { ResolveValueWrapper } from '@giraphql/core';
+import { SchemaTypes } from '@giraphql/core';
 import { ForbiddenError } from 'apollo-server';
 import { resolvePermissionCheck } from './utils/resolve-permission-check';
 import { evaluateMatcher } from './utils/evaluate-matcher';
+import { AuthMeta } from '.';
+import { AuthFieldWrapper } from './field-wrapper';
 
-export async function checkFieldPermissions(
-  required: boolean,
-  parent: ResolveValueWrapper,
-  data: GiraphQLSchemaTypes.FieldWrapData,
+export async function checkFieldPermissions<Types extends SchemaTypes>(
+  this: AuthFieldWrapper<Types>,
+  meta: AuthMeta,
+  parent: unknown,
   args: object,
   context: object,
 ) {
-  const { fieldName, parentType, permissionCheckers, permissionCheck } = data.giraphqlAuth;
+  const required =
+    this.requirePermissionChecks &&
+    !this.resolveChecks.preResolveMap.has(this.returnTyeConfig.name);
 
-  if (Array.isArray(permissionCheck) && permissionCheck.length === 0) {
+  if (Array.isArray(this.permissionCheck) && this.permissionCheck.length === 0) {
     if (required) {
-      throw new ForbiddenError(`Missing permission check on ${fieldName}.`);
+      throw new ForbiddenError(`Missing permission check on ${this.fieldName}.`);
     }
     return;
   }
 
-  const checkResult = await resolvePermissionCheck(permissionCheck, parent.value, args, context);
+  const checkResult = await resolvePermissionCheck(this.permissionCheck, parent, args, context);
 
   if (typeof checkResult === 'boolean') {
     if (!checkResult) {
-      throw new ForbiddenError(`Permission check on ${fieldName} failed.`);
+      throw new ForbiddenError(`Permission check on ${this.fieldName} failed.`);
     }
     return;
   }
 
-  const { grantedPermissions, checkCache } = parent.data.giraphqlAuth!;
+  const { grantedPermissions, checkCache } = meta;
+
   const permissionResults = new Map<string, boolean>();
 
-  const failures = await evaluateMatcher(checkResult, fieldName, async (perm) => {
+  const failures = await evaluateMatcher(checkResult, this.fieldName, async (perm) => {
     if (permissionResults.has(perm)) {
       return permissionResults.has(perm);
     }
 
-    if (grantedPermissions.hasPermission(parentType.name, perm)) {
+    if (grantedPermissions.hasPermission(this.field.parentType, perm)) {
       permissionResults.set(perm, true);
       return true;
     }
 
-    if (permissionCheckers[perm]) {
+    if (this.permissionCheckers[perm]) {
       if (!checkCache[perm]) {
-        checkCache[perm] = permissionCheckers[perm](parent.value, context);
+        checkCache[perm] = this.permissionCheckers[perm](parent, context);
       }
 
       const result = await checkCache[perm];
@@ -59,14 +64,14 @@ export async function checkFieldPermissions(
 
     if (type === 'any') {
       throw new ForbiddenError(
-        `Permission check on ${fieldName} failed. Missing ${
+        `Permission check on ${this.fieldName} failed. Missing ${
           failedChecks.size > 1 ? 'one of the following permissions' : 'the following permission'
         }: ${[...failedChecks].join(', ')})`,
       );
     }
 
     throw new ForbiddenError(
-      `Permission check on ${fieldName} failed. Missing the following permission${
+      `Permission check on ${this.fieldName} failed. Missing the following permission${
         failedChecks.size > 1 ? 's' : ''
       }: ${[...failedChecks].join(', ')}`,
     );

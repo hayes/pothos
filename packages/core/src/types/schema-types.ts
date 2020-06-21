@@ -58,11 +58,9 @@ export type RootName = 'Query' | 'Mutation' | 'Subscription';
 
 export type PluginConstructorMap = {
   [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: {
-    new (builder: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>): GiraphQLSchemaTypes.Plugins<
-      SchemaTypes
-    >[K] &
-      BasePlugin<SchemaTypes> & {
-        name: K;
-      };
+    new (
+      builder: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+      name: K,
+    ): GiraphQLSchemaTypes.Plugins<SchemaTypes>[K] & BasePlugin<SchemaTypes>;
   };
 };

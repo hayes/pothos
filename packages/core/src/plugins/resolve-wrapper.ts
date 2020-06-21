@@ -1,5 +1,5 @@
-import { GraphQLObjectType, GraphQLResolveInfo, GraphQLAbstractType } from 'graphql';
-import { MaybePromise } from '..';
+import { GraphQLResolveInfo, GraphQLAbstractType } from 'graphql';
+import { MaybePromise, GiraphQLObjectTypeConfig } from '..';
 
 export class ResolveValueWrapper {
   parent: ResolveValueWrapper | null;
@@ -9,7 +9,7 @@ export class ResolveValueWrapper {
   data: Record<string, object | null> = {};
 
   resolveType?: (
-    type: GraphQLObjectType | string,
+    type: GiraphQLObjectTypeConfig,
     originalParent: unknown,
     context: object,
     info: GraphQLResolveInfo,

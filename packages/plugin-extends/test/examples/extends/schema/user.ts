@@ -15,7 +15,7 @@ export default builder.objectType('User', {
           id: t.arg.id({ required: true }),
         },
         resolve: (parent, args, { User }) => {
-          const user = User.map.get(parseInt(args.id, 10));
+          const user = User.map.get(parseInt(String(args.id), 10));
 
           if (!user) {
             throw new Error(`User with id ${args.id} was not found`);
@@ -66,12 +66,12 @@ export default builder.objectType('User', {
           id: t.arg.id({ required: true }),
         },
         subscribe: async function* subscribe(parent, { id }, { User }) {
-          yield await Promise.resolve(User.map.get(parseInt(id, 10)));
+          yield await Promise.resolve(User.map.get(parseInt(String(id), 10)));
 
-          return User.map.get(parseInt(id, 10));
+          return User.map.get(parseInt(String(id), 10));
         },
         resolve: (parent, args, { User }) => {
-          const user = User.map.get(parseInt(args.id, 10));
+          const user = User.map.get(parseInt(String(args.id), 10));
 
           if (!user) {
             throw new Error(`User with id ${args.id} was not found`);

@@ -12,6 +12,7 @@ import {
   InputTypeParam,
   OutputType,
   InputType,
+  GiraphQLObjectTypeConfig,
 } from '.';
 import BaseTypeRef from './refs/base';
 
@@ -239,6 +240,18 @@ export default class ConfigStore<Types extends SchemaTypes> {
         this.buildField(typeRef, fieldRef, fieldName);
       }
     });
+  }
+
+  getImplementers(ref: string | ConfigurableRef<Types>) {
+    const typeConfig = this.getTypeConfig(ref, 'Interface');
+
+    const implementers = [...this.typeConfigs.values()].filter(
+      (type) =>
+        type.kind === 'Object' &&
+        type.interfaces.find((i) => this.getTypeConfig(i).name === typeConfig.name),
+    ) as GiraphQLObjectTypeConfig[];
+
+    return implementers;
   }
 
   private buildField(

@@ -21,7 +21,7 @@ import RelayPlugin from '.';
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      Relay: RelayPlugin<Types>;
+      GiraphQLRelay: RelayPlugin<Types>;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {

@@ -69,11 +69,11 @@ import { normalizeEnumValues } from './utils';
 export default class SchemaBuilder<Types extends SchemaTypes> {
   configStore: ConfigStore<Types>;
 
-  options: GiraphQLSchemaTypes.SchemaBuilderOptions;
+  options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>;
 
   private plugin: Required<BasePlugin<Types>>;
 
-  constructor(options: GiraphQLSchemaTypes.SchemaBuilderOptions) {
+  constructor(options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>) {
     this.options = options;
 
     const plugins = Object.keys(SchemaBuilder.plugins).map((pluginName) => {
@@ -81,7 +81,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         pluginName as keyof PluginConstructorMap
       ] as typeof BasePlugin;
 
-      return new Plugin(this);
+      return new Plugin(this, pluginName as keyof PluginConstructorMap);
     });
 
     this.plugin = mergePlugins(this, plugins);
@@ -478,6 +478,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     name: T,
     plugin: PluginConstructorMap[T],
   ) {
+    if (this.plugins[name]) {
+      throw new Error(`Received multiple implementations for plugin ${name}`);
+    }
+
     this.plugins[name] = plugin;
   }
 }

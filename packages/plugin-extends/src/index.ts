@@ -1,5 +1,6 @@
 import { GraphQLNamedType, GraphQLObjectType } from 'graphql';
-import {
+
+import SchemaBuilder, {
   BasePlugin,
   QueryFieldsShape,
   MutationFieldsShape,
@@ -9,10 +10,11 @@ import {
   SubscriptionFieldBuilder,
   ObjectFieldBuilder,
   getObjectOptions,
+  SchemaTypes,
 } from '@giraphql/core';
 import './global-types';
 
-export default class ExtendsPlugin implements BasePlugin {
+export default class ExtendsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   onType(type: GraphQLNamedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
     if (type instanceof GraphQLObjectType) {
       const extendsMap = getObjectOptions(type).extends || {};
@@ -41,3 +43,5 @@ export default class ExtendsPlugin implements BasePlugin {
     }
   }
 }
+
+SchemaBuilder.registerPlugin('GiraphQLExtends', ExtendsPlugin);

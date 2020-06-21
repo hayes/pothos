@@ -11,7 +11,6 @@ import InternalObjectFieldBuilder from './fieldUtils/object';
 import InternalInterfaceFieldBuilder from './fieldUtils/interface';
 import SchemaBuilder from './builder';
 import { FieldKind, SchemaTypes } from './types';
-import { BasePlugin } from './plugins';
 import EnumRef from './refs/enum';
 import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
 import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
@@ -41,9 +40,12 @@ export {
 };
 
 export default SchemaBuilder as {
-  new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo>>(options?: {
-    plugins?: BasePlugin<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>[];
-  }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
+  new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo>>(
+    options: GiraphQLSchemaTypes.SchemaBuilderOptions<
+      GiraphQLSchemaTypes.ExtendDefaultTypes<Types>
+    >,
+  ): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
+  registerPlugin: typeof SchemaBuilder.registerPlugin;
 };
 
 export const FieldBuilder = InternalFieldBuilder as {

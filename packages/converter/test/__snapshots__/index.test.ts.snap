@@ -19,7 +19,7 @@ const builder = new SchemaBuilder<{
             Output: never;
         };
     };
-}>();
+}>({});
 builder.scalarType('Date', {
     serialize: () => { throw new Error('Not implemented'); },
 });
@@ -398,7 +398,7 @@ const builder = new SchemaBuilder<{
     Interfaces: {
         Character: unknown;
     };
-}>();
+}>({});
 const Episode = builder.enumType('Episode', {
     description: \\"One of the films in the Star Wars Trilogy\\",
     values: {

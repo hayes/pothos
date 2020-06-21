@@ -9,6 +9,7 @@ import {
 import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType } from '..';
 import { ResolveValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
+import ConfigStore from '../config-store';
 
 function assertArray(value: unknown): value is unknown[] {
   if (!Array.isArray(value)) {
@@ -76,7 +77,7 @@ export function wrapResolver<Types extends SchemaTypes>(
 
     const result = await resolver(parent.value, args, context, info);
 
-    async function wrapChild(child: unknown, index: number | null) {
+    const wrapChild = async (child: unknown, index: number | null) => {
       if (child == null) {
         return null;
       }
@@ -89,22 +90,22 @@ export function wrapResolver<Types extends SchemaTypes>(
       const wrapped = parent.child(child);
 
       const childData =
-        ((await resolveHooks?.onWrap?.(wrapped, index)) as Record<string, object | null>) ?? {};
+        ((await resolveHooks?.onWrap?.(child, index)) as Record<string, object | null>) ?? {};
 
       wrapped.data = childData;
 
       if (fieldKind === 'Interface') {
         wrapped.resolveType = (type, ...rest) => {
-          fieldWrapper.onInterfaceResolveType(requestData, childData, type, ...rest);
+          return fieldWrapper.onInterfaceResolveType(requestData, childData, type, ...rest);
         };
       } else if (fieldKind === 'Union') {
         wrapped.resolveType = (type, ...rest) => {
-          fieldWrapper.onUnionResolveType(requestData, childData, type, ...rest);
+          return fieldWrapper.onUnionResolveType(requestData, childData, type, ...rest);
         };
       }
 
       return wrapped;
-    }
+    };
 
     await resolveHooks?.onResolve?.(result);
 
@@ -190,7 +191,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
             const wrapped = parent.child(value);
 
             wrapped.data =
-              ((await subscribeHook?.onWrap?.(wrapped)) as Record<string, object | null>) ?? {};
+              ((await subscribeHook?.onWrap?.(value)) as Record<string, object | null>) ?? {};
 
             return { value: wrapped, done };
           },
@@ -207,6 +208,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
 }
 
 export function wrapResolveType<Types extends SchemaTypes>(
+  configStore: ConfigStore<Types>,
   originalResolveType?: GraphQLTypeResolver<unknown, Types['Context']> | null,
 ) {
   return async function resolveType(
@@ -224,7 +226,12 @@ export function wrapResolveType<Types extends SchemaTypes>(
     }
 
     if (parent.resolveType) {
-      await parent.resolveType(type, parent.value, context, info, abstractType);
+      const config = configStore.getTypeConfig(
+        typeof type === 'string' ? type : type.name,
+        'Object',
+      );
+
+      await parent.resolveType(config, parent.value, context, info, abstractType);
     }
 
     return type;

@@ -1,4 +1,4 @@
-import { GraphQLType, GraphQLNamedType, GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
+import { GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
 import { MaybePromise, SchemaTypes, ObjectParam, OutputShape } from '@giraphql/core';
 import { GrantedPermissions } from './grant-map';
 
@@ -7,6 +7,10 @@ export interface AuthPluginOptions {
   explicitMutationChecks?: boolean;
   skipPreResolveOnInterfaces?: boolean;
   skipPreResolveOnUnions?: boolean;
+}
+
+export interface AuthRequestData {
+  preResolveAuthCheckCache: Map<PreResolveCheck<any>, MaybePromise<boolean | PermissionGrantMap>>;
 }
 
 export type SharedPermissionCheck<Types extends SchemaTypes, ParentShape> = (
@@ -77,8 +81,6 @@ export type PermissionMatcher =
     };
 
 export interface AuthFieldData {
-  returnType: GraphQLType;
-  unwrappedReturnType: GraphQLNamedType;
   fieldName: string;
   parentType: GraphQLObjectType | GraphQLInterfaceType;
   resolveChecks: ResolveChecksForType;
@@ -89,6 +91,6 @@ export interface AuthFieldData {
 
 export interface ResolveChecksForType {
   grantAsShared?: string;
-  preResolveMap: Map<GraphQLNamedType, PreResolveCheck<any>>;
-  postResolveMap: Map<GraphQLNamedType, Map<GraphQLNamedType, PostResolveCheck<any, unknown>>>;
+  preResolveMap: Map<string, PreResolveCheck<any>>;
+  postResolveMap: Map<string, Map<string, PostResolveCheck<any, unknown>>>;
 }

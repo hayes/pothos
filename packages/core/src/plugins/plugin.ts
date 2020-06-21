@@ -8,11 +8,15 @@ import {
 import BaseFieldWrapper from './field-wrapper';
 
 export class BasePlugin<Types extends SchemaTypes> {
-  name!: keyof GiraphQLSchemaTypes.Plugins<Types>;
+  name: keyof GiraphQLSchemaTypes.Plugins<Types>;
 
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+  constructor(
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    name: keyof GiraphQLSchemaTypes.Plugins<Types>,
+  ) {
+    this.name = name;
     this.builder = builder;
   }
 

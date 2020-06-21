@@ -1,14 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { MergedScalars, SchemaTypes } from '..';
 
-import './type-options';
-import './field-options';
-import './plugins';
-import './classes';
-
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface SchemaBuilderOptions {}
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {}
+
+    export interface Plugins<Types extends SchemaTypes> {}
 
     export interface GiraphQLKindToGraphQLType {
       Object: 'Object';

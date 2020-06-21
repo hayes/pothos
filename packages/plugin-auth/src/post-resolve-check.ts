@@ -1,17 +1,17 @@
-import { ResolveValueWrapper } from '@giraphql/core/src';
+import { SchemaTypes, GiraphQLTypeConfig } from '@giraphql/core';
 import { ForbiddenError } from 'apollo-server';
-import { GraphQLNamedType } from 'graphql';
 import { PermissionGrantMap } from './types';
+import { AuthMeta } from '.';
+import { AuthFieldWrapper } from './field-wrapper';
 
-export default async function runPostResolveChecks(
-  type: GraphQLNamedType,
-  data: GiraphQLSchemaTypes.FieldWrapData,
-  parent: ResolveValueWrapper,
+export default async function runPostResolveChecks<Types extends SchemaTypes>(
+  this: AuthFieldWrapper<Types>,
+  type: GiraphQLTypeConfig,
+  childMeta: AuthMeta,
+  parent: unknown,
   context: object,
 ) {
-  const grants = parent.data.giraphqlAuth!.grantedPermissions;
-  const { resolveChecks, fieldName } = data.giraphqlAuth;
-  const postResolveCheckMap = resolveChecks.postResolveMap.get(type);
+  const postResolveCheckMap = this.resolveChecks.postResolveMap.get(type.name);
 
   if (postResolveCheckMap && postResolveCheckMap?.size !== 0) {
     const postResolvePromises: Promise<{
@@ -19,12 +19,16 @@ export default async function runPostResolveChecks(
       result: boolean | PermissionGrantMap;
     }>[] = [];
 
-    for (const [checkType, postResolveCheck] of postResolveCheckMap!) {
+    for (const [checkTypeName, postResolveCheck] of postResolveCheckMap!) {
       postResolvePromises.push(
         Promise.resolve(
-          postResolveCheck(parent.value, context, grants.permissionsForType(checkType.name)),
+          postResolveCheck(
+            parent,
+            context,
+            childMeta.grantedPermissions.permissionsForType(checkTypeName),
+          ),
         ).then((result) => ({
-          name: checkType.name,
+          name: checkTypeName,
           result,
         })),
       );
@@ -37,20 +41,24 @@ export default async function runPostResolveChecks(
       if (!result) {
         failedChecks.push(name);
       } else if (typeof result === 'object') {
-        grants.mergeGrants(name, result);
+        childMeta.grantedPermissions.mergeGrants(name, result);
       }
     });
 
     if (failedChecks.length !== 0) {
       if (failedChecks.length === 1) {
-        throw new ForbiddenError(`postResolveCheck failed for ${fieldName} on ${failedChecks[0]}`);
+        throw new ForbiddenError(
+          `postResolveCheck failed for ${this.fieldName} on ${failedChecks[0]}`,
+        );
       } else {
         throw new ForbiddenError(
-          `postResolveCheck failed for ${fieldName} on ${failedChecks
+          `postResolveCheck failed for ${this.fieldName} on ${failedChecks
             .slice(0, -1)
             .join(', ')} and ${failedChecks[failedChecks.length - 1]}`,
         );
       }
     }
   }
+
+  return childMeta;
 }

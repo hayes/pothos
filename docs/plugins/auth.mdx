@@ -21,16 +21,13 @@ yarn add @giraphql/plugin-auth
 import AuthPlugin from '@giraphql/plugin-auth';
 
 const builder = new SchemaBuilder({
-  stateful: true,
-  plugins: [
-    new AuthPlugin({
-      // when true (default) fields not covered by a permission check will return an Authorization error
-      requirePermissionChecks: true,
-      // when true (default) mutation fields will not be authorized unless they are protected by a
-      // permission check defined directly on the mutation field (NOT from `defaultPermissionCheck`).
-      explicitMutationChecks: true,
-    }),
-  ],
+  authOptions: {
+    // when true (default) fields not covered by a permission check will return an Authorization error
+    requirePermissionChecks: true,
+    // when true (default) mutation fields will not be authorized unless they are protected by a
+    // permission check defined directly on the mutation field (NOT from `defaultPermissionCheck`).
+    explicitMutationChecks: true,
+  },
 });
 ```
 

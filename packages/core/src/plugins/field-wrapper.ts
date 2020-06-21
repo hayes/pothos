@@ -1,10 +1,5 @@
-import {
-  GraphQLResolveInfo,
-  GraphQLFieldResolver,
-  GraphQLAbstractType,
-  GraphQLObjectType,
-} from 'graphql';
-import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise } from '..';
+import { GraphQLResolveInfo, GraphQLFieldResolver, GraphQLAbstractType } from 'graphql';
+import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise, GiraphQLTypeConfig } from '..';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
 export default abstract class BaseFieldWrapper<
@@ -12,12 +7,12 @@ export default abstract class BaseFieldWrapper<
   RequestData extends object = object,
   ParentData extends object = object
 > {
+  name: string;
+
   field: GiraphQLOutputFieldConfig<Types>;
 
-  // TODO add plugable type?
-  abstract name: string;
-
-  constructor(field: GiraphQLOutputFieldConfig<Types>) {
+  constructor(field: GiraphQLOutputFieldConfig<Types>, name: string) {
+    this.name = name;
     this.field = field;
   }
 
@@ -53,7 +48,7 @@ export default abstract class BaseFieldWrapper<
   onInterfaceResolveType?(
     requestData: RequestData,
     parentData: ParentData | null,
-    type: string | GraphQLObjectType,
+    type: GiraphQLTypeConfig,
     parent: unknown,
     context: object,
     info: GraphQLResolveInfo,
@@ -63,7 +58,7 @@ export default abstract class BaseFieldWrapper<
   onUnionResolveType?(
     requestData: RequestData,
     parentData: ParentData | null,
-    type: string | GraphQLObjectType,
+    type: GiraphQLTypeConfig,
     parent: unknown,
     context: object,
     info: GraphQLResolveInfo,

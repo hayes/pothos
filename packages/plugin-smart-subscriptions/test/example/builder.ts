@@ -1,7 +1,7 @@
 import SchemaBuilder from '@giraphql/core';
 import { ContextType } from './types';
 import { Poll } from './data';
-import SmartSubscriptionPlugin, { subscribeOptionsFromIterator } from '../../src';
+import { subscribeOptionsFromIterator } from '../../src';
 
 interface TypeInfo {
   Objects: {
@@ -13,11 +13,9 @@ interface TypeInfo {
 }
 
 export default new SchemaBuilder<TypeInfo>({
-  plugins: [
-    new SmartSubscriptionPlugin<ContextType>({
-      ...subscribeOptionsFromIterator((name, { pubsub }) => {
-        return pubsub.asyncIterator(name);
-      }),
+  smartSubscriptionOptions: {
+    ...subscribeOptionsFromIterator((name, { pubsub }) => {
+      return pubsub.asyncIterator(name);
     }),
-  ],
+  },
 });

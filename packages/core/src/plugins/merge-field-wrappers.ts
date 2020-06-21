@@ -1,7 +1,12 @@
 /* eslint-disable no-await-in-loop */
 import { GraphQLResolveInfo, GraphQLFieldResolver, GraphQLAbstractType } from 'graphql';
 
-import { MaybePromise, SchemaTypes, GiraphQLOutputFieldConfig } from '../types';
+import {
+  MaybePromise,
+  SchemaTypes,
+  GiraphQLOutputFieldConfig,
+  GiraphQLObjectTypeConfig,
+} from '../types';
 import { ResolveValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
 
@@ -30,21 +35,16 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
     (plugin) => plugin.beforeSubscribe,
   ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'beforeSubscribe'>)[];
 
-  const onInterfaceResolveTypePlugins: Pick<
-    Required<BaseFieldWrapper<Types>>,
-    'onInterfaceResolveType'
-  >[] = fieldWrappers.filter((plugin) => plugin.onInterfaceResolveType) as Pick<
-    Required<BaseFieldWrapper<Types>>,
-    'onInterfaceResolveType'
-  >[];
+  const onInterfaceResolveTypePlugins: (BaseFieldWrapper<Types> &
+    Pick<Required<BaseFieldWrapper<Types>>, 'onInterfaceResolveType'>)[] = fieldWrappers.filter(
+    (plugin) => plugin.onInterfaceResolveType,
+  ) as (BaseFieldWrapper<Types> &
+    Pick<Required<BaseFieldWrapper<Types>>, 'onInterfaceResolveType'>)[];
 
-  const onUnionResolveTypePlugins: Pick<
-    Required<BaseFieldWrapper<Types>>,
-    'onUnionResolveType'
-  >[] = fieldWrappers.filter((plugin) => plugin.onUnionResolveType) as Pick<
-    Required<BaseFieldWrapper<Types>>,
-    'onUnionResolveType'
-  >[];
+  const onUnionResolveTypePlugins: (BaseFieldWrapper<Types> &
+    Pick<Required<BaseFieldWrapper<Types>>, 'onUnionResolveType'>)[] = fieldWrappers.filter(
+    (plugin) => plugin.onUnionResolveType,
+  ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'onUnionResolveType'>)[];
 
   return {
     name: 'GiraphQLMergedFieldWrapper',
@@ -66,7 +66,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       const onResolveFns: ((value: unknown) => MaybePromise<void>)[] = [];
       const onWrapFns: [
         string,
-        (child: ResolveValueWrapper, index: number | null) => MaybePromise<object | null>,
+        (child: unknown, index: number | null) => MaybePromise<object | null>,
       ][] = [];
       const onWrappedResolveFns: ((
         wrapped: ResolveValueWrapper | MaybePromise<ResolveValueWrapper | null>[],
@@ -111,7 +111,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
         onWrap:
           onWrapFns.length === 0
             ? undefined
-            : async (child: ResolveValueWrapper, index: number | null) => {
+            : async (child: unknown, index: number | null) => {
                 const childData: ParentData = {};
                 for (const [name, fn] of onWrapFns) {
                   childData[name] = await fn(child, index);
@@ -179,7 +179,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
     async onInterfaceResolveType(
       requestData: RequestData,
       parentData: ParentData | null,
-      type: string,
+      type: GiraphQLObjectTypeConfig,
       parent: unknown,
       context: object,
       info: GraphQLResolveInfo,
@@ -188,7 +188,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       for (const plugin of onInterfaceResolveTypePlugins) {
         await plugin.onInterfaceResolveType(
           requestData,
-          parentData,
+          parentData?.[plugin.name] ?? null,
           type,
           parent,
           context,
@@ -201,7 +201,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
     async onUnionResolveType(
       requestData: RequestData,
       parentData: ParentData | null,
-      type: string,
+      type: GiraphQLObjectTypeConfig,
       parent: unknown,
       context: object,
       info: GraphQLResolveInfo,
@@ -210,7 +210,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       for (const plugin of onUnionResolveTypePlugins) {
         await plugin.onUnionResolveType(
           requestData,
-          parentData,
+          parentData?.[plugin.name] ?? null,
           type,
           parent,
           context,

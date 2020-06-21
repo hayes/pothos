@@ -17,18 +17,18 @@ import {
   PermissionMatcher,
   UnionPostResolveCheck,
   InterfacePostResolveCheck,
-  AuthFieldData,
+  AuthPluginOptions,
 } from './types';
-import { AuthMeta } from '.';
+import AuthPlugin from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface FieldWrapData {
-      giraphqlAuth: AuthFieldData;
+    export interface Plugins<Types extends SchemaTypes> {
+      GiraphQLAuth: AuthPlugin<Types>;
     }
 
-    export interface ResolverPluginData {
-      giraphqlAuth?: AuthMeta;
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      authOptions?: AuthPluginOptions;
     }
 
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {

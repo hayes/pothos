@@ -100,22 +100,3 @@ type Query {
 }
 "
 `;
-
-exports[`Stateful schema generates expected schema 1`] = `
-"\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
-type Giraffe {
-  age: Int!
-  height(unit: LengthUnit! = Meters): Float!
-  name: String!
-}
-
-enum LengthUnit {
-  Feet
-  Meters
-}
-
-type Query {
-  giraffe: Giraffe!
-}
-"
-`;

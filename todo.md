@@ -13,3 +13,5 @@
 11. interfaces on interfaces/ options for interface field inheritance
 12. way for plugins to contribute to merged shapes in SchemaTypes 13: document context requirements
 13. API to get plugin by name
+14. rename onWrap
+15. change field.options to field.giraphqlOptions

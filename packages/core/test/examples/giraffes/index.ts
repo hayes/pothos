@@ -10,7 +10,7 @@ const builder = new SchemaBuilder<{
   Objects: {
     Giraffe: Giraffe;
   };
-}>();
+}>({});
 
 const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },

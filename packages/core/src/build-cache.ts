@@ -434,7 +434,7 @@ export default class BuildCache<Types extends SchemaTypes> {
           this.getTypeOfKind(iface, 'Interface'),
         ),
       fields: () => this.getFields(type),
-      resolveType: wrapResolveType(async (parent, context, info) => {
+      resolveType: wrapResolveType(this.configStore, async (parent, context, info) => {
         const implementers = this.getImplementers(type as GraphQLInterfaceType);
 
         const results = await Promise.all(
@@ -464,7 +464,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: wrapResolveType(config.resolveType),
+      resolveType: wrapResolveType(this.configStore, config.resolveType),
     });
   }
 

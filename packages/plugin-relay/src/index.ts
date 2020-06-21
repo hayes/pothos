@@ -10,9 +10,9 @@ import { ConnectionShape, PageInfoShape } from './types';
 
 export * from './utils';
 
-export default class RelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  name: 'Relay' = 'Relay';
-}
+export default class RelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+
+SchemaBuilder.registerPlugin('GiraphQLRelay', RelayPlugin);
 
 function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;

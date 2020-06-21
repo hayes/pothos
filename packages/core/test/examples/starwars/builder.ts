@@ -7,4 +7,4 @@ type Types = {
   Context: ContextType;
 };
 
-export default new SchemaBuilder<Types>();
+export default new SchemaBuilder<Types>({});

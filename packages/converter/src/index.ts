@@ -109,7 +109,7 @@ export default class GirphQLConverter {
               writer.indent(() => {
                 this.writeTypeInfo(writer);
               });
-              writer.writeLine('}>()');
+              writer.writeLine('}>({})');
             },
           },
         ],
