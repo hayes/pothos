@@ -42,7 +42,7 @@ export {
 
 export default SchemaBuilder as {
   new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo>>(options?: {
-    plugins?: BasePlugin[];
+    plugins?: BasePlugin<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>[];
   }): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 
@@ -101,5 +101,6 @@ export const InputFieldBuilder = InternalInputFieldBuilder as {
   new <Types extends SchemaTypes>(
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
     kind: 'InputObject' | 'Arg',
+    typename: string,
   ): GiraphQLSchemaTypes.InputFieldBuilder<Types>;
 };

@@ -11,3 +11,4 @@
 9. Fix issues with expose
 10. Move mocks to plugin
 11. interfaces on interfaces/ options for interface field inheritance
+12. way for plugins to contribute to merged shapes in SchemaTypes

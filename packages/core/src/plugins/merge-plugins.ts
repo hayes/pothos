@@ -1,245 +1,97 @@
-/* eslint-disable no-await-in-loop */
+import { GraphQLSchema } from 'graphql';
 import {
-  GraphQLFieldConfig,
-  GraphQLResolveInfo,
-  GraphQLSchema,
-  GraphQLNamedType,
-  GraphQLObjectType,
-  GraphQLInterfaceType,
-} from 'graphql';
-import { BasePlugin } from '..';
-import { MaybePromise } from '../types';
-import BuildCache from '../build-cache';
-import { ResolveValueWrapper } from './resolve-wrapper';
+  BasePlugin,
+  SchemaTypes,
+  GiraphQLTypeConfig,
+  GiraphQLInputFieldConfig,
+  GiraphQLOutputFieldConfig,
+} from '..';
 
-export function mergePlugins(plugins: BasePlugin[]): Required<BasePlugin> {
-  const visitTypePlugins: Pick<Required<BasePlugin>, 'visitType'>[] = plugins.filter(
-    (plugin) => plugin.visitType,
-  ) as Pick<Required<BasePlugin>, 'visitType'>[];
+export function mergePlugins<Types extends SchemaTypes>(
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  plugins: BasePlugin<Types>[],
+): Required<BasePlugin<Types>> {
+  const onTypePlugins: Pick<Required<BasePlugin<Types>>, 'onTypeConfig'>[] = plugins.filter(
+    (plugin) => plugin.onTypeConfig,
+  ) as Pick<Required<BasePlugin<Types>>, 'onTypeConfig'>[];
 
-  const updateFieldConfigPlugins: Pick<
-    Required<BasePlugin>,
-    'updateFieldConfig'
-  >[] = plugins.filter((plugin) => plugin.updateFieldConfig) as Pick<
-    Required<BasePlugin>,
-    'updateFieldConfig'
+  const onInputFieldPlugins: Pick<
+    Required<BasePlugin<Types>>,
+    'onInputFieldConfig'
+  >[] = plugins.filter((plugin) => plugin.onInputFieldConfig) as Pick<
+    Required<BasePlugin<Types>>,
+    'onInputFieldConfig'
   >[];
 
-  const onFieldWrapPlugins: Pick<Required<BasePlugin>, 'onFieldWrap'>[] = plugins.filter(
-    (plugin) => plugin.onFieldWrap,
-  ) as Pick<Required<BasePlugin>, 'onFieldWrap'>[];
-
-  const beforeResolvePlugins: Pick<Required<BasePlugin>, 'beforeResolve'>[] = plugins.filter(
-    (plugin) => plugin.beforeResolve,
-  ) as Pick<Required<BasePlugin>, 'beforeResolve'>[];
-
-  const beforeSubscribePlugins: Pick<Required<BasePlugin>, 'beforeSubscribe'>[] = plugins.filter(
-    (plugin) => plugin.beforeSubscribe,
-  ) as Pick<Required<BasePlugin>, 'beforeSubscribe'>[];
-
-  const onInterfaceResolveTypePlugins: Pick<
-    Required<BasePlugin>,
-    'onInterfaceResolveType'
-  >[] = plugins.filter((plugin) => plugin.onInterfaceResolveType) as Pick<
-    Required<BasePlugin>,
-    'onInterfaceResolveType'
+  const onOutputFieldPlugins: Pick<
+    Required<BasePlugin<Types>>,
+    'onOutputFieldConfig'
+  >[] = plugins.filter((plugin) => plugin.onOutputFieldConfig) as Pick<
+    Required<BasePlugin<Types>>,
+    'onOutputFieldConfig'
   >[];
 
-  const onUnionResolveTypePlugins: Pick<
-    Required<BasePlugin>,
-    'onUnionResolveType'
-  >[] = plugins.filter((plugin) => plugin.onUnionResolveType) as Pick<
-    Required<BasePlugin>,
-    'onUnionResolveType'
+  const wrapOutputFieldPlugins: Pick<
+    Required<BasePlugin<Types>>,
+    'wrapOutputField'
+  >[] = plugins.filter((plugin) => plugin.wrapOutputField) as Pick<
+    Required<BasePlugin<Types>>,
+    'wrapOutputField'
   >[];
 
-  const onTypePlugins: Pick<Required<BasePlugin>, 'onType'>[] = plugins.filter(
-    (plugin) => plugin.onType,
-  ) as Pick<Required<BasePlugin>, 'onType'>[];
-
-  const onFieldPlugins: Pick<Required<BasePlugin>, 'onField'>[] = plugins.filter(
-    (plugin) => plugin.onField,
-  ) as Pick<Required<BasePlugin>, 'onField'>[];
-
-  const beforeBuildPlugins: Pick<Required<BasePlugin>, 'beforeBuild'>[] = plugins.filter(
+  const beforeBuildPlugins: Pick<Required<BasePlugin<Types>>, 'beforeBuild'>[] = plugins.filter(
     (plugin) => plugin.beforeBuild,
-  ) as Pick<Required<BasePlugin>, 'beforeBuild'>[];
+  ) as Pick<Required<BasePlugin<Types>>, 'beforeBuild'>[];
 
-  const afterBuildPlugins: Pick<Required<BasePlugin>, 'afterBuild'>[] = plugins.filter(
+  const afterBuildPlugins: Pick<Required<BasePlugin<Types>>, 'afterBuild'>[] = plugins.filter(
     (plugin) => plugin.afterBuild,
-  ) as Pick<Required<BasePlugin>, 'afterBuild'>[];
+  ) as Pick<Required<BasePlugin<Types>>, 'afterBuild'>[];
 
   return {
-    visitType(type: GraphQLNamedType, cache: BuildCache<any>) {
-      for (const plugin of visitTypePlugins) {
-        plugin.visitType(type, cache);
-      }
-    },
-
-    updateFieldConfig(
-      type: GraphQLObjectType | GraphQLInterfaceType,
-      name: string,
-      config: GraphQLFieldConfig<unknown, object>,
-      cache: BuildCache<any>,
-    ) {
-      return updateFieldConfigPlugins.reduce(
-        (newConfig, plugin) => plugin.updateFieldConfig(type, name, newConfig, cache),
-        config,
-      );
-    },
-
-    onFieldWrap(
-      type: GraphQLObjectType | GraphQLInterfaceType,
-      name: string,
-      config: GraphQLFieldConfig<unknown, object>,
-      data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
-      cache: BuildCache<any>,
-    ) {
-      for (const plugin of onFieldWrapPlugins) {
-        plugin.onFieldWrap(type, name, config, data, cache);
-      }
-    },
-
-    async beforeResolve(
-      parent: ResolveValueWrapper,
-      data: GiraphQLSchemaTypes.FieldWrapData,
-      args: object,
-      context: object,
-      info: GraphQLResolveInfo,
-    ) {
-      const onResolveFns: ((value: unknown) => MaybePromise<void>)[] = [];
-      const onWrapFns: ((
-        child: ResolveValueWrapper,
-        index: number | null,
-        wrap: (child: unknown) => MaybePromise<ResolveValueWrapper>,
-      ) => MaybePromise<void>)[] = [];
-
-      for (const plugin of beforeResolvePlugins) {
-        const hooks = await plugin.beforeResolve(parent, data, args, context, info);
-
-        if (hooks?.onResolve) {
-          onResolveFns.push(hooks.onResolve);
-        }
-
-        if (hooks?.onWrap) {
-          onWrapFns.push(hooks.onWrap);
-        }
-      }
-
-      return {
-        onResolve:
-          onResolveFns.length === 0
-            ? undefined
-            : async (value: unknown) => {
-                for (const fn of onResolveFns) {
-                  await fn(value);
-                }
-              },
-        onWrap:
-          onWrapFns.length === 0
-            ? undefined
-            : async (
-                child: ResolveValueWrapper,
-                index: number | null,
-                wrap: (child: unknown) => MaybePromise<ResolveValueWrapper>,
-              ) => {
-                for (const fn of onWrapFns) {
-                  await fn(child, index, wrap);
-                }
-              },
-      };
-    },
-
-    async beforeSubscribe(
-      parent: ResolveValueWrapper,
-      data: GiraphQLSchemaTypes.FieldWrapData,
-      args: object,
-      context: object,
-      info: GraphQLResolveInfo,
-    ) {
-      const onSubscribeFns: ((value: unknown) => MaybePromise<void>)[] = [];
-      const onWrapFns: ((child: ResolveValueWrapper) => MaybePromise<void>)[] = [];
-
-      for (const plugin of beforeSubscribePlugins) {
-        const hooks = await plugin.beforeSubscribe(parent, data, args, context, info);
-
-        if (hooks?.onSubscribe) {
-          onSubscribeFns.push(hooks.onSubscribe);
-        }
-
-        if (hooks?.onWrap) {
-          onWrapFns.push(hooks.onWrap);
-        }
-      }
-
-      return {
-        onSubscribe:
-          onSubscribeFns.length === 0
-            ? undefined
-            : async (value: unknown) => {
-                for (const fn of onSubscribeFns) {
-                  await fn(value);
-                }
-              },
-        onWrap:
-          onWrapFns.length === 0
-            ? undefined
-            : async (child: ResolveValueWrapper) => {
-                for (const fn of onWrapFns) {
-                  await fn(child);
-                }
-              },
-      };
-    },
-
-    async onInterfaceResolveType(
-      type: GraphQLObjectType,
-      parent: ResolveValueWrapper,
-      context: object,
-      info: GraphQLResolveInfo,
-    ) {
-      for (const plugin of onInterfaceResolveTypePlugins) {
-        await plugin.onInterfaceResolveType(type, parent, context, info);
-      }
-    },
-
-    async onUnionResolveType(
-      type: GraphQLObjectType,
-      parent: ResolveValueWrapper,
-      context: object,
-      info: GraphQLResolveInfo,
-    ) {
-      for (const plugin of onUnionResolveTypePlugins) {
-        await plugin.onUnionResolveType(type, parent, context, info);
-      }
-    },
-
-    onType(type: GraphQLNamedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+    builder,
+    onTypeConfig(typeConfig: GiraphQLTypeConfig) {
       for (const plugin of onTypePlugins) {
-        plugin.onType(type, builder);
+        plugin.onTypeConfig(typeConfig);
       }
     },
 
-    onField(
-      type: GraphQLObjectType | GraphQLInterfaceType,
-      name: string,
-      field: GraphQLFieldConfig<unknown, object>,
-      builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
-    ) {
-      for (const plugin of onFieldPlugins) {
-        plugin.onField(type, name, field, builder);
+    wrapOutputField(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+      const all = [];
+
+      for (const plugin of wrapOutputFieldPlugins) {
+        const wrappers = plugin.wrapOutputField(fieldConfig);
+
+        if (Array.isArray(wrappers)) {
+          all.push(...wrappers);
+        } else if (wrappers) {
+          all.push(wrappers);
+        }
+      }
+
+      return all;
+    },
+
+    onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+      for (const plugin of onInputFieldPlugins) {
+        plugin.onInputFieldConfig(fieldConfig);
       }
     },
 
-    beforeBuild(builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+      for (const plugin of onOutputFieldPlugins) {
+        plugin.onOutputFieldConfig(fieldConfig);
+      }
+    },
+
+    beforeBuild() {
       for (const plugin of beforeBuildPlugins) {
-        plugin.beforeBuild(builder);
+        plugin.beforeBuild();
       }
     },
 
-    afterBuild(schema: GraphQLSchema, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
+    afterBuild(schema: GraphQLSchema) {
       for (const plugin of afterBuildPlugins) {
-        plugin.afterBuild(schema, builder);
+        plugin.afterBuild(schema);
       }
     },
   };

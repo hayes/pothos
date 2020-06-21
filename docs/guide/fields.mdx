@@ -15,7 +15,7 @@ Scalar fields can be difined a couple of different ways:
 1. Using convenience methods
 
 ```typescript
-const Query = builder.queryType({
+builder.queryType({
   fields: (t) => ({
     id: t.id({ resolve: () => '123' }),
     int: t.int({ resolve: () => 123 }),
@@ -34,7 +34,7 @@ const Query = builder.queryType({
 2. Using the generic `field` method
 
 ```typescript
-const Query = builder.queryType({
+builder.queryType({
   fields: t => ({
     name: t.field({
       description: 'Name field'
@@ -57,7 +57,7 @@ const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
 }>();
 
-const Query = builder.queryType({
+builder.queryType({
   fields: t => ({
     giraffe: t.field({
       description: 'A giraffe'
@@ -76,8 +76,8 @@ const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-fields Giraffe = builder.objectType('Giraffe', {
-  fields: t => ({
+builder.objectType('Giraffe', {
+  fields: (t) => ({
     preferredNeckLengthUnit: t.field({
       type: LengthUnit,
       resolve: () => 'Feet',
@@ -85,8 +85,8 @@ fields Giraffe = builder.objectType('Giraffe', {
   }),
 });
 
-const Query = builder.queryType({
-  fields: t => ({
+builder.queryType({
+  fields: (t) => ({
     giraffe: t.field({
       type: 'Giraffe',
       resolve: () => ({ name: 'Gina' }),
@@ -100,7 +100,7 @@ const Query = builder.queryType({
 To create a list field, you can wrap the the type in an array
 
 ```typescript
-const Query = builder.queryType({
+builder.queryType({
   fields: t => ({
     giraffes: t.field({
       description: 'multiple giraffes'
@@ -122,7 +122,7 @@ Unlike some other GraphQL implementations, fields in GiraphQL are required by de
 often desirable to make fields in your schema nullable.
 
 ```typescript
-const Query = builder.queryType({
+builder.queryType({
   fields: (t) => ({
     nullableField: t.field({
       type: 'String',
@@ -167,7 +167,7 @@ const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
 }>();
 
-fields Giraffe = builder.objectType('Giraffe', {
+builder.objectType('Giraffe', {
   fields: t => ({
     name: t.exposeString('name')
   }),
@@ -192,7 +192,7 @@ The available expose helpers are:
 Arguments for a field can defined in the options for a field:
 
 ```typescript
-const Query = builder.queryType({
+builder.queryType({
   fields: (t) => ({
     giraffeByName: t.field({
       type: 'Giraffe',

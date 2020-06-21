@@ -117,6 +117,7 @@ export type GiraphQLFieldKindToConfig<Types extends SchemaTypes, Kind extends Fi
   [K in FieldKind]: Omit<GraphQLFieldConfig<unknown, object>, 'type' | 'args'> & {
     kind: K;
     graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[K];
+    parentType: string;
     name: string;
     type: GiraphQLOutputFieldType<Types>;
     args: { [name: string]: GiraphQLInputFieldConfig<Types> };
@@ -138,6 +139,7 @@ export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
   kind: 'InputObject' | 'Arg';
   graphqlKind: 'InputObject' | 'Arg';
   name: string;
+  parentType: string;
   type: GiraphQLInputFieldType<Types>;
   options: GiraphQLSchemaTypes.InputFieldOptions<
     Types,

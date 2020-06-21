@@ -68,9 +68,9 @@ import { normalizeEnumValues } from './utils';
 export default class SchemaBuilder<Types extends SchemaTypes> {
   configStore: ConfigStore<Types>;
 
-  private plugin: Required<BasePlugin>;
+  private plugin: Required<BasePlugin<Types>>;
 
-  constructor(options: { plugins?: BasePlugin[] } = {}) {
+  constructor(options: { plugins?: BasePlugin<Types>[] } = {}) {
     this.plugin = mergePlugins(options.plugins ?? []);
     this.configStore = new ConfigStore<Types>(this.plugin);
 
@@ -241,7 +241,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   args<Shape extends InputFieldMap>(
     fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Shape,
   ): Shape {
-    return fields(new InputFieldBuilder<Types>(this, 'Arg'));
+    return fields(new InputFieldBuilder<Types>(this, 'Arg', '[unknown]'));
   }
 
   interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(
@@ -403,7 +403,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.addTypeConfig(config, ref);
 
-    this.configStore.buildFields(ref, options.fields(new InputFieldBuilder(this, 'InputObject')));
+    this.configStore.buildFields(
+      ref,
+      options.fields(new InputFieldBuilder(this, 'InputObject', name)),
+    );
 
     return ref;
   }

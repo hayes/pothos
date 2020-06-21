@@ -13,9 +13,16 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
 
   kind: 'InputObject' | 'Arg';
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: 'InputObject' | 'Arg') {
+  typename: string;
+
+  constructor(
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    kind: 'InputObject' | 'Arg',
+    typename: string,
+  ) {
     this.builder = builder;
     this.kind = kind;
+    this.typename = typename;
   }
 
   bool = this.helper('Boolean');
@@ -63,6 +70,7 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
         name,
         kind: this.kind,
         graphqlKind: this.kind,
+        parentType: this.typename,
         type: inputTypeFromParam<Types>(
           options.type,
           this.builder.configStore,

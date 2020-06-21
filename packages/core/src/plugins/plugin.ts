@@ -1,84 +1,32 @@
+import { GraphQLSchema } from 'graphql';
 import {
-  GraphQLFieldConfig,
-  GraphQLResolveInfo,
-  GraphQLSchema,
-  GraphQLType,
-  GraphQLNamedType,
-  GraphQLInterfaceType,
-  GraphQLObjectType,
-} from 'graphql';
-import { MaybePromise } from '../types';
-import BuildCache from '../build-cache';
-import { ResolveValueWrapper } from './resolve-wrapper';
+  SchemaTypes,
+  GiraphQLOutputFieldConfig,
+  GiraphQLTypeConfig,
+  GiraphQLInputFieldConfig,
+} from '../types';
+import BaseFieldWrapper from './field-wrapper';
 
-export interface BasePlugin {
-  visitType?(type: GraphQLNamedType, cache: BuildCache<any>): void;
+export class BasePlugin<Types extends SchemaTypes> {
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  updateFieldConfig?(
-    type: GraphQLObjectType | GraphQLInterfaceType,
-    name: string,
-    config: GraphQLFieldConfig<unknown, object>,
-    cache: BuildCache<any>,
-  ): GraphQLFieldConfig<unknown, object>;
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+    this.builder = builder;
+  }
 
-  onFieldWrap?(
-    type: GraphQLObjectType | GraphQLInterfaceType,
-    name: string,
-    config: GraphQLFieldConfig<unknown, object>,
-    data: Partial<GiraphQLSchemaTypes.FieldWrapData>,
-    cache: BuildCache<any>,
-  ): void;
+  onTypeConfig(typeConfig: GiraphQLTypeConfig) {}
 
-  onType?(type: GraphQLType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
+  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {}
 
-  onField?(
-    type: GraphQLObjectType | GraphQLInterfaceType,
-    name: string,
-    config: GraphQLFieldConfig<unknown, object>,
-    builder: GiraphQLSchemaTypes.SchemaBuilder<any>,
-  ): void;
+  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {}
 
-  beforeBuild?(builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
+  beforeBuild() {}
 
-  afterBuild?(schema: GraphQLSchema, builder: GiraphQLSchemaTypes.SchemaBuilder<any>): void;
+  afterBuild(schema: GraphQLSchema) {}
 
-  beforeResolve?(
-    parent: ResolveValueWrapper,
-    data: GiraphQLSchemaTypes.FieldWrapData,
-    args: object,
-    context: object,
-    info: GraphQLResolveInfo,
-  ): MaybePromise<{
-    onResolve?(value: unknown): MaybePromise<void>;
-    onWrap?(
-      child: ResolveValueWrapper,
-      index: number | null,
-      wrap: (child: unknown) => MaybePromise<ResolveValueWrapper>,
-    ): MaybePromise<void>;
-  }>;
-
-  beforeSubscribe?(
-    parent: ResolveValueWrapper,
-    data: GiraphQLSchemaTypes.FieldWrapData,
-    args: object,
-    context: object,
-    info: GraphQLResolveInfo,
-  ): MaybePromise<{
-    onSubscribe?(value: unknown): MaybePromise<void>;
-    onWrap?(child: ResolveValueWrapper): MaybePromise<void>;
-  }>;
-
-  onInterfaceResolveType?(
-    type: GraphQLObjectType,
-    parent: ResolveValueWrapper,
-    context: object,
-    info: GraphQLResolveInfo,
-  ): MaybePromise<void>;
-
-  onUnionResolveType?(
-    type: GraphQLObjectType,
-    parent: ResolveValueWrapper,
-    context: object,
-    info: GraphQLResolveInfo,
-  ): MaybePromise<void>;
+  wrapOutputField(
+    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+  ): BaseFieldWrapper<Types> | BaseFieldWrapper<Types>[] | null {
+    return null;
+  }
 }
