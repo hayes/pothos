@@ -55,6 +55,7 @@ import {
   InputObjectRef,
   GiraphQLInputObjectTypeConfig,
   InputFieldMap,
+  PluginConstructorMap,
 } from '.';
 import { BasePlugin, mergePlugins } from './plugins';
 import ConfigStore from './config-store';
@@ -68,10 +69,23 @@ import { normalizeEnumValues } from './utils';
 export default class SchemaBuilder<Types extends SchemaTypes> {
   configStore: ConfigStore<Types>;
 
+  options: GiraphQLSchemaTypes.SchemaBuilderOptions;
+
   private plugin: Required<BasePlugin<Types>>;
 
-  constructor(options: { plugins?: BasePlugin<Types>[] } = {}) {
-    this.plugin = mergePlugins(this, options.plugins ?? []);
+  constructor(options: GiraphQLSchemaTypes.SchemaBuilderOptions) {
+    this.options = options;
+
+    const plugins = Object.keys(SchemaBuilder.plugins).map((pluginName) => {
+      const Plugin = SchemaBuilder.plugins[
+        pluginName as keyof PluginConstructorMap
+      ] as typeof BasePlugin;
+
+      return new Plugin(this);
+    });
+
+    this.plugin = mergePlugins(this, plugins);
+
     this.configStore = new ConfigStore<Types>(this.plugin);
 
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
@@ -107,14 +121,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config, ref);
 
     if (shape) {
-      this.configStore.buildFields(
+      this.configStore.addFields(
         ref,
         shape(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)),
       );
     }
 
     if (options.fields) {
-      this.configStore.buildFields(ref, options.fields!(new ObjectFieldBuilder(name, this)));
+      this.configStore.addFields(ref, options.fields!(new ObjectFieldBuilder(name, this)));
     }
 
     return ref;
@@ -125,7 +139,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fields: ObjectFieldsShape<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
-      this.configStore.buildFields(ref, fields(new ObjectFieldBuilder(name, this)));
+      this.configStore.addFields(ref, fields(new ObjectFieldBuilder(name, this)));
     });
   }
 
@@ -135,7 +149,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     field: ObjectFieldThunk<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
-      this.configStore.buildFields(ref, {
+      this.configStore.addFields(ref, {
         [fieldName]: field(new ObjectFieldBuilder(name, this)),
       });
     });
@@ -153,20 +167,20 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config);
 
     if (shape) {
-      this.configStore.buildFields('Query', shape(new QueryFieldBuilder(this)));
+      this.configStore.addFields('Query', shape(new QueryFieldBuilder(this)));
     }
 
     if (options.fields) {
-      this.configStore.buildFields('Query', options.fields!(new QueryFieldBuilder(this)));
+      this.configStore.addFields('Query', options.fields!(new QueryFieldBuilder(this)));
     }
   }
 
   queryFields(fields: QueryFieldsShape<Types>) {
-    this.configStore.buildFields('Query', fields(new QueryFieldBuilder(this)));
+    this.configStore.addFields('Query', fields(new QueryFieldBuilder(this)));
   }
 
   queryField(name: string, field: QueryFieldThunk<Types>) {
-    this.configStore.buildFields('Query', { [name]: field(new QueryFieldBuilder(this)) });
+    this.configStore.addFields('Query', { [name]: field(new QueryFieldBuilder(this)) });
   }
 
   mutationType(
@@ -184,20 +198,20 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config);
 
     if (fields) {
-      this.configStore.buildFields('Mutation', fields(new MutationFieldBuilder(this)));
+      this.configStore.addFields('Mutation', fields(new MutationFieldBuilder(this)));
     }
 
     if (options.fields) {
-      this.configStore.buildFields('Mutation', options.fields!(new MutationFieldBuilder(this)));
+      this.configStore.addFields('Mutation', options.fields!(new MutationFieldBuilder(this)));
     }
   }
 
   mutationFields(fields: MutationFieldsShape<Types>) {
-    this.configStore.buildFields('Mutation', fields(new MutationFieldBuilder(this)));
+    this.configStore.addFields('Mutation', fields(new MutationFieldBuilder(this)));
   }
 
   mutationField(name: string, field: MutationFieldThunk<Types>) {
-    this.configStore.buildFields('Mutation', {
+    this.configStore.addFields('Mutation', {
       [name]: field(new MutationFieldBuilder(this)),
     });
   }
@@ -217,11 +231,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config);
 
     if (fields) {
-      this.configStore.buildFields('Subscription', fields(new SubscriptionFieldBuilder(this)));
+      this.configStore.addFields('Subscription', fields(new SubscriptionFieldBuilder(this)));
     }
 
     if (options.fields) {
-      this.configStore.buildFields(
+      this.configStore.addFields(
         'Subscription',
         options.fields!(new SubscriptionFieldBuilder(this)),
       );
@@ -229,11 +243,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   subscriptionFields(fields: SubscriptionFieldsShape<Types>) {
-    this.configStore.buildFields('Subscription', fields(new SubscriptionFieldBuilder(this)));
+    this.configStore.addFields('Subscription', fields(new SubscriptionFieldBuilder(this)));
   }
 
   subscriptionField(name: string, field: SubscriptionFieldThunk<Types>) {
-    this.configStore.buildFields('Subscription', {
+    this.configStore.addFields('Subscription', {
       [name]: field(new SubscriptionFieldBuilder(this)),
     });
   }
@@ -267,11 +281,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config, ref);
 
     if (fields) {
-      this.configStore.buildFields(ref, fields(new InterfaceFieldBuilder(typename, this)));
+      this.configStore.addFields(ref, fields(new InterfaceFieldBuilder(typename, this)));
     }
 
     if (options.fields) {
-      this.configStore.buildFields(ref, options.fields!(new InterfaceFieldBuilder(typename, this)));
+      this.configStore.addFields(ref, options.fields!(new InterfaceFieldBuilder(typename, this)));
     }
 
     return ref;
@@ -282,7 +296,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fields: InterfaceFieldsShape<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
-      this.configStore.buildFields(ref, fields(new InterfaceFieldBuilder(name, this)));
+      this.configStore.addFields(ref, fields(new InterfaceFieldBuilder(name, this)));
     });
   }
 
@@ -292,7 +306,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     field: InterfaceFieldThunk<Types, OutputShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
-      this.configStore.buildFields(ref, {
+      this.configStore.addFields(ref, {
         [fieldName]: field(new InterfaceFieldBuilder(name, this)),
       });
     });
@@ -403,7 +417,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.addTypeConfig(config, ref);
 
-    this.configStore.buildFields(
+    this.configStore.addFields(
       ref,
       options.fields(new InputFieldBuilder(this, 'InputObject', name)),
     );
@@ -456,5 +470,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.plugin.afterBuild(schema);
 
     return schema;
+  }
+
+  static plugins: Partial<PluginConstructorMap> = {};
+
+  static registerPlugin<T extends keyof PluginConstructorMap>(
+    name: T,
+    plugin: PluginConstructorMap[T],
+  ) {
+    this.plugins[name] = plugin;
   }
 }

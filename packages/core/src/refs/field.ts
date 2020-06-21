@@ -8,4 +8,8 @@ export default class FieldRef<T = unknown, Kind extends FieldKind = FieldKind> {
   constructor(kind: Kind) {
     this.kind = kind;
   }
+
+  toString() {
+    return `${this.kind}FieldRef`;
+  }
 }

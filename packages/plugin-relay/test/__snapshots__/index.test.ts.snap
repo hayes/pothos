@@ -1,24 +1,78 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`extends example schema generates expected schema 1`] = `
-"type ContactInfo {
-  email: String!
-  phoneNUmber: String
+exports[`relay example schema generates expected schema 1`] = `
+"type Answer {
+  count: Int!
+  id: ID!
+  value: String!
 }
 
-interface Node {
+type Mutation {
+  answerPoll(answer: Int!, id: ID!): Poll!
+  createPoll(answers: [String!]!, question: String!): Poll!
+}
+
+type PageInfo {
+  endCursor: Boolean
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Poll {
+  answers: [Answer!]!
+  answersConnection: PollAnswersConnection!
+  answersUsingOffset: PollAnswersUsingOffsetConnection!
+  answersWithoutHelpers: PollAnswersCon!
   id: ID!
+  question: String!
+  updatedAt: String!
+}
+
+type PollAnswersCon {
+  edges: [PollAnswersConEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersConEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersConnection {
+  edges: [PollAnswersConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersUsingOffsetConnection {
+  edges: [PollAnswersUsingOffsetConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersUsingOffsetConnectionEdge {
+  cursor: String!
+  node: Answer!
 }
 
 type Query {
-  user(id: ID!): User!
+  poll(id: Int!): Poll
+  polls: [Poll!]!
+  pollsConnection: QueryPollsConnection!
 }
 
-type User implements Node {
-  contactInfo: ContactInfo!
-  firstName: String!
-  id: ID!
-  lastName: String!
+type QueryPollsConnection {
+  edges: [QueryPollsConnectionEdge!]!
+  pageInfo: PageInfo!
+}
+
+type QueryPollsConnectionEdge {
+  cursor: String!
+  node: Poll!
 }
 "
 `;

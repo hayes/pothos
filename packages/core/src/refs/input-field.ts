@@ -11,4 +11,8 @@ export default class InputFieldRef<
   constructor(kind: Kind) {
     this.kind = kind;
   }
+
+  toString() {
+    return `${this.kind}FieldRef`;
+  }
 }

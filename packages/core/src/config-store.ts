@@ -8,7 +8,12 @@ import {
   InputFieldRef,
   InputFieldMap,
   GraphQLFieldKind,
+  TypeParam,
+  InputTypeParam,
+  OutputType,
+  InputType,
 } from '.';
+import BaseTypeRef from './refs/base';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   constructor(plugin: Required<BasePlugin<Types>>) {
@@ -28,26 +33,51 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private refsToName = new Map<ConfigurableRef<Types>, string>();
 
+  private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, GiraphQLFieldConfig<Types>[]>();
+
+  private pendingFields = new Map<FieldRef | InputFieldRef, OutputType<Types> | InputType<Types>>();
+
   private pendingRefResolutions = new Map<
     ConfigurableRef<Types>,
     ((config: GiraphQLTypeConfig) => void)[]
   >();
 
+  private fieldRefCallbacks = new Map<
+    FieldRef | InputFieldRef,
+    ((config: GiraphQLFieldConfig<Types>) => void)[]
+  >();
+
   private pending = true;
 
-  hasRef(ref: unknown) {
-    return this.refsToName.has(ref as ConfigurableRef<Types>);
+  hasConfig(typeParam: InputType<Types> | OutputType<Types>) {
+    if (typeof typeParam === 'string') {
+      return this.typeConfigs.has(typeParam);
+    }
+
+    return this.refsToName.has(typeParam);
   }
 
   addFieldRef(
     ref: FieldRef | InputFieldRef,
+    // We need to be able to resolve the types kind before configuring the field
+    typeParam: TypeParam<Types> | InputTypeParam<Types>,
     getConfig: (name: string) => GiraphQLFieldConfig<Types>,
   ) {
     if (this.fieldRefs.has(ref)) {
       throw new Error(`FieldRef ${ref} has already been added to config store`);
     }
 
-    this.fieldRefs.set(ref, getConfig);
+    const typeRefOrName = Array.isArray(typeParam) ? typeParam[0] : typeParam;
+
+    if (this.hasConfig(typeRefOrName) || typeRefOrName instanceof BaseTypeRef) {
+      this.fieldRefs.set(ref, getConfig);
+    } else {
+      this.pendingFields.set(ref, typeRefOrName);
+      this.onTypeConfig(typeRefOrName, () => {
+        this.pendingFields.delete(ref);
+        this.fieldRefs.set(ref, getConfig);
+      });
+    }
   }
 
   getFieldConfig<T extends GraphQLFieldKind>(
@@ -56,14 +86,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
     kind?: T,
   ): Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }> {
     if (!this.fieldRefs.has(ref)) {
-      throw new Error(`FieldRef ${ref} has not been added to config store`);
+      throw new Error(`FieldRef for field named ${name} has not been added to config store yet`);
     }
 
     const config = this.fieldRefs.get(ref)!(name);
 
     if (kind && config.graphqlKind !== kind) {
       throw new TypeError(
-        `Expected ref to resolve to a ${kind} type, but got ${config.graphqlKind}`,
+        `Expected ref for field named ${name} to resolve to a ${kind} type, but got ${config.graphqlKind}`,
       );
     }
 
@@ -76,6 +106,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     this.refsToName.set(ref, name);
+
+    if (this.pendingRefResolutions.has(ref)) {
+      const cbs = this.pendingRefResolutions.get(ref)!;
+
+      this.pendingRefResolutions.delete(ref);
+
+      cbs.forEach((cb) => cb(this.typeConfigs.get(name)!));
+    }
   }
 
   addTypeConfig(config: GiraphQLTypeConfig, ref?: ConfigurableRef<Types>) {
@@ -89,14 +127,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     if (ref) {
       this.associateRefWithName(ref, name);
-
-      if (this.pendingRefResolutions.has(ref)) {
-        this.pendingRefResolutions.get(ref)!.forEach((cb) => cb(config));
-      }
     }
 
     if (this.pendingRefResolutions.has(name as ConfigurableRef<Types>)) {
-      this.pendingRefResolutions.get(name as ConfigurableRef<Types>)!.forEach((cb) => cb(config));
+      const cbs = this.pendingRefResolutions.get(name as ConfigurableRef<Types>)!;
+
+      this.pendingRefResolutions.delete(name as ConfigurableRef<Types>);
+
+      cbs.forEach((cb) => cb(config));
     }
   }
 
@@ -138,6 +176,18 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
   }
 
+  onFieldUse(ref: FieldRef | InputFieldRef, cb: (config: GiraphQLFieldConfig<Types>) => void) {
+    if (!this.fieldRefCallbacks.has(ref)) {
+      this.fieldRefCallbacks.set(ref, []);
+    }
+
+    this.fieldRefCallbacks.get(ref)!.push(cb);
+
+    if (this.fieldRefsToConfigs.has(ref)) {
+      this.fieldRefsToConfigs.get(ref)!.forEach((config) => cb(config));
+    }
+  }
+
   getFields<T extends GraphQLFieldKind>(
     name: string,
     kind?: T,
@@ -166,29 +216,60 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
   }
 
-  buildFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
+  addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
+    this.onTypeConfig(typeRef, (config) => {
+      this.buildFields(typeRef, fields);
+    });
+  }
+
+  private buildFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
     const typeConfig = this.getTypeConfig(typeRef);
 
     if (!this.fields.has(typeConfig.name)) {
       this.fields.set(typeConfig.name, {});
     }
 
+    Object.keys(fields).forEach((fieldName) => {
+      const fieldRef = fields[fieldName];
+      if (this.pendingFields.has(fieldRef)) {
+        this.onTypeConfig(this.pendingFields.get(fieldRef)!, () => {
+          this.buildField(typeRef, fieldRef, fieldName);
+        });
+      } else {
+        this.buildField(typeRef, fieldRef, fieldName);
+      }
+    });
+  }
+
+  private buildField(
+    typeRef: ConfigurableRef<Types>,
+    field: FieldRef | InputFieldRef,
+    fieldName: string,
+  ) {
+    const typeConfig = this.getTypeConfig(typeRef);
+    const fieldConfig = this.getFieldConfig(field, fieldName);
     const existingFields = this.fields.get(typeConfig.name)!;
 
-    Object.keys(fields).forEach((fieldName) => {
-      if (existingFields[fieldName]) {
-        throw new Error(`Duplicate field definition for field ${fieldName} in ${typeConfig.name}`);
-      }
+    if (existingFields[fieldName]) {
+      throw new Error(`Duplicate field definition for field ${fieldName} in ${typeConfig.name}`);
+    }
 
-      const fieldConfig = this.getFieldConfig(fields[fieldName], fieldName);
+    if (fieldConfig.graphqlKind !== typeConfig.graphqlKind) {
+      throw new TypeError(
+        `${typeConfig.name}.${fieldName} was defined as a ${fieldConfig.graphqlKind} field but ${typeConfig.name} is a ${typeConfig.graphqlKind}`,
+      );
+    }
 
-      if (fieldConfig.graphqlKind !== typeConfig.graphqlKind) {
-        throw new TypeError(
-          `${typeConfig.name}.${fieldName} was defined as a ${fieldConfig.graphqlKind} field but ${typeConfig.name} is a ${typeConfig.graphqlKind}`,
-        );
-      }
+    existingFields[fieldName] = fieldConfig;
 
-      existingFields[fieldName] = fieldConfig;
-    });
+    if (!this.fieldRefsToConfigs.has(field)) {
+      this.fieldRefsToConfigs.set(field, []);
+    }
+
+    this.fieldRefsToConfigs.get(field)!.push(fieldConfig);
+
+    if (this.fieldRefCallbacks.has(field)) {
+      this.fieldRefCallbacks.get(field)!.forEach((cb) => cb(fieldConfig));
+    }
   }
 }

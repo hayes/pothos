@@ -65,7 +65,7 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
   ) {
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>> = {} as any;
 
-    this.builder.configStore.addFieldRef(ref, (name) => {
+    this.builder.configStore.addFieldRef(ref, options.type, (name) => {
       return {
         name,
         kind: this.kind,

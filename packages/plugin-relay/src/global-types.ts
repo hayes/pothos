@@ -16,9 +16,14 @@ import {
   ConnectionShapeFromResolve,
   PageInfoShape,
 } from './types';
+import RelayPlugin from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface Plugins<Types extends SchemaTypes> {
+      Relay: RelayPlugin<Types>;
+    }
+
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<PageInfoShape>;
     }

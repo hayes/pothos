@@ -12,24 +12,26 @@ import {
   GiraphQLOutputFieldType,
 } from '..';
 import ConfigStore from '../config-store';
+import BaseTypeRef from '../refs/base';
 
 export function typeFromNonListParam<Types extends SchemaTypes>(
   ref: OutputType<Types>,
   configStore: ConfigStore<Types>,
   nullable: boolean,
 ): GiraphQLNameOutputFieldType<Types> {
-  const typeConfig = configStore.getTypeConfig(ref);
+  const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
+  const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
 
-  if (typeConfig.graphqlKind !== 'InputObject') {
+  if (kind !== 'InputObject') {
     return {
-      kind: typeConfig.graphqlKind,
+      kind,
       ref,
       nullable,
     };
   }
 
   throw new Error(
-    `Expected input param ${typeConfig.name} to be an InputObject, Enum, or Scalar but got ${typeConfig.kind}`,
+    `Expected input param ${name} to be an InputObject, Enum, or Scalar but got ${kind}`,
   );
 }
 
@@ -57,22 +59,19 @@ export function inputTypeFromNonListParam<Types extends SchemaTypes>(
   configStore: ConfigStore<Types>,
   required: boolean,
 ): GiraphQLNameInputFieldType<Types> {
-  const typeConfig = configStore.getTypeConfig(ref);
+  const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
+  const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
 
-  if (
-    typeConfig.kind === 'InputObject' ||
-    typeConfig.kind === 'Enum' ||
-    typeConfig.kind === 'Scalar'
-  ) {
+  if (kind === 'InputObject' || kind === 'Enum' || kind === 'Scalar') {
     return {
-      kind: typeConfig.graphqlKind,
+      kind,
       ref,
       required,
     };
   }
 
   throw new Error(
-    `Expected input param ${typeConfig.name} to be an InputObject, Enum, or Scalar but got ${typeConfig.kind}`,
+    `Expected input param ${name} to be an InputObject, Enum, or Scalar but got ${kind}`,
   );
 }
 

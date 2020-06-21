@@ -48,6 +48,7 @@ export function mergePlugins<Types extends SchemaTypes>(
   ) as Pick<Required<BasePlugin<Types>>, 'afterBuild'>[];
 
   return {
+    name: 'GiraphQLMergedPlugin' as never,
     builder,
     onTypeConfig(typeConfig: GiraphQLTypeConfig) {
       for (const plugin of onTypePlugins) {

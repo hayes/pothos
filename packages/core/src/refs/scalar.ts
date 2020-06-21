@@ -1,6 +1,7 @@
 import { outputShapeKey, OutputRef, InputRef, inputShapeKey } from '../types';
+import BaseTypeRef from './base';
 
-export default class ScalarRef<T, U> implements OutputRef, InputRef {
+export default class ScalarRef<T, U> extends BaseTypeRef implements OutputRef, InputRef {
   kind = 'Scalar' as const;
 
   name: string;
@@ -10,6 +11,7 @@ export default class ScalarRef<T, U> implements OutputRef, InputRef {
   [inputShapeKey]: U;
 
   constructor(name: string) {
+    super();
     this.name = name;
   }
 }

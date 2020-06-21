@@ -1,6 +1,7 @@
 import { outputShapeKey, OutputRef, InputRef, inputShapeKey } from '../types';
+import BaseTypeRef from './base';
 
-export default class EnumRef<T, U = T> implements OutputRef, InputRef {
+export default class EnumRef<T, U = T> extends BaseTypeRef implements OutputRef, InputRef {
   kind = 'Enum' as const;
 
   name: string;
@@ -10,6 +11,7 @@ export default class EnumRef<T, U = T> implements OutputRef, InputRef {
   [inputShapeKey]: U;
 
   constructor(name: string) {
+    super();
     this.name = name;
   }
 }

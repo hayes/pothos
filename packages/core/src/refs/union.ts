@@ -1,6 +1,7 @@
 import { outputShapeKey, OutputRef } from '../types';
+import BaseTypeRef from './base';
 
-export default class UnionRef<T> implements OutputRef {
+export default class UnionRef<T> extends BaseTypeRef implements OutputRef {
   kind = 'Union' as const;
 
   name: string;
@@ -8,6 +9,7 @@ export default class UnionRef<T> implements OutputRef {
   [outputShapeKey]: T;
 
   constructor(name: string) {
+    super();
     this.name = name;
   }
 }

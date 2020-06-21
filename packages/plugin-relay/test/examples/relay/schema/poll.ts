@@ -60,8 +60,8 @@ builder.objectType('Poll', {
         },
       },
       {
-        // Name for the Connection object that gets automatically created
-        name: 'PollAnswersConnection', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
+        // Name for the Connection object
+        name: 'PollAnswersCon', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
         fields: () => ({
           /* define extra fields on Connection */
         }),
@@ -69,7 +69,7 @@ builder.objectType('Poll', {
       },
       {
         // Same as above, but for the Edge Object
-        name: 'PollAnswersConnectionEdge', // optional, will use Connection name + "Edge" as the default
+        name: 'PollAnswersConEdge', // optional, will use Connection name + "Edge" as the default
         fields: () => ({
           /* define extra fields on Edge */
         }),

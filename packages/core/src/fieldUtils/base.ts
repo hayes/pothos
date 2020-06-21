@@ -46,7 +46,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       });
     }
 
-    this.builder.configStore.addFieldRef(ref, (name) => {
+    this.builder.configStore.addFieldRef(ref, options.type, (name) => {
       return {
         kind: this.kind as any,
         graphqlKind: this.graphqlKind as GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],

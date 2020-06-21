@@ -2,8 +2,9 @@
 
 import { outputShapeKey, OutputRef } from '../types';
 import { SchemaTypes } from '..';
+import BaseTypeRef from './base';
 
-export default class InterfaceRef<T> implements OutputRef {
+export default class InterfaceRef<T> extends BaseTypeRef implements OutputRef {
   kind = 'Interface' as const;
 
   name: string;
@@ -11,6 +12,8 @@ export default class InterfaceRef<T> implements OutputRef {
   [outputShapeKey]: T;
 
   constructor(name: string) {
+    super();
+
     this.name = name;
   }
 }

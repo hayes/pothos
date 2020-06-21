@@ -1,8 +1,9 @@
 /* eslint-disable max-classes-per-file */
 import { inputShapeKey, InputRef } from '../types';
 import { SchemaTypes, InputFieldsFromShape, RecursivelyNormalizeNullableFields } from '..';
+import BaseTypeRef from './base';
 
-export default class InputObjectRef<T> implements InputRef {
+export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
   kind = 'InputObject' as const;
 
   name: string;
@@ -10,6 +11,7 @@ export default class InputObjectRef<T> implements InputRef {
   [inputShapeKey]: T;
 
   constructor(name: string) {
+    super();
     this.name = name;
   }
 }

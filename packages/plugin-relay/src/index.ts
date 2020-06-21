@@ -10,7 +10,9 @@ import { ConnectionShape, PageInfoShape } from './types';
 
 export * from './utils';
 
-export default class RelayPlugin implements BasePlugin {}
+export default class RelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  name: 'Relay' = 'Relay';
+}
 
 function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
@@ -51,42 +53,52 @@ fieldBuilderProto.connection = function connection(
   connectionOptions,
   edgeOptions,
 ) {
-  const connectionName =
-    connectionOptions.name ||
-    `${this.typename}${capitalize(Math.random().toString(36).slice(2))}Connection`;
-  const connectionRef = this.builder.objectRef<ConnectionShape<unknown>>(connectionName);
-  const edgeName = edgeOptions.name || `${connectionName}Edge`;
-  const edgeRef = this.builder.objectRef<{
-    cursor: string;
-    node: unknown;
-  }>(edgeName);
+  const placeholderRef = this.builder.objectRef<ConnectionShape<unknown>>('Unnamed connection');
 
-  this.builder.objectType(edgeRef, {
-    fields: (t) => ({
-      node: t.field({
-        type,
-        resolve: (parent) => parent.node as never,
-      }),
-      cursor: t.exposeString('cursor', {}),
-    }),
-  });
-
-  this.builder.objectType(connectionRef, {
-    fields: (t) => ({
-      pageInfo: t.field({
-        type: this.builder.pageInfoRef(),
-        resolve: (parent) => parent.pageInfo,
-      }),
-      edges: t.field({
-        type: [edgeRef],
-        resolve: (parent) => parent.edges,
-      }),
-    }),
-  });
-
-  return this.field({
+  const fieldRef = this.field({
     ...fieldOptions,
-    type: connectionRef,
+    type: placeholderRef,
     resolve: fieldOptions.resolve as never,
   });
+
+  this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
+    const connectionName =
+      connectionOptions.name ||
+      `${this.typename}${capitalize(fieldConfig.name)}${
+        fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
+      }`;
+    const connectionRef = this.builder.objectRef<ConnectionShape<unknown>>(connectionName);
+    const edgeName = edgeOptions.name || `${connectionName}Edge`;
+    const edgeRef = this.builder.objectRef<{
+      cursor: string;
+      node: unknown;
+    }>(edgeName);
+
+    this.builder.objectType(connectionRef, {
+      fields: (t) => ({
+        pageInfo: t.field({
+          type: this.builder.pageInfoRef(),
+          resolve: (parent) => parent.pageInfo,
+        }),
+        edges: t.field({
+          type: [edgeRef],
+          resolve: (parent) => parent.edges,
+        }),
+      }),
+    });
+
+    this.builder.configStore.associateRefWithName(placeholderRef, connectionName);
+
+    this.builder.objectType(edgeRef, {
+      fields: (t) => ({
+        node: t.field({
+          type,
+          resolve: (parent) => parent.node as never,
+        }),
+        cursor: t.exposeString('cursor', {}),
+      }),
+    });
+  });
+
+  return fieldRef;
 };

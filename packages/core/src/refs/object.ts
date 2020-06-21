@@ -1,8 +1,9 @@
 /* eslint-disable max-classes-per-file */
 import { outputShapeKey, OutputRef } from '../types';
 import { SchemaTypes, ObjectTypeOptions } from '..';
+import BaseTypeRef from './base';
 
-export default class ObjectRef<T> implements OutputRef {
+export default class ObjectRef<T> extends BaseTypeRef implements OutputRef {
   kind = 'Object' as const;
 
   name: string;
@@ -10,6 +11,7 @@ export default class ObjectRef<T> implements OutputRef {
   [outputShapeKey]: T;
 
   constructor(name: string) {
+    super();
     this.name = name;
   }
 }
