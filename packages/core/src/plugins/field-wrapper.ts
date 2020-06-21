@@ -1,4 +1,9 @@
-import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import {
+  GraphQLResolveInfo,
+  GraphQLFieldResolver,
+  GraphQLAbstractType,
+  GraphQLObjectType,
+} from 'graphql';
 import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise } from '..';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
@@ -48,18 +53,20 @@ export default abstract class BaseFieldWrapper<
   onInterfaceResolveType?(
     requestData: RequestData,
     parentData: ParentData | null,
-    type: string,
+    type: string | GraphQLObjectType,
     parent: unknown,
     context: object,
     info: GraphQLResolveInfo,
+    abstractType: GraphQLAbstractType,
   ): MaybePromise<void>;
 
   onUnionResolveType?(
     requestData: RequestData,
     parentData: ParentData | null,
-    type: string,
+    type: string | GraphQLObjectType,
     parent: unknown,
     context: object,
     info: GraphQLResolveInfo,
+    abstractType: GraphQLAbstractType,
   ): MaybePromise<void>;
 }

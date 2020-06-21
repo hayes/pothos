@@ -11,11 +11,11 @@ import {
 } from '.';
 
 export default class ConfigStore<Types extends SchemaTypes> {
-  constructor(plugin: Required<BasePlugin>) {
+  constructor(plugin: Required<BasePlugin<Types>>) {
     this.plugin = plugin;
   }
 
-  plugin: Required<BasePlugin>;
+  plugin: Required<BasePlugin<Types>>;
 
   typeConfigs = new Map<string, GiraphQLTypeConfig>();
 

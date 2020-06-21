@@ -45,14 +45,15 @@ import {
   GiraphQLOutputFieldType,
 } from '.';
 import ConfigStore from './config-store';
-import { ResolveValueWrapper } from './plugins';
+import { wrapResolveType, wrapResolver, wrapSubscriber } from './plugins/wrap-field';
+import { mergeFieldWrappers } from './plugins/merge-field-wrappers';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
 
   private configStore: ConfigStore<Types>;
 
-  private plugin: Required<BasePlugin>;
+  private plugin: Required<BasePlugin<Types>>;
 
   private mocks: ResolverMap;
 
@@ -60,7 +61,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   constructor(
     configStore: ConfigStore<any>,
-    plugin: Required<BasePlugin>,
+    plugin: Required<BasePlugin<Types>>,
     {
       mocks,
     }: {
@@ -249,10 +250,6 @@ export default class BuildCache<Types extends SchemaTypes> {
           assertNever(config);
       }
     });
-
-    for (const entry of this.types.values()) {
-      this.plugin.visitType(entry, this);
-    }
   }
 
   private addType(ref: string, type: GraphQLNamedType) {
@@ -302,7 +299,13 @@ export default class BuildCache<Types extends SchemaTypes> {
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
     Object.keys(fields).forEach((fieldName) => {
-      const config = fields[fieldName];
+      const config = {
+        ...fields[fieldName],
+        resolve: this.resolverMock(type.name, fieldName) || fields[fieldName].resolve,
+        subscribe: this.subscribeMock(type.name, fieldName) || fields[fieldName].subscribe,
+      };
+
+      const fieldWrapper = mergeFieldWrappers(config, this.plugin.wrapOutputField(config));
 
       built[fieldName] = {
         ...config,
@@ -312,8 +315,8 @@ export default class BuildCache<Types extends SchemaTypes> {
           ...config.extensions,
           giraphqlOptions: config.options,
         },
-        resolve: this.resolverMock(type.name, fieldName) || config.resolve,
-        subscribe: this.subscribeMock(type.name, fieldName) || config.subscribe,
+        resolve: wrapResolver(config, fieldWrapper),
+        subscribe: wrapSubscriber(config, fieldWrapper),
       };
     });
 
@@ -414,9 +417,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       isTypeOf:
         config.isTypeOf &&
         (async (parent, context, info) => {
-          const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
-
-          return config.isTypeOf!(obj, context, info);
+          return config.isTypeOf!(parent, context, info);
         }),
     });
 
@@ -435,15 +436,13 @@ export default class BuildCache<Types extends SchemaTypes> {
           this.getTypeOfKind(iface, 'Interface'),
         ),
       fields: () => this.getFields(type),
-      resolveType: async (parent, context, info) => {
-        const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
-
+      resolveType: wrapResolveType(async (parent, context, info) => {
         const implementers = this.getImplementers(type as GraphQLInterfaceType);
 
         const results = await Promise.all(
           implementers.map((impl) =>
             impl.isTypeOf
-              ? Promise.resolve(impl.isTypeOf(obj, context, info)).then((result) =>
+              ? Promise.resolve(impl.isTypeOf(parent, context, info)).then((result) =>
                   result ? impl : null,
                 )
               : null,
@@ -452,14 +451,8 @@ export default class BuildCache<Types extends SchemaTypes> {
 
         const resolved = results.find((result) => !!result);
 
-        if (!resolved) {
-          return resolved;
-        }
-
-        await this.plugin.onInterfaceResolveType(resolved, parent, context, info);
-
         return resolved;
-      },
+      }),
     });
 
     return type;
@@ -473,24 +466,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: async (parent, context, info, abstractType) => {
-        const obj = parent instanceof ResolveValueWrapper ? parent.value : parent;
-
-        const typeOrTypename = await config.resolveType!(obj, context, info, abstractType);
-
-        if (!typeOrTypename) {
-          return typeOrTypename;
-        }
-
-        const type =
-          typeof typeOrTypename === 'string'
-            ? this.getTypeOfKind(typeOrTypename, 'Object')
-            : typeOrTypename;
-
-        await this.plugin.onUnionResolveType(type, parent, context, info);
-
-        return typeOrTypename;
-      },
+      resolveType: wrapResolveType(config.resolveType),
     });
   }
 

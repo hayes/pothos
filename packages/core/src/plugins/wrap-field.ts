@@ -1,9 +1,13 @@
 /* eslint-disable no-unused-expressions */
-import { defaultFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { SchemaTypes, GiraphQLOutputFieldConfig } from '..';
-import { BasePlugin } from './plugin';
+import {
+  defaultFieldResolver,
+  GraphQLResolveInfo,
+  GraphQLTypeResolver,
+  GraphQLAbstractType,
+} from 'graphql';
+import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType } from '..';
 import { ResolveValueWrapper } from './resolve-wrapper';
-import { mergeFieldWrappers } from './merge-field-wrappers';
+import BaseFieldWrapper from './field-wrapper';
 
 function assertArray(value: unknown): value is unknown[] {
   if (!Array.isArray(value)) {
@@ -27,20 +31,23 @@ function getRequestData(context: object) {
   return data;
 }
 
-export function wrapField<Types extends SchemaTypes>(
+export function getFieldKind<Types extends SchemaTypes>(type: GiraphQLOutputFieldType<Types>) {
+  if (type.kind === 'List') {
+    return type.type.kind;
+  }
+
+  return type.kind;
+}
+
+export function wrapResolver<Types extends SchemaTypes>(
   config: GiraphQLOutputFieldConfig<Types>,
-  plugin: Required<BasePlugin<Types>>,
+  fieldWrapper: Required<BaseFieldWrapper<Types>>,
 ) {
   const originalResolver = config.resolve || defaultFieldResolver;
-  const originalSubscribe = config.subscribe;
 
   const isListResolver = config.type.kind === 'List';
-  const isScalarResolver =
-    config.type.kind === 'List'
-      ? config.type.type.kind === 'Scalar'
-      : config.type.kind === 'Scalar';
-
-  const fieldWrapper = mergeFieldWrappers(config, plugin.wrapOutputField(config));
+  const fieldKind = getFieldKind(config.type);
+  const isScalarResolver = fieldKind === 'Scalar';
 
   const wrappedResolver = async (
     originalParent: unknown,
@@ -76,8 +83,20 @@ export function wrapField<Types extends SchemaTypes>(
 
       const wrapped = parent.child(child);
 
-      wrapped.data =
+      const childData =
         ((await resolveHooks?.onWrap?.(wrapped, index)) as Record<string, object | null>) ?? {};
+
+      wrapped.data = childData;
+
+      if (fieldKind === 'Interface') {
+        wrapped.resolveType = (type, ...rest) => {
+          fieldWrapper.onInterfaceResolveType(requestData, childData, type, ...rest);
+        };
+      } else if (fieldKind === 'Union') {
+        wrapped.resolveType = (type, ...rest) => {
+          fieldWrapper.onUnionResolveType(requestData, childData, type, ...rest);
+        };
+      }
 
       return wrapped;
     }
@@ -98,6 +117,21 @@ export function wrapField<Types extends SchemaTypes>(
 
     return wrapChild(result, null);
   };
+
+  wrappedResolver.unwrap = () => originalResolver;
+
+  return wrappedResolver;
+}
+
+export function wrapSubscriber<Types extends SchemaTypes>(
+  config: GiraphQLOutputFieldConfig<Types>,
+  fieldWrapper: Required<BaseFieldWrapper<Types>>,
+) {
+  const originalSubscribe = config.subscribe;
+
+  if (!originalSubscribe) {
+    return originalSubscribe;
+  }
 
   const wrappedSubscribe = async (
     originalParent: unknown,
@@ -160,8 +194,32 @@ export function wrapField<Types extends SchemaTypes>(
     };
   };
 
-  wrappedResolver.unwrap = () => originalResolver;
   wrappedSubscribe.unwrap = () => originalSubscribe;
 
-  return { resolve: wrappedResolver, subscribe: originalSubscribe ? wrappedSubscribe : undefined };
+  return wrappedSubscribe;
+}
+
+export function wrapResolveType<Types extends SchemaTypes>(
+  originalResolveType?: GraphQLTypeResolver<unknown, Types['Context']> | null,
+) {
+  return async function resolveType(
+    originalParent: unknown,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+    abstractType: GraphQLAbstractType,
+  ) {
+    const parent = ResolveValueWrapper.wrap(originalParent);
+
+    const type = (await originalResolveType?.(parent.value, context, info, abstractType)) ?? null;
+
+    if (!type) {
+      return type;
+    }
+
+    if (parent.resolveType) {
+      await parent.resolveType(type, parent.value, context, info, abstractType);
+    }
+
+    return type;
+  };
 }

@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import { GraphQLResolveInfo, GraphQLFieldResolver, GraphQLAbstractType } from 'graphql';
 
 import { MaybePromise, SchemaTypes, GiraphQLOutputFieldConfig } from '../types';
 import { ResolveValueWrapper } from './resolve-wrapper';
@@ -183,9 +183,18 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       parent: unknown,
       context: object,
       info: GraphQLResolveInfo,
+      abstractType: GraphQLAbstractType,
     ) {
       for (const plugin of onInterfaceResolveTypePlugins) {
-        await plugin.onInterfaceResolveType(requestData, parentData, type, parent, context, info);
+        await plugin.onInterfaceResolveType(
+          requestData,
+          parentData,
+          type,
+          parent,
+          context,
+          info,
+          abstractType,
+        );
       }
     },
 
@@ -196,9 +205,18 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       parent: unknown,
       context: object,
       info: GraphQLResolveInfo,
+      abstractType: GraphQLAbstractType,
     ) {
       for (const plugin of onUnionResolveTypePlugins) {
-        await plugin.onUnionResolveType(requestData, parentData, type, parent, context, info);
+        await plugin.onUnionResolveType(
+          requestData,
+          parentData,
+          type,
+          parent,
+          context,
+          info,
+          abstractType,
+        );
       }
     },
   };

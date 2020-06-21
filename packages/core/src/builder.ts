@@ -71,7 +71,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   private plugin: Required<BasePlugin<Types>>;
 
   constructor(options: { plugins?: BasePlugin<Types>[] } = {}) {
-    this.plugin = mergePlugins(options.plugins ?? []);
+    this.plugin = mergePlugins(this, options.plugins ?? []);
     this.configStore = new ConfigStore<Types>(this.plugin);
 
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
@@ -434,7 +434,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   } = {}) {
     this.configStore.prepareForBuild();
 
-    this.plugin.beforeBuild(this);
+    this.plugin.beforeBuild();
 
     const buildCache = new BuildCache(this.configStore, this.plugin, {
       mocks,
@@ -453,7 +453,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       types: builtTypes,
     });
 
-    this.plugin.afterBuild(schema, this);
+    this.plugin.afterBuild(schema);
 
     return schema;
   }
