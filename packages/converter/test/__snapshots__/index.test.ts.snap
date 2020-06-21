@@ -436,12 +436,6 @@ const Character = builder.interfaceType('Character', {
         }),
         appearsIn: t.field({
             description: \\"Which movies they appear in.\\",
-            args: {
-                id: t.arg({
-                    type: 'ID',
-                    required: true,
-                }),
-            },
             type: [Episode],
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
@@ -520,7 +514,7 @@ export const schema = builder.toSchema();
 exports[`Code generator starwars schema 2`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
+  appearsIn: [Episode!]!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
@@ -535,7 +529,7 @@ exports[`Code generator starwars schema 2`] = `
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
+  appearsIn: [Episode!]!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
@@ -565,7 +559,7 @@ enum Episode {
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
+  appearsIn: [Episode!]!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
