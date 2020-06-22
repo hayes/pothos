@@ -7,11 +7,19 @@ import {
   SchemaTypes,
 } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
-import { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
-import ResolverCache from './resolver-cache';
+import SmartSubscriptionsPlugin, { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
+import { SmartSubscriptionOptions } from './types';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface Plugins<Types extends SchemaTypes> {
+      GiraphQLSmartSubscriptions: SmartSubscriptionsPlugin<Types>;
+    }
+
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      smartSubscriptions: SmartSubscriptionOptions<Types['Context']>;
+    }
+
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       subscribe?: (
         subscriptions: TypeSubscriptionManager<Shape>,
@@ -54,53 +62,6 @@ declare global {
         info: GraphQLResolveInfo,
       ) => void;
       canRefetch?: boolean;
-    }
-
-    export interface ResolverPluginData {
-      smartSubscriptions: {
-        cache: ResolverCache;
-        refetch: () => void;
-        typeSubscriptionManager?: TypeSubscriptionManager;
-        subscriptionByType: {
-          [k: string]:
-            | undefined
-            | ((
-                subscriptions: TypeSubscriptionManager,
-                parent: unknown,
-                context: object,
-                info: GraphQLResolveInfo,
-              ) => void);
-        };
-      };
-    }
-
-    export interface FieldWrapData {
-      smartSubscriptions: {
-        subscribe?: (
-          subscriptions: FieldSubscriptionManager,
-          parent: unknown,
-          args: {},
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => void;
-        objectSubscription?: (
-          subscriptions: TypeSubscriptionManager,
-          parent: unknown,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => void;
-        canRefetch: boolean;
-        subscriptionByType: {
-          [k: string]:
-            | undefined
-            | ((
-                subscriptions: TypeSubscriptionManager,
-                parent: unknown,
-                context: object,
-                info: GraphQLResolveInfo,
-              ) => void);
-        };
-      };
     }
   }
 }

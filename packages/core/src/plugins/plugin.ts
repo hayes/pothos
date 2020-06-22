@@ -7,6 +7,8 @@ import {
 } from '../types';
 import BaseFieldWrapper from './field-wrapper';
 
+export { BaseFieldWrapper };
+
 export class BasePlugin<Types extends SchemaTypes> {
   name: keyof GiraphQLSchemaTypes.Plugins<Types>;
 

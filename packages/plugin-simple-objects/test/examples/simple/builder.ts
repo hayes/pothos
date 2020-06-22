@@ -1,6 +1,6 @@
 import SchemaBuilder from '@giraphql/core';
+import '../../../src';
 import { ContextType } from './types';
-import SimpleObjectsPlugin from '../../../src';
 
 type Types = {
   Context: ContextType;
@@ -12,6 +12,4 @@ type Types = {
   };
 };
 
-export default new SchemaBuilder<Types>({
-  plugins: [new SimpleObjectsPlugin()],
-});
+export default new SchemaBuilder<Types>({});

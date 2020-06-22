@@ -2,7 +2,7 @@ import { GraphQLResolveInfo, GraphQLFieldResolver, GraphQLAbstractType } from 'g
 import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise, GiraphQLTypeConfig } from '..';
 import { ResolveValueWrapper } from './resolve-wrapper';
 
-export default abstract class BaseFieldWrapper<
+export default class BaseFieldWrapper<
   Types extends SchemaTypes,
   RequestData extends object = object,
   ParentData extends object = object
@@ -16,7 +16,7 @@ export default abstract class BaseFieldWrapper<
     this.field = field;
   }
 
-  abstract createRequestData?(context: object): MaybePromise<RequestData>;
+  createRequestData?(context: object): MaybePromise<RequestData>;
 
   beforeResolve?(
     requestData: RequestData,

@@ -1,5 +1,4 @@
 import SchemaBuilder, {
-  BasePlugin,
   SchemaTypes,
   ObjectRef,
   FieldMap,
@@ -8,8 +7,6 @@ import SchemaBuilder, {
 } from '@giraphql/core';
 import './global-types';
 import { OutputShapeFromFields } from './types';
-
-export default class SimpleObjectsPlugin implements BasePlugin {}
 
 const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype;
 

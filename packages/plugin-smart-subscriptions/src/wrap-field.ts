@@ -1,6 +1,5 @@
 /* eslint-disable no-param-reassign */
 
-import { ResolveValueWrapper } from '@giraphql/core';
 import { GraphQLFieldConfig, GraphQLResolveInfo } from 'graphql';
 
 import './global-types';
@@ -14,15 +13,15 @@ export default function wrapField(
   const originalResolve = config.resolve!;
 
   const wrappedResolver: WrappedResolver = (maybeWrappedParent, args, context, info) => {
-    if (!getManager(context, info)) {
-      return originalResolve(maybeWrappedParent, args, context, info);
-    }
+    // if (!getManager(context, info)) {
+    return originalResolve(maybeWrappedParent, args, context, info);
+    // }
 
-    const parentWrapper = ResolveValueWrapper.wrap(maybeWrappedParent);
+    // const parentWrapper = ResolveValueWrapper.wrap(maybeWrappedParent);
 
-    const { cache } = parentWrapper.data.smartSubscriptions!;
+    // const { cache } = parentWrapper.data.smartSubscriptions!;
 
-    return cache.resolve(parentWrapper, args, context, info, originalResolve);
+    // return cache.resolve(parentWrapper, args, context, info, originalResolve);
   };
 
   wrappedResolver.unwrap = () => (originalResolve as WrappedResolver).unwrap();

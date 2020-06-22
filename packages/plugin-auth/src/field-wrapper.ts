@@ -1,5 +1,9 @@
-import BaseFieldWrapper from '@giraphql/core/lib/plugins/field-wrapper';
-import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLTypeConfig } from '@giraphql/core';
+import {
+  SchemaTypes,
+  GiraphQLOutputFieldConfig,
+  GiraphQLTypeConfig,
+  BaseFieldWrapper,
+} from '@giraphql/core';
 import {
   AuthPluginOptions,
   AuthRequestData,

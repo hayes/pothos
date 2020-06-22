@@ -13,7 +13,7 @@ interface TypeInfo {
 }
 
 export default new SchemaBuilder<TypeInfo>({
-  smartSubscriptionOptions: {
+  smartSubscriptions: {
     ...subscribeOptionsFromIterator((name, { pubsub }) => {
       return pubsub.asyncIterator(name);
     }),

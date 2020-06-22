@@ -15,3 +15,4 @@
 13. API to get plugin by name
 14. rename onWrap
 15. change field.options to field.giraphqlOptions
+16. Remove option fetchers now that config-store exposes configs
