@@ -44,8 +44,6 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
 
   hooks: ResolveHooks<Types, T>;
 
-  updateQueued = false;
-
   constructor(value: unknown, index: number | null, hooks: ResolveHooks<Types, T>) {
     super(value, null);
 
@@ -81,11 +79,8 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
   }
 
   private queueDataUpdate(type: GiraphQLObjectTypeConfig) {
-    if (this.hooks.onChild && !this.updateQueued) {
-      this.updateQueued = true;
+    if (this.hooks.onChild) {
       this.getData = () => {
-        this.updateQueued = false;
-
         const data = this.hooks.onChild!(this.value, this.index, type, (next) =>
           this.updateValue(next),
         );

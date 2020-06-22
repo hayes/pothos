@@ -15,37 +15,30 @@ export function mergePlugins<Types extends SchemaTypes>(
     (plugin) => plugin.onTypeConfig,
   ) as Pick<Required<BasePlugin<Types>>, 'onTypeConfig'>[];
 
-  const onInputFieldPlugins: Pick<
-    Required<BasePlugin<Types>>,
-    'onInputFieldConfig'
-  >[] = plugins.filter((plugin) => plugin.onInputFieldConfig) as Pick<
+  const onInputFieldPlugins = plugins.filter((plugin) => plugin.onInputFieldConfig) as Pick<
     Required<BasePlugin<Types>>,
     'onInputFieldConfig'
   >[];
 
-  const onOutputFieldPlugins: Pick<
-    Required<BasePlugin<Types>>,
-    'onOutputFieldConfig'
-  >[] = plugins.filter((plugin) => plugin.onOutputFieldConfig) as Pick<
+  const onOutputFieldPlugins = plugins.filter((plugin) => plugin.onOutputFieldConfig) as Pick<
     Required<BasePlugin<Types>>,
     'onOutputFieldConfig'
   >[];
 
-  const wrapOutputFieldPlugins: Pick<
-    Required<BasePlugin<Types>>,
-    'wrapOutputField'
-  >[] = plugins.filter((plugin) => plugin.wrapOutputField) as Pick<
+  const wrapOutputFieldPlugins = plugins.filter((plugin) => plugin.wrapOutputField) as Pick<
     Required<BasePlugin<Types>>,
     'wrapOutputField'
   >[];
 
-  const beforeBuildPlugins: Pick<Required<BasePlugin<Types>>, 'beforeBuild'>[] = plugins.filter(
-    (plugin) => plugin.beforeBuild,
-  ) as Pick<Required<BasePlugin<Types>>, 'beforeBuild'>[];
+  const beforeBuildPlugins = plugins.filter((plugin) => plugin.beforeBuild) as Pick<
+    Required<BasePlugin<Types>>,
+    'beforeBuild'
+  >[];
 
-  const afterBuildPlugins: Pick<Required<BasePlugin<Types>>, 'afterBuild'>[] = plugins.filter(
-    (plugin) => plugin.afterBuild,
-  ) as Pick<Required<BasePlugin<Types>>, 'afterBuild'>[];
+  const afterBuildPlugins = plugins.filter((plugin) => plugin.afterBuild) as Pick<
+    Required<BasePlugin<Types>>,
+    'afterBuild'
+  >[];
 
   return {
     name: 'GiraphQLMergedPlugin' as never,

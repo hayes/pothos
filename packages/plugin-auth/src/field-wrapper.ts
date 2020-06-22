@@ -3,6 +3,7 @@ import {
   GiraphQLOutputFieldConfig,
   GiraphQLTypeConfig,
   BaseFieldWrapper,
+  GiraphQLObjectTypeConfig,
 } from '@giraphql/core';
 import {
   AuthPluginOptions,
@@ -106,10 +107,18 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
     }
 
     return {
-      onWrap: (child: unknown): Promise<AuthMeta> => {
+      onChild: (
+        child: unknown,
+        index: number | null,
+        type: GiraphQLObjectTypeConfig,
+      ): Promise<AuthMeta> => {
         const childMeta = new AuthMeta(newGrants, parentMeta);
 
-        return this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
+        if (type.name !== this.returnTyeConfig.name) {
+          return this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
+        }
+
+        return this.runPostResolveChecks(type, childMeta, child, context);
       },
     };
   }
@@ -136,29 +145,9 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
     }
 
     return {
-      onWrap(child: unknown): AuthMeta {
+      onValue(child: unknown): AuthMeta {
         return new AuthMeta(newGrants);
       },
     };
-  }
-
-  async onInterfaceResolveType(
-    requestData: AuthRequestData,
-    parentData: AuthMeta | null,
-    type: GiraphQLTypeConfig,
-    parent: unknown,
-    context: object,
-  ) {
-    await this.runPostResolveChecks(type, parentData!, parent, context);
-  }
-
-  async onUnionResolveType(
-    requestData: AuthRequestData,
-    parentData: AuthMeta | null,
-    type: GiraphQLTypeConfig,
-    parent: unknown,
-    context: object,
-  ) {
-    await this.runPostResolveChecks(type, parentData!, parent, context);
   }
 }

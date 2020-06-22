@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { GraphQLResolveInfo, GraphQLFieldResolver, GraphQLAbstractType } from 'graphql';
+import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 
 import {
   MaybePromise,
@@ -7,7 +7,6 @@ import {
   GiraphQLOutputFieldConfig,
   GiraphQLObjectTypeConfig,
 } from '../types';
-import { ResolveValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
 
 type RequestData = Record<string, object>;
@@ -25,34 +24,52 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
     fieldWrappers = rawFieldWrappers ? [rawFieldWrappers] : [];
   }
 
-  const beforeResolvePlugins: (BaseFieldWrapper<Types> &
-    Pick<Required<BaseFieldWrapper<Types>>, 'beforeResolve'>)[] = fieldWrappers.filter(
+  const beforeResolvePlugins = fieldWrappers.filter(
     (plugin) => plugin.beforeResolve,
   ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'beforeResolve'>)[];
 
-  const beforeSubscribePlugins: (BaseFieldWrapper<Types> &
-    Pick<Required<BaseFieldWrapper<Types>>, 'beforeSubscribe'>)[] = fieldWrappers.filter(
+  const beforeSubscribePlugins = fieldWrappers.filter(
     (plugin) => plugin.beforeSubscribe,
   ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'beforeSubscribe'>)[];
 
-  const onInterfaceResolveTypePlugins: (BaseFieldWrapper<Types> &
-    Pick<Required<BaseFieldWrapper<Types>>, 'onInterfaceResolveType'>)[] = fieldWrappers.filter(
-    (plugin) => plugin.onInterfaceResolveType,
-  ) as (BaseFieldWrapper<Types> &
-    Pick<Required<BaseFieldWrapper<Types>>, 'onInterfaceResolveType'>)[];
+  const createRequestDataPlugins = fieldWrappers.filter(
+    (plugin) => plugin.createRequestData,
+  ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'createRequestData'>)[];
 
-  const onUnionResolveTypePlugins: (BaseFieldWrapper<Types> &
-    Pick<Required<BaseFieldWrapper<Types>>, 'onUnionResolveType'>)[] = fieldWrappers.filter(
-    (plugin) => plugin.onUnionResolveType,
-  ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'onUnionResolveType'>)[];
+  const allowReusePlugins = fieldWrappers.filter(
+    (plugin) => plugin.createRequestData,
+  ) as (BaseFieldWrapper<Types> & Pick<Required<BaseFieldWrapper<Types>>, 'allowReuse'>)[];
 
   return {
     name: 'GiraphQLMergedFieldWrapper',
 
     field,
 
-    createRequestData() {
-      return {};
+    createRequestData(context: Types['Context']) {
+      const requestData: RequestData = {};
+
+      for (const plugin of createRequestDataPlugins) {
+        requestData[plugin.name] = plugin.createRequestData(context);
+      }
+
+      return requestData;
+    },
+
+    allowReuse(
+      requestData: RequestData,
+      parentData: ParentData | null,
+      parent: unknown,
+      args: object,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) {
+      for (const plugin of allowReusePlugins) {
+        if (plugin.allowReuse(requestData, parentData, parent, args, context, info)) {
+          return true;
+        }
+      }
+
+      return false;
     },
 
     async beforeResolve(
@@ -64,15 +81,26 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       info: GraphQLResolveInfo,
     ) {
       const onResolveFns: ((value: unknown) => MaybePromise<void>)[] = [];
-      const onWrapFns: [
+      const onChildFns: [
         string,
-        (child: unknown, index: number | null) => MaybePromise<object | null>,
+        (
+          child: unknown,
+          index: number | null,
+          type: GiraphQLObjectTypeConfig,
+          update: (value: unknown) => void,
+        ) => MaybePromise<object | null>,
       ][] = [];
-      const onWrappedResolveFns: ((
-        wrapped: ResolveValueWrapper | MaybePromise<ResolveValueWrapper | null>[],
-      ) => void)[] = [];
+      const onWrappedResolveFns: ((wrapped: unknown) => void)[] = [];
 
-      let overwriteResolve: GraphQLFieldResolver<unknown, Types['Context']> | undefined;
+      let overwriteResolve:
+        | ((
+            parent: unknown,
+            args: {},
+            context: Types['Context'],
+            info: GraphQLResolveInfo,
+            originalResolver: GraphQLFieldResolver<unknown, Types['Context']>,
+          ) => unknown)
+        | undefined;
 
       for (const plugin of beforeResolvePlugins) {
         const pluginRequestData =
@@ -91,8 +119,8 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
           onResolveFns.push(hooks.onResolve);
         }
 
-        if (hooks?.onWrap) {
-          onWrapFns.push([plugin.name, hooks.onWrap]);
+        if (hooks?.onChild) {
+          onChildFns.push([plugin.name, hooks.onChild]);
         }
 
         overwriteResolve = overwriteResolve || hooks.overwriteResolve;
@@ -108,13 +136,18 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   await fn(value);
                 }
               },
-        onWrap:
-          onWrapFns.length === 0
+        onChild:
+          onChildFns.length === 0
             ? undefined
-            : async (child: unknown, index: number | null) => {
+            : async (
+                child: unknown,
+                index: number | null,
+                type: GiraphQLObjectTypeConfig,
+                update: (value: unknown) => void,
+              ) => {
                 const childData: ParentData = {};
-                for (const [name, fn] of onWrapFns) {
-                  childData[name] = await fn(child, index);
+                for (const [name, fn] of onChildFns) {
+                  childData[name] = await fn(child, index, type, update);
                 }
 
                 return childData;
@@ -122,7 +155,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
         onWrappedResolve:
           onWrappedResolveFns.length === 0
             ? undefined
-            : (wrapped: ResolveValueWrapper | MaybePromise<ResolveValueWrapper | null>[]) => {
+            : (wrapped: unknown) => {
                 for (const fn of onWrappedResolveFns) {
                   fn(wrapped);
                 }
@@ -138,7 +171,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       info: GraphQLResolveInfo,
     ) {
       const onSubscribeFns: ((value: unknown) => MaybePromise<void>)[] = [];
-      const onWrapFns: [string, (child: ResolveValueWrapper) => MaybePromise<object | null>][] = [];
+      const onValueFns: [string, (child: unknown) => MaybePromise<object | null>][] = [];
 
       for (const plugin of beforeSubscribePlugins) {
         const pluginRequestData =
@@ -149,8 +182,8 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
           onSubscribeFns.push(hooks.onSubscribe);
         }
 
-        if (hooks?.onWrap) {
-          onWrapFns.push([plugin.name, hooks.onWrap]);
+        if (hooks?.onValue) {
+          onValueFns.push([plugin.name, hooks.onValue]);
         }
       }
 
@@ -163,61 +196,17 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   await fn(value);
                 }
               },
-        onWrap:
-          onWrapFns.length === 0
+        onValue:
+          onValueFns.length === 0
             ? undefined
-            : async (child: ResolveValueWrapper) => {
+            : async (child: unknown) => {
                 const childData: ParentData = {};
-                for (const [name, fn] of onWrapFns) {
+                for (const [name, fn] of onValueFns) {
                   childData[name] = await fn(child);
                 }
                 return childData;
               },
       };
-    },
-
-    async onInterfaceResolveType(
-      requestData: RequestData,
-      parentData: ParentData | null,
-      type: GiraphQLObjectTypeConfig,
-      parent: unknown,
-      context: object,
-      info: GraphQLResolveInfo,
-      abstractType: GraphQLAbstractType,
-    ) {
-      for (const plugin of onInterfaceResolveTypePlugins) {
-        await plugin.onInterfaceResolveType(
-          requestData,
-          parentData?.[plugin.name] ?? null,
-          type,
-          parent,
-          context,
-          info,
-          abstractType,
-        );
-      }
-    },
-
-    async onUnionResolveType(
-      requestData: RequestData,
-      parentData: ParentData | null,
-      type: GiraphQLObjectTypeConfig,
-      parent: unknown,
-      context: object,
-      info: GraphQLResolveInfo,
-      abstractType: GraphQLAbstractType,
-    ) {
-      for (const plugin of onUnionResolveTypePlugins) {
-        await plugin.onUnionResolveType(
-          requestData,
-          parentData?.[plugin.name] ?? null,
-          type,
-          parent,
-          context,
-          info,
-          abstractType,
-        );
-      }
     },
   };
 }

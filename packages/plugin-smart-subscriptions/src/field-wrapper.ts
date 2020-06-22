@@ -3,7 +3,7 @@ import {
   SchemaTypes,
   BaseFieldWrapper,
   GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
+  GiraphQLObjectTypeConfig,
 } from '@giraphql/core';
 import './global-types';
 import { GraphQLResolveInfo } from 'graphql';
@@ -162,7 +162,11 @@ export default class SmartSubscriptionsFieldWrapper<
     }
 
     return {
-      onWrap: (child: unknown, index: number | null): ParentData => {
+      onChild: (
+        child: unknown,
+        index: number | null,
+        type: GiraphQLObjectTypeConfig,
+      ): ParentData => {
         const childCache = new ResolverCache();
 
         const childData: ParentData = {
@@ -187,6 +191,12 @@ export default class SmartSubscriptionsFieldWrapper<
           }
         }
 
+        const subscribe = this.subscriptionByType[type.name];
+
+        if (subscribe) {
+          subscribe(childData.typeSubscriptionManager!, child, context, info);
+        }
+
         return childData;
       },
     };
@@ -202,7 +212,7 @@ export default class SmartSubscriptionsFieldWrapper<
     const cache = new ResolverCache();
 
     return {
-      onWrap: (value: unknown): ParentData | null => {
+      onValue: (value: unknown): ParentData | null => {
         if (value instanceof SubscriptionManager) {
           return {
             manager: value,
@@ -215,41 +225,5 @@ export default class SmartSubscriptionsFieldWrapper<
         return null;
       },
     };
-  }
-
-  onInterfaceResolveType(
-    requestData: RequestData,
-    parentData: ParentData | null,
-    type: GiraphQLTypeConfig,
-    parent: unknown,
-    context: object,
-    info: GraphQLResolveInfo,
-  ) {
-    if (parentData) {
-      const { subscriptionByType } = parentData;
-      const subscribe = subscriptionByType[type.name];
-
-      if (subscribe) {
-        subscribe(parentData.typeSubscriptionManager!, parent, context, info);
-      }
-    }
-  }
-
-  onUnionResolveType(
-    requestData: RequestData,
-    parentData: ParentData | null,
-    type: GiraphQLTypeConfig,
-    parent: unknown,
-    context: object,
-    info: GraphQLResolveInfo,
-  ) {
-    if (parentData) {
-      const { subscriptionByType } = parentData;
-      const subscribe = subscriptionByType[type.name];
-
-      if (subscribe) {
-        subscribe(parentData.typeSubscriptionManager!, parent, context, info);
-      }
-    }
   }
 }
