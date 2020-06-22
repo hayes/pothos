@@ -62,7 +62,7 @@ export function wrapResolver<Types extends SchemaTypes>(
   ) => {
     const parentValue =
       originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
-    const parentData = originalParent instanceof ValueWrapper ? originalParent.data : {};
+    const parentData = originalParent instanceof ValueWrapper ? await originalParent.getData() : {};
 
     const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
 
@@ -99,7 +99,9 @@ export function wrapResolver<Types extends SchemaTypes>(
       const wrapped = new ResolveValueWrapper(child, index, resolveHooks);
 
       if (returnType.graphqlKind === 'Object') {
-        await wrapped.updateValue(wrapped.value, returnType);
+        wrapped.type = returnType;
+
+        await wrapped.updateData(returnType);
       }
 
       return wrapped;
@@ -230,7 +232,7 @@ export function wrapResolveType<Types extends SchemaTypes>(
         'Object',
       );
 
-      await originalParent.updateValue(originalParent.value, config);
+      await originalParent.updateData(config);
     }
 
     return type;

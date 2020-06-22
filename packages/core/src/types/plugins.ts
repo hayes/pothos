@@ -14,6 +14,7 @@ export interface ResolveHooks<Types extends SchemaTypes, T> {
     child: unknown,
     index: number | null,
     type: GiraphQLObjectTypeConfig,
+    update: (value: unknown) => void,
   ): MaybePromise<T | null>;
   onWrappedResolve?(wrapped: unknown): MaybePromise<void>;
 }
