@@ -1,13 +1,11 @@
-/* eslint-disable no-unused-expressions */
 import {
   defaultFieldResolver,
   GraphQLResolveInfo,
   GraphQLTypeResolver,
   GraphQLAbstractType,
-  GraphQLIsTypeOfFn,
 } from 'graphql';
-import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType } from '..';
-import { ResolveValueWrapper } from './resolve-wrapper';
+import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLTypeConfig } from '..';
+import { ResolveValueWrapper, ValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
 import ConfigStore from '../config-store';
 
@@ -21,39 +19,40 @@ function assertArray(value: unknown): value is unknown[] {
 
 const requestDataStore = new WeakMap<object, {}>();
 
-function getRequestData(context: object) {
+function getRequestData(context: object, createRequestData: () => {}) {
+  if (typeof context !== 'object' || !context) {
+    throw new TypeError('Expected context to be a unique object');
+  }
+
   if (requestDataStore.has(context)) {
     return requestDataStore.get(context)!;
   }
 
-  const data = {};
-
-  if (typeof context !== 'object' || !context) {
-    throw new TypeError('Expected context to be a unique object');
-  }
+  const data = createRequestData();
 
   requestDataStore.set(context, data);
 
   return data;
 }
 
-export function getFieldKind<Types extends SchemaTypes>(type: GiraphQLOutputFieldType<Types>) {
-  if (type.kind === 'List') {
-    return type.type.kind;
-  }
-
-  return type.kind;
-}
-
 export function wrapResolver<Types extends SchemaTypes>(
   config: GiraphQLOutputFieldConfig<Types>,
   fieldWrapper: Required<BaseFieldWrapper<Types>>,
+  returnType: GiraphQLTypeConfig,
 ) {
   const originalResolver = config.resolve || defaultFieldResolver;
 
+  if (
+    returnType.kind === 'Query' ||
+    returnType.kind === 'Mutation' ||
+    returnType.kind === 'Subscription' ||
+    returnType.kind === 'InputObject'
+  ) {
+    throw new TypeError(`Return type ${returnType.kind} is not a valid return type`);
+  }
+
   const isListResolver = config.type.kind === 'List';
-  const fieldKind = getFieldKind(config.type);
-  const isScalarResolver = fieldKind === 'Scalar' || fieldKind === 'Enum';
+  const isScalarResolver = returnType.kind === 'Scalar' || returnType.kind === 'Enum';
 
   const wrappedResolver = async (
     originalParent: unknown,
@@ -61,21 +60,31 @@ export function wrapResolver<Types extends SchemaTypes>(
     context: object,
     info: GraphQLResolveInfo,
   ) => {
-    const parent = ResolveValueWrapper.wrap(originalParent);
-    const requestData = getRequestData(context);
+    const parentValue =
+      originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
+    const parentData = originalParent instanceof ValueWrapper ? originalParent.data : {};
+
+    const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
+
+    if (originalParent instanceof ValueWrapper && originalParent.hasFieldResult(info)) {
+      if (fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info))
+        return originalParent.getFieldResult(info);
+    }
 
     const resolveHooks = await fieldWrapper.beforeResolve(
       requestData,
-      parent.data,
-      parent.value,
+      parentData,
+      parentValue,
       args,
       context,
       info,
     );
 
-    const resolver = resolveHooks.overwriteResolve || originalResolver;
+    const result: unknown = resolveHooks.overwriteResolve
+      ? await resolveHooks.overwriteResolve(parentValue, args, context, info, originalResolver)
+      : await originalResolver(parentValue, args, context, info);
 
-    const result = await resolver(parent.value, args, context, info);
+    await resolveHooks?.onResolve?.(result);
 
     const wrapChild = async (child: unknown, index: number | null) => {
       if (child == null) {
@@ -87,43 +96,40 @@ export function wrapResolver<Types extends SchemaTypes>(
         return child;
       }
 
-      const wrapped = parent.child(child);
+      const wrapped = new ResolveValueWrapper(child, index, resolveHooks);
 
-      const childData =
-        ((await resolveHooks?.onWrap?.(child, index)) as Record<string, object | null>) ?? {};
-
-      wrapped.data = childData;
-
-      if (fieldKind === 'Interface') {
-        wrapped.resolveType = (type, ...rest) => {
-          return fieldWrapper.onInterfaceResolveType(requestData, childData, type, ...rest);
-        };
-      } else if (fieldKind === 'Union') {
-        wrapped.resolveType = (type, ...rest) => {
-          return fieldWrapper.onUnionResolveType(requestData, childData, type, ...rest);
-        };
+      if (returnType.graphqlKind === 'Object') {
+        await wrapped.updateValue(wrapped.value, returnType);
       }
 
       return wrapped;
     };
 
-    await resolveHooks?.onResolve?.(result);
+    const wrapResult = (resultValue: unknown) => {
+      if (resultValue === null || resultValue === undefined || isScalarResolver) {
+        return resultValue;
+      }
 
-    if (result === null || result === undefined || isScalarResolver) {
-      return result as unknown;
+      if (isListResolver && assertArray(resultValue)) {
+        const wrappedList = resultValue.map((item, i) =>
+          Promise.resolve(item).then((value) => wrapChild(value, i)),
+        );
+
+        return wrappedList;
+      }
+
+      return wrapChild(resultValue, null);
+    };
+
+    const wrappedResult = await wrapResult(result);
+
+    await resolveHooks?.onWrappedResolve?.(wrappedResult);
+
+    if (originalParent instanceof ValueWrapper) {
+      originalParent.setFieldResult(info, wrappedResult);
     }
 
-    if (isListResolver && assertArray(result)) {
-      const wrappedList = result.map((item, i) =>
-        Promise.resolve(item).then((value) => wrapChild(value, i)),
-      );
-
-      resolveHooks.onWrappedResolve?.(wrappedList);
-
-      return wrappedList;
-    }
-
-    return wrapChild(result, null);
+    return wrappedResult;
   };
 
   wrappedResolver.unwrap = () => originalResolver;
@@ -147,19 +153,18 @@ export function wrapSubscriber<Types extends SchemaTypes>(
     context: object,
     info: GraphQLResolveInfo,
   ) => {
-    const parent = ResolveValueWrapper.wrap(originalParent);
-    const requestData = getRequestData(context);
+    const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
 
     const subscribeHook = await fieldWrapper.beforeSubscribe(
       requestData,
-      parent.value,
+      originalParent,
       args,
       context,
       info,
     );
 
     const result: AsyncIterable<unknown> = await originalSubscribe!(
-      parent.value,
+      originalParent,
       args,
       context,
       info,
@@ -167,8 +172,8 @@ export function wrapSubscriber<Types extends SchemaTypes>(
 
     await subscribeHook?.onSubscribe?.(result);
 
-    if (!result) {
-      return result;
+    if (result == null) {
+      return null;
     }
 
     return {
@@ -183,17 +188,10 @@ export function wrapSubscriber<Types extends SchemaTypes>(
           next: async () => {
             const { done, value } = await iter.next();
 
-            // Handle cases where overwriteResolve returns cached result
-            if (value instanceof ResolveValueWrapper) {
-              return { value, done };
-            }
+            const childData =
+              ((await subscribeHook?.onValue?.(value)) as Record<string, object | null>) ?? null;
 
-            const wrapped = parent.child(value);
-
-            wrapped.data =
-              ((await subscribeHook?.onWrap?.(value)) as Record<string, object | null>) ?? {};
-
-            return { value: wrapped, done };
+            return { value: new ValueWrapper(value, childData), done };
           },
           return: iter.return?.bind(iter),
           throw: iter.throw?.bind(iter),
@@ -217,37 +215,24 @@ export function wrapResolveType<Types extends SchemaTypes>(
     info: GraphQLResolveInfo,
     abstractType: GraphQLAbstractType,
   ) {
-    const parent = ResolveValueWrapper.wrap(originalParent);
+    const parentValue =
+      originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
 
-    const type = (await originalResolveType?.(parent.value, context, info, abstractType)) ?? null;
+    const type = (await originalResolveType?.(parentValue, context, info, abstractType)) ?? null;
 
     if (!type) {
       return type;
     }
 
-    if (parent.resolveType) {
+    if (originalParent instanceof ResolveValueWrapper) {
       const config = configStore.getTypeConfig(
         typeof type === 'string' ? type : type.name,
         'Object',
       );
 
-      await parent.resolveType(config, parent.value, context, info, abstractType);
+      await originalParent.updateValue(originalParent.value, config);
     }
 
     return type;
-  };
-}
-
-export function wrapIsTypeOf<Types extends SchemaTypes>(
-  originalIsTypeOfFn: GraphQLIsTypeOfFn<unknown, Types['Context']>,
-) {
-  return async function isTypeOf(
-    originalParent: unknown,
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) {
-    const parent = ResolveValueWrapper.wrap(originalParent);
-
-    return originalIsTypeOfFn(parent, context, info);
   };
 }

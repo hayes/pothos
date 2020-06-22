@@ -1,6 +1,5 @@
-import { GraphQLResolveInfo, GraphQLFieldResolver, GraphQLAbstractType } from 'graphql';
-import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise, GiraphQLTypeConfig } from '..';
-import { ResolveValueWrapper } from './resolve-wrapper';
+import { GraphQLResolveInfo } from 'graphql';
+import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise, ResolveHooks } from '..';
 
 export default class BaseFieldWrapper<
   Types extends SchemaTypes,
@@ -18,6 +17,15 @@ export default class BaseFieldWrapper<
 
   createRequestData?(context: object): MaybePromise<RequestData>;
 
+  allowReuse?(
+    requestData: RequestData,
+    parentData: ParentData | null,
+    parent: unknown,
+    args: object,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ): boolean;
+
   beforeResolve?(
     requestData: RequestData,
     parentData: ParentData | null,
@@ -25,14 +33,7 @@ export default class BaseFieldWrapper<
     args: object,
     context: Types['Context'],
     info: GraphQLResolveInfo,
-  ): MaybePromise<{
-    overwriteResolve?: GraphQLFieldResolver<unknown, Types['Context']>;
-    onResolve?(value: unknown): MaybePromise<void>;
-    onWrap?(child: unknown, index: number | null): MaybePromise<ParentData | null>;
-    onWrappedResolve?(
-      wrapped: ResolveValueWrapper | MaybePromise<ResolveValueWrapper | null>[],
-    ): void;
-  }>;
+  ): MaybePromise<ResolveHooks<Types, ParentData>>;
 
   beforeSubscribe?(
     requestData: RequestData,
@@ -42,26 +43,6 @@ export default class BaseFieldWrapper<
     info: GraphQLResolveInfo,
   ): MaybePromise<{
     onSubscribe?(value: unknown): MaybePromise<void>;
-    onWrap?(child: unknown): MaybePromise<ParentData | null>;
+    onValue?(child: unknown): MaybePromise<ParentData | null>;
   }>;
-
-  onInterfaceResolveType?(
-    requestData: RequestData,
-    parentData: ParentData | null,
-    type: GiraphQLTypeConfig,
-    parent: unknown,
-    context: object,
-    info: GraphQLResolveInfo,
-    abstractType: GraphQLAbstractType,
-  ): MaybePromise<void>;
-
-  onUnionResolveType?(
-    requestData: RequestData,
-    parentData: ParentData | null,
-    type: GiraphQLTypeConfig,
-    parent: unknown,
-    context: object,
-    info: GraphQLResolveInfo,
-    abstractType: GraphQLAbstractType,
-  ): MaybePromise<void>;
 }

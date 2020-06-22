@@ -1,39 +1,67 @@
-import { GraphQLResolveInfo, GraphQLAbstractType } from 'graphql';
-import { MaybePromise, GiraphQLObjectTypeConfig } from '..';
+/* eslint-disable max-classes-per-file */
+import { GraphQLResolveInfo } from 'graphql';
+import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes } from '..';
 
-export class ResolveValueWrapper {
-  parent: ResolveValueWrapper | null;
-
+export class ValueWrapper<T> {
   value: unknown;
 
-  data: Record<string, object | null> = {};
+  data: T | null;
 
-  resolveType?: (
-    type: GiraphQLObjectTypeConfig,
-    originalParent: unknown,
-    context: object,
-    info: GraphQLResolveInfo,
-    abstractType: GraphQLAbstractType,
-  ) => MaybePromise<void>;
+  fieldResults = new Map<string, unknown>();
 
-  constructor(value: unknown, parent: ResolveValueWrapper | null = null) {
+  constructor(value: unknown, data: T | null) {
     this.value = value;
-    this.parent = parent;
+    this.data = data;
+  }
+
+  setFieldResult(info: GraphQLResolveInfo, result: unknown) {
+    const key = String(info.path.key);
+
+    this.fieldResults.set(key, result);
+  }
+
+  hasFieldResult(info: GraphQLResolveInfo) {
+    const key = String(info.path.key);
+
+    this.fieldResults.has(key);
+  }
+
+  getFieldResult(info: GraphQLResolveInfo) {
+    const key = String(info.path.key);
+
+    this.fieldResults.get(key);
   }
 
   unwrap() {
     return this.value;
   }
+}
 
-  static wrap(value: unknown, parent: ResolveValueWrapper | null = null) {
-    if (value instanceof ResolveValueWrapper) {
-      return value;
-    }
+export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrapper<T> {
+  index: number | null;
 
-    return new ResolveValueWrapper(value, parent);
+  hooks: ResolveHooks<Types, T>;
+
+  constructor(value: unknown, index: number | null, hooks: ResolveHooks<Types, T>) {
+    super(value, null);
+
+    this.index = index;
+    this.hooks = hooks;
   }
 
-  child(value: unknown) {
-    return new ResolveValueWrapper(value, this);
+  async updateValue(value: unknown, type: GiraphQLObjectTypeConfig) {
+    if (value == null) {
+      // TODO track parent and update field results?
+      throw new Error('Updating with null value not supported yet');
+    }
+
+    if (value !== this.value) {
+      if (this.hooks.onChild) {
+        this.data = (await this.hooks.onChild(value, this.index, type)) ?? null;
+      }
+
+      this.value = value;
+      this.fieldResults = new Map();
+    }
   }
 }

@@ -308,6 +308,9 @@ export default class BuildCache<Types extends SchemaTypes> {
       };
 
       const fieldWrapper = mergeFieldWrappers(config, this.plugin.wrapOutputField(config));
+      const returnType = this.configStore.getTypeConfig(
+        config.type.kind === 'List' ? config.type.type.ref : config.type.ref,
+      );
 
       built[fieldName] = {
         ...config,
@@ -317,7 +320,7 @@ export default class BuildCache<Types extends SchemaTypes> {
           ...config.extensions,
           giraphqlOptions: config.options,
         },
-        resolve: wrapResolver(config, fieldWrapper),
+        resolve: wrapResolver(config, fieldWrapper, returnType),
         subscribe: wrapSubscriber(config, fieldWrapper),
       };
     });
