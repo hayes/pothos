@@ -28,9 +28,13 @@ proto.simpleObject = function simpleObject<
       const fields = originalFields(t);
 
       Object.keys(fields).forEach((key) => {
-        const config = this.configStore.getFieldConfig(fields[key], key, 'Object');
-
-        config.resolve = (parent) => (parent as Record<string, unknown>)[key] as Readonly<unknown>;
+        this.configStore.onFieldUse(fields[key], (config) => {
+          if (config.kind === 'Object') {
+            // eslint-disable-next-line no-param-reassign
+            config.resolve = (parent) =>
+              (parent as Record<string, unknown>)[key] as Readonly<unknown>;
+          }
+        });
       });
 
       return fields;
@@ -59,9 +63,13 @@ proto.simpleInterface = function simpleInterface<
       const fields = originalFields(t);
 
       Object.keys(fields).forEach((key) => {
-        const config = this.configStore.getFieldConfig(fields[key], key, 'Interface');
-
-        config.resolve = (parent) => (parent as Record<string, unknown>)[key] as Readonly<unknown>;
+        this.configStore.onFieldUse(fields[key], (config) => {
+          if (config.kind === 'Interface') {
+            // eslint-disable-next-line no-param-reassign
+            config.resolve = (parent) =>
+              (parent as Record<string, unknown>)[key] as Readonly<unknown>;
+          }
+        });
       });
 
       return fields;

@@ -59,6 +59,4 @@ export default async function runPostResolveChecks<Types extends SchemaTypes>(
       }
     }
   }
-
-  return childMeta;
 }

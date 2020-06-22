@@ -107,7 +107,7 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
     }
 
     return {
-      onChild: (
+      onChild: async (
         child: unknown,
         index: number | null,
         type: GiraphQLObjectTypeConfig,
@@ -115,10 +115,12 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
         const childMeta = new AuthMeta(newGrants, parentMeta);
 
         if (type.name !== this.returnTyeConfig.name) {
-          return this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
+          await this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
         }
 
-        return this.runPostResolveChecks(type, childMeta, child, context);
+        await this.runPostResolveChecks(type, childMeta, child, context);
+
+        return childMeta;
       },
     };
   }
