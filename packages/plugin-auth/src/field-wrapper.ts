@@ -85,10 +85,12 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
 
     if (this.field.parentType === 'Subscription') {
       return {
-        onWrap: (child: unknown): Promise<AuthMeta> => {
+        onWrap: async (child: unknown): Promise<AuthMeta> => {
           const childMeta = new AuthMeta(parentMeta.grantedPermissions.clone(), parentMeta);
 
-          return this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
+          await this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
+
+          return childMeta;
         },
       };
     }
