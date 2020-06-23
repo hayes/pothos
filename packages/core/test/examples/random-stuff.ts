@@ -3,7 +3,7 @@ import SchemaBuilder from '../../src';
 // Define backing models/types
 type Types = {
   Objects: {
-    User: { firstName: string; lastName: string };
+    User: { firstName: string; lastName: string; funFact?: string | null };
     Article: { title: string; body: string };
     Sheep: { name: string; count: number; shaved: boolean };
   };
@@ -184,6 +184,7 @@ builder.objectType('User', {
       },
       resolve: (parent, args) => [123, ...args.ids],
     }),
+    face: t.exposeString('funFact', { nullable: true }),
   }),
 });
 

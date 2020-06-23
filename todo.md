@@ -8,6 +8,5 @@
 6. relay plugin
 7. prisma plugin
 8. releases and change logs
-9. Fix issues with expose
-10. Move mocks to plugin
-11. way for plugins to contribute to merged shapes in SchemaTypes 13: document context requirements
+9. Move mocks to plugin
+10. way for plugins to contribute to merged shapes in SchemaTypes 13: document context requirements
