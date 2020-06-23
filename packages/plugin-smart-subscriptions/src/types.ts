@@ -15,7 +15,7 @@ export type WrappedResolver<Context = object> = GraphQLFieldResolver<unknown, Co
   unwrap: () => GraphQLFieldResolver<unknown, Context>;
 };
 
-export type RefetchFunction<T, ParentShape> = (val: T) => ParentShape;
+export type RefetchFunction<T, ParentShape> = (val: T) => MaybePromise<ParentShape>;
 export type IteratorFilterFunction<T = unknown> = (val: T) => boolean;
 export type IteratorCallback<T = unknown> = (val: T) => MaybePromise<void>;
 export type IteratorCacheInvalidator<T = unknown> = (val: T) => void;

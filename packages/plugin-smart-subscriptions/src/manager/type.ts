@@ -33,7 +33,7 @@ export default class TypeSubscriptionManager<
         }
 
         if (refetch) {
-          Promise.resolve(refetch(value)).then(
+          return Promise.resolve(refetch(value)).then(
             (result: unknown) => {
               this.replace(result);
             },
@@ -41,9 +41,9 @@ export default class TypeSubscriptionManager<
               this.manager.handleError(err);
             },
           );
-        } else {
-          this.refetchParent();
         }
+
+        return this.refetchParent();
       },
     });
   }

@@ -1,12 +1,15 @@
 import builder from '../builder';
+import { Poll } from '../data';
 
 const POLLS = 'polls';
 
 builder.objectType('Poll', {
   subscribe: (subscriptions, poll, context) => {
     subscriptions.register(`poll/${poll.id}`, {
-      refetch: () => {
-        return context.Poll.map.get(poll.id)!;
+      refetch: (): Promise<Poll> => {
+        return new Promise<Poll>((resolve) => {
+          setTimeout(() => resolve(context.Poll.map.get(poll.id)!), 1000);
+        });
       },
     });
   },
@@ -40,7 +43,7 @@ builder.queryFields((t) => ({
     type: ['Poll'],
     smartSubscription: true,
     subscribe: (subscriptions) => subscriptions.register('polls'),
-    resolve: (root, args, { Poll }, info) => {
+    resolve: (root, args, ctx, info) => {
       console.log(info.operation.name?.value, 'fetching all polls');
 
       return [...Poll.map.values()];
