@@ -127,6 +127,7 @@ export default class SmartSubscriptionsFieldWrapper<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) {
+    console.log('is reuse?');
     const key = this.cacheKey(info);
     if (parentData?.cache.has(key)) {
       parentData.cache.get(key)!.reRegister();
@@ -152,6 +153,7 @@ export default class SmartSubscriptionsFieldWrapper<
     }
 
     const { cache } = parentData;
+
     const refetch = this.canRefetch ? () => cache.delete(info) : parentData.refetch;
 
     // need entry to allow reuse
@@ -215,7 +217,10 @@ export default class SmartSubscriptionsFieldWrapper<
         if (requestData.manager) {
           return {
             cache,
-            refetch: () => cache.delete(info),
+            refetch: () => {
+              console.log('delete', info.path.key);
+              cache.delete(info);
+            },
           };
         }
 

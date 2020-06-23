@@ -193,6 +193,12 @@ export function wrapSubscriber<Types extends SchemaTypes>(
             const childData =
               ((await subscribeHook?.onValue?.(value)) as Record<string, object | null>) ?? null;
 
+            if (value instanceof ValueWrapper) {
+              value.getData = () => childData;
+
+              return { value, done };
+            }
+
             return { value: new ValueWrapper(value, childData), done };
           },
           return: iter.return?.bind(iter),

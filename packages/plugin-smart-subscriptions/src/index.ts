@@ -1,4 +1,9 @@
-import SchemaBuilder, { BasePlugin, SchemaTypes, GiraphQLOutputFieldConfig } from '@giraphql/core';
+import SchemaBuilder, {
+  BasePlugin,
+  SchemaTypes,
+  GiraphQLOutputFieldConfig,
+  ValueWrapper,
+} from '@giraphql/core';
 import './global-types';
 
 import MergedAsyncIterator from './merged-iterator';
@@ -61,7 +66,7 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
           ...fieldConfig.options,
           subscribe: (parent, args, context, info) => {
             const manager = new SubscriptionManager({
-              value: parent,
+              value: new ValueWrapper(parent, {}),
               debounceDelay: this.debounceDelay,
               subscribe: (subName, cb) => this.subscribe(subName, context, cb),
               unsubscribe: (subName) => this.unsubscribe(subName, context),
