@@ -235,7 +235,7 @@ builder.objectType('User', {
       },
       resolve: (parent, args) => [123, ...args.ids],
     }),
-    face: t.exposeString('funFact', { nullable: true }),
+    fact: t.exposeString('funFact', { nullable: true }),
   }),
 });
 

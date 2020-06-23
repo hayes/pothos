@@ -5,11 +5,13 @@ exports[`Code generator example schema 1`] = `
 const builder = new SchemaBuilder<{
     Context: {};
     Objects: {
+        Giraffe: unknown;
         User: unknown;
         Sheep: unknown;
         Article: unknown;
     };
     Interfaces: {
+        Animal: unknown;
         Countable: unknown;
         Shaveable: unknown;
     };
@@ -23,6 +25,19 @@ const builder = new SchemaBuilder<{
 builder.scalarType('Date', {
     serialize: () => { throw new Error('Not implemented'); },
 });
+const MyEnum = builder.enumType('MyEnum', {
+    values: {
+        Foo: {
+            value: 'foo' as const,
+        },
+        Bar: {
+            value: 'bar' as const,
+        },
+        Num: {
+            value: 5 as const,
+        },
+    },
+});
 const SearchResult = builder.unionType('SearchResult', {
     types: ['User', 'Article'],
     resolveType: (parent, context, info) => {
@@ -32,13 +47,13 @@ const SearchResult = builder.unionType('SearchResult', {
 const stuff = builder.enumType('stuff', {
     values: {
         Beats: {
-            value: 'Beats',
+            value: 'Beats' as const,
         },
         Bears: {
-            value: 'Bears',
+            value: 'Bears' as const,
         },
         BattlestarGalactica: {
-            value: 'BattlestarGalactica',
+            value: 'BattlestarGalactica' as const,
         },
     },
 });
@@ -60,6 +75,10 @@ const Example = builder.inputType('Example', {
             type: ['Int'],
             required: { list: false, items: true },
         }),
+        enum: t.field({
+            type: MyEnum,
+            required: false,
+        }),
         date: t.field({
             type: 'Date',
             required: false,
@@ -72,6 +91,7 @@ interface Example2Shape {
         id2: number | null | undefined;
         ids: (string | number)[];
         ids2: number[] | null | undefined;
+        enum: 'foo' | 'bar' | 5 | null | undefined;
         date: unknown | null | undefined;
     };
     id: (string | number) | null | undefined;
@@ -97,6 +117,15 @@ Example2.implement({
             type: Example2,
             required: true,
         }),
+    }),
+});
+const Animal = builder.interfaceType('Animal', {
+    fields: t => ({
+        species: t.field({
+            type: 'String',
+            nullable: true,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
     }),
 });
 const Countable = builder.interfaceType('Countable', {
@@ -125,6 +154,20 @@ const Shaveable = builder.interfaceType('Shaveable', {
         }),
         extendMePlease: t.field({
             type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
+builder.objectType('Giraffe', {
+    interfaces: [Animal],
+    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    fields: t => ({
+        name: t.field({
+            type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        age: t.field({
+            type: 'Int',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
@@ -239,6 +282,11 @@ builder.objectType('User', {
             type: ['ID'],
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
+        fact: t.field({
+            type: 'String',
+            nullable: true,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
         newField: t.field({
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -305,7 +353,11 @@ export const schema = builder.toSchema();
 `;
 
 exports[`Code generator example schema 2`] = `
-"\\"\\"\\"shape can be last arg\\"\\"\\"
+"interface Animal {
+  species: String
+}
+
+\\"\\"\\"shape can be last arg\\"\\"\\"
 type Article {
   \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
   title: String!
@@ -319,6 +371,7 @@ scalar Date
 
 input Example {
   date: Date
+  enum: MyEnum
   id: ID!
   id2: Int
   ids: [ID!]!
@@ -330,6 +383,18 @@ input Example2 {
   id: ID
   ids: [ID!]!
   more: Example2!
+}
+
+type Giraffe implements Animal {
+  age: Int!
+  name: String!
+  species: String
+}
+
+enum MyEnum {
+  Bar
+  Foo
+  Num
 }
 
 type Query {
@@ -368,6 +433,7 @@ type Subscription {
 type User {
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!
+  fact: String
   firstBornChild: User!
   firstName: String!
   friends: [User!]!
@@ -404,15 +470,15 @@ const Episode = builder.enumType('Episode', {
     values: {
         NEWHOPE: {
             description: \\"Released in 1977.\\",
-            value: 4,
+            value: 4 as const,
         },
         EMPIRE: {
             description: \\"Released in 1980.\\",
-            value: 5,
+            value: 5 as const,
         },
         JEDI: {
             description: \\"Released in 1983\\",
-            value: 6,
+            value: 6 as const,
         },
     },
 });

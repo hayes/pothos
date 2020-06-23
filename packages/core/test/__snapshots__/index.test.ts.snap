@@ -1,7 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Example schema generates expected schema 1`] = `
-"\\"\\"\\"shape can be last arg\\"\\"\\"
+"interface Animal {
+  species: String
+}
+
+\\"\\"\\"shape can be last arg\\"\\"\\"
 type Article {
   \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
   title: String!
@@ -15,6 +19,7 @@ scalar Date
 
 input Example {
   date: Date
+  enum: MyEnum
   id: ID!
   id2: Int
   ids: [ID!]!
@@ -26,6 +31,18 @@ input Example2 {
   id: ID
   ids: [ID!]!
   more: Example2!
+}
+
+type Giraffe implements Animal {
+  age: Int!
+  name: String!
+  species: String
+}
+
+enum MyEnum {
+  Bar
+  Foo
+  Num
 }
 
 type Query {
@@ -64,6 +81,7 @@ type Subscription {
 type User {
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!
+  fact: String
   firstBornChild: User!
   firstName: String!
   friends: [User!]!

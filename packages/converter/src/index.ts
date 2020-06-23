@@ -391,7 +391,9 @@ export default class GirphQLConverter {
                     writer.write(`value: `);
                     if (value.value) {
                       writer.write(
-                        typeof value.value === 'number' ? `${value.value},` : `'${value.value}',`,
+                        typeof value.value === 'number'
+                          ? `${value.value} as const,`
+                          : `'${value.value}' as const,`,
                       );
                     } else {
                       writer.write(value.name);
@@ -568,6 +570,13 @@ export default class GirphQLConverter {
         writer.newLine();
         writer.write('}');
       }
+    } else if (type instanceof GraphQLEnumType) {
+      writer.write(
+        type
+          .getValues()
+          .map(({ value }) => (typeof value === 'string' ? `'${value}'` : `${value}`))
+          .join(' | '),
+      );
     } else {
       writer.write(rootType.name);
     }
