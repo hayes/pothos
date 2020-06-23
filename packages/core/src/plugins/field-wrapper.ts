@@ -24,7 +24,7 @@ export default class BaseFieldWrapper<
     args: object,
     context: Types['Context'],
     info: GraphQLResolveInfo,
-  ): boolean;
+  ): MaybePromise<boolean>;
 
   beforeResolve?(
     requestData: RequestData,

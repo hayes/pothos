@@ -32,8 +32,7 @@ type RequestData = {
   manager?: SubscriptionManager;
 };
 type ParentData = {
-  cache: ResolverCache;
-  reusableFields: Record<string, boolean>;
+  cache: Map<string, CacheForField>;
   refetch: () => void;
 };
 
@@ -116,6 +115,10 @@ export default class SmartSubscriptionsFieldWrapper<
     return {};
   }
 
+  private cacheKey(info: GraphQLResolveInfo) {
+    return String(info.path.key);
+  }
+
   allowReuse(
     requestData: RequestData,
     parentData: ParentData | null,
@@ -124,7 +127,11 @@ export default class SmartSubscriptionsFieldWrapper<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) {
-    return parentData?.reusableFields[info.path.key] === true;
+    if (parentData?.cache.has(this.cacheKey(info))) {
+      return true;
+    }
+
+    return false;
   }
 
   beforeResolve(

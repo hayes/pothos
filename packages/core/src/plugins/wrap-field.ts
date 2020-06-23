@@ -67,7 +67,7 @@ export function wrapResolver<Types extends SchemaTypes>(
     const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
 
     if (originalParent instanceof ValueWrapper && originalParent.hasFieldResult(info)) {
-      if (fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info))
+      if (await fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info))
         return originalParent.getFieldResult(info);
     }
 

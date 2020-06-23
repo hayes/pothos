@@ -55,7 +55,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       return requestData;
     },
 
-    allowReuse(
+    async allowReuse(
       requestData: RequestData,
       parentData: ParentData | null,
       parent: unknown,
@@ -64,7 +64,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       info: GraphQLResolveInfo,
     ) {
       for (const plugin of allowReusePlugins) {
-        if (plugin.allowReuse(requestData, parentData, parent, args, context, info)) {
+        if (await plugin.allowReuse(requestData, parentData, parent, args, context, info)) {
           return true;
         }
       }
