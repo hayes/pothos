@@ -18,4 +18,3 @@
 16. Remove option fetchers now that config-store exposes configs
 17. Figure out how to wrap root object so that queries with multiple root fields are part of same
     tree
-18. rename getFieldConfig to createFieldConfig

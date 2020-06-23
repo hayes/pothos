@@ -13,6 +13,7 @@ import {
   OutputType,
   InputType,
   GiraphQLObjectTypeConfig,
+  GiraphQLOutputFieldConfig,
 } from '.';
 import BaseTypeRef from './refs/base';
 
@@ -81,7 +82,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
   }
 
-  getFieldConfig<T extends GraphQLFieldKind>(
+  createFieldConfig<T extends GraphQLFieldKind>(
     ref: FieldRef | InputFieldRef,
     name: string,
     kind?: T,
@@ -96,6 +97,12 @@ export default class ConfigStore<Types extends SchemaTypes> {
       throw new TypeError(
         `Expected ref for field named ${name} to resolve to a ${kind} type, but got ${config.graphqlKind}`,
       );
+    }
+
+    if (config.kind !== 'Arg' && config.kind !== 'InputObject') {
+      this.plugin.onOutputFieldConfig(config as GiraphQLOutputFieldConfig<Types>);
+    } else {
+      this.plugin.onInputFieldConfig(config);
     }
 
     return config as Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }>;
@@ -123,6 +130,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
     if (this.typeConfigs.has(name)) {
       throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
     }
+
+    this.plugin.onTypeConfig(config);
 
     this.typeConfigs.set(config.name, config);
 
@@ -260,7 +269,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     fieldName: string,
   ) {
     const typeConfig = this.getTypeConfig(typeRef);
-    const fieldConfig = this.getFieldConfig(field, fieldName);
+    const fieldConfig = this.createFieldConfig(field, fieldName);
     const existingFields = this.fields.get(typeConfig.name)!;
 
     if (existingFields[fieldName]) {

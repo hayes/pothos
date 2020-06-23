@@ -42,7 +42,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
 
     if (options.args) {
       Object.keys(options.args).forEach((name) => {
-        args[name] = this.builder.configStore.getFieldConfig(options.args![name], name, 'Arg');
+        args[name] = this.builder.configStore.createFieldConfig(options.args![name], name, 'Arg');
       });
     }
 
