@@ -3,7 +3,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes, MaybePromise } from '..';
 
 export class ValueWrapper<T> {
-  value: unknown;
+  protected value: unknown;
 
   getData: () => MaybePromise<T | null>;
 
@@ -54,22 +54,24 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
   private updateValue(value: unknown) {
     if (value == null) {
       // TODO track parent and update field results?
-      throw new Error('Updating with null value not supported yet');
+      throw new TypeError('Updating with null value not supported yet');
+    } else if (value instanceof Promise) {
+      throw new TypeError('Update value must be resolved before calling updateValue');
     }
 
     if (this.value === value) {
       return;
     }
 
-    if (this.type) {
-      this.queueDataUpdate(this.type);
-    }
+    this.value = value;
 
     if (this.fieldResults.size) {
       this.fieldResults = new Map();
     }
 
-    this.value = value;
+    if (this.type) {
+      this.queueDataUpdate(this.type);
+    }
   }
 
   async updateData(type: GiraphQLObjectTypeConfig) {

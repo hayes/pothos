@@ -10,10 +10,10 @@ import MergedAsyncIterator from './merged-iterator';
 import SubscriptionManager from './manager';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
-import ResolverCache, { CacheForField } from './resolver-cache';
 import BaseSubscriptionManager from './manager/base';
 import SmartSubscriptionsPlugin from '.';
 import { getFieldSubscribe } from './create-field-data';
+import SubscriptionCache, { CacheForField } from './cache';
 
 export {
   MergedAsyncIterator,
@@ -21,8 +21,8 @@ export {
   BaseSubscriptionManager,
   TypeSubscriptionManager,
   FieldSubscriptionManager,
-  ResolverCache,
   CacheForField,
+  SubscriptionCache,
 };
 
 export * from './types';
@@ -32,7 +32,7 @@ type RequestData = {
   manager?: SubscriptionManager;
 };
 type ParentData = {
-  cache: Map<string, CacheForField>;
+  cache: SubscriptionCache;
   refetch: () => void;
 };
 
@@ -127,7 +127,10 @@ export default class SmartSubscriptionsFieldWrapper<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) {
-    if (parentData?.cache.has(this.cacheKey(info))) {
+    const key = this.cacheKey(info);
+    if (parentData?.cache.has(key)) {
+      parentData.cache.get(key)!.reRegister();
+
       return true;
     }
 
@@ -148,37 +151,28 @@ export default class SmartSubscriptionsFieldWrapper<
       return {};
     }
 
-    const { cache, reusableFields } = parentData;
+    const { cache } = parentData;
+    const refetch = this.canRefetch ? () => cache.delete(info) : parentData.refetch;
 
-    // if (this.subscribe) {
-    //   this.subscribe(
-    //     cache.managerForField(info, manager, parentData.refetch),
-    //     parent,
-    //     args,
-    //     context,
-    //     info,
-    //   );
-    // }
+    // need entry to allow reuse
+    cache.getOrCreate(info);
+
+    if (this.subscribe) {
+      this.subscribe(cache.managerForField(info, manager, refetch), parent, args, context, info);
+    }
 
     return {
-      onResolve: () => {
-        reusableFields[info.path.key] = true;
-      },
       onChild: (
         child: unknown,
         index: number | null,
         type: GiraphQLObjectTypeConfig,
+        update: (value: unknown) => void,
       ): ParentData => {
-        const childCache = new ResolverCache();
+        const childCache = new SubscriptionCache();
 
         const childData: ParentData = {
           cache: childCache,
-          refetch: this.canRefetch
-            ? () => {
-                reusableFields[info.path.key] = false;
-              }
-            : parentData.refetch,
-          reusableFields: {},
+          refetch,
         };
 
         const subscribe = this.subscriptionByType[type.name];
@@ -187,8 +181,8 @@ export default class SmartSubscriptionsFieldWrapper<
           const typeSubscriptionManager = childCache.managerForType(
             info,
             manager,
-            (promise) => {
-              cache.replace(promise, info, index);
+            (newValue) => {
+              update(newValue);
             },
             childData.refetch,
           );
@@ -208,7 +202,7 @@ export default class SmartSubscriptionsFieldWrapper<
     context: object,
     info: GraphQLResolveInfo,
   ) {
-    const cache = new ResolverCache();
+    const cache = new SubscriptionCache();
 
     return {
       onSubscribe: (value: unknown) => {
@@ -219,13 +213,9 @@ export default class SmartSubscriptionsFieldWrapper<
       },
       onValue: (value: unknown): ParentData | null => {
         if (requestData.manager) {
-          const reusableFields: Record<string, boolean> = {};
           return {
             cache,
-            refetch: () => {
-              reusableFields[info.path.key] = false;
-            },
-            reusableFields,
+            refetch: () => cache.delete(info),
           };
         }
 

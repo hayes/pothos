@@ -223,7 +223,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     return allowed;
   }
 
-  private handleError(err: unknown) {
+  handleError(err: unknown) {
     this.pendingError = err;
 
     if (this.rejectNext) {

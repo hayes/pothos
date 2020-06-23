@@ -5,7 +5,7 @@ import MergedAsyncIterator from './merged-iterator';
 import SubscriptionManager from './manager';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
-import ResolverCache, { CacheForField } from './resolver-cache';
+import ResolverCache, { CacheForField } from './cache';
 import BaseSubscriptionManager from './manager/base';
 import SmartSubscriptionsFieldWrapper from './field-wrapper';
 
