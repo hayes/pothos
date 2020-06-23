@@ -14,7 +14,7 @@ export default class RootFieldBuilder<
   ParentShape,
   Kind extends FieldKind = FieldKind
 > extends BaseFieldUtil<Types, ParentShape, Kind> {
-  arg: ArgBuilder<Types> = new InputFieldBuilder<Types>(
+  arg: ArgBuilder<Types> = new InputFieldBuilder<Types, 'Arg'>(
     this.builder,
     'Arg',
     this.typename,

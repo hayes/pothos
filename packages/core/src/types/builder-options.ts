@@ -12,6 +12,11 @@ import {
   InputFieldRef,
   FieldRef,
   inputFieldShapeKey,
+  EnumParam,
+  BaseEnum,
+  ObjectParam,
+  ObjectRef,
+  InterfaceRef,
 } from '..';
 
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
@@ -118,16 +123,45 @@ export type FieldOptionsFromKind<
 
 export type ObjectTypeOptions<
   Types extends SchemaTypes,
+  Param extends ObjectParam<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[]
 > =
   | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>;
+  | (GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces> &
+      (Param extends string
+        ? {}
+        : Param extends ObjectRef<Types>
+        ? { name?: string }
+        : { name: string }));
+
+export type InterfaceTypeOptions<
+  Types extends SchemaTypes,
+  Param extends InterfaceParam<Types>,
+  Shape,
+  Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+> = GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> &
+  (Param extends string
+    ? {}
+    : Param extends InterfaceRef<Types>
+    ? { name?: string }
+    : { name: string });
+
+export type EnumTypeOptions<
+  Types extends SchemaTypes,
+  Param extends EnumParam,
+  Values extends EnumValues
+> = Param extends BaseEnum
+  ? Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
+      name: string;
+    }
+  : GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>;
 
 export type ArgBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.InputFieldBuilder<
-  Types
+  Types,
+  'Arg'
 >['field'] &
-  Omit<GiraphQLSchemaTypes.InputFieldBuilder<Types>, 'field'>;
+  Omit<GiraphQLSchemaTypes.InputFieldBuilder<Types, 'Arg'>, 'field'>;
 
 export type ValidateInterfaces<
   Shape,

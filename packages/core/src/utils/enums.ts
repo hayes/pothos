@@ -1,25 +1,36 @@
-import { GraphQLEnumValueConfig, GraphQLEnumValueConfigMap } from 'graphql';
-// @ts-ignore
-import fromEntries from 'object.fromentries';
+import { GraphQLEnumValueConfigMap } from 'graphql';
+import { EnumValues, BaseEnum } from '..';
 
-export function normalizeEnumValues(
-  options: GiraphQLSchemaTypes.EnumTypeOptions<any>,
-): GraphQLEnumValueConfigMap {
-  return Array.isArray(options.values)
-    ? (fromEntries(options.values.map((key) => [key, {}])) as GraphQLEnumValueConfigMap)
-    : (fromEntries(
-        Object.entries(options.values)
-          .map(([key, value]) => {
-            if (value && typeof value === 'object') {
-              return [key, value];
-            }
+export function normalizeEnumValues(values: EnumValues): GraphQLEnumValueConfigMap {
+  const result: GraphQLEnumValueConfigMap = {};
 
-            if (typeof value === 'string') {
-              return [value, {}];
-            }
+  if (Array.isArray(values)) {
+    values.forEach((key) => {
+      result[String(key)] = {};
+    });
+  } else {
+    Object.entries(values).forEach(([key, value]) => {
+      if (value && typeof value === 'object') {
+        result[key] = value;
+      } else if (typeof value === 'string') {
+        result[value] = {};
+      }
+    });
+  }
 
-            return null;
-          })
-          .filter(Boolean) as [string, GraphQLEnumValueConfig][],
-      ) as GraphQLEnumValueConfigMap);
+  return result;
+}
+
+export function valuesFromEnum(Enum: BaseEnum): GraphQLEnumValueConfigMap {
+  const result: GraphQLEnumValueConfigMap = {};
+
+  Object.keys(Enum)
+    .filter((key) => typeof Enum[Enum[key]] !== 'number')
+    .forEach((key) => {
+      result[key] = {
+        value: Enum[key],
+      };
+    });
+
+  return result;
 }

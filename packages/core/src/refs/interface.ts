@@ -1,7 +1,7 @@
 /* eslint-disable max-classes-per-file */
 
 import { outputShapeKey, OutputRef } from '../types';
-import { SchemaTypes } from '..';
+import { SchemaTypes, InterfaceTypeOptions } from '..';
 import BaseTypeRef from './base';
 
 export default class InterfaceRef<T> extends BaseTypeRef implements OutputRef {
@@ -29,7 +29,9 @@ export class ImplementableInterfaceRef<Types extends SchemaTypes, Shape> extends
     this.builder = builder;
   }
 
-  implement(options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Shape>) {
+  implement(
+    options: InterfaceTypeOptions<Types, ImplementableInterfaceRef<Types, Shape>, Shape, []>,
+  ) {
     this.builder.interfaceType(this, options);
   }
 }

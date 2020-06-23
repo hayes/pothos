@@ -10,6 +10,7 @@ import {
   ObjectTypeOptions as ObjectTypeOptionsWithInterfaces,
   InterfaceParam,
   OutputShape,
+  ObjectParam,
 } from '@giraphql/core';
 import { SimpleObjectFieldsShape, OutputShapeFromFields } from './types';
 
@@ -57,14 +58,17 @@ declare global {
       >;
     }
 
-    export interface SimpleObjectTypeOptions<
+    export type SimpleObjectTypeOptions<
       Types extends SchemaTypes,
       Interfaces extends InterfaceParam<Types>[],
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>
-    > extends Omit<ObjectTypeOptionsWithInterfaces<Types, Shape, Interfaces>, 'fields'> {
+    > = Omit<
+      ObjectTypeOptionsWithInterfaces<Types, ObjectParam<Types>, Shape, Interfaces>,
+      'fields' | 'name'
+    > & {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
-    }
+    };
 
     export interface SimpleInterfaceTypeOptions<
       Types extends SchemaTypes,

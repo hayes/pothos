@@ -40,7 +40,9 @@ declare global {
     export interface InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape>
       extends FieldBuilder<Types, ParentShape, 'Interface'> {}
 
-    export interface InputFieldBuilder<Types extends SchemaTypes>
-      extends InternalInputFieldBuilder<Types> {}
+    export interface InputFieldBuilder<
+      Types extends SchemaTypes,
+      Kind extends 'InputObject' | 'Arg'
+    > extends InternalInputFieldBuilder<Types, Kind> {}
   }
 }

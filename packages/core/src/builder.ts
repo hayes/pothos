@@ -58,6 +58,11 @@ import {
   PluginConstructorMap,
   PluginMap,
   PluginName,
+  EnumParam,
+  BaseEnum,
+  ValuesFromEnum,
+  EnumTypeOptions,
+  InterfaceTypeOptions,
 } from '.';
 import { BasePlugin, mergePlugins } from './plugins';
 import ConfigStore from './config-store';
@@ -66,7 +71,7 @@ import UnionRef from './refs/union';
 import EnumRef from './refs/enum';
 import ScalarRef from './refs/scalar';
 import ObjectRef, { ImplementableObjectRef } from './refs/object';
-import { normalizeEnumValues } from './utils';
+import { normalizeEnumValues, valuesFromEnum } from './utils';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   configStore: ConfigStore<Types>;
@@ -116,10 +121,13 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
     param: Param,
-    options: ObjectTypeOptions<Types, OutputShape<Types, Param>, Interfaces>,
+    options: ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>,
     shape?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
   ) {
-    const name = typeof param === 'string' ? param : (param as { name: string }).name;
+    const name =
+      typeof param === 'string'
+        ? param
+        : (options as { name?: string }).name || (param as { name: string }).name;
 
     if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
@@ -139,6 +147,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     };
 
     this.configStore.addTypeConfig(config, ref);
+
+    if (typeof param === 'function') {
+      this.configStore.associateRefWithName(param, name);
+    }
 
     if (shape) {
       this.configStore.addFields(
@@ -273,17 +285,21 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   args<Shape extends InputFieldMap>(
-    fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Shape,
+    fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => Shape,
   ): Shape {
-    return fields(new InputFieldBuilder<Types>(this, 'Arg', '[unknown]'));
+    return fields(new InputFieldBuilder<Types, 'Arg'>(this, 'Arg', '[unknown]'));
   }
 
   interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(
     param: Param,
-    options: GiraphQLSchemaTypes.InterfaceTypeOptions<Types, OutputShape<Types, Param>, Interfaces>,
+    options: InterfaceTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>,
     fields?: InterfaceFieldsShape<Types, OutputShape<Types, Param>>,
   ) {
-    const name = typeof param === 'string' ? param : (param as { name: string }).name;
+    const name =
+      typeof param === 'string'
+        ? param
+        : (options as { name?: string }).name || (param as { name: string }).name;
+
     const ref: InterfaceRef<OutputShape<Types, Param>> =
       param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Types, Param>>(name);
 
@@ -299,6 +315,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     };
 
     this.configStore.addTypeConfig(config, ref);
+
+    if (typeof param === 'function') {
+      this.configStore.associateRefWithName(param, name);
+    }
 
     if (fields) {
       this.configStore.addFields(ref, fields(new InterfaceFieldBuilder(typename, this)));
@@ -353,13 +373,19 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return ref;
   }
 
-  enumType<Name extends string, Values extends EnumValues>(
-    name: Name,
-    options: GiraphQLSchemaTypes.EnumTypeOptions<Values>,
+  enumType<Param extends EnumParam, Values extends EnumValues>(
+    param: Param,
+    options: EnumTypeOptions<Types, Param, Values>,
   ) {
-    const ref = new EnumRef<ShapeFromEnumValues<Values>>(name);
+    const name = typeof param === 'string' ? param : (options as { name: string }).name;
+    const ref = new EnumRef<
+      Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Values>
+    >(name);
 
-    const values = normalizeEnumValues(options);
+    const values =
+      typeof param === 'object'
+        ? valuesFromEnum(param as BaseEnum)
+        : normalizeEnumValues((options as { values: EnumValues }).values);
 
     const config: GiraphQLEnumTypeConfig = {
       kind: 'Enum',
@@ -367,10 +393,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       name,
       values,
       description: options.description,
-      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.EnumTypeOptions,
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.EnumTypeOptions<Types>,
     };
 
     this.configStore.addTypeConfig(config, ref);
+
+    if (typeof param !== 'string') {
+      this.configStore.associateRefWithName(param as BaseEnum, name);
+    }
 
     return ref;
   }

@@ -35,8 +35,8 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
     Nullable extends FieldNullability<Type>
   >(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>> {
-    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>> = {} as any;
+  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = {} as any;
 
     const args: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
 
@@ -78,7 +78,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
       'resolve'
     >,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>> {
+  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
       resolve: (parent) =>

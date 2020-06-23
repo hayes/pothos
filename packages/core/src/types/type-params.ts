@@ -9,7 +9,7 @@ export type OutputShape<Types extends SchemaTypes, T> = T extends {
   [outputShapeKey]: infer U;
 }
   ? U
-  : T extends { new (...args: unknown[]): infer U }
+  : T extends { new (...args: any[]): infer U }
   ? U extends {
       [outputShapeKey]: infer V;
     }
@@ -17,13 +17,15 @@ export type OutputShape<Types extends SchemaTypes, T> = T extends {
     : U
   : T extends keyof Types['outputShapes']
   ? Types['outputShapes'][T]
+  : T extends BaseEnum
+  ? ValuesFromEnum<T>
   : never;
 
 export type InputShape<Types extends SchemaTypes, T> = T extends {
   [inputShapeKey]: infer U;
 }
   ? U
-  : T extends { new (...args: unknown[]): infer U }
+  : T extends { new (...args: any[]): infer U }
   ? U extends {
       [inputShapeKey]: infer V;
     }
@@ -31,6 +33,8 @@ export type InputShape<Types extends SchemaTypes, T> = T extends {
     : U
   : T extends keyof Types['inputShapes']
   ? Types['inputShapes'][T]
+  : T extends BaseEnum
+  ? ValuesFromEnum<T>
   : never;
 
 export interface OutputRef {
@@ -52,13 +56,15 @@ export type OutputType<Types extends SchemaTypes> =
     }
   | {
       new (...args: unknown[]): unknown;
-    };
+    }
+  | BaseEnum;
 
 export type InputType<Types extends SchemaTypes> =
   | keyof Types['inputShapes']
   | {
       [inputShapeKey]: unknown;
-    };
+    }
+  | BaseEnum;
 
 export type ConfigurableRef<Types extends SchemaTypes> =
   | OutputType<Types>
@@ -73,15 +79,24 @@ export type ObjectParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Objects']>
   | ObjectRef<unknown>
   | {
-      new (...args: unknown[]): unknown;
+      new (...args: any[]): any;
     };
 
 export type InterfaceParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Interfaces']>
   | InterfaceRef<unknown>
   | {
-      new (...args: unknown[]): unknown;
+      new (...args: any[]): unknown;
     };
+
+export type BaseEnum = {
+  [s: string]: string | number;
+  [s: number]: string;
+};
+
+export type ValuesFromEnum<T extends BaseEnum> = T[keyof T];
+
+export type EnumParam = string | BaseEnum;
 
 export type ShapeFromTypeParam<
   Types extends SchemaTypes,

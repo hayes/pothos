@@ -8,18 +8,17 @@ import {
 } from '..';
 import { inputTypeFromParam } from '../utils';
 
-export default class InputFieldBuilder<Types extends SchemaTypes> {
+export default class InputFieldBuilder<
+  Types extends SchemaTypes,
+  Kind extends 'InputObject' | 'Arg'
+> {
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  kind: 'InputObject' | 'Arg';
+  kind: Kind;
 
   typename: string;
 
-  constructor(
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    kind: 'InputObject' | 'Arg',
-    typename: string,
-  ) {
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, typename: string) {
     this.builder = builder;
     this.kind = kind;
     this.typename = typename;
@@ -50,9 +49,9 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
   stringList = this.helper(['String']);
 
   argBuilder(): ArgBuilder<Types> {
-    const builder: InputFieldBuilder<Types>['field'] = this.field.bind(this);
+    const builder: InputFieldBuilder<Types, 'Arg'>['field'] = this.field.bind(this);
 
-    ([...Object.keys(this)] as (keyof InputFieldBuilder<Types>)[]).forEach((key) => {
+    ([...Object.keys(this)] as (keyof InputFieldBuilder<Types, 'Arg'>)[]).forEach((key) => {
       ((builder as unknown) as { [s: string]: unknown })[key] =
         typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
     });
@@ -63,7 +62,7 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
     options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
   ) {
-    const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>> = {} as any;
+    const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = {} as any;
 
     this.builder.configStore.addFieldRef(ref, options.type, (name) => {
       return {

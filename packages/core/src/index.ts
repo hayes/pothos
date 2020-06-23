@@ -100,9 +100,9 @@ export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as {
 };
 
 export const InputFieldBuilder = InternalInputFieldBuilder as {
-  new <Types extends SchemaTypes>(
+  new <Types extends SchemaTypes, Kind extends 'InputObject' | 'Arg' = 'InputObject' | 'Arg'>(
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    kind: 'InputObject' | 'Arg',
+    kind: Kind,
     typename: string,
-  ): GiraphQLSchemaTypes.InputFieldBuilder<Types>;
+  ): GiraphQLSchemaTypes.InputFieldBuilder<Types, Kind>;
 };

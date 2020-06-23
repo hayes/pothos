@@ -25,7 +25,7 @@ export class ImplementableObjectRef<Types extends SchemaTypes, Shape> extends Ob
     this.builder = builder;
   }
 
-  implement(options: ObjectTypeOptions<Types, Shape, []>) {
+  implement(options: ObjectTypeOptions<Types, ObjectRef<Types>, Shape, []>) {
     this.builder.objectType(this, options);
   }
 }

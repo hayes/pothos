@@ -23,7 +23,10 @@ import {
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface EnumTypeOptions<Values extends EnumValues = EnumValues> {
+    export interface EnumTypeOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Values extends EnumValues = EnumValues
+    > {
       description?: string;
       values: Values;
       extensions?: Readonly<Record<string, unknown>>;
@@ -75,7 +78,7 @@ declare global {
       Fields extends InputFieldMap = InputFieldMap
     > {
       description?: string;
-      fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types>) => Fields;
+      fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, 'InputObject'>) => Fields;
       extensions?: Readonly<Record<string, unknown>>;
     }
 

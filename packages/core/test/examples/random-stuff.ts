@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import SchemaBuilder from '../../src';
 
 // Define backing models/types
@@ -17,10 +18,58 @@ type Types = {
   Context: { userID: number };
 };
 
+class Animal {
+  species?: string;
+}
+
+class Giraffe extends Animal {
+  species: 'Giraffe' = 'Giraffe';
+
+  name: string;
+
+  age: number;
+
+  constructor(name: string, age: number) {
+    super();
+
+    this.name = name;
+    this.age = age;
+  }
+}
+
 const builder = new SchemaBuilder<Types>({});
 
 builder.scalarType('Date', {
   serialize: (date) => date,
+});
+
+builder.interfaceType(Animal, {
+  name: 'Animal',
+  fields: (t) => ({
+    species: t.exposeString('species', { nullable: true }),
+  }),
+});
+
+builder.objectType(Giraffe, {
+  name: 'Giraffe',
+  interfaces: [Animal],
+  isType(parent) {
+    return parent.species === 'Giraffe';
+  },
+  fields: (t) => ({
+    name: t.exposeString('name', {}),
+    age: t.exposeInt('age', {}),
+  }),
+});
+
+enum MyEnum {
+  Foo = 'foo',
+  Bar = 'bar',
+  Num = 5,
+}
+
+builder.enumType(MyEnum, {
+  name: 'MyEnum',
 });
 
 // Create input types
@@ -30,6 +79,7 @@ const Example = builder.inputType('Example', {
     id2: t.int({ required: false }),
     ids: t.idList({ required: true }),
     ids2: t.intList({ required: false }),
+    enum: t.field({ type: MyEnum }),
     date: t.field({
       type: 'Date',
     }),
@@ -42,6 +92,7 @@ interface ExampleShape {
     id2?: number;
     ids: (string | number)[];
     ids2?: number[];
+    enum?: MyEnum;
     date?: string;
   };
   id?: string | number;
