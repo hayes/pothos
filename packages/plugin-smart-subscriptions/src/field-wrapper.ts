@@ -84,7 +84,7 @@ export default class SmartSubscriptionsFieldWrapper<
       field.kind !== 'Subscription' &&
       field.kind !== 'Mutation'
     ) {
-      this.canRefetch = field.options.canRefetch ?? false;
+      this.canRefetch = field.giraphqlOptions.canRefetch ?? false;
     }
 
     if (

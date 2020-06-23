@@ -13,7 +13,7 @@ export function getFieldSubscribe<Types extends SchemaTypes>(
     field.kind !== 'Mutation' &&
     field.kind !== 'Subscription'
   ) {
-    return field.options.subscribe as (
+    return field.giraphqlOptions.subscribe as (
       subscriptions: FieldSubscriptionManager,
       parent: unknown,
       args: {},

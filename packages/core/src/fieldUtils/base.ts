@@ -54,7 +54,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         name,
         args,
         type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? false),
-        options: options as any,
+        giraphqlOptions: options as any,
         description: options.description,
         resolve:
           (options as { resolve?: (...args: unknown[]) => unknown }).resolve ??

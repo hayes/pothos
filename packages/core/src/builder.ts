@@ -56,6 +56,8 @@ import {
   GiraphQLInputObjectTypeConfig,
   InputFieldMap,
   PluginConstructorMap,
+  PluginMap,
+  PluginName,
 } from '.';
 import { BasePlugin, mergePlugins } from './plugins';
 import ConfigStore from './config-store';
@@ -73,18 +75,26 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   private plugin: Required<BasePlugin<Types>>;
 
+  private pluginMap: PluginMap<Types>;
+
   constructor(options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>) {
     this.options = options;
 
-    const plugins = Object.keys(SchemaBuilder.plugins).map((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[
-        pluginName as keyof PluginConstructorMap
-      ] as typeof BasePlugin;
+    const plugins: Record<string, unknown> = {};
 
-      return new Plugin(this, pluginName as keyof PluginConstructorMap);
-    });
+    (Object.keys(SchemaBuilder.plugins) as (keyof PluginConstructorMap<Types>)[]).forEach(
+      (pluginName) => {
+        const Plugin = SchemaBuilder.plugins[
+          pluginName as keyof PluginConstructorMap<Types>
+        ] as typeof BasePlugin;
 
-    this.plugin = mergePlugins(this, plugins);
+        plugins[pluginName] = new Plugin(this, pluginName as keyof PluginConstructorMap<Types>);
+      },
+    );
+
+    this.pluginMap = plugins as PluginMap<Types>;
+
+    this.plugin = mergePlugins(this, this.pluginMap);
 
     this.configStore = new ConfigStore<Types>(this.plugin);
 
@@ -92,6 +102,16 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     scalars.forEach((scalar) => {
       this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
     });
+  }
+
+  getPlugin(name: PluginName) {
+    const plugin = this.pluginMap[name];
+
+    if (!plugin) {
+      throw new Error(`No plugin named ${name} has not been registered`);
+    }
+
+    return plugin;
   }
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
@@ -472,11 +492,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return schema;
   }
 
-  static plugins: Partial<PluginConstructorMap> = {};
+  static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
 
-  static registerPlugin<T extends keyof PluginConstructorMap>(
+  static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
     name: T,
-    plugin: PluginConstructorMap[T],
+    plugin: PluginConstructorMap<SchemaTypes>[T],
   ) {
     if (this.plugins[name]) {
       throw new Error(`Received multiple implementations for plugin ${name}`);

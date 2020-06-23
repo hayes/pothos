@@ -318,7 +318,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         args: this.buildInputFields(config.args),
         extensions: {
           ...config.extensions,
-          giraphqlOptions: config.options,
+          giraphqlOptions: config.giraphqlOptions,
         },
         resolve: wrapResolver(config, fieldWrapper, returnType),
         subscribe: wrapSubscriber(config, fieldWrapper),
@@ -341,7 +341,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         type: this.buildInputTypeParam(config.type),
         extensions: {
           ...config.extensions,
-          giraphqlOptions: config.options,
+          giraphqlOptions: config.giraphqlOptions,
         },
       };
     });

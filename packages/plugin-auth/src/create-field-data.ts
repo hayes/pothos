@@ -190,13 +190,14 @@ export function getPermissionCheck<Types extends SchemaTypes>(
       ? typeConfig.giraphqlOptions.defaultPermissionCheck
       : undefined;
 
-  const permissionCheck = field.options.permissionCheck || defaultPermissionCheck;
+  const permissionCheck = field.giraphqlOptions.permissionCheck || defaultPermissionCheck;
 
   if (
     options.explicitMutationChecks &&
     field.parentType === 'Mutation' &&
-    (!field.options.permissionCheck ||
-      (Array.isArray(field.options.permissionCheck) && field.options.permissionCheck.length === 0))
+    (!field.giraphqlOptions.permissionCheck ||
+      (Array.isArray(field.giraphqlOptions.permissionCheck) &&
+        field.giraphqlOptions.permissionCheck.length === 0))
   ) {
     throw new Error(
       `${field.name} is missing an explicit permission check which is required for all Mutations (explicitMutationChecks)`,

@@ -58,12 +58,12 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
       return;
     }
 
-    if (fieldConfig.options.smartSubscription) {
+    if (fieldConfig.giraphqlOptions.smartSubscription) {
       this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
 
       this.builder.subscriptionField(fieldConfig.name, (t) =>
         t.field({
-          ...fieldConfig.options,
+          ...fieldConfig.giraphqlOptions,
           subscribe: (parent, args, context, info) => {
             const manager = new SubscriptionManager({
               value: new ValueWrapper(parent, {}),

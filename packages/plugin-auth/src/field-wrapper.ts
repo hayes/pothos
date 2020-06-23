@@ -57,7 +57,7 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
     );
 
     this.grantPermissions =
-      (this.field.options.grantPermissions as GrantPermissions<Types, unknown, {}>) ?? null;
+      (this.field.giraphqlOptions.grantPermissions as GrantPermissions<Types, unknown, {}>) ?? null;
 
     this.resolveChecks = getResolveChecks(this.returnTyeConfig.name, builder, options);
     this.permissionCheckers = getPermissionCheckers(field, builder);

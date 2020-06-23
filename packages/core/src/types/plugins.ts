@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 import { SchemaTypes, MaybePromise, GiraphQLObjectTypeConfig } from '..';
+import { BasePlugin } from '../plugins';
 
 export interface ResolveHooks<Types extends SchemaTypes, T> {
   overwriteResolve?: (
@@ -18,3 +19,18 @@ export interface ResolveHooks<Types extends SchemaTypes, T> {
   ): MaybePromise<T | null>;
   onWrappedResolve?(wrapped: unknown): MaybePromise<void>;
 }
+
+export type PluginConstructorMap<Types extends SchemaTypes> = {
+  [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: {
+    new (
+      builder: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+      name: K,
+    ): GiraphQLSchemaTypes.Plugins<Types>[K] & BasePlugin<Types>;
+  };
+};
+
+export type PluginMap<Types extends SchemaTypes> = {
+  [K in keyof PluginConstructorMap<Types>]: InstanceType<PluginConstructorMap<Types>[K]>;
+};
+
+export type PluginName = keyof PluginConstructorMap<SchemaTypes>;

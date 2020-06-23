@@ -5,12 +5,18 @@ import {
   GiraphQLTypeConfig,
   GiraphQLInputFieldConfig,
   GiraphQLOutputFieldConfig,
+  PluginMap,
+  PluginName,
 } from '..';
 
 export function mergePlugins<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-  plugins: BasePlugin<Types>[],
+  pluginMap: PluginMap<Types>,
 ): Required<BasePlugin<Types>> {
+  const plugins: BasePlugin<Types>[] = [];
+
+  Object.keys(pluginMap).forEach((pluginName) => plugins.push(pluginMap[pluginName as PluginName]));
+
   const onTypePlugins: Pick<Required<BasePlugin<Types>>, 'onTypeConfig'>[] = plugins.filter(
     (plugin) => plugin.onTypeConfig,
   ) as Pick<Required<BasePlugin<Types>>, 'onTypeConfig'>[];

@@ -11,4 +11,6 @@ type Types = {
   Context: ContextType;
 };
 
-export default new SchemaBuilder<Types>({});
+const builder = new SchemaBuilder<Types>({});
+
+export default builder;

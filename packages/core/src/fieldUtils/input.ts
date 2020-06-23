@@ -76,7 +76,7 @@ export default class InputFieldBuilder<Types extends SchemaTypes> {
           this.builder.configStore,
           options.required ?? false,
         ),
-        options: options as GiraphQLSchemaTypes.InputFieldOptions<
+        giraphqlOptions: options as GiraphQLSchemaTypes.InputFieldOptions<
           Types,
           InputTypeParam<Types>,
           FieldRequiredness<[unknown]>

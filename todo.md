@@ -11,7 +11,3 @@
 9. Fix issues with expose
 10. Move mocks to plugin
 11. way for plugins to contribute to merged shapes in SchemaTypes 13: document context requirements
-12. API to get plugin by name
-13. change field.options to field.giraphqlOptions
-14. Figure out how to wrap root object so that queries with multiple root fields are part of same
-    tree

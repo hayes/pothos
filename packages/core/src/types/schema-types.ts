@@ -1,5 +1,3 @@
-import { BasePlugin } from '../plugins';
-
 export interface SchemaTypes {
   outputShapes: {
     String: unknown;
@@ -55,12 +53,3 @@ export type ScalarName<Types extends SchemaTypes> = (keyof Types['Scalars'] | Ba
   string;
 
 export type RootName = 'Query' | 'Mutation' | 'Subscription';
-
-export type PluginConstructorMap = {
-  [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: {
-    new (
-      builder: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-      name: K,
-    ): GiraphQLSchemaTypes.Plugins<SchemaTypes>[K] & BasePlugin<SchemaTypes>;
-  };
-};
