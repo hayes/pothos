@@ -17,19 +17,19 @@ export class ValueWrapper<T> {
   setFieldResult(info: GraphQLResolveInfo, result: unknown) {
     const key = String(info.path.key);
 
-    this.fieldResults.set(key, result);
+    return this.fieldResults.set(key, result);
   }
 
   hasFieldResult(info: GraphQLResolveInfo) {
     const key = String(info.path.key);
 
-    this.fieldResults.has(key);
+    return this.fieldResults.has(key);
   }
 
   getFieldResult(info: GraphQLResolveInfo) {
     const key = String(info.path.key);
 
-    this.fieldResults.get(key);
+    return this.fieldResults.get(key);
   }
 
   unwrap() {
@@ -57,10 +57,6 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
       throw new TypeError('Updating with null value not supported yet');
     } else if (value instanceof Promise) {
       throw new TypeError('Update value must be resolved before calling updateValue');
-    }
-
-    if (this.value === value) {
-      return;
     }
 
     this.value = value;

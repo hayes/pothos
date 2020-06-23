@@ -94,7 +94,7 @@ export default class SmartSubscriptionsFieldWrapper<
       returnType.kind !== 'Mutation'
     ) {
       this.subscriptionByType[returnType.name] = this.builder.configStore.getTypeConfig(
-        field.parentType,
+        returnType.name,
         'Object',
       ).giraphqlOptions.subscribe;
     } else if (returnType.graphqlKind === 'Interface') {
@@ -127,8 +127,8 @@ export default class SmartSubscriptionsFieldWrapper<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) {
-    console.log('is reuse?');
     const key = this.cacheKey(info);
+
     if (parentData?.cache.has(key)) {
       parentData.cache.get(key)!.reRegister();
 
@@ -218,7 +218,6 @@ export default class SmartSubscriptionsFieldWrapper<
           return {
             cache,
             refetch: () => {
-              console.log('delete', info.path.key);
               cache.delete(info);
             },
           };
