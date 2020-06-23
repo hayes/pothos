@@ -61,14 +61,15 @@ export function wrapResolver<Types extends SchemaTypes>(
     info: GraphQLResolveInfo,
   ) => {
     const parentValue =
-      originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
+      originalParent instanceof ValueWrapper ? await originalParent.unwrap() : originalParent;
     const parentData = originalParent instanceof ValueWrapper ? await originalParent.getData() : {};
 
     const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
 
     if (originalParent instanceof ValueWrapper && originalParent.hasFieldResult(info)) {
-      if (await fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info))
+      if (await fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info)) {
         return originalParent.getFieldResult(info);
+      }
     }
 
     const resolveHooks = await fieldWrapper.beforeResolve(
@@ -224,7 +225,7 @@ export function wrapResolveType<Types extends SchemaTypes>(
     abstractType: GraphQLAbstractType,
   ) {
     const parentValue =
-      originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
+      originalParent instanceof ValueWrapper ? await originalParent.unwrap() : originalParent;
 
     const type = (await originalResolveType?.(parentValue, context, info, abstractType)) ?? null;
 

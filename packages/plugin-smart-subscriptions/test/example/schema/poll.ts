@@ -20,6 +20,7 @@ builder.objectType('Poll', {
     }),
     question: t.exposeString('question', {}),
     answers: t.field({
+      nullable: true,
       type: ['Answer'],
       resolve: (parent, args, context, info) => {
         console.log(info.operation.name?.value, 'fetching answer for poll', parent.id);

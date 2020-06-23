@@ -1,5 +1,7 @@
 /* eslint-disable max-classes-per-file */
 import { GraphQLResolveInfo } from 'graphql';
+import { types } from 'util';
+
 import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes, MaybePromise } from '..';
 
 export class ValueWrapper<T> {
@@ -26,14 +28,36 @@ export class ValueWrapper<T> {
     return this.fieldResults.has(key);
   }
 
-  getFieldResult(info: GraphQLResolveInfo) {
+  async getFieldResult(info: GraphQLResolveInfo) {
     const key = String(info.path.key);
 
-    return this.fieldResults.get(key);
+    const result = await this.fieldResults.get(key);
+
+    if (Array.isArray(result)) {
+      return result.map((itemOrPromise) => {
+        if (types.isPromise(itemOrPromise)) {
+          return (itemOrPromise as Promise<unknown>).then((item: unknown) =>
+            item instanceof ValueWrapper ? item.asResolvable() : result,
+          );
+        }
+
+        return itemOrPromise instanceof ValueWrapper ? itemOrPromise.asResolvable() : result;
+      });
+    }
+
+    return result instanceof ValueWrapper ? result.asResolvable() : result;
   }
 
   unwrap() {
     return this.value;
+  }
+
+  private asResolvable() {
+    if (types.isPromise(this.value)) {
+      return (this.value as Promise<unknown>).then((value) => (value == null ? null : this));
+    }
+
+    return this.value == null ? null : this;
   }
 }
 
@@ -52,20 +76,15 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
   }
 
   private updateValue(value: unknown) {
-    if (value == null) {
-      // TODO track parent and update field results?
-      throw new TypeError('Updating with null value not supported yet');
-    } else if (value instanceof Promise) {
-      throw new TypeError('Update value must be resolved before calling updateValue');
-    }
-
     this.value = value;
 
     if (this.fieldResults.size) {
       this.fieldResults = new Map();
     }
 
-    if (this.type) {
+    if (this.value == null) {
+      this.getData = () => null;
+    } else if (this.type) {
       this.queueDataUpdate(this.type);
     }
   }

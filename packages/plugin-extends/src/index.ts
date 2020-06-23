@@ -1,5 +1,3 @@
-import { GraphQLNamedType, GraphQLObjectType } from 'graphql';
-
 import SchemaBuilder, {
   BasePlugin,
   QueryFieldsShape,
@@ -9,34 +7,37 @@ import SchemaBuilder, {
   MutationFieldBuilder,
   SubscriptionFieldBuilder,
   ObjectFieldBuilder,
-  getObjectOptions,
   SchemaTypes,
+  GiraphQLTypeConfig,
+  ObjectParam,
 } from '@giraphql/core';
 import './global-types';
 
 export default class ExtendsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onType(type: GraphQLNamedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
-    if (type instanceof GraphQLObjectType) {
-      const extendsMap = getObjectOptions(type).extends || {};
+  onTypeConfig(config: GiraphQLTypeConfig) {
+    if (config.kind === 'Object') {
+      const extendsMap = config.giraphqlOptions.extends || {};
 
       Object.keys(extendsMap).forEach((key) => {
         const shape = extendsMap[key as keyof typeof extendsMap];
 
         if (shape) {
           if (key === 'Query') {
-            builder.queryFields(() =>
-              (shape as QueryFieldsShape<any>)(new QueryFieldBuilder(builder)),
+            this.builder.queryFields(() =>
+              (shape as QueryFieldsShape<any>)(new QueryFieldBuilder(this.builder)),
             );
           } else if (key === 'Mutation') {
-            builder.mutationFields(() =>
-              (shape as MutationFieldsShape<any>)(new MutationFieldBuilder(builder)),
+            this.builder.mutationFields(() =>
+              (shape as MutationFieldsShape<any>)(new MutationFieldBuilder(this.builder)),
             );
           } else if (key === 'Subscription') {
-            builder.subscriptionFields(() =>
-              (shape as SubscriptionFieldsShape<any>)(new SubscriptionFieldBuilder(builder)),
+            this.builder.subscriptionFields(() =>
+              (shape as SubscriptionFieldsShape<any>)(new SubscriptionFieldBuilder(this.builder)),
             );
           } else {
-            builder.objectFields(key, () => shape(new ObjectFieldBuilder(key, builder) as never));
+            this.builder.objectFields(key as ObjectParam<Types>, () =>
+              shape(new ObjectFieldBuilder(key, this.builder) as never),
+            );
           }
         }
       });
