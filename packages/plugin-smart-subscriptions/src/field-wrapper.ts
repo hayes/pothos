@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 import {
   SchemaTypes,
   BaseFieldWrapper,
@@ -29,22 +28,13 @@ export {
 export * from './types';
 export * from './utils';
 
-type RequestData = {};
+type RequestData = {
+  manager?: SubscriptionManager;
+};
 type ParentData = {
-  manager: SubscriptionManager;
   cache: ResolverCache;
+  reusableFields: Record<string, boolean>;
   refetch: () => void;
-  typeSubscriptionManager?: TypeSubscriptionManager;
-  subscriptionByType: {
-    [k: string]:
-      | undefined
-      | ((
-          subscriptions: TypeSubscriptionManager,
-          parent: unknown,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => void);
-  };
 };
 
 export default class SmartSubscriptionsFieldWrapper<
@@ -63,13 +53,6 @@ export default class SmartSubscriptionsFieldWrapper<
         info: GraphQLResolveInfo,
       ) => void)
     | null;
-
-  objectSubscription?: (
-    subscriptions: TypeSubscriptionManager,
-    parent: unknown,
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) => void;
 
   subscriptionByType: {
     [k: string]:
@@ -111,7 +94,7 @@ export default class SmartSubscriptionsFieldWrapper<
       returnType.kind !== 'Subscription' &&
       returnType.kind !== 'Mutation'
     ) {
-      this.objectSubscription = this.builder.configStore.getTypeConfig(
+      this.subscriptionByType[returnType.name] = this.builder.configStore.getTypeConfig(
         field.parentType,
         'Object',
       ).giraphqlOptions.subscribe;
@@ -130,7 +113,18 @@ export default class SmartSubscriptionsFieldWrapper<
   }
 
   createRequestData() {
-    return new Map();
+    return {};
+  }
+
+  allowReuse(
+    requestData: RequestData,
+    parentData: ParentData | null,
+    parent: unknown,
+    args: object,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) {
+    return parentData?.reusableFields[info.path.key] === true;
   }
 
   beforeResolve(
@@ -141,27 +135,28 @@ export default class SmartSubscriptionsFieldWrapper<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) {
-    if (!parentData) {
+    const { manager } = requestData;
+
+    if (!parentData || !manager) {
       return {};
     }
 
-    const { manager, cache } = parentData;
+    const { cache, reusableFields } = parentData;
 
-    if (this.canRefetch) {
-      parentData.refetch = () => cache.delete(info);
-    }
-
-    if (this.subscribe) {
-      this.subscribe(
-        cache.managerForField(info, manager, parentData.refetch),
-        parent,
-        args,
-        context,
-        info,
-      );
-    }
+    // if (this.subscribe) {
+    //   this.subscribe(
+    //     cache.managerForField(info, manager, parentData.refetch),
+    //     parent,
+    //     args,
+    //     context,
+    //     info,
+    //   );
+    // }
 
     return {
+      onResolve: () => {
+        reusableFields[info.path.key] = true;
+      },
       onChild: (
         child: unknown,
         index: number | null,
@@ -170,14 +165,19 @@ export default class SmartSubscriptionsFieldWrapper<
         const childCache = new ResolverCache();
 
         const childData: ParentData = {
-          manager,
           cache: childCache,
-          subscriptionByType: this.subscriptionByType,
-          refetch: parentData.refetch,
+          refetch: this.canRefetch
+            ? () => {
+                reusableFields[info.path.key] = false;
+              }
+            : parentData.refetch,
+          reusableFields: {},
         };
 
-        if (this.objectSubscription || Object.keys(this.subscriptionByType).length !== 0) {
-          childData.typeSubscriptionManager = childCache.managerForType(
+        const subscribe = this.subscriptionByType[type.name];
+
+        if (subscribe) {
+          const typeSubscriptionManager = childCache.managerForType(
             info,
             manager,
             (promise) => {
@@ -186,15 +186,7 @@ export default class SmartSubscriptionsFieldWrapper<
             childData.refetch,
           );
 
-          if (this.objectSubscription) {
-            this.objectSubscription(childData.typeSubscriptionManager, child, context, info);
-          }
-        }
-
-        const subscribe = this.subscriptionByType[type.name];
-
-        if (subscribe) {
-          subscribe(childData.typeSubscriptionManager!, child, context, info);
+          subscribe(typeSubscriptionManager, child, context, info);
         }
 
         return childData;
@@ -212,13 +204,21 @@ export default class SmartSubscriptionsFieldWrapper<
     const cache = new ResolverCache();
 
     return {
-      onValue: (value: unknown): ParentData | null => {
+      onSubscribe: (value: unknown) => {
         if (value instanceof SubscriptionManager) {
+          // eslint-disable-next-line no-param-reassign
+          requestData.manager = value;
+        }
+      },
+      onValue: (value: unknown): ParentData | null => {
+        if (requestData.manager) {
+          const reusableFields: Record<string, boolean> = {};
           return {
-            manager: value,
             cache,
-            refetch: () => cache.delete(info),
-            subscriptionByType: {},
+            refetch: () => {
+              reusableFields[info.path.key] = false;
+            },
+            reusableFields,
           };
         }
 
