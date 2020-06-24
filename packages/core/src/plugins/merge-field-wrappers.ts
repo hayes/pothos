@@ -128,6 +128,10 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
           onResolveFns.push(hooks.onResolve);
         }
 
+        if (hooks?.onWrappedResolve) {
+          onWrappedResolveFns.push(hooks.onWrappedResolve);
+        }
+
         if (hooks?.onChild) {
           onChildFns.push([plugin.name, hooks.onChild]);
         }

@@ -131,9 +131,9 @@ export default class ConfigStore<Types extends SchemaTypes> {
       throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
     }
 
-    this.plugin.onTypeConfig(config);
-
     this.typeConfigs.set(config.name, config);
+
+    this.plugin.onTypeConfig(config);
 
     if (ref) {
       this.associateRefWithName(ref, name);
