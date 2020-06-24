@@ -6,7 +6,6 @@ import SchemaBuilder, {
 } from '@giraphql/core';
 import './global-types';
 
-import MergedAsyncIterator from './merged-iterator';
 import SubscriptionManager from './manager';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
@@ -15,7 +14,6 @@ import BaseSubscriptionManager from './manager/base';
 import SmartSubscriptionsFieldWrapper from './field-wrapper';
 
 export {
-  MergedAsyncIterator,
   SubscriptionManager,
   BaseSubscriptionManager,
   TypeSubscriptionManager,

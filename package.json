@@ -1,0 +1,96 @@
+{
+  "name": "@giraphql/schema-builder",
+  "version": "0.0.0",
+  "description": "A strongly typed code first schema builder for GraphQL",
+  "directories": {
+    "lib": "lib"
+  },
+  "scripts": {
+    "babel": "NODE_ENV=production nimbus babel --copy-files --workspaces=*",
+    "docz:deploy": "yarn docz:build && netlify deploy -d dist --prod",
+    "docz:dev": "rm -f babel.config.js && docz dev",
+    "docz:build": "rm -f babel.config.js && docz build",
+    "docz:serve": " rm -f babel.config.js && docz build && docz serve",
+    "prepare": "nimbus create-config --silent && rm babel.config.js",
+    "build": "yarn babel && yarn type:dts",
+    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
+    "lint": "nimbus eslint",
+    "posttest": "yarn run lint",
+    "jest": "NODE_ENV=test TZ=UTC nimbus jest",
+    "jest:coverage": "yarn run jest -- --coverage",
+    "test": "yarn run jest:coverage",
+    "prettier": "nimbus prettier",
+    "type": "nimbus typescript --build --reference-workspaces --no-emit",
+    "type:dts": "nimbus typescript --build --reference-workspaces",
+    "pretest": "yarn run type",
+    "release": "yarn clean && yarn build && lerna publish --push"
+  },
+  "workspaces": [
+    "./packages/*"
+  ],
+  "private": true,
+  "devDependencies": {
+    "@airbnb/config-babel": "^3.1.0",
+    "@airbnb/config-eslint": "^3.1.0",
+    "@airbnb/config-jest": "^3.0.2",
+    "@airbnb/config-prettier": "^3.1.0",
+    "@airbnb/config-typescript": "^3.0.1",
+    "@airbnb/nimbus": "^3.1.4",
+    "@babel/plugin-syntax-bigint": "^7.8.3",
+    "@types/jest": "^26.0.3",
+    "@types/node": "^14.0.14",
+    "@types/node-fetch": "^2.5.7",
+    "docz": "^2.3.1",
+    "graphql": "^15.1.0",
+    "husky": "^4.2.5",
+    "lerna": "^3.22.1",
+    "lint-staged": "^10.2.11",
+    "react": "^16.13.1",
+    "react-dom": "^16.13.1",
+    "typescript": "^3.9.5"
+  },
+  "lint-staged": {
+    "./src/**/*.{ts,tsx}": [
+      "yarn run prettier"
+    ],
+    "*.md": [
+      "yarn run prettier --tab-width 4"
+    ]
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/hayes/giraphql/issues"
+  },
+  "homepage": "https://github.com/hayes/giraphql#readme",
+  "nimbus": {
+    "drivers": [
+      "eslint",
+      "jest",
+      "prettier",
+      "typescript",
+      "babel"
+    ],
+    "settings": {
+      "library": true,
+      "next": true,
+      "node": true,
+      "env": {
+        "useBuiltIns": false,
+        "corejs": false,
+        "targets": {
+          "node": "10"
+        }
+      }
+    }
+  }
+}

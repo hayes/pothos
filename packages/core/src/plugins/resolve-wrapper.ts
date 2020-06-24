@@ -3,6 +3,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import { types } from 'util';
 
 import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes, MaybePromise } from '..';
+import { assertArray } from '../utils';
 
 export class ValueWrapper<T> {
   protected value: unknown;
@@ -28,12 +29,16 @@ export class ValueWrapper<T> {
     return this.fieldResults.has(key);
   }
 
-  async getFieldResult(info: GraphQLResolveInfo) {
+  async getFieldResult(info: GraphQLResolveInfo, isList: boolean) {
     const key = String(info.path.key);
 
-    const result = await this.fieldResults.get(key);
+    const result = this.fieldResults.get(key);
 
-    if (Array.isArray(result)) {
+    if (!result) {
+      return result;
+    }
+
+    if (isList && assertArray(result)) {
       return result.map((itemOrPromise) => {
         if (types.isPromise(itemOrPromise)) {
           return (itemOrPromise as Promise<unknown>).then((item: unknown) =>

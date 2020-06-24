@@ -26,9 +26,13 @@ declare global {
         options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
       ): ObjectRef<Shape>;
 
-      simpleInterface<Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>>(
+      simpleInterface<
+        Fields extends FieldMap,
+        Shape extends OutputShapeFromFields<Fields>,
+        Interfaces extends InterfaceParam<SchemaTypes>[]
+      >(
         name: string,
-        options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<Types, Fields, Shape>,
+        options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
       ): InterfaceRef<Shape>;
     }
 
@@ -73,8 +77,9 @@ declare global {
     export interface SimpleInterfaceTypeOptions<
       Types extends SchemaTypes,
       Fields extends FieldMap,
-      Shape extends OutputShapeFromFields<Fields>
-    > extends Omit<InterfaceTypeOptions<Types, Shape>, 'fields'> {
+      Shape extends OutputShapeFromFields<Fields>,
+      Interfaces extends InterfaceParam<SchemaTypes>[]
+    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'fields'> {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }
   }

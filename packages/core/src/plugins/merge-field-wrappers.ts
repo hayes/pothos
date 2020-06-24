@@ -6,6 +6,7 @@ import {
   SchemaTypes,
   GiraphQLOutputFieldConfig,
   GiraphQLObjectTypeConfig,
+  ResolveHooks,
 } from '../types';
 import BaseFieldWrapper from './field-wrapper';
 
@@ -101,15 +102,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       ][] = [];
       const onWrappedResolveFns: ((wrapped: unknown) => void)[] = [];
 
-      let overwriteResolve:
-        | ((
-            parent: unknown,
-            args: {},
-            context: Types['Context'],
-            info: GraphQLResolveInfo,
-            originalResolver: GraphQLFieldResolver<unknown, Types['Context']>,
-          ) => unknown)
-        | undefined;
+      let overwriteResolveFns: NonNullable<ResolveHooks<Types, unknown>['overwriteResolve']>[] = [];
 
       for (const plugin of beforeResolvePlugins) {
         const pluginRequestData =
@@ -136,8 +129,27 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
           onChildFns.push([plugin.name, hooks.onChild]);
         }
 
-        overwriteResolve = overwriteResolve || hooks.overwriteResolve;
+        if (hooks.overwriteResolve) {
+          overwriteResolveFns.push(hooks.overwriteResolve);
+        }
       }
+
+      const overwriteResolve: ResolveHooks<Types, unknown>['overwriteResolve'] =
+        overwriteResolveFns.length === 0
+          ? undefined
+          : (parent, args, context, info, orignalResolve) => {
+              return resolverFor(0)(parent, args, context, info);
+
+              function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
+                if (i >= overwriteResolveFns.length) {
+                  return orignalResolve;
+                }
+
+                return (parent, args, context, info) => {
+                  overwriteResolveFns[i](parent, args, context, info, resolverFor(i + 1));
+                };
+              }
+            };
 
       return {
         overwriteResolve,

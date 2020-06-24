@@ -4,18 +4,11 @@ import {
   GraphQLTypeResolver,
   GraphQLAbstractType,
 } from 'graphql';
-import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLTypeConfig } from '..';
+import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, MaybePromise } from '..';
 import { ResolveValueWrapper, ValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
 import ConfigStore from '../config-store';
-
-function assertArray(value: unknown): value is unknown[] {
-  if (!Array.isArray(value)) {
-    throw new TypeError('List resolvers must return arrays');
-  }
-
-  return true;
-}
+import { assertArray } from '../utils';
 
 const requestDataStore = new WeakMap<object, {}>();
 
@@ -68,7 +61,7 @@ export function wrapResolver<Types extends SchemaTypes>(
 
     if (originalParent instanceof ValueWrapper && originalParent.hasFieldResult(info)) {
       if (await fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info)) {
-        return originalParent.getFieldResult(info);
+        return originalParent.getFieldResult(info, isListResolver);
       }
     }
 
@@ -114,8 +107,16 @@ export function wrapResolver<Types extends SchemaTypes>(
       }
 
       if (isListResolver && assertArray(resultValue)) {
-        const wrappedList = resultValue.map((item, i) =>
-          Promise.resolve(item).then((value) => wrapChild(value, i)),
+        const wrappedList: MaybePromise<ResolveValueWrapper<
+          Types,
+          unknown
+        > | null>[] = resultValue.map((item, i) =>
+          Promise.resolve(item)
+            .then((value) => wrapChild(value, i))
+            .then((wrapped) => {
+              wrappedList[i] = wrapped;
+              return wrapped;
+            }),
         );
 
         return wrappedList;

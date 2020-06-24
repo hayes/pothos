@@ -2,9 +2,9 @@ export type MaybePromise<T> = T | Promise<T>;
 
 export type MaybePromiseWithInference<T, U> = U extends Promise<unknown> ? Promise<T> : T;
 
-export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
-  k: infer I,
-) => void
+export type UnionToIntersection<U> = (U extends any
+? (k: U) => void
+: never) extends (k: infer I) => void
   ? I
   : never;
 

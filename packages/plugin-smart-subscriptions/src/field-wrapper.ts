@@ -6,7 +6,6 @@ import {
 } from '@giraphql/core';
 import './global-types';
 import { GraphQLResolveInfo } from 'graphql';
-import MergedAsyncIterator from './merged-iterator';
 import SubscriptionManager from './manager';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
@@ -16,7 +15,6 @@ import { getFieldSubscribe } from './create-field-data';
 import SubscriptionCache, { CacheForField } from './cache';
 
 export {
-  MergedAsyncIterator,
   SubscriptionManager,
   BaseSubscriptionManager,
   TypeSubscriptionManager,

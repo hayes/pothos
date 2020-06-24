@@ -4,6 +4,7 @@ import SchemaBuilder, {
   FieldMap,
   InterfaceRef,
   InterfaceParam,
+  InterfaceTypeOptions,
 } from '@giraphql/core';
 import './global-types';
 import { OutputShapeFromFields } from './types';
@@ -48,10 +49,11 @@ proto.simpleObject = function simpleObject<
 
 proto.simpleInterface = function simpleInterface<
   Fields extends FieldMap,
-  Shape extends OutputShapeFromFields<Fields>
+  Shape extends OutputShapeFromFields<Fields>,
+  Interfaces extends InterfaceParam<SchemaTypes>[]
 >(
   name: string,
-  options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape>,
+  options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
 ) {
   const ref = new InterfaceRef<Shape>(name);
 
@@ -76,7 +78,10 @@ proto.simpleInterface = function simpleInterface<
     };
   }
 
-  this.interfaceType(ref, options as GiraphQLSchemaTypes.InterfaceTypeOptions);
+  this.interfaceType(
+    ref,
+    options as InterfaceTypeOptions<SchemaTypes, InterfaceParam<SchemaTypes>, Shape, Interfaces>,
+  );
 
   return ref;
 };

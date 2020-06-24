@@ -13,7 +13,7 @@
   },
   "peerDependencies": {
     "@giraphql/core": "^0.20.3",
-    "graphql": "^15.1.0"
+    "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "apollo-server": "^2.15.0",
