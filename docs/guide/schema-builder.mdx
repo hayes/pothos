@@ -22,15 +22,15 @@ const builder = new SchemaBuilder<{
   // parent type in root resolvers (Query, Mutation, Subscription)
   Root: {};
   // Backing models/shapes for Objects
-  Object: {
+  Objects: {
     Giraffe: { name: string; age: number };
   };
   // Backing models/shapes for Objects
-  Interface: {
+  Interfaces: {
     Animal: { name: string };
   };
   // Shapes for built-in or custom scalrs
-  Scalar: {
+  Scalars: {
     // Defines a shape for both input (field args) and outout (resolver return types)
     ID: { Input: string; Output: string | number };
   };

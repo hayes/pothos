@@ -55,7 +55,7 @@ defined in the schema builder.
 ```typescript
 const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
-}>();
+}>({});
 
 builder.queryType({
   fields: t => ({
@@ -165,7 +165,7 @@ any other object type or interface.
 ```typescript
 const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
-}>();
+}>({});
 
 builder.objectType('Giraffe', {
   fields: t => ({
