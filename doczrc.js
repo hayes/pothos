@@ -7,10 +7,11 @@ export default {
     mode: 'dark',
   },
   menu: [
-    'Getting started',
+    'Overview',
     {
       name: 'Guide',
       menu: [
+        'Getting Started',
         'Object Types',
         'SchemaBuilder',
         'Defining Fields',

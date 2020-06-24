@@ -45,12 +45,12 @@ yarn build
 
 ### Scripts
 
--   `docz:dev`: start docs dev server to see a love local copy of docs site
--   `prepare`: re-create all the config files for tools used in this repo
--   `build`: runs typechecking and babel
--   `clean`: removes all build artifacts for code and docs
--   `lint {path to file/directory}`: runs linter (eslint)
--   `jest {path to file/directory}`: run run tests
--   `test`: runs typechecking, lint, and tests
--   `prettier`: formats code and docs
--   `type`: run typechecking
+-   `yarn docz:dev`: start docs dev server to see a love local copy of docs site
+-   `yarn prepare`: re-create all the config files for tools used in this repo
+-   `yarn build`: runs typechecking and babel
+-   `yarn clean`: removes all build artifacts for code and docs
+-   `yarn lint {path to file/directory}`: runs linter (eslint)
+-   `yarn jest {path to file/directory}`: run run tests
+-   `yarn test`: runs typechecking, lint, and tests
+-   `yarn prettier`: formats code and docs
+-   `yarn type`: run typechecking

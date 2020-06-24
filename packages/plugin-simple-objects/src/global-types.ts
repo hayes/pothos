@@ -69,7 +69,7 @@ declare global {
       Shape extends OutputShapeFromFields<Fields>
     > = Omit<
       ObjectTypeOptionsWithInterfaces<Types, ObjectParam<Types>, Shape, Interfaces>,
-      'fields' | 'name'
+      'fields' | 'name' | 'args'
     > & {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     };
@@ -79,7 +79,7 @@ declare global {
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>,
       Interfaces extends InterfaceParam<SchemaTypes>[]
-    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'fields'> {
+    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'fields' | 'args'> {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }
   }
