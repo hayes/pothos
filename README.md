@@ -23,7 +23,7 @@ builder.queryType({
 });
 
 const server = new ApolloServer({
-    schema: builder.toSchema(),
+    schema: builder.toSchema({}),
 });
 
 server.listen(3000);

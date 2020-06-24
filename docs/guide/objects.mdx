@@ -84,7 +84,7 @@ builder.queryType({
 import { ApolloServer } from 'apollo-server';
 
 // Build schema and start server with the types we wrote above
-const schema = builder.toSchema();
+const schema = builder.toSchema({});
 
 const server = new ApolloServer({ schema });
 

@@ -35,31 +35,15 @@ const Query = builder.queryType({
 });
 ```
 
-2. Using the generic `t.arg.type` method
+2. Using the generic `t.arg` method
 
 ```typescript
 const Query = builder.queryType({
   fields: (t) => ({
     string: t.string({
       args: {
-        string: t.arg.type('String', {
-          description: 'String arg',
-        }),
-      },
-      resolve: (parent, args) => arg.string,
-    }),
-  }),
-});
-```
-
-3. Using the `arg` method (alias for `t.arg.type`)
-
-```typescript
-const Query = builder.queryType({
-  fields: (t) => ({
-    string: t.string({
-      args: {
-        string: t.arg('String', {
+        string: t.arg({
+          type: 'String',
           description: 'String arg',
         }),
       },
@@ -71,7 +55,7 @@ const Query = builder.queryType({
 
 ## Other types
 
-Args of non-scalar types can also be created with the `t.arg` or `t.arg.type` methods.
+Args of non-scalar types can also be created with the `t.arg` method.
 
 Valid arg types include `Scalras`, `Enums`, and `Input` types.
 
@@ -84,7 +68,9 @@ const Giraffe = builder.objectType('Giraffe', {
   fields: t => ({
     height: t.float({
       args: {
-        unit: t.arg(LengthUnit, {}),
+        unit: t.arg({
+          type: LengthUnit,
+        }),
       },
       resolve: (parent, args) =>
         args.unit === 'Feet' ? parent.heightInMeters * 3.281 : parent.heightInMeters,
@@ -135,7 +121,8 @@ const Query = builder.queryType({
           names: t.arg.stringList({
             required: true,
           })
-          moreNames: t.arg(['String'], {
+          moreNames: t.arg({
+            type: ['String'],
             required: true
           })
         },

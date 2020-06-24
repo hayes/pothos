@@ -27,7 +27,7 @@ builder.queryType({
 });
 
 new ApolloServer({
-  schema: builder.toSchema(),
+  schema: builder.toSchema({}),
 }).listen(3000);
 ```
 

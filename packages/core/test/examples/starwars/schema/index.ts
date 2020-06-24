@@ -6,4 +6,4 @@ import './query';
 
 import builder from '../builder';
 
-export default builder.toSchema();
+export default builder.toSchema({});

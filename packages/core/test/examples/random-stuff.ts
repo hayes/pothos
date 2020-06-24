@@ -341,6 +341,6 @@ builder.subscriptionType({
   }),
 });
 
-const schema = builder.toSchema();
+const schema = builder.toSchema({});
 
 export default schema;
