@@ -22,15 +22,22 @@ type FieldOptions = {
 };
 ```
 
-- `type`: Either a type created by the [`SchemaBuilder`] or a key of the `Object`, `Interface` or
-  `Scalar` properties of [`TypeInfo`]. type may also be wrapped in an array eg `['User']` to create
-  a list field.
+- `type`: [Type Parameter](#type-parameter)
 - `args`: a map of arg name to arg values. Arg values can be created using an [`InputFieldBuilder`]
-  \(`fieldBuilder.arg`) or using `schemaBuilder.`[`args`];
-- `nullable`: boolean;
-- `description`: string;
-- `deprecationReason`: string;
-- `resolve`: Resolver
+  \(`fieldBuilder.arg`) or using `schemaBuilder.`[`args`]
+- `nullable`: boolean, defaults to `false`
+- `description`: string
+- `deprecationReason`: string
+- `resolve`: [Resolver](#resolver)
+
+### Type Parameter
+
+A Type Parameter for a Field can be any `TypeRef` returned by one of the [`SchemaBuilder`] methods
+for defining a type, a class used to create an object or interface type, a ts enum used to define a
+graphql enum type, or a string that corresponds to one of they keys of the `Objects`, `Interfaces`,
+or `Scalars` objects defined in [`TypeInfo`].
+
+For List fields, the Type Parameter should be one of the above wrapped in an array eg `['User']`.
 
 ### Resolver
 
