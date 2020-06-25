@@ -114,15 +114,17 @@ export type ShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [OutputType<Types>],
   Nullable extends FieldNullability<Param>
-> = Nullable extends true
+> = FieldNullability<Param> extends Nullable
+  ? OutputShape<Types, Param[0]>[] | undefined | null
+  : Nullable extends true
   ? OutputShape<Types, Param[0]>[] | undefined | null
   : Nullable extends false
   ? OutputShape<Types, Param[0]>[]
   : Nullable extends { list: infer List; items: infer Items }
   ? Items extends boolean
     ? List extends true
-      ? ShapeFromTypeParam<Types, Param[0], Items>[] | undefined | null
-      : ShapeFromTypeParam<Types, Param[0], Items>[]
+      ? ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] | undefined | null
+      : ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
     : never
   : never;
 
@@ -151,15 +153,22 @@ export type InputShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [InputType<Types>],
   Required extends FieldRequiredness<Param>
-> = Required extends true
+> = FieldRequiredness<Param> extends Required
+  ? InputShape<Types, Param[0]>[] | undefined | null
+  : Required extends true
   ? InputShape<Types, Param[0]>[]
   : Required extends false
   ? InputShape<Types, Param[0]>[] | undefined | null
-  : Required extends { list: infer List; items: infer Items }
+  : FieldRequiredness<Param> extends Required
+  ? InputShape<Types, Param[0]>[] | undefined | null
+  : Required extends { list: infer List; items: infer Items } | boolean
   ? Items extends boolean
     ? List extends true
-      ? InputShapeFromTypeParam<Types, Param[0], Items>[]
-      : InputShapeFromTypeParam<Types, Param[0], Items>[] | undefined | null
+      ? InputShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
+      :
+          | InputShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
+          | undefined
+          | null
     : never
   : never;
 

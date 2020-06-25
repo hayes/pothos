@@ -63,6 +63,7 @@ import {
   ValuesFromEnum,
   EnumTypeOptions,
   InterfaceTypeOptions,
+  InputFieldsFromShape,
 } from '.';
 import { BasePlugin, mergePlugins } from './plugins';
 import ConfigStore from './config-store';
@@ -446,7 +447,12 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     } as GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Types, Name>, OutputShape<Types, Name>>);
   }
 
-  inputType<Param extends string | InputObjectRef<unknown>, Fields extends InputFieldMap>(
+  inputType<
+    Param extends string | InputObjectRef<unknown>,
+    Fields extends Param extends InputObjectRef<unknown>
+      ? InputFieldsFromShape<InputShape<Types, Param> & {}>
+      : InputFieldMap
+  >(
     param: Param,
     options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>,
   ): InputObjectRef<InputShapeFromFields<Fields>> {

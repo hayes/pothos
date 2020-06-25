@@ -1,11 +1,5 @@
 import { InputType, SchemaTypes } from '../types';
-import {
-  FieldRequiredness,
-  InputShapeFromTypeParam,
-  ArgBuilder,
-  InputFieldRef,
-  InputTypeParam,
-} from '..';
+import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder, InputFieldRef } from '..';
 import { inputTypeFromParam } from '../utils';
 
 export default class InputFieldBuilder<
@@ -75,11 +69,7 @@ export default class InputFieldBuilder<
           this.builder.configStore,
           options.required ?? false,
         ),
-        giraphqlOptions: options as GiraphQLSchemaTypes.InputFieldOptions<
-          Types,
-          InputTypeParam<Types>,
-          FieldRequiredness<[unknown]>
-        >,
+        giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
         description: options.description,
         defaultValue: options.defaultValue,
       };
