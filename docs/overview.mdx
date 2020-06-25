@@ -38,24 +38,13 @@ new ApolloServer({
 - A powerful plugin system that enables extending almost any part of the schema builder, as well as
   adding runtime features like authorization.
 - A set of plugins for common use cases:
-  - [`@giraphql/plugin-auth`](/docs-plugins-auth): A plugin for adding authorization checks
-    throughout your schema
-  - [`@giraphql/plugin-relay`](/docs-plugins-relay): A plugin for adding builder methods for
-    defining relay style nodes and connections, and some helpful utilities for cursor based
-    pagination
-  - [`@giraphql/plugin-smart-subscriptions`](/docs-plugins-smart-subscriptions): A plugin for a more
+  - [`@giraphql/plugin-auth`](/plugins-auth): A plugin for adding authorization checks throughout
+    your schema
+  - [`@giraphql/plugin-relay`](/plugins-relay): A plugin for adding builder methods for defining
+    relay style nodes and connections, and some helpful utilities for cursor based pagination
+  - [`@giraphql/plugin-smart-subscriptions`](/plugins-smart-subscriptions): A plugin for a more
     graph friendly way of defining subscriotions.
-  - [`@giraphql/plugin-simple-objects`](/docs-plugins-simple-objects): A plugin for creating simple
+  - [`@giraphql/plugin-simple-objects`](/plugins-simple-objects): A plugin for creating simple
     objects and interfaces without resolvers or arguments.
-  - [`@giraphql/plugin-mocks`](/docs-plugins-mocks): A plugin for mocking out resolvers in your
-    schema.
+  - [`@giraphql/plugin-mocks`](/plugins-mocks): A plugin for mocking out resolvers in your schema.
   - More plugins coming soon (including a plugin for Prisma)
-
-## Design goals
-
-GiraphQL aims to be extensible in a way that makes features from plugins feel like part of the core
-experience. To acheive this, every options object used in GiraphQL can be extended with custom
-properties. You may notice that there are places throughout the documentation where there are empty
-options objects passed into functions. While this may seem inconvenient at first glance, the reason
-behind is that it should be easy for pluginis to add new required options, and having optional
-options objects would break that goal

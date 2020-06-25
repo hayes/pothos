@@ -8,9 +8,9 @@
   "scripts": {
     "babel": "NODE_ENV=production nimbus babel --copy-files --workspaces=*",
     "docz:deploy": "yarn docz:build && netlify deploy -d dist --prod",
-    "docz:dev": "rm -f babel.config.js && docz dev",
-    "docz:build": "rm -f babel.config.js && docz build",
-    "docz:serve": " rm -f babel.config.js && docz build && docz serve",
+    "docz:dev": "cd ./docs && docz dev",
+    "docz:build": "cd ./docs && docz build",
+    "docz:serve": "cd ./docs && docz build && docz serve",
     "prepare": "nimbus create-config --silent && rm babel.config.js",
     "build": "yarn babel && yarn type:dts",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
@@ -47,6 +47,9 @@
     "lint-staged": "^10.2.11",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "typescript": "^3.9.5"
+  },
+  "resolutions": {
     "typescript": "^3.9.5"
   },
   "lint-staged": {

@@ -17,4 +17,4 @@ The GirahQL auth plugin tries to solve a number of common authorization patterns
 -   Defining reusable permissions that are used by multiple field on the same object
 -   Granting permissions from a parent field to the objects/types it returns
 
-## Full docs available at https://giraphql.com/docs-plugins-auth
+## Full docs available at https://giraphql.com/plugins-auth
