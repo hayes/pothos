@@ -242,7 +242,7 @@ export default class GirphQLConverter {
               .join(', ')}],`,
           );
           writer.writeLine(
-            `isType: (obj, context, info) => { throw new Error('Not implemented') },`,
+            `isTypeOf: (obj, context, info) => { throw new Error('Not implemented') },`,
           );
         }
         this.writeObjectShape(writer, type);

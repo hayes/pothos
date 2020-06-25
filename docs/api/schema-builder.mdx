@@ -165,7 +165,7 @@ type ObjectTypeOptions = {
   description?: string;
   fields: FieldsFunction;
   interfaces?: Interfaces;
-  isType: (obj: InterfaceShape) => boolean;
+  isTypeOf: (obj: InterfaceShape) => boolean;
   name?: string;
 };
 ```
@@ -173,7 +173,7 @@ type ObjectTypeOptions = {
 - `description`: A description of the current type
 - `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field refs. See [`FieldBuilder`] for more details.
-- `isType`: Only required when implementing interfaces. This is a method that will be used when
+- `isTypeOf`: Only required when implementing interfaces. This is a method that will be used when
   determining if a value of an implemented interface is of the current type.
 - `interfaces`: an array of interfaces implemented by this interface type. Items in this array
   should be an interace param. See `param` argument of `interfaceType`

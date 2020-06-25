@@ -1,9 +1,12 @@
-import builder, { Giraffe } from './builder';
+import builder, { Giraffe, Animal } from './builder';
+import { AnimalRef } from './interfaces';
 
 const GiraffeRef = builder.objectRef<Giraffe>('GiraffeFromRef');
 
 builder.objectType(Giraffe, {
   name: 'GiraffeFromClass',
+  interfaces: [Animal],
+  isTypeOf: (value) => value instanceof Giraffe,
   description: 'Long necks, cool patterns, taller than you.',
   fields: (t) => ({
     name: t.exposeString('name', {}),
@@ -22,6 +25,8 @@ builder.objectType(Giraffe, {
 
 builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
+  interfaces: ['Animal'],
+  isTypeOf: (value) => value instanceof Giraffe,
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
@@ -39,6 +44,8 @@ builder.objectType('Giraffe', {
 
 builder.objectType(GiraffeRef, {
   description: 'Long necks, cool patterns, taller than you.',
+  interfaces: [AnimalRef],
+  isTypeOf: (value) => value instanceof Giraffe,
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({

@@ -53,7 +53,7 @@ builder.interfaceType(Animal, {
 builder.objectType(Giraffe, {
   name: 'Giraffe',
   interfaces: [Animal],
-  isType(parent) {
+  isTypeOf(parent) {
     return parent.species === 'Giraffe';
   },
   fields: (t) => ({
@@ -273,7 +273,7 @@ builder.objectType('Sheep', {
   interfaces: [Shaveable, 'Countable'],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
-  isType: () => true,
+  isTypeOf: () => true,
   fields: (t) => ({
     color: t.string({
       args: {

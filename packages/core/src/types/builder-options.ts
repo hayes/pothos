@@ -126,14 +126,15 @@ export type ObjectTypeOptions<
   Param extends ObjectParam<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[]
-> =
+> = (
   | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | (GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces> &
-      (Param extends string
-        ? {}
-        : Param extends ObjectRef<Types>
-        ? { name?: string }
-        : { name: string }));
+  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
+) &
+  (Param extends string
+    ? {}
+    : Param extends ObjectRef<unknown>
+    ? { name?: string }
+    : { name: string });
 
 export type InterfaceTypeOptions<
   Types extends SchemaTypes,
@@ -143,7 +144,7 @@ export type InterfaceTypeOptions<
 > = GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> &
   (Param extends string
     ? {}
-    : Param extends InterfaceRef<Types>
+    : Param extends InterfaceRef<unknown>
     ? { name?: string }
     : { name: string });
 

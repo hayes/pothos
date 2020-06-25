@@ -277,7 +277,7 @@ builder.interfaceType('Shape', {
 
 builder.objectType('Square', {
   interfaces: ['Shape'],
-  isType: (parent) => parent.type === 'square',
+  isTypeOf: (parent) => parent.type === 'square',
   // Will execute for each square returned by Query.shapes and grand the readSquare permission
   // which is required for the size field
   postResolveCheck: (parent, context, info) => {

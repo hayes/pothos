@@ -160,7 +160,7 @@ const Shaveable = builder.interfaceType('Shaveable', {
 });
 builder.objectType('Giraffe', {
     interfaces: [Animal],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
     fields: t => ({
         name: t.field({
             type: 'String',
@@ -295,7 +295,7 @@ builder.objectType('User', {
 });
 builder.objectType('Sheep', {
     interfaces: [Shaveable, Countable],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
     fields: t => ({
         color: t.field({
             args: {
@@ -510,7 +510,7 @@ const Character = builder.interfaceType('Character', {
 builder.objectType('Droid', {
     description: \\"A mechanical creature in the Star Wars universe.\\",
     interfaces: [Character],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
     fields: t => ({
         primaryFunction: t.field({
             description: \\"The primary function of the droid.\\",
@@ -522,7 +522,7 @@ builder.objectType('Droid', {
 builder.objectType('Human', {
     description: \\"A humanoid creature in the Star Wars universe.\\",
     interfaces: [Character],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
     fields: t => ({
         homePlanet: t.field({
             description: \\"The home planet of the human, or null if unknown.\\",

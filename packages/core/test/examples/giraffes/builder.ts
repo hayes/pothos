@@ -1,5 +1,10 @@
 import SchemaBuilder from '../../../src';
-import { Diet } from './enums';
+
+export enum Diet {
+  HERBIVOROUS,
+  CARNIVOROUS,
+  OMNIVORIOUS,
+}
 
 export class Animal {
   diet: Diet;
@@ -26,6 +31,9 @@ export class Giraffe extends Animal {
 const builder = new SchemaBuilder<{
   Objects: {
     Giraffe: Giraffe;
+  };
+  Interfaces: {
+    Animal: Animal;
   };
 }>({});
 

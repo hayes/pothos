@@ -101,11 +101,58 @@ type User {
 `;
 
 exports[`Giraffe schema generates expected schema 1`] = `
-"\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
-type Giraffe {
+"interface Animal {
+  diet: Diet!
+}
+
+interface AnimalFromClass {
+  diet: Diet!
+}
+
+interface AnimalFromRef {
+  diet: Diet!
+}
+
+enum Diet {
+  CARNIVOROUS
+  HERBIVOROUS
+  OMNIVORIOUS
+}
+
+\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type Giraffe implements Animal {
   age: Int!
+
+  \\"\\"\\"
+  While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium
+  \\"\\"\\"
+  diet: Diet!
   height(unit: LengthUnit! = Meters): Float!
   name: String!
+  species: GiraffeSpecies!
+}
+
+\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type GiraffeFromClass implements AnimalFromClass {
+  age: Int!
+  diet: Diet!
+  name: String!
+}
+
+\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type GiraffeFromRef implements AnimalFromRef {
+  age: Int!
+  diet: Diet!
+  name: String!
+}
+
+enum GiraffeSpecies {
+  Masai
+  Northern
+  Reticulated
+
+  \\"\\"\\"Also known as two-horned giraffe\\"\\"\\"
+  Southern
 }
 
 enum LengthUnit {
@@ -114,7 +161,12 @@ enum LengthUnit {
 }
 
 type Query {
+  animal: Animal!
+  animalClass: AnimalFromClass!
+  animalRef: AnimalFromRef!
   giraffe: Giraffe!
+  giraffeClass: GiraffeFromClass!
+  giraffeRef: GiraffeFromRef!
 }
 "
 `;

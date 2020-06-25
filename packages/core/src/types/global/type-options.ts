@@ -37,16 +37,16 @@ declare global {
       fields?: ObjectFieldsShape<Types, Shape>;
       extensions?: Readonly<Record<string, unknown>>;
       interfaces?: undefined;
-      isType?: undefined;
+      isTypeOf?: undefined;
     }
 
     export interface ObjectTypeWithInterfaceOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
-    > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isType'> {
+    > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isTypeOf'> {
       interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
-      isType: (
+      isTypeOf: (
         obj: OutputShape<Types, Interfaces[number]>,
         context: Types['Context'],
         info: GraphQLResolveInfo,

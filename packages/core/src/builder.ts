@@ -142,7 +142,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       name,
       interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
       description: options.description,
-      isTypeOf: options.isType as GraphQLIsTypeOfFn<unknown, Types['Context']>,
+      isTypeOf: options.isTypeOf as GraphQLIsTypeOfFn<unknown, Types['Context']>,
       giraphqlOptions: options as GiraphQLSchemaTypes.ObjectTypeOptions,
     };
 

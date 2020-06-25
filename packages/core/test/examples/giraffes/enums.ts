@@ -1,10 +1,4 @@
-import builder from './builder';
-
-export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
-}
+import builder, { Diet } from './builder';
 
 builder.enumType(Diet, {
   name: 'Diet',

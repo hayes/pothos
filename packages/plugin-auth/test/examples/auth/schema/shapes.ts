@@ -23,7 +23,7 @@ builder.interfaceType('ThingWithCorners', {
 
 builder.objectType('Square', {
   interfaces: ['Shape'],
-  isType: (parent) => parent.type === 'square',
+  isTypeOf: (parent) => parent.type === 'square',
   defaultPermissionCheck: 'readSquare',
   postResolveCheck: () => {
     return {
@@ -41,7 +41,7 @@ builder.objectType('Square', {
 
 builder.objectType('Triangle', {
   interfaces: ['Shape'],
-  isType: (parent) => parent.type === 'triangle',
+  isTypeOf: (parent) => parent.type === 'triangle',
   defaultPermissionCheck: 'readTriangle',
   fields: (t) => ({
     edges: t.int({
@@ -53,7 +53,7 @@ builder.objectType('Triangle', {
 
 builder.objectType('Circle', {
   interfaces: ['Shape'],
-  isType: (parent) => parent.type === 'circle',
+  isTypeOf: (parent) => parent.type === 'circle',
   defaultPermissionCheck: 'readCircle',
   fields: (t) => ({
     area: t.int({
@@ -64,7 +64,7 @@ builder.objectType('Circle', {
 
 builder.objectType('Line', {
   interfaces: ['PreResolvePass', 'PostResolvePass', 'SkipImplementorPreResolve'],
-  isType: (parent) => parent.type === 'line',
+  isTypeOf: (parent) => parent.type === 'line',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
   fields: (t) => ({
@@ -76,7 +76,7 @@ builder.objectType('Line', {
 
 builder.objectType('LinePreResolveFail', {
   interfaces: ['PreResolveFail'],
-  isType: (parent) => parent.type === 'line-pre-resolve-fail',
+  isTypeOf: (parent) => parent.type === 'line-pre-resolve-fail',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
   fields: (t) => ({
@@ -88,7 +88,7 @@ builder.objectType('LinePreResolveFail', {
 
 builder.objectType('LinePostResolveFail', {
   interfaces: ['PostResolveFail'],
-  isType: (parent) => parent.type === 'line-post-resolve-fail',
+  isTypeOf: (parent) => parent.type === 'line-post-resolve-fail',
   preResolveCheck: () => ({ ranPreResolve: true }),
   defaultPermissionCheck: 'ranPreResolve',
   fields: (t) => ({
@@ -100,7 +100,7 @@ builder.objectType('LinePostResolveFail', {
 
 builder.objectType('Oval', {
   interfaces: ['OvalThing'],
-  isType: () => {
+  isTypeOf: () => {
     throw new Error('Should not get here');
   },
   preResolveCheck() {
@@ -144,7 +144,7 @@ builder.objectType('Rectangle', {
   permissions: {
     readRectangle: (rect) => rect.width > rect.height,
   },
-  isType: (parent) => parent.type === 'rectangle',
+  isTypeOf: (parent) => parent.type === 'rectangle',
   defaultPermissionCheck: ['readRectangle', 'preResolve', 'postResolve'],
   fields: (t) => ({
     area: t.int({
