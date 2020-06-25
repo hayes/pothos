@@ -38,5 +38,7 @@ export class ImplementableInputObjectRef<
       ImplementableInputObjectRef<Types, T>,
       InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
     >(this, options);
+
+    return this as InputObjectRef<T>;
   }
 }

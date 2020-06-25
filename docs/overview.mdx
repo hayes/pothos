@@ -37,7 +37,6 @@ new ApolloServer({
   for generating type definitions
 - A powerful plugin system that enables extending almost any part of the schema builder, as well as
   adding runtime features like authorization.
-- A converter CLI for taking an existing graphql schema and genrating a GiraphQL equivelent
 - A set of plugins for common use cases:
   - [`@giraphql/plugin-auth`](/docs-plugins-auth): A plugin for adding authorization checks
     throughout your schema
@@ -51,3 +50,12 @@ new ApolloServer({
   - [`@giraphql/plugin-mocks`](/docs-plugins-mocks): A plugin for mocking out resolvers in your
     schema.
   - More plugins coming soon (including a plugin for Prisma)
+
+## Design goals
+
+GiraphQL aims to be extensible in a way that makes features from plugins feel like part of the core
+experience. To acheive this, every options object used in GiraphQL can be extended with custom
+properties. You may notice that there are places throughout the documentation where there are empty
+options objects passed into functions. While this may seem inconvenient at first glance, the reason
+behind is that it should be easy for pluginis to add new required options, and having optional
+options objects would break that goal
