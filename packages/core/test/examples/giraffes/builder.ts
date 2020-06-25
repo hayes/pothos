@@ -35,6 +35,16 @@ const builder = new SchemaBuilder<{
   Interfaces: {
     Animal: Animal;
   };
+  Scalars: {
+    Date: {
+      Input: Date;
+      Output: Date;
+    };
+    PositiveInt: {
+      Input: number;
+      Output: number;
+    };
+  };
 }>({});
 
 export default builder;

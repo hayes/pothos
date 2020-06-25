@@ -7,4 +7,4 @@
 5. Move mocks to plugin
 6. way for plugins to contribute to merged shapes in SchemaTypes
 7. docs on utility types
-8. docs on versioning
+8. restore option for listing enabled plugins

@@ -1,0 +1,25 @@
+---
+name: Mocks
+menu: Plugins
+---
+
+# Mocks Plugin
+
+## Usage
+
+### Install
+
+```bash
+yarn add @giraphql/plugin-mocks
+```
+
+### Setup
+
+```typescript
+import '@giraphql/plugin-mocks';
+const builder = new SchemaBuilder({});
+
+builder.toSchema({
+  mocks: {},
+});
+```
