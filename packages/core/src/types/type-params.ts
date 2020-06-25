@@ -55,7 +55,7 @@ export type OutputType<Types extends SchemaTypes> =
       [outputShapeKey]: unknown;
     }
   | {
-      new (...args: unknown[]): unknown;
+      new (...args: any[]): any;
     }
   | BaseEnum;
 

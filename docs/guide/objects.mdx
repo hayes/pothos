@@ -8,38 +8,36 @@ menu: Guide
 This will walk you through creating your fist object types, some concepts in this guide will be
 explained further in later guides.
 
-1. Start by creating a backing model and adding it to your SchemaBuilder
-
-The SchemaBuilder type signature will be explained further in the SchemaBuilder guide, for now the
-impart part is to know the types provided here will be used to make sure resolvers return the
-correct types, and to provide accurate types for the resolver arguments.
-
-This should be the only place you need to manaully add types for your schema.
+1. Lets start by creating a class to represent a Giraffe. Classes are not required for defining
+   objects, but in this example it is useful for showing the different ways an object type can be
+   defined and used.
 
 ```typescript
-interface Giraffe {
+export class Giraffe {
   name: string;
-  age: number;
-  height: number;
-}
+  birthday: Date;
+  heightInMeters: number;
 
-const builder = new SchemaBuilder<{
-  Object: {
-    Giraffe: Giraffe;
-  };
-}>({});
+  constructor(name: string, birthday: Date, heightInMeters: number) {
+    this.name = name;
+    this.birthday = birthday;
+    this.heightInMeters = heightInMeters;
+  }
+}
 ```
 
-2. Create your object type
+2. define a GraphQL Object type:
 
 ```typescript
-builder.objectType('Giraffe', {
+const builder = new SchemaBuilder({});
+
+builder.objectType(Giraffe, {
   description: 'Long necks, cool patterns, taller than you.',
   fields: (t) => ({}),
 });
 ```
 
-3. Add some fields
+3. add some fields
 
 ```typescript
 builder.objectType('Giraffe', {
@@ -71,7 +69,7 @@ builder.queryType({
   fields: (t) => ({
     giraffe: t.field({
       type: Giraffe,
-      resolve: () => ({ name: 'James', heightMeters: 5.2, birthday: new Date(2012, 11, 12) }),
+      resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
     }),
   }),
 });
@@ -109,3 +107,75 @@ query {
   }
 }
 ```
+
+### Differnt ways to define Object types
+
+There are 3 ways you can define an Object type with a GiraphQL schema builder.
+
+1.  You can provide a type mapping when you create the builder so you can use a string to refence
+    the type:
+
+```typescript
+const builder = new SchemaBuilder<{ Objects: { Giraffe: Giraffe } }>({});
+
+builder.objectType('Giraffe', {
+  description: 'Long necks, cool patterns, taller than you.',
+  fields: (t) => ({}),
+});
+
+builder.queryFields((t) => ({
+  giraffe: t.field({
+    type: 'Giraffe',
+    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+  }),
+}));
+```
+
+This is ideal when you want to list out all the types for your schema in one place, or you have
+interfaces/types that define your data rather than classes, and means you won't have to import
+anything when referencing the object type in other parts of the schema.
+
+The type signature for SchemaBuilder is described in more detail later, for now, it is enough to
+know that the `Objects` type provided to the schema builder allows you to map the names of object
+types to typedefinitions that describe the data for those types.
+
+2. You can use a the class directly without specifying the type anywhere.
+
+```typescript
+const builder = new SchemaBuilder({});
+
+builder.objectType(Giraffe, {
+  description: 'Long necks, cool patterns, taller than you.',
+  fields: (t) => ({}),
+});
+
+builder.queryFields((t) => ({
+  giraffe: t.field({
+    type: Giraffe,
+    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+  }),
+}));
+```
+
+3. You can use an ObjectRef to describe the data type for
+
+```typescript
+const builder = new SchemaBuilder({});
+
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+
+builder.objectType(GiraffeRef, {
+  description: 'Long necks, cool patterns, taller than you.',
+  fields: (t) => ({}),
+});
+
+builder.queryFields((t) => ({
+  giraffe: t.field({
+    type: GiraffeRef,
+    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+  }),
+}));
+```
+
+Regardless of how you define your object types, `builder.objectType` returns an `ObjectRef` that can
+be used as a type paramiter in other parts of the schema.

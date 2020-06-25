@@ -7,14 +7,7 @@ import './enums';
 import './scalars';
 import './inputs';
 
-builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: 'Giraffe',
-      resolve: () => ({ name: 'James', heightInMeters: 5.2, birthday: new Date(2012, 11, 12) }),
-    }),
-  }),
-});
+builder.queryType({});
 
 const schema = builder.toSchema({});
 

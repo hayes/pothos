@@ -16,7 +16,7 @@ request.
 First lets define a User class that holds information about a user, and create a SchemaBuilder with
 a Context type that has a currentUser property.
 
-```ts
+```typescript
 class User {
   id: string;
   firstName: string;
@@ -38,7 +38,7 @@ const builder = new SchemaBuilder<{
 
 Next, we will want to add something in our schema that uses the current user:
 
-```ts
+```typescript
 builder.queryType({
   fields: (t) => ({
     currentUser: t.field({

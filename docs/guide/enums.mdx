@@ -9,7 +9,7 @@ Enums can be defined a number of different ways:
 
 1. Using typescript enums
 
-```ts
+```typescript
 export enum Diet {
   HERBIVOROUS,
   CARNIVOROUS,
@@ -23,7 +23,7 @@ builder.enumType(Diet, {
 
 2. Using an array of strings
 
-```ts
+```typescript
 export const LengthUnit = builder.enumType('LengthUnit', {
   values: ['Feet', 'Meters'] as const,
 });
@@ -33,7 +33,7 @@ Note that we use `as const` to allow ts to properly type our enum values.
 
 3. Using a values object:
 
-```ts
+```typescript
 export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
   values: {
     Southern: {
@@ -65,7 +65,7 @@ value.
 Enums can be references either by the `Ref` that was retunred by calling `builder.enumType` or by
 using the typescript enum. They can be used either as arguments, or as field return types:
 
-```ts
+```typescript
 builder.objectFields('Giraffe', (t) => ({
   height: t.float({
     args: {

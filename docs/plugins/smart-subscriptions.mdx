@@ -34,7 +34,7 @@ yarn add @giraphql/plugin-auth
 
 ### Setup
 
-```ts
+```typescript
 import SchemaBuilder from '@giraphql/core';
 import '@giraphql/plugin-smart-subscriptions';
 
@@ -53,7 +53,7 @@ const builder = new SchemaBuilder({
 
 #### Helper for ussage with async iterators
 
-```ts
+```typescript
 const builder = new SchemaBuilder({
   smartSubscriptions: {
     ...subscribeOptionsFromIterator((name, { pubsub }) => {
@@ -69,7 +69,7 @@ Currently data from subscriptions is typed as `unknown`. This should be improved
 
 ### Creaating a smart subscription
 
-```ts
+```typescript
 builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
@@ -105,7 +105,7 @@ subsciption {
 
 ### registering subscribtions for objects
 
-```ts
+```typescript
 builder.objectType('Poll', {
   subscribe: (subscriptions, poll, context) => {
     subscriptions.register(`poll/${poll.id}`)
@@ -123,7 +123,7 @@ call will be called again for each poll in the new result set.
 
 #### more options
 
-```ts
+```typescript
 builder.objectType('Poll', {
   subscribe: (subscriptions, poll, context) => {
     subscriptions.register(`poll/${poll.id}`, {
@@ -149,7 +149,7 @@ decendents of this object will no be refetched.
 
 ### registering subscribtions for fields
 
-```ts
+```typescript
 builder.objectType('Poll', {
   fields: (t) => ({
     question: t.exposeString('question', {}),
@@ -167,7 +167,7 @@ builder.objectType('Poll', {
 
 #### more options for fields
 
-```ts
+```typescript
 builder.objectType('Poll', {
   fields: (t) => ({
     question: t.exposeString('question', {}),

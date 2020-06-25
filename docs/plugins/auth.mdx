@@ -32,7 +32,7 @@ yarn add @giraphql/plugin-auth
 
 ### Setup
 
-```ts
+```typescript
 import SchemaBuilder from '@giraphql/core';
 import '@giraphql/plugin-auth';
 
@@ -49,7 +49,7 @@ const builder = new SchemaBuilder({
 
 ### Add a permission check to a resolver
 
-```ts
+```typescript
 builder.queryType({
   fields: t => ({
     hello: t.string({
@@ -74,7 +74,7 @@ error for any request where the name is not capitalized.
 As you add more fields to your schema, you may want to re-use the same permission checks on multiple
 fields:
 
-```ts
+```typescript
 builder.queryType({
   permissions: {
     user: (parent, context) => !!context.user,
@@ -144,7 +144,7 @@ Often most fields on a type will use the same permission checks. To make this a 
 can set default permission checks for a type that will be applied to any fields that do not
 explicitly set a permission check.
 
-```ts
+```typescript
 builder.queryType({
   permissions: {
     user: (parent, context) => !!context.user,
@@ -175,7 +175,7 @@ the road if there are new resolvers that expose the same type, but forget that t
 auth check for the children. To address these kinds of use cases, the auth plugin allows fields to
 defiine a set of permissions to grant to the returned child.
 
-```ts
+```typescript
 builder.queryType({
   fields: (t) => ({
     people: t.field({
@@ -217,7 +217,7 @@ ensure that all fields have appropriate checks. To make this simpler there is a 
 you can add to object types that allows you to define a check that will run before any resolver for
 that type.
 
-```ts
+```typescript
 builder.queryType({
   fields: (t) => ({
     people: t.field({
@@ -268,7 +268,7 @@ is no way to determine the actual type before resolving. This can be disabled wi
 Another option is to use `postResolveCheck`s, which will run for each instance of a type after it
 has been resolved, and will work with interface and unions fields as well.
 
-```ts
+```typescript
 builder.interfaceType('Shape', {
   fields: (t) => ({
     // interface fields
