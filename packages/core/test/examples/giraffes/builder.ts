@@ -31,6 +31,8 @@ export class Giraffe extends Animal {
 const builder = new SchemaBuilder<{
   Objects: {
     Giraffe: Giraffe;
+    GiraffeStringFact: { factKind: 'string'; fact: string };
+    GiraffeNumericFact: { factKind: 'number'; fact: string; value: number };
   };
   Interfaces: {
     Animal: Animal;

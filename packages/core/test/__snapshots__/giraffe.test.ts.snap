@@ -1,0 +1,184 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`giraffe example generates expected schema 1`] = `
+"interface Animal {
+  diet: Diet!
+}
+
+interface AnimalFromClass {
+  diet: Diet!
+}
+
+interface AnimalFromRef {
+  diet: Diet!
+}
+
+\\"\\"\\"
+A date string, such as 2007-12-03, compliant with the \`full-date\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+\\"\\"\\"
+scalar Date
+
+enum Diet {
+  CARNIVOROUS
+  HERBIVOROUS
+  OMNIVORIOUS
+}
+
+\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type Giraffe implements Animal {
+  age: Int!
+
+  \\"\\"\\"
+  While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium
+  \\"\\"\\"
+  diet: Diet!
+  height(unit: LengthUnit! = Meters): Float!
+  name: String!
+  species: GiraffeSpecies!
+}
+
+union GiraffeFact = GiraffeNumericFact | GiraffeStringFact
+
+\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type GiraffeFromClass implements AnimalFromClass {
+  age: Int!
+  diet: Diet!
+  name: String!
+}
+
+\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+type GiraffeFromRef implements AnimalFromRef {
+  age: Int!
+  diet: Diet!
+  name: String!
+}
+
+input GiraffeInput {
+  birthdate: String!
+  height: Float!
+  name: String!
+}
+
+type GiraffeNumericFact {
+  fact: String!
+  value: Float!
+}
+
+enum GiraffeSpecies {
+  Masai
+  Northern
+  Reticulated
+
+  \\"\\"\\"Also known as two-horned giraffe\\"\\"\\"
+  Southern
+}
+
+type GiraffeStringFact {
+  fact: String!
+}
+
+enum LengthUnit {
+  Feet
+  Meters
+}
+
+type Mutation {
+  createGiraffe(input: GiraffeInput!): GiraffeFromClass!
+  createGiraffeWithFriends(input: RecursiveGiraffeInput!): [GiraffeFromClass!]!
+}
+
+scalar PositiveInt
+
+type Query {
+  animal: Animal!
+  animalClass: AnimalFromClass!
+  animalRef: AnimalFromRef!
+  date: Date!
+  giraffe: Giraffe!
+  giraffeClass: GiraffeFromClass!
+  giraffeFacts: [GiraffeFact!]!
+  giraffeRef: GiraffeFromRef!
+  positive: PositiveInt!
+}
+
+input RecursiveGiraffeInput {
+  birthdate: String!
+  friends: [GiraffeInput!]
+  height: Float!
+  name: String!
+}
+"
+`;
+
+exports[`giraffe example mutations mutate some stuff 1`] = `
+Object {
+  "data": Object {
+    "createGiraffe": Object {
+      "age": 1,
+      "diet": "HERBIVOROUS",
+      "name": "James",
+    },
+    "createGiraffeWithFriends": Array [
+      Object {
+        "age": 1,
+        "diet": "HERBIVOROUS",
+        "name": "James",
+      },
+      Object {
+        "age": 1,
+        "diet": "HERBIVOROUS",
+        "name": "James",
+      },
+    ],
+  },
+}
+`;
+
+exports[`giraffe example queries query some stuff 1`] = `
+Object {
+  "data": Object {
+    "animal": Object {
+      "diet": "HERBIVOROUS",
+      "name": "James",
+    },
+    "animalClass": Object {
+      "diet": "HERBIVOROUS",
+      "name": "James",
+    },
+    "animalRef": Object {
+      "diet": "HERBIVOROUS",
+      "name": "James",
+    },
+    "date": "2020-06-25",
+    "giraffe": Object {
+      "age": 7,
+      "diet": "HERBIVOROUS",
+      "height": 5.2,
+      "heightInFeet": 17.061200000000003,
+      "name": "James",
+    },
+    "giraffeClass": Object {
+      "age": 7,
+      "diet": "HERBIVOROUS",
+      "name": "James",
+    },
+    "giraffeFacts": Array [
+      Object {
+        "__typename": "GiraffeStringFact",
+        "fact": "A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern",
+      },
+      Object {
+        "__typename": "GiraffeNumericFact",
+        "fact": "Top speed (MPH)",
+        "value": 35,
+      },
+    ],
+    "giraffeRef": Object {
+      "age": 7,
+      "diet": "HERBIVOROUS",
+      "name": "James",
+    },
+    "positive": 5,
+  },
+}
+`;

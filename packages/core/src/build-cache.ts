@@ -467,7 +467,25 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: wrapResolveType(this.configStore, config.resolveType),
+      resolveType: wrapResolveType(this.configStore, async (...args) => {
+        const result = await config.resolveType!(...args);
+
+        if (typeof result === 'string' || !result) {
+          return result;
+        }
+
+        if (result instanceof GraphQLObjectType) {
+          return result;
+        }
+
+        try {
+          const config = this.configStore.getTypeConfig(result);
+
+          return config.name;
+        } catch (err) {}
+
+        return result;
+      }),
     });
   }
 

@@ -44,15 +44,15 @@ builder.mutationType({
         input: t.arg({ type: RecursiveGiraffeInput, required: true }),
       },
       resolve: (root, args) => {
+        const date = new Date();
+
+        date.setFullYear(new Date().getFullYear() - 1);
+
         const friends = (args.input.friends || []).map(
-          (friend) =>
-            new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
+          (friend) => new Giraffe(args.input.name, date, args.input.height),
         );
 
-        return [
-          new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
-          ...friends,
-        ];
+        return [new Giraffe(args.input.name, date, args.input.height), ...friends];
       },
     }),
   }),
