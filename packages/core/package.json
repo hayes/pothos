@@ -1,13 +1,23 @@
 {
   "name": "@giraphql/core",
   "version": "0.20.3",
-  "description": "",
+  "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Michael Hayes",
   "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "types",
+    "typescript",
+    "builder",
+    "framework",
+    "plugin"
+  ],
   "publishConfig": {
     "access": "public"
   },

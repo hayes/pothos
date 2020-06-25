@@ -1,22 +1,27 @@
 {
   "name": "@giraphql/converter",
   "version": "0.16.3",
-  "description": "",
+  "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Michael Hayes",
   "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "converter"
+  ],
   "publishConfig": {
     "access": "public"
   },
   "dependencies": {
+    "graphql": ">=15.1.0",
     "ts-morph": "^7.1.2",
     "yargs": "^15.3.1"
-  },
-  "peerDependencies": {
-    "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "@giraphql/core": "^0.20.3",

@@ -1,13 +1,24 @@
 {
   "name": "@giraphql/plugin-auth",
   "version": "0.21.3",
-  "description": "",
+  "description": "A GiraphQL plugin for adding authorization/permission checks to your GraphQL Schema",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Michael Hayes",
   "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "auth",
+    "authorization",
+    "permission",
+    "permissions",
+    "plugin"
+  ],
   "publishConfig": {
     "access": "public"
   },
