@@ -1,48 +1,11 @@
-import SchemaBuilder from '../../../src';
+import builder from './builder';
 
-interface Giraffe {
-  name: string;
-  birthday: Date;
-  heightInMeters: number;
-}
-
-const builder = new SchemaBuilder<{
-  Objects: {
-    Giraffe: Giraffe;
-  };
-}>({});
-
-const LengthUnit = builder.enumType('LengthUnit', {
-  values: { Feet: {}, Meters: {} },
-});
-
-builder.objectType('Giraffe', {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({
-    name: t.exposeString('name', {}),
-    age: t.int({
-      resolve: (parent) => {
-        const today = new Date(new Date().toDateString());
-        const birthday = new Date(parent.birthday.toDateString());
-        const ageDifMs = Number(today) - Number(birthday);
-        const ageDate = new Date(ageDifMs);
-
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
-      },
-    }),
-    height: t.float({
-      args: {
-        unit: t.arg({
-          type: LengthUnit,
-          required: true,
-          defaultValue: 'Meters',
-        }),
-      },
-      resolve: (parent, args) =>
-        args.unit === 'Feet' ? parent.heightInMeters * 3.281 : parent.heightInMeters,
-    }),
-  }),
-});
+import './objects';
+import './interfaces';
+import './unions';
+import './enums';
+import './scalars';
+import './inputs';
 
 builder.queryType({
   fields: (t) => ({

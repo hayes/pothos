@@ -70,10 +70,11 @@ add a set of fields to the `Query` type.
 - `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field refs. See [`FieldBuilder`] for more details.
 
-## `queryField(field)`
+## `queryField(name, field)`
 
 add a single fiield to the `Query` type.
 
+- `name`: the name of the field
 - `field`: a function that receives a [`FieldBuilder`], and returns field ref. See [`FieldBuilder`]
   for more details.
 
@@ -105,10 +106,11 @@ add a set of fields to the `Mutation` type.
 - `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field refs. See [`FieldBuilder`] for more details.
 
-## `mutationField(field)`
+## `mutationField(name, field)`
 
 add a single fiield to the `Mutation` type.
 
+- `name`: the name of the field
 - `field`: a function that receives a [`FieldBuilder`], and returns field ref. See [`FieldBuilder`]
   for more details.
 
@@ -140,10 +142,11 @@ add a set of fields to the `Subscription` type.
 - `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field refs. See [`FieldBuilder`] for more details.
 
-## `subscriptionField(field)`
+## `subscriptionField(name, field)`
 
 add a single fiield to the `Subscription` type.
 
+- `name`: the name of the field
 - `field`: a function that receives a [`FieldBuilder`], and returns field ref. See [`FieldBuilder`]
   for more details.
 
@@ -176,17 +179,22 @@ type ObjectTypeOptions = {
   should be an interace param. See `param` argument of `interfaceType`
 - `name`: name of graphql type. Required when param is a class
 
-## `objectFields(fields)`
+## `objectFields(param, fields)`
 
 add a set of fields to the object type.
 
+- `param`: A key of the `Objects` property in [`TypeInfo`], a class, or a TypeRef created by
+  `builder.objectRef`
 - `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field refs. See [`FieldBuilder`] for more details.
 
-## `objectField(field)`
+## `objectField(param, name, field)`
 
 add a single fiield to the object type.
 
+- `name`: the name of the field
+- `param`: A key of the `Objects` property in [`TypeInfo`], a class, or a TypeRef created by
+  `builder.objectRef`
 - `field`: a function that receives a [`FieldBuilder`], and returns field ref. See [`FieldBuilder`]
   for more details.
 
@@ -225,17 +233,22 @@ type InterfaceTypeOptions = {
   should be an interace param. See `param` argument of `interfaceType`
 - `name`: name of graphql type. Required when param is a class
 
-## `interfaceFields(fields)`
+## `interfaceFields(param, fields)`
 
 add a set of fields to the interface type.
 
+- `param`: A key of the `Interfaces` property in [`TypeInfo`], a class, or a TypeRef created by
+  `builder.interfaceRef`
 - `fields`: a function that receives a [`FieldBuilder`], and returns an object of field names to
   field refs. See [`FieldBuilder`] for more details.
 
-## `interfaceField(field)`
+## `interfaceField(paran, name, field)`
 
 add a single fiield to the interface type.
 
+- `param`: A key of the `Interfaces` property in [`TypeInfo`], a class, or a TypeRef created by
+  `builder.interfaceRef`
+- `name`: the name of the field
 - `field`: a function that receives a [`FieldBuilder`], and returns field ref. See [`FieldBuilder`]
   for more details.
 
