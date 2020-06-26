@@ -7,6 +7,7 @@ import {
   GiraphQLOutputFieldConfig,
   GiraphQLObjectTypeConfig,
   ResolveHooks,
+  SubscribeHooks,
 } from '../types';
 import BaseFieldWrapper from './field-wrapper';
 
@@ -102,7 +103,9 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       ][] = [];
       const onWrappedResolveFns: ((wrapped: unknown) => void)[] = [];
 
-      let overwriteResolveFns: NonNullable<ResolveHooks<Types, unknown>['overwriteResolve']>[] = [];
+      const overwriteResolveFns: NonNullable<
+        ResolveHooks<Types, unknown>['overwriteResolve']
+      >[] = [];
 
       for (const plugin of beforeResolvePlugins) {
         const pluginRequestData =
@@ -146,7 +149,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                 }
 
                 return (parent, args, context, info) => {
-                  overwriteResolveFns[i](parent, args, context, info, resolverFor(i + 1));
+                  return overwriteResolveFns[i](parent, args, context, info, resolverFor(i + 1));
                 };
               }
             };
@@ -198,6 +201,10 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       const onSubscribeFns: ((value: unknown) => MaybePromise<void>)[] = [];
       const onValueFns: [string, (child: unknown) => MaybePromise<object | null>][] = [];
 
+      const overwriteSubscribeFns: NonNullable<
+        SubscribeHooks<Types, unknown>['overwriteSubscribe']
+      >[] = [];
+
       for (const plugin of beforeSubscribePlugins) {
         const pluginRequestData =
           requestData?.[plugin.name] ?? plugin.createRequestData?.(context) ?? {};
@@ -210,9 +217,31 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
         if (hooks?.onValue) {
           onValueFns.push([plugin.name, hooks.onValue]);
         }
+
+        if (hooks.overwriteSubscribe) {
+          overwriteSubscribeFns.push(hooks.overwriteSubscribe);
+        }
       }
 
+      const overwriteSubscribe: SubscribeHooks<Types, unknown>['overwriteSubscribe'] =
+        overwriteSubscribeFns.length === 0
+          ? undefined
+          : (parent, args, context, info, orignalResolve) => {
+              return resolverFor(0)(parent, args, context, info);
+
+              function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
+                if (i >= overwriteSubscribeFns.length) {
+                  return orignalResolve;
+                }
+
+                return (parent, args, context, info) => {
+                  return overwriteSubscribeFns[i](parent, args, context, info, resolverFor(i + 1));
+                };
+              }
+            };
+
       return {
+        overwriteSubscribe,
         onSubscribe:
           onSubscribeFns.length === 0
             ? undefined

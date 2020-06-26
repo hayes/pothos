@@ -1,7 +1,7 @@
 {
-  "name": "@giraphql/plugin-relay",
+  "name": "@giraphql/plugin-mocks",
   "version": "0.1.0",
-  "description": "A GiraphQL plugin for adding relay style connections, nodes, and cursor based pagination to your GraphQL schema",
+  "description": "A GiraphQL plugin for mocking resolvers",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -13,12 +13,10 @@
     "graphql",
     "schema",
     "typescript",
-    "relay",
-    "cursor",
-    "node",
-    "connection",
-    "edge",
-    "plugin"
+    "mock",
+    "mocks",
+    "test",
+    "stub"
   ],
   "publishConfig": {
     "access": "public"

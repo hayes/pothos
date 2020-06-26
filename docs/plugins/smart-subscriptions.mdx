@@ -39,6 +39,7 @@ import SchemaBuilder from '@giraphql/core';
 import '@giraphql/plugin-smart-subscriptions';
 
 const builder = new SchemaBuilder({
+  plugins: ['GiraphQLSmartSubscriptions'],
   smartSubscriptions: {
     debounceDelay: number | null;
     subscribe: (

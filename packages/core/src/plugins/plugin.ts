@@ -34,6 +34,7 @@ export class BasePlugin<Types extends SchemaTypes> {
 
   wrapOutputField(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): BaseFieldWrapper<Types> | BaseFieldWrapper<Types>[] | null {
     return null;
   }

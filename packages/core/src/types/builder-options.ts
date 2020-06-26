@@ -211,16 +211,3 @@ export type CompatibleTypes<
     ? K
     : never;
 }[keyof ParentShape];
-
-export type Resolvers<Parent = unknown, Context = unknown> = {
-  [s: string]:
-    | Resolver<Parent, unknown, Context, unknown>
-    | {
-        resolve: Resolver<Parent, unknown, Context, unknown>;
-        subscribe: Subscriber<Parent, unknown, Context, unknown>;
-      };
-};
-
-export type ResolverMap = {
-  [s: string]: Resolvers;
-};

@@ -55,11 +55,14 @@ export function mergePlugins<Types extends SchemaTypes>(
       }
     },
 
-    wrapOutputField(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    wrapOutputField(
+      fieldConfig: GiraphQLOutputFieldConfig<Types>,
+      buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
+    ) {
       const all = [];
 
       for (const plugin of wrapOutputFieldPlugins) {
-        const wrappers = plugin.wrapOutputField(fieldConfig);
+        const wrappers = plugin.wrapOutputField(fieldConfig, buildOptions);
 
         if (Array.isArray(wrappers)) {
           all.push(...wrappers);

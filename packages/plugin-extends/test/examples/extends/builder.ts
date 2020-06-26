@@ -11,6 +11,8 @@ type Types = {
   Context: ContextType;
 };
 
-const builder = new SchemaBuilder<Types>({});
+const builder = new SchemaBuilder<Types>({
+  plugins: ['GiraphQLExtends'],
+});
 
 export default builder;

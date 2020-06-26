@@ -35,6 +35,7 @@ type Types = {
 };
 
 export default new SchemaBuilder<Types>({
+  plugins: ['GiraphQLAuth'],
   authOptions: {
     skipPreResolveOnUnions: false,
     skipPreResolveOnInterfaces: false,

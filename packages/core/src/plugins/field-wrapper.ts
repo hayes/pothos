@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise, ResolveHooks } from '..';
+import { SubscribeHooks } from '../types';
 
 export default class BaseFieldWrapper<
   Types extends SchemaTypes,
@@ -41,8 +42,5 @@ export default class BaseFieldWrapper<
     args: object,
     context: object,
     info: GraphQLResolveInfo,
-  ): MaybePromise<{
-    onSubscribe?(value: unknown): MaybePromise<void>;
-    onValue?(child: unknown): MaybePromise<ParentData | null>;
-  }>;
+  ): MaybePromise<SubscribeHooks<Types, ParentData>>;
 }

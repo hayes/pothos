@@ -13,6 +13,7 @@ interface TypeInfo {
 }
 
 export default new SchemaBuilder<TypeInfo>({
+  plugins: ['GiraphQLSmartSubscriptions'],
   smartSubscriptions: {
     ...subscribeOptionsFromIterator((name, { pubsub }) => {
       return pubsub.asyncIterator(name);

@@ -1,4 +1,5 @@
 import SchemaBuilder from '@giraphql/core';
+import '../../../src';
 import { ContextType } from './types';
 import { Poll } from './data';
 
@@ -10,4 +11,6 @@ interface TypeInfo {
   Context: ContextType;
 }
 
-export default new SchemaBuilder<TypeInfo>({});
+export default new SchemaBuilder<TypeInfo>({
+  plugins: ['GiraphQLRelay'],
+});

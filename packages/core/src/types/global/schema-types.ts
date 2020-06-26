@@ -1,9 +1,18 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { MergedScalars, SchemaTypes } from '..';
+import { PluginConstructorMap } from '../..';
+import { GraphQLDirective } from 'graphql';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface SchemaBuilderOptions<Types extends SchemaTypes> {}
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      plugins?: (keyof PluginConstructorMap<Types>)[];
+    }
+
+    export interface BuildSchemaOptions<Types extends SchemaTypes> {
+      directives?: readonly GraphQLDirective[];
+      extensions?: Record<string, unknown>;
+    }
 
     export interface Plugins<Types extends SchemaTypes> {}
 

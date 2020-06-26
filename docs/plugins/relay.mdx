@@ -18,8 +18,10 @@ yarn add @giraphql/plugin-relay
 ### Setup
 
 ```typescript
-import '@giraphql/plugin-auth';
-const builder = new SchemaBuilder({});
+import '@giraphql/plugin-relay';
+const builder = new SchemaBuilder({
+  plugins: ['GiraphQLRelay'],
+});
 ```
 
 ### Creating Nodes

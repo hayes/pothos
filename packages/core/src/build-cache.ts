@@ -19,11 +19,9 @@ import {
   GraphQLFloat,
   GraphQLInt,
 } from 'graphql';
-import { ResolverMap } from './types';
 import {
   BasePlugin,
   assertNever,
-  Resolver,
   GiraphQLObjectTypeConfig,
   GiraphQLQueryTypeConfig,
   GiraphQLSubscriptionTypeConfig,
@@ -55,22 +53,18 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private plugin: Required<BasePlugin<Types>>;
 
-  private mocks: ResolverMap;
+  private options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>;
 
   private implementers = new Map<string, GiraphQLObjectTypeConfig[]>();
 
   constructor(
     configStore: ConfigStore<any>,
     plugin: Required<BasePlugin<Types>>,
-    {
-      mocks,
-    }: {
-      mocks?: ResolverMap;
-    } = {},
+    options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
     this.configStore = configStore;
     this.plugin = plugin;
-    this.mocks = mocks ?? {};
+    this.options = options;
   }
 
   getType(ref: string | OutputType<Types> | InputType<Types>) {
@@ -188,40 +182,6 @@ export default class BuildCache<Types extends SchemaTypes> {
     return implementers;
   }
 
-  resolverMock(
-    typename: string,
-    fieldName: string,
-  ): Resolver<unknown, unknown, unknown, unknown> | null {
-    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
-
-    if (!fieldMock) {
-      return null;
-    }
-
-    if (typeof fieldMock === 'function') {
-      return fieldMock;
-    }
-
-    return fieldMock.resolve || null;
-  }
-
-  subscribeMock(
-    typename: string,
-    fieldName: string,
-  ): Resolver<unknown, unknown, unknown, unknown> | null {
-    const fieldMock = (this.mocks[typename] && this.mocks[typename][fieldName]) || null;
-
-    if (!fieldMock) {
-      return null;
-    }
-
-    if (typeof fieldMock === 'function') {
-      return null;
-    }
-
-    return fieldMock.subscribe || null;
-  }
-
   buildAll() {
     this.configStore.typeConfigs.forEach((config) => {
       const { name } = config;
@@ -301,13 +261,12 @@ export default class BuildCache<Types extends SchemaTypes> {
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
     Object.keys(fields).forEach((fieldName) => {
-      const config = {
-        ...fields[fieldName],
-        resolve: this.resolverMock(type.name, fieldName) || fields[fieldName].resolve,
-        subscribe: this.subscribeMock(type.name, fieldName) || fields[fieldName].subscribe,
-      };
+      const config = fields[fieldName];
 
-      const fieldWrapper = mergeFieldWrappers(config, this.plugin.wrapOutputField(config));
+      const fieldWrapper = mergeFieldWrappers(
+        config,
+        this.plugin.wrapOutputField(config, this.options),
+      );
       const returnType = this.configStore.getTypeConfig(
         config.type.kind === 'List' ? config.type.type.ref : config.type.ref,
       );

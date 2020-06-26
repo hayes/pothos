@@ -167,12 +167,15 @@ export function wrapSubscriber<Types extends SchemaTypes>(
       info,
     );
 
-    const result: AsyncIterable<unknown> = await originalSubscribe!(
-      originalParent,
-      args,
-      context,
-      info,
-    );
+    const result: AsyncIterable<unknown> = subscribeHook.overwriteSubscribe
+      ? await subscribeHook.overwriteSubscribe(
+          originalParent,
+          args,
+          context,
+          info,
+          originalSubscribe,
+        )
+      : await originalSubscribe(originalParent, args, context, info);
 
     await subscribeHook?.onSubscribe?.(result);
 

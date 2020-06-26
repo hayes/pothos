@@ -3,13 +3,13 @@ import { SchemaTypes, MaybePromise, GiraphQLObjectTypeConfig } from '..';
 import { BasePlugin } from '../plugins';
 
 export interface ResolveHooks<Types extends SchemaTypes, T> {
-  overwriteResolve?: (
+  overwriteResolve?(
     parent: unknown,
     args: {},
     context: Types['Context'],
     info: GraphQLResolveInfo,
     originalResolver: GraphQLFieldResolver<unknown, Types['Context']>,
-  ) => unknown;
+  ): unknown;
   onResolve?(value: unknown): MaybePromise<void>;
   onChild?(
     child: unknown,
@@ -18,6 +18,18 @@ export interface ResolveHooks<Types extends SchemaTypes, T> {
     update: (value: unknown) => void,
   ): MaybePromise<T | null>;
   onWrappedResolve?(wrapped: unknown): MaybePromise<void>;
+}
+
+export interface SubscribeHooks<Types extends SchemaTypes, T> {
+  overwriteSubscribe?(
+    parent: unknown,
+    args: {},
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+    originalResolver: GraphQLFieldResolver<unknown, Types['Context']>,
+  ): unknown;
+  onSubscribe?(value: unknown): MaybePromise<void>;
+  onValue?(child: unknown): MaybePromise<T | null>;
 }
 
 export type PluginConstructorMap<Types extends SchemaTypes> = {

@@ -37,6 +37,7 @@ import SchemaBuilder from '@giraphql/core';
 import '@giraphql/plugin-auth';
 
 const builder = new SchemaBuilder({
+  plugins: ['GiraphQLAuth'],
   authOptions: {
     // when true (default) fields not covered by a permission check will return an Authorization error
     requirePermissionChecks: true,

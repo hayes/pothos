@@ -51,7 +51,6 @@ import {
   GiraphQLEnumTypeConfig,
   GiraphQLScalarTypeConfig,
   ImplementableInputObjectRef,
-  ResolverMap,
   InputObjectRef,
   GiraphQLInputObjectTypeConfig,
   InputFieldMap,
@@ -88,15 +87,17 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const plugins: Record<string, unknown> = {};
 
-    (Object.keys(SchemaBuilder.plugins) as (keyof PluginConstructorMap<Types>)[]).forEach(
-      (pluginName) => {
-        const Plugin = SchemaBuilder.plugins[
-          pluginName as keyof PluginConstructorMap<Types>
-        ] as typeof BasePlugin;
+    (options.plugins || []).forEach((pluginName) => {
+      const Plugin = SchemaBuilder.plugins[
+        pluginName as keyof PluginConstructorMap<Types>
+      ] as typeof BasePlugin;
 
-        plugins[pluginName] = new Plugin(this, pluginName as keyof PluginConstructorMap<Types>);
-      },
-    );
+      if (!Plugin) {
+        throw new Error(`No plugin named ${pluginName} was registered`);
+      }
+
+      plugins[pluginName] = new Plugin(this, pluginName as keyof PluginConstructorMap<Types>);
+    });
 
     this.pluginMap = plugins as PluginMap<Types>;
 
@@ -496,22 +497,13 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return new ImplementableInterfaceRef<Types, T>(this, name);
   }
 
-  toSchema({
-    directives,
-    extensions,
-    mocks,
-  }: {
-    directives?: readonly GraphQLDirective[];
-    extensions?: Record<string, unknown>;
-    mocks?: ResolverMap;
-  } = {}) {
+  toSchema(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {
+    const { directives, extensions } = options;
     this.configStore.prepareForBuild();
 
     this.plugin.beforeBuild();
 
-    const buildCache = new BuildCache(this.configStore, this.plugin, {
-      mocks,
-    });
+    const buildCache = new BuildCache(this.configStore, this.plugin, options);
 
     buildCache.buildAll();
 
