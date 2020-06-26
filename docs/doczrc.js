@@ -3,6 +3,7 @@ export default {
   title: 'GiraphQL',
   dest: './dist',
   files: './**/*.{md,markdown,mdx}',
+  ignore: ['SUMMARY.md'],
   themeConfig: {
     mode: 'dark',
   },
