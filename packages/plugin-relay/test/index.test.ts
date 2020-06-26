@@ -243,6 +243,21 @@ describe('relay example schema', () => {
     test('query node and nodes on query type', async () => {
       const query = gql`
         {
+          extraNode {
+            __typename
+            ... on Number {
+              number
+            }
+          }
+          moreNodes {
+            __typename
+            ... on BatchNumber {
+              batchNumber: number
+            }
+            ... on Number {
+              number
+            }
+          }
           nodes(ids: ["TnVtYmVyOjQ=", "TnVtYmVyOjI=", "TnVtYmVyOjI=", "QmF0Y2hOdW1iZXI6MA=="]) {
             ... on BatchNumber {
               batchNumber: number

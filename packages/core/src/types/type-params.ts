@@ -37,6 +37,14 @@ export type InputShape<Types extends SchemaTypes, T> = T extends {
   ? ValuesFromEnum<T>
   : never;
 
+export interface OutputRefShape<T> {
+  [outputShapeKey]: T;
+}
+
+export interface InputRefShape<T> {
+  [inputShapeKey]: T;
+}
+
 export interface OutputRef {
   [outputShapeKey]: unknown;
   name: string;

@@ -15,6 +15,7 @@ import {
   FieldKind,
   TypeParam,
   InputFieldsFromShape,
+  OutputRefShape,
 } from '@giraphql/core';
 
 export interface PageInfoShape {
@@ -27,6 +28,11 @@ export interface PageInfoShape {
 export interface NodeReturnShape<Types extends SchemaTypes> {
   id: OutputShape<Types, 'ID'>;
   __type: OutputType<Types>;
+}
+
+export interface GlobalIDShape<Types extends SchemaTypes> {
+  id: OutputShape<Types, 'ID'>;
+  type: OutputType<Types> | string;
 }
 
 export type ConnectionShape<T, Nullable> =
@@ -102,7 +108,7 @@ export type NodeObjectOptions<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[]
-> = ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces> & {
+> = Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'> & {
   loadOne?: (
     id: string,
     context: Types['Context'],
@@ -132,15 +138,79 @@ export type GlobalIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | 'resolve' | 'isTypeOf'
+  'type' | 'resolve'
 > & {
   resolve: Resolver<
     ParentShape,
     InputShapeFromFields<Args>,
     Types['Context'],
-    Type extends [unknown]
-      ? { id: OutputShape<Types, 'ID'>; type: OutputType<Types> }[]
-      : { id: OutputShape<Types, 'ID'>; type: OutputType<Types> },
+    Type extends [unknown] ? GlobalIDShape<Types>[] : GlobalIDShape<Types>,
+    ResolveReturnShape
+  >;
+};
+
+export type NodeFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  ResolveReturnShape,
+  Kind extends FieldKind = FieldKind
+> = Omit<
+  FieldOptionsFromKind<
+    Types,
+    ParentShape,
+    OutputRefShape<GlobalIDShape<Types> | string>,
+    true,
+    Args,
+    Kind,
+    ParentShape,
+    ResolveReturnShape
+  >,
+  'type' | 'resolve' | 'nullable'
+> & {
+  id: Resolver<
+    ParentShape,
+    InputShapeFromFields<Args>,
+    Types['Context'],
+    ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>,
+    ResolveReturnShape
+  >;
+};
+
+export type NodeListFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  ResolveReturnShape,
+  Kind extends FieldKind = FieldKind
+> = Omit<
+  FieldOptionsFromKind<
+    Types,
+    ParentShape,
+    [OutputRefShape<GlobalIDShape<Types> | string>],
+    {
+      list: false;
+      items: true;
+    },
+    Args,
+    Kind,
+    ParentShape,
+    ResolveReturnShape
+  >,
+  'type' | 'resolve' | 'nullable'
+> & {
+  ids: Resolver<
+    ParentShape,
+    InputShapeFromFields<Args>,
+    Types['Context'],
+    ShapeFromTypeParam<
+      Types,
+      [OutputRefShape<GlobalIDShape<Types> | string>],
+      {
+        list: false;
+        items: true;
+      }
+    >,
     ResolveReturnShape
   >;
 };

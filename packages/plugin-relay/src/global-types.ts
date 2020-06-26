@@ -15,6 +15,7 @@ import {
   ObjectParam,
   ShapeFromTypeParam,
   InputFieldsFromShape,
+  OutputRefShape,
 } from '@giraphql/core';
 import {
   ConnectionFieldOptions,
@@ -27,6 +28,8 @@ import {
   GlobalIDFieldOptions,
   NodeReturnShape,
   DefaultConnectionArguments,
+  NodeFieldOptions,
+  NodeListFieldOptions,
 } from './types';
 import RelayPlugin from '.';
 
@@ -84,6 +87,18 @@ declare global {
           Kind
         >,
       ): FieldRef<ShapeFromTypeParam<Types, ['ID'], Nullable>>;
+      node<Args extends InputFieldMap, ResolveReturnShape>(
+        options: NodeFieldOptions<Types, ParentShape, Args, ResolveReturnShape, Kind>,
+      ): FieldRef<ShapeFromTypeParam<Types, OutputRefShape<NodeReturnShape<Types>>, true>>;
+      nodeList<Args extends InputFieldMap, ResolveReturnShape>(
+        options: NodeListFieldOptions<Types, ParentShape, Args, ResolveReturnShape, Kind>,
+      ): FieldRef<
+        ShapeFromTypeParam<
+          Types,
+          [OutputRefShape<NodeReturnShape<Types>>],
+          { list: false; items: true }
+        >
+      >;
       connection<
         Type extends OutputType<Types>,
         Args extends InputFieldMap,

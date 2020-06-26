@@ -21,6 +21,9 @@ import {
   GlobalIDFieldOptions,
   NodeObjectOptions,
   NodeReturnShape,
+  NodeFieldOptions,
+  GlobalIDShape,
+  NodeListFieldOptions,
 } from './types';
 import { GraphQLResolveInfo } from 'graphql';
 
@@ -116,12 +119,12 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
 export async function resolveNodes<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
-  globalIds: string[],
+  globalIDs: string[],
 ): Promise<MaybePromise<NodeReturnShape<Types> | null>[]> {
   const requestCache = getRequestCache<Types>(context);
   const idsByType: Record<string, Set<string>> = {};
 
-  globalIds.forEach((globalID) => {
+  globalIDs.forEach((globalID) => {
     if (requestCache.has(globalID)) {
       return;
     }
@@ -138,7 +141,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
     ),
   ]);
 
-  return globalIds.map((globalId) => requestCache.get(globalId) ?? null);
+  return globalIDs.map((globalID) => requestCache.get(globalID) ?? null);
 }
 
 const schemaBuilderProto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype;
@@ -227,10 +230,10 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   return ref;
 };
 
-schemaBuilderProto.node = function node(param, { interfaces, isTypeOf, ...options }, fields) {
+schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
   const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
     this.nodeInterfaceRef(),
-    ...(interfaces || []),
+    ...((interfaces || []) as InterfaceParam<SchemaTypes>[]),
   ];
 
   let nodeName!: string;
@@ -295,10 +298,10 @@ fieldBuilderProto.globalIDList = function globalIDList<
     if (Array.isArray(result)) {
       return (
         await Promise.all(result)
-      ).map((item: { id: string; type: OutputType<SchemaTypes> } | null | undefined) =>
+      ).map((item: GlobalIDShape<SchemaTypes> | null | undefined) =>
         item == null
           ? item
-          : encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, item.id),
+          : encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, String(item.id)),
       );
     }
 
@@ -340,15 +343,90 @@ fieldBuilderProto.globalID = function globalID<
       return result;
     }
 
-    const item = (result as unknown) as { id: string; type: OutputType<SchemaTypes> };
+    const item = (result as unknown) as GlobalIDShape<SchemaTypes>;
 
-    return encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, item.id);
+    return encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, String(item.id));
   };
 
   return this.field({
     ...options,
     type: 'ID',
     resolve: wrappedResolve as never, // resolve is not expected because we don't know FieldKind
+  });
+};
+
+fieldBuilderProto.node = function node<Args extends InputFieldMap, ResolveReturnShape>({
+  id,
+  ...options
+}: NodeFieldOptions<SchemaTypes, unknown, Args, ResolveReturnShape, FieldKind>) {
+  return this.field({
+    ...options,
+    type: this.builder.nodeInterfaceRef(),
+    nullable: true,
+    resolve: async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) => {
+      const rawID = ((await id(parent, args, context, info)) as unknown) as
+        | string
+        | GlobalIDShape<SchemaTypes>
+        | null
+        | undefined;
+
+      if (rawID == null) {
+        return null;
+      }
+
+      const globalID =
+        typeof rawID === 'string'
+          ? rawID
+          : encodeGlobalID(
+              this.builder.configStore.getTypeConfig(rawID.type).name,
+              String(rawID.id),
+            );
+
+      return (await resolveNodes(this.builder, context, [globalID]))[0] as never;
+    },
+  });
+};
+
+fieldBuilderProto.nodeList = function nodeList<Args extends InputFieldMap, ResolveReturnShape>({
+  ids,
+  ...options
+}: NodeListFieldOptions<SchemaTypes, unknown, Args, ResolveReturnShape, FieldKind>) {
+  return this.field({
+    ...options,
+    nullable: {
+      list: false,
+      items: true,
+    },
+    type: [this.builder.nodeInterfaceRef()],
+    resolve: async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: object,
+      info: GraphQLResolveInfo,
+    ) => {
+      const rawIDList = await ids(parent, args, context, info);
+
+      assertArray(rawIDList);
+
+      if (!Array.isArray(rawIDList)) {
+        return null as never;
+      }
+
+      const rawIds = await Promise.all(rawIDList);
+
+      const globalIds = rawIds.map((id) =>
+        typeof id === 'string'
+          ? id
+          : encodeGlobalID(this.builder.configStore.getTypeConfig(id.type).name, String(id.id)),
+      );
+
+      return resolveNodes(this.builder, context, globalIds) as never;
+    },
   });
 };
 

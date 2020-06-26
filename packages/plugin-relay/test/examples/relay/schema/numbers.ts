@@ -75,4 +75,10 @@ builder.queryFields((t) => ({
     {},
     {},
   ),
+  extraNode: t.node({
+    id: () => 'TnVtYmVyOjI=',
+  }),
+  moreNodes: t.nodeList({
+    ids: () => ['TnVtYmVyOjI=', { id: 10, type: NumberThing }],
+  }),
 }));

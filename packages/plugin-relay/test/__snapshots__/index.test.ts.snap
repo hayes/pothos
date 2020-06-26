@@ -75,6 +75,8 @@ type PollAnswersUsingOffsetConnectionEdge {
 
 type Query {
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  extraNode: Node
+  moreNodes: [Node]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
@@ -295,6 +297,20 @@ Object {
     "batchNode": Object {
       "number": 0,
     },
+    "extraNode": Object {
+      "__typename": "Number",
+      "number": 2,
+    },
+    "moreNodes": Array [
+      Object {
+        "__typename": "Number",
+        "number": 2,
+      },
+      Object {
+        "__typename": "Number",
+        "number": 10,
+      },
+    ],
     "node": Object {
       "id": "TnVtYmVyOjI=",
       "number": 2,
