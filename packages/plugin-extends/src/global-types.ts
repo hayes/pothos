@@ -1,17 +1,21 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  ObjectName,
-  ObjectFieldsShape,
   QueryFieldsShape,
   MutationFieldsShape,
   SubscriptionFieldsShape,
+  SchemaTypes,
 } from '@giraphql/core';
+import ExtendsPlugin from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
+    export interface Plugins<Types extends SchemaTypes> {
+      GiraphQLExtends: ExtendsPlugin<Types>;
+    }
+
+    export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       extends?: {
-        [K in ObjectName<Types>]?: ObjectFieldsShape<Types, Types['Object'][K]>;
+        [K in keyof Types['Objects']]?: Types['Objects'][K];
       } & {
         Query?: QueryFieldsShape<Types>;
         Mutation?: MutationFieldsShape<Types>;

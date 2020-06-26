@@ -1,23 +1,33 @@
 {
   "name": "@giraphql/plugin-smart-subscriptions",
   "version": "0.17.0",
-  "description": "",
+  "description": "A GiraphQL plugin for turning queries into subscriptions",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "Michael Hayes",
   "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "subscription",
+    "subscriptions",
+    "smart",
+    "plugin"
+  ],
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
+  "peerDependencies": {
     "@giraphql/core": "^0.20.3",
-    "apollo-server": "^2.12.0",
-    "graphql": "^15.0.0",
-    "graphql-subscriptions": "^1.1.0"
+    "graphql": ">=15.1.0"
   },
   "devDependencies": {
+    "apollo-server": "^2.15.0",
+    "graphql-subscriptions": "^1.1.0",
     "graphql-tag": "^2.10.1"
   }
 }

@@ -1,7 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Example schema generates expected schema 1`] = `
-"\\"\\"\\"shape can be last arg\\"\\"\\"
+"interface Animal {
+  species: String
+}
+
+\\"\\"\\"shape can be last arg\\"\\"\\"
 type Article {
   \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
   title: String!
@@ -11,7 +15,11 @@ interface Countable {
   count(max: Int!): Int!
 }
 
+scalar Date
+
 input Example {
+  date: Date
+  enum: MyEnum
   id: ID!
   id2: Int
   ids: [ID!]!
@@ -23,6 +31,18 @@ input Example2 {
   id: ID
   ids: [ID!]!
   more: Example2!
+}
+
+type Giraffe implements Animal {
+  age: Int!
+  name: String!
+  species: String
+}
+
+enum MyEnum {
+  Bar
+  Foo
+  Num
 }
 
 type Query {
@@ -61,6 +81,7 @@ type Subscription {
 type User {
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!
+  fact: String
   firstBornChild: User!
   firstName: String!
   friends: [User!]!
@@ -68,51 +89,13 @@ type User {
   lastName: String!
   list(ids: [ID!]!): [ID!]!
   newField: String!
-  notSparseList(ids: [ID!]!): [ID]
+  notSparseList(ids: [ID!]!): [ID!]
   optional: String
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!
   related: SearchResult!
   sparseList(ids: [ID]!): [ID]!
   stuff: [String!]!
-}
-"
-`;
-
-exports[`Giraffe schema generates expected schema 1`] = `
-"\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
-type Giraffe {
-  age: Int!
-  height(unit: LengthUnit! = Meters): Float!
-  name: String!
-}
-
-enum LengthUnit {
-  Feet
-  Meters
-}
-
-type Query {
-  giraffe: Giraffe!
-}
-"
-`;
-
-exports[`Stateful schema generates expected schema 1`] = `
-"\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
-type Giraffe {
-  age: Int!
-  height(unit: LengthUnit! = Meters): Float!
-  name: String!
-}
-
-enum LengthUnit {
-  Feet
-  Meters
-}
-
-type Query {
-  giraffe: Giraffe!
 }
 "
 `;

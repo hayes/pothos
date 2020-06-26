@@ -1,0 +1,32 @@
+{
+  "name": "@giraphql/plugin-simple-objects",
+  "version": "0.1.0",
+  "description": "A GiraphQL plugin for defining objects and interfaces without ts definitions for those types",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "simple",
+    "object",
+    "interface",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@giraphql/core": "^0.20.3",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.15.0",
+    "graphql-tag": "^2.10.1"
+  }
+}

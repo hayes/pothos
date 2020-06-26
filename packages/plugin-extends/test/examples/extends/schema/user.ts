@@ -1,7 +1,7 @@
 import builder from '../builder';
 
 export default builder.objectType('User', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {}),
     firstName: t.exposeString('firstName', {}),
     lastName: t.exposeString('lastName', {}),
@@ -15,7 +15,7 @@ export default builder.objectType('User', {
           id: t.arg.id({ required: true }),
         },
         resolve: (parent, args, { User }) => {
-          const user = User.map.get(parseInt(args.id, 10));
+          const user = User.map.get(parseInt(String(args.id), 10));
 
           if (!user) {
             throw new Error(`User with id ${args.id} was not found`);
@@ -29,7 +29,7 @@ export default builder.objectType('User', {
       createUser: t.field({
         type: 'User',
         args: {
-          firstName: t.arg('String', {
+          firstName: t.arg.string({
             required: true,
           }),
           lastName: t.arg.string({
@@ -45,7 +45,7 @@ export default builder.objectType('User', {
       createAdmin: t.field({
         type: 'User',
         args: {
-          firstName: t.arg('String', {
+          firstName: t.arg.string({
             required: true,
           }),
           lastName: t.arg.string({
@@ -66,12 +66,12 @@ export default builder.objectType('User', {
           id: t.arg.id({ required: true }),
         },
         subscribe: async function* subscribe(parent, { id }, { User }) {
-          yield await Promise.resolve(User.map.get(parseInt(id, 10)));
+          yield await Promise.resolve(User.map.get(parseInt(String(id), 10)));
 
-          return User.map.get(parseInt(id, 10));
+          return User.map.get(parseInt(String(id), 10));
         },
         resolve: (parent, args, { User }) => {
-          const user = User.map.get(parseInt(args.id, 10));
+          const user = User.map.get(parseInt(String(args.id), 10));
 
           if (!user) {
             throw new Error(`User with id ${args.id} was not found`);

@@ -1,35 +1,36 @@
+import { SchemaTypes } from '@giraphql/core';
 import { ForbiddenError } from 'apollo-server';
-import AuthPlugin, { GrantMap } from '.';
-import { PermissionGrantMap } from './types';
+import { GrantMap } from '.';
+import { PermissionGrantMap, AuthRequestData } from './types';
+import { AuthFieldWrapper } from './field-wrapper';
 
-export default async function runPreResolveChecks(
-  data: GiraphQLSchemaTypes.FieldWrapData,
+export default async function runPreResolveChecks<Types extends SchemaTypes>(
+  this: AuthFieldWrapper<Types>,
+  requestData: AuthRequestData,
   context: object,
-  plugin: AuthPlugin,
-) {
-  const { resolveChecks, fieldName } = data.giraphqlAuth;
-  const preResolveCheckMap = resolveChecks.preResolveMap;
+): Promise<GrantMap> {
+  const preResolveCheckMap = this.resolveChecks.preResolveMap;
 
   const newGrants = new GrantMap();
 
   if (preResolveCheckMap?.size !== 0) {
-    if (!plugin.preResolveAuthCheckCache.has(context)) {
-      plugin.preResolveAuthCheckCache.set(context, new Map());
-    }
-    const preResolveCache = plugin.preResolveAuthCheckCache.get(context)!;
+    const preResolveCache = requestData.preResolveAuthCheckCache;
 
     const preResolvePromises: Promise<{
       name: string;
       result: boolean | PermissionGrantMap;
     }>[] = [];
 
-    for (const [name, preResolveCheck] of preResolveCheckMap!) {
+    for (const [typeName, preResolveCheck] of preResolveCheckMap!) {
       if (!preResolveCache.has(preResolveCheck)) {
         preResolveCache.set(preResolveCheck, preResolveCheck(context));
       }
 
       preResolvePromises.push(
-        Promise.resolve(preResolveCache.get(preResolveCheck)!).then((result) => ({ name, result })),
+        Promise.resolve(preResolveCache.get(preResolveCheck)!).then((result) => ({
+          name: typeName,
+          result,
+        })),
       );
     }
 
@@ -40,7 +41,7 @@ export default async function runPreResolveChecks(
       if (!result) {
         failedChecks.push(name);
       } else if (typeof result === 'object') {
-        if (name === resolveChecks.grantAsShared) {
+        if (name === this.resolveChecks.grantAsShared) {
           newGrants.mergeSharedGrants(result);
         } else {
           newGrants.mergeGrants(name, result);
@@ -50,10 +51,12 @@ export default async function runPreResolveChecks(
 
     if (failedChecks.length !== 0) {
       if (failedChecks.length === 1) {
-        throw new ForbiddenError(`preResolveCheck failed for ${fieldName} on ${failedChecks[0]}`);
+        throw new ForbiddenError(
+          `preResolveCheck failed for ${this.fieldName} on ${failedChecks[0]}`,
+        );
       } else {
         throw new ForbiddenError(
-          `preResolveChecks failed for ${fieldName} on ${failedChecks
+          `preResolveChecks failed for ${this.fieldName} on ${failedChecks
             .slice(0, -1)
             .join(', ')} and ${failedChecks[failedChecks.length - 1]}`,
         );

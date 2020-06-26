@@ -7,6 +7,21 @@ menu: Plugins
 
 This plugin provides a way to handle authorization/permissions checks throughout your schema.
 
+Because GraphQL schemas are graphs and fields can be aliased in responses, knowing what data is
+accessed at the root a query can be very difficult. Using a traditioal pattern of performing checks
+at the start of a request, or by inrospecting the result of a request does not work well, since data
+may be queried through a complex set of relations, and the resulting response can have fields
+aliased to any other name.
+
+The GirahQL auth plugin tries to solve a number of common authorization patterns/problems:
+
+- Simple checks on any field in a schem (At the Query/Mutation level, or nested deep inside a
+  schema)
+- Checks that run before resolving any field of a specific type
+- Checks that run after resolving any field of a specific type
+- Defining reusable permissions that are used by multiple field on the same object
+- Granting permissions from a parent field to the objects/types it returns
+
 ## Usage
 
 ### Install
@@ -17,28 +32,27 @@ yarn add @giraphql/plugin-auth
 
 ### Setup
 
-```ts
-import AuthPlugin from '@giraphql/plugin-auth';
+```typescript
+import SchemaBuilder from '@giraphql/core';
+import '@giraphql/plugin-auth';
 
 const builder = new SchemaBuilder({
-  stateful: true,
-  plugins: [
-    new AuthPlugin({
-      // when true (default) fields not covered by a permission check will return an Authorization error
-      requirePermissionChecks: true,
-      // when true (default) mutation fields will not be authorized unless they are protected by a
-      // permission check defined directly on the mutation field (NOT from `defaultPermissionCheck`).
-      explicitMutationChecks: true,
-    }),
-  ],
+  plugins: ['GiraphQLAuth'],
+  authOptions: {
+    // when true (default) fields not covered by a permission check will return an Authorization error
+    requirePermissionChecks: true,
+    // when true (default) mutation fields will not be authorized unless they are protected by a
+    // permission check defined directly on the mutation field (NOT from `defaultPermissionCheck`).
+    explicitMutationChecks: true,
+  },
 });
 ```
 
 ### Add a permission check to a resolver
 
-```ts
+```typescript
 builder.queryType({
-  shape: t => ({
+  fields: t => ({
     hello: t.string({
       permissionCheck: (parent, args, context) => {
         // only say hello to people who capitalize their name
@@ -61,7 +75,7 @@ error for any request where the name is not capitalized.
 As you add more fields to your schema, you may want to re-use the same permission checks on multiple
 fields:
 
-```ts
+```typescript
 builder.queryType({
   permissions: {
     user: (parent, context) => !!context.user,
@@ -75,16 +89,16 @@ builder.queryType({
       return roles.includes('Admin');
     },
   },
-  shape: t => ({
+  fields: (t) => ({
     helloAdmin: t.string({
       // permissionCheck can be a permission name (striing)
       permissionCheck: 'admin',
-      resolve: parent => `hello Admin`,
+      resolve: (parent) => `hello Admin`,
     }),
     helloUser: t.string({
       // permissionCheck can be an array of permission names
       permissionCheck: ['user'],
-      resolve: parent => `hello Admin`,
+      resolve: (parent) => `hello Admin`,
     }),
     hello: t.string({
       // permissionCheck can be a function that returns a boolean, or descriibe a set of permissions
@@ -131,14 +145,14 @@ Often most fields on a type will use the same permission checks. To make this a 
 can set default permission checks for a type that will be applied to any fields that do not
 explicitly set a permission check.
 
-```ts
+```typescript
 builder.queryType({
   permissions: {
     user: (parent, context) => !!context.user,
     admin: (parent, context) => !!context.user && context.user.isAdmin(),
   },
   defaultPermissionCheck: 'user',
-  shape: t => ({
+  fields: (t) => ({
     hello: t.string({
       // uses default user check from `defaultPermissionCheck`
       resolve: (parent, { name }) => `hello, World`,
@@ -162,9 +176,9 @@ the road if there are new resolvers that expose the same type, but forget that t
 auth check for the children. To address these kinds of use cases, the auth plugin allows fields to
 defiine a set of permissions to grant to the returned child.
 
-```ts
+```typescript
 builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     people: t.field({
       type: ['Person'],
       // always allow querying for users, but fields on the returned users still have permission
@@ -183,7 +197,7 @@ builder.queryType({
 });
 
 builder.objectType('Person', {
-  shape: t => ({
+  fields: (t) => ({
     firstName: t.exposeString('firstName', {
       // check for `user` permission which may have been granted by the grantPermissions option on `Query.people`
       permissionCheck: 'user',
@@ -204,9 +218,9 @@ ensure that all fields have appropriate checks. To make this simpler there is a 
 you can add to object types that allows you to define a check that will run before any resolver for
 that type.
 
-```ts
+```typescript
 builder.queryType({
-  shape: t => ({
+  fields: (t) => ({
     people: t.field({
       type: ['Person'],
       resolve: (parent, args, { Users }) => Users.getAll(),
@@ -216,7 +230,7 @@ builder.queryType({
 
 builder.objectType('Person', {
   // Run before the resolver for Query.people
-  preResolveCheck: context => {
+  preResolveCheck: (context) => {
     if (!context.user) {
       return false;
     }
@@ -226,7 +240,7 @@ builder.objectType('Person', {
       readEmail: context.user.isAdmin(),
     };
   },
-  shape: t => ({
+  fields: (t) => ({
     firstName: t.exposeString('firstName', {
       permissionCheck: 'readUserFields',
     }),
@@ -255,22 +269,22 @@ is no way to determine the actual type before resolving. This can be disabled wi
 Another option is to use `postResolveCheck`s, which will run for each instance of a type after it
 has been resolved, and will work with interface and unions fields as well.
 
-```ts
+```typescript
 builder.interfaceType('Shape', {
-  shape: t => ({
+  fields: (t) => ({
     // interface fields
   }),
 });
 
 builder.objectType('Square', {
-  implements: ['Shape'],
-  isType: parent => parent.type === 'square',
+  interfaces: ['Shape'],
+  isTypeOf: (parent) => parent.type === 'square',
   // Will execute for each square returned by Query.shapes and grand the readSquare permission
   // which is required for the size field
   postResolveCheck: (parent, context, info) => {
     return { readSquare: true };
   },
-  shape: t => ({
+  fields: (t) => ({
     size: t.float({
       permissionCheck: 'readSquare',
       resolve: ({ edgeLength }) => edgeLength ** 2,
@@ -278,7 +292,7 @@ builder.objectType('Square', {
   }),
 });
 
-builder.queryFields(t => ({
+builder.queryFields((t) => ({
   shapes: t.field({
     type: ['Shape'],
     // always allow this resolver to execute

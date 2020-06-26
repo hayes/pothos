@@ -1,62 +1,119 @@
-import SchemaBuilder, { InputObjectOfShape } from '../../src';
+/* eslint-disable max-classes-per-file */
+import SchemaBuilder from '../../src';
 
 // Define backing models/types
 type Types = {
-  Object: {
-    User: { firstName: string; lastName: string };
+  Objects: {
+    User: { firstName: string; lastName: string; funFact?: string | null };
     Article: { title: string; body: string };
     Sheep: { name: string; count: number; shaved: boolean };
   };
-  Interface: {
+  Interfaces: {
     Countable: { count: number };
     Shaveable: { shaved: boolean };
   };
-  Scalar: {
-    String: { Input: string; Output: string };
-    ID: { Input: string; Output: string | number };
-    Int: { Input: number; Output: number };
-    Float: { Input: number; Output: number };
-    Boolean: { Input: boolean; Output: boolean };
+  Scalars: {
+    Date: { Input: string; Output: String };
   };
   Context: { userID: number };
 };
 
+class Animal {
+  species?: string;
+}
+
+class Giraffe extends Animal {
+  species: 'Giraffe' = 'Giraffe';
+
+  name: string;
+
+  age: number;
+
+  constructor(name: string, age: number) {
+    super();
+
+    this.name = name;
+    this.age = age;
+  }
+}
+
 const builder = new SchemaBuilder<Types>({});
+
+builder.scalarType('Date', {
+  serialize: (date) => date,
+});
+
+builder.interfaceType(Animal, {
+  name: 'Animal',
+  fields: (t) => ({
+    species: t.exposeString('species', { nullable: true }),
+  }),
+});
+
+builder.objectType(Giraffe, {
+  name: 'Giraffe',
+  interfaces: [Animal],
+  isTypeOf(parent) {
+    return parent.species === 'Giraffe';
+  },
+  fields: (t) => ({
+    name: t.exposeString('name', {}),
+    age: t.exposeInt('age', {}),
+  }),
+});
+
+enum MyEnum {
+  Foo = 'foo',
+  Bar = 'bar',
+  Num = 5,
+}
+
+builder.enumType(MyEnum, {
+  name: 'MyEnum',
+});
 
 // Create input types
 const Example = builder.inputType('Example', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.id({ required: true }),
     id2: t.int({ required: false }),
     ids: t.idList({ required: true }),
     ids2: t.intList({ required: false }),
+    enum: t.field({ type: MyEnum }),
+    date: t.field({
+      type: 'Date',
+    }),
   }),
 });
 
 interface ExampleShape {
   example: {
-    id: string;
+    id: string | number;
     id2?: number;
-    ids: string[];
+    ids: (string | number)[];
     ids2?: number[];
+    enum?: MyEnum;
+    date?: string;
   };
-  id?: string;
-  ids: string[];
+  id?: string | number;
+  ids: (string | number)[];
   more: ExampleShape;
 }
 
-const Example2: InputObjectOfShape<ExampleShape> = builder.inputType('Example2', {
-  shape: (t) => ({
-    example: t.type(Example, { required: true }),
+const Example2 = builder.inputRef<ExampleShape>('Example2');
+
+Example2.implement({
+  fields: (t) => ({
+    example: t.field({ type: Example, required: true }),
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
-    more: t.type(Example2, { required: true }),
+    more: t.field({ type: Example2, required: true }),
   }),
 });
 
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
-  members: ['User', 'Article'],
+  types: ['User', 'Article'],
   resolveType: (parent) => {
     return Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article';
   },
@@ -64,7 +121,7 @@ const SearchResult = builder.unionType('SearchResult', {
 
 // Creating an ObjectType and its resolvers
 builder.objectType('User', {
-  shape: (t) => ({
+  fields: (t) => ({
     // add a scalar field
     id: t.id({ resolve: () => 5 }),
     // parent is inferred from model shapes defined in builder
@@ -86,7 +143,7 @@ builder.objectType('User', {
     // creating a resolver with args
     partialName: t.string({
       args: {
-        example: t.arg.type(Example, { required: true }),
+        example: t.arg({ type: Example, required: true }),
         firstN: t.arg.int({ required: true }),
       },
       resolve: (parent, args) => {
@@ -96,11 +153,11 @@ builder.objectType('User', {
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
       args: {
-        example2: t.arg.type(Example2, { required: true }),
-        firstN: t.arg.id(),
+        example2: t.arg({ type: Example2, required: true }),
+        firstN: t.arg.id({}),
       },
       resolve: (parent, args) => {
-        return Number.parseInt(args.example2.more.more.more.example.id, 10);
+        return Number.parseInt(String(args.example2.more.more.more.example.id), 10);
       },
     }),
     // Using a union type
@@ -137,7 +194,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
+      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -165,7 +222,7 @@ builder.objectType('User', {
       },
       nullable: {
         list: true,
-        items: true,
+        items: false,
       },
       resolve: (parent, args) => args.ids,
     }),
@@ -173,11 +230,12 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({
           required: { items: true, list: true },
-          default: ['abc'],
+          defaultValue: ['abc'],
         }),
       },
       resolve: (parent, args) => [123, ...args.ids],
     }),
+    fact: t.exposeString('funFact', { nullable: true }),
   }),
 });
 
@@ -186,7 +244,7 @@ builder.objectFields('User', (t) => ({
 }));
 
 builder.interfaceType('Countable', {
-  shape: (t) => ({
+  fields: (t) => ({
     count: t.int({
       args: {
         max: t.arg.int({ required: true }),
@@ -197,7 +255,7 @@ builder.interfaceType('Countable', {
 });
 
 const Shaveable = builder.interfaceType('Shaveable', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.id({
       resolve: () => 5,
     }),
@@ -212,14 +270,14 @@ const Stuff = builder.enumType('stuff', {
 });
 
 builder.objectType('Sheep', {
-  implements: [Shaveable, 'Countable'],
+  interfaces: [Shaveable, 'Countable'],
   // used in dynamic resolveType method for Shaveable and Countable interfaces
   // probably needs a different name, but when true, the interfaces resolveType will return
-  isType: () => true,
-  shape: (t) => ({
+  isTypeOf: () => true,
+  fields: (t) => ({
     color: t.string({
       args: {
-        id: t.arg.id(),
+        id: t.arg.id({}),
       },
       resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),
@@ -231,7 +289,7 @@ builder.objectType('Sheep', {
 });
 
 builder.queryType({
-  shape: (t) => ({
+  fields: (t) => ({
     user: t.field({
       resolve: () => ({
         firstName: 'user',
@@ -270,7 +328,7 @@ builder.objectType(
 );
 
 builder.subscriptionType({
-  shape: (t) => ({
+  fields: (t) => ({
     event: t.field({
       type: 'String',
       subscribe: () => {
@@ -283,6 +341,6 @@ builder.subscriptionType({
   }),
 });
 
-const schema = builder.toSchema();
+const schema = builder.toSchema({});
 
 export default schema;

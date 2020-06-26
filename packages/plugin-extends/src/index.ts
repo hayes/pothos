@@ -1,7 +1,5 @@
-import {
+import SchemaBuilder, {
   BasePlugin,
-  ImplementedType,
-  ObjectFieldsShape,
   QueryFieldsShape,
   MutationFieldsShape,
   SubscriptionFieldsShape,
@@ -9,38 +7,36 @@ import {
   MutationFieldBuilder,
   SubscriptionFieldBuilder,
   ObjectFieldBuilder,
+  SchemaTypes,
+  GiraphQLTypeConfig,
+  ObjectParam,
 } from '@giraphql/core';
 import './global-types';
 
-export default class ExtendsPlugin implements BasePlugin {
-  onType(type: ImplementedType, builder: GiraphQLSchemaTypes.SchemaBuilder<any>) {
-    if (type.kind === 'Object') {
-      const extendsMap: {
-        [s: string]:
-          | ObjectFieldsShape<any, object>
-          | QueryFieldsShape<any>
-          | MutationFieldsShape<any>
-          | SubscriptionFieldsShape<any>
-          | undefined;
-      } = type.options.extends || {};
+export default class ExtendsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  onTypeConfig(config: GiraphQLTypeConfig) {
+    if (config.kind === 'Object') {
+      const extendsMap = config.giraphqlOptions.extends || {};
 
       Object.keys(extendsMap).forEach((key) => {
-        const shape = extendsMap[key];
+        const shape = extendsMap[key as keyof typeof extendsMap];
 
         if (shape) {
           if (key === 'Query') {
-            builder.addFields(key, () => (shape as QueryFieldsShape<any>)(new QueryFieldBuilder()));
+            this.builder.queryFields(() =>
+              (shape as QueryFieldsShape<any>)(new QueryFieldBuilder(this.builder)),
+            );
           } else if (key === 'Mutation') {
-            builder.addFields(key, () =>
-              (shape as MutationFieldsShape<any>)(new MutationFieldBuilder()),
+            this.builder.mutationFields(() =>
+              (shape as MutationFieldsShape<any>)(new MutationFieldBuilder(this.builder)),
             );
           } else if (key === 'Subscription') {
-            builder.addFields(key, () =>
-              (shape as SubscriptionFieldsShape<any>)(new SubscriptionFieldBuilder()),
+            this.builder.subscriptionFields(() =>
+              (shape as SubscriptionFieldsShape<any>)(new SubscriptionFieldBuilder(this.builder)),
             );
           } else {
-            builder.addFields(key, () =>
-              (shape as ObjectFieldsShape<any, object>)(new ObjectFieldBuilder(key)),
+            this.builder.objectFields(key as ObjectParam<Types>, () =>
+              shape(new ObjectFieldBuilder(key, this.builder) as never),
             );
           }
         }
@@ -48,3 +44,5 @@ export default class ExtendsPlugin implements BasePlugin {
     }
   }
 }
+
+SchemaBuilder.registerPlugin('GiraphQLExtends', ExtendsPlugin);

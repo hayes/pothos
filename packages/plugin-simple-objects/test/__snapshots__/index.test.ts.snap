@@ -1,0 +1,39 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`simple objects example schema generates expected schema 1`] = `
+"type ContactInfo {
+  email: String!
+  phoneNUmber: String
+}
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  user(id: ID!): User!
+}
+
+type User implements Node {
+  contactInfo: ContactInfo!
+  firstName: String!
+  id: ID!
+  lastName: String!
+}
+"
+`;
+
+exports[`simple objects example schema queries query some stuff 1`] = `
+Object {
+  "data": Object {
+    "user": Object {
+      "contactInfo": Object {
+        "email": "michael.hayes@example.com",
+      },
+      "firstName": "Michael",
+      "id": "1",
+      "lastName": "Hayes",
+    },
+  },
+}
+`;

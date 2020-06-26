@@ -1,8 +1,8 @@
 import './user';
 import builder from '../builder';
 
-builder.queryType({ shape: (t) => ({}) });
-builder.mutationType({ shape: (t) => ({}) });
-builder.subscriptionType({ shape: (t) => ({}) });
+builder.queryType({ fields: (t) => ({}) });
+builder.mutationType({ fields: (t) => ({}) });
+builder.subscriptionType({ fields: (t) => ({}) });
 
-export default builder.toSchema();
+export default builder.toSchema({});

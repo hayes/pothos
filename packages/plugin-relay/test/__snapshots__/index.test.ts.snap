@@ -1,0 +1,510 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`relay example schema generates expected schema 1`] = `
+"type Answer {
+  count: Int!
+  id: ID!
+  value: String!
+}
+
+type BatchNumber implements Node {
+  id: ID!
+  number: Int!
+}
+
+type Mutation {
+  answerPoll(answer: Int!, id: ID!): Poll!
+  createPoll(answers: [String!]!, question: String!): Poll!
+}
+
+interface Node {
+  id: ID!
+}
+
+type Number implements Node {
+  id: ID!
+  number: Int!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Poll implements Node {
+  answers: [Answer!]!
+  answersConnection(after: ID, before: ID, first: Int, last: Int): PollAnswersConnection!
+  answersUsingOffset(after: ID, before: ID, first: Int, last: Int): PollAnswersUsingOffsetConnection!
+  answersWithoutHelpers(after: ID, before: ID, first: Int, last: Int): PollAnswersCon!
+  id: ID!
+  question: String!
+  updatedAt: String!
+}
+
+type PollAnswersCon {
+  edges: [PollAnswersConEdge]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersConEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersConnection {
+  edges: [PollAnswersConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersUsingOffsetConnection {
+  edges: [PollAnswersUsingOffsetConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersUsingOffsetConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type Query {
+  batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  extraNode: Node
+  moreNodes: [Node]!
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
+  poll(id: Int!): Poll
+  pollIds: [ID!]!
+  polls: [Poll!]!
+  pollsConnection(after: ID, before: ID, first: Int, last: Int): QueryPollsConnection!
+}
+
+type QueryBatchNumbersConnection {
+  edges: [QueryBatchNumbersConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryBatchNumbersConnectionEdge {
+  cursor: String!
+  node: BatchNumber!
+}
+
+type QueryNumbersConnection {
+  edges: [QueryNumbersConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryNumbersConnectionEdge {
+  cursor: String!
+  node: Number!
+}
+
+type QueryPollsConnection {
+  edges: [QueryPollsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryPollsConnectionEdge {
+  cursor: String!
+  node: Poll!
+}
+"
+`;
+
+exports[`relay example schema queries query array based connections 1`] = `
+Object {
+  "data": Object {
+    "batchNumbers": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": Object {
+            "number": 0,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": Object {
+            "number": 1,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": Object {
+            "number": 2,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+      },
+    },
+    "beforeAndAfter": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": Object {
+            "number": 8,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": Object {
+            "number": 9,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+      },
+    },
+    "firstAfter": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": Object {
+            "number": 2,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "number": 3,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": Object {
+            "number": 4,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+      },
+    },
+    "firstAfterAtEnd": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
+          "node": Object {
+            "number": 198,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+          "node": Object {
+            "number": 199,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
+      },
+    },
+    "firstAndLast": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "number": 3,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": Object {
+            "number": 4,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+      },
+    },
+    "lastAtBegining": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": Object {
+            "number": 0,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+      },
+    },
+    "lastBefore": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+          "node": Object {
+            "number": 7,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": Object {
+            "number": 8,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": Object {
+            "number": 9,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+      },
+    },
+  },
+}
+`;
+
+exports[`relay example schema queries query node and nodes on query type 1`] = `
+Object {
+  "data": Object {
+    "batchNode": Object {
+      "number": 0,
+    },
+    "extraNode": Object {
+      "__typename": "Number",
+      "number": 2,
+    },
+    "moreNodes": Array [
+      Object {
+        "__typename": "Number",
+        "number": 2,
+      },
+      Object {
+        "__typename": "Number",
+        "number": 10,
+      },
+    ],
+    "node": Object {
+      "id": "TnVtYmVyOjI=",
+      "number": 2,
+    },
+    "node2": Object {
+      "number": 2,
+    },
+    "nodes": Array [
+      Object {
+        "number": 4,
+      },
+      Object {
+        "number": 2,
+      },
+      Object {
+        "number": 2,
+      },
+      Object {
+        "batchNumber": 0,
+      },
+    ],
+  },
+}
+`;
+
+exports[`relay example schema queries query offset based connections 1`] = `
+Object {
+  "data": Object {
+    "beforeAndAfter": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": Object {
+            "number": 8,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": Object {
+            "number": 9,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+      },
+    },
+    "firstAfter": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": Object {
+            "number": 2,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "number": 3,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": Object {
+            "number": 4,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+      },
+    },
+    "firstAfterAtEnd": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
+          "node": Object {
+            "number": 198,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+          "node": Object {
+            "number": 199,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTk=",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOTg=",
+      },
+    },
+    "firstAndLast": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "number": 3,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": Object {
+            "number": 4,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+      },
+    },
+    "lastAtBegining": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": Object {
+            "number": 0,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+      },
+    },
+    "lastBefore": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+          "node": Object {
+            "number": 7,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": Object {
+            "number": 8,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": Object {
+            "number": 9,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+      },
+    },
+    "numbers": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": Object {
+            "number": 0,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": Object {
+            "number": 1,
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": Object {
+            "number": 2,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+      },
+    },
+  },
+}
+`;

@@ -1,191 +1,116 @@
-import {
-  defaultFieldResolver,
-  GraphQLOutputType,
-  GraphQLNonNull,
-  GraphQLList,
-  GraphQLScalarType,
-  GraphQLEnumType,
-  GraphQLFieldConfig,
-  GraphQLResolveInfo,
-} from 'graphql';
-import { BasePlugin, BuildCache, Field } from '..';
-import { TypeParam } from '../types';
+/* eslint-disable max-classes-per-file */
+import { GraphQLResolveInfo } from 'graphql';
+import { types } from 'util';
 
-export class ResolveValueWrapper {
-  parent: ResolveValueWrapper | null;
+import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes, MaybePromise } from '..';
+import { assertArray } from '../utils';
 
-  value: unknown;
+export class ValueWrapper<T> {
+  protected value: unknown;
 
-  data: Partial<GiraphQLSchemaTypes.ResolverPluginData> = {};
+  getData: () => MaybePromise<T | null>;
 
-  constructor(value: unknown, parent: ResolveValueWrapper | null = null) {
+  fieldResults = new Map<string, unknown>();
+
+  constructor(value: unknown, data: T | null) {
     this.value = value;
-    this.parent = parent;
+    this.getData = () => data;
+  }
+
+  setFieldResult(info: GraphQLResolveInfo, result: unknown) {
+    const key = String(info.path.key);
+
+    return this.fieldResults.set(key, result);
+  }
+
+  hasFieldResult(info: GraphQLResolveInfo) {
+    const key = String(info.path.key);
+
+    return this.fieldResults.has(key);
+  }
+
+  async getFieldResult(info: GraphQLResolveInfo, isList: boolean) {
+    const key = String(info.path.key);
+
+    const result = this.fieldResults.get(key);
+
+    if (!result) {
+      return result;
+    }
+
+    if (isList && assertArray(result)) {
+      return result.map((itemOrPromise) => {
+        if (types.isPromise(itemOrPromise)) {
+          return (itemOrPromise as Promise<unknown>).then((item: unknown) =>
+            item instanceof ValueWrapper ? item.asResolvable() : result,
+          );
+        }
+
+        return itemOrPromise instanceof ValueWrapper ? itemOrPromise.asResolvable() : result;
+      });
+    }
+
+    return result instanceof ValueWrapper ? result.asResolvable() : result;
   }
 
   unwrap() {
     return this.value;
   }
 
-  static wrap(value: unknown, parent: ResolveValueWrapper | null = null) {
-    if (value instanceof ResolveValueWrapper) {
-      return value;
+  private asResolvable() {
+    if (types.isPromise(this.value)) {
+      return (this.value as Promise<unknown>).then((value) => (value == null ? null : this));
     }
 
-    return new ResolveValueWrapper(value, parent);
-  }
-
-  child(value: unknown) {
-    return new ResolveValueWrapper(value, this);
+    return this.value == null ? null : this;
   }
 }
 
-export function isScalar(type: GraphQLOutputType): boolean {
-  if (type instanceof GraphQLNonNull) {
-    return isScalar(type.ofType);
+export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrapper<T> {
+  index: number | null;
+
+  type: GiraphQLObjectTypeConfig | null = null;
+
+  hooks: ResolveHooks<Types, T>;
+
+  constructor(value: unknown, index: number | null, hooks: ResolveHooks<Types, T>) {
+    super(value, null);
+
+    this.index = index;
+    this.hooks = hooks;
   }
 
-  if (type instanceof GraphQLList) {
-    return isScalar(type.ofType);
-  }
+  private updateValue(value: unknown) {
+    this.value = value;
 
-  return type instanceof GraphQLScalarType || type instanceof GraphQLEnumType;
-}
-
-export function isList(type: GraphQLOutputType): boolean {
-  if (type instanceof GraphQLNonNull) {
-    return isList(type.ofType);
-  }
-
-  return type instanceof GraphQLList;
-}
-
-export function assertArray(value: unknown): value is unknown[] {
-  if (!Array.isArray(value)) {
-    throw new TypeError('List resolvers must return arrays');
-  }
-
-  return true;
-}
-
-export function wrapResolver(
-  name: string,
-  field: Field<{}, any, TypeParam<any>>,
-  config: GraphQLFieldConfig<unknown, object>,
-  plugin: Required<BasePlugin>,
-  cache: BuildCache,
-) {
-  const originalResolver = config.resolve || defaultFieldResolver;
-  const originalSubscribe = config.subscribe;
-  const partialFieldData: Partial<GiraphQLSchemaTypes.FieldWrapData> = {
-    resolve: originalResolver,
-  };
-
-  const isListResolver = isList(config.type);
-  const isScalarResolver = isScalar(config.type);
-
-  // assume that onFieldWrap plugins added required props, if plugins fail to do this,
-  // they are breaking the plugin contract.
-  const fieldData = partialFieldData as GiraphQLSchemaTypes.FieldWrapData;
-
-  const wrappedResolver = async (
-    originalParent: unknown,
-    args: {},
-    context: object,
-    info: GraphQLResolveInfo,
-  ) => {
-    const parent = ResolveValueWrapper.wrap(originalParent);
-
-    const resolveHooks = await plugin.beforeResolve(parent, fieldData, args, context, info);
-
-    const result = await fieldData.resolve(parent.value, args, context, info);
-
-    async function wrapChild(child: unknown, index: number | null) {
-      if (child == null) {
-        return null;
-      }
-
-      const wrapped = parent.child(child);
-
-      wrapped.data.parentFieldData = fieldData;
-
-      await resolveHooks?.onWrap?.(
-        wrapped,
-        index,
-        async (next: unknown) => (await wrapChild(child, index))!,
-      );
-
-      return wrapped;
+    if (this.fieldResults.size) {
+      this.fieldResults = new Map();
     }
 
-    await resolveHooks?.onResolve?.(result);
-
-    if (result === null || result === undefined || isScalarResolver) {
-      return result as unknown;
+    if (this.value == null) {
+      this.getData = () => null;
+    } else if (this.type) {
+      this.queueDataUpdate(this.type);
     }
+  }
 
-    if (isListResolver && assertArray(result)) {
-      return result.map((item, i) => Promise.resolve(item).then((value) => wrapChild(value, i)));
-    }
+  async updateData(type: GiraphQLObjectTypeConfig) {
+    this.queueDataUpdate(type);
 
-    return wrapChild(result, null);
-  };
+    await this.getData();
+  }
 
-  if (originalSubscribe) {
-    const wrappedSubscribe = async (
-      originalParent: unknown,
-      args: {},
-      context: object,
-      info: GraphQLResolveInfo,
-    ) => {
-      const parent = ResolveValueWrapper.wrap(originalParent);
+  private queueDataUpdate(type: GiraphQLObjectTypeConfig) {
+    if (this.hooks.onChild) {
+      this.getData = () => {
+        const data = this.hooks.onChild!(this.value, this.index, type, (next) =>
+          this.updateValue(next),
+        );
 
-      const subscribeHook = await plugin.beforeSubscribe(parent, fieldData, args, context, info);
+        this.getData = () => data ?? null;
 
-      const result: AsyncIterable<unknown> = await originalSubscribe(
-        parent.value,
-        args,
-        context,
-        info,
-      );
-
-      await subscribeHook?.onSubscribe?.(result);
-
-      if (!result) {
-        return result;
-      }
-
-      return {
-        [Symbol.asyncIterator]: () => {
-          if (typeof result[Symbol.asyncIterator] !== 'function') {
-            return result;
-          }
-
-          const iter = result[Symbol.asyncIterator]();
-
-          return {
-            next: async () => {
-              const { done, value } = await iter.next();
-
-              const wrapped = parent.child(value);
-
-              await subscribeHook?.onWrap?.(wrapped);
-
-              return { value: wrapped, done };
-            },
-            return: iter.return?.bind(iter),
-            throw: iter.throw?.bind(iter),
-          };
-        },
+        return data ?? null;
       };
-    };
-
-    config.subscribe = wrappedSubscribe; // eslint-disable-line no-param-reassign
+    }
   }
-
-  wrappedResolver.unwrap = () => originalResolver;
-
-  config.resolve = wrappedResolver; // eslint-disable-line no-param-reassign
-
-  plugin.onFieldWrap(name, field, config, partialFieldData, cache);
 }

@@ -6,13 +6,13 @@ import BaseSubscriptionManager from './base';
 export default class TypeSubscriptionManager<
   ParentShape = unknown
 > extends BaseSubscriptionManager {
-  replace: (promise: MaybePromise<unknown>) => void;
+  replace: (value: unknown) => void;
 
   refetchParent: () => MaybePromise<void>;
 
   constructor(
     manager: SubscriptionManager,
-    replace: (promise: MaybePromise<unknown>) => void,
+    replace: (value: unknown) => void,
     refetchParent: () => MaybePromise<void>,
   ) {
     super(manager);
@@ -33,10 +33,17 @@ export default class TypeSubscriptionManager<
         }
 
         if (refetch) {
-          this.replace(refetch(value));
-        } else {
-          this.refetchParent();
+          return Promise.resolve(refetch(value)).then(
+            (result: unknown) => {
+              this.replace(result);
+            },
+            (err: unknown) => {
+              this.manager.handleError(err);
+            },
+          );
         }
+
+        return this.refetchParent();
       },
     });
   }

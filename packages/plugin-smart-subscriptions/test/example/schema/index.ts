@@ -1,10 +1,10 @@
 import './poll';
 import builder from '../builder';
 
-builder.queryType({ shape: (t) => ({}) });
-builder.mutationType({ shape: (t) => ({}) });
+builder.queryType({ fields: (t) => ({}) });
+builder.mutationType({ fields: (t) => ({}) });
 builder.subscriptionType({
-  shape: (t) => ({
+  fields: (t) => ({
     test: t.int({
       resolve: (parent) => parent,
       subscribe: () => {
@@ -27,4 +27,4 @@ builder.subscriptionType({
   }),
 });
 
-export default builder.toSchema();
+export default builder.toSchema({});

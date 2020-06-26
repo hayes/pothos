@@ -1,12 +1,26 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { TypeParam, FieldNullability, InputFields, InputShapeFromFields } from '@giraphql/core';
+import {
+  TypeParam,
+  FieldNullability,
+  InputFieldMap,
+  InputShapeFromFields,
+  SchemaTypes,
+} from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
-import { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
-import ResolverCache from './resolver-cache';
+import SmartSubscriptionsPlugin, { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
+import { SmartSubscriptionOptions } from './types';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
+    export interface Plugins<Types extends SchemaTypes> {
+      GiraphQLSmartSubscriptions: SmartSubscriptionsPlugin<Types>;
+    }
+
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      smartSubscriptions: SmartSubscriptionOptions<Types['Context']>;
+    }
+
+    export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       subscribe?: (
         subscriptions: TypeSubscriptionManager<Shape>,
         parent: Shape,
@@ -16,83 +30,38 @@ declare global {
     }
 
     export interface QueryFieldOptions<
-      Types extends TypeInfo,
+      Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
+      Args extends InputFieldMap,
+      ResolveReturnShape
     > {
       smartSubscription?: boolean;
       subscribe?: (
         subscriptions: FieldSubscriptionManager,
         parent: Types['Root'],
-        args: InputShapeFromFields<Types, Args>,
+        args: InputShapeFromFields<Args>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
     }
 
     export interface ObjectFieldOptions<
-      Types extends TypeInfo,
+      Types extends SchemaTypes,
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
+      Args extends InputFieldMap,
+      ResolveReturnShape
+    > {
       subscribe?: (
         subscriptions: FieldSubscriptionManager,
         parent: ParentShape,
-        args: InputShapeFromFields<Types, Args>,
+        args: InputShapeFromFields<Args>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => void;
       canRefetch?: boolean;
-    }
-
-    export interface ResolverPluginData {
-      smartSubscriptions: {
-        cache: ResolverCache;
-        refetch: () => void;
-        typeSubscriptionManager?: TypeSubscriptionManager;
-        subscriptionByType: {
-          [k: string]:
-            | undefined
-            | ((
-                subscriptions: TypeSubscriptionManager,
-                parent: unknown,
-                context: object,
-                info: GraphQLResolveInfo,
-              ) => void);
-        };
-      };
-    }
-
-    export interface FieldWrapData {
-      smartSubscriptions: {
-        subscribe?: (
-          subscriptions: FieldSubscriptionManager,
-          parent: unknown,
-          args: {},
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => void;
-        objectSubscription?: (
-          subscriptions: TypeSubscriptionManager,
-          parent: unknown,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => void;
-        canRefetch: boolean;
-        subscriptionByType: {
-          [k: string]:
-            | undefined
-            | ((
-                subscriptions: TypeSubscriptionManager,
-                parent: unknown,
-                context: object,
-                info: GraphQLResolveInfo,
-              ) => void);
-        };
-      };
     }
   }
 }

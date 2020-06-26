@@ -1,21 +1,45 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Code generator example schema 1`] = `
-"import SchemaBuilder, { InputObjectOfShape } from \\"@giraphql/core\\";
+"import SchemaBuilder from \\"@giraphql/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
-    Object: {
+    Objects: {
+        Giraffe: unknown;
         User: unknown;
         Sheep: unknown;
         Article: unknown;
     };
-    Interface: {
+    Interfaces: {
+        Animal: unknown;
         Countable: unknown;
         Shaveable: unknown;
     };
-}>();
+    Scalars: {
+        Date: {
+            Input: never;
+            Output: never;
+        };
+    };
+}>({});
+builder.scalarType('Date', {
+    serialize: () => { throw new Error('Not implemented'); },
+});
+const MyEnum = builder.enumType('MyEnum', {
+    values: {
+        Foo: {
+            value: 'foo' as const,
+        },
+        Bar: {
+            value: 'bar' as const,
+        },
+        Num: {
+            value: 5 as const,
+        },
+    },
+});
 const SearchResult = builder.unionType('SearchResult', {
-    members: ['User', 'Article'],
+    types: ['User', 'Article'],
     resolveType: (parent, context, info) => {
         throw new Error('Not implemented');
     }
@@ -23,64 +47,93 @@ const SearchResult = builder.unionType('SearchResult', {
 const stuff = builder.enumType('stuff', {
     values: {
         Beats: {
-            value: 'Beats',
+            value: 'Beats' as const,
         },
         Bears: {
-            value: 'Bears',
+            value: 'Bears' as const,
         },
         BattlestarGalactica: {
-            value: 'BattlestarGalactica',
+            value: 'BattlestarGalactica' as const,
         },
     },
 });
 const Example = builder.inputType('Example', {
-    shape: t => ({
-        id: t.type('ID', {
+    fields: t => ({
+        id: t.field({
+            type: 'ID',
             required: true,
         }),
-        id2: t.type('Int', {
+        id2: t.field({
+            type: 'Int',
             required: false,
         }),
-        ids: t.type(['ID'], {
+        ids: t.field({
+            type: ['ID'],
             required: { list: true, items: true },
         }),
-        ids2: t.type(['Int'], {
+        ids2: t.field({
+            type: ['Int'],
             required: { list: false, items: true },
+        }),
+        enum: t.field({
+            type: MyEnum,
+            required: false,
+        }),
+        date: t.field({
+            type: 'Date',
+            required: false,
         }),
     }),
 });
 interface Example2Shape {
     example: {
-        id: string;
+        id: (string | number);
         id2: number | null | undefined;
-        ids: string[];
+        ids: (string | number)[];
         ids2: number[] | null | undefined;
+        enum: 'foo' | 'bar' | 5 | null | undefined;
+        date: unknown | null | undefined;
     };
-    id: string | null | undefined;
-    ids: string[];
+    id: (string | number) | null | undefined;
+    ids: (string | number)[];
     more: Example2Shape;
 }
-const Example2: InputObjectOfShape<Example2Shape> = builder.inputType('Example2', {
-    shape: t => ({
-        example: t.type(Example, {
+const Example2 = builder.inputRef<Example2Shape>('Example2');
+Example2.implement({
+    fields: t => ({
+        example: t.field({
+            type: Example,
             required: true,
         }),
-        id: t.type('ID', {
+        id: t.field({
+            type: 'ID',
             required: false,
         }),
-        ids: t.type(['ID'], {
+        ids: t.field({
+            type: ['ID'],
             required: { list: true, items: true },
         }),
-        more: t.type(Example2, {
+        more: t.field({
+            type: Example2,
             required: true,
         }),
     }),
 });
+const Animal = builder.interfaceType('Animal', {
+    fields: t => ({
+        species: t.field({
+            type: 'String',
+            nullable: true,
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
 const Countable = builder.interfaceType('Countable', {
-    shape: t => ({
+    fields: t => ({
         count: t.field({
             args: {
-                max: t.arg.type('Int', {
+                max: t.arg({
+                    type: 'Int',
                     required: true,
                 }),
             },
@@ -90,7 +143,7 @@ const Countable = builder.interfaceType('Countable', {
     }),
 });
 const Shaveable = builder.interfaceType('Shaveable', {
-    shape: t => ({
+    fields: t => ({
         id: t.field({
             type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -105,8 +158,22 @@ const Shaveable = builder.interfaceType('Shaveable', {
         })
     }),
 });
+builder.objectType('Giraffe', {
+    interfaces: [Animal],
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
+    fields: t => ({
+        name: t.field({
+            type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        age: t.field({
+            type: 'Int',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        })
+    }),
+});
 builder.objectType('User', {
-    shape: t => ({
+    fields: t => ({
         id: t.field({
             type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -129,10 +196,12 @@ builder.objectType('User', {
         }),
         partialName: t.field({
             args: {
-                example: t.arg.type(Example, {
+                example: t.arg({
+                    type: Example,
                     required: true,
                 }),
-                firstN: t.arg.type('Int', {
+                firstN: t.arg({
+                    type: 'Int',
                     required: true,
                 }),
             },
@@ -141,10 +210,12 @@ builder.objectType('User', {
         }),
         recursiveArgs: t.field({
             args: {
-                example2: t.arg.type(Example2, {
+                example2: t.arg({
+                    type: Example2,
                     required: true,
                 }),
-                firstN: t.arg.type('ID', {
+                firstN: t.arg({
+                    type: 'ID',
                     required: false,
                 }),
             },
@@ -170,7 +241,8 @@ builder.objectType('User', {
         }),
         list: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: true },
                 }),
             },
@@ -179,7 +251,8 @@ builder.objectType('User', {
         }),
         sparseList: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: false },
                 }),
             },
@@ -189,22 +262,29 @@ builder.objectType('User', {
         }),
         notSparseList: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: true },
                 }),
             },
             type: ['ID'],
-            nullable: { list: true, items: true },
+            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         defaultArgs: t.field({
             args: {
-                ids: t.arg.type(['ID'], {
+                ids: t.arg({
+                    type: ['ID'],
                     required: { list: true, items: true },
-                    default: [\\"abc\\"],
+                    defaultValue: [\\"abc\\"],
                 }),
             },
             type: ['ID'],
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
+        fact: t.field({
+            type: 'String',
+            nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         newField: t.field({
@@ -214,12 +294,13 @@ builder.objectType('User', {
     }),
 });
 builder.objectType('Sheep', {
-    implements: [Shaveable, Countable],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
+    interfaces: [Shaveable, Countable],
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
+    fields: t => ({
         color: t.field({
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     required: false,
                 }),
             },
@@ -233,7 +314,7 @@ builder.objectType('Sheep', {
     }),
 });
 builder.queryType({
-    shape: t => ({
+    fields: t => ({
         user: t.field({
             type: 'User',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -250,7 +331,7 @@ builder.queryType({
 });
 builder.objectType('Article', {
     description: \\"shape can be last arg\\",
-    shape: t => ({
+    fields: t => ({
         title: t.field({
             description: \\"Title of the article, probably click bait\\",
             type: 'String',
@@ -259,7 +340,7 @@ builder.objectType('Article', {
     }),
 });
 builder.subscriptionType({
-    shape: t => ({
+    fields: t => ({
         event: t.field({
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -267,12 +348,16 @@ builder.subscriptionType({
         })
     }),
 });
-export const schema = builder.toSchema();
+export const schema = builder.toSchema({});
 "
 `;
 
 exports[`Code generator example schema 2`] = `
-"\\"\\"\\"shape can be last arg\\"\\"\\"
+"interface Animal {
+  species: String
+}
+
+\\"\\"\\"shape can be last arg\\"\\"\\"
 type Article {
   \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
   title: String!
@@ -282,7 +367,11 @@ interface Countable {
   count(max: Int!): Int!
 }
 
+scalar Date
+
 input Example {
+  date: Date
+  enum: MyEnum
   id: ID!
   id2: Int
   ids: [ID!]!
@@ -294,6 +383,18 @@ input Example2 {
   id: ID
   ids: [ID!]!
   more: Example2!
+}
+
+type Giraffe implements Animal {
+  age: Int!
+  name: String!
+  species: String
+}
+
+enum MyEnum {
+  Bar
+  Foo
+  Num
 }
 
 type Query {
@@ -332,6 +433,7 @@ type Subscription {
 type User {
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!
+  fact: String
   firstBornChild: User!
   firstName: String!
   friends: [User!]!
@@ -339,7 +441,7 @@ type User {
   lastName: String!
   list(ids: [ID!]!): [ID!]!
   newField: String!
-  notSparseList(ids: [ID!]!): [ID]
+  notSparseList(ids: [ID!]!): [ID!]
   optional: String
   partialName(example: Example!, firstN: Int!): String!
   recursiveArgs(example2: Example2!, firstN: ID): ID!
@@ -355,33 +457,33 @@ exports[`Code generator starwars schema 1`] = `
 "import SchemaBuilder from \\"@giraphql/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
-    Object: {
+    Objects: {
         Droid: unknown;
         Human: unknown;
     };
-    Interface: {
+    Interfaces: {
         Character: unknown;
     };
-}>();
+}>({});
 const Episode = builder.enumType('Episode', {
     description: \\"One of the films in the Star Wars Trilogy\\",
     values: {
         NEWHOPE: {
             description: \\"Released in 1977.\\",
-            value: 4,
+            value: 4 as const,
         },
         EMPIRE: {
             description: \\"Released in 1980.\\",
-            value: 5,
+            value: 5 as const,
         },
         JEDI: {
             description: \\"Released in 1983\\",
-            value: 6,
+            value: 6 as const,
         },
     },
 });
 const Character = builder.interfaceType('Character', {
-    shape: t => ({
+    fields: t => ({
         id: t.field({
             description: \\"The id of the character\\",
             type: 'ID',
@@ -400,11 +502,6 @@ const Character = builder.interfaceType('Character', {
         }),
         appearsIn: t.field({
             description: \\"Which movies they appear in.\\",
-            args: {
-                id: t.arg.type('ID', {
-                    required: true,
-                }),
-            },
             type: [Episode],
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
@@ -412,9 +509,9 @@ const Character = builder.interfaceType('Character', {
 });
 builder.objectType('Droid', {
     description: \\"A mechanical creature in the Star Wars universe.\\",
-    implements: [Character],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
+    interfaces: [Character],
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
+    fields: t => ({
         primaryFunction: t.field({
             description: \\"The primary function of the droid.\\",
             type: 'String',
@@ -424,9 +521,9 @@ builder.objectType('Droid', {
 });
 builder.objectType('Human', {
     description: \\"A humanoid creature in the Star Wars universe.\\",
-    implements: [Character],
-    isType: (obj, context, info) => { throw new Error('Not implemented'); },
-    shape: t => ({
+    interfaces: [Character],
+    isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
+    fields: t => ({
         homePlanet: t.field({
             description: \\"The home planet of the human, or null if unknown.\\",
             type: 'String',
@@ -436,10 +533,11 @@ builder.objectType('Human', {
     }),
 });
 builder.queryType({
-    shape: t => ({
+    fields: t => ({
         hero: t.field({
             args: {
-                episode: t.arg.type(Episode, {
+                episode: t.arg({
+                    type: Episode,
                     description: \\"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.\\",
                     required: true,
                 }),
@@ -449,7 +547,8 @@ builder.queryType({
         }),
         human: t.field({
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     description: \\"id of the character\\",
                     required: true,
                 }),
@@ -459,7 +558,8 @@ builder.queryType({
         }),
         droid: t.field({
             args: {
-                id: t.arg.type('ID', {
+                id: t.arg({
+                    type: 'ID',
                     description: \\"id of the character\\",
                     required: true,
                 }),
@@ -473,14 +573,14 @@ builder.queryType({
         })
     }),
 });
-export const schema = builder.toSchema();
+export const schema = builder.toSchema({});
 "
 `;
 
 exports[`Code generator starwars schema 2`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
+  appearsIn: [Episode!]!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
@@ -495,7 +595,7 @@ exports[`Code generator starwars schema 2`] = `
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
+  appearsIn: [Episode!]!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
@@ -525,7 +625,7 @@ enum Episode {
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
-  appearsIn(id: ID!): [Episode!]!
+  appearsIn: [Episode!]!
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!

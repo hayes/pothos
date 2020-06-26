@@ -9,7 +9,7 @@ into a GraphQL schema.
 ## Creating a Schema Builder
 
 The SchemaBuilder takes a TypeParam that extends a Partial
-[`TypeInfo`](/docs-api-schema-builder#typeinfo).
+[`TypeInfo`](/api-schema-builder#typeinfo).
 
 These types are used as the backing models for the types defined by the SchemaBuilder.
 
@@ -22,21 +22,20 @@ const builder = new SchemaBuilder<{
   // parent type in root resolvers (Query, Mutation, Subscription)
   Root: {};
   // Backing models/shapes for Objects
-  Object: {
+  Objects: {
     Giraffe: { name: string; age: number };
   };
   // Backing models/shapes for Objects
-  Interface: {
+  Interfaces: {
     Animal: { name: string };
   };
   // Shapes for built-in or custom scalrs
-  Scalar: {
+  Scalars: {
     // Defines a shape for both input (field args) and outout (resolver return types)
     ID: { Input: string; Output: string | number };
   };
 }>({
-  // Optionally an array of plugins can be passed to the builder
-  plugins: [],
+  // plugins may add options that can be provided here
 });
 ```
 
@@ -48,7 +47,7 @@ builder.objectType(
   // typechecked as one of the types provided above in the Object shape (In this case only Giraffe)
   'Giraffe',
   {
-    shape: t => ({
+    fields: t => ({
       name: t.exposeString(
         // typechecked as one string property from the Giraffe shape defined above (in this case only name)
         'name',

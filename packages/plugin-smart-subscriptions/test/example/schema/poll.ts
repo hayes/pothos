@@ -1,22 +1,26 @@
 import builder from '../builder';
+import { Poll } from '../data';
 
 const POLLS = 'polls';
 
 builder.objectType('Poll', {
   subscribe: (subscriptions, poll, context) => {
     subscriptions.register(`poll/${poll.id}`, {
-      refetch: () => {
-        return context.Poll.map.get(poll.id)!;
+      refetch: (): Promise<Poll> => {
+        return new Promise<Poll>((resolve) => {
+          setTimeout(() => resolve(context.Poll.map.get(poll.id)!), 1000);
+        });
       },
     });
   },
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {}),
     updatedAt: t.string({
       resolve: () => new Date().toISOString(),
     }),
     question: t.exposeString('question', {}),
     answers: t.field({
+      nullable: true,
       type: ['Answer'],
       resolve: (parent, args, context, info) => {
         console.log(info.operation.name?.value, 'fetching answer for poll', parent.id);
@@ -28,7 +32,7 @@ builder.objectType('Poll', {
 });
 
 builder.objectType('Answer', {
-  shape: (t) => ({
+  fields: (t) => ({
     id: t.exposeID('id', {}),
     value: t.exposeString('value', {}),
     count: t.exposeInt('count', {}),
@@ -40,7 +44,7 @@ builder.queryFields((t) => ({
     type: ['Poll'],
     smartSubscription: true,
     subscribe: (subscriptions) => subscriptions.register('polls'),
-    resolve: (root, args, { Poll }, info) => {
+    resolve: (root, args, ctx, info) => {
       console.log(info.operation.name?.value, 'fetching all polls');
 
       return [...Poll.map.values()];

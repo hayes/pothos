@@ -1,7 +1,23 @@
-/* eslint-disable no-dupe-class-members, lines-between-class-members */
-import { InputType, InputShapeFromField } from '../types';
+import { InputType, SchemaTypes } from '../types';
+import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder, InputFieldRef } from '..';
+import { inputTypeFromParam } from '../utils';
 
-export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInfo> {
+export default class InputFieldBuilder<
+  Types extends SchemaTypes,
+  Kind extends 'InputObject' | 'Arg'
+> {
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+
+  kind: Kind;
+
+  typename: string;
+
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, typename: string) {
+    this.builder = builder;
+    this.kind = kind;
+    this.typename = typename;
+  }
+
   bool = this.helper('Boolean');
 
   boolean = this.helper('Boolean');
@@ -26,91 +42,50 @@ export default class InputFieldBuilder<Types extends GiraphQLSchemaTypes.TypeInf
 
   stringList = this.helper(['String']);
 
-  callableBuilder() {
-    const builder: InputFieldBuilder<Types>['type'] = this.type.bind(this);
+  argBuilder(): ArgBuilder<Types> {
+    const builder: InputFieldBuilder<Types, 'Arg'>['field'] = this.field.bind(this);
 
-    ([...Object.keys(this), 'type', 'list'] as (keyof InputFieldBuilder<Types>)[]).forEach(
-      (key) => {
-        ((builder as unknown) as { [s: string]: unknown })[key] = this[key];
-      },
-    );
+    ([...Object.keys(this)] as (keyof InputFieldBuilder<Types, 'Arg'>)[]).forEach((key) => {
+      ((builder as unknown) as { [s: string]: unknown })[key] =
+        typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
+    });
 
-    return builder as InputFieldBuilder<Types> & typeof builder;
+    return builder as ArgBuilder<Types>;
   }
 
-  type<Type extends InputType<Types> | [InputType<Types>]>(
-    type: Type,
-  ): { type: Type; required: false; description?: string };
-  type<Type extends InputType<Types>, Req extends boolean>(
-    type: Type,
-    options: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
-  ): {
-    type: Type;
-    required: Req;
-    description?: string;
-    default?: NonNullable<InputShapeFromField<Types, Type>>;
-  };
-  type<Type extends [InputType<Types>], Req extends boolean | { list: boolean; items: boolean }>(
-    type: Type,
-    options: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
-  ): {
-    type: Type;
-    required: Req;
-    description?: string;
-    default?: NonNullable<InputShapeFromField<Types, Type>>;
-  };
-  type<
-    Type extends InputType<Types> | [InputType<Types>],
-    Req extends boolean | { list: boolean; items: boolean }
-  >(type: Type, options?: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined) {
-    return {
-      description: options?.description,
-      required: options ? options.required : false,
-      default: options?.default,
-      type,
-    };
-  }
-
-  list<Type extends InputType<Types>>(
-    type: Type,
-  ): { type: [Type]; required: false; description?: string };
-  list<Type extends InputType<Types>, Req extends boolean = false>(
-    type: Type,
-    options: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
-  ): {
-    type: [Type];
-    required: Req;
-    description?: string;
-    default?: NonNullable<InputShapeFromField<Types, Type>>;
-  };
-  list<Type extends InputType<Types>, Req extends boolean>(
-    type: Type,
-    options?: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
+  field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
+    options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
   ) {
-    return {
-      description: options?.description,
-      required: options ? options.required : false,
-      default: options?.default,
-      type: [type] as [Type],
-    };
+    const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = {} as any;
+
+    this.builder.configStore.addFieldRef(ref, options.type, (name) => {
+      return {
+        name,
+        kind: this.kind,
+        graphqlKind: this.kind,
+        parentType: this.typename,
+        type: inputTypeFromParam<Types>(
+          options.type,
+          this.builder.configStore,
+          options.required ?? false,
+        ),
+        giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
+        description: options.description,
+        defaultValue: options.defaultValue,
+      };
+    });
+
+    return ref;
   }
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
-    function createType(): { type: Type; required: false; description?: string };
-    function createType<Req extends boolean | { list: boolean; items: boolean } = false>(
-      options: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
-    ): { type: Type; required: Req; description?: string };
-    function createType<Req extends boolean | { list: boolean; items: boolean }>(
-      options?: GiraphQLSchemaTypes.InputOptions<Types, Type, Req> | undefined,
-    ) {
-      return {
-        description: options?.description,
-        required: options ? options.required : false,
-        default: options?.default,
+    return <Req extends FieldRequiredness<Type>>(
+      options: Omit<GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>, 'type'>,
+    ) => {
+      return this.field({
+        ...options,
         type,
-      };
-    }
-
-    return createType;
+      });
+    };
   }
 }

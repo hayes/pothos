@@ -12,7 +12,7 @@ import { ApolloServer } from 'apollo-server';
 const builder = new SchemaBuilder();
 
 builder.queryType({
-    shape: (t) => ({
+    fields: (t) => ({
         hello: t.string({
             args: {
                 name: t.arg.string(),
@@ -23,8 +23,34 @@ builder.queryType({
 });
 
 const server = new ApolloServer({
-    schema: builder.toSchema(),
+    schema: builder.toSchema({}),
 });
 
 server.listen(3000);
 ```
+
+## Full docs available at https://giraphql.com
+
+## Development
+
+### Setup
+
+After cloning run
+
+```bash
+yarn install
+yarn prepare
+yarn build
+```
+
+### Scripts
+
+-   `yarn docz:dev`: start docs dev server to see a love local copy of docs site
+-   `yarn prepare`: re-create all the config files for tools used in this repo
+-   `yarn build`: runs typechecking and babel
+-   `yarn clean`: removes all build artifacts for code and docs
+-   `yarn lint {path to file/directory}`: runs linter (eslint)
+-   `yarn jest {path to file/directory}`: run run tests
+-   `yarn test`: runs typechecking, lint, and tests
+-   `yarn prettier`: formats code and docs
+-   `yarn type`: run typechecking

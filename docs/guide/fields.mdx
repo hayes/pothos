@@ -15,8 +15,8 @@ Scalar fields can be difined a couple of different ways:
 1. Using convenience methods
 
 ```typescript
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: (t) => ({
     id: t.id({ resolve: () => '123' }),
     int: t.int({ resolve: () => 123 }),
     float: t.float({ resolve: () => 1.23 }),
@@ -34,8 +34,8 @@ const Query = builder.queryType({
 2. Using the generic `field` method
 
 ```typescript
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: t => ({
     name: t.field({
       description: 'Name field'
       type: 'String',
@@ -55,10 +55,10 @@ defined in the schema builder.
 ```typescript
 const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
-}>();
+}>({});
 
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: t => ({
     giraffe: t.field({
       description: 'A giraffe'
       type: 'Giraffe',
@@ -76,15 +76,17 @@ const LengthUnit = builder.enumType('LengthUnit', {
   values: { Feet: {}, Meters: {} },
 });
 
-const Giraffe = builder.objectType('Giraffe', shape: t => ({
-  preferredNeckLengthUnit: t.field({
-    type: LengthUnit,
-    resolve: () => 'Feet',
-  })
-}));
+builder.objectType('Giraffe', {
+  fields: (t) => ({
+    preferredNeckLengthUnit: t.field({
+      type: LengthUnit,
+      resolve: () => 'Feet',
+    }),
+  }),
+});
 
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: (t) => ({
     giraffe: t.field({
       type: 'Giraffe',
       resolve: () => ({ name: 'Gina' }),
@@ -98,8 +100,8 @@ const Query = builder.queryType({
 To create a list field, you can wrap the the type in an array
 
 ```typescript
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: t => ({
     giraffes: t.field({
       description: 'multiple giraffes'
       type: ['Giraffe'],
@@ -120,8 +122,8 @@ Unlike some other GraphQL implementations, fields in GiraphQL are required by de
 often desirable to make fields in your schema nullable.
 
 ```typescript
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: (t) => ({
     nullableField: t.field({
       type: 'String',
       nullable: true,
@@ -163,11 +165,13 @@ any other object type or interface.
 ```typescript
 const builder = new SchemaBuilder<{
   Object: { Giraffe: { name: string }}};
-}>();
+}>({});
 
-const Giraffe = builder.objectType('Giraffe', shape: t => ({
-  name: t.exposeString('name')
-}));
+builder.objectType('Giraffe', {
+  fields: t => ({
+    name: t.exposeString('name')
+  }),
+});
 ```
 
 The available expose helpers are:
@@ -188,8 +192,8 @@ The available expose helpers are:
 Arguments for a field can defined in the options for a field:
 
 ```typescript
-const Query = builder.queryType({
-  shape: t => ({
+builder.queryType({
+  fields: (t) => ({
     giraffeByName: t.field({
       type: 'Giraffe',
       args: {
@@ -207,10 +211,10 @@ const Query = builder.queryType({
 });
 ```
 
-For more information see the [Arguments Guide](/docs-guide-args).
+For more information see the [Arguments Guide](/guide-args).
 
-[object]: /docs-guide-objects
-[interface]: /docs-guide-interfaces
-[objects]: /docs-guide-objects
-[interfaces]: /docs-guide-interfaces
-[fieldbuilder]: /docs-api-field-builder
+[object]: /guide-objects
+[interface]: /guide-interfaces
+[objects]: /guide-objects
+[interfaces]: /guide-interfaces
+[fieldbuilder]: /api-field-builder

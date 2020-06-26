@@ -1,15 +1,18 @@
 import SchemaBuilder from '@giraphql/core';
+import '../../../src';
+
 import { ContextType } from './types';
 import { User } from './data';
-import ExtendsPlugin from '../../../src';
 
 type Types = {
-  Object: {
+  Objects: {
     User: User;
   };
   Context: ContextType;
 };
 
-export default new SchemaBuilder<Types>({
-  plugins: [new ExtendsPlugin()],
+const builder = new SchemaBuilder<Types>({
+  plugins: ['GiraphQLExtends'],
 });
+
+export default builder;

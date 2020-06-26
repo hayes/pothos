@@ -1,10 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   TypeParam,
-  InputFields,
+  InputFieldMap,
   FieldNullability,
   RootName,
   InputShapeFromFields,
+  SchemaTypes,
+  ObjectParam,
 } from '@giraphql/core';
 import {
   PermissionCheckMap,
@@ -15,33 +17,33 @@ import {
   PermissionMatcher,
   UnionPostResolveCheck,
   InterfacePostResolveCheck,
-  AuthFieldData,
+  AuthPluginOptions,
 } from './types';
-import { AuthMeta } from '.';
+import AuthPlugin from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
-    export interface FieldWrapData {
-      giraphqlAuth: AuthFieldData;
+    export interface Plugins<Types extends SchemaTypes> {
+      GiraphQLAuth: AuthPlugin<Types>;
     }
 
-    export interface ResolverPluginData {
-      giraphqlAuth?: AuthMeta;
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      authOptions?: AuthPluginOptions;
     }
 
-    export interface RootTypeOptions<Types extends TypeInfo, Type extends RootName> {
+    export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
       permissions?: PermissionCheckMap<Types, Types['Root']>;
       defaultPermissionCheck?: string | string[] | PermissionMatcher;
     }
 
-    export interface ObjectTypeOptions<Types extends TypeInfo, Shape> {
+    export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       preResolveCheck?: PreResolveCheck<Types>;
       postResolveCheck?: PostResolveCheck<Types, Shape>;
       permissions?: PermissionCheckMap<Types, Shape>;
       defaultPermissionCheck?: string | string[] | PermissionMatcher;
     }
 
-    export interface InterfaceTypeOptions<Types extends TypeInfo, Shape> {
+    export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
       preResolveCheck?: PreResolveCheck<Types>;
       postResolveCheck?: InterfacePostResolveCheck<Types, Shape>;
       permissionChecks?: PermissionCheckMap<Types, Shape>;
@@ -49,45 +51,68 @@ declare global {
       skipImplementorPreResolveChecks?: boolean;
     }
 
-    export interface UnionOptions<Types extends TypeInfo, Member extends keyof Types['Object']> {
+    export interface UnionTypeOptions<
+      Types extends SchemaTypes,
+      Member extends ObjectParam<Types>
+    > {
       preResolveCheck?: PreResolveCheck<Types>;
       postResolveCheck?: UnionPostResolveCheck<Types, Member>;
       skipMemberPreResolveChecks?: boolean;
     }
 
     export interface FieldOptions<
-      Types extends TypeInfo,
+      Types extends SchemaTypes,
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
-      ResolveShape
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape
     > {
-      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
-      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
+      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Args>>;
+      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Args>>;
     }
 
     export interface InterfaceFieldOptions<
-      Types extends TypeInfo,
+      Types extends SchemaTypes,
       ParentShape,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape> {
-      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
-      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
+      Args extends InputFieldMap,
+      ResolveReturnShape
+    >
+      extends FieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ParentShape,
+        ResolveReturnShape
+      > {
+      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Args>>;
+      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Args>>;
     }
 
     export interface SubscriptionFieldOptions<
-      Types extends TypeInfo,
-      ParentShape,
+      Types extends SchemaTypes,
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
-      Args extends InputFields<Types>,
-      ResolveShape
-    > extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveShape> {
-      permissionCheck?: PermissionCheck<Types, ParentShape, InputShapeFromFields<Types, Args>>;
-      grantPermissions?: GrantPermissions<Types, ParentShape, InputShapeFromFields<Types, Args>>;
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape
+    >
+      extends FieldOptions<
+        Types,
+        Types['Root'],
+        Type,
+        Nullable,
+        Args,
+        ResolveShape,
+        ResolveReturnShape
+      > {
+      permissionCheck?: PermissionCheck<Types, Types['Root'], InputShapeFromFields<Args>>;
+      grantPermissions?: GrantPermissions<Types, Types['Root'], InputShapeFromFields<Args>>;
     }
   }
 }
