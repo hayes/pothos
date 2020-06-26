@@ -3,7 +3,7 @@ name: Overview
 route: /
 ---
 
-# GiraphQL SchemaBuilder
+# Overview
 
 GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript.
 
