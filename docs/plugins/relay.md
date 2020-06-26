@@ -45,7 +45,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-The returned IDs can either be a string \(which is expected to already be a globalID\), or an object with the an `id` and a `type`, The type can be either the name of a name as a string, or any object that can be used in a type paramiter.
+The returned IDs can either be a string \(which is expected to already be a globalID\), or an object with the an `id` and a `type`, The type can be either the name of a name as a string, or any object that can be used in a type parameter.
 
 ### Creating Nodes
 
@@ -75,7 +75,7 @@ builder.node(NumberThing, {
 });
 ```
 
-`builder.node` will create an object type that implements the `Node` interface. It will also create the `Node` inerface the first time it is used. The first argument must be a reference to a type that has an id field, and a `__type` fiield. The `__type` parameter should a be a reference to the type being implemented, and can be a string or object that can be used as a type parameter.
+`builder.node` will create an object type that implements the `Node` interface. It will also create the `Node` interface the first time it is used. The first argument must be a reference to a type that has an id field, and a `__type` field. The `__type` parameter should a be a reference to the type being implemented, and can be a string or object that can be used as a type parameter.
 
 The `loadOne` and `loadMany` methods are optional, and `loadMany` will be used if both are present. These methods allow a nodes to be loaded by id. The relay plugin adds to new query fields `node` and `nodes` which can be used to directly fetch nodes using global IDs.
 

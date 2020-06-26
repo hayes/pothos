@@ -43,9 +43,9 @@ const GiraffeFact = builder.unionType('GiraffeFact', {
 });
 ```
 
-The `types` array can either contain Object type names defined in [TypeInfo](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/api-schema-builder/README.md#typeinfo), or and Object `Ref` created by object type. `builder.objectType`, `builder.objectRef` or other method, or a class that was used to implement an object type.
+The `types` array can either contain Object type names defined in TypeInfo, or and Object `Ref` created by object type. `builder.objectType`, `builder.objectRef` or other method, or a class that was used to implement an object type.
 
-The `resolveType` function will be called with each item returned by a field that returnes the unionType, and is used to determine which concrete the value corresponds to. It is ussualy good to have a shared property you can use to differentiate your union members.
+The `resolveType` function will be called with each item returned by a field that returns the unionType, and is used to determine which concrete the value corresponds to. It is usually good to have a shared property you can use to differentiate your union members.
 
 ## Using Union Types
 

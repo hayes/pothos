@@ -9,7 +9,7 @@ The GraphQL context object can be used to give every resolver in the schema acce
 
 One important thing to note about GiraphQL is that every request is assumed to have a new unique context object, so be sure to set up your context objects in a way that they are unique to each request.
 
-First lets define a User class that holds information about a user, and create a SchemaBuilder with a Context type that has a currentUser property.
+First let's define a User class that holds information about a user, and create a SchemaBuilder with a Context type that has a currentUser property.
 
 ```typescript
 class User {
@@ -52,7 +52,7 @@ builder.objectType(User, {
 });
 ```
 
-Finally, we need to actually create our context when a request is craeted.
+Finally, we need to actually create our context when a request is created.
 
 ```typescript
 const server = new ApolloServer({

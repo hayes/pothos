@@ -6,7 +6,7 @@ This is a high level overview of some of the internal concepts used in GiraphQL,
 
 ## Type System
 
-The type system that powers most of the GiraphQL type checking has 2 components. The first is the [TypeInfo](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-schema-builder/README.md#typeinfo) type param passed into the SchemaBuilder. This allows a shared set of types to be reused throughout the schema, and is responsible for providing type information for shared types like the [Context](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/guide-context/README.md) object, and any Object, Interface, or Scalar types that you want to reference by name \(as a string\). Having all type information in a single object can be convenient at times, but with large schemas, can become unwieldy.
+The type system that powers most of the GiraphQL type checking has 2 components. The first is the TypeInfo type param passed into the SchemaBuilder. This allows a shared set of types to be reused throughout the schema, and is responsible for providing type information for shared types like the [Context](getting-started/context.md) object, and any Object, Interface, or Scalar types that you want to reference by name \(as a string\). Having all type information in a single object can be convenient at times, but with large schemas, can become unwieldy.
 
 To support a number of additional use cases, including Unions and Enums, large schemas, and plugins that use extract type information from other sources \(eg the Prisma, or the simple-objects plugin\), GiraphQL has another way of passing around type information. This system is based in `Ref` objects that contain the type information it represents. Every builder method for creating a type or a field returns a `Ref` object.
 
@@ -16,7 +16,7 @@ Using Ref objects allows us to separate the type information from the implementa
 
 ### Philosophy
 
-GiraphQL aims to be extensible in a way that makes features from plugins feel like part of the core experience. To acheive this, every options object used in GiraphQL can be extended with custom properties. You may notice that there are places throughout the documentation where there are empty options objects passed into functions. While this may seem inconvenient at first glance, the reason behind is that it should be easy for pluginis to add new required options, and having optional options objects would break that goal.
+GiraphQL aims to be extensible in a way that makes features from plugins feel like part of the core experience. To achieve this, every options object used in GiraphQL can be extended with custom properties. You may notice that there are places throughout the documentation where there are empty options objects passed into functions. While this may seem inconvenient at first glance, the reason behind is that it should be easy for plugins to add new required options, and having optional options objects would break that goal.
 
 Implementing plugins for GiraphQL is currently not well documented, and requires a deep understanding of how the internal types in GiraphQL function.
 
@@ -30,7 +30,7 @@ There are 3 parts to the GiraphQL plugin API.
 
 #### GiraphQLSchemaTypes
 
-`GiraphQLSchemaTypes` is a global typescript namespace that contains interfaces for all the object types used by the GiraphQL, as well as types describing the core builder and field builder classes. By putting these things in a shared global namespace, plugins can freely extend these types and take advantage of all the same generics. This enables things like adding authorization check function into field options, and allowiing those check functions to correctly infer the parent, and args for the field.
+`GiraphQLSchemaTypes` is a global typescript namespace that contains interfaces for all the object types used by the GiraphQL, as well as types describing the core builder and field builder classes. By putting these things in a shared global namespace, plugins can freely extend these types and take advantage of all the same generics. This enables things like adding authorization check function into field options, and allowing those check functions to correctly infer the parent, and args for the field.
 
 #### BasePlugin
 

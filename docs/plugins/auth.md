@@ -7,11 +7,11 @@ menu: Plugins
 
 This plugin provides a way to handle authorization/permissions checks throughout your schema.
 
-Because GraphQL schemas are graphs and fields can be aliased in responses, knowing what data is accessed at the root a query can be very difficult. Using a traditioal pattern of performing checks at the start of a request, or by inrospecting the result of a request does not work well, since data may be queried through a complex set of relations, and the resulting response can have fields aliased to any other name.
+Because GraphQL schemas are graphs and fields can be aliased in responses, knowing what data is accessed at the root a query can be very difficult. Using a traditional pattern of performing checks at the start of a request, or by introspecting the result of a request does not work well, since data may be queried through a complex set of relations, and the resulting response can have fields aliased to any other name.
 
-The GirahQL auth plugin tries to solve a number of common authorization patterns/problems:
+The GiraphQL auth plugin tries to solve a number of common authorization patterns/problems:
 
-* Simple checks on any field in a schem \(At the Query/Mutation level, or nested deep inside a
+* Simple checks on any field in a schema \(At the Query/Mutation level, or nested deep inside a
 
   schema\)
 
@@ -156,7 +156,7 @@ builder.queryType({
 
 ## Granting permission checks to children
 
-There are often cases where either it is more efficient to do a permission check once in a parent resolver, or the context you need to determine if a request should be authorized is not available in a child resolver. The naive solution would be to simple do the check in the parent, and not have permission checks for you child resolvers. Unfortunatly this is suseptable to creating problems down the road if there are new resolvers that expose the same type, but forget that they need to add an auth check for the children. To address these kinds of use cases, the auth plugin allows fields to defiine a set of permissions to grant to the returned child.
+There are often cases where either it is more efficient to do a permission check once in a parent resolver, or the context you need to determine if a request should be authorized is not available in a child resolver. The naive solution would be to simple do the check in the parent, and not have permission checks for you child resolvers. Unfortunately this is susceptible to creating problems down the road if there are new resolvers that expose the same type, but forget that they need to add an auth check for the children. To address these kinds of use cases, the auth plugin allows fields to define a set of permissions to grant to the returned child.
 
 ```typescript
 builder.queryType({
@@ -229,7 +229,7 @@ builder.objectType('Person', {
 });
 ```
 
-the `preResolveCheck` only receives the `context` object because the `parent` and args will vary depending on which resolver is being called. It can return an map of authorizations the same way an auch check on a field can. This approach allows you to define all of the auth for your type in one place, and is the recomended path for applications where you want more ridged controls over your permission checks. The check functiion may return a boolean, or a map of permissions.
+the `preResolveCheck` only receives the `context` object because the `parent` and args will vary depending on which resolver is being called. It can return a map of authorizations the same way an auth check on a field can. This approach allows you to define all of the auth for your type in one place, and is the recommended path for applications where you want more ridged controls over your permission checks. The check function may return a boolean, or a map of permissions.
 
 Because the `preResolveCheck` only receives the context object, it will be run at most once per request and its result will be cached for subsequent fields of the same kind.
 

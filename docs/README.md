@@ -33,39 +33,36 @@ new ApolloServer({
 
 ## What GiraphQL offers
 
--   A type safe way to build GraphQL schemas with miniaml manual type defintions and no build
+* A type safe way to build GraphQL schemas with minimal manual type definitions and no build
 
-    process for generating type definitions
+  process for generating type definitions
 
--   A powerful plugin system that enables extending almost any part of the schema builder, as well
+* A powerful plugin system that enables extending almost any part of the schema builder, as well
 
-    as adding runtime features like authorization.
+  as adding runtime features like authorization.
 
--   A set of plugins for common use cases:
+* A set of plugins for common use cases:
+  * [`@giraphql/plugin-auth`](plugins/auth.md): A plugin for adding authorization checks
 
-    -   [`@giraphql/plugin-auth`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/plugins-auth/README.md):
-        A plugin for adding authorization checks
+    throughout your schema
 
-        throughout your schema
+  * [`@giraphql/plugin-relay`](plugins/relay.md): A plugin for adding builder methods for defining
 
-    -   [`@giraphql/plugin-relay`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/plugins-relay/README.md):
-        A plugin for adding builder methods for defining
+    relay style nodes and connections, and some helpful utilities for cursor based pagination
 
-        relay style nodes and connections, and some helpful utilities for cursor based pagination
+  * [`@giraphql/plugin-smart-subscriptions`](plugins/smart-subscriptions.md): A plugin for a more
 
-    -   [`@giraphql/plugin-smart-subscriptions`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/plugins-smart-subscriptions/README.md):
-        A plugin for a more
+    graph friendly way of defining subscriptions.
 
-        graph friendly way of defining subscriotions.
+  * [`@giraphql/plugin-simple-objects`](plugins/simple-objects.md): A plugin for creating simple
 
-    -   [`@giraphql/plugin-simple-objects`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/plugins-simple-objects/README.md):
-        A plugin for creating simple
+    objects and interfaces without resolvers or arguments.
 
-        objects and interfaces without resolvers or arguments.
+  * [`@giraphql/plugin-mocks`](plugins/mocks.md): A plugin for mocking out resolvers in your
 
-    -   [`@giraphql/plugin-mocks`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/plugins-mocks/README.md):
-        A plugin for mocking out resolvers in your
+    schema.
 
-        schema.
+  * More plugins coming soon \(including a plugin for Prisma\)
 
-    -   More plugins coming soon \(including a plugin for Prisma\)
+
+

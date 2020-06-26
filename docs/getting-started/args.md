@@ -5,11 +5,11 @@ menu: Guide
 
 # Args
 
-Similar to the [Fields Guide](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/guide-fields/README.md), the examples here will mostly be for the Query type, but the same patters can be used anywhere that arguments for fields can be defined, including both Object and Interface types.
+Similar to the [Fields Guide](fields.md), the examples here will mostly be for the Query type, but the same patters can be used anywhere that arguments for fields can be defined, including both Object and Interface types.
 
 ## Scalars
 
-Scalar args can be difined a couple of different ways:
+Scalar args can be defined a couple of different ways:
 
 1. Using convenience methods
 
@@ -79,7 +79,7 @@ const Giraffe = builder.objectType('Giraffe', {
 }));
 ```
 
-## required args
+## Required args
 
 Arguments are optional by default, but can be made required by passing `required: true` in the argument options.
 

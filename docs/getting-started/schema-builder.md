@@ -9,7 +9,7 @@ The schema builder is the core of GiraphQL. It is used to create types, and then
 
 ## Creating a Schema Builder
 
-The SchemaBuilder takes a TypeParam that extends a Partial [`TypeInfo`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/api-schema-builder/README.md#typeinfo).
+The SchemaBuilder takes a TypeParam that extends a Partial `TypeInfo`.
 
 These types are used as the backing models for the types defined by the SchemaBuilder.
 

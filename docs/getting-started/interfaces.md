@@ -7,7 +7,7 @@ menu: Guide
 
 ## Defining Interface Types
 
-Defiining interfaces works exactly like [defining Objects](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/guide-objects/README.md), using `Interfaces` key in TypeInfo object for the builder, and `interfaceRef` rather than `objectRef`.
+Defining interfaces works exactly like [defining Objects](objects.md), using `Interfaces` key in TypeInfo object for the builder, and `interfaceRef` rather than `objectRef`.
 
 Lets update our Giraffe class a bit to make it work well for interfaces:
 
@@ -40,7 +40,7 @@ export enum Diet {
 }
 ```
 
-Again, using classes is compltetly optional. The only requirment for interfaces is that the the type used for defining objects must be a superset of the the types of any interfaces they implement.
+Again, using classes is completely optional. The only requirement for interfaces is that the the type used for defining objects must be a superset of the the types of any interfaces they implement.
 
 Now that we have our classes set up we can define the interface type. and add a enum definitions for our diet field:
 
@@ -78,7 +78,7 @@ Interfaces is an array of interfaces that the object type implements, and `isTyp
 
 ## using interfaces in as return typescript
 
-Usinig interfaces as return types for fields works just like objects:
+Using interfaces as return types for fields works just like objects:
 
 ```typescript
 builder.queryFields((t) => ({

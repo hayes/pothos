@@ -55,13 +55,13 @@ export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
 });
 ```
 
-Again we use `as const` here to allow the enum values to be correctly inferred. The `as const` can also be added to the values instead, or omitted if the `values` already are defined using a varaible that typescript can type correctly.
+Again we use `as const` here to allow the enum values to be correctly inferred. The `as const` can also be added to the values instead, or omitted if the `values` already are defined using a variable that typescript can type correctly.
 
 Using a values object like this enables defining additional options like a description for each enum value.
 
 ## Using Enum Types
 
-Enums can be references either by the `Ref` that was retunred by calling `builder.enumType` or by using the typescript enum. They can be used either as arguments, or as field return types:
+Enums can be references either by the `Ref` that was returned by calling `builder.enumType` or by using the typescript enum. They can be used either as arguments, or as field return types:
 
 ```typescript
 builder.objectFields('Giraffe', (t) => ({
