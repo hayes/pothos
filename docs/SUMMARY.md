@@ -20,7 +20,7 @@
     -   [Relay Plugin](plugins/relay.md)
     -   [Simple Objects Plugin](plugins/simple-objects.md)
     -   [Smart Subscriptions Plugin](plugins/smart-subscriptions.md)
--   [APII](api/README.md)
+-   [API](api/README.md)
     -   [SchemaBuilder](api/schema-builder.md)
     -   [FieldBuilder](api/field-builder.md)
     -   [InputFieldBuilder](api/input-field-builder.md)
