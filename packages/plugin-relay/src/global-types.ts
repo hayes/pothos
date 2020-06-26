@@ -30,6 +30,7 @@ import {
   DefaultConnectionArguments,
   NodeFieldOptions,
   NodeListFieldOptions,
+  GlobalIDListFieldOptions,
 } from './types';
 import RelayPlugin from '.';
 
@@ -62,25 +63,16 @@ declare global {
         Nullable extends FieldNullability<'ID'>,
         ResolveReturnShape
       >(
-        options: GlobalIDFieldOptions<
-          Types,
-          ParentShape,
-          'ID',
-          Args,
-          Nullable,
-          ResolveReturnShape,
-          Kind
-        >,
+        options: GlobalIDFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>,
       ): FieldRef<ShapeFromTypeParam<Types, 'ID', Nullable>>;
       globalIDList<
         Args extends InputFieldMap,
         Nullable extends FieldNullability<['ID']>,
         ResolveReturnShape
       >(
-        options: GlobalIDFieldOptions<
+        options: GlobalIDListFieldOptions<
           Types,
           ParentShape,
-          ['ID'],
           Args,
           Nullable,
           ResolveReturnShape,

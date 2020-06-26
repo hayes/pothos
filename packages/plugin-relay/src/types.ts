@@ -13,7 +13,6 @@ import {
   MaybePromise,
   FieldOptionsFromKind,
   FieldKind,
-  TypeParam,
   InputFieldsFromShape,
   OutputRefShape,
 } from '@giraphql/core';
@@ -122,16 +121,15 @@ export type NodeObjectOptions<
 export type GlobalIDFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends TypeParam<Types>,
   Args extends InputFieldMap,
-  Nullable extends FieldNullability<Type>,
+  Nullable extends boolean,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind
 > = Omit<
   FieldOptionsFromKind<
     Types,
     ParentShape,
-    Type,
+    'ID',
     Nullable,
     Args,
     Kind,
@@ -144,7 +142,43 @@ export type GlobalIDFieldOptions<
     ParentShape,
     InputShapeFromFields<Args>,
     Types['Context'],
-    Type extends [unknown] ? GlobalIDShape<Types>[] : GlobalIDShape<Types>,
+    ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>,
+    ResolveReturnShape
+  >;
+};
+
+export type GlobalIDListFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  Nullable extends FieldNullability<[unknown]>,
+  ResolveReturnShape,
+  Kind extends FieldKind = FieldKind
+> = Omit<
+  FieldOptionsFromKind<
+    Types,
+    ParentShape,
+    ['ID'],
+    Nullable,
+    Args,
+    Kind,
+    ParentShape,
+    ResolveReturnShape
+  >,
+  'type' | 'resolve'
+> & {
+  resolve: Resolver<
+    ParentShape,
+    InputShapeFromFields<Args>,
+    Types['Context'],
+    ShapeFromTypeParam<
+      Types,
+      [OutputRefShape<GlobalIDShape<Types> | string>],
+      {
+        list: false;
+        items: true;
+      }
+    >,
     ResolveReturnShape
   >;
 };

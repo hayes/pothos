@@ -24,6 +24,7 @@ import {
   NodeFieldOptions,
   GlobalIDShape,
   NodeListFieldOptions,
+  GlobalIDListFieldOptions,
 } from './types';
 import { GraphQLResolveInfo } from 'graphql';
 
@@ -272,15 +273,7 @@ fieldBuilderProto.globalIDList = function globalIDList<
 >({
   resolve,
   ...options
-}: GlobalIDFieldOptions<
-  SchemaTypes,
-  unknown,
-  ['ID'],
-  Args,
-  Nullable,
-  ResolveReturnShape,
-  FieldKind
->) {
+}: GlobalIDListFieldOptions<SchemaTypes, unknown, Args, Nullable, ResolveReturnShape, FieldKind>) {
   const wrappedResolve = async (
     parent: unknown,
     args: InputShapeFromFields<Args>,
@@ -299,7 +292,7 @@ fieldBuilderProto.globalIDList = function globalIDList<
       return (
         await Promise.all(result)
       ).map((item: GlobalIDShape<SchemaTypes> | null | undefined) =>
-        item == null
+        item == null || typeof item === 'string'
           ? item
           : encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, String(item.id)),
       );
@@ -322,15 +315,7 @@ fieldBuilderProto.globalID = function globalID<
 >({
   resolve,
   ...options
-}: GlobalIDFieldOptions<
-  SchemaTypes,
-  unknown,
-  'ID',
-  Args,
-  Nullable,
-  ResolveReturnShape,
-  FieldKind
->) {
+}: GlobalIDFieldOptions<SchemaTypes, unknown, Args, Nullable, ResolveReturnShape, FieldKind>) {
   const wrappedResolve = async (
     parent: unknown,
     args: InputShapeFromFields<Args>,
@@ -339,7 +324,7 @@ fieldBuilderProto.globalID = function globalID<
   ) => {
     const result = await resolve(parent, args, context, info);
 
-    if (!result) {
+    if (!result || typeof result === 'string') {
       return result;
     }
 

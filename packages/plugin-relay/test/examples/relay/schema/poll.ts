@@ -1,10 +1,11 @@
 /* eslint-disable */
-import { resolveOffsetConnection, resolveArrayConnection } from '../../../../src';
+import { resolveOffsetConnection, resolveArrayConnection, encodeGlobalID } from '../../../../src';
 import builder from '../builder';
 
 builder.queryField('pollIds', (t) =>
   t.globalIDList({
     resolve: (parent, args, context) => {
+      encodeGlobalID;
       return [...context.Poll.map.keys()].map((key) => ({ id: key, type: 'Poll' as const }));
     },
   }),
