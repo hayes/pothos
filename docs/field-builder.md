@@ -34,7 +34,7 @@ type FieldOptions = {
 
 ### Type Parameter
 
-A Type Parameter for a Field can be any `TypeRef` returned by one of the [`SchemaBuilder`](getting-started/schema-builder.md) methods for defining a type, a class used to create an object or interface type, a ts enum used to define a graphql enum type, or a string that corresponds to one of they keys of the `Objects`, `Interfaces`, or `Scalars` objects defined in `TypeInfo`.
+A Type Parameter for a Field can be any `TypeRef` returned by one of the [`SchemaBuilder`](guide/schema-builder.md) methods for defining a type, a class used to create an object or interface type, a ts enum used to define a graphql enum type, or a string that corresponds to one of they keys of the `Objects`, `Interfaces`, or `Scalars` objects defined in `TypeInfo`.
 
 For List fields, the Type Parameter should be one of the above wrapped in an array eg `['User']`.
 

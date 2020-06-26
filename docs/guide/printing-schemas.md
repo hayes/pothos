@@ -3,7 +3,7 @@ name: Printing schemas
 menu: Guide
 ---
 
-# printing-schemas
+# Printing Schema
 
 Sometimes it's useful to have an SDL version of your schema. To do this, you can use some tools from the graphql package to write your schema out as SDL to a file.
 

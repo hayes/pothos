@@ -25,7 +25,7 @@ type FieldOptions = {
 
 ### Type Parameter
 
-A Type Parameter for a Field can be any `InputTypeRef` returned by one of the [`SchemaBuilder`](getting-started/schema-builder.md) methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts enum used to define a graphql enum type, or a string that corresponds to one of they keys of the `Scalars` object defined in `TypeInfo`.
+A Type Parameter for a Field can be any `InputTypeRef` returned by one of the [`SchemaBuilder`](guide/schema-builder.md) methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts enum used to define a graphql enum type, or a string that corresponds to one of they keys of the `Scalars` object defined in `TypeInfo`.
 
 ## helpers
 
