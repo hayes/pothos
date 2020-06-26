@@ -44,9 +44,7 @@ builder.mutationType({
         input: t.arg({ type: RecursiveGiraffeInput, required: true }),
       },
       resolve: (root, args) => {
-        const date = new Date();
-
-        date.setFullYear(new Date().getFullYear() - 1);
+        const date = new Date(2006, 10, 10);
 
         const friends = (args.input.friends || []).map(
           (friend) => new Giraffe(args.input.name, date, args.input.height),

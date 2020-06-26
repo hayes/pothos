@@ -28,6 +28,7 @@ tmp/
 # Custom
 *.min.js
 *.map
+todo.md
 
 # Configs (provided by Nimbus)
 .babelrc

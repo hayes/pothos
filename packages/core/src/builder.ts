@@ -123,7 +123,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
     param: Param,
     options: ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>,
-    shape?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
+    fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
   ) {
     const name =
       typeof param === 'string'
@@ -153,10 +153,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       this.configStore.associateRefWithName(param, name);
     }
 
-    if (shape) {
+    if (fields) {
       this.configStore.addFields(
         ref,
-        shape(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)),
+        fields(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)),
       );
     }
 
@@ -188,7 +188,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     });
   }
 
-  queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, shape?: QueryFieldsShape<Types>) {
+  queryType(
+    options: GiraphQLSchemaTypes.QueryTypeOptions<Types>,
+    fields?: QueryFieldsShape<Types>,
+  ) {
     const config: GiraphQLQueryTypeConfig = {
       kind: 'Query',
       graphqlKind: 'Object',
@@ -199,8 +202,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore.addTypeConfig(config);
 
-    if (shape) {
-      this.configStore.addFields('Query', shape(new QueryFieldBuilder(this)));
+    if (fields) {
+      this.configStore.addFields('Query', fields(new QueryFieldBuilder(this)));
     }
 
     if (options.fields) {

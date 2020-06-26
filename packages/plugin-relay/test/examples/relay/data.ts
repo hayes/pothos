@@ -1,4 +1,6 @@
 export class Poll {
+  __type: 'Poll' = 'Poll';
+
   static map = new Map<number, Poll>();
 
   static lastID = 0;

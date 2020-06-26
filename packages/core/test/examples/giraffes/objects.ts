@@ -12,12 +12,7 @@ builder.objectType(Giraffe, {
     name: t.exposeString('name', {}),
     age: t.int({
       resolve: (parent) => {
-        const today = new Date(new Date().toDateString());
-        const birthday = new Date(parent.birthday.toDateString());
-        const ageDifMs = Number(today) - Number(birthday);
-        const ageDate = new Date(ageDifMs);
-
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
+        return 5; // hard coded so test don't break over time
       },
     }),
   }),
@@ -31,12 +26,7 @@ builder.objectType('Giraffe', {
     name: t.exposeString('name', {}),
     age: t.int({
       resolve: (parent) => {
-        const today = new Date(new Date().toDateString());
-        const birthday = new Date(parent.birthday.toDateString());
-        const ageDifMs = Number(today) - Number(birthday);
-        const ageDate = new Date(ageDifMs);
-
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
+        return 5; // hard coded so test don't break over time
       },
     }),
   }),
@@ -50,12 +40,7 @@ builder.objectType(GiraffeRef, {
     name: t.exposeString('name', {}),
     age: t.int({
       resolve: (parent) => {
-        const today = new Date(new Date().toDateString());
-        const birthday = new Date(parent.birthday.toDateString());
-        const ageDifMs = Number(today) - Number(birthday);
-        const ageDate = new Date(ageDifMs);
-
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
+        return 5; // hard coded so test don't break over time
       },
     }),
   }),

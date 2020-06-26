@@ -1,6 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import { outputShapeKey, OutputRef } from '../types';
-import { SchemaTypes, ObjectTypeOptions } from '..';
+import { SchemaTypes, ObjectTypeOptions, InterfaceParam } from '..';
 import BaseTypeRef from './base';
 
 export default class ObjectRef<T> extends BaseTypeRef implements OutputRef {
@@ -25,7 +25,9 @@ export class ImplementableObjectRef<Types extends SchemaTypes, Shape> extends Ob
     this.builder = builder;
   }
 
-  implement(options: ObjectTypeOptions<Types, ObjectRef<Types>, Shape, []>) {
-    this.builder.objectType(this, options);
+  implement<Interfaces extends InterfaceParam<Types>[]>(
+    options: ObjectTypeOptions<Types, ObjectRef<Types>, Shape, Interfaces>,
+  ) {
+    return this.builder.objectType(this, options);
   }
 }

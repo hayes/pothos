@@ -8,6 +8,13 @@ import {
   FieldOptionsFromKind,
   ObjectRef,
   FieldRef,
+  InterfaceRef,
+  ObjectFieldsShape,
+  OutputShape,
+  InterfaceParam,
+  ObjectParam,
+  ShapeFromTypeParam,
+  InputFieldsFromShape,
 } from '@giraphql/core';
 import {
   ConnectionFieldOptions,
@@ -15,6 +22,11 @@ import {
   ConnectionEdgeObjectOptions,
   ConnectionShapeFromResolve,
   PageInfoShape,
+  NodeObjectOptions,
+  ConnectionShapeForType,
+  GlobalIDFieldOptions,
+  NodeReturnShape,
+  DefaultConnectionArguments,
 } from './types';
 import RelayPlugin from '.';
 
@@ -26,27 +38,56 @@ declare global {
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<PageInfoShape>;
-    }
+      nodeInterfaceRef: () => InterfaceRef<NodeReturnShape<Types>>;
 
-    // export interface FieldOptionsByKind<
-    //   Types extends SchemaTypes,
-    //   ParentShape,
-    //   Type extends TypeParam<Types>,
-    //   Nullable extends FieldNullability<Type>,
-    //   Args extends InputFieldMap,
-    //   ResolveShape,
-    //   ResolveReturnShape
-    // > {}
+      node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
+        param: OutputShape<Types, Param> extends NodeReturnShape<Types>
+          ? Param
+          : 'Type for node objects must include `id` and `__type` properties',
+        options: NodeObjectOptions<Types, Param, Interfaces>,
+        fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
+      ) => ObjectRef<OutputShape<Types, Param>>;
+    }
 
     export interface RootFieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
       Kind extends FieldKind = FieldKind
     > {
+      globalID<
+        Args extends InputFieldMap,
+        Nullable extends FieldNullability<'ID'>,
+        ResolveReturnShape
+      >(
+        options: GlobalIDFieldOptions<
+          Types,
+          ParentShape,
+          'ID',
+          Args,
+          Nullable,
+          ResolveReturnShape,
+          Kind
+        >,
+      ): FieldRef<ShapeFromTypeParam<Types, 'ID', Nullable>>;
+      globalIDList<
+        Args extends InputFieldMap,
+        Nullable extends FieldNullability<['ID']>,
+        ResolveReturnShape
+      >(
+        options: GlobalIDFieldOptions<
+          Types,
+          ParentShape,
+          ['ID'],
+          Args,
+          Nullable,
+          ResolveReturnShape,
+          Kind
+        >,
+      ): FieldRef<ShapeFromTypeParam<Types, ['ID'], Nullable>>;
       connection<
         Type extends OutputType<Types>,
         Args extends InputFieldMap,
-        Nullable extends FieldNullability<Type>,
+        Nullable extends boolean,
         ResolveReturnShape
       >(
         options: Omit<
@@ -55,23 +96,23 @@ declare global {
             ParentShape,
             Type,
             Nullable,
-            Args,
+            Args & InputFieldsFromShape<DefaultConnectionArguments>,
             Kind,
             ParentShape,
             ResolveReturnShape
           >,
-          'type' | 'resolve'
+          'type' | 'resolve' | 'args'
         > &
           ConnectionFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
         connectionOptions: ConnectionObjectOptions<
           Types,
-          ConnectionShapeFromResolve<Types, Type, Nullable, ResolveReturnShape>
+          ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>
         >,
         edgeOptions: ConnectionEdgeObjectOptions<
           Types,
-          ConnectionShapeFromResolve<Types, Type, Nullable, ResolveReturnShape>['edges'][number]
+          ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>['edges'][number]
         >,
-      ): FieldRef<unknown>; // TODO type this correctly
+      ): FieldRef<ConnectionShapeForType<Types, Type, false>>;
     }
   }
 }

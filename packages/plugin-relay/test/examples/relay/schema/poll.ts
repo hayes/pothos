@@ -2,9 +2,19 @@
 import { resolveOffsetConnection, resolveArrayConnection } from '../../../../src';
 import builder from '../builder';
 
-builder.objectType('Poll', {
+builder.queryField('pollIds', (t) =>
+  t.globalIDList({
+    resolve: (parent, args, context) => {
+      return [...context.Poll.map.keys()].map((key) => ({ id: key, type: 'Poll' as const }));
+    },
+  }),
+);
+
+builder.node('Poll', {
+  loadMany: (ids, context) => {
+    return ids.map((id) => context.Poll.map.get(parseInt(id, 10)));
+  },
   fields: (t) => ({
-    id: t.exposeID('id', {}),
     updatedAt: t.string({
       resolve: () => new Date().toISOString(),
     }),

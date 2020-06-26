@@ -114,18 +114,18 @@ exports[`giraffe example mutations mutate some stuff 1`] = `
 Object {
   "data": Object {
     "createGiraffe": Object {
-      "age": 1,
+      "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },
     "createGiraffeWithFriends": Array [
       Object {
-        "age": 1,
+        "age": 5,
         "diet": "HERBIVOROUS",
         "name": "James",
       },
       Object {
-        "age": 1,
+        "age": 5,
         "diet": "HERBIVOROUS",
         "name": "James",
       },
@@ -149,16 +149,16 @@ Object {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "date": "2020-06-25",
+    "date": "2020-06-26",
     "giraffe": Object {
-      "age": 7,
+      "age": 5,
       "diet": "HERBIVOROUS",
       "height": 5.2,
       "heightInFeet": 17.061200000000003,
       "name": "James",
     },
     "giraffeClass": Object {
-      "age": 7,
+      "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },
@@ -174,7 +174,7 @@ Object {
       },
     ],
     "giraffeRef": Object {
-      "age": 7,
+      "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },

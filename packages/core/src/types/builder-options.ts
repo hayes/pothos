@@ -1,7 +1,5 @@
 import { GraphQLResolveInfo, GraphQLEnumValueConfigMap } from 'graphql';
 import {
-  MaybePromiseWithInference,
-  MaybePromise,
   SchemaTypes,
   TypeParam,
   FieldNullability,
@@ -17,6 +15,8 @@ import {
   ObjectParam,
   ObjectRef,
   InterfaceRef,
+  MaybePromiseWithInference,
+  MaybePromise,
 } from '..';
 
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
