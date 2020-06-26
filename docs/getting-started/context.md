@@ -58,7 +58,6 @@ Finally, we need to actually create our context when a request is created.
 const server = new ApolloServer({
     schema,
     context: async ({ req }) => ({
-        // This part is up to you!
         currentUser: await getUserFromAuthHeader(req.headers.authorization),
     }),
 });

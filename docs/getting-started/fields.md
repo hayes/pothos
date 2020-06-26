@@ -11,23 +11,7 @@ Fields for [Object](objects.md) and [Interface](interfaces.md) types are defined
 
 Scalar fields can be defined a couple of different ways:
 
-### Field method
-
-```typescript
-builder.queryType({
-  fields: t => ({
-    name: t.field({
-      description: 'Name field'
-      type: 'String',
-      resolve: () => 'Gina',
-    }),
-  }),
-});
-```
-
-### Convenience methods
-
-Convenience methods are just a wrapper around the `field` method, that omit the `type` option.
+1. Using convenience methods
 
 ```typescript
 builder.queryType({
@@ -43,6 +27,20 @@ builder.queryType({
         booleanList: t.booleanList({ resolve: () => [false] }),
         stringList: t.stringList({ resolve: () => ['abc'] }),
     }),
+});
+```
+
+1. Using the generic `field` method
+
+```typescript
+builder.queryType({
+  fields: t => ({
+    name: t.field({
+      description: 'Name field'
+      type: 'String',
+      resolve: () => 'Gina',
+    }),
+  }),
 });
 ```
 
@@ -68,7 +66,7 @@ builder.queryType({
 });
 ```
 
-For types not described in the `TypeInfo` type provided to the builder, including types that can not be aded there like [Unions](unions.md) and [Enums](enums.md), you can use a `Ref` returned by the builder method that created them in the `type` parameter.  For types created using a class \([Objects](enums.md) or [Interfaces](interfaces.md)\) or [Enums](enums.md) created using a typescript enum, you can also use the the `class` or `enum` that was used to define them.
+Any type include types that do not have a backing model such as [Unions](unions.md) and [Enums](enums.md) can be referenced directly using the implementation.
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
@@ -116,7 +114,7 @@ builder.queryType({
 
 ## Nullable fields
 
-Unlike some other GraphQL implementations, fields in GiraphQL are required by default. It is still often desirable to make fields in your schema nullable.  This default is not currently configurable, but support for changing default nullability/requiredness will likely be added in the future.
+Unlike some other GraphQL implementations, fields in GiraphQL are required by default. It is still often desirable to make fields in your schema nullable.
 
 ```typescript
 builder.queryType({
@@ -149,9 +147,9 @@ builder.queryType({
 
 Note that by default even if a list field is nullable, the items in that list are not. The last example above shows how you can make list items nullable.
 
-## Exposing fields from the underlying data
+## Exposing fields from backing models
 
-Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve field that have a property of the same name in the underlying data. In GiraphQL, these relationships need to be explicitly defined, but there are helper methods that make exposing fields easier.
+Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve fields that match the types defined for the backing model. In GiraphQL, these relationships need to be explicitly defined, but there are helper methods that make exposing fields easier.
 
 These helpers are not available for root types \(Query, Mutation and Subscription\), but will work on any other object type or interface.
 
@@ -162,7 +160,7 @@ const builder = new SchemaBuilder<{
 
 builder.objectType('Giraffe', {
   fields: t => ({
-    name: t.exposeString('name', {})
+    name: t.exposeString('name')
   }),
 });
 ```

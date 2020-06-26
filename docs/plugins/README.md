@@ -1,24 +1,23 @@
 # Plugins
 
-* [`@giraphql/plugin-auth`](auth.md): A plugin for adding authorization checks
+-   [`@giraphql/plugin-auth`](auth.md): A plugin for adding authorization checks
 
-  throughout your schema
+    throughout your schema
 
-* [`@giraphql/plugin-relay`](relay.md): A plugin for adding builder methods for defining
+-   [`@giraphql/plugin-relay`](relay.md): A plugin for adding builder methods for defining
 
-  relay style nodes and connections, and some helpful utilities for cursor based pagination
+    relay style nodes and connections, and some helpful utilities for cursor based pagination
 
-* [`@giraphql/plugin-smart-subscriptions`](smart-subscriptions.md): A plugin for a more
+-   [`@giraphql/plugin-smart-subscriptions`](smart-subscriptions.md): A plugin for a more
 
-  graph friendly way of defining subscriptions.
+    graph friendly way of defining subscriptions.
 
-* [`@giraphql/plugin-simple-objects`](simple-objects.md): A plugin for creating simple
+-   [`@giraphql/plugin-simple-objects`](simple-objects.md): A plugin for creating simple
 
-  objects and interfaces without resolvers or arguments.
+    objects and interfaces without resolvers or arguments.
 
-* [`@giraphql/plugin-mocks`](mocks.md): A plugin for mocking out resolvers in your
+-   [`@giraphql/plugin-mocks`](mocks.md): A plugin for mocking out resolvers in your
 
-  schema.
+    schema.
 
-* More plugins coming soon \(including a plugin for Prisma\)
-
+-   More plugins coming soon \(including a plugin for Prisma\)

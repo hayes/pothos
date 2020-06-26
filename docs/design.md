@@ -1,10 +1,8 @@
----
-description: >-
-  This is a high level overview of some of the internal concepts used in
-  GiraphQL, and is not critical to normal usage of GiraphQL in an application.
----
-
 # Design
+
+## Design overview
+
+This is a high level overview of some of the internal concepts used in GiraphQL, and is not critical to normal usage of GiraphQL in an application.
 
 ## Type System
 
@@ -41,4 +39,6 @@ the `BasePlugin` class describes the hooks that are available for plugins, and e
 #### BaseFieldWrapper
 
 The `BaseFieldWrapper` class provides functionality for wrapping fields with additional runtime logic. There are a lot of use cases for wrapping fields, and when too many things need to wrap fields to add their own logic, things can get complicated, and there are a lot of complex edge cases to consider. The BaseFieldWrapper simplifies to process of hooking into the execution lifecycle of fields, allowing for running code before the field executes, after a field resolves, when the concrete type of a returned object/interface/union is determined, as well as a way to pass information down through the tree as a request is resolved.
+
+### Field wrapping
 

@@ -9,27 +9,9 @@ Similar to the [Fields Guide](fields.md), the examples here will mostly be for t
 
 ## Scalars
 
-Scalar args can be defined a couple of different ways
+Scalar args can be defined a couple of different ways:
 
-### Using  the `t.arg` method
-
-```typescript
-const Query = builder.queryType({
-    fields: (t) => ({
-        string: t.string({
-            args: {
-                string: t.arg({
-                    type: 'String',
-                    description: 'String arg',
-                }),
-            },
-            resolve: (parent, args) => arg.string,
-        }),
-    }),
-});
-```
-
-### Using convenience methods
+1. Using convenience methods
 
 ```typescript
 const Query = builder.queryType({
@@ -48,6 +30,24 @@ const Query = builder.queryType({
                 stringList: t.arg.stringList({}),
             },
             resolve: (root, args) => Object.keys(args),
+        }),
+    }),
+});
+```
+
+1. Using the generic `t.arg` method
+
+```typescript
+const Query = builder.queryType({
+    fields: (t) => ({
+        string: t.string({
+            args: {
+                string: t.arg({
+                    type: 'String',
+                    description: 'String arg',
+                }),
+            },
+            resolve: (parent, args) => arg.string,
         }),
     }),
 });

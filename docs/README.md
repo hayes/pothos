@@ -57,7 +57,7 @@ new ApolloServer({
 
   * [`@giraphql/plugin-simple-objects`](plugins/simple-objects.md): A plugin for creating simple
 
-    objects and interfaces without resolvers or arguments.
+    objects and interfaces without defining types, resolvers, or arguments.
 
   * [`@giraphql/plugin-mocks`](plugins/mocks.md): A plugin for mocking out resolvers in your
 
