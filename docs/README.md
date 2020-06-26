@@ -41,6 +41,7 @@ new ApolloServer({
 
   as adding runtime features like authorization.
 
+* A lack of dependencies: GiraphQL uses `graphql` as it's only peer dependency
 * A set of plugins for common use cases:
   * [`@giraphql/plugin-auth`](plugins/auth.md): A plugin for adding authorization checks
 
