@@ -3,7 +3,7 @@ name: ArgBuilder
 menu: Api
 ---
 
-# ArgBuilder
+# ArgBuilder API
 
 * `options`: \[`FieldOptions`\]
 

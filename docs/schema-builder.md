@@ -3,7 +3,7 @@ name: SchemaBuilder
 menu: Api
 ---
 
-# SchemaBuilder
+# SchemaBuilder API
 
 SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a graphql.js Schema.
 

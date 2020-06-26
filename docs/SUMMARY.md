@@ -20,8 +20,8 @@
   * [Relay Plugin](plugins/relay.md)
   * [Simple Objects Plugin](plugins/simple-objects.md)
   * [Smart Subscriptions Plugin](plugins/smart-subscriptions.md)
-* [SchemaBuilder](schema-builder.md)
-* [ArgBuilder](arg-builder.md)
-* [FieldBuilder](field-builder.md)
-* [InputFieldBuilder](input-field-builder.md)
+* [SchemaBuilder API](schema-builder.md)
+* [ArgBuilder API](arg-builder.md)
+* [FieldBuilder API](field-builder.md)
+* [InputFieldBuilder API](input-field-builder.md)
 

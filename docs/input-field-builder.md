@@ -3,7 +3,7 @@ name: InputFieldBuilder
 menu: Api
 ---
 
-# InputFieldBuilder
+# InputFieldBuilder API
 
 ## `field(options)`
 

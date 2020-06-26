@@ -206,3 +206,24 @@ builder.queryType({
 
 For more information see the [Arguments Guide](args.md).
 
+## Adding fields to existing type
+
+In addition to being able to define fields when defining types, you can also add additional fields independently.  This is useful for breaking up types with a lot of fields into multiple files, or co-locating fields with their type \(eg add all query/mutation fields for a type in the same file where the type is defined\).
+
+```typescript
+builder.queryFields((t) => ({
+  giraffe: t.field({
+    type: Giraffe,
+    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+  }),
+}));
+
+builder.objectField(Giraffe, 'ageInDogYears', (t) =>
+  t.int({
+    resolve: (parent) => parent.age * 7,
+  }),
+);
+```
+
+To see all they methods available for defining fields see the [SchemaBuilder API](schema-builder.md)
+
