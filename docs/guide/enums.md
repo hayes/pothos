@@ -11,13 +11,13 @@ Enums can be defined a number of different ways:
 
 ```typescript
 export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
+    HERBIVOROUS,
+    CARNIVOROUS,
+    OMNIVORIOUS,
 }
 
 builder.enumType(Diet, {
-  name: 'Diet',
+    name: 'Diet',
 });
 ```
 
@@ -25,7 +25,7 @@ builder.enumType(Diet, {
 
 ```typescript
 export const LengthUnit = builder.enumType('LengthUnit', {
-  values: ['Feet', 'Meters'] as const,
+    values: ['Feet', 'Meters'] as const,
 });
 ```
 
@@ -35,21 +35,21 @@ Note that we use `as const` to allow ts to properly type our enum values.
 
 ```typescript
 export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
-  values: {
-    Southern: {
-      description: 'Also known as two-horned giraffe',
-      value: 'giraffa',
-    },
-    Masai: {
-      value: 'tippelskirchi',
-    },
-    Reticulated: {
-      value: 'reticulata',
-    },
-    Northern: {
-      value: 'camelopardalis',
-    },
-  } as const,
+    values: {
+        Southern: {
+            description: 'Also known as two-horned giraffe',
+            value: 'giraffa',
+        },
+        Masai: {
+            value: 'tippelskirchi',
+        },
+        Reticulated: {
+            value: 'reticulata',
+        },
+        Northern: {
+            value: 'camelopardalis',
+        },
+    } as const,
 });
 ```
 
@@ -67,26 +67,26 @@ using the typescript enum. They can be used either as arguments, or as field ret
 
 ```typescript
 builder.objectFields('Giraffe', (t) => ({
-  height: t.float({
-    args: {
-      unit: t.arg({
-        type: LengthUnit,
-        required: true,
-        defaultValue: 'Meters',
-      }),
-    },
-    resolve: (parent, args) =>
-      args.unit === 'Meters' ? parent.heightInMeters : parent.heightInMeters * 3.281,
-  }),
-  diet: t.field({
-    description:
-      'While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium',
-    type: Diet,
-    resolve: () => Diet.HERBIVOROUS,
-  }),
-  species: t.field({
-    type: GiraffeSpecies,
-    resolve: () => 'camelopardalis' as const,
-  }),
+    height: t.float({
+        args: {
+            unit: t.arg({
+                type: LengthUnit,
+                required: true,
+                defaultValue: 'Meters',
+            }),
+        },
+        resolve: (parent, args) =>
+            args.unit === 'Meters' ? parent.heightInMeters : parent.heightInMeters * 3.281,
+    }),
+    diet: t.field({
+        description:
+            'While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium',
+        type: Diet,
+        resolve: () => Diet.HERBIVOROUS,
+    }),
+    species: t.field({
+        type: GiraffeSpecies,
+        resolve: () => 'camelopardalis' as const,
+    }),
 }));
 ```

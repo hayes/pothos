@@ -15,23 +15,23 @@ Scalar args can be difined a couple of different ways:
 
 ```typescript
 const Query = builder.queryType({
-  fields: (t) => ({
-    withArgs: t.stringList({
-      args: {
-        id: t.arg.id({}),
-        int: t.arg.int({}),
-        float: t.arg.float({}),
-        boolean: t.arg.boolean({}),
-        string: t.arg.string({}),
-        idList: t.arg.idList({}),
-        intList: t.arg.intList({}),
-        floatList: t.arg.floatList({}),
-        booleanList: t.arg.booleanList({}),
-        stringList: t.arg.stringList({}),
-      },
-      resolve: (root, args) => Object.keys(args),
+    fields: (t) => ({
+        withArgs: t.stringList({
+            args: {
+                id: t.arg.id({}),
+                int: t.arg.int({}),
+                float: t.arg.float({}),
+                boolean: t.arg.boolean({}),
+                string: t.arg.string({}),
+                idList: t.arg.idList({}),
+                intList: t.arg.intList({}),
+                floatList: t.arg.floatList({}),
+                booleanList: t.arg.booleanList({}),
+                stringList: t.arg.stringList({}),
+            },
+            resolve: (root, args) => Object.keys(args),
+        }),
     }),
-  }),
 });
 ```
 
@@ -39,17 +39,17 @@ const Query = builder.queryType({
 
 ```typescript
 const Query = builder.queryType({
-  fields: (t) => ({
-    string: t.string({
-      args: {
-        string: t.arg({
-          type: 'String',
-          description: 'String arg',
+    fields: (t) => ({
+        string: t.string({
+            args: {
+                string: t.arg({
+                    type: 'String',
+                    description: 'String arg',
+                }),
+            },
+            resolve: (parent, args) => arg.string,
         }),
-      },
-      resolve: (parent, args) => arg.string,
     }),
-  }),
 });
 ```
 
@@ -86,22 +86,22 @@ argument options.
 
 ```typescript
 const Query = builder.queryType({
-  fields: (t) => ({
-    nullableArgs: t.stringList({
-      args: {
-        optional: t.arg.string({}),
-        required: t.arg.string({ required: true }),
-        requiredList: t.arg.stringList({ required: true }),
-        sparseList: t.stringList({
-          required: {
-            list: true,
-            items: false,
-          },
+    fields: (t) => ({
+        nullableArgs: t.stringList({
+            args: {
+                optional: t.arg.string({}),
+                required: t.arg.string({ required: true }),
+                requiredList: t.arg.stringList({ required: true }),
+                sparseList: t.stringList({
+                    required: {
+                        list: true,
+                        items: false,
+                    },
+                }),
+            },
+            resolve: (parent, args) => Object.keys(args),
         }),
-      },
-      resolve: (parent, args) => Object.keys(args),
     }),
-  }),
 });
 ```
 

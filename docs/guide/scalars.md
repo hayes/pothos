@@ -10,12 +10,12 @@ information in TypeInfo object of the builder:
 
 ```typescript
 const builder = new SchemaBuilder<{
-  Scalars: {
-    Date: {
-      Input: Date;
-      Output: Date;
+    Scalars: {
+        Date: {
+            Input: Date;
+            Output: Date;
+        };
     };
-  };
 }>({});
 
 builder.addScalarType('Date', DateResolver, {});
@@ -29,23 +29,23 @@ using the scalar in their return type.
 
 ```typescript
 const builder = new SchemaBuilder<{
-  Scalars: {
-    PositiveInt: {
-      Input: number;
-      Output: number;
+    Scalars: {
+        PositiveInt: {
+            Input: number;
+            Output: number;
+        };
     };
-  };
 }>({});
 
 builder.scalarType('PositiveInt', {
-  serialize: (n) => n,
-  parseValue: (n) => {
-    if (n >= 0) {
-      return n;
-    }
+    serialize: (n) => n,
+    parseValue: (n) => {
+        if (n >= 0) {
+            return n;
+        }
 
-    throw new Error('Value must be positive');
-  },
+        throw new Error('Value must be positive');
+    },
 });
 ```
 
@@ -53,14 +53,14 @@ builder.scalarType('PositiveInt', {
 
 ```typescript
 builder.queryFields((t) => ({
-  date: t.field({
-    type: 'Date',
-    resolve: () => new Date(),
-  }),
+    date: t.field({
+        type: 'Date',
+        resolve: () => new Date(),
+    }),
 
-  positive: t.field({
-    type: 'PositiveInt',
-    resolve: () => 5,
-  }),
+    positive: t.field({
+        type: 'PositiveInt',
+        resolve: () => 5,
+    }),
 }));
 ```

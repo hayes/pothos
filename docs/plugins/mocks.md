@@ -20,7 +20,7 @@ yarn add @giraphql/plugin-mocks
 ```typescript
 import '@giraphql/plugin-mocks';
 const builder = new SchemaBuilder({
-  plugins: ['GiraphQLMocks'],
+    plugins: ['GiraphQLMocks'],
 });
 ```
 
@@ -31,21 +31,21 @@ You can mock any field by adding a mock in the options passed to `builder.builSc
 
 ```typescript
 builder.queryType({
-  fields: (t) => ({
-    someField: t.string({
-      resolve: () => {
-        throw new Error('Not implemented');
-      },
+    fields: (t) => ({
+        someField: t.string({
+            resolve: () => {
+                throw new Error('Not implemented');
+            },
+        }),
     }),
-  }),
 });
 
 builder.toSchema({
-  mocks: {
-    Query: {
-      someField: (parent, args, context, info) => 'Mock result!',
+    mocks: {
+        Query: {
+            someField: (parent, args, context, info) => 'Mock result!',
+        },
     },
-  },
 });
 ```
 
@@ -58,28 +58,28 @@ To add a mock for a subscriber you can nest the mocks for subscribe and resolve 
 
 ```typescript
 builder.subscriptionType({
-  fields: (t) => ({
-    someField: t.string({
-      resolve: () => {
-        throw new Error('Not implemented');
-      },
-      subscribe: () => {
-        throw new Error('Not implemented');
-      },
+    fields: (t) => ({
+        someField: t.string({
+            resolve: () => {
+                throw new Error('Not implemented');
+            },
+            subscribe: () => {
+                throw new Error('Not implemented');
+            },
+        }),
     }),
-  }),
 });
 
 builder.toSchema({
-  mocks: {
-    Subscription: {
-      someField: {
-        resolve: (parent, args, context, info) => 'Mock result!',
-        subscribe: (parent, args, context, info) => {
-          /* return a mock async iterator */
+    mocks: {
+        Subscription: {
+            someField: {
+                resolve: (parent, args, context, info) => 'Mock result!',
+                subscribe: (parent, args, context, info) => {
+                    /* return a mock async iterator */
+                },
+            },
         },
-      },
     },
-  },
 });
 ```

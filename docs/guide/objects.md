@@ -14,15 +14,15 @@ explained further in later guides.
 
 ```typescript
 export class Giraffe {
-  name: string;
-  birthday: Date;
-  heightInMeters: number;
+    name: string;
+    birthday: Date;
+    heightInMeters: number;
 
-  constructor(name: string, birthday: Date, heightInMeters: number) {
-    this.name = name;
-    this.birthday = birthday;
-    this.heightInMeters = heightInMeters;
-  }
+    constructor(name: string, birthday: Date, heightInMeters: number) {
+        this.name = name;
+        this.birthday = birthday;
+        this.heightInMeters = heightInMeters;
+    }
 }
 ```
 
@@ -32,8 +32,8 @@ export class Giraffe {
 const builder = new SchemaBuilder({});
 
 builder.objectType(Giraffe, {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+    description: 'Long necks, cool patterns, taller than you.',
+    fields: (t) => ({}),
 });
 ```
 
@@ -41,24 +41,24 @@ builder.objectType(Giraffe, {
 
 ```typescript
 builder.objectType('Giraffe', {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({
-    name: t.exposeString('name'),
-    age: t.int({
-      resolve: (parent) => {
-        // Do some date math to get an aproximate age from a birthday
-        const today = new Date(new Date().toDateString());
-        const birthday = new Date(parent.birthday.toDateString());
-        const ageDifMs = Number(today) - Number(birthday);
-        const ageDate = new Date(ageDifMs);
+    description: 'Long necks, cool patterns, taller than you.',
+    fields: (t) => ({
+        name: t.exposeString('name'),
+        age: t.int({
+            resolve: (parent) => {
+                // Do some date math to get an aproximate age from a birthday
+                const today = new Date(new Date().toDateString());
+                const birthday = new Date(parent.birthday.toDateString());
+                const ageDifMs = Number(today) - Number(birthday);
+                const ageDate = new Date(ageDifMs);
 
-        return Math.abs(ageDate.getUTCFullYear() - 1970);
-      },
+                return Math.abs(ageDate.getUTCFullYear() - 1970);
+            },
+        }),
+        height: t.float({
+            resolve: (parent) => parent.heightMeters,
+        }),
     }),
-    height: t.float({
-      resolve: (parent) => parent.heightMeters,
-    }),
-  }),
 });
 ```
 
@@ -66,12 +66,12 @@ builder.objectType('Giraffe', {
 
 ```typescript
 builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: Giraffe,
-      resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    fields: (t) => ({
+        giraffe: t.field({
+            type: Giraffe,
+            resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+        }),
     }),
-  }),
 });
 ```
 
@@ -87,11 +87,11 @@ const schema = builder.toSchema({});
 const server = new ApolloServer({ schema });
 
 server.listen(8000, (error: unknown) => {
-  if (error) {
-    throw error;
-  }
+    if (error) {
+        throw error;
+    }
 
-  console.log('🚀 Server started at http://127.0.0.1:8000');
+    console.log('🚀 Server started at http://127.0.0.1:8000');
 });
 ```
 
@@ -100,11 +100,11 @@ server.listen(8000, (error: unknown) => {
 
 ```graphql
 query {
-  giraffe {
-    name
-    age
-    height
-  }
+    giraffe {
+        name
+        age
+        height
+    }
 }
 ```
 
@@ -119,15 +119,15 @@ There are 3 ways you can define an Object type with a GiraphQL schema builder.
 const builder = new SchemaBuilder<{ Objects: { Giraffe: Giraffe } }>({});
 
 builder.objectType('Giraffe', {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+    description: 'Long necks, cool patterns, taller than you.',
+    fields: (t) => ({}),
 });
 
 builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: 'Giraffe',
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
-  }),
+    giraffe: t.field({
+        type: 'Giraffe',
+        resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    }),
 }));
 ```
 
@@ -145,15 +145,15 @@ types to typedefinitions that describe the data for those types.
 const builder = new SchemaBuilder({});
 
 builder.objectType(Giraffe, {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+    description: 'Long necks, cool patterns, taller than you.',
+    fields: (t) => ({}),
 });
 
 builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: Giraffe,
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
-  }),
+    giraffe: t.field({
+        type: Giraffe,
+        resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    }),
 }));
 ```
 
@@ -165,15 +165,15 @@ const builder = new SchemaBuilder({});
 const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
 
 builder.objectType(GiraffeRef, {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
+    description: 'Long necks, cool patterns, taller than you.',
+    fields: (t) => ({}),
 });
 
 builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: GiraffeRef,
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
-  }),
+    giraffe: t.field({
+        type: GiraffeRef,
+        resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    }),
 }));
 ```
 

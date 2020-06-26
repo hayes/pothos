@@ -17,25 +17,25 @@ These types are used as the backing models for the types defined by the SchemaBu
 import SchemaBuilder from '@giraphql/core';
 
 const builder = new SchemaBuilder<{
-  // Type of the context object
-  Context: {};
-  // parent type in root resolvers (Query, Mutation, Subscription)
-  Root: {};
-  // Backing models/shapes for Objects
-  Objects: {
-    Giraffe: { name: string; age: number };
-  };
-  // Backing models/shapes for Objects
-  Interfaces: {
-    Animal: { name: string };
-  };
-  // Shapes for built-in or custom scalrs
-  Scalars: {
-    // Defines a shape for both input (field args) and outout (resolver return types)
-    ID: { Input: string; Output: string | number };
-  };
+    // Type of the context object
+    Context: {};
+    // parent type in root resolvers (Query, Mutation, Subscription)
+    Root: {};
+    // Backing models/shapes for Objects
+    Objects: {
+        Giraffe: { name: string; age: number };
+    };
+    // Backing models/shapes for Objects
+    Interfaces: {
+        Animal: { name: string };
+    };
+    // Shapes for built-in or custom scalrs
+    Scalars: {
+        // Defines a shape for both input (field args) and outout (resolver return types)
+        ID: { Input: string; Output: string | number };
+    };
 }>({
-  // plugins may add options that can be provided here
+    // plugins may add options that can be provided here
 });
 ```
 

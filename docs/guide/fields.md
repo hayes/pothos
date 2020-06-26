@@ -16,18 +16,18 @@ Scalar fields can be difined a couple of different ways:
 
 ```typescript
 builder.queryType({
-  fields: (t) => ({
-    id: t.id({ resolve: () => '123' }),
-    int: t.int({ resolve: () => 123 }),
-    float: t.float({ resolve: () => 1.23 }),
-    boolean: t.boolean({ resolve: () => false }),
-    string: t.string({ resolve: () => 'abc' }),
-    idList: t.idList({ resolve: () => ['123'] }),
-    intList: t.intList({ resolve: () => [123] }),
-    floatList: t.floatList({ resolve: () => [1.23] }),
-    booleanList: t.booleanList({ resolve: () => [false] }),
-    stringList: t.stringList({ resolve: () => ['abc'] }),
-  }),
+    fields: (t) => ({
+        id: t.id({ resolve: () => '123' }),
+        int: t.int({ resolve: () => 123 }),
+        float: t.float({ resolve: () => 1.23 }),
+        boolean: t.boolean({ resolve: () => false }),
+        string: t.string({ resolve: () => 'abc' }),
+        idList: t.idList({ resolve: () => ['123'] }),
+        intList: t.intList({ resolve: () => [123] }),
+        floatList: t.floatList({ resolve: () => [1.23] }),
+        booleanList: t.booleanList({ resolve: () => [false] }),
+        stringList: t.stringList({ resolve: () => ['abc'] }),
+    }),
 });
 ```
 
@@ -73,25 +73,25 @@ referenced directly using the implementation.
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
-  values: { Feet: {}, Meters: {} },
+    values: { Feet: {}, Meters: {} },
 });
 
 builder.objectType('Giraffe', {
-  fields: (t) => ({
-    preferredNeckLengthUnit: t.field({
-      type: LengthUnit,
-      resolve: () => 'Feet',
+    fields: (t) => ({
+        preferredNeckLengthUnit: t.field({
+            type: LengthUnit,
+            resolve: () => 'Feet',
+        }),
     }),
-  }),
 });
 
 builder.queryType({
-  fields: (t) => ({
-    giraffe: t.field({
-      type: 'Giraffe',
-      resolve: () => ({ name: 'Gina' }),
+    fields: (t) => ({
+        giraffe: t.field({
+            type: 'Giraffe',
+            resolve: () => ({ name: 'Gina' }),
+        }),
     }),
-  }),
 });
 ```
 
@@ -123,30 +123,30 @@ often desirable to make fields in your schema nullable.
 
 ```typescript
 builder.queryType({
-  fields: (t) => ({
-    nullableField: t.field({
-      type: 'String',
-      nullable: true,
-      resolve: () => null,
+    fields: (t) => ({
+        nullableField: t.field({
+            type: 'String',
+            nullable: true,
+            resolve: () => null,
+        }),
+        nullableString: t.string({
+            nullable: true,
+            resolve: () => null,
+        }),
+        nullableList: t.field({
+            type: ['String'],
+            nullable: true,
+            resolve: () => null,
+        }),
+        spareseList: t.field({
+            type: ['String'],
+            nullable: {
+                list: false,
+                items: true,
+            },
+            resolve: () => [null],
+        }),
     }),
-    nullableString: t.string({
-      nullable: true,
-      resolve: () => null,
-    }),
-    nullableList: t.field({
-      type: ['String'],
-      nullable: true,
-      resolve: () => null,
-    }),
-    spareseList: t.field({
-      type: ['String'],
-      nullable: {
-        list: false,
-        items: true,
-      },
-      resolve: () => [null],
-    }),
-  }),
 });
 ```
 
@@ -176,16 +176,16 @@ builder.objectType('Giraffe', {
 
 The available expose helpers are:
 
-- `exposeString`
-- `exposeInt`
-- `exposeFloat`
-- `exposeBoolean`
-- `exposeID`
-- `exposeStringList`
-- `exposeIntList`
-- `exposeFloatList`
-- `exposeBooleanList`
-- `exposeIDList`
+-   `exposeString`
+-   `exposeInt`
+-   `exposeFloat`
+-   `exposeBoolean`
+-   `exposeID`
+-   `exposeStringList`
+-   `exposeIntList`
+-   `exposeFloatList`
+-   `exposeBooleanList`
+-   `exposeIDList`
 
 ## Arguments
 
@@ -193,21 +193,21 @@ Arguments for a field can defined in the options for a field:
 
 ```typescript
 builder.queryType({
-  fields: (t) => ({
-    giraffeByName: t.field({
-      type: 'Giraffe',
-      args: {
-        name: t.arg.string({ required: true }),
-      },
-      resolve: (root, args) => {
-        if (args.name !== 'Gina') {
-          throw new NotFoundError(`Unknown Giraffe ${name}`);
-        }
+    fields: (t) => ({
+        giraffeByName: t.field({
+            type: 'Giraffe',
+            args: {
+                name: t.arg.string({ required: true }),
+            },
+            resolve: (root, args) => {
+                if (args.name !== 'Gina') {
+                    throw new NotFoundError(`Unknown Giraffe ${name}`);
+                }
 
-        return { name: 'Gina' };
-      },
+                return { name: 'Gina' };
+            },
+        }),
     }),
-  }),
 });
 ```
 

@@ -12,30 +12,30 @@ Lets update our Giraffe class a bit to make it work well for interfaces:
 
 ```typescript
 export class Animal {
-  diet: Diet;
+    diet: Diet;
 
-  constructor(diet: Diet) {
-    this.diet = diet;
-  }
+    constructor(diet: Diet) {
+        this.diet = diet;
+    }
 }
 
 export class Giraffe extends Animal {
-  name: string;
-  birthday: Date;
-  heightInMeters: number;
+    name: string;
+    birthday: Date;
+    heightInMeters: number;
 
-  constructor(name: string, birthday: Date, heightInMeters: number) {
-    super(Diet.HERBIVOROUS);
+    constructor(name: string, birthday: Date, heightInMeters: number) {
+        super(Diet.HERBIVOROUS);
 
-    this.name = name;
-    this.birthday = birthday;
-    this.heightInMeters = heightInMeters;
-  }
+        this.name = name;
+        this.birthday = birthday;
+        this.heightInMeters = heightInMeters;
+    }
 }
 export enum Diet {
-  HERBIVOROUS,
-  CARNIVOROUS,
-  OMNIVORIOUS,
+    HERBIVOROUS,
+    CARNIVOROUS,
+    OMNIVORIOUS,
 }
 ```
 
@@ -47,16 +47,16 @@ our diet field:
 
 ```typescript
 builder.interfaceType(Animal, {
-  name: 'AnimalFromClass',
-  fields: (t) => ({
-    diet: t.expose('diet', {
-      type: Diet,
+    name: 'AnimalFromClass',
+    fields: (t) => ({
+        diet: t.expose('diet', {
+            type: Diet,
+        }),
     }),
-  }),
 });
 
 builder.enumType(Diet, {
-  name: 'Diet',
+    name: 'Diet',
 });
 ```
 
@@ -64,12 +64,12 @@ builder.enumType(Diet, {
 
 ```typescript
 builder.objectType(Giraffe, {
-  name: 'Giraffe',
-  interfaces: [Animal],
-  isTypeOf: (value) => value instanceof Giraffe,
-  fields: (t) => ({
-    name: t.exposeString('name', {}),
-  }),
+    name: 'Giraffe',
+    interfaces: [Animal],
+    isTypeOf: (value) => value instanceof Giraffe,
+    fields: (t) => ({
+        name: t.exposeString('name', {}),
+    }),
 });
 ```
 
@@ -85,10 +85,10 @@ Usinig interfaces as return types for fields works just like objects:
 
 ```typescript
 builder.queryFields((t) => ({
-  animal: t.field({
-    type: 'Animal',
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
-  }),
+    animal: t.field({
+        type: 'Animal',
+        resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    }),
 }));
 ```
 
@@ -98,10 +98,10 @@ We can query interface fields like diet on any field that returns a giraffe:
 
 ```graphql
 query {
-  giraffe {
-    name
-    diet
-  }
+    giraffe {
+        name
+        diet
+    }
 }
 ```
 
@@ -110,11 +110,11 @@ concrete type:
 
 ```graphql
 query {
-  animal {
-    diet
-    ... on Giraffe {
-      name
+    animal {
+        diet
+        ... on Giraffe {
+            name
+        }
     }
-  }
 }
 ```

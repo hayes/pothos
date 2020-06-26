@@ -56,11 +56,11 @@ const builder = new SchemaBuilder({
 
 ```typescript
 const builder = new SchemaBuilder({
-  smartSubscriptions: {
-    ...subscribeOptionsFromIterator((name, { pubsub }) => {
-      return pubsub.asyncIterator(name);
-    }),
-  },
+    smartSubscriptions: {
+        ...subscribeOptionsFromIterator((name, { pubsub }) => {
+            return pubsub.asyncIterator(name);
+        }),
+    },
 });
 ```
 
@@ -148,17 +148,17 @@ decendents of this object will no be refetched.
 
 ```typescript
 builder.objectType('Poll', {
-  fields: (t) => ({
-    question: t.exposeString('question', {}),
-    answers: t.field({
-      nullable: true,
-      type: ['Answer'],
-      subscribe: (subscriptions, poll) => subscriptions.register(`poll-answers/${poll.id}`),
-      resolve: (parent, args, context, info) => {
-        return parent.answers;
-      },
+    fields: (t) => ({
+        question: t.exposeString('question', {}),
+        answers: t.field({
+            nullable: true,
+            type: ['Answer'],
+            subscribe: (subscriptions, poll) => subscriptions.register(`poll-answers/${poll.id}`),
+            resolve: (parent, args, context, info) => {
+                return parent.answers;
+            },
+        }),
     }),
-  }),
 });
 ```
 
@@ -166,22 +166,22 @@ builder.objectType('Poll', {
 
 ```typescript
 builder.objectType('Poll', {
-  fields: (t) => ({
-    question: t.exposeString('question', {}),
-    answers: t.field({
-      nullable: true,
-      type: ['Answer'],
-      canRefetch: true,
-      subscribe: (subscriptions, poll) =>
-        subscriptions.register(`poll-answers/${poll.id}`, {
-          filter: (value) => true | false,
-          invalidateCache: (value) => context.PollCache.remove(poll.id),
+    fields: (t) => ({
+        question: t.exposeString('question', {}),
+        answers: t.field({
+            nullable: true,
+            type: ['Answer'],
+            canRefetch: true,
+            subscribe: (subscriptions, poll) =>
+                subscriptions.register(`poll-answers/${poll.id}`, {
+                    filter: (value) => true | false,
+                    invalidateCache: (value) => context.PollCache.remove(poll.id),
+                }),
+            resolve: (parent, args, context, info) => {
+                return parent.answers;
+            },
         }),
-      resolve: (parent, args, context, info) => {
-        return parent.answers;
-      },
     }),
-  }),
 });
 ```
 
