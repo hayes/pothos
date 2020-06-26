@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-extends",
-  "version": "0.16.4",
+  "version": "1.0.0",
   "description": "",
   "main": "lib/index.js",
   "scripts": {

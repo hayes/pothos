@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-smart-subscriptions",
-  "version": "0.17.0",
+  "version": "1.0.0",
   "description": "A GiraphQL plugin for turning queries into subscriptions",
   "main": "lib/index.js",
   "scripts": {
