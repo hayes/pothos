@@ -21,7 +21,7 @@
   * [Simple Objects Plugin](plugins/simple-objects.md)
   * [Smart Subscriptions Plugin](plugins/smart-subscriptions.md)
 * [SchemaBuilder API](schema-builder.md)
-* [ArgBuilder API](arg-builder.md)
 * [FieldBuilder API](field-builder.md)
+* [ArgBuilder API](arg-builder.md)
 * [InputFieldBuilder API](input-field-builder.md)
 
