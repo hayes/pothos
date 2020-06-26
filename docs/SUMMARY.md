@@ -1,6 +1,5 @@
 # Table of contents
 
-* [Introduction](README.md)
 * [Overview](overview.md)
 * [Getting Started](getting-started/README.md)
   * [Object Types](getting-started/objects.md)
