@@ -64,10 +64,6 @@ const builder = new SchemaBuilder({
 });
 ```
 
-### Knownn limitations
-
-Currently data from subscriptions is typed as `unknown`. This should be improved in the future.
-
 ### Creaating a smart subscription
 
 ```typescript
@@ -193,3 +189,8 @@ Similar to subscriptions on objects, fields can pass `filter` and `invalidateCac
 registering a subsciption. Rather than passing a `refetch` function, you can set `canRefetch` to
 `true` in the field options. This will re-run the current resolve function to update it (and it's
 children) without having to re-run the rest of the query.
+
+### Knownn limitations
+
+Currently value passed to `filter` and `invalidateCache` is typed as `unknown`. This should be
+improved in the future.

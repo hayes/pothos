@@ -41,7 +41,7 @@ builder.queryFields((t) => ({
   }),
   listOfIDs: t.globalIDList({
     resolve: (parent, args, context) => {
-      return [{ id: 123, type: 'SomeType' as const }];
+      return [{ id: 123, type: 'SomeType' }];
     },
   }),
 }));
