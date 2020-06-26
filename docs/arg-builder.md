@@ -5,6 +5,8 @@ menu: Api
 
 # ArgBuilder API
 
+## `arg(options)`
+
 * `options`: \[`FieldOptions`\]
 
 ### FieldOptions
@@ -33,14 +35,14 @@ A set of helpers for creating scalar fields. This work the same as ArgBuilder, b
 
 ### Scalars
 
-* `string(options)`
-* `id(options)`
-* `boolean(options)`
-* `int(options)`
-* `float(options)`
-* `stringList(options)`
-* `idList(options)`
-* `booleanList(options)`
-* `intList(options)`
-* `floatList(options)`
+* `arg.string(options)`
+* `arg.id(options)`
+* `arg.boolean(options)`
+* `arg.int(options)`
+* `arg.float(options)`
+* `arg.stringList(options)`
+* `arg.idList(options)`
+* `arg.booleanList(options)`
+* `arg.intList(options)`
+* `arg.floatList(options)`
 
