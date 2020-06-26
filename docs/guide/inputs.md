@@ -3,6 +3,8 @@ name: Input Types
 menu: Guide
 ---
 
+# inputs
+
 ## Creating Input objects
 
 Input objects can be created using builder.inputType.
@@ -32,13 +34,9 @@ builder.mutationType({
 
 ## Recursive inputs
 
-Types for recusive inputs get a slightly more complicated to implement because their types can't
-easoly be inferred. Referencining other input types works without any additional logic, as long as
-there is no circular reference to the original type.
+Types for recusive inputs get a slightly more complicated to implement because their types can't easoly be inferred. Referencining other input types works without any additional logic, as long as there is no circular reference to the original type.
 
-To build input types with recusive references you can use `builder.inputRef` along with a type or
-interface that descibes the fields of your input object. The builder will still ensure all the types
-are correct, but needs to type definitions to help infer the correct values.
+To build input types with recusive references you can use `builder.inputRef` along with a type or interface that descibes the fields of your input object. The builder will still ensure all the types are correct, but needs to type definitions to help infer the correct values.
 
 ```typescript
 interface RecursiveGiraffeInputShape {
@@ -87,3 +85,4 @@ builder.mutationType({
     }),
 });
 ```
+

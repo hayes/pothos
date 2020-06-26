@@ -3,13 +3,13 @@ name: SchemaBuilder
 menu: Guide
 ---
 
-The schema builder is the core of GiraphQL. It is used to create types, and then stich those types
-into a GraphQL schema.
+# schema-builder
+
+The schema builder is the core of GiraphQL. It is used to create types, and then stich those types into a GraphQL schema.
 
 ## Creating a Schema Builder
 
-The SchemaBuilder takes a TypeParam that extends a Partial
-[`TypeInfo`](/api-schema-builder#typeinfo).
+The SchemaBuilder takes a TypeParam that extends a Partial [`TypeInfo`](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/api-schema-builder/README.md#typeinfo).
 
 These types are used as the backing models for the types defined by the SchemaBuilder.
 
@@ -39,8 +39,7 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-The types provided here are used to enforce the types in resolvers, both for resolver arguments and
-return values.
+The types provided here are used to enforce the types in resolvers, both for resolver arguments and return values.
 
 ```typescript
 builder.objectType(
@@ -59,3 +58,4 @@ builder.objectType(
   },
 );
 ```
+

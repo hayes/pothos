@@ -26,8 +26,7 @@ const builder = new SchemaBuilder({
 
 ### Adding mocks
 
-You can mock any field by adding a mock in the options passed to `builder.builSchema` under
-`mocks.{typeName}.{fieldName}`.
+You can mock any field by adding a mock in the options passed to `builder.builSchema` under `mocks.{typeName}.{fieldName}`.
 
 ```typescript
 builder.queryType({
@@ -49,8 +48,7 @@ builder.toSchema({
 });
 ```
 
-Mocks will replace the resolve functions any time a mocked field is executed. A schema can be build
-multiple times with different mocks.
+Mocks will replace the resolve functions any time a mocked field is executed. A schema can be build multiple times with different mocks.
 
 ### Adding mocks for subscribe functions
 
@@ -83,3 +81,4 @@ builder.toSchema({
     },
 });
 ```
+

@@ -3,6 +3,8 @@ name: Enum Types
 menu: Guide
 ---
 
+# enums
+
 ## Defining Enum Types
 
 Enums can be defined a number of different ways:
@@ -21,7 +23,7 @@ builder.enumType(Diet, {
 });
 ```
 
-2. Using an array of strings
+1. Using an array of strings
 
 ```typescript
 export const LengthUnit = builder.enumType('LengthUnit', {
@@ -31,7 +33,7 @@ export const LengthUnit = builder.enumType('LengthUnit', {
 
 Note that we use `as const` to allow ts to properly type our enum values.
 
-3. Using a values object:
+1. Using a values object:
 
 ```typescript
 export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
@@ -53,17 +55,13 @@ export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
 });
 ```
 
-Again we use `as const` here to allow the enum values to be correctly inferred. The `as const` can
-also be added to the values instead, or omitted if the `values` already are defined using a varaible
-that typescript can type correctly.
+Again we use `as const` here to allow the enum values to be correctly inferred. The `as const` can also be added to the values instead, or omitted if the `values` already are defined using a varaible that typescript can type correctly.
 
-Using a values object like this enables defining additional options like a description for each enum
-value.
+Using a values object like this enables defining additional options like a description for each enum value.
 
 ## Using Enum Types
 
-Enums can be references either by the `Ref` that was retunred by calling `builder.enumType` or by
-using the typescript enum. They can be used either as arguments, or as field return types:
+Enums can be references either by the `Ref` that was retunred by calling `builder.enumType` or by using the typescript enum. They can be used either as arguments, or as field return types:
 
 ```typescript
 builder.objectFields('Giraffe', (t) => ({
@@ -90,3 +88,4 @@ builder.objectFields('Giraffe', (t) => ({
     }),
 }));
 ```
+

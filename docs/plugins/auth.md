@@ -7,20 +7,18 @@ menu: Plugins
 
 This plugin provides a way to handle authorization/permissions checks throughout your schema.
 
-Because GraphQL schemas are graphs and fields can be aliased in responses, knowing what data is
-accessed at the root a query can be very difficult. Using a traditioal pattern of performing checks
-at the start of a request, or by inrospecting the result of a request does not work well, since data
-may be queried through a complex set of relations, and the resulting response can have fields
-aliased to any other name.
+Because GraphQL schemas are graphs and fields can be aliased in responses, knowing what data is accessed at the root a query can be very difficult. Using a traditioal pattern of performing checks at the start of a request, or by inrospecting the result of a request does not work well, since data may be queried through a complex set of relations, and the resulting response can have fields aliased to any other name.
 
 The GirahQL auth plugin tries to solve a number of common authorization patterns/problems:
 
--   Simple checks on any field in a schem (At the Query/Mutation level, or nested deep inside a
-    schema)
--   Checks that run before resolving any field of a specific type
--   Checks that run after resolving any field of a specific type
--   Defining reusable permissions that are used by multiple field on the same object
--   Granting permissions from a parent field to the objects/types it returns
+* Simple checks on any field in a schem \(At the Query/Mutation level, or nested deep inside a
+
+  schema\)
+
+* Checks that run before resolving any field of a specific type
+* Checks that run after resolving any field of a specific type
+* Defining reusable permissions that are used by multiple field on the same object
+* Granting permissions from a parent field to the objects/types it returns
 
 ## Usage
 
@@ -67,13 +65,11 @@ builder.queryType({
 });
 ```
 
-This check will run before the resolver for `Query.hello` runs and will return an authorization
-error for any request where the name is not capitalized.
+This check will run before the resolver for `Query.hello` runs and will return an authorization error for any request where the name is not capitalized.
 
 ### Reusing permission checks
 
-As you add more fields to your schema, you may want to re-use the same permission checks on multiple
-fields:
+As you add more fields to your schema, you may want to re-use the same permission checks on multiple fields:
 
 ```typescript
 builder.queryType({
@@ -129,21 +125,13 @@ builder.queryType({
 });
 ```
 
-The `permissions` option allows you to create reusable permission checks that can be referenced by
-`permissionCheck` on any field on that type. Permissions defined using `permissions` option do _NOT_
-work with `extends` fields from `@giraphql/plugin-extends` since those fields would have a different
-parent type.
+The `permissions` option allows you to create reusable permission checks that can be referenced by `permissionCheck` on any field on that type. Permissions defined using `permissions` option do _NOT_ work with `extends` fields from `@giraphql/plugin-extends` since those fields would have a different parent type.
 
-If multiple fields of an object use the same permission, the result of that check will be cached,
-and the check function will only be called once. This caching will only apply for checks called with
-the same `parent` object, so if the check exists on a type that is returned in a list, the check
-will be called for each object in that list.
+If multiple fields of an object use the same permission, the result of that check will be cached, and the check function will only be called once. This caching will only apply for checks called with the same `parent` object, so if the check exists on a type that is returned in a list, the check will be called for each object in that list.
 
 ## Default permission checks
 
-Often most fields on a type will use the same permission checks. To make this a little simpler, you
-can set default permission checks for a type that will be applied to any fields that do not
-explicitly set a permission check.
+Often most fields on a type will use the same permission checks. To make this a little simpler, you can set default permission checks for a type that will be applied to any fields that do not explicitly set a permission check.
 
 ```typescript
 builder.queryType({
@@ -168,13 +156,7 @@ builder.queryType({
 
 ## Granting permission checks to children
 
-There are often cases where either it is more efficient to do a permission check once in a parent
-resolver, or the context you need to determine if a request should be authorized is not available in
-a child resolver. The naive solution would be to simple do the check in the parent, and not have
-permission checks for you child resolvers. Unfortunatly this is suseptable to creating problems down
-the road if there are new resolvers that expose the same type, but forget that they need to add an
-auth check for the children. To address these kinds of use cases, the auth plugin allows fields to
-defiine a set of permissions to grant to the returned child.
+There are often cases where either it is more efficient to do a permission check once in a parent resolver, or the context you need to determine if a request should be authorized is not available in a child resolver. The naive solution would be to simple do the check in the parent, and not have permission checks for you child resolvers. Unfortunatly this is suseptable to creating problems down the road if there are new resolvers that expose the same type, but forget that they need to add an auth check for the children. To address these kinds of use cases, the auth plugin allows fields to defiine a set of permissions to grant to the returned child.
 
 ```typescript
 builder.queryType({
@@ -212,11 +194,7 @@ builder.objectType('Person', {
 
 ## Running permission checks for all resolvers for a type
 
-As your schema gets more complicated, some types may be reference by fields on a lot of different
-types. This can make it hard to keep all the permission checks for this popular type in sync and
-ensure that all fields have appropriate checks. To make this simpler there is a `preResolveCheck`
-you can add to object types that allows you to define a check that will run before any resolver for
-that type.
+As your schema gets more complicated, some types may be reference by fields on a lot of different types. This can make it hard to keep all the permission checks for this popular type in sync and ensure that all fields have appropriate checks. To make this simpler there is a `preResolveCheck` you can add to object types that allows you to define a check that will run before any resolver for that type.
 
 ```typescript
 builder.queryType({
@@ -251,23 +229,13 @@ builder.objectType('Person', {
 });
 ```
 
-the `preResolveCheck` only receives the `context` object because the `parent` and args will vary
-depending on which resolver is being called. It can return an map of authorizations the same way an
-auch check on a field can. This approach allows you to define all of the auth for your type in one
-place, and is the recomended path for applications where you want more ridged controls over your
-permission checks. The check functiion may return a boolean, or a map of permissions.
+the `preResolveCheck` only receives the `context` object because the `parent` and args will vary depending on which resolver is being called. It can return an map of authorizations the same way an auch check on a field can. This approach allows you to define all of the auth for your type in one place, and is the recomended path for applications where you want more ridged controls over your permission checks. The check functiion may return a boolean, or a map of permissions.
 
-Because the `preResolveCheck` only receives the context object, it will be run at most once per
-request and its result will be cached for subsequent fields of the same kind.
+Because the `preResolveCheck` only receives the context object, it will be run at most once per request and its result will be cached for subsequent fields of the same kind.
 
-One thing to note about `preResolveCheck` is that checks for all members of a union field, and all
-implementors of an interface will be run before fields that return a union or interface, since there
-is no way to determine the actual type before resolving. This can be disabled with the
-`skipPreResolveOnInterfaces` and `skipPreResolveOnUnions` options for the plugin, or by setting
-`skipImplementorPreResolveChecks` on the interface or `skipMemberPreResolveChecks` on the union.
+One thing to note about `preResolveCheck` is that checks for all members of a union field, and all implementors of an interface will be run before fields that return a union or interface, since there is no way to determine the actual type before resolving. This can be disabled with the `skipPreResolveOnInterfaces` and `skipPreResolveOnUnions` options for the plugin, or by setting `skipImplementorPreResolveChecks` on the interface or `skipMemberPreResolveChecks` on the union.
 
-Another option is to use `postResolveCheck`s, which will run for each instance of a type after it
-has been resolved, and will work with interface and unions fields as well.
+Another option is to use `postResolveCheck`s, which will run for each instance of a type after it has been resolved, and will work with interface and unions fields as well.
 
 ```typescript
 builder.interfaceType('Shape', {
@@ -307,3 +275,4 @@ builder.queryFields((t) => ({
 ## API
 
 TODO
+

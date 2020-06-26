@@ -3,9 +3,9 @@ name: Defining Arguments
 menu: Guide
 ---
 
-Similar to the [Fields Guide](/guide-fields), the examples here will mostly be for the Query type,
-but the same patters can be used anywhere that arguments for fields can be defined, including both
-Object and Interface types.
+# args
+
+Similar to the [Fields Guide](https://github.com/hayes/giraphql/tree/d9ede803cce6816f6760f89b9301c6607bc1ad66/guide-fields/README.md), the examples here will mostly be for the Query type, but the same patters can be used anywhere that arguments for fields can be defined, including both Object and Interface types.
 
 ## Scalars
 
@@ -35,7 +35,7 @@ const Query = builder.queryType({
 });
 ```
 
-2. Using the generic `t.arg` method
+1. Using the generic `t.arg` method
 
 ```typescript
 const Query = builder.queryType({
@@ -81,8 +81,7 @@ const Giraffe = builder.objectType('Giraffe', {
 
 ## required args
 
-Arguments are optional by default, but can be made required by passing `required: true` in the
-argument options.
+Arguments are optional by default, but can be made required by passing `required: true` in the argument options.
 
 ```typescript
 const Query = builder.queryType({
@@ -105,8 +104,7 @@ const Query = builder.queryType({
 });
 ```
 
-Note that by default even if a list arg is optional, the items in that list are not. The last
-argument in the example above shows how you can make list items optional.
+Note that by default even if a list arg is optional, the items in that list are not. The last argument in the example above shows how you can make list items optional.
 
 ## Lists
 
@@ -133,9 +131,5 @@ const Query = builder.queryType({
     })
   }),
 });
-
 ```
 
-[inputs]: /guide-inputs
-[enums]: /guide-enums
-[fieldbuilder]: /api-field-builder

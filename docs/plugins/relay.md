@@ -5,8 +5,7 @@ menu: Plugins
 
 # Relay Plugin
 
-The Relay plugin adds a number of builder methods a helper functions to simplify building a relay
-compatible schema.
+The Relay plugin adds a number of builder methods a helper functions to simplify building a relay compatible schema.
 
 ## Usage
 
@@ -27,8 +26,7 @@ const builder = new SchemaBuilder({
 
 ### Global ids
 
-To make it easier to create globally unique ids the relay plugin adds new methods for creating
-globalID fields.
+To make it easier to create globally unique ids the relay plugin adds new methods for creating globalID fields.
 
 ```typescript
 import { encodeGlobalID } from '@giraphql/plugin-relay';
@@ -47,9 +45,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-The returned IDs can either be a string (which is expected to already be a globalID), or an object
-with the an `id` and a `type`, The type can be either the name of a name as a string, or any object
-that can be used in a type paramiter.
+The returned IDs can either be a string \(which is expected to already be a globalID\), or an object with the an `id` and a `type`, The type can be either the name of a name as a string, or any object that can be used in a type paramiter.
 
 ### Creating Nodes
 
@@ -79,21 +75,13 @@ builder.node(NumberThing, {
 });
 ```
 
-`builder.node` will create an object type that implements the `Node` interface. It will also create
-the `Node` inerface the first time it is used. The first argument must be a reference to a type that
-has an id field, and a `__type` fiield. The `__type` parameter should a be a reference to the type
-being implemented, and can be a string or object that can be used as a type parameter.
+`builder.node` will create an object type that implements the `Node` interface. It will also create the `Node` inerface the first time it is used. The first argument must be a reference to a type that has an id field, and a `__type` fiield. The `__type` parameter should a be a reference to the type being implemented, and can be a string or object that can be used as a type parameter.
 
-The `loadOne` and `loadMany` methods are optional, and `loadMany` will be used if both are present.
-These methods allow a nodes to be loaded by id. The relay plugin adds to new query fields `node` and
-`nodes` which can be used to directly fetch nodes using global IDs.
+The `loadOne` and `loadMany` methods are optional, and `loadMany` will be used if both are present. These methods allow a nodes to be loaded by id. The relay plugin adds to new query fields `node` and `nodes` which can be used to directly fetch nodes using global IDs.
 
 ### Creating Connections
 
-The `t.connection` field builder method can be used to define connections. This method will
-automatically create the `Connection` and `Edge` objects used by the connection, and add `before`,
-`after`, `first`, and `last` arguments. The first time this method is used, it will also create the
-`PageInfo` type.
+The `t.connection` field builder method can be used to define connections. This method will automatically create the `Connection` and `Edge` objects used by the connection, and add `before`, `after`, `first`, and `last` arguments. The first time this method is used, it will also create the `PageInfo` type.
 
 ```typescript
 builder.queryFields((t) => ({
@@ -137,8 +125,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Manually implementing connections can be cumbersome, so there are a couple of helper methods that
-can make resolving connections a little easier.
+Manually implementing connections can be cumbersome, so there are a couple of helper methods that can make resolving connections a little easier.
 
 For limit/offset based apis:
 
@@ -161,8 +148,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-`resolveOffsetConnection` has a few default limits to prevent unintentionally allowing too many
-records to be fetched at once. These limits can be configure using the following options:
+`resolveOffsetConnection` has a few default limits to prevent unintentionally allowing too many records to be fetched at once. These limits can be configure using the following options:
 
 ```typescript
 {
@@ -172,8 +158,7 @@ records to be fetched at once. These limits can be configure using the following
 }
 ```
 
-For APIs where you have the full array available you can use `resolveArrayConnection`, which works
-just like `resolveOffsetConnection` and accepts the same options.
+For APIs where you have the full array available you can use `resolveArrayConnection`, which works just like `resolveOffsetConnection` and accepts the same options.
 
 ```typescript
 import { resolveArrayConnection } from '@giraphql/plugin-relay';
@@ -196,12 +181,9 @@ I am planning to add more helpers in the future.
 
 ### Expose nodes
 
-The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return
-values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be
-a globalID or an object with and an `id` and a `type`.
+The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be a globalID or an object with and an `id` and a `type`.
 
-Loading nodes by `id` uses a request cache, so the same node will only be loaded once per request,
-even if it is used multiple times across the schema.
+Loading nodes by `id` uses a request cache, so the same node will only be loaded once per request, even if it is used multiple times across the schema.
 
 ```typescript
 builder.queryFields((t) => ({
@@ -213,3 +195,4 @@ builder.queryFields((t) => ({
     }),
 }));
 ```
+

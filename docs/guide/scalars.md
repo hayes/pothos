@@ -3,10 +3,11 @@ name: Scalar Types
 menu: Guide
 ---
 
+# scalars
+
 ## Adding GraphQL Scalars
 
-To add a custom scalar that has been implemetned as GraphQLScalar you need to provide some type
-information in TypeInfo object of the builder:
+To add a custom scalar that has been implemetned as GraphQLScalar you need to provide some type information in TypeInfo object of the builder:
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -21,9 +22,7 @@ const builder = new SchemaBuilder<{
 builder.addScalarType('Date', DateResolver, {});
 ```
 
-The Input type is the type that will be used when when the type is used in an arugment or
-`InputObject`. The Output type is used to valiidate the resolvers return the correct value when
-using the scalar in their return type.
+The Input type is the type that will be used when when the type is used in an arugment or `InputObject`. The Output type is used to valiidate the resolvers return the correct value when using the scalar in their return type.
 
 ## Defining your own scalars
 
@@ -64,3 +63,4 @@ builder.queryFields((t) => ({
     }),
 }));
 ```
+

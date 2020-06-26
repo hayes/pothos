@@ -3,8 +3,9 @@ name: Printing schemas
 menu: Guide
 ---
 
-Sometimes it's useful to have an SDL version of your schema. To do this, you can use some tools from
-the graphql package to write your schema out as SDL to a file.
+# printing-schemas
+
+Sometimes it's useful to have an SDL version of your schema. To do this, you can use some tools from the graphql package to write your schema out as SDL to a file.
 
 ```typescript
 import { writeFileSync } from 'fs';
@@ -29,3 +30,4 @@ const schemaAsString = printSchema(lexicographicSortSchema(exampleSchema));
 
 writeFileSync('/path/to/schema.graphql', schema);
 ```
+

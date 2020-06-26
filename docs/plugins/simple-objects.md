@@ -5,8 +5,7 @@ menu: Plugins
 
 # Simple Objects Plugin
 
-The Simple Objects Plugin provides a way to define objects and interfaces without defining type
-definitions for those objects, while still getting full type safety.
+The Simple Objects Plugin provides a way to define objects and interfaces without defining type definitions for those objects, while still getting full type safety.
 
 ## Usage
 
@@ -80,6 +79,5 @@ builder.queryType({
 
 ## Limitations
 
-When using simpleObjects in combination with other plugins like authorization, those plugins may use
-`unknown` as the parent type in some custom fields (eg. `parent` of a permission check function on a
-field).
+When using simpleObjects in combination with other plugins like authorization, those plugins may use `unknown` as the parent type in some custom fields \(eg. `parent` of a permission check function on a field\).
+
