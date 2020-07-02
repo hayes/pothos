@@ -40,7 +40,7 @@ export {
 };
 
 export const SchemaBuilder = SchemaBuilderClass as {
-  new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo>>(
+  new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo> = {}>(
     options: GiraphQLSchemaTypes.SchemaBuilderOptions<
       GiraphQLSchemaTypes.ExtendDefaultTypes<Types>
     >,
