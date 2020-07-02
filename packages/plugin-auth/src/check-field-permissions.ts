@@ -1,9 +1,9 @@
 import { SchemaTypes } from '@giraphql/core';
-import { ForbiddenError } from 'apollo-server';
 import { resolvePermissionCheck } from './utils/resolve-permission-check';
 import { evaluateMatcher } from './utils/evaluate-matcher';
 import { AuthMeta } from '.';
 import { AuthFieldWrapper } from './field-wrapper';
+import { ForbiddenError } from './errors';
 
 export async function checkFieldPermissions<Types extends SchemaTypes>(
   this: AuthFieldWrapper<Types>,

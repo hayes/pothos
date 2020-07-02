@@ -1,8 +1,8 @@
 import { SchemaTypes } from '@giraphql/core';
-import { ForbiddenError } from 'apollo-server';
 import { GrantMap } from '.';
 import { PermissionGrantMap, AuthRequestData } from './types';
 import { AuthFieldWrapper } from './field-wrapper';
+import { ForbiddenError } from './errors';
 
 export default async function runPreResolveChecks<Types extends SchemaTypes>(
   this: AuthFieldWrapper<Types>,
