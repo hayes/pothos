@@ -81,11 +81,13 @@ export async function resolveOffsetConnection<T>(
     node: value,
   }));
 
+  const trimmed = edges.slice(0, expectedSize);
+
   return {
-    edges: edges.slice(0, expectedSize),
+    edges: trimmed,
     pageInfo: {
-      startCursor: edges[0]?.cursor ?? null,
-      endCursor: edges[edges.length - 1]?.cursor ?? null,
+      startCursor: trimmed[0]?.cursor ?? null,
+      endCursor: trimmed[trimmed.length - 1]?.cursor ?? null,
       hasPreviousPage,
       hasNextPage: hasNextPage(nodes.length),
     },
@@ -118,11 +120,13 @@ export function resolveArrayConnection<T>(
     node: value,
   }));
 
+  const trimmed = edges.slice(0, expectedSize);
+
   return {
-    edges: edges.slice(0, expectedSize),
+    edges: trimmed,
     pageInfo: {
-      startCursor: edges[0]?.cursor ?? null,
-      endCursor: edges[edges.length - 1]?.cursor ?? null,
+      startCursor: trimmed[0]?.cursor ?? null,
+      endCursor: trimmed[trimmed.length - 1]?.cursor ?? null,
       hasPreviousPage,
       hasNextPage: hasNextPage(nodes.length),
     },

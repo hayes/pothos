@@ -47,6 +47,7 @@
     "lint-staged": "^10.2.11",
     "react": "^16.13.1",
     "react-dom": "^16.13.1",
+    "ts-node": "^8.10.2",
     "typescript": "^3.9.5"
   },
   "resolutions": {
