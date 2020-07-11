@@ -7,10 +7,8 @@ import {
   FieldNullability,
   TypeParam,
   FieldMap,
-  ObjectTypeOptions as ObjectTypeOptionsWithInterfaces,
   InterfaceParam,
   OutputShape,
-  ObjectParam,
 } from '@giraphql/core';
 import { SimpleObjectFieldsShape, OutputShapeFromFields } from './types';
 
@@ -68,8 +66,9 @@ declare global {
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>
     > = Omit<
-      ObjectTypeOptionsWithInterfaces<Types, ObjectParam<Types>, Shape, Interfaces>,
-      'fields' | 'name' | 'args'
+      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+      'fields'
     > & {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     };
