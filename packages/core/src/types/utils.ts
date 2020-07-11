@@ -23,7 +23,9 @@ export type RequiredKeys<T extends object> = {
   [K in keyof T]: undefined extends T[K] ? never : null extends T[K] ? never : K;
 }[keyof T];
 
-export type NullableToOptional<T extends object> = Partial<T> &
+export type NullableToOptional<T extends object> = {
+  [K in OptionalKeys<T>]?: T[K];
+} &
   {
     [K in RequiredKeys<T>]: T[K];
   };
