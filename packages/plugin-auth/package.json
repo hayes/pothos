@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-auth",
-  "version": "1.0.1",
+  "version": "1.0.2",
   "description": "A GiraphQL plugin for adding authorization/permission checks to your GraphQL Schema",
   "main": "lib/index.js",
   "scripts": {
