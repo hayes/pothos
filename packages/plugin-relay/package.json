@@ -28,7 +28,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "apollo-server": "^2.15.0",
-    "graphql-tag": "^2.10.1"
+    "apollo-server": "^2.16.1",
+    "graphql-tag": "^2.11.0"
   }
 }
