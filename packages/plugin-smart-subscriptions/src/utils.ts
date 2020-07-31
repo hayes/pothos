@@ -55,6 +55,8 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
 
       const itr = map.get(name)!;
 
+      map.delete(name);
+
       if (itr.return) {
         itr.return();
       }
