@@ -29,6 +29,7 @@ export class ValueWrapper<T> {
     return this.fieldResults.has(key);
   }
 
+  // eslint-disable-next-line @typescript-eslint/require-await
   async getFieldResult(info: GraphQLResolveInfo, isList: boolean) {
     const key = String(info.path.key);
 

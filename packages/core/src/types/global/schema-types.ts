@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
+import { GraphQLDirective } from 'graphql';
 import { MergedScalars, SchemaTypes } from '..';
 import { PluginConstructorMap } from '../..';
-import { GraphQLDirective } from 'graphql';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

@@ -140,18 +140,24 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       const overwriteResolve: ResolveHooks<Types, unknown>['overwriteResolve'] =
         overwriteResolveFns.length === 0
           ? undefined
-          : (parent, args, context, info, orignalResolve) => {
-              return resolverFor(0)(parent, args, context, info);
-
+          : (_parent, _args, _context, _info, originalResolve) => {
               function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
                 if (i >= overwriteResolveFns.length) {
-                  return orignalResolve;
+                  return originalResolve;
                 }
 
-                return (parent, args, context, info) => {
-                  return overwriteResolveFns[i](parent, args, context, info, resolverFor(i + 1));
+                return (...resolveArgs) => {
+                  return overwriteResolveFns[i](
+                    resolveArgs[0],
+                    resolveArgs[1],
+                    resolveArgs[2],
+                    resolveArgs[3],
+                    resolverFor(i + 1),
+                  );
                 };
               }
+
+              return resolverFor(0)(_parent, _args, _context, _info) as unknown;
             };
 
       return {
@@ -226,18 +232,24 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       const overwriteSubscribe: SubscribeHooks<Types, unknown>['overwriteSubscribe'] =
         overwriteSubscribeFns.length === 0
           ? undefined
-          : (parent, args, context, info, orignalResolve) => {
-              return resolverFor(0)(parent, args, context, info);
-
+          : (_parent, _args, _context, _info, originalResolve) => {
               function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
                 if (i >= overwriteSubscribeFns.length) {
-                  return orignalResolve;
+                  return originalResolve;
                 }
 
-                return (parent, args, context, info) => {
-                  return overwriteSubscribeFns[i](parent, args, context, info, resolverFor(i + 1));
+                return (...resolveArgs) => {
+                  return overwriteSubscribeFns[i](
+                    resolveArgs[0],
+                    resolveArgs[1],
+                    resolveArgs[2],
+                    resolveArgs[3],
+                    resolverFor(i + 1),
+                  );
                 };
               }
+
+              return resolverFor(0)(_parent, _args, _context, _info) as unknown;
             };
 
       return {

@@ -116,7 +116,7 @@ describe('relay example schema', () => {
       `;
 
       const result = await execute({
-        schema: schema,
+        schema,
         document: query,
         contextValue: {},
       });
@@ -232,7 +232,7 @@ describe('relay example schema', () => {
       `;
 
       const result = await execute({
-        schema: schema,
+        schema,
         document: query,
         contextValue: {},
       });
@@ -288,7 +288,7 @@ describe('relay example schema', () => {
       `;
 
       const result = await execute({
-        schema: schema,
+        schema,
         document: query,
         contextValue: {},
       });

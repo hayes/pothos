@@ -438,10 +438,12 @@ export default class BuildCache<Types extends SchemaTypes> {
         }
 
         try {
-          const config = this.configStore.getTypeConfig(result);
+          const typeConfig = this.configStore.getTypeConfig(result);
 
-          return config.name;
-        } catch (err) {}
+          return typeConfig.name;
+        } catch (error) {
+          // ignore
+        }
 
         return result;
       }),

@@ -14,6 +14,7 @@ import SchemaBuilder, {
   ObjectParam,
   MaybePromise,
 } from '@giraphql/core';
+import { GraphQLResolveInfo } from 'graphql';
 import './global-types';
 import {
   ConnectionShape,
@@ -26,7 +27,6 @@ import {
   NodeListFieldOptions,
   GlobalIDListFieldOptions,
 } from './types';
-import { GraphQLResolveInfo } from 'graphql';
 
 export * from './utils';
 
@@ -192,6 +192,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   ref.implement({
     fields: (t) => ({
       id: t.globalID({
+        // eslint-disable-next-line no-underscore-dangle
         resolve: (parent) => ({ id: parent.id, type: parent.__type }),
       }),
     }),
@@ -243,14 +244,15 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     param as ObjectParam<SchemaTypes>,
     {
       ...options,
-      isTypeOf: (node) => {
-        const ref = (node as NodeReturnShape<SchemaTypes>).__type;
+      isTypeOf: (maybeNode) => {
+        // eslint-disable-next-line no-underscore-dangle
+        const nodeRef = (maybeNode as NodeReturnShape<SchemaTypes>).__type;
 
-        if (!ref) {
+        if (!nodeRef) {
           return false;
         }
 
-        const config = this.configStore.getTypeConfig(ref);
+        const config = this.configStore.getTypeConfig(nodeRef);
 
         return config.name === nodeName;
       },

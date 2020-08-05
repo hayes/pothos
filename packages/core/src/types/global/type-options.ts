@@ -20,6 +20,7 @@ import {
   ObjectParam,
   RootName,
 } from '../..';
+import { MaybePromise } from '../utils';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -103,7 +104,7 @@ declare global {
         parent: OutputShape<Types, Member>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
-      ) => Member | Promise<Member>;
+      ) => MaybePromise<Member | null | undefined>;
       extensions?: Readonly<Record<string, unknown>>;
     }
 

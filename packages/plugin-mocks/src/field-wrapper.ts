@@ -8,6 +8,7 @@ import {
 
 export class MocksFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrapper<Types, {}, {}> {
   resolver: Resolver<unknown, {}, Types['Context'], unknown> | null;
+
   subscriber: Subscriber<unknown, {}, Types['Context'], unknown> | null;
 
   constructor(

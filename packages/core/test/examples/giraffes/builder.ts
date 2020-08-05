@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import SchemaBuilder from '../../../src';
 
 export enum Diet {
@@ -16,7 +17,9 @@ export class Animal {
 
 export class Giraffe extends Animal {
   name: string;
+
   birthday: Date;
+
   heightInMeters: number;
 
   constructor(name: string, birthday: Date, heightInMeters: number) {

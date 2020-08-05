@@ -48,12 +48,12 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   endOffset = Math.min(endOffset, startOffset + Math.min(size, maxSize));
 
   // Get one extra to check for next page
-  endOffset = endOffset + 1;
+  endOffset += 1;
   const totalSize = endOffset - startOffset;
 
-  const lowerBound = after != null ? afterOffset : 0;
+  const lowerBound = after == null ? 0 : afterOffset;
 
-  const hasPreviousPage = last != null ? startOffset > lowerBound : startOffset > 0;
+  const hasPreviousPage = last == null ? startOffset > 0 : startOffset > lowerBound;
 
   return {
     offset: startOffset,
@@ -61,9 +61,9 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
     hasPreviousPage,
     expectedSize: totalSize - 1,
     hasNextPage: (resultSize: number) => {
-      const upperBound = before != null ? beforeOffset : startOffset + resultSize;
+      const upperBound = before == null ? startOffset + resultSize : beforeOffset;
 
-      return last != null ? upperBound > endOffset : resultSize >= totalSize;
+      return last == null ? resultSize >= totalSize : upperBound > endOffset;
     },
   };
 }
@@ -100,7 +100,7 @@ export function cursorToOffset(cursor: string): number {
   if (!string.startsWith(OFFSET_CURSOR_PREFIX)) {
     throw new Error(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
   }
-  return parseInt(string.substring(OFFSET_CURSOR_PREFIX.length), 10);
+  return parseInt(string.slice(OFFSET_CURSOR_PREFIX.length), 10);
 }
 
 export function offsetToCursor(offset: number): string {

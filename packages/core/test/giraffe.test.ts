@@ -1,6 +1,6 @@
 import { printSchema, execute, lexicographicSortSchema } from 'graphql';
 import gql from 'graphql-tag';
-import schema from './examples/giraffes/index';
+import schema from './examples/giraffes';
 
 describe('giraffe example', () => {
   test('generates expected schema', () => {
@@ -63,7 +63,7 @@ describe('giraffe example', () => {
       `;
 
       const result = await execute({
-        schema: schema,
+        schema,
         document: query,
         contextValue: {},
       });
@@ -97,7 +97,7 @@ describe('giraffe example', () => {
       `;
 
       const result = await execute({
-        schema: schema,
+        schema,
         document: query,
         contextValue: {},
       });

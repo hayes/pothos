@@ -57,7 +57,7 @@ builder.queryFields((t) => ({
       id: t.arg.int({ required: true }),
     },
     smartSubscription: true,
-    resolve: (root, args, { Poll }, info) => {
+    resolve: (root, args, ctx, info) => {
       console.log(info.operation.name?.value, 'fetching poll', args.id);
 
       return Poll.map.get(args.id);
@@ -72,7 +72,7 @@ builder.mutationFields((t) => ({
       question: t.arg.string({ required: true }),
       answers: t.arg.stringList({ required: true }),
     },
-    resolve: (root, args, { Poll, pubsub }) => {
+    resolve: (root, args, { pubsub }) => {
       const poll = Poll.create(args.question, args.answers);
 
       pubsub.publish(POLLS, poll.id);
@@ -86,7 +86,7 @@ builder.mutationFields((t) => ({
       id: t.arg.id({ required: true }),
       answer: t.arg.int({ required: true }),
     },
-    resolve: (root, args, { Poll, pubsub }, info) => {
+    resolve: (root, args, { pubsub }, info) => {
       console.log(info.operation.name?.value, 'answering poll', args.id, 'with', args.answer);
 
       const poll = Poll.map.get(Number(args.id));

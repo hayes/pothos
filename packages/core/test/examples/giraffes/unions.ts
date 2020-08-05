@@ -21,6 +21,8 @@ const GiraffeFact = builder.unionType('GiraffeFact', {
         return GiraffeNumericFact;
       case 'string':
         return 'GiraffeStringFact';
+      default:
+        return null;
     }
   },
 });

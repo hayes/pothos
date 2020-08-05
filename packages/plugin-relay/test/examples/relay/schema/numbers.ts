@@ -1,3 +1,4 @@
+/* eslint-disable max-classes-per-file */
 import builder from '../builder';
 import { resolveOffsetConnection, resolveArrayConnection } from '../../../../src';
 
@@ -22,7 +23,7 @@ class BatchLoadableNumberThing {
 }
 
 builder.node(NumberThing, {
-  loadOne: (id) => new NumberThing(parseInt(id)),
+  loadOne: (id) => new NumberThing(parseInt(id, 10)),
   name: 'Number',
   fields: (t) => ({
     number: t.exposeInt('id', {}),
@@ -30,7 +31,7 @@ builder.node(NumberThing, {
 });
 
 builder.node(BatchLoadableNumberThing, {
-  loadMany: (ids) => ids.map((id) => new BatchLoadableNumberThing(parseInt(id))),
+  loadMany: (ids) => ids.map((id) => new BatchLoadableNumberThing(parseInt(id, 10))),
   name: 'BatchNumber',
   fields: (t) => ({
     number: t.exposeInt('id', {}),
@@ -45,7 +46,7 @@ builder.queryFields((t) => ({
         return resolveOffsetConnection({ args }, ({ limit, offset }) => {
           const items = [];
 
-          for (let i = offset; i < Math.min(offset + limit, 200); ++i) {
+          for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
             items.push(new NumberThing(i));
           }
 
@@ -65,7 +66,7 @@ builder.queryFields((t) => ({
       resolve: (parent, args) => {
         const numbers: BatchLoadableNumberThing[] = [];
 
-        for (let i = 0; i < 200; ++i) {
+        for (let i = 0; i < 200; i += 1) {
           numbers.push(new BatchLoadableNumberThing(i));
         }
 
