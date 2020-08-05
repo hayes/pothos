@@ -4,10 +4,10 @@ import builder from './builder';
 builder.addScalarType('Date', DateResolver, {});
 
 builder.scalarType('PositiveInt', {
-  serialize: (n) => n,
+  serialize: (n) => n as number,
   parseValue: (n) => {
     if (n >= 0) {
-      return n;
+      return n as number;
     }
 
     throw new Error('Value must be positive');

@@ -165,7 +165,7 @@ const Polygon = builder.unionType('Polygon', {
       case 'rectangle':
         return 'Rectangle';
       default:
-        throw new Error(`Unknown Polygon ${(parent as any).type}`);
+        throw new Error(`Unknown Polygon ${(parent as { type: string }).type}`);
     }
   },
 });
@@ -179,7 +179,7 @@ const RoundThings = builder.unionType('RoundThings', {
       case 'oval':
         return 'Oval';
       default:
-        throw new Error(`Unknown Polygon ${(parent as any).type}`);
+        throw new Error(`Unknown Polygon ${(parent as { type: string }).type}`);
     }
   },
 });
@@ -193,7 +193,7 @@ const CornerUnion = builder.unionType('CornerUnion', {
       case 'square':
         return 'Square';
       default:
-        throw new Error(`Unknown Polygon ${(parent as any).type}`);
+        throw new Error(`Unknown Polygon ${(parent as { type: string }).type}`);
     }
   },
 });

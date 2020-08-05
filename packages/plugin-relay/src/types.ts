@@ -93,12 +93,12 @@ export interface ConnectionFieldOptions<
   >;
 }
 
-export interface ConnectionObjectOptions<Types extends SchemaTypes, ParentShape>
+export interface ConnectionObjectOptions<Types extends SchemaTypes, ParentShape>  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   extends GiraphQLSchemaTypes.ObjectTypeOptions<Types, ParentShape> {
   name?: string;
 }
 
-export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, ParentShape>
+export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, ParentShape>  // eslint-disable-next-line @typescript-eslint/no-unsafe-member-access
   extends GiraphQLSchemaTypes.ObjectTypeOptions<Types, ParentShape> {
   name?: string;
 }

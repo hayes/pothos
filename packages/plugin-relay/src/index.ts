@@ -120,13 +120,13 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
 export async function resolveNodes<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
-  globalIDs: string[],
+  globalIDs: (string | null | undefined)[],
 ): Promise<MaybePromise<NodeReturnShape<Types> | null>[]> {
   const requestCache = getRequestCache<Types>(context);
   const idsByType: Record<string, Set<string>> = {};
 
   globalIDs.forEach((globalID) => {
-    if (requestCache.has(globalID)) {
+    if (globalID == null || requestCache.has(globalID)) {
       return;
     }
 
@@ -142,7 +142,9 @@ export async function resolveNodes<Types extends SchemaTypes>(
     ),
   ]);
 
-  return globalIDs.map((globalID) => requestCache.get(globalID) ?? null);
+  return globalIDs.map((globalID) =>
+    globalID == null ? null : requestCache.get(globalID) ?? null,
+  );
 }
 
 const schemaBuilderProto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype;
@@ -404,10 +406,12 @@ fieldBuilderProto.nodeList = function nodeList<Args extends InputFieldMap, Resol
         return null as never;
       }
 
-      const rawIds = await Promise.all(rawIDList);
+      const rawIds: (GlobalIDShape<SchemaTypes> | string | null | undefined)[] = await Promise.all(
+        rawIDList,
+      );
 
       const globalIds = rawIds.map((id) =>
-        typeof id === 'string'
+        !id || typeof id === 'string'
           ? id
           : encodeGlobalID(this.builder.configStore.getTypeConfig(id.type).name, String(id.id)),
       );

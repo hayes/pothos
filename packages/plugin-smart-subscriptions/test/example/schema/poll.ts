@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 import builder from '../builder';
 import { Poll } from '../data';
 

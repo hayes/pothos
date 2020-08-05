@@ -3,6 +3,7 @@ import SchemaBuilder, {
   SchemaTypes,
   GiraphQLOutputFieldConfig,
   ValueWrapper,
+  FieldRef,
 } from '@giraphql/core';
 import './global-types';
 
@@ -59,20 +60,22 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
     if (fieldConfig.giraphqlOptions.smartSubscription) {
       this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
 
-      this.builder.subscriptionField(fieldConfig.name, (t) =>
-        t.field({
-          ...fieldConfig.giraphqlOptions,
-          subscribe: (parent, args, context, info) => {
-            const manager = new SubscriptionManager({
-              value: new ValueWrapper(parent, {}),
-              debounceDelay: this.debounceDelay,
-              subscribe: (subName, cb) => this.subscribe(subName, context, cb),
-              unsubscribe: (subName) => this.unsubscribe(subName, context),
-            });
+      this.builder.subscriptionField(
+        fieldConfig.name,
+        (t) =>
+          t.field({
+            ...fieldConfig.giraphqlOptions,
+            subscribe: (parent, args, context, info) => {
+              const manager = new SubscriptionManager({
+                value: new ValueWrapper(parent, {}),
+                debounceDelay: this.debounceDelay,
+                subscribe: (subName, cb) => this.subscribe(subName, context, cb),
+                unsubscribe: (subName) => this.unsubscribe(subName, context),
+              });
 
-            return manager;
-          },
-        }),
+              return manager;
+            },
+          }) as FieldRef<unknown>,
       );
     }
   }
