@@ -29,6 +29,7 @@ import {
   NodeFieldOptions,
   NodeListFieldOptions,
   GlobalIDListFieldOptions,
+  RelayPluginOptions,
 } from './types';
 import RelayPlugin from '.';
 
@@ -36,6 +37,10 @@ declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
       GiraphQLRelay: RelayPlugin<Types>;
+    }
+
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      relayOptions: RelayPluginOptions<Types>;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {

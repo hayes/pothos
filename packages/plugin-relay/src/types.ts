@@ -15,8 +15,36 @@ import {
   FieldKind,
   InputFieldsFromShape,
   OutputRefShape,
+  ObjectRef,
+  InputFieldRef,
+  InputShape,
 } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
+
+export interface RelayPluginOptions<Types extends SchemaTypes> {
+  nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
+  pageInfoTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
+  nodeQueryOptions: Omit<
+    GiraphQLSchemaTypes.QueryFieldOptions<
+      Types,
+      ObjectRef<PageInfoShape>,
+      true,
+      { id: InputFieldRef<InputShape<Types, 'ID'>> },
+      Promise<unknown>
+    >,
+    'type' | 'args' | 'nullable' | 'resolve'
+  >;
+  nodesQueryOptions: Omit<
+    GiraphQLSchemaTypes.QueryFieldOptions<
+      Types,
+      ObjectRef<PageInfoShape>,
+      true,
+      { ids: InputFieldRef<InputShape<Types, 'ID'>[]> },
+      Promise<unknown>[]
+    >,
+    'type' | 'args' | 'nullable' | 'resolve'
+  >;
+}
 
 export interface PageInfoShape {
   hasNextPage: boolean;

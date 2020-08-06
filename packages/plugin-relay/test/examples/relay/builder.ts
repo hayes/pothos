@@ -13,4 +13,10 @@ interface TypeInfo {
 
 export default new SchemaBuilder<TypeInfo>({
   plugins: ['GiraphQLRelay'],
+  relayOptions: {
+    nodeQueryOptions: {},
+    nodesQueryOptions: {},
+    nodeTypeOptions: {},
+    pageInfoTypeOptions: {},
+  },
 });

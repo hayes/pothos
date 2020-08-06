@@ -168,6 +168,7 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
   pageInfoRefMap.set(this, ref);
 
   ref.implement({
+    ...this.options.relayOptions.pageInfoTypeOptions,
     fields: (t) => ({
       hasNextPage: t.exposeBoolean('hasNextPage', {}),
       hasPreviousPage: t.exposeBoolean('hasPreviousPage', {}),
@@ -189,6 +190,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   nodeInterfaceRefMap.set(this, ref);
 
   ref.implement({
+    ...this.options.relayOptions.nodeTypeOptions,
     fields: (t) => ({
       id: t.globalID({
         resolve: (parent) => {
@@ -202,6 +204,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     'node',
     (t) =>
       t.field({
+        ...this.options.relayOptions.nodeQueryOptions,
         type: ref as InterfaceRef<unknown>,
         args: {
           id: t.arg.id({ required: true }),
@@ -215,6 +218,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 
   this.queryField('nodes', (t) =>
     t.field({
+      ...this.options.relayOptions.nodesQueryOptions,
       type: [ref],
       args: {
         ids: t.arg.idList({ required: true }),
