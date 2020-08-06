@@ -22,10 +22,12 @@ yarn add @giraphql/plugin-relay
 import '@giraphql/plugin-relay';
 const builder = new SchemaBuilder({
     plugins: ['GiraphQLRelay'],
-    nodeQueryOptions: {},
-    nodesQueryOptions: {},
-    nodeTypeOptions: {},
-    pageInfoTypeOptions: {},
+    relayOptions: {
+        nodeQueryOptions: {},
+        nodesQueryOptions: {},
+        nodeTypeOptions: {},
+        pageInfoTypeOptions: {},
+    },
 });
 ```
 
