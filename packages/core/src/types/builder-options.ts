@@ -26,14 +26,11 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   info: GraphQLResolveInfo,
 ) => Return &
   MaybePromiseWithInference<
-    Readonly<
-      | Type
-      | (Type extends unknown[]
-          ? Return extends MaybePromise<Promise<unknown>[]>
-            ? Promise<Type[number]>[]
-            : never
-          : never)
-    >,
+    Type extends unknown[]
+      ? Readonly<
+          Return extends MaybePromise<readonly Promise<unknown>[]> ? Promise<Type[number]>[] : Type
+        >
+      : Type,
     Return
   >;
 

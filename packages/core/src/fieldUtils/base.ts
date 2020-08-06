@@ -81,10 +81,8 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
-      resolve: (parent) =>
-        (parent as { [s: string]: Readonly<ShapeFromTypeParam<Types, Type, Nullable>> })[
-          name as string
-        ],
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+      resolve: (parent) => (parent as { [s: string]: any })[name as string],
     });
   }
 }

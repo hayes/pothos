@@ -3,8 +3,6 @@ import builder from '../builder';
 import { resolveOffsetConnection, resolveArrayConnection } from '../../../../src';
 
 class NumberThing {
-  __type = NumberThing;
-
   id: number;
 
   constructor(n: number) {
@@ -13,8 +11,6 @@ class NumberThing {
 }
 
 class BatchLoadableNumberThing {
-  __type = BatchLoadableNumberThing;
-
   id: number;
 
   constructor(n: number) {
@@ -23,6 +19,9 @@ class BatchLoadableNumberThing {
 }
 
 builder.node(NumberThing, {
+  id: {
+    resolve: (n) => n.id,
+  },
   loadOne: (id) => new NumberThing(parseInt(id, 10)),
   name: 'Number',
   fields: (t) => ({
@@ -31,6 +30,9 @@ builder.node(NumberThing, {
 });
 
 builder.node(BatchLoadableNumberThing, {
+  id: {
+    resolve: (n) => n.id,
+  },
   loadMany: (ids) => ids.map((id) => new BatchLoadableNumberThing(parseInt(id, 10))),
   name: 'BatchNumber',
   fields: (t) => ({

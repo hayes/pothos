@@ -16,17 +16,13 @@ import {
   InputFieldsFromShape,
   OutputRefShape,
 } from '@giraphql/core';
+import { GraphQLResolveInfo } from 'graphql';
 
 export interface PageInfoShape {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
   startCursor?: string | null;
   endCursor?: string | null;
-}
-
-export interface NodeReturnShape<Types extends SchemaTypes> {
-  id: OutputShape<Types, 'ID'>;
-  __type: OutputType<Types>;
 }
 
 export interface GlobalIDShape<Types extends SchemaTypes> {
@@ -103,11 +99,55 @@ export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, ParentSh
   name?: string;
 }
 
+export type NodeBaseObjectOptionsForParam<
+  Types extends SchemaTypes,
+  Param extends ObjectParam<Types>,
+  Interfaces extends InterfaceParam<Types>[]
+> = (Param extends {
+  new (...args: any[]): any;
+}
+  ? {
+      isTypeOf?: (
+        obj: OutputShape<Types, Interfaces[number]>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => boolean;
+    }
+  : OutputShape<Types, Param> extends { __type: string }
+  ? {
+      isTypeOf?: (
+        obj: OutputShape<Types, Interfaces[number]>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => boolean;
+    }
+  : {
+      isTypeOf: (
+        obj: OutputShape<Types, Interfaces[number]>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => boolean;
+    }) &
+  Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'>;
+
 export type NodeObjectOptions<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[]
-> = Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'> & {
+> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
+  id: Omit<
+    FieldOptionsFromKind<
+      Types,
+      OutputShape<Types, Param>,
+      'ID',
+      false,
+      {},
+      'Object',
+      OutputShape<Types, Param>,
+      MaybePromise<OutputShape<Types, 'ID'>>
+    >,
+    'type' | 'args' | 'nullable'
+  >;
   loadOne?: (
     id: string,
     context: Types['Context'],
@@ -119,6 +159,35 @@ export type NodeObjectOptions<
 };
 
 export type GlobalIDFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  Nullable extends boolean,
+  ResolveReturnShape,
+  Kind extends FieldKind = FieldKind
+> = Omit<
+  FieldOptionsFromKind<
+    Types,
+    ParentShape,
+    'ID',
+    Nullable,
+    Args,
+    Kind,
+    ParentShape,
+    ResolveReturnShape
+  >,
+  'type' | 'resolve'
+> & {
+  resolve: Resolver<
+    ParentShape,
+    InputShapeFromFields<Args>,
+    Types['Context'],
+    ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>,
+    ResolveReturnShape
+  >;
+};
+
+export type NodeIDFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Args extends InputFieldMap,

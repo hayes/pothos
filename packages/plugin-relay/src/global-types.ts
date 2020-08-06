@@ -15,7 +15,6 @@ import {
   ObjectParam,
   ShapeFromTypeParam,
   InputFieldsFromShape,
-  OutputRefShape,
 } from '@giraphql/core';
 import {
   ConnectionFieldOptions,
@@ -26,7 +25,6 @@ import {
   NodeObjectOptions,
   ConnectionShapeForType,
   GlobalIDFieldOptions,
-  NodeReturnShape,
   DefaultConnectionArguments,
   NodeFieldOptions,
   NodeListFieldOptions,
@@ -42,12 +40,10 @@ declare global {
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<PageInfoShape>;
-      nodeInterfaceRef: () => InterfaceRef<NodeReturnShape<Types>>;
+      nodeInterfaceRef: () => InterfaceRef<unknown>;
 
       node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
-        param: OutputShape<Types, Param> extends NodeReturnShape<Types>
-          ? Param
-          : 'Type for node objects must include `id` and `__type` properties',
+        param: Param,
         options: NodeObjectOptions<Types, Param, Interfaces>,
         fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
       ) => ObjectRef<OutputShape<Types, Param>>;
@@ -79,18 +75,12 @@ declare global {
           Kind
         >,
       ): FieldRef<ShapeFromTypeParam<Types, ['ID'], Nullable>>;
-      node<Args extends InputFieldMap, ResolveReturnShape>(
-        options: NodeFieldOptions<Types, ParentShape, Args, ResolveReturnShape, Kind>,
-      ): FieldRef<ShapeFromTypeParam<Types, OutputRefShape<NodeReturnShape<Types>>, true>>;
-      nodeList<Args extends InputFieldMap, ResolveReturnShape>(
-        options: NodeListFieldOptions<Types, ParentShape, Args, ResolveReturnShape, Kind>,
-      ): FieldRef<
-        ShapeFromTypeParam<
-          Types,
-          [OutputRefShape<NodeReturnShape<Types>>],
-          { list: false; items: true }
-        >
-      >;
+      node<Args extends InputFieldMap, ResolveShape>(
+        options: NodeFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>,
+      ): FieldRef<unknown>;
+      nodeList<Args extends InputFieldMap, ResolveShape>(
+        options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>,
+      ): FieldRef<unknown[]>;
       connection<
         Type extends OutputType<Types>,
         Args extends InputFieldMap,

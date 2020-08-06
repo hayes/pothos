@@ -13,6 +13,8 @@ import SchemaBuilder, {
   assertArray,
   ObjectParam,
   MaybePromise,
+  FieldRef,
+  OutputRef,
 } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 import './global-types';
@@ -21,10 +23,7 @@ import {
   PageInfoShape,
   GlobalIDFieldOptions,
   NodeObjectOptions,
-  NodeReturnShape,
-  NodeFieldOptions,
   GlobalIDShape,
-  NodeListFieldOptions,
   GlobalIDListFieldOptions,
 } from './types';
 
@@ -52,16 +51,14 @@ export function decodeGlobalID(globalID: string) {
   return { typename, id };
 }
 
-const nodeCache = new WeakMap<object, Map<string, unknown>>();
+const nodeCache = new WeakMap<object, Map<string, MaybePromise<unknown>>>();
 
-function getRequestCache<Types extends SchemaTypes>(
-  context: object,
-): Map<string, MaybePromise<NodeReturnShape<Types> | null>> {
+function getRequestCache(context: object) {
   if (!nodeCache.has(context)) {
     nodeCache.set(context, new Map());
   }
 
-  return nodeCache.get(context)! as Map<string, MaybePromise<NodeReturnShape<Types> | null>>;
+  return nodeCache.get(context)!;
 }
 
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
@@ -69,8 +66,8 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   context: object,
   ids: string[],
   type: string | OutputType<Types>,
-): Promise<(NodeReturnShape<Types> | null)[]> {
-  const requestCache = getRequestCache<Types>(context);
+): Promise<unknown[]> {
+  const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
   const options = config.giraphqlOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
 
@@ -81,8 +78,8 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
       ids.map((id, i) => {
         const globalID = encodeGlobalID(config.name, id);
         const entryPromise = loadManyPromise
-          .then((results: (NodeReturnShape<Types> | null)[]) => results[i])
-          .then((result: NodeReturnShape<Types> | null) => {
+          .then((results: unknown[]) => results[i])
+          .then((result: unknown) => {
             requestCache.set(globalID, result);
 
             return result;
@@ -100,7 +97,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
       ids.map((id, i) => {
         const globalID = encodeGlobalID(config.name, id);
         const entryPromise = Promise.resolve(options.loadOne!(id, context)).then(
-          (result: NodeReturnShape<Types> | null) => {
+          (result: unknown) => {
             requestCache.set(globalID, result);
 
             return result;
@@ -121,8 +118,8 @@ export async function resolveNodes<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
   globalIDs: (string | null | undefined)[],
-): Promise<MaybePromise<NodeReturnShape<Types> | null>[]> {
-  const requestCache = getRequestCache<Types>(context);
+): Promise<MaybePromise<unknown>[]> {
+  const requestCache = getRequestCache(context);
   const idsByType: Record<string, Set<string>> = {};
 
   globalIDs.forEach((globalID) => {
@@ -158,7 +155,7 @@ const pageInfoRefMap = new WeakMap<
 
 const nodeInterfaceRefMap = new WeakMap<
   GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-  InterfaceRef<NodeReturnShape<SchemaTypes>>
+  InterfaceRef<ObjectParam<SchemaTypes>>
 >();
 
 schemaBuilderProto.pageInfoRef = function pageInfoRef() {
@@ -187,30 +184,33 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     return nodeInterfaceRefMap.get(this)!;
   }
 
-  const ref = this.interfaceRef<NodeReturnShape<SchemaTypes>>('Node');
+  const ref = this.interfaceRef<ObjectParam<SchemaTypes>>('Node');
 
   nodeInterfaceRefMap.set(this, ref);
 
   ref.implement({
     fields: (t) => ({
       id: t.globalID({
-        // eslint-disable-next-line no-underscore-dangle
-        resolve: (parent) => ({ id: parent.id, type: parent.__type }),
+        resolve: (parent) => {
+          throw new Error('id field not implemented');
+        },
       }),
     }),
   });
 
-  this.queryField('node', (t) =>
-    t.field({
-      type: ref,
-      args: {
-        id: t.arg.id({ required: true }),
-      },
-      nullable: true,
-      resolve: async (root, args, context) => {
-        return (await resolveNodes(this, context, [String(args.id)]))[0];
-      },
-    }),
+  this.queryField(
+    'node',
+    (t) =>
+      t.field({
+        type: ref as InterfaceRef<unknown>,
+        args: {
+          id: t.arg.id({ required: true }),
+        },
+        nullable: true,
+        resolve: async (root, args, context) => {
+          return (await resolveNodes(this, context, [String(args.id)]))[0];
+        },
+      }) as FieldRef<unknown>,
   );
 
   this.queryField('nodes', (t) =>
@@ -224,7 +224,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         items: true,
       },
       resolve: async (root, args, context) => {
-        return (await resolveNodes(this, context, args.ids as string[])) as Promise<NodeReturnShape<
+        return (await resolveNodes(this, context, args.ids as string[])) as Promise<ObjectParam<
           SchemaTypes
         > | null>[];
       },
@@ -246,17 +246,45 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     param as ObjectParam<SchemaTypes>,
     {
       ...options,
-      isTypeOf: (maybeNode) => {
-        // eslint-disable-next-line no-underscore-dangle
-        const nodeRef = (maybeNode as NodeReturnShape<SchemaTypes>).__type;
+      isTypeOf: (maybeNode, context, info) => {
+        if (options.isTypeOf) {
+          return options.isTypeOf(maybeNode, context, info);
+        }
 
-        if (!nodeRef) {
+        if (!maybeNode) {
           return false;
         }
 
-        const config = this.configStore.getTypeConfig(nodeRef);
+        if (typeof param === 'function' && (maybeNode as unknown) instanceof (param as Function)) {
+          return true;
+        }
 
-        return config.name === nodeName;
+        const proto: { constructor: unknown } = Object.getPrototypeOf(maybeNode);
+
+        try {
+          if (proto?.constructor) {
+            const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
+
+            return config.name === nodeName;
+          }
+
+          if (typeof maybeNode === 'object') {
+            // eslint-disable-next-line no-underscore-dangle
+            const nodeRef = (maybeNode as { __type: OutputRef }).__type;
+
+            if (!nodeRef) {
+              return false;
+            }
+
+            const config = this.configStore.getTypeConfig(nodeRef);
+
+            return config.name === nodeName;
+          }
+        } catch (error) {
+          // ignore
+        }
+
+        return false;
       },
       interfaces: interfacesWithNode as [],
     },
@@ -265,6 +293,20 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     nodeName = nodeConfig.name;
+
+    this.objectField(ref, 'id', (t) =>
+      t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
+        ...options.id,
+        nullable: false,
+        args: {},
+        resolve: async (parent, args, context, info) => {
+          return {
+            type: nodeConfig.name,
+            id: await options.id.resolve(parent, args, context, info),
+          };
+        },
+      }),
+    );
   });
 
   return ref;
@@ -344,21 +386,13 @@ fieldBuilderProto.globalID = function globalID<
   });
 };
 
-fieldBuilderProto.node = function node<Args extends InputFieldMap, ResolveReturnShape>({
-  id,
-  ...options
-}: NodeFieldOptions<SchemaTypes, unknown, Args, ResolveReturnShape, FieldKind>) {
-  return this.field({
+fieldBuilderProto.node = function node({ id, ...options }) {
+  return this.field<{}, InterfaceRef<unknown>, unknown, Promise<unknown>, true>({
     ...options,
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
-    resolve: async (
-      parent: unknown,
-      args: InputShapeFromFields<Args>,
-      context: object,
-      info: GraphQLResolveInfo,
-    ) => {
-      const rawID = ((await id(parent, args, context, info)) as unknown) as
+    resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
+      const rawID = (await id(parent, args as any, context, info)) as
         | string
         | GlobalIDShape<SchemaTypes>
         | null
@@ -376,15 +410,12 @@ fieldBuilderProto.node = function node<Args extends InputFieldMap, ResolveReturn
               String(rawID.id),
             );
 
-      return (await resolveNodes(this.builder, context, [globalID]))[0] as never;
+      return (await resolveNodes(this.builder, context, [globalID]))[0];
     },
   });
 };
 
-fieldBuilderProto.nodeList = function nodeList<Args extends InputFieldMap, ResolveReturnShape>({
-  ids,
-  ...options
-}: NodeListFieldOptions<SchemaTypes, unknown, Args, ResolveReturnShape, FieldKind>) {
+fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
   return this.field({
     ...options,
     nullable: {
@@ -392,18 +423,13 @@ fieldBuilderProto.nodeList = function nodeList<Args extends InputFieldMap, Resol
       items: true,
     },
     type: [this.builder.nodeInterfaceRef()],
-    resolve: async (
-      parent: unknown,
-      args: InputShapeFromFields<Args>,
-      context: object,
-      info: GraphQLResolveInfo,
-    ) => {
-      const rawIDList = await ids(parent, args, context, info);
+    resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
+      const rawIDList = await ids(parent, args as any, context, info);
 
       assertArray(rawIDList);
 
       if (!Array.isArray(rawIDList)) {
-        return null as never;
+        return [];
       }
 
       const rawIds: (GlobalIDShape<SchemaTypes> | string | null | undefined)[] = await Promise.all(
@@ -416,7 +442,7 @@ fieldBuilderProto.nodeList = function nodeList<Args extends InputFieldMap, Resol
           : encodeGlobalID(this.builder.configStore.getTypeConfig(id.type).name, String(id.id)),
       );
 
-      return resolveNodes(this.builder, context, globalIds) as never;
+      return resolveNodes(this.builder, context, globalIds);
     },
   });
 };

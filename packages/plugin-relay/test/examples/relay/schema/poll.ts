@@ -12,6 +12,9 @@ builder.queryField('pollIds', (t) =>
 );
 
 builder.node('Poll', {
+  id: {
+    resolve: (poll) => poll.id,
+  },
   loadMany: (ids, context) => {
     return ids.map((id) => context.Poll.map.get(parseInt(id, 10)));
   },
