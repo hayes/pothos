@@ -76,7 +76,7 @@ There are 2 new properties here: `interfaces` and `isTypeOf`.
 
 Interfaces is an array of interfaces that the object type implements, and `isTypeOf` is a function that is run whenever we have an object of the interface type and we want to see if it's actually an instance of our object type.
 
-## using interfaces in as return typescript
+## Using an Interface as a return type
 
 Using interfaces as return types for fields works just like objects:
 

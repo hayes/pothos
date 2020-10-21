@@ -7,7 +7,7 @@ menu: Guide
 
 ## Creating Input objects
 
-Input objects can be created using builder.inputType.
+Input objects can be created using `builder.inputType`.
 
 ```typescript
 const GiraffeInput = builder.inputType('GiraffeInput', {

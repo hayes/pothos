@@ -68,7 +68,7 @@ builder.queryType({
 });
 ```
 
-For types not described in the `TypeInfo` type provided to the builder, including types that can not be aded there like [Unions](unions.md) and [Enums](enums.md), you can use a `Ref` returned by the builder method that created them in the `type` parameter.  For types created using a class \([Objects](enums.md) or [Interfaces](interfaces.md)\) or [Enums](enums.md) created using a typescript enum, you can also use the the `class` or `enum` that was used to define them.
+For types not described in the `TypeInfo` type provided to the builder, including types that can not be added there like [Unions](unions.md) and [Enums](enums.md), you can use a `Ref` returned by the builder method that created them in the `type` parameter. For types created using a class \([Objects](enums.md) or [Interfaces](interfaces.md)\) or [Enums](enums.md) created using a typescript enum, you can also use the the `class` or `enum` that was used to define them.
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
@@ -116,7 +116,7 @@ builder.queryType({
 
 ## Nullable fields
 
-Unlike some other GraphQL implementations, fields in GiraphQL are required by default. It is still often desirable to make fields in your schema nullable.  This default is not currently configurable, but support for changing default nullability/requiredness will likely be added in the future.
+Unlike some other GraphQL implementations, fields in GiraphQL are required by default. It is still often desirable to make fields in your schema nullable. This default is not currently configurable, but support for changing default nullability/requiredness will likely be added in the future.
 
 ```typescript
 builder.queryType({
@@ -208,7 +208,7 @@ For more information see the [Arguments Guide](args.md).
 
 ## Adding fields to existing type
 
-In addition to being able to define fields when defining types, you can also add additional fields independently.  This is useful for breaking up types with a lot of fields into multiple files, or co-locating fields with their type \(eg add all query/mutation fields for a type in the same file where the type is defined\).
+In addition to being able to define fields when defining types, you can also add additional fields independently. This is useful for breaking up types with a lot of fields into multiple files, or co-locating fields with their type \(eg add all query/mutation fields for a type in the same file where the type is defined\).
 
 ```typescript
 builder.queryFields((t) => ({
