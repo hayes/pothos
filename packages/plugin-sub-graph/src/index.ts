@@ -28,7 +28,10 @@ const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.Schema
 >;
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options, subGraph) {
-  return this.getPlugin('GiraphQLSubGraph').createSubGraph(this.toSchema(options), subGraph);
+  return (this.getPlugin('GiraphQLSubGraph') as SubGraphPlugin<SchemaTypes>).createSubGraph(
+    this.toSchema(options),
+    subGraph,
+  );
 };
 
 export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

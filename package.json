@@ -13,7 +13,7 @@
     "coverage": "yarn run test --coverage",
     "format": "beemo prettier",
     "lint": "beemo eslint",
-    "release": "lerna publish",
+    "release": "lerna publish --push",
     "test": "beemo jest",
     "type": "beemo typescript --build --reference-workspaces",
     "prerelease": "yarn run ci && yarn run build"
