@@ -11,10 +11,10 @@ const characterArgs = builder.args((t) => ({
 
 export default builder.queryType({
   subGraphs: ['Public', 'Private'],
+  defaultSubGraphsForFields: ['Private'],
   fields: (t) => ({
     hero: t.field({
       type: 'Character',
-      subGraphs: ['Private'],
       args: {
         episode: t.arg({
           type: Episode,
@@ -26,11 +26,13 @@ export default builder.queryType({
       resolve: (_, { episode }) => getHero(episode),
     }),
     human: t.field({
+      subGraphs: ['Public', 'Private'],
       type: 'Human',
       args: characterArgs,
       resolve: (_, { id }) => getHuman(id),
     }),
     droid: t.field({
+      subGraphs: ['Public', 'Private'],
       type: 'Droid',
       args: characterArgs,
       resolve: (_, { id }) => getDroid(id),
@@ -40,6 +42,7 @@ export default builder.queryType({
 
 export const extraQueryFields = builder.queryFields((t) => ({
   r2d2: t.field({
+    subGraphs: ['Public'],
     type: 'Droid',
     resolve: () => getDroid(2001),
   }),

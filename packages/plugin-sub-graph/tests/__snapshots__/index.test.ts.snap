@@ -69,7 +69,6 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
-  r2d2: Droid!
 }
 "
 `;

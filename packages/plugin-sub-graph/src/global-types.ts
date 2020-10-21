@@ -4,6 +4,8 @@ import {
   FieldRequiredness,
   InputFieldMap,
   InputType,
+  InterfaceParam,
+  RootName,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
@@ -14,6 +16,24 @@ declare global {
   export namespace GiraphQLSchemaTypes {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       subGraphs?: Types['SubGraphs'][];
+    }
+
+    export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown>
+      extends BaseTypeOptions<Types> {
+      defaultSubGraphsForFields?: Types['SubGraphs'][];
+    }
+
+    export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
+      extends BaseTypeOptions<Types> {
+      defaultSubGraphsForFields?: Types['SubGraphs'][];
+    }
+
+    export interface InterfaceTypeOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Shape = unknown,
+      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+    > extends BaseTypeOptions<Types> {
+      defaultSubGraphsForFields?: Types['SubGraphs'][];
     }
 
     export interface FieldOptions<
@@ -28,22 +48,15 @@ declare global {
       subGraphs?: Types['SubGraphs'][];
     }
 
-    export interface InputFieldOptions<
-      Types extends SchemaTypes = SchemaTypes,
-      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
-    > {
-      subGraphs?: Types['SubGraphs'][];
-    }
     export interface Plugins<Types extends SchemaTypes> {
       GiraphQLSubGraph: SubGraphPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      subGraph?: {
-        defaultGraphsForType?: Types['SubGraphs'][];
-        defaultGraphsForField?: Types['SubGraphs'][];
-        inheritFieldGraphsFromType?: boolean;
+      subGraphs?: {
+        defaultForTypes?: Types['SubGraphs'][];
+        defaultForFields?: Types['SubGraphs'][];
+        fieldsInheritFromTypes?: boolean;
       };
     }
 

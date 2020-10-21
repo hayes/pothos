@@ -12,8 +12,8 @@ interface Types {
 
 export default new SchemaBuilder<Types>({
   plugins: ['GiraphQLSubGraph'],
-  subGraph: {
-    inheritFieldGraphsFromType: true,
-    defaultGraphsForType: ['Private'],
+  subGraphs: {
+    fieldsInheritFromTypes: true,
+    defaultForTypes: ['Private'],
   },
 });

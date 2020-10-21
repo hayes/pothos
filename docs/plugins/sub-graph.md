@@ -27,8 +27,8 @@ const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Other';
 }>({
   plugins: ['GiraphQLSubGraph'],
-  subGraph: {
-    defaultGraphsForType: [],
+  subGraphs: {
+    defaultsForTypes: [],
     : true,
   },
 });
@@ -40,15 +40,30 @@ const publicSchema = builder.toSubGraphSchema({}, 'Public');
 const otherSchema = builder.toSubGraphSchema({}, 'Other');
 ```
 
-### Options
+### Options on Types
 
-- `defaultGraphsForType`: Specifies what subGraphs a type is part of by default.
-- `inheritFieldGraphsFromType`: defaults to `false`. When true, fields on a type will default to
-  being part of the same subGraphs as their parent type.
-- `defaultGraphsForField`: Specifies what subGraphs a field is part of by default, only used if
-  `inheritFieldGraphsFromType` is false
+- `subGraphs`: An optional array of sub-graph the type should be included in.
 
-You can mock any field by adding a mock in the options passed to `builder.builSchema` under
+### Object and Interface types:
+
+- `defaultSubGraphsForFields`: Default sub-graph for fields of the type to be included in.
+
+## Options on Fields
+
+- `subGraphs`: An optional array of sub-graph the field to be included in. If not provided, will
+  fallback to:
+  - `defaultSubGraphsForFields` if set on type
+  - `subGraphs` of the type if `subGraphs.fieldsInheritFromTypes` was set in the builder
+  - an empty array
+
+### Options on Builder
+
+- `subGraphs.defaultForTypes`: Specifies what sub-graph a type is part of by default.
+- `subGraphs.fieldsInheritFromTypes`: defaults to `false`. When true, fields on a type will default
+  to being part of the same sub-graph as their parent type. Only applies when type does not have
+  `defaultSubGraphsForFields` set.
+
+You can mock any field by adding a mock in the options passed to `builder.buildSchema` under
 `mocks.{typeName}.{fieldName}`.
 
 ### Usage
@@ -56,9 +71,10 @@ You can mock any field by adding a mock in the options passed to `builder.builSc
 ```typescript
 builder.queryType({
   subGraphs: ['Public', 'Other'], // Query type will be available in default, Public, and Other schemas
+  defaultSubGraphsForFields: []; // Fields on the Query object will now default to not being a part of any subgraph
   fields: (t) => ({
     someField: t.string({
-      subGraphs: ['Other'] // someField will be in the default schema and Other schema, but not present in the Public schema
+      subGraphs: ['Other'] // someField will be in the default schema and "Other" sub graph, but not present in the Public sub graph
       resolve: () => {
         throw new Error('Not implemented');
       },
@@ -70,13 +86,13 @@ builder.queryType({
 
 ### Missing types
 
-When creating a subgraph, the plugin will only copy in types that are included in the subGraph,
+When creating a subgraph, the plugin will only copy in types that are included in the sub-graph,
 either by explicitly setting it on the type, or because the sub-graph is included in the default
 list. Like types, output fields that are not included in a sub-graph will also be omitted. Arguments
 and fields on Input types can not be removed because that would break assumptions about arguments
 types in resolvers.
 
-If a type that is not included in the subgraph is referenced by another part of the graph that is
+If a type that is not included in the sub-graph is referenced by another part of the graph that is
 included in the graph, a runtime error will be thrown when the sub graph is constructed. This can
 happen in a number of cases including cases where a removed case is used in the interfaces of an
 object, a member of a union, or the type of an field argument.

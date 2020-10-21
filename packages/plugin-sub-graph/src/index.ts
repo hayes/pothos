@@ -4,7 +4,6 @@ import SchemaBuilder, {
   BasePlugin,
   GiraphQLTypeConfig,
   GiraphQLOutputFieldConfig,
-  GiraphQLInputFieldConfig,
 } from '@giraphql/core';
 import {
   GraphQLEnumType,
@@ -40,7 +39,7 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       ...typeConfig.extensions,
       subGraphs:
         typeConfig.giraphqlOptions.subGraphs ||
-        this.builder.options.subGraph?.defaultGraphsForType ||
+        this.builder.options.subGraphs?.defaultForTypes ||
         [],
     };
   }
@@ -48,34 +47,23 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
 
-    if (this.builder.options.subGraph?.inheritFieldGraphsFromType) {
-      fieldConfig.extensions = {
-        ...fieldConfig.extensions,
-        subGraphs:
-          fieldConfig.giraphqlOptions.subGraphs || typeConfig.giraphqlOptions.subGraphs || [],
-      };
-    } else {
-      fieldConfig.extensions = {
-        ...fieldConfig.extensions,
-        subGraphs:
-          fieldConfig.giraphqlOptions.subGraphs ||
-          this.builder.options.subGraph?.defaultGraphsForField ||
-          [],
-      };
-    }
-  }
-
-  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    if (fieldConfig.kind !== 'InputObject') {
+    if (typeConfig.graphqlKind !== 'Interface' && typeConfig.graphqlKind !== 'Object') {
       return;
     }
 
-    const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
+    let subGraphs: Types['SubGraphs'][] = [];
+
+    if (fieldConfig.giraphqlOptions.subGraphs) {
+      subGraphs = fieldConfig.giraphqlOptions.subGraphs;
+    } else if (typeConfig.giraphqlOptions.defaultSubGraphsForFields) {
+      subGraphs = typeConfig.giraphqlOptions.defaultSubGraphsForFields;
+    } else if (this.builder.options.subGraphs?.fieldsInheritFromTypes) {
+      subGraphs = (typeConfig.extensions?.subGraphs as Types['SubGraphs'][]) || [];
+    }
 
     fieldConfig.extensions = {
       ...fieldConfig.extensions,
-      subGraphs:
-        fieldConfig.giraphqlOptions.subGraphs || typeConfig.giraphqlOptions.subGraphs || [],
+      subGraphs,
     };
   }
 
