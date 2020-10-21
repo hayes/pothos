@@ -10,11 +10,11 @@ aliased to any other name.
 
 The GirahQL auth plugin tries to solve a number of common authorization patterns/problems:
 
--   Simple checks on any field in a schem (At the Query/Mutation level, or nested deep inside a
-    schema)
--   Checks that run before resolving any field of a specific type
--   Checks that run after resolving any field of a specific type
--   Defining reusable permissions that are used by multiple field on the same object
--   Granting permissions from a parent field to the objects/types it returns
+- Simple checks on any field in a schem (At the Query/Mutation level, or nested deep inside a
+  schema)
+- Checks that run before resolving any field of a specific type
+- Checks that run after resolving any field of a specific type
+- Defining reusable permissions that are used by multiple field on the same object
+- Granting permissions from a parent field to the objects/types it returns
 
-## Full docs available at https://giraphql.com/plugins-auth
+## Full docs available at https://giraphql.com/plugins/auth

@@ -19,4 +19,4 @@ fetch to re-resolved.
 This pattern makes it easy to define subscriptions without having to worry about what parts of your
 schema are accessible via the subscribe query, since any type or field can register a subscrption.
 
-## Full docs available at https://giraphql.com/plugins-smart-subscriptions
+## Full docs available at https://giraphql.com/plugins/smart-subscriptions
