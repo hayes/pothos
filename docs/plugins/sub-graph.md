@@ -27,7 +27,7 @@ const builder = new SchemaBuilder<{
   plugins: ['GiraphQLSubGraph'],
   subGraphs: {
     defaultsForTypes: [],
-    : true,
+    inheritFieldGraphsFromType: true,
   },
 });
 
