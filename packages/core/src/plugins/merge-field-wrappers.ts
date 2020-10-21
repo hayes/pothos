@@ -270,6 +270,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                 for (const [name, fn] of onValueFns) {
                   childData[name] = await fn(child);
                 }
+
                 return childData;
               },
       };

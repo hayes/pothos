@@ -14,6 +14,8 @@ import ResolverCache, { CacheForField } from './cache';
 import BaseSubscriptionManager from './manager/base';
 import SmartSubscriptionsFieldWrapper from './field-wrapper';
 
+const DEFAULT_DEBOUNCE_DELAY = 10;
+
 export {
   SubscriptionManager,
   BaseSubscriptionManager,
@@ -49,7 +51,7 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
     super(builder, name);
     this.subscribe = builder.options.smartSubscriptions.subscribe;
     this.unsubscribe = builder.options.smartSubscriptions.unsubscribe;
-    this.debounceDelay = builder.options.smartSubscriptions.debounceDelay ?? 10;
+    this.debounceDelay = builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {

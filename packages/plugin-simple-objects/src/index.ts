@@ -9,7 +9,9 @@ import SchemaBuilder, {
 import './global-types';
 import { OutputShapeFromFields } from './types';
 
-const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype;
+const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<
+  SchemaTypes
+>;
 
 proto.simpleObject = function simpleObject<
   Interfaces extends InterfaceParam<SchemaTypes>[],

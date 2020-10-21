@@ -1,4 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
+/* eslint-disable @typescript-eslint/no-empty-interface */
 
 import InternalFieldBuilder from '../../fieldUtils/builder';
 import InternalRootFieldBuilder from '../../fieldUtils/root';
@@ -21,8 +21,7 @@ declare global {
       Types extends SchemaTypes,
       ParentShape,
       Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
-    >
-      extends RootFieldBuilder<Types, ParentShape, Kind>,
+    > extends RootFieldBuilder<Types, ParentShape, Kind>,
         InternalFieldBuilder<Types, ParentShape, Kind> {}
 
     export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape>

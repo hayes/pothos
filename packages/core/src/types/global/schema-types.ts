@@ -41,7 +41,7 @@ declare global {
       Context: object;
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<GiraphQLSchemaTypes.TypeInfo>>
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>>
       extends SchemaTypes {
       Scalars: MergedScalars<PartialTypes>;
       Objects: PartialTypes['Objects'] & {};

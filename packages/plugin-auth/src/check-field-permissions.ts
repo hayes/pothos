@@ -1,3 +1,4 @@
+/* eslint-disable babel/no-invalid-this */
 import { SchemaTypes } from '@giraphql/core';
 import { resolvePermissionCheck } from './utils/resolve-permission-check';
 import { evaluateMatcher } from './utils/evaluate-matcher';
@@ -20,6 +21,7 @@ export async function checkFieldPermissions<Types extends SchemaTypes>(
     if (required) {
       throw new ForbiddenError(`Missing permission check on ${this.fieldName}.`);
     }
+
     return;
   }
 
@@ -29,6 +31,7 @@ export async function checkFieldPermissions<Types extends SchemaTypes>(
     if (!checkResult) {
       throw new ForbiddenError(`Permission check on ${this.fieldName} failed.`);
     }
+
     return;
   }
 
@@ -43,6 +46,7 @@ export async function checkFieldPermissions<Types extends SchemaTypes>(
 
     if (grantedPermissions.hasPermission(this.field.parentType, perm)) {
       permissionResults.set(perm, true);
+
       return true;
     }
 
@@ -53,6 +57,7 @@ export async function checkFieldPermissions<Types extends SchemaTypes>(
 
       const result = await checkCache[perm];
       permissionResults.set(perm, result);
+
       return result;
     }
 

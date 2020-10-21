@@ -74,7 +74,8 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       if (err) {
         this.handleError(err);
       } else {
-        this.handleValue(name, value);
+        // eslint-disable-next-line promise/no-promise-in-callback
+        this.handleValue(name, value).catch((error) => this.handleError(error));
       }
     });
 
@@ -127,7 +128,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     this.activeSubscriptions = this.nextSubscriptions;
     this.nextSubscriptions = new Set();
     this.activeOptions = this.nextOptions;
-    this.nextOptions = new Map();
+    this.nextOptions = new Map<string, RegisterOptions[]>();
 
     if (this.pendingEvent) {
       this.pendingEvent = false;
@@ -155,6 +156,17 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     });
   }
 
+  handleError(err: unknown) {
+    this.pendingError = err;
+
+    if (this.rejectNext) {
+      this.rejectNext(err);
+    }
+
+    // eslint-disable-next-line promise/no-promise-in-callback
+    this.stop().catch((error) => this.handleError(error));
+  }
+
   private async stop() {
     if (this.stopped) {
       return;
@@ -171,8 +183,8 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
     this.activeSubscriptions = new Set();
     this.nextSubscriptions = new Set();
-    this.activeOptions = new Map();
-    this.nextOptions = new Map();
+    this.activeOptions = new Map<string, RegisterOptions[]>();
+    this.nextOptions = new Map<string, RegisterOptions[]>();
 
     if (this.pendingError && this.rejectNext) {
       this.rejectNext(this.pendingError);
@@ -221,16 +233,6 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     await Promise.all(promises);
 
     return allowed;
-  }
-
-  handleError(err: unknown) {
-    this.pendingError = err;
-
-    if (this.rejectNext) {
-      this.rejectNext(err);
-    }
-
-    this.stop();
   }
 
   private async handleValue(name: string, value: unknown) {

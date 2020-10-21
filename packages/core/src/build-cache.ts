@@ -62,6 +62,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     plugin: Required<BasePlugin<Types>>,
     options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     this.configStore = configStore;
     this.plugin = plugin;
     this.options = options;
@@ -229,6 +230,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       if (type.nullable) {
         return new GraphQLList(this.buildOutputTypeParam(type.type));
       }
+
       return new GraphQLNonNull(new GraphQLList(this.buildOutputTypeParam(type.type)));
     }
 

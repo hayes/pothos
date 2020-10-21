@@ -1,3 +1,4 @@
+/* eslint-disable babel/no-invalid-this */
 import { SchemaTypes, GiraphQLTypeConfig } from '@giraphql/core';
 import { PermissionGrantMap } from './types';
 import { AuthMeta } from '.';

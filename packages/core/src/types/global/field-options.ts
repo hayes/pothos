@@ -193,7 +193,7 @@ declare global {
         ResolveReturnShape
       >;
       Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
-      Interface: GiraphQLSchemaTypes.InterfaceFieldOptions<
+      Interface: InterfaceFieldOptions<
         Types,
         ParentShape,
         Type,

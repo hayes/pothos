@@ -46,7 +46,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
         cb(error);
       }
     },
-    unsubscribe: (name, context) => {
+    unsubscribe: async (name, context) => {
       const map = iterators.get(context)!;
 
       if (!map || !map.has(name)) {
@@ -58,7 +58,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
       map.delete(name);
 
       if (itr.return) {
-        itr.return();
+        await itr.return();
       }
     },
   };

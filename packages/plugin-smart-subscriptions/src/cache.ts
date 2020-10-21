@@ -8,14 +8,14 @@ export function keyFromPath(path: GraphQLResolveInfo['path']): string {
 }
 
 export class CacheForField {
+  fieldManagers: FieldSubscriptionManager[] = [];
+
+  typeManagers: TypeSubscriptionManager[] = [];
+
   reRegister() {
     this.fieldManagers.forEach((manager) => manager.reRegister());
     this.typeManagers.forEach((manager) => manager.reRegister());
   }
-
-  fieldManagers: FieldSubscriptionManager[] = [];
-
-  typeManagers: TypeSubscriptionManager[] = [];
 }
 
 export default class SubscriptionCache {

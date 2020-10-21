@@ -1,0 +1,35 @@
+{
+  "name": "@giraphql/plugin-sub-graph",
+  "version": "1.0.0",
+  "description": "A GiraphQL plugin for creating multiple variants or sub-selections of the same graph",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "multi",
+    "sub",
+    "variant",
+    "partial",
+    "graph",
+    "public",
+    "private"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@giraphql/core": "^0.20.3",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.18.2",
+    "graphql-tag": "^2.11.0"
+  }
+}

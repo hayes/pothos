@@ -144,9 +144,14 @@ export async function resolveNodes<Types extends SchemaTypes>(
   );
 }
 
-const schemaBuilderProto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype;
-const fieldBuilderProto: GiraphQLSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind> =
-  RootFieldBuilder.prototype;
+const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<
+  SchemaTypes
+>;
+const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+  SchemaTypes,
+  unknown,
+  FieldKind
+>;
 
 const pageInfoRefMap = new WeakMap<
   GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
@@ -263,7 +268,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
           return true;
         }
 
-        const proto: { constructor: unknown } = Object.getPrototypeOf(maybeNode);
+        const proto = Object.getPrototypeOf(maybeNode) as { constructor: unknown };
 
         try {
           if (proto?.constructor) {
@@ -436,9 +441,12 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
         return [];
       }
 
-      const rawIds: (GlobalIDShape<SchemaTypes> | string | null | undefined)[] = await Promise.all(
-        rawIDList,
-      );
+      const rawIds = (await Promise.all(rawIDList)) as (
+        | GlobalIDShape<SchemaTypes>
+        | string
+        | null
+        | undefined
+      )[];
 
       const globalIds = rawIds.map((id) =>
         !id || typeof id === 'string'

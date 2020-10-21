@@ -55,6 +55,7 @@ export function wrapResolver<Types extends SchemaTypes>(
   ) => {
     const parentValue =
       originalParent instanceof ValueWrapper ? await originalParent.unwrap() : originalParent;
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const parentData = originalParent instanceof ValueWrapper ? await originalParent.getData() : {};
 
     const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
@@ -115,6 +116,7 @@ export function wrapResolver<Types extends SchemaTypes>(
             .then((value) => wrapChild(value, i))
             .then((wrapped) => {
               wrappedList[i] = wrapped;
+
               return wrapped;
             }),
         );
@@ -167,6 +169,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
       info,
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const result: AsyncIterable<unknown> = subscribeHook.overwriteSubscribe
       ? await subscribeHook.overwriteSubscribe(
           originalParent,
@@ -193,6 +196,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
 
         return {
           next: async () => {
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             const { done, value } = await iter.next();
 
             const childData =

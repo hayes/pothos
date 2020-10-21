@@ -26,13 +26,13 @@ export {
 export * from './types';
 export * from './utils';
 
-type RequestData = {
+interface RequestData {
   manager?: SubscriptionManager;
-};
-type ParentData = {
+}
+interface ParentData {
   cache: SubscriptionCache;
   refetch: () => void;
-};
+}
 
 export default class SmartSubscriptionsFieldWrapper<
   Types extends SchemaTypes
@@ -111,10 +111,6 @@ export default class SmartSubscriptionsFieldWrapper<
 
   createRequestData() {
     return {};
-  }
-
-  private cacheKey(info: GraphQLResolveInfo) {
-    return String(info.path.key);
   }
 
   allowReuse(
@@ -224,5 +220,9 @@ export default class SmartSubscriptionsFieldWrapper<
         return null;
       },
     };
+  }
+
+  private cacheKey(info: GraphQLResolveInfo) {
+    return String(info.path.key);
   }
 }

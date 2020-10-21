@@ -74,6 +74,8 @@ import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import { normalizeEnumValues, valuesFromEnum } from './utils';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
+  static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
+
   configStore: ConfigStore<Types>;
 
   options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>;
@@ -109,6 +111,17 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     scalars.forEach((scalar) => {
       this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
     });
+  }
+
+  static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
+    name: T,
+    plugin: PluginConstructorMap<SchemaTypes>[T],
+  ) {
+    if (this.plugins[name]) {
+      throw new Error(`Received multiple implementations for plugin ${name}`);
+    }
+
+    this.plugins[name] = plugin;
   }
 
   getPlugin(name: PluginName) {
@@ -413,6 +426,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   scalarType<Name extends ScalarName<Types>>(
     name: Name,
     options: GiraphQLSchemaTypes.ScalarTypeOptions<
+      Types,
       InputShape<Types, Name>,
       OutputShape<Types, Name>
     >,
@@ -439,7 +453,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     name: Name,
     scalar: GraphQLScalarType,
     options: Omit<
-      GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Types, Name>, OutputShape<Types, Name>>,
+      GiraphQLSchemaTypes.ScalarTypeOptions<
+        Types,
+        InputShape<Types, Name>,
+        OutputShape<Types, Name>
+      >,
       'description' | 'parseLiteral' | 'parseValue' | 'serialize'
     >,
   ) {
@@ -448,7 +466,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return this.scalarType<Name>(name, {
       ...config,
       ...options,
-    } as GiraphQLSchemaTypes.ScalarTypeOptions<InputShape<Types, Name>, OutputShape<Types, Name>>);
+    } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>);
   }
 
   inputType<
@@ -501,7 +519,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const { directives, extensions } = options;
     this.configStore.prepareForBuild();
 
-    this.plugin.beforeBuild();
+    this.plugin.beforeBuild(options);
 
     const buildCache = new BuildCache(this.configStore, this.plugin, options);
 
@@ -518,21 +536,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       types: builtTypes,
     });
 
-    this.plugin.afterBuild(schema);
+    this.plugin.afterBuild(schema, options);
 
     return schema;
-  }
-
-  static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
-
-  static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
-    name: T,
-    plugin: PluginConstructorMap<SchemaTypes>[T],
-  ) {
-    if (this.plugins[name]) {
-      throw new Error(`Received multiple implementations for plugin ${name}`);
-    }
-
-    this.plugins[name] = plugin;
   }
 }

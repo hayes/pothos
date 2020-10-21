@@ -15,23 +15,23 @@ import { SimpleObjectFieldsShape, OutputShapeFromFields } from './types';
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface SchemaBuilder<Types extends SchemaTypes> {
-      simpleObject<
+      simpleObject: <
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
         Shape extends OutputShapeFromFields<Fields> & OutputShape<Types, Interfaces[number]>
       >(
         name: string,
-        options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
-      ): ObjectRef<Shape>;
+        options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
+      ) => ObjectRef<Shape>;
 
-      simpleInterface<
+      simpleInterface: <
         Fields extends FieldMap,
         Shape extends OutputShapeFromFields<Fields>,
         Interfaces extends InterfaceParam<SchemaTypes>[]
       >(
         name: string,
-        options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
-      ): InterfaceRef<Shape>;
+        options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
+      ) => InterfaceRef<Shape>;
     }
 
     export interface GiraphQLKindToGraphQLType {
@@ -66,8 +66,7 @@ declare global {
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>
     > = Omit<
-      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+      ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
       'fields'
     > & {
       fields?: SimpleObjectFieldsShape<Types, Fields>;

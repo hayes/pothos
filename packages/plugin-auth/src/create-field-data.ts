@@ -162,7 +162,10 @@ export function getResolveChecks<Types extends SchemaTypes>(
     return getUnionChecks(typeConfig, builder, options);
   }
 
-  return { preResolveMap: new Map(), postResolveMap: new Map() };
+  return {
+    preResolveMap: new Map<string, PreResolveCheck<any>>(),
+    postResolveMap: new Map<string, Map<string, PostResolveCheck<any, unknown>>>(),
+  };
 }
 
 export function getPermissionCheckers<Types extends SchemaTypes>(

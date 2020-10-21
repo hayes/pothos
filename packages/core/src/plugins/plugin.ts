@@ -28,9 +28,9 @@ export class BasePlugin<Types extends SchemaTypes> {
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {}
 
-  beforeBuild() {}
+  beforeBuild(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {}
 
-  afterBuild(schema: GraphQLSchema) {}
+  afterBuild(schema: GraphQLSchema, options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {}
 
   wrapOutputField(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,

@@ -97,10 +97,10 @@ export type InterfaceParam<Types extends SchemaTypes> =
       new (...args: any[]): unknown;
     };
 
-export type BaseEnum = {
+export interface BaseEnum {
   [s: string]: string | number;
   [s: number]: string;
-};
+}
 
 export type ValuesFromEnum<T extends BaseEnum> = T[keyof T];
 

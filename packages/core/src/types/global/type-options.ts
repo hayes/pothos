@@ -24,19 +24,20 @@ import { MaybePromise } from '../utils';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
+      description?: string;
+      extensions?: Readonly<Record<string, unknown>>;
+    }
     export interface EnumTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Values extends EnumValues = EnumValues
-    > {
-      description?: string;
+    > extends BaseTypeOptions<Types> {
       values: Values;
-      extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown> {
-      description?: string;
+    export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown>
+      extends BaseTypeOptions<Types> {
       fields?: ObjectFieldsShape<Types, Shape>;
-      extensions?: Readonly<Record<string, unknown>>;
       interfaces?: undefined;
       isTypeOf?: undefined;
     }
@@ -54,10 +55,9 @@ declare global {
       ) => boolean;
     }
 
-    export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
-      description?: string;
-      extensions?: Readonly<Record<string, unknown>>;
-    }
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
+      extends BaseTypeOptions<Types> {}
 
     export interface QueryTypeOptions<Types extends SchemaTypes = SchemaTypes>
       extends RootTypeOptions<Types, 'Query'> {
@@ -77,46 +77,42 @@ declare global {
     export interface InputObjectTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Fields extends InputFieldMap = InputFieldMap
-    > {
-      description?: string;
-      fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, 'InputObject'>) => Fields;
-      extensions?: Readonly<Record<string, unknown>>;
+    > extends BaseTypeOptions<Types> {
+      fields: (t: InputFieldBuilder<Types, 'InputObject'>) => Fields;
     }
 
     export interface InterfaceTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
-    > {
-      description?: string;
+    > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
       interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
-      extensions?: Readonly<Record<string, unknown>>;
     }
 
     export interface UnionTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Member extends ObjectParam<Types> = ObjectParam<Types>
-    > {
-      description?: string;
+    > extends BaseTypeOptions<Types> {
       types: Member[];
       resolveType: (
         parent: OutputShape<Types, Member>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => MaybePromise<Member | null | undefined>;
-      extensions?: Readonly<Record<string, unknown>>;
     }
 
-    export interface ScalarTypeOptions<InputShape = unknown, OutputShape = unknown> {
-      description?: string;
+    export interface ScalarTypeOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      ScalarInputShape = unknown,
+      ScalarOutputShape = unknown
+    > extends BaseTypeOptions<Types> {
       // Serializes an internal value to include in a response.
-      serialize: GraphQLScalarSerializer<OutputShape>;
+      serialize: GraphQLScalarSerializer<ScalarOutputShape>;
       // Parses an externally provided value to use as an input.
-      parseValue?: GraphQLScalarValueParser<InputShape>;
+      parseValue?: GraphQLScalarValueParser<ScalarInputShape>;
       // Parses an externally provided literal value to use as an input.
-      parseLiteral?: GraphQLScalarLiteralParser<InputShape>;
-      extensions?: Readonly<Record<string, unknown>>;
+      parseLiteral?: GraphQLScalarLiteralParser<ScalarInputShape>;
     }
   }
 }

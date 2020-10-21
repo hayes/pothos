@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import { TypeParam, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
 import {
   ShapeFromTypeParam,
@@ -57,11 +58,11 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         giraphqlOptions: options as any,
         description: options.description,
         resolve:
-          (options as { resolve?: (...args: unknown[]) => unknown }).resolve ??
+          (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
           (() => {
             throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
           }),
-        subscribe: (options as { subscribe?: (...args: unknown[]) => unknown }).subscribe,
+        subscribe: (options as { subscribe?: (...argList: unknown[]) => unknown }).subscribe,
       };
     });
 
@@ -81,7 +82,6 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
-      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       resolve: (parent) => (parent as { [s: string]: any })[name as string],
     });
   }

@@ -1,0 +1,257 @@
+/* eslint-disable no-param-reassign */
+import SchemaBuilder, {
+  SchemaTypes,
+  BasePlugin,
+  GiraphQLTypeConfig,
+  GiraphQLOutputFieldConfig,
+  GiraphQLInputFieldConfig,
+} from '@giraphql/core';
+import {
+  GraphQLEnumType,
+  GraphQLFieldConfigArgumentMap,
+  GraphQLFieldConfigMap,
+  GraphQLInputFieldConfigMap,
+  GraphQLInputObjectType,
+  GraphQLInterfaceType,
+  GraphQLNamedType,
+  GraphQLObjectType,
+  GraphQLScalarType,
+  GraphQLSchema,
+  GraphQLUnionType,
+} from 'graphql';
+
+import './global-types';
+import { replaceType } from './util';
+
+const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<
+  SchemaTypes
+>;
+
+schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options, subGraph) {
+  return this.getPlugin('GiraphQLSubGraph').createSubGraph(this.toSchema(options), subGraph);
+};
+
+export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+    typeConfig.extensions = {
+      ...typeConfig.extensions,
+      subGraphs:
+        typeConfig.giraphqlOptions.subGraphs ||
+        this.builder.options.subGraph?.defaultGraphsForType ||
+        [],
+    };
+  }
+
+  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
+
+    if (this.builder.options.subGraph?.inheritFieldGraphsFromType) {
+      fieldConfig.extensions = {
+        ...fieldConfig.extensions,
+        subGraphs:
+          fieldConfig.giraphqlOptions.subGraphs || typeConfig.giraphqlOptions.subGraphs || [],
+      };
+    } else {
+      fieldConfig.extensions = {
+        ...fieldConfig.extensions,
+        subGraphs:
+          fieldConfig.giraphqlOptions.subGraphs ||
+          this.builder.options.subGraph?.defaultGraphsForField ||
+          [],
+      };
+    }
+  }
+
+  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+    if (fieldConfig.kind !== 'InputObject') {
+      return;
+    }
+
+    const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
+
+    fieldConfig.extensions = {
+      ...fieldConfig.extensions,
+      subGraphs:
+        fieldConfig.giraphqlOptions.subGraphs || typeConfig.giraphqlOptions.subGraphs || [],
+    };
+  }
+
+  createSubGraph(schema: GraphQLSchema, subGraph: string) {
+    const config = schema.toConfig();
+
+    return new GraphQLSchema({
+      types: this.filterTypes(config.types, subGraph),
+      directives: config.directives,
+      extensions: config.extensions,
+      extensionASTNodes: config.extensionASTNodes,
+      assumeValid: false,
+    });
+  }
+
+  filterTypes(types: GraphQLNamedType[], subGraph: string): GraphQLNamedType[] {
+    const newTypes = new Map<string, GraphQLNamedType>();
+
+    types.forEach((type) => {
+      if (type.name.startsWith('__')) {
+        return;
+      }
+
+      const config = this.builder.configStore.getTypeConfig(type.name);
+
+      if (
+        type.name === 'String' ||
+        type.name === 'Int' ||
+        type.name === 'Float' ||
+        type.name === 'Boolean' ||
+        type.name === 'ID'
+      ) {
+        newTypes.set(type.name, type);
+      }
+
+      if (!(config.extensions?.subGraphs as string[])?.includes(subGraph)) {
+        return;
+      }
+
+      if (type instanceof GraphQLScalarType || type instanceof GraphQLEnumType) {
+        newTypes.set(type.name, type);
+      } else if (type instanceof GraphQLObjectType) {
+        const typeConfig = type.toConfig();
+        newTypes.set(
+          type.name,
+          new GraphQLObjectType({
+            ...typeConfig,
+            interfaces: () =>
+              typeConfig.interfaces.map((iface) =>
+                replaceType(iface, newTypes, typeConfig.name, subGraph),
+              ),
+            fields: this.filterFields(type, newTypes, subGraph),
+          }),
+        );
+      } else if (type instanceof GraphQLInterfaceType) {
+        const typeConfig = type.toConfig();
+        newTypes.set(
+          type.name,
+          new GraphQLInterfaceType({
+            ...typeConfig,
+            interfaces: () =>
+              typeConfig.interfaces.map((iface) =>
+                replaceType(iface, newTypes, typeConfig.name, subGraph),
+              ),
+            fields: this.filterFields(type, newTypes, subGraph),
+          }),
+        );
+      } else if (type instanceof GraphQLUnionType) {
+        const typeConfig = type.toConfig();
+        newTypes.set(
+          type.name,
+          new GraphQLUnionType({
+            ...typeConfig,
+            types: () =>
+              typeConfig.types.map((member) =>
+                replaceType(member, newTypes, typeConfig.name, subGraph),
+              ),
+          }),
+        );
+      } else if (type instanceof GraphQLInputObjectType) {
+        const typeConfig = type.toConfig();
+        newTypes.set(
+          type.name,
+          new GraphQLInputObjectType({
+            ...typeConfig,
+            fields: this.mapInputFields(type, newTypes, subGraph),
+          }),
+        );
+      }
+    });
+
+    return [...newTypes.values()];
+  }
+
+  filterFields(
+    type: GraphQLObjectType | GraphQLInterfaceType,
+    newTypes: Map<string, GraphQLNamedType>,
+    subGraph: string,
+  ) {
+    const oldFields = type.getFields();
+
+    return () => {
+      const newFields: GraphQLFieldConfigMap<unknown, unknown> = {};
+
+      Object.keys(oldFields).forEach((fieldName) => {
+        const fieldConfig = oldFields[fieldName];
+
+        const newArguments: GraphQLFieldConfigArgumentMap = {};
+
+        if (!fieldConfig.extensions?.subGraphs?.includes(subGraph)) {
+          return;
+        }
+
+        fieldConfig.args.forEach((argConfig) => {
+          newArguments[argConfig.name] = {
+            description: argConfig.description,
+            defaultValue: argConfig.defaultValue as unknown,
+            extensions: argConfig.extensions,
+            astNode: argConfig.astNode,
+            type: replaceType(
+              argConfig.type,
+              newTypes,
+              `${argConfig.name} argument of ${type.name}.${fieldConfig.name}`,
+              subGraph,
+            ),
+          };
+        });
+
+        newFields[fieldName] = {
+          description: fieldConfig.description,
+          resolve: fieldConfig.resolve,
+          subscribe: fieldConfig.subscribe,
+          deprecationReason: fieldConfig.deprecationReason,
+          extensions: fieldConfig.extensions,
+          astNode: fieldConfig.astNode,
+          type: replaceType(
+            fieldConfig.type,
+            newTypes,
+            `${type.name}.${fieldConfig.name}`,
+            subGraph,
+          ),
+          args: newArguments,
+        };
+      });
+
+      return newFields;
+    };
+  }
+
+  mapInputFields(
+    type: GraphQLInputObjectType,
+    newTypes: Map<string, GraphQLNamedType>,
+    subGraph: string,
+  ) {
+    const oldFields = type.getFields();
+
+    return () => {
+      const newFields: GraphQLInputFieldConfigMap = {};
+
+      Object.keys(oldFields).forEach((fieldName) => {
+        const fieldConfig = oldFields[fieldName];
+
+        newFields[fieldName] = {
+          description: fieldConfig.description,
+          extensions: fieldConfig.extensions,
+          astNode: fieldConfig.astNode,
+          defaultValue: fieldConfig.defaultValue as unknown,
+          type: replaceType(
+            fieldConfig.type,
+            newTypes,
+            `${type.name}.${fieldConfig.name}`,
+            subGraph,
+          ),
+        };
+      });
+
+      return newFields;
+    };
+  }
+}
+
+SchemaBuilder.registerPlugin('GiraphQLSubGraph', SubGraphPlugin);

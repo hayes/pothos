@@ -20,5 +20,7 @@
 
   schema.
 
+* [`@giraphql/plugin-sub-graph`](plugins/sub-graph.md): A plugin for creating sub selections of your graph.
+
 * More plugins coming soon \(including a plugin for Prisma\)
 

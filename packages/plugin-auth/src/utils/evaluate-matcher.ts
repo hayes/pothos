@@ -23,7 +23,8 @@ export async function evaluateMatcher(
               if (!result) {
                 failedChecks.add(perm);
               }
-              return result;
+              
+return result;
             })
           : evaluateMatcher(perm, fieldName, getResult, failedChecks).then((result) => !result);
       if (matcher.sequential) {
@@ -52,7 +53,8 @@ export async function evaluateMatcher(
               if (!result) {
                 failedChecks.add(perm);
               }
-              return result;
+              
+return result;
             })
           : evaluateMatcher(perm, fieldName, getResult, failedChecks).then((result) => !result);
       if (matcher.sequential) {
@@ -69,7 +71,8 @@ export async function evaluateMatcher(
       return null;
     }
   }
-  return {
+  
+return {
     type: matcher.all ? 'all' : 'any',
     failedChecks,
   };

@@ -1,57 +1,42 @@
 {
-  "name": "@giraphql/schema-builder",
+  "name": "@giraphql/schema-builder-root",
   "version": "0.0.0",
   "description": "A strongly typed code first schema builder for GraphQL",
   "directories": {
     "lib": "lib"
   },
   "scripts": {
-    "babel": "NODE_ENV=production nimbus babel --copy-files --workspaces=*",
-    "docz:deploy": "yarn docz:build && netlify deploy -d dist --prod",
-    "docz:dev": "cd ./docs && docz dev",
-    "docz:build": "cd ./docs && docz build",
-    "docz:serve": "cd ./docs && docz build && docz serve",
-    "prepare": "nimbus create-config --silent && rm babel.config.js",
-    "build": "yarn babel && yarn type:dts",
-    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,.docz}",
-    "lint": "nimbus eslint",
-    "posttest": "yarn run lint",
-    "jest": "NODE_ENV=test TZ=UTC nimbus jest",
-    "jest:coverage": "yarn run jest -- --coverage",
-    "test": "yarn run jest:coverage",
-    "prettier": "nimbus prettier",
-    "type": "nimbus typescript --build --reference-workspaces --no-emit",
-    "type:dts": "nimbus typescript --build --reference-workspaces",
-    "pretest": "yarn run type",
-    "release": "yarn clean && yarn build && lerna publish --push"
+    "prepare": "beemo create-config --silent",
+    "build": "beemo typescript --build --reference-workspaces",
+    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib}",
+    "ci": "yarn run type && yarn run test && yarn run lint",
+    "coverage": "yarn run test --coverage",
+    "format": "beemo prettier",
+    "lint": "beemo eslint",
+    "release": "lerna publish",
+    "test": "beemo jest",
+    "type": "beemo typescript --build --reference-workspaces",
+    "prerelease": "yarn run ci && yarn run build"
   },
   "workspaces": [
     "./packages/*"
   ],
   "private": true,
   "devDependencies": {
-    "@airbnb/config-babel": "^3.1.0",
-    "@airbnb/config-eslint": "^3.1.0",
-    "@airbnb/config-jest": "^3.0.2",
-    "@airbnb/config-prettier": "^3.1.0",
-    "@airbnb/config-typescript": "^3.0.1",
-    "@airbnb/nimbus": "^3.1.4",
     "@babel/plugin-syntax-bigint": "^7.8.3",
-    "@types/jest": "^26.0.8",
-    "@types/node": "^14.0.27",
+    "@beemo/driver-typescript": "^1.4.1",
+    "@milesj/build-tools": "^2.13.1",
+    "@types/jest": "^26.0.14",
+    "@types/node": "^14.11.10",
     "@types/node-fetch": "^2.5.7",
-    "docz": "^2.3.1",
     "graphql": "^15.3.0",
-    "husky": "^4.2.5",
+    "husky": "^4.3.0",
     "lerna": "^3.22.1",
-    "lint-staged": "^10.2.11",
-    "react": "^16.13.1",
-    "react-dom": "^16.13.1",
-    "ts-node": "^8.10.2",
-    "typescript": "^3.9.7"
-  },
-  "resolutions": {
-    "typescript": "^3.9.5"
+    "lint-staged": "^10.4.2",
+    "react": "^16.14.0",
+    "react-dom": "^16.14.0",
+    "ts-node": "^9.0.0",
+    "typescript": "^4.0.3"
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
@@ -76,25 +61,18 @@
     "url": "https://github.com/hayes/giraphql/issues"
   },
   "homepage": "https://github.com/hayes/giraphql#readme",
-  "nimbus": {
+  "beemo": {
+    "module": "@milesj/build-tools",
     "drivers": [
+      "babel",
       "eslint",
       "jest",
       "prettier",
-      "typescript",
-      "babel"
+      "typescript"
     ],
     "settings": {
-      "library": true,
-      "next": true,
-      "node": true,
-      "env": {
-        "useBuiltIns": false,
-        "corejs": false,
-        "targets": {
-          "node": "10"
-        }
-      }
+      "useBuiltIns": false,
+      "node": true
     }
   }
 }

@@ -22,5 +22,6 @@ export async function resolvePermissionCheck(
   if (Array.isArray(result)) {
     return { all: result };
   }
-  return result;
+  
+return result;
 }

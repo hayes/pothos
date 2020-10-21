@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-
 import { SchemaTypes } from '@giraphql/core';
 import MocksPlugin from '.';
 import { ResolverMap } from './types';

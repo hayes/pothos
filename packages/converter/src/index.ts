@@ -419,7 +419,7 @@ export default class GirphQLConverter {
         ? type
             .getInterfaces()
             .map((i) => Object.keys(i.getFields()))
-            .reduce((all, fields) => [...all, ...fields], [] as string[])
+            .reduce<string[]>((all, fields) => [...all, ...fields], [])
         : [];
     const fields = Object.keys(fieldMap).map((f) => fieldMap[f]);
     writer.writeLine('fields: t => ({');
@@ -492,6 +492,7 @@ export default class GirphQLConverter {
   writeType(writer: CodeBlockWriter, type: GraphQLType): void {
     if (type instanceof GraphQLNonNull) {
       this.writeType(writer, type.ofType);
+
       return;
     }
 
@@ -499,6 +500,7 @@ export default class GirphQLConverter {
       writer.write('[');
       this.writeType(writer, type.ofType);
       writer.write(']');
+
       return;
     }
 
@@ -508,6 +510,7 @@ export default class GirphQLConverter {
       type instanceof GraphQLInterfaceType
     ) {
       writer.write(`'${type.name}'`);
+
       return;
     }
 

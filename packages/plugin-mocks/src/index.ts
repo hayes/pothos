@@ -26,7 +26,7 @@ export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 
   resolveMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {
-    const fieldMock = (mocks[typename] && mocks[typename][fieldName]) || null;
+    const fieldMock = mocks[typename]?.[fieldName] || null;
 
     if (!fieldMock) {
       return null;
@@ -40,7 +40,7 @@ export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 
   subscribeMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {
-    const fieldMock = (mocks[typename] && mocks[typename][fieldName]) || null;
+    const fieldMock = mocks[typename]?.[fieldName] || null;
 
     if (!fieldMock) {
       return null;

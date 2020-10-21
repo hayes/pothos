@@ -34,11 +34,12 @@ export default class TypeSubscriptionManager<
 
         if (refetch) {
           return Promise.resolve(refetch(value)).then(
+            // eslint-disable-next-line promise/always-return
             (result: unknown) => {
               this.replace(result);
             },
-            (err: unknown) => {
-              this.manager.handleError(err);
+            (error: unknown) => {
+              this.manager.handleError(error);
             },
           );
         }

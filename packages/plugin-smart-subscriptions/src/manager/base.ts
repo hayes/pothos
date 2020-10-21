@@ -6,6 +6,10 @@ export default class BaseSubscriptionManager {
 
   registrations: RegisterOptions[] = [];
 
+  constructor(manager: SubscriptionManager) {
+    this.manager = manager;
+  }
+
   addRegistration<T>(options: RegisterOptions<T>) {
     this.registrations.push(options as RegisterOptions);
     this.manager.register<T>(options);
@@ -13,9 +17,5 @@ export default class BaseSubscriptionManager {
 
   reRegister() {
     this.registrations.forEach((options) => this.manager.register(options));
-  }
-
-  constructor(manager: SubscriptionManager) {
-    this.manager = manager;
   }
 }

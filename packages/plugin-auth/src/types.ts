@@ -24,7 +24,7 @@ export type FieldPermissionCheck<Types extends SchemaTypes, ParentShape, Args> =
   context: Types['Context'],
 ) => MaybePromise<boolean | string | string[] | PermissionMatcher>;
 
-export type PermissionGrantMap = { [s: string]: boolean | undefined };
+export interface PermissionGrantMap { [s: string]: boolean | undefined }
 
 export type PreResolveCheck<Types extends SchemaTypes> = (
   context: Types['Context'],
@@ -50,9 +50,9 @@ export type UnionPostResolveCheck<Types extends SchemaTypes, Member extends Obje
   grantedPermissions: GrantedPermissions,
 ) => MaybePromise<boolean | PermissionGrantMap>;
 
-export type PermissionCheckMap<Types extends SchemaTypes, ParentShape> = {
+export interface PermissionCheckMap<Types extends SchemaTypes, ParentShape> {
   [s: string]: SharedPermissionCheck<Types, ParentShape>;
-};
+}
 
 export type GrantPermissions<Types extends SchemaTypes, ParentShape, Args> =
   | PermissionGrantMap

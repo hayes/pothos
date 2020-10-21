@@ -12,12 +12,6 @@ export default class InputFieldBuilder<
 
   typename: string;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, typename: string) {
-    this.builder = builder;
-    this.kind = kind;
-    this.typename = typename;
-  }
-
   bool = this.helper('Boolean');
 
   boolean = this.helper('Boolean');
@@ -42,6 +36,12 @@ export default class InputFieldBuilder<
 
   stringList = this.helper(['String']);
 
+  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, typename: string) {
+    this.builder = builder;
+    this.kind = kind;
+    this.typename = typename;
+  }
+
   argBuilder(): ArgBuilder<Types> {
     const builder: InputFieldBuilder<Types, 'Arg'>['field'] = this.field.bind(this);
 
@@ -56,6 +56,7 @@ export default class InputFieldBuilder<
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
     options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
   ) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = {} as any;
 
     this.builder.configStore.addFieldRef(ref, options.type, (name) => {

@@ -1,4 +1,3 @@
-import { GraphQLSchema } from 'graphql';
 import {
   BasePlugin,
   SchemaTypes,
@@ -86,15 +85,15 @@ export function mergePlugins<Types extends SchemaTypes>(
       }
     },
 
-    beforeBuild() {
+    beforeBuild(options) {
       for (const plugin of beforeBuildPlugins) {
-        plugin.beforeBuild();
+        plugin.beforeBuild(options);
       }
     },
 
-    afterBuild(schema: GraphQLSchema) {
+    afterBuild(schema, options) {
       for (const plugin of afterBuildPlugins) {
-        plugin.afterBuild(schema);
+        plugin.afterBuild(schema, options);
       }
     },
   };

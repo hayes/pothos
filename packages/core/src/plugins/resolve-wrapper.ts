@@ -6,11 +6,11 @@ import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes, MaybePromise } fro
 import { assertArray } from '../utils';
 
 export class ValueWrapper<T> {
-  protected value: unknown;
-
   getData: () => MaybePromise<T | null>;
 
   fieldResults = new Map<string, unknown>();
+
+  protected value: unknown;
 
   constructor(value: unknown, data: T | null) {
     this.value = value;
@@ -81,11 +81,17 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
     this.hooks = hooks;
   }
 
+  async updateData(type: GiraphQLObjectTypeConfig) {
+    this.queueDataUpdate(type);
+
+    await this.getData();
+  }
+
   private updateValue(value: unknown) {
     this.value = value;
 
     if (this.fieldResults.size) {
-      this.fieldResults = new Map();
+      this.fieldResults = new Map<string, unknown>();
     }
 
     if (this.value == null) {
@@ -93,12 +99,6 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
     } else if (this.type) {
       this.queueDataUpdate(this.type);
     }
-  }
-
-  async updateData(type: GiraphQLObjectTypeConfig) {
-    this.queueDataUpdate(type);
-
-    await this.getData();
   }
 
   private queueDataUpdate(type: GiraphQLObjectTypeConfig) {

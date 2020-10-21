@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   SchemaTypes,
   InputFieldMap,
@@ -59,14 +58,14 @@ declare global {
       ParentShape,
       Kind extends FieldKind = FieldKind
     > {
-      globalID<
+      globalID: <
         Args extends InputFieldMap,
         Nullable extends FieldNullability<'ID'>,
         ResolveReturnShape
       >(
         options: GlobalIDFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>,
-      ): FieldRef<ShapeFromTypeParam<Types, 'ID', Nullable>>;
-      globalIDList<
+      ) => FieldRef<ShapeFromTypeParam<Types, 'ID', Nullable>>;
+      globalIDList: <
         Args extends InputFieldMap,
         Nullable extends FieldNullability<['ID']>,
         ResolveReturnShape
@@ -79,14 +78,14 @@ declare global {
           ResolveReturnShape,
           Kind
         >,
-      ): FieldRef<ShapeFromTypeParam<Types, ['ID'], Nullable>>;
-      node<Args extends InputFieldMap, ResolveShape>(
+      ) => FieldRef<ShapeFromTypeParam<Types, ['ID'], Nullable>>;
+      node: <Args extends InputFieldMap, ResolveShape>(
         options: NodeFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>,
-      ): FieldRef<unknown>;
-      nodeList<Args extends InputFieldMap, ResolveShape>(
+      ) => FieldRef<unknown>;
+      nodeList: <Args extends InputFieldMap, ResolveShape>(
         options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>,
-      ): FieldRef<unknown[]>;
-      connection<
+      ) => FieldRef<unknown[]>;
+      connection: <
         Type extends OutputType<Types>,
         Args extends InputFieldMap,
         Nullable extends boolean,
@@ -114,7 +113,7 @@ declare global {
           Types,
           ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>['edges'][number]
         >,
-      ): FieldRef<ConnectionShapeForType<Types, Type, false>>;
+      ) => FieldRef<ConnectionShapeForType<Types, Type, false>>;
     }
   }
 }

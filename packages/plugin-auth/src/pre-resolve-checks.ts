@@ -1,3 +1,4 @@
+/* eslint-disable babel/no-invalid-this */
 import { SchemaTypes } from '@giraphql/core';
 import { GrantMap } from '.';
 import { PermissionGrantMap, AuthRequestData } from './types';

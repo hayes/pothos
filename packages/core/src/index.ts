@@ -39,13 +39,13 @@ export {
   InputFieldRef,
 };
 
-export const SchemaBuilder = SchemaBuilderClass as {
+const SchemaBuilder = SchemaBuilderClass as {
+  registerPlugin: typeof SchemaBuilderClass.registerPlugin;
   new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo> = {}>(
     options: GiraphQLSchemaTypes.SchemaBuilderOptions<
       GiraphQLSchemaTypes.ExtendDefaultTypes<Types>
     >,
   ): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
-  registerPlugin: typeof SchemaBuilderClass.registerPlugin;
 };
 
 export default SchemaBuilder;

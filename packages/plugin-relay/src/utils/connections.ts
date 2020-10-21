@@ -13,12 +13,14 @@ interface ResolveArrayConnectionOptions {
 }
 
 const OFFSET_CURSOR_PREFIX = 'OffsetConnection:';
+const DEFAULT_MAX_SIZE = 100;
+const DEFAULT_SIZE = 20;
 
 function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
-  const defaultSize = options.defaultSize ?? 20;
-  const maxSize = options.maxSize ?? 100;
+  const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
+  const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
   const beforeOffset = before ? cursorToOffset(before) : Infinity;
   const afterOffset = after ? cursorToOffset(after) : 0;
 
@@ -100,7 +102,8 @@ export function cursorToOffset(cursor: string): number {
   if (!string.startsWith(OFFSET_CURSOR_PREFIX)) {
     throw new Error(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
   }
-  return parseInt(string.slice(OFFSET_CURSOR_PREFIX.length), 10);
+
+  return Number.parseInt(string.slice(OFFSET_CURSOR_PREFIX.length), 10);
 }
 
 export function offsetToCursor(offset: number): string {

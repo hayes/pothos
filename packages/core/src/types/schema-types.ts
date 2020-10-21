@@ -1,4 +1,4 @@
-export interface SchemaTypes {
+export interface SchemaTypes extends GiraphQLSchemaTypes.TypeInfo {
   outputShapes: {
     String: unknown;
     ID: unknown;

@@ -11,6 +11,7 @@ export function normalizeEnumValues(values: EnumValues): GraphQLEnumValueConfigM
   } else {
     Object.entries(values).forEach(([key, value]) => {
       if (value && typeof value === 'object') {
+        // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         result[key] = value;
       } else if (typeof value === 'string') {
         result[value] = {};
