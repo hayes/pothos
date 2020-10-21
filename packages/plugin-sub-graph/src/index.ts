@@ -81,17 +81,21 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
 
   createSubGraph(schema: GraphQLSchema, subGraph: string) {
     const config = schema.toConfig();
+    const newTypes = this.filterTypes(config.types, subGraph);
 
     return new GraphQLSchema({
-      types: this.filterTypes(config.types, subGraph),
+      types: [...newTypes.values()],
       directives: config.directives,
       extensions: config.extensions,
       extensionASTNodes: config.extensionASTNodes,
       assumeValid: false,
+      query: newTypes.get('Query') as GraphQLObjectType,
+      mutation: newTypes.get('Mutation') as GraphQLObjectType,
+      subscription: newTypes.get('Subscription') as GraphQLObjectType,
     });
   }
 
-  filterTypes(types: GraphQLNamedType[], subGraph: string): GraphQLNamedType[] {
+  filterTypes(types: GraphQLNamedType[], subGraph: string) {
     const newTypes = new Map<string, GraphQLNamedType>();
 
     types.forEach((type) => {
@@ -167,7 +171,7 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       }
     });
 
-    return [...newTypes.values()];
+    return newTypes;
   }
 
   filterFields(
