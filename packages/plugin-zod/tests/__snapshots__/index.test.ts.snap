@@ -1,0 +1,22 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mocked invalid query 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: 1 validation issue(s)
+
+  Issue #0: custom_error at odd
+  Number is not odd
+],
+  ],
+}
+`;
+
+exports[`mocked valid query 1`] = `
+Object {
+  "data": Object {
+    "requiresOddArg": 1,
+  },
+}
+`;
