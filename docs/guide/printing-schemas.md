@@ -12,7 +12,7 @@ import { writeFileSync } from 'fs';
 import { printSchema, lexicographicSortSchema } from 'graphql';
 import SchemaBuilder from '@giraphql/core';
 
-const builder = new SchemaBuilder();
+const builder = new SchemaBuilder({});
 
 builder.queryType({
     fields: (t) => ({

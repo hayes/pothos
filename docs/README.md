@@ -13,7 +13,7 @@ GiraphQL is a plugin based schema builder for creating code-first GraphQL schema
 import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@giraphql/core';
 
-const builder = new SchemaBuilder();
+const builder = new SchemaBuilder({});
 
 builder.queryType({
     fields: (t) => ({

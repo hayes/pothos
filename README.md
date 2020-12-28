@@ -9,13 +9,13 @@ multiple files.
 import SchemaBuilder from '@giraphql/core';
 import { ApolloServer } from 'apollo-server';
 
-const builder = new SchemaBuilder();
+const builder = new SchemaBuilder({}});
 
 builder.queryType({
     fields: (t) => ({
         hello: t.string({
             args: {
-                name: t.arg.string(),
+                name: t.arg.string({}),
             },
             resolve: (parent, { name }) => `hello, ${name || 'World'}`,
         }),

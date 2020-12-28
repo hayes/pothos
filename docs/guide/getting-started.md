@@ -16,7 +16,7 @@ yarn add @giraphql/core apollo-server
 ```typescript
 import SchemaBuilder from '@giraphql/core';
 
-const builder = new SchemaBuilder();
+const builder = new SchemaBuilder({});
 
 builder.queryType({
     fields: (t) => ({
