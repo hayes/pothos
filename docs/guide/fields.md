@@ -54,7 +54,7 @@ Some types like [Objects](objects.md) and [Interfaces](interfaces.md) can be ref
 
 ```typescript
 const builder = new SchemaBuilder<{
-  Object: { Giraffe: { name: string }}};
+  Objects: { Giraffe: { name: string } };
 }>({});
 
 builder.queryType({
@@ -157,7 +157,7 @@ These helpers are not available for root types \(Query, Mutation and Subscriptio
 
 ```typescript
 const builder = new SchemaBuilder<{
-  Object: { Giraffe: { name: string }}};
+  Objects: { Giraffe: { name: string } };
 }>({});
 
 builder.objectType('Giraffe', {
