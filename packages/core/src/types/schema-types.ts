@@ -22,6 +22,8 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.TypeInfo {
     Float: { Input: unknown; Output: unknown };
     Boolean: { Input: unknown; Output: unknown };
   };
+  DefaultFieldNullability: boolean;
+  DefaultInputFieldNullability: boolean;
   Root: object;
   Context: object;
 }

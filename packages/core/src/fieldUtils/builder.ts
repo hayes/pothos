@@ -17,7 +17,7 @@ export default class FieldBuilder<
   exposeBoolean<
     Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Boolean'> = false
+    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -40,7 +40,7 @@ export default class FieldBuilder<
   exposeFloat<
     Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Float'> = false
+    Nullable extends FieldNullability<'Float'> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -63,7 +63,7 @@ export default class FieldBuilder<
   exposeID<
     Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'ID'> = false
+    Nullable extends FieldNullability<'ID'> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -86,7 +86,7 @@ export default class FieldBuilder<
   exposeInt<
     Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Int'> = false
+    Nullable extends FieldNullability<'Int'> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -109,7 +109,7 @@ export default class FieldBuilder<
   exposeString<
     Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'String'> = false
+    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -132,7 +132,7 @@ export default class FieldBuilder<
   exposeBooleanList<
     Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Boolean']> = false
+    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -155,7 +155,7 @@ export default class FieldBuilder<
   exposeFloatList<
     Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Float']> = false
+    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -178,7 +178,7 @@ export default class FieldBuilder<
   exposeIDList<
     Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['ID']> = false
+    Nullable extends FieldNullability<['ID']> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -201,7 +201,7 @@ export default class FieldBuilder<
   exposeIntList<
     Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Int']> = false
+    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<
@@ -224,7 +224,7 @@ export default class FieldBuilder<
   exposeStringList<
     Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['String']> = false
+    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability']
   >(
     name: Name,
     options: Omit<

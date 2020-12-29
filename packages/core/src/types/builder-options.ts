@@ -18,6 +18,11 @@ import {
   MaybePromiseWithInference,
   MaybePromise,
 } from '..';
+import { RemoveNeverKeys } from './utils';
+
+export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
+  GiraphQLSchemaTypes.SchemaBuilderOptions<Types>
+>;
 
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   parent: Parent,

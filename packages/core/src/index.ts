@@ -10,7 +10,7 @@ import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
 import InternalObjectFieldBuilder from './fieldUtils/object';
 import InternalInterfaceFieldBuilder from './fieldUtils/interface';
 import SchemaBuilderClass from './builder';
-import { FieldKind, SchemaTypes } from './types';
+import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types';
 import EnumRef from './refs/enum';
 import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
 import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
@@ -42,9 +42,7 @@ export {
 const SchemaBuilder = SchemaBuilderClass as {
   registerPlugin: typeof SchemaBuilderClass.registerPlugin;
   new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo> = {}>(
-    options: GiraphQLSchemaTypes.SchemaBuilderOptions<
-      GiraphQLSchemaTypes.ExtendDefaultTypes<Types>
-    >,
+    options: NormalizeSchemeBuilderOptions<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>,
   ): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 

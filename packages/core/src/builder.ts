@@ -31,6 +31,7 @@ import {
   InterfaceParam,
   ShapeFromEnumValues,
   ScalarName,
+  NormalizeSchemeBuilderOptions,
 } from './types';
 import BuildCache from './build-cache';
 import {
@@ -78,21 +79,23 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   configStore: ConfigStore<Types>;
 
-  options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>;
+  options: NormalizeSchemeBuilderOptions<Types>;
+
+  defaultFieldNullability: boolean;
+
+  defaultInputFieldNullability: boolean;
 
   private plugin: Required<BasePlugin<Types>>;
 
   private pluginMap: PluginMap<Types>;
 
-  constructor(options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>) {
+  constructor(options: NormalizeSchemeBuilderOptions<Types>) {
     this.options = options;
 
     const plugins: Record<string, unknown> = {};
 
     (options.plugins || []).forEach((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[
-        pluginName!
-      ] as typeof BasePlugin;
+      const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
 
       if (!Plugin) {
         throw new Error(`No plugin named ${pluginName} was registered`);
@@ -106,6 +109,16 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.plugin = mergePlugins(this, this.pluginMap);
 
     this.configStore = new ConfigStore<Types>(this.plugin);
+
+    this.defaultFieldNullability =
+      (options as {
+        defaultFieldNullability?: boolean;
+      }).defaultFieldNullability || false;
+
+    this.defaultInputFieldNullability =
+      (options as {
+        defaultInputFieldNullability?: boolean;
+      }).defaultInputFieldNullability ?? true;
 
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
     scalars.forEach((scalar) => {
