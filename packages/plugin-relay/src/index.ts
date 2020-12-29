@@ -215,9 +215,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
           id: t.arg.id({ required: true }),
         },
         nullable: true,
-        resolve: async (root, args, context) => {
-          return (await resolveNodes(this, context, [String(args.id)]))[0];
-        },
+        resolve: async (root, args, context) => (await resolveNodes(this, context, [String(args.id)]))[0],
       }) as FieldRef<unknown>,
   );
 
@@ -232,11 +230,9 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         list: false,
         items: true,
       },
-      resolve: async (root, args, context) => {
-        return (await resolveNodes(this, context, args.ids as string[])) as Promise<ObjectParam<
+      resolve: async (root, args, context) => (await resolveNodes(this, context, args.ids as string[])) as Promise<ObjectParam<
           SchemaTypes
-        > | null>[];
-      },
+        > | null>[],
     }),
   );
 
@@ -308,12 +304,10 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
         ...options.id,
         nullable: false,
         args: {},
-        resolve: async (parent, args, context, info) => {
-          return {
+        resolve: async (parent, args, context, info) => ({
             type: nodeConfig.name,
             id: await options.id.resolve(parent, args, context, info),
-          };
-        },
+          }),
       }),
     );
   });

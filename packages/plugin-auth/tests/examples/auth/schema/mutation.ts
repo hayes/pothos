@@ -1,6 +1,6 @@
 import builder from '../builder';
 
-export default builder.mutationType({
+builder.mutationType({
   fields: (t) => ({
     createUser: t.field({
       type: 'User',

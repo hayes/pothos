@@ -25,13 +25,11 @@ builder.objectType('Square', {
   interfaces: ['Shape'],
   isTypeOf: (parent) => parent.type === 'square',
   defaultPermissionCheck: 'readSquare',
-  postResolveCheck: () => {
-    return {
+  postResolveCheck: () => ({
       readSquare: true,
       // Interface permissions are separate
       readName: true,
-    };
-  },
+    }),
   fields: (t) => ({
     size: t.float({
       resolve: ({ edgeLength }) => edgeLength ** 2,
@@ -117,11 +115,9 @@ builder.objectType('Oval', {
 
 builder.objectType('Rectangle', {
   interfaces: ['Shape', 'ThingWithCorners'],
-  preResolveCheck: () => {
-    return {
+  preResolveCheck: () => ({
       preResolve: true,
-    };
-  },
+    }),
   postResolveCheck: (rect, ctx, perms) => {
     if (rect.height < 0) {
       return false;
@@ -261,16 +257,12 @@ builder.queryFields((t) => ({
     type: 'Square',
     nullable: true,
     permissionCheck: () => true,
-    resolve: () => {
-      return { type: 'square' as const, edgeLength: 4 };
-    },
+    resolve: () => ({ type: 'square' as const, edgeLength: 4 }),
   }),
   squareWithoutCheck: t.field({
     type: 'Square',
     nullable: true,
-    resolve: () => {
-      return { type: 'square' as const, edgeLength: 4 };
-    },
+    resolve: () => ({ type: 'square' as const, edgeLength: 4 }),
   }),
   rectangle: t.field({
     type: 'Rectangle',
@@ -295,13 +287,11 @@ builder.queryFields((t) => ({
     grantPermissions: () => ({
       readName: true,
     }),
-    resolve: () => {
-      return [
+    resolve: () => [
         { type: 'circle', radius: 3 },
         { type: 'square', edgeLength: 4 },
         { type: 'triangle', edgeLength: 5 },
-      ];
-    },
+      ],
   }),
   polygons: t.field({
     type: [Polygon],
@@ -310,12 +300,10 @@ builder.queryFields((t) => ({
     grantPermissions: () => ({
       readName: true,
     }),
-    resolve: () => {
-      return [
+    resolve: () => [
         { type: 'square' as const, edgeLength: 4 },
         { type: 'triangle' as const, edgeLength: 5 },
-      ];
-    },
+      ],
   }),
   roundThing: t.field({
     type: RoundThings,
@@ -345,9 +333,7 @@ builder.queryFields((t) => ({
       width: t.arg.int({ required: true }),
       height: t.arg.int({ required: true }),
     },
-    resolve: (root, { width, height }) => {
-      return { type: 'rectangle' as const, height, width };
-    },
+    resolve: (root, { width, height }) => ({ type: 'rectangle' as const, height, width }),
   }),
   cornerUnion: t.field({
     type: CornerUnion,
@@ -357,47 +343,35 @@ builder.queryFields((t) => ({
       width: t.arg.int({ required: true }),
       height: t.arg.int({ required: true }),
     },
-    resolve: (root, { width, height }) => {
-      return { type: 'rectangle' as const, height, width };
-    },
+    resolve: (root, { width, height }) => ({ type: 'rectangle' as const, height, width }),
   }),
   interfacePreResolvePass: t.field({
     type: 'PreResolvePass',
     nullable: true,
-    resolve: () => {
-      return { type: 'line', length: 3 };
-    },
+    resolve: () => ({ type: 'line', length: 3 }),
   }),
   interfacePreResolveFail: t.field({
     type: 'PreResolveFail',
     nullable: true,
-    resolve: () => {
-      return { type: 'line-pre-resolve-fail', length: 3 };
-    },
+    resolve: () => ({ type: 'line-pre-resolve-fail', length: 3 }),
   }),
   interfacePostResolvePass: t.field({
     type: 'PostResolvePass',
     nullable: true,
     permissionCheck: () => true,
-    resolve: () => {
-      return { type: 'line', length: 3 };
-    },
+    resolve: () => ({ type: 'line', length: 3 }),
   }),
   interfacePostResolveFail: t.field({
     type: 'PostResolveFail',
     nullable: true,
     permissionCheck: () => true,
-    resolve: () => {
-      return { type: 'line-post-resolve-fail', length: 3 };
-    },
+    resolve: () => ({ type: 'line-post-resolve-fail', length: 3 }),
   }),
   skipImplementorPreResolveChecks: t.field({
     type: 'SkipImplementorPreResolve',
     nullable: true,
     permissionCheck: () => true,
-    resolve: () => {
-      return { type: 'line', length: 3 };
-    },
+    resolve: () => ({ type: 'line', length: 3 }),
   }),
   preResolvePassUnion: t.field({
     type: PreResolvePassUnion,
@@ -429,8 +403,6 @@ builder.queryFields((t) => ({
   }),
   line: t.field({
     type: 'Line',
-    resolve: () => {
-      return { type: 'line' as const, length: 3 };
-    },
+    resolve: () => ({ type: 'line' as const, length: 3 }),
   }),
 }));

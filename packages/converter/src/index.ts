@@ -234,7 +234,7 @@ export default class GirphQLConverter {
       writer.writeLine(`builder.objectType('${type.name}', {`);
       writer.indent(() => {
         this.writeDescription(writer, type);
-        if (type.getInterfaces().length !== 0) {
+        if (type.getInterfaces().length > 0) {
           writer.writeLine(
             `interfaces: [${type
               .getInterfaces()
@@ -365,7 +365,7 @@ export default class GirphQLConverter {
       name: `${type.name}Shape`,
       properties: fields.map((field) => ({
         name: field.name,
-        type: (writer) => this.writeInputFieldShape(writer, field.type, type),
+        type: (writer) => void this.writeInputFieldShape(writer, field.type, type),
       })),
     });
   }
@@ -630,7 +630,7 @@ export default class GirphQLConverter {
   }
 
   writeArgs(writer: CodeBlockWriter, type: GraphQLField<unknown, unknown>) {
-    if (type.args.length !== 0) {
+    if (type.args.length > 0) {
       writer.write('args: {');
       writer.indent(() => {
         type.args.forEach((arg) => {
@@ -673,7 +673,7 @@ export default class GirphQLConverter {
         type.name !== 'Mutation' &&
         type.name !== 'Subscription',
     ) as GraphQLObjectType[];
-    if (objects.length !== 0) {
+    if (objects.length > 0) {
       writer.writeLine('Objects: {');
       writer.indent(() => {
         objects.forEach((type) => {
@@ -686,7 +686,7 @@ export default class GirphQLConverter {
     const interfaces = gqlTypes.filter(
       (type) => type instanceof GraphQLInterfaceType,
     ) as GraphQLInterfaceType[];
-    if (interfaces.length !== 0) {
+    if (interfaces.length > 0) {
       writer.writeLine('Interfaces: {');
       writer.indent(() => {
         interfaces.forEach((type) => {
@@ -699,7 +699,7 @@ export default class GirphQLConverter {
     const scalars = gqlTypes.filter(
       (type) => type instanceof GraphQLScalarType,
     ) as GraphQLScalarType[];
-    if (scalars.length !== 0) {
+    if (scalars.length > 0) {
       writer.writeLine('Scalars: {');
       writer.indent(() => {
         scalars.forEach((type) => {

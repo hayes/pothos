@@ -114,9 +114,7 @@ Example2.implement({
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) => {
-    return Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article';
-  },
+  resolveType: (parent) => Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
 });
 
 // Creating an ObjectType and its resolvers
@@ -146,9 +144,7 @@ builder.objectType('User', {
         example: t.arg({ type: Example, required: true }),
         firstN: t.arg.int({ required: true }),
       },
-      resolve: (parent, args) => {
-        return parent.firstName.slice(0, args.firstN) + args.example.id;
-      },
+      resolve: (parent, args) => parent.firstName.slice(0, args.firstN) + args.example.id,
     }),
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({
@@ -156,26 +152,21 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id({}),
       },
-      resolve: (parent, args) => {
-        return Number.parseInt(String(args.example2.more.more.more.example.id), 10);
-      },
+      resolve: (parent, args) =>
+        Number.parseInt(String(args.example2.more.more.more.example.id), 10),
     }),
     // Using a union type
     related: t.field({
-      resolve: (parent) => {
-        return {
+      resolve: (parent) => ({
           body: 'stuff',
           title: 'hi',
-        };
-      },
+        }),
       // reference implementation so we can automatically pull types for all member types
       type: SearchResult,
     }),
     // Lists
     friends: t.field({
-      resolve: (parent) => {
-        return [parent];
-      },
+      resolve: (parent) => [parent],
       type: ['User'],
     }),
     // list helpers
@@ -331,11 +322,9 @@ builder.subscriptionType({
   fields: (t) => ({
     event: t.field({
       type: 'String',
-      subscribe: () => {
-        return (async function* subscribe() {
+      subscribe: () => (async function* subscribe() {
           yield await Promise.resolve('123');
-        })();
-      },
+        })(),
       resolve: (parent) => parent.toLocaleLowerCase(),
     }),
   }),

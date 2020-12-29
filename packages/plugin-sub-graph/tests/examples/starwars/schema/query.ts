@@ -9,7 +9,7 @@ const characterArgs = builder.args((t) => ({
   }),
 }));
 
-export default builder.queryType({
+builder.queryType({
   subGraphs: ['Public', 'Private'],
   defaultSubGraphsForFields: ['Private'],
   fields: (t) => ({
@@ -40,7 +40,7 @@ export default builder.queryType({
   }),
 });
 
-export const extraQueryFields = builder.queryFields((t) => ({
+builder.queryFields((t) => ({
   r2d2: t.field({
     subGraphs: ['Public'],
     type: 'Droid',

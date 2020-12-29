@@ -13,8 +13,8 @@ export class CacheForField {
   typeManagers: TypeSubscriptionManager[] = [];
 
   reRegister() {
-    this.fieldManagers.forEach((manager) => manager.reRegister());
-    this.typeManagers.forEach((manager) => manager.reRegister());
+    this.fieldManagers.forEach((manager) => void manager.reRegister());
+    this.typeManagers.forEach((manager) => void manager.reRegister());
   }
 }
 

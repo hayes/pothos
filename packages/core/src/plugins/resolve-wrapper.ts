@@ -105,7 +105,7 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
     if (this.hooks.onChild) {
       this.getData = () => {
         const data = this.hooks.onChild!(this.value, this.index, type, (next) =>
-          this.updateValue(next),
+          void this.updateValue(next),
         );
 
         this.getData = () => data ?? null;

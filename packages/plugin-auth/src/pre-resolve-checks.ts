@@ -50,18 +50,15 @@ export default async function runPreResolveChecks<Types extends SchemaTypes>(
       }
     });
 
-    if (failedChecks.length !== 0) {
-      if (failedChecks.length === 1) {
-        throw new ForbiddenError(
+    if (failedChecks.length > 0) {
+      const error = failedChecks.length === 1 ? new ForbiddenError(
           `preResolveCheck failed for ${this.fieldName} on ${failedChecks[0]}`,
-        );
-      } else {
-        throw new ForbiddenError(
+        ) : new ForbiddenError(
           `preResolveChecks failed for ${this.fieldName} on ${failedChecks
             .slice(0, -1)
             .join(', ')} and ${failedChecks[failedChecks.length - 1]}`,
         );
-      }
+      throw error;
     }
   }
 

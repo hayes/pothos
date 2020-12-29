@@ -121,7 +121,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
       this.pendingRefResolutions.delete(ref);
 
-      cbs.forEach((cb) => cb(this.typeConfigs.get(name)!));
+      cbs.forEach((cb) => void cb(this.typeConfigs.get(name)!));
     }
   }
 
@@ -145,7 +145,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
       this.pendingRefResolutions.delete(name as ConfigurableRef<Types>);
 
-      cbs.forEach((cb) => cb(config));
+      cbs.forEach((cb) => void cb(config));
     }
   }
 
@@ -195,7 +195,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     this.fieldRefCallbacks.get(ref)!.push(cb);
 
     if (this.fieldRefsToConfigs.has(ref)) {
-      this.fieldRefsToConfigs.get(ref)!.forEach((config) => cb(config));
+      this.fieldRefsToConfigs.get(ref)!.forEach((config) => void cb(config));
     }
   }
 
@@ -292,7 +292,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     this.fieldRefsToConfigs.get(field)!.push(fieldConfig);
 
     if (this.fieldRefCallbacks.has(field)) {
-      this.fieldRefCallbacks.get(field)!.forEach((cb) => cb(fieldConfig));
+      this.fieldRefCallbacks.get(field)!.forEach((cb) => void cb(fieldConfig));
     }
   }
 }

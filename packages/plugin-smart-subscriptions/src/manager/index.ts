@@ -75,12 +75,12 @@ export default class SubscriptionManager implements AsyncIterator<object> {
         this.handleError(err);
       } else {
         // eslint-disable-next-line promise/no-promise-in-callback
-        this.handleValue(name, value).catch((error) => this.handleError(error));
+        this.handleValue(name, value).catch((error) => void this.handleError(error));
       }
     });
 
     if (maybePromise) {
-      maybePromise.catch((error) => this.handleError(error));
+      maybePromise.catch((error) => void this.handleError(error));
     }
   }
 
@@ -164,7 +164,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     }
 
     // eslint-disable-next-line promise/no-promise-in-callback
-    this.stop().catch((error) => this.handleError(error));
+    this.stop().catch((error) => void this.handleError(error));
   }
 
   private async stop() {

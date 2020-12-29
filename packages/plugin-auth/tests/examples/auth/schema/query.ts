@@ -1,10 +1,8 @@
 import builder from '../builder';
 
-export default builder.queryType({
+builder.queryType({
   permissions: {
-    readUser: (parent, context) => {
-      return context.role === 'Admin' || context.role === 'User';
-    },
+    readUser: (parent, context) => context.role === 'Admin' || context.role === 'User',
   },
   fields: (t) => ({
     user: t.field({

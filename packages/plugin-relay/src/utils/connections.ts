@@ -21,7 +21,7 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
   const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
-  const beforeOffset = before ? cursorToOffset(before) : Infinity;
+  const beforeOffset = before ? cursorToOffset(before) : Number.POSITIVE_INFINITY;
   const afterOffset = after ? cursorToOffset(after) : 0;
 
   if (first != null && first < 0) {
@@ -33,13 +33,13 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   }
 
   let startOffset = after ? afterOffset + 1 : 0;
-  let endOffset = before ? Math.max(beforeOffset, startOffset) : Infinity;
+  let endOffset = before ? Math.max(beforeOffset, startOffset) : Number.POSITIVE_INFINITY;
 
   if (first != null) {
     endOffset = Math.min(endOffset, startOffset + first);
   }
   if (last != null) {
-    if (endOffset === Infinity) {
+    if (endOffset === Number.POSITIVE_INFINITY) {
       throw new Error('Argument "last" can only be used in combination with "before" or "first"');
     }
     startOffset = Math.max(startOffset, endOffset - last);

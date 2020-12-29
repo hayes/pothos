@@ -47,8 +47,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       });
     }
 
-    this.builder.configStore.addFieldRef(ref, options.type, (name) => {
-      return {
+    this.builder.configStore.addFieldRef(ref, options.type, (name) => ({
         kind: this.kind as any,
         graphqlKind: this.graphqlKind as GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
         parentType: this.typename,
@@ -63,8 +62,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
             throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
           }),
         subscribe: (options as { subscribe?: (...argList: unknown[]) => unknown }).subscribe,
-      };
-    });
+      }));
 
     return ref;
   }

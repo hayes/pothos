@@ -11,10 +11,10 @@ export default builder.interfaceType('Character', {
       type: ['Character'],
       description: 'The friends of the character, or an empty list if they have none.',
       nullable: { list: false, items: true },
-      resolve: (character) => {
+      resolve: (character) => 
         // Testing Promise<Promise<Character>[]> to handle complicated async cases
-        return getFriends(character);
-      },
+         getFriends(character)
+      ,
     }),
     appearsIn: t.field({
       type: [Episode],

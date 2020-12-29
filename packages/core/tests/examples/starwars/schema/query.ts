@@ -9,7 +9,7 @@ const characterArgs = builder.args((t) => ({
   }),
 }));
 
-export default builder.queryType({
+builder.queryType({
   fields: (t) => ({
     hero: t.field({
       type: 'Character',
@@ -36,7 +36,7 @@ export default builder.queryType({
   }),
 });
 
-export const extraQueryFields = builder.queryFields((t) => ({
+builder.queryFields((t) => ({
   r2d2: t.field({
     type: 'Droid',
     resolve: () => getDroid(2001),

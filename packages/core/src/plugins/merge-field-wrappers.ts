@@ -146,15 +146,13 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   return originalResolve;
                 }
 
-                return (...resolveArgs) => {
-                  return overwriteResolveFns[i](
+                return (...resolveArgs) => overwriteResolveFns[i](
                     resolveArgs[0],
                     resolveArgs[1],
                     resolveArgs[2],
                     resolveArgs[3],
                     resolverFor(i + 1),
                   );
-                };
               }
 
               return resolverFor(0)(_parent, _args, _context, _info) as unknown;
@@ -238,15 +236,13 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   return originalResolve;
                 }
 
-                return (...resolveArgs) => {
-                  return overwriteSubscribeFns[i](
+                return (...resolveArgs) => overwriteSubscribeFns[i](
                     resolveArgs[0],
                     resolveArgs[1],
                     resolveArgs[2],
                     resolveArgs[3],
                     resolverFor(i + 1),
                   );
-                };
               }
 
               return resolverFor(0)(_parent, _args, _context, _info) as unknown;

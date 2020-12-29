@@ -59,8 +59,7 @@ export default class InputFieldBuilder<
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = {} as any;
 
-    this.builder.configStore.addFieldRef(ref, options.type, (name) => {
-      return {
+    this.builder.configStore.addFieldRef(ref, options.type, (name) => ({
         name,
         kind: this.kind,
         graphqlKind: this.kind,
@@ -73,8 +72,7 @@ export default class InputFieldBuilder<
         giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
         description: options.description,
         defaultValue: options.defaultValue,
-      };
-    });
+      }));
 
     return ref;
   }
@@ -82,11 +80,9 @@ export default class InputFieldBuilder<
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
       options: Omit<GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>, 'type'>,
-    ) => {
-      return this.field({
+    ) => this.field({
         ...options,
         type,
       });
-    };
   }
 }

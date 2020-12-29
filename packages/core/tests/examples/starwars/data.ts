@@ -97,7 +97,7 @@ const droidData: { [key in string]: Droid } = {
 function getCharacter(id: string) {
   // Returning a promise just to illustrate GraphQL.js's support.
   return new Promise((resolve) => {
-    setTimeout(() => resolve(humanData[id] || droidData[id]), 5);
+    setTimeout(() => void resolve(humanData[id] || droidData[id]), 5);
   });
 }
 

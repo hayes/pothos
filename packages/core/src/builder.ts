@@ -91,14 +91,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     (options.plugins || []).forEach((pluginName) => {
       const Plugin = SchemaBuilder.plugins[
-        pluginName as keyof PluginConstructorMap<Types>
+        pluginName!
       ] as typeof BasePlugin;
 
       if (!Plugin) {
         throw new Error(`No plugin named ${pluginName} was registered`);
       }
 
-      plugins[pluginName] = new Plugin(this, pluginName as keyof PluginConstructorMap<Types>);
+      plugins[pluginName] = new Plugin(this, pluginName!);
     });
 
     this.pluginMap = plugins as PluginMap<Types>;

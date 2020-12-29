@@ -11,9 +11,9 @@ function execTS(script: string) {
       stdio: ['pipe', 'pipe', 'inherit'],
     });
 
-    child.on('error', (err) => reject(err));
+    child.on('error', (err) => void reject(err));
     child.stdout.on('data', (chunk) => chunks.push(chunk));
-    child.stdout.on('end', () => resolve(Buffer.concat(chunks).toString()));
+    child.stdout.on('end', () => void resolve(Buffer.concat(chunks).toString()));
 
     child.stdin.write(script);
     child.stdin.end();
