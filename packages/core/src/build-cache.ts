@@ -45,7 +45,6 @@ import {
 import ConfigStore from './config-store';
 import { wrapResolveType, wrapResolver, wrapSubscriber } from './plugins/wrap-field';
 import { mergeFieldWrappers } from './plugins/merge-field-wrappers';
-import BaseTypeRef from './refs/base';
 import BuiltinScalarRef from './refs/builtin-scalar';
 
 export default class BuildCache<Types extends SchemaTypes> {
