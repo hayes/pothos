@@ -60,19 +60,19 @@ export default class InputFieldBuilder<
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = {} as any;
 
     this.builder.configStore.addFieldRef(ref, options.type, (name) => ({
-        name,
-        kind: this.kind,
-        graphqlKind: this.kind,
-        parentType: this.typename,
-        type: inputTypeFromParam<Types>(
-          options.type,
-          this.builder.configStore,
-          options.required ?? false,
-        ),
-        giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
-        description: options.description,
-        defaultValue: options.defaultValue,
-      }));
+      name,
+      kind: this.kind,
+      graphqlKind: this.kind,
+      parentType: this.typename,
+      type: inputTypeFromParam<Types>(
+        options.type,
+        this.builder.configStore,
+        options.required ?? this.builder.defaultInputFieldRequiredness,
+      ),
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
+      description: options.description,
+      defaultValue: options.defaultValue,
+    }));
 
     return ref;
   }
@@ -80,7 +80,8 @@ export default class InputFieldBuilder<
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
       options: Omit<GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>, 'type'>,
-    ) => this.field({
+    ) =>
+      this.field({
         ...options,
         type,
       });

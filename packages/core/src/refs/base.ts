@@ -1,7 +1,15 @@
-export default abstract class BaseTypeRef {
-  abstract kind: 'Object' | 'Interface' | 'Union' | 'Enum' | 'Scalar' | 'InputObject';
+export default class BaseTypeRef {
+  kind;
 
-  abstract name: string;
+  name;
+
+  constructor(
+    kind: 'Object' | 'Interface' | 'Union' | 'Enum' | 'Scalar' | 'InputObject',
+    name: string,
+  ) {
+    this.kind = kind;
+    this.name = name;
+  }
 
   toString() {
     return `${this.kind}Ref<${this.name}>`;

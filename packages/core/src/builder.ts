@@ -31,6 +31,8 @@ import {
   InterfaceParam,
   ShapeFromEnumValues,
   ScalarName,
+  NormalizeSchemeBuilderOptions,
+  OutputType,
 } from './types';
 import BuildCache from './build-cache';
 import {
@@ -78,21 +80,23 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   configStore: ConfigStore<Types>;
 
-  options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>;
+  options: NormalizeSchemeBuilderOptions<Types>;
+
+  defaultFieldNullability: boolean;
+
+  defaultInputFieldRequiredness: boolean;
 
   private plugin: Required<BasePlugin<Types>>;
 
   private pluginMap: PluginMap<Types>;
 
-  constructor(options: GiraphQLSchemaTypes.SchemaBuilderOptions<Types>) {
+  constructor(options: NormalizeSchemeBuilderOptions<Types>) {
     this.options = options;
 
     const plugins: Record<string, unknown> = {};
 
     (options.plugins || []).forEach((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[
-        pluginName!
-      ] as typeof BasePlugin;
+      const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
 
       if (!Plugin) {
         throw new Error(`No plugin named ${pluginName} was registered`);
@@ -107,10 +111,15 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.configStore = new ConfigStore<Types>(this.plugin);
 
-    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
-    scalars.forEach((scalar) => {
-      this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
-    });
+    this.defaultFieldNullability =
+      (options as {
+        defaultFieldNullability?: boolean;
+      }).defaultFieldNullability || false;
+
+    this.defaultInputFieldRequiredness =
+      (options as {
+        defaultInputFieldRequiredness?: boolean;
+      }).defaultInputFieldRequiredness || false;
   }
 
   static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
@@ -517,6 +526,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   toSchema(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {
     const { directives, extensions } = options;
+
+    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
+    scalars.forEach((scalar) => {
+      if (!this.configStore.hasConfig(scalar.name as OutputType<Types>)) {
+        this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
+      }
+    });
+
     this.configStore.prepareForBuild();
 
     this.plugin.beforeBuild(options);

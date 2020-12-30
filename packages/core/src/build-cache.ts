@@ -14,10 +14,10 @@ import {
   GraphQLNonNull,
   GraphQLList,
   GraphQLID,
+  GraphQLInt,
+  GraphQLFloat,
   GraphQLBoolean,
   GraphQLString,
-  GraphQLFloat,
-  GraphQLInt,
 } from 'graphql';
 import {
   BasePlugin,
@@ -45,6 +45,7 @@ import {
 import ConfigStore from './config-store';
 import { wrapResolveType, wrapResolver, wrapSubscriber } from './plugins/wrap-field';
 import { mergeFieldWrappers } from './plugins/merge-field-wrappers';
+import BuiltinScalarRef from './refs/builtin-scalar';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
@@ -69,6 +70,10 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   getType(ref: string | OutputType<Types> | InputType<Types>) {
+    if (ref instanceof BuiltinScalarRef) {
+      return ref.type;
+    }
+
     const { name } = this.configStore.getTypeConfig(ref);
 
     const type = this.types.get(name);
@@ -393,10 +398,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
       },
-      interfaces: () =>
-        (config!).interfaces.map((iface) =>
-          this.getTypeOfKind(iface, 'Interface'),
-        ),
+      interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
       resolveType: wrapResolveType(this.configStore, async (parent, context, info) => {
         const implementers = this.getImplementers(type!);

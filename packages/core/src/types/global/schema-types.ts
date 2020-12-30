@@ -7,6 +7,12 @@ declare global {
   export namespace GiraphQLSchemaTypes {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       plugins?: (keyof PluginConstructorMap<Types>)[];
+      defaultFieldNullability: false extends Types['DefaultFieldNullability']
+        ? never
+        : Types['DefaultFieldNullability'];
+      defaultInputFieldRequiredness: false extends Types['DefaultInputFieldRequiredness']
+        ? never
+        : Types['DefaultInputFieldRequiredness'];
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -39,6 +45,8 @@ declare global {
       Interfaces: {};
       Root: object;
       Context: object;
+      DefaultFieldNullability: boolean;
+      DefaultInputFieldRequiredness: boolean;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>>
@@ -48,6 +56,10 @@ declare global {
       Interfaces: PartialTypes['Interfaces'] & {};
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
+      DefaultFieldNullability: PartialTypes['DefaultFieldNullability'] extends true ? true : false;
+      DefaultInputFieldRequiredness: PartialTypes['DefaultInputFieldRequiredness'] extends true
+        ? true
+        : false;
       outputShapes: { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] } &
         { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } &
         {

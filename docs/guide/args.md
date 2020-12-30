@@ -5,27 +5,29 @@ menu: Guide
 
 # Args
 
-Similar to the [Fields Guide](fields.md), the examples here will mostly be for the Query type, but the same patters can be used anywhere that arguments for fields can be defined, including both Object and Interface types.
+Similar to the [Fields Guide](fields.md), the examples here will mostly be for the Query type, but
+the same patters can be used anywhere that arguments for fields can be defined, including both
+Object and Interface types.
 
 ## Scalars
 
 Scalar args can be defined a couple of different ways
 
-### Using  the `t.arg` method
+### Using the `t.arg` method
 
 ```typescript
 const Query = builder.queryType({
-    fields: (t) => ({
-        string: t.string({
-            args: {
-                string: t.arg({
-                    type: 'String',
-                    description: 'String arg',
-                }),
-            },
-            resolve: (parent, args) => arg.string,
+  fields: (t) => ({
+    string: t.string({
+      args: {
+        string: t.arg({
+          type: 'String',
+          description: 'String arg',
         }),
+      },
+      resolve: (parent, args) => arg.string,
     }),
+  }),
 });
 ```
 
@@ -33,23 +35,23 @@ const Query = builder.queryType({
 
 ```typescript
 const Query = builder.queryType({
-    fields: (t) => ({
-        withArgs: t.stringList({
-            args: {
-                id: t.arg.id({}),
-                int: t.arg.int({}),
-                float: t.arg.float({}),
-                boolean: t.arg.boolean({}),
-                string: t.arg.string({}),
-                idList: t.arg.idList({}),
-                intList: t.arg.intList({}),
-                floatList: t.arg.floatList({}),
-                booleanList: t.arg.booleanList({}),
-                stringList: t.arg.stringList({}),
-            },
-            resolve: (root, args) => Object.keys(args),
-        }),
+  fields: (t) => ({
+    withArgs: t.stringList({
+      args: {
+        id: t.arg.id({}),
+        int: t.arg.int({}),
+        float: t.arg.float({}),
+        boolean: t.arg.boolean({}),
+        string: t.arg.string({}),
+        idList: t.arg.idList({}),
+        intList: t.arg.intList({}),
+        floatList: t.arg.floatList({}),
+        booleanList: t.arg.booleanList({}),
+        stringList: t.arg.stringList({}),
+      },
+      resolve: (root, args) => Object.keys(args),
     }),
+  }),
 });
 ```
 
@@ -81,30 +83,33 @@ const Giraffe = builder.objectType('Giraffe', {
 
 ## Required args
 
-Arguments are optional by default, but can be made required by passing `required: true` in the argument options.
+Arguments are optional by default, but can be made required by passing `required: true` in the
+argument options. This default can be changed in the SchemaBuilder constructor, see
+[Changing Default Nullability](guide/changing-default-nullability.md).
 
 ```typescript
 const Query = builder.queryType({
-    fields: (t) => ({
-        nullableArgs: t.stringList({
-            args: {
-                optional: t.arg.string({}),
-                required: t.arg.string({ required: true }),
-                requiredList: t.arg.stringList({ required: true }),
-                sparseList: t.stringList({
-                    required: {
-                        list: true,
-                        items: false,
-                    },
-                }),
-            },
-            resolve: (parent, args) => Object.keys(args),
+  fields: (t) => ({
+    nullableArgs: t.stringList({
+      args: {
+        optional: t.arg.string({}),
+        required: t.arg.string({ required: true }),
+        requiredList: t.arg.stringList({ required: true }),
+        sparseList: t.stringList({
+          required: {
+            list: true,
+            items: false,
+          },
         }),
+      },
+      resolve: (parent, args) => Object.keys(args),
     }),
+  }),
 });
 ```
 
-Note that by default even if a list arg is optional, the items in that list are not. The last argument in the example above shows how you can make list items optional.
+Note that by default even if a list arg is optional, the items in that list are not. The last
+argument in the example above shows how you can make list items optional.
 
 ## Lists
 
@@ -132,4 +137,3 @@ const Query = builder.queryType({
   }),
 });
 ```
-

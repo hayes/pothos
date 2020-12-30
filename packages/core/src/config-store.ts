@@ -1,5 +1,13 @@
 /* eslint-disable node/no-callback-literal */
-import { SchemaTypes, FieldMap } from './types';
+import {
+  GraphQLBoolean,
+  GraphQLFloat,
+  GraphQLID,
+  GraphQLInt,
+  GraphQLScalarType,
+  GraphQLString,
+} from 'graphql';
+import { SchemaTypes, FieldMap, InputRef, OutputRef } from './types';
 import { BasePlugin } from './plugins';
 import {
   GiraphQLTypeConfig,
@@ -17,6 +25,9 @@ import {
   GiraphQLOutputFieldConfig,
 } from '.';
 import BaseTypeRef from './refs/base';
+import InputTypeRef from './refs/input';
+import OutputTypeRef from './refs/output';
+import BuiltinScalarRef from './refs/builtin-scalar';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   plugin: Required<BasePlugin<Types>>;
@@ -31,6 +42,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
   private fields = new Map<string, Record<string, GiraphQLFieldConfig<Types>>>();
 
   private refsToName = new Map<ConfigurableRef<Types>, string>();
+
+  private scalarsToRefs = new Map<string, BuiltinScalarRef<unknown, unknown>>();
 
   private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, GiraphQLFieldConfig<Types>[]>();
 
@@ -49,7 +62,20 @@ export default class ConfigStore<Types extends SchemaTypes> {
   private pending = true;
 
   constructor(plugin: Required<BasePlugin<Types>>) {
+    const scalars: GraphQLScalarType[] = [
+      GraphQLID,
+      GraphQLInt,
+      GraphQLFloat,
+      GraphQLString,
+      GraphQLBoolean,
+    ];
     this.plugin = plugin;
+
+    scalars.forEach((scalar) => {
+      const ref = new BuiltinScalarRef(scalar);
+      this.scalarsToRefs.set(scalar.name, ref);
+      this.refsToName.set(ref, scalar.name);
+    });
   }
 
   hasConfig(typeParam: InputType<Types> | OutputType<Types>) {
@@ -72,7 +98,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     const typeRefOrName = Array.isArray(typeParam) ? typeParam[0] : typeParam;
 
-    if (this.hasConfig(typeRefOrName) || typeRefOrName instanceof BaseTypeRef) {
+    if (
+      this.hasConfig(typeRefOrName) ||
+      typeRefOrName instanceof BaseTypeRef ||
+      this.scalarsToRefs.has(typeRefOrName as string)
+    ) {
       this.fieldRefs.set(ref, getConfig);
     } else {
       this.pendingFields.set(ref, typeRefOrName);
@@ -171,6 +201,78 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     return config as Extract<GiraphQLTypeConfig, { kind: T }>;
+  }
+
+  getInputTypeRef(ref: string | ConfigurableRef<Types>) {
+    if (ref instanceof BaseTypeRef) {
+      if (ref.kind !== 'InputObject' && ref.kind !== 'Enum' && ref.kind !== 'Scalar') {
+        throw new TypeError(`Expected ${ref.name} to be an input type but got ${ref.kind}`);
+      }
+
+      return ref as InputRef;
+    }
+
+    if (typeof ref === 'string') {
+      if (this.scalarsToRefs.has(ref)) {
+        return this.scalarsToRefs.get(ref)!;
+      }
+
+      if (this.typeConfigs.has(ref)) {
+        const config = this.typeConfigs.get(ref)!;
+
+        if (
+          config.graphqlKind !== 'InputObject' &&
+          config.graphqlKind !== 'Enum' &&
+          config.graphqlKind !== 'Scalar'
+        ) {
+          throw new TypeError(
+            `Expected ${config.name} to be an input type but got ${config.graphqlKind}`,
+          );
+        }
+
+        const newRef = new InputTypeRef(config.graphqlKind, config.name);
+
+        this.refsToName.set(newRef, config.name);
+
+        return newRef;
+      }
+    }
+
+    return ref as InputType<Types>;
+  }
+
+  getOutputTypeRef(ref: string | ConfigurableRef<Types>) {
+    if (ref instanceof BaseTypeRef) {
+      if (ref.kind === 'InputObject') {
+        throw new TypeError(`Expected ${ref.name} to be an output type but got ${ref.name}`);
+      }
+
+      return ref as OutputRef;
+    }
+
+    if (typeof ref === 'string') {
+      if (this.scalarsToRefs.has(ref)) {
+        return this.scalarsToRefs.get(ref)!;
+      }
+
+      if (this.typeConfigs.has(ref)) {
+        const config = this.typeConfigs.get(ref)!;
+
+        if (config.graphqlKind === 'InputObject') {
+          throw new TypeError(
+            `Expected ${config.name} to be an output type but got ${config.graphqlKind}`,
+          );
+        }
+
+        const newRef = new OutputTypeRef(config.graphqlKind, config.name);
+
+        this.refsToName.set(newRef, config.name);
+
+        return newRef;
+      }
+    }
+
+    return ref as OutputType<Types>;
   }
 
   onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: GiraphQLTypeConfig) => void) {

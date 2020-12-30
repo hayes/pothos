@@ -7,20 +7,17 @@ import BaseTypeRef from './base';
 export default class InterfaceRef<T> extends BaseTypeRef implements OutputRef {
   kind = 'Interface' as const;
 
-  name: string;
-
   [outputShapeKey]: T;
 
   constructor(name: string) {
-    super();
-
-    this.name = name;
+    super('Interface', name);
   }
 }
 
-export class ImplementableInterfaceRef<Types extends SchemaTypes, Shape> extends InterfaceRef<
+export class ImplementableInterfaceRef<
+  Types extends SchemaTypes,
   Shape
-> {
+> extends InterfaceRef<Shape> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {

@@ -10,15 +10,19 @@ import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
 import InternalObjectFieldBuilder from './fieldUtils/object';
 import InternalInterfaceFieldBuilder from './fieldUtils/interface';
 import SchemaBuilderClass from './builder';
-import { FieldKind, SchemaTypes } from './types';
+import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types';
 import EnumRef from './refs/enum';
-import InputObjectRef, { ImplementableInputObjectRef } from './refs/input';
+import InputObjectRef, { ImplementableInputObjectRef } from './refs/input-object';
 import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
 import FieldRef from './refs/field';
 import InputFieldRef from './refs/input-field';
+import BaseTypeRef from './refs/base';
+import InputTypeRef from './refs/input';
+import OutputTypeRef from './refs/output';
+import BuiltinScalarRef from './refs/builtin-scalar';
 
 export * from './types';
 export * from './utils';
@@ -37,14 +41,16 @@ export {
   ImplementableInputObjectRef,
   FieldRef,
   InputFieldRef,
+  BaseTypeRef,
+  InputTypeRef,
+  OutputTypeRef,
+  BuiltinScalarRef,
 };
 
 const SchemaBuilder = SchemaBuilderClass as {
   registerPlugin: typeof SchemaBuilderClass.registerPlugin;
   new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo> = {}>(
-    options: GiraphQLSchemaTypes.SchemaBuilderOptions<
-      GiraphQLSchemaTypes.ExtendDefaultTypes<Types>
-    >,
+    options: NormalizeSchemeBuilderOptions<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>,
   ): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 

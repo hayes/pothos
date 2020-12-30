@@ -56,3 +56,9 @@ export type RecursivelyNormalizeNullableFields<T> = T extends object[]
         [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
       }
   : NormalizeNullable<T>;
+
+export type RemoveNeverKeys<T extends {}> = {
+  [K in keyof T as [T[K]] extends [never] ? never : K]: T[K];
+};
+
+export type Merge<T> = { [K in keyof T]: T[K] };

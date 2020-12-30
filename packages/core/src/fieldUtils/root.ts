@@ -24,7 +24,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Boolean'> = false
+    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability']
   >(
     options: Omit<
       FieldOptionsFromKind<
@@ -122,7 +122,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'String'> = false
+    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability']
   >(
     options: Omit<
       FieldOptionsFromKind<
@@ -148,7 +148,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Boolean']> = false
+    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability']
   >(
     options: Omit<
       FieldOptionsFromKind<
@@ -171,7 +171,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Float']> = false
+    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability']
   >(
     options: Omit<
       FieldOptionsFromKind<
@@ -217,7 +217,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Int']> = false
+    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability']
   >(
     options: Omit<
       FieldOptionsFromKind<
@@ -240,7 +240,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['String']> = false
+    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability']
   >(
     options: Omit<
       FieldOptionsFromKind<
@@ -264,7 +264,7 @@ export default class RootFieldBuilder<
     Type extends TypeParam<Types>,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<Type> = false
+    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability']
   >(
     options: FieldOptionsFromKind<
       Types,
