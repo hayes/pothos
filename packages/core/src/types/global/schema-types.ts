@@ -10,9 +10,9 @@ declare global {
       defaultFieldNullability: false extends Types['DefaultFieldNullability']
         ? never
         : Types['DefaultFieldNullability'];
-      defaultInputFieldNullability: true extends Types['DefaultInputFieldNullability']
+      defaultInputFieldRequiredness: false extends Types['DefaultInputFieldRequiredness']
         ? never
-        : Types['DefaultInputFieldNullability'];
+        : Types['DefaultInputFieldRequiredness'];
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -46,7 +46,7 @@ declare global {
       Root: object;
       Context: object;
       DefaultFieldNullability: boolean;
-      DefaultInputFieldNullability: boolean;
+      DefaultInputFieldRequiredness: boolean;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>>
@@ -57,9 +57,9 @@ declare global {
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
       DefaultFieldNullability: PartialTypes['DefaultFieldNullability'] extends true ? true : false;
-      DefaultInputFieldNullability: PartialTypes['DefaultInputFieldNullability'] extends false
-        ? false
-        : true;
+      DefaultInputFieldRequiredness: PartialTypes['DefaultInputFieldRequiredness'] extends true
+        ? true
+        : false;
       outputShapes: { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] } &
         { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } &
         {

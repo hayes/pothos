@@ -18,7 +18,7 @@ import {
   MaybePromiseWithInference,
   MaybePromise,
 } from '..';
-import { RemoveNeverKeys } from './utils';
+import { Merge, RemoveNeverKeys } from './utils';
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   GiraphQLSchemaTypes.SchemaBuilderOptions<Types>
@@ -155,9 +155,11 @@ export type EnumTypeOptions<
   Param extends EnumParam,
   Values extends EnumValues
 > = Param extends BaseEnum
-  ? Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
-      name: string;
-    }
+  ? Merge<
+      Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
+        name: string;
+      }
+    >
   : GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>;
 
 export type ArgBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.InputFieldBuilder<

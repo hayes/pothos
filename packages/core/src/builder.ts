@@ -32,6 +32,7 @@ import {
   ShapeFromEnumValues,
   ScalarName,
   NormalizeSchemeBuilderOptions,
+  OutputType,
 } from './types';
 import BuildCache from './build-cache';
 import {
@@ -83,7 +84,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   defaultFieldNullability: boolean;
 
-  defaultInputFieldNullability: boolean;
+  defaultInputFieldRequiredness: boolean;
 
   private plugin: Required<BasePlugin<Types>>;
 
@@ -115,15 +116,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         defaultFieldNullability?: boolean;
       }).defaultFieldNullability || false;
 
-    this.defaultInputFieldNullability =
+    this.defaultInputFieldRequiredness =
       (options as {
-        defaultInputFieldNullability?: boolean;
-      }).defaultInputFieldNullability ?? true;
-
-    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
-    scalars.forEach((scalar) => {
-      this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
-    });
+        defaultInputFieldRequiredness?: boolean;
+      }).defaultInputFieldRequiredness || false;
   }
 
   static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
@@ -530,6 +526,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   toSchema(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {
     const { directives, extensions } = options;
+
+    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
+    scalars.forEach((scalar) => {
+      if (!this.configStore.hasConfig(scalar.name as OutputType<Types>)) {
+        this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
+      }
+    });
+
     this.configStore.prepareForBuild();
 
     this.plugin.beforeBuild(options);

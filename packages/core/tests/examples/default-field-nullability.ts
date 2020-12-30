@@ -7,9 +7,9 @@ export const nullableFieldBuilder = new SchemaBuilder<{
 });
 
 export const nonNullableFieldBuilder = new SchemaBuilder<{
-  DefaultInputFieldNullability: false;
+  DefaultInputFieldRequiredness: true;
 }>({
-  defaultInputFieldNullability: false,
+  defaultInputFieldRequiredness: true,
 });
 
 nullableFieldBuilder.queryType({

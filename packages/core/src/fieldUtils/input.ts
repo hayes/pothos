@@ -67,7 +67,7 @@ export default class InputFieldBuilder<
       type: inputTypeFromParam<Types>(
         options.type,
         this.builder.configStore,
-        options.required ?? !this.builder.defaultInputFieldNullability,
+        options.required ?? this.builder.defaultInputFieldRequiredness,
       ),
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
       description: options.description,

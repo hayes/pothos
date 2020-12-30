@@ -158,7 +158,7 @@ export type InputShapeFromTypeParam<
 > = Param extends [InputType<Types>]
   ? InputShapeFromListTypeParam<Types, Param, Required>
   : FieldRequiredness<Param> extends Required
-  ? Types['DefaultInputFieldNullability'] extends true
+  ? Types['DefaultInputFieldRequiredness'] extends false
     ? InputShape<Types, Param> | null | undefined
     : InputShape<Types, Param>
   : Required extends true
@@ -170,7 +170,7 @@ export type InputShapeFromListTypeParam<
   Param extends [InputType<Types>],
   Required extends FieldRequiredness<Param>
 > = FieldRequiredness<Param> extends Required
-  ? Types['DefaultInputFieldNullability'] extends true
+  ? Types['DefaultInputFieldRequiredness'] extends false
     ? InputShape<Types, Param[0]>[] | null | undefined
     : InputShape<Types, Param[0]>[]
   : Required extends true

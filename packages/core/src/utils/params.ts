@@ -15,10 +15,11 @@ import ConfigStore from '../config-store';
 import BaseTypeRef from '../refs/base';
 
 export function typeFromNonListParam<Types extends SchemaTypes>(
-  ref: OutputType<Types>,
+  type: OutputType<Types>,
   configStore: ConfigStore<Types>,
   nullable: boolean,
 ): GiraphQLNameOutputFieldType<Types> {
+  const ref = configStore.getOutputTypeRef(type);
   const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
   const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
 
@@ -55,10 +56,11 @@ export function typeFromParam<Types extends SchemaTypes>(
 }
 
 export function inputTypeFromNonListParam<Types extends SchemaTypes>(
-  ref: InputType<Types>,
+  type: InputType<Types>,
   configStore: ConfigStore<Types>,
   required: boolean,
 ): GiraphQLNameInputFieldType<Types> {
+  const ref = configStore.getInputTypeRef(type);
   const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
   const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
 

@@ -6,13 +6,10 @@ import BaseTypeRef from './base';
 export default class ObjectRef<T> extends BaseTypeRef implements OutputRef {
   kind = 'Object' as const;
 
-  name: string;
-
   [outputShapeKey]: T;
 
   constructor(name: string) {
-    super();
-    this.name = name;
+    super('Object', name);
   }
 }
 

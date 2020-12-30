@@ -3,14 +3,15 @@ name: SchemaBuilder
 menu: Api
 ---
 
-# SchemaBuilder
+# SchemaBuilder API
 
-SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a graphql.js Schema.
+SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a
+graphql.js Schema.
 
 ## `constructor<TypeInfo>(options)`
 
-* typeParam: [`TypeInfo`](schema-builder.md#typeinfo): A type that describes the backing models for your schema
-* options: [`SchemaBuilderOptions`](schema-builder.md#schemabuilderoptions)
+- typeParam: `TypeInfo`: A type that describes the backing models for your schema
+- options: `SchemaBuilderOptions`
 
 ### `TypeInfo`
 
@@ -30,6 +31,10 @@ type TypeInfo {
       Output: unknown;
     };
   };
+  // When provided, fields will be nullable by default (requires corresponding change in builder options)
+  DefaultFieldNullability?: true;
+  // When provided, input fields and arguments will be required by default (requires corresponding change in builder options)
+  DefaultInputFieldRequiredness?: true;
 }
 ```
 
@@ -45,10 +50,11 @@ By default there are no options for SchemaBuilder, but plugins may contribute ad
 
 creates the `Query` with a set of Query fields
 
-* `options`: [`QueryTypeOptions`](schema-builder.md#querytypeoptions)
-* `fields?`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `options`: `QueryTypeOptions`
+- `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ### QueryTypeOptions
 
@@ -59,25 +65,28 @@ type QueryTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `description`: A description of the current type
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `queryFields(fields)`
 
 add a set of fields to the `Query` type.
 
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `queryField(name, field)`
 
-add a single fiield to the `Query` type.
+add a single field to the `Query` type.
 
-* `name`: the name of the field
-* `field`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns field ref. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md)
+- `name`: the name of the field
+- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
+  [`FieldBuilder`](field-builder.md)
 
   for more details.
 
@@ -85,10 +94,11 @@ add a single fiield to the `Query` type.
 
 creates the `Mutation` with a set of Mutation fields
 
-* `options`: [`MutationTypeOptions`](schema-builder.md#mutationtypeoptions)
-* `fields?`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `options`: `MutationTypeOptions`
+- `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ### MutationTypeOptions
 
@@ -99,25 +109,28 @@ type MutationTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `description`: A description of the current type
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `mutationFields(fields)`
 
 add a set of fields to the `Mutation` type.
 
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `mutationField(name, field)`
 
-add a single fiield to the `Mutation` type.
+add a single field to the `Mutation` type.
 
-* `name`: the name of the field
-* `field`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns field ref. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md)
+- `name`: the name of the field
+- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
+  [`FieldBuilder`](field-builder.md)
 
   for more details.
 
@@ -125,10 +138,11 @@ add a single fiield to the `Mutation` type.
 
 creates the `Subscription` with a set of Subscription fields
 
-* `options`: [`SubscriptionTypeOptions`](schema-builder.md#subscriptiontypeoptions)
-* `fields?`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `options`: `SubscriptionTypeOptions`
+- `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ### SubscriptionTypeOptions
 
@@ -139,38 +153,42 @@ type SubscriptionTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `description`: A description of the current type
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `subscriptionFields(fields)`
 
 add a set of fields to the `Subscription` type.
 
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `subscriptionField(name, field)`
 
-add a single fiield to the `Subscription` type.
+add a single field to the `Subscription` type.
 
-* `name`: the name of the field
-* `field`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns field ref. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md)
+- `name`: the name of the field
+- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
+  [`FieldBuilder`](field-builder.md)
 
   for more details.
 
 ## `objectType(param, options, fields?)`
 
-* `param`: A key of the `Objects` property in [`TypeInfo`](schema-builder.md#typeinfo), a class, or a TypeRef created by
+- `param`: A key of the `Objects` property in `TypeInfo`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
-* `options`: [`ObjectTypeOptions`](schema-builder.md#objecttypeoptions)
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `options`: `ObjectTypeOptions`
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ### `ObjectTypeOptions`
 
@@ -184,63 +202,69 @@ type ObjectTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `description`: A description of the current type
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
-* `isTypeOf`: Only required when implementing interfaces. This is a method that will be used when
+- `isTypeOf`: Only required when implementing interfaces. This is a method that will be used when
 
   determining if a value of an implemented interface is of the current type.
 
-* `interfaces`: an array of interfaces implemented by this interface type. Items in this array
+- `interfaces`: an array of interfaces implemented by this interface type. Items in this array
 
-  should be an interace param. See `param` argument of `interfaceType`
+  should be an interface param. See `param` argument of `interfaceType`
 
-* `name`: name of graphql type. Required when param is a class
+- `name`: name of GraphQL type. Required when param is a class
 
 ## `objectFields(param, fields)`
 
 add a set of fields to the object type.
 
-* `param`: A key of the `Objects` property in [`TypeInfo`](schema-builder.md#typeinfo), a class, or a TypeRef created by
+- `param`: A key of the `Objects` property in `TypeInfo`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `objectField(param, name, field)`
 
-add a single fiield to the object type.
+add a single field to the object type.
 
-* `name`: the name of the field
-* `param`: A key of the `Objects` property in [`TypeInfo`](schema-builder.md#typeinfo), a class, or a TypeRef created by
+- `name`: the name of the field
+- `param`: A key of the `Objects` property in `TypeInfo`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
-* `field`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns field ref. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md)
+- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
+  [`FieldBuilder`](field-builder.md)
 
   for more details.
 
 ## `objectRef<T>(name)`
 
-Creates a Ref object represent an object that has not been implemented. This can be useful for building certain types of plugins, or when building a modular schema where you don't want to define all types in TypeInfo, or import the actual implementation of each object type you use.
+Creates a Ref object represent an object that has not been implemented. This can be useful for
+building certain types of plugins, or when building a modular schema where you don't want to define
+all types in TypeInfo, or import the actual implementation of each object type you use.
 
-* `name`: string, name of the type that this ref represents. Can be overwriten when implemented.
-* `T`: a type param to define the backing shape for the type that this ref represents
+- `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
+- `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `interfaceType(param, options, fields?)`
 
-* `param`: A key of the `Interfaces` property in [`TypeInfo`](schema-builder.md#typeinfo), a class, or a TypeRef created by
+- `param`: A key of the `Interfaces` property in `TypeInfo`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
-* `options`: [`InterfaceTypeOptions`](schema-builder.md#interfacetypeoptions)
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `options`: `InterfaceTypeOptions`
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ### `InterfaceTypeOptions`
 
@@ -253,53 +277,58 @@ type InterfaceTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `description`: A description of the current type
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
-* `interfaces`: an array of interfaces implemented by this interface type. Items in this array
+- `interfaces`: an array of interfaces implemented by this interface type. Items in this array
 
-  should be an interace param. See `param` argument of `interfaceType`
+  should be an interface param. See `param` argument of `interfaceType`
 
-* `name`: name of graphql type. Required when param is a class
+- `name`: name of GraphQL type. Required when param is a class
 
 ## `interfaceFields(param, fields)`
 
 add a set of fields to the interface type.
 
-* `param`: A key of the `Interfaces` property in [`TypeInfo`](schema-builder.md#typeinfo), a class, or a TypeRef created by
+- `param`: A key of the `Interfaces` property in `TypeInfo`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
-* `fields`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns an object of field names to
+- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
+  field names to
 
-  field refs. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md) for more details.
+  field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
 ## `interfaceField(paran, name, field)`
 
-add a single fiield to the interface type.
+add a single field to the interface type.
 
-* `param`: A key of the `Interfaces` property in [`TypeInfo`](schema-builder.md#typeinfo), a class, or a TypeRef created by
+- `param`: A key of the `Interfaces` property in `TypeInfo`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
-* `name`: the name of the field
-* `field`: a function that receives a [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md), and returns field ref. See [`FieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-field-builder/README.md)
+- `name`: the name of the field
+- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
+  [`FieldBuilder`](field-builder.md)
 
   for more details.
 
 ## `interfaceRef<T>(name)`
 
-Creates a Ref object represent an interface that has not been implemented. This can be useful for building certain types of plugins, or when building a modular schema where you don't want to define all types in TypeInfo, or import the actual implementation of each interface type you use.
+Creates a Ref object represent an interface that has not been implemented. This can be useful for
+building certain types of plugins, or when building a modular schema where you don't want to define
+all types in TypeInfo, or import the actual implementation of each interface type you use.
 
-* `name`: string, name of the type that this ref represents. Can be overwriten when implemented.
-* `T`: a type param to define the backing shape for the type that this ref represents
+- `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
+- `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `unionType(name, options)`
 
-* `name`: A string
-* `options`: [`UnionTypeOptions`](schema-builder.md#uniontypeoptions)
+- `name`: A string
+- `options`: `UnionTypeOptions`
 
 ### `UnionTypeOptions`
 
@@ -311,12 +340,12 @@ type UnionTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `types`: an array of object types included in the union type. Items in this array should be Object
+- `description`: A description of the current type
+- `types`: an array of object types included in the union type. Items in this array should be Object
 
   params. See `param` argument in `builder.objectType`.
 
-* `resolveType`: A function called when resolving the type of a union value. `parent` will be a
+- `resolveType`: A function called when resolving the type of a union value. `parent` will be a
 
   union of the backing models of the types provided in `types`. This function should return the name
 
@@ -324,8 +353,8 @@ type UnionTypeOptions = {
 
 ## `enumType(param, options)`
 
-* `param`: A string name of the enum or a typescript enum
-* `options`: [`EnumTypeOptions`](schema-builder.md#enumtypeoptions)
+- `param`: A string name of the enum or a typescript enum
+- `options`: `EnumTypeOptions`
 
 ### `EnumTypeOptions`
 
@@ -337,24 +366,24 @@ type UnionTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `values`: can be either an array of strings \(you may need to use `as const` to get proper type
+- `description`: A description of the current type
+- `values`: can be either an array of strings \(you may need to use `as const` to get proper type
 
-  names\) or a [`GraphQLEnumValueConfigMap`](https://graphql.org/graphql-js/type/#graphqlenumtype).
+  names\) or a `GraphQLEnumValueConfigMap`.
 
   values is only required when param is not an enum
 
-* `name`: required when param is an enum
+- `name`: required when param is an enum
 
 ## `addScalarType(name, scalar, options)`
 
-* `name`: A key of the `Interface` property in [`TypeInfo`](schema-builder.md#typeinfo)
-* `scalar`: A [`GraphQLScalar`](https://graphql.org/graphql-js/type/#graphqlscalartype)
+- `name`: A key of the `Interface` property in `TypeInfo`
+- `scalar`: A `GraphQLScalar`
 
 ## `scalarType(name, options)`
 
-* `name`: A key of the `Interface` property in [`TypeInfo`](schema-builder.md#typeinfo)
-* `options`: [`ScalarTypeOptions`](schema-builder.md#scalartypeoptions)
+- `name`: A key of the `Interface` property in `TypeInfo`
+- `options`: `ScalarTypeOptions`
 
 ### ScalarTypeOptions
 
@@ -371,8 +400,8 @@ extensions?: Readonly<Record<string, unknown>>;
 
 ## `inputType(param, options)`
 
-* `param`: a string or InputRef created by `builder.inputRef`
-* `options`: [`InputTypeOptions`](schema-builder.md#inputtypeoptions)
+- `param`: a string or InputRef created by `builder.inputRef`
+- `options`: `InputTypeOptions`
 
 ### `InputTypeOptions`
 
@@ -383,31 +412,36 @@ type InputTypeOptions = {
 };
 ```
 
-* `description`: A description of the current type
-* `fields`: a function that receives an [`InputFieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-input-field-builder/README.md), and returns an object of field names
+- `description`: A description of the current type
+- `fields`: a function that receives an `InputFieldBuilder`, and returns an object of field names
 
-  to field definitons. See [`InputFieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-input-field-builder/README.md) for more details. If `name` is a key of the `Input`
+  to field definitions. See [`InputFieldBuilder`](input-field-builder.md) for more details. If
+  `name` is a key of the `Input`
 
-  property in [`TypeInfo`](schema-builder.md#typeinfo), shape will show type errors for any fields that do not match the types
+  property in `TypeInfo`, shape will show type errors for any fields that do not match the types
 
-  provided in [`TypeInfo`](schema-builder.md#typeinfo).
+  provided in `TypeInfo`.
 
 ## `inputRef<T>(name)`
 
-Creates a Ref object represent an input object that has not been implemented. This can be useful for defining recursive input types, for building certain types of plugins, or when building a modular schema where you don't want to define all types in TypeInfo, or import the actual implementation of each input type you use.
+Creates a Ref object represent an input object that has not been implemented. This can be useful for
+defining recursive input types, for building certain types of plugins, or when building a modular
+schema where you don't want to define all types in TypeInfo, or import the actual implementation of
+each input type you use.
 
-* `name`: string, name of the type that this ref represents. Can be overwriten when implemented.
-* `T`: a type param to define the backing shape for the type that this ref represents
+- `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
+- `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `args(fields)`
 
-Creates an arguments object which can be used as the `args` option in a field definion.
+Creates an arguments object which can be used as the `args` option in a field definition.
 
-* `fields`: a function that receives an [`InputFieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-input-field-builder/README.md), and returns an object of field names
+- `fields`: a function that receives an [`ArgBuilder`](arg-builder.md), and returns an object of
+  field names
 
-  to field definitons. See [`InputFieldBuilder`](https://github.com/hayes/giraphql/tree/60178ac5e1fc945099d042e3f9b57ca3acc1810a/api-input-field-builder/README.md) for more details.
+  to field definitions. See [`ArgBuilder`](arg-builder.md) for more details.
 
 ## `toSchema(types)`
 
-Takes an array of types created by [`SchemaBuilder`](schema-builder.md#schemabuilder) and returns a [`GraphQLSchema`](https://graphql.org/graphql-js/type/#graphqlschema)
-
+Takes an array of types created by [`SchemaBuilder`](schema-builder.md#schemabuilder) and returns a
+[`GraphQLSchema`](https://graphql.org/graphql-js/type/#graphqlschema)
