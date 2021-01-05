@@ -11,7 +11,7 @@ import {
 export function mergePlugins<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   pluginMap: PluginMap<Types>,
-): Required<BasePlugin<Types>> {
+): BasePlugin<Types> {
   const plugins: BasePlugin<Types>[] = [];
 
   Object.keys(pluginMap).forEach((pluginName) => plugins.push(pluginMap[pluginName as PluginName]));
@@ -30,7 +30,7 @@ export function mergePlugins<Types extends SchemaTypes>(
     'onOutputFieldConfig'
   >[];
 
-  const wrapOutputFieldPlugins = plugins.filter((plugin) => plugin.wrapOutputField) as Pick<
+  const wrapOutputFieldPlugins = plugins.filter((plugin) => plugin.usesFieldWrapper()) as Pick<
     Required<BasePlugin<Types>>,
     'wrapOutputField'
   >[];
@@ -71,6 +71,10 @@ export function mergePlugins<Types extends SchemaTypes>(
       }
 
       return all;
+    },
+
+    usesFieldWrapper() {
+      return wrapOutputFieldPlugins.length > 0;
     },
 
     onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {

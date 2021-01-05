@@ -30,7 +30,7 @@ import OutputTypeRef from './refs/output';
 import BuiltinScalarRef from './refs/builtin-scalar';
 
 export default class ConfigStore<Types extends SchemaTypes> {
-  plugin: Required<BasePlugin<Types>>;
+  plugin: BasePlugin<Types>;
 
   typeConfigs = new Map<string, GiraphQLTypeConfig>();
 
@@ -61,7 +61,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private pending = true;
 
-  constructor(plugin: Required<BasePlugin<Types>>) {
+  constructor(plugin: BasePlugin<Types>) {
     const scalars: GraphQLScalarType[] = [
       GraphQLID,
       GraphQLInt,

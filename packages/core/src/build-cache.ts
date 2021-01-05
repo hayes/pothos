@@ -18,6 +18,8 @@ import {
   GraphQLFloat,
   GraphQLBoolean,
   GraphQLString,
+  defaultFieldResolver,
+  GraphQLTypeResolver,
 } from 'graphql';
 import { types } from 'util';
 import {
@@ -53,7 +55,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private configStore: ConfigStore<Types>;
 
-  private plugin: Required<BasePlugin<Types>>;
+  private plugin: BasePlugin<Types>;
 
   private options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>;
 
@@ -61,7 +63,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   constructor(
     configStore: ConfigStore<any>,
-    plugin: Required<BasePlugin<Types>>,
+    plugin: BasePlugin<Types>,
     options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
@@ -271,10 +273,9 @@ export default class BuildCache<Types extends SchemaTypes> {
     Object.keys(fields).forEach((fieldName) => {
       const config = fields[fieldName];
 
-      const fieldWrapper = mergeFieldWrappers(
-        config,
-        this.plugin.wrapOutputField(config, this.options),
-      );
+      const fieldWrapper =
+        this.plugin.usesFieldWrapper() &&
+        mergeFieldWrappers(config, this.plugin.wrapOutputField(config, this.options));
       const returnType = this.configStore.getTypeConfig(
         config.type.kind === 'List' ? config.type.type.ref : config.type.ref,
       );
@@ -287,8 +288,10 @@ export default class BuildCache<Types extends SchemaTypes> {
           ...config.extensions,
           giraphqlOptions: config.giraphqlOptions,
         },
-        resolve: wrapResolver(config, fieldWrapper, returnType),
-        subscribe: wrapSubscriber(config, fieldWrapper),
+        resolve: fieldWrapper
+          ? wrapResolver(config, fieldWrapper, returnType)
+          : config.resolve || defaultFieldResolver,
+        subscribe: fieldWrapper ? wrapSubscriber(config, fieldWrapper) : config.subscribe,
       };
     });
 
@@ -393,6 +396,33 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildInterface(config: GiraphQLInterfaceTypeConfig) {
+    const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (parent, context, info) => {
+      const implementers = this.getImplementers(type!);
+
+      const promises: Promise<GiraphQLObjectTypeConfig | null>[] = [];
+
+      for (const impl of implementers) {
+        if (!impl.isTypeOf) {
+          // eslint-disable-next-line no-continue
+          continue;
+        }
+
+        const result = impl.isTypeOf(parent, context, info);
+
+        if (types.isPromise(result)) {
+          promises.push(result.then((res) => (res ? impl : null)));
+        } else if (result) {
+          return impl.name;
+        }
+      }
+
+      if (promises.length > 0) {
+        return Promise.all(promises).then((results) => results.find((result) => !!result)?.name);
+      }
+
+      return null;
+    };
+
     const type: GraphQLInterfaceType = new GraphQLInterfaceType({
       ...config,
       extensions: {
@@ -401,38 +431,45 @@ export default class BuildCache<Types extends SchemaTypes> {
       },
       interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
-      resolveType: wrapResolveType(this.configStore, (parent, context, info) => {
-        const implementers = this.getImplementers(type!);
-
-        const promises: Promise<GiraphQLObjectTypeConfig | null>[] = [];
-
-        for (const impl of implementers) {
-          if (!impl.isTypeOf) {
-            // eslint-disable-next-line no-continue
-            continue;
-          }
-
-          const result = impl.isTypeOf(parent, context, info);
-
-          if (types.isPromise(result)) {
-            promises.push(result.then((res) => (res ? impl : null)));
-          } else if (result) {
-            return impl.name;
-          }
-        }
-
-        if (promises.length > 0) {
-          return Promise.all(promises).then((results) => results.find((result) => !!result)?.name);
-        }
-
-        return null;
-      }),
+      resolveType: this.plugin.usesFieldWrapper()
+        ? wrapResolveType(this.configStore, resolveType)
+        : resolveType,
     });
 
     return type;
   }
 
   private buildUnion(config: GiraphQLUnionTypeConfig) {
+    const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (...args) => {
+      const resultOrPromise = config.resolveType!(...args);
+
+      const getResult = (
+        result: string | GraphQLObjectType<unknown, object> | null | undefined,
+      ) => {
+        if (typeof result === 'string' || !result) {
+          return result;
+        }
+
+        if (result instanceof GraphQLObjectType) {
+          return result;
+        }
+
+        try {
+          const typeConfig = this.configStore.getTypeConfig(result);
+
+          return typeConfig.name;
+        } catch (error) {
+          // ignore
+        }
+
+        return result;
+      };
+
+      return types.isPromise(resultOrPromise)
+        ? resultOrPromise.then(getResult)
+        : getResult(resultOrPromise);
+    };
+
     return new GraphQLUnionType({
       ...config,
       extensions: {
@@ -440,35 +477,9 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: wrapResolveType(this.configStore, (...args) => {
-        const resultOrPromise = config.resolveType!(...args);
-
-        const getResult = (
-          result: string | GraphQLObjectType<unknown, object> | null | undefined,
-        ) => {
-          if (typeof result === 'string' || !result) {
-            return result;
-          }
-
-          if (result instanceof GraphQLObjectType) {
-            return result;
-          }
-
-          try {
-            const typeConfig = this.configStore.getTypeConfig(result);
-
-            return typeConfig.name;
-          } catch (error) {
-            // ignore
-          }
-
-          return result;
-        };
-
-        return types.isPromise(resultOrPromise)
-          ? resultOrPromise.then(getResult)
-          : getResult(resultOrPromise);
-      }),
+      resolveType: this.plugin.usesFieldWrapper()
+        ? wrapResolveType(this.configStore, resolveType)
+        : resolveType,
     });
   }
 

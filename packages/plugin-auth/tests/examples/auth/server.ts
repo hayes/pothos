@@ -12,4 +12,7 @@ const server = new ApolloServer({
   },
 });
 
-server.listen(3000).catch(console.error);
+server
+  .listen(3000)
+  .then(() => void console.log('listening at http://127.0.0.1:3000'))
+  .catch(console.error);
