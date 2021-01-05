@@ -86,7 +86,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   defaultInputFieldRequiredness: boolean;
 
-  private plugin: Required<BasePlugin<Types>>;
+  private plugin: BasePlugin<Types>;
 
   private pluginMap: PluginMap<Types>;
 

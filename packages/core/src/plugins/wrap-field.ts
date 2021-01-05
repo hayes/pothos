@@ -31,7 +31,7 @@ function getRequestData(context: object, createRequestData: () => {}) {
 
 export function wrapResolver<Types extends SchemaTypes>(
   config: GiraphQLOutputFieldConfig<Types>,
-  fieldWrapper: Required<BaseFieldWrapper<Types>>,
+  fieldWrapper: BaseFieldWrapper<Types>,
   returnType: GiraphQLTypeConfig,
 ) {
   const originalResolver = config.resolve || defaultFieldResolver;
@@ -67,10 +67,13 @@ export function wrapResolver<Types extends SchemaTypes>(
       ? await parentDataOrPromise
       : parentDataOrPromise;
 
-    const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
+    const requestData = getRequestData(
+      context,
+      () => fieldWrapper.createRequestData?.(context) ?? {},
+    );
 
     if (originalParent instanceof ValueWrapper && originalParent.hasFieldResult(info)) {
-      const allowReuse = fieldWrapper.allowReuse(
+      const allowReuse = fieldWrapper.allowReuse?.(
         requestData,
         parentData,
         parentValue,
@@ -84,14 +87,8 @@ export function wrapResolver<Types extends SchemaTypes>(
       }
     }
 
-    const resolveHooksOrPromise = fieldWrapper.beforeResolve(
-      requestData,
-      parentData,
-      parentValue,
-      args,
-      context,
-      info,
-    );
+    const resolveHooksOrPromise =
+      fieldWrapper.beforeResolve?.(requestData, parentData, parentValue, args, context, info) ?? {};
 
     const resolveHooks = types.isPromise(resolveHooksOrPromise)
       ? await resolveHooksOrPromise
@@ -198,7 +195,7 @@ export function wrapResolver<Types extends SchemaTypes>(
 
 export function wrapSubscriber<Types extends SchemaTypes>(
   config: GiraphQLOutputFieldConfig<Types>,
-  fieldWrapper: Required<BaseFieldWrapper<Types>>,
+  fieldWrapper: BaseFieldWrapper<Types>,
 ) {
   const originalSubscribe = config.subscribe;
 
@@ -212,15 +209,13 @@ export function wrapSubscriber<Types extends SchemaTypes>(
     context: object,
     info: GraphQLResolveInfo,
   ) => {
-    const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
-
-    const subscribeHookOrPromise = fieldWrapper.beforeSubscribe(
-      requestData,
-      originalParent,
-      args,
+    const requestData = getRequestData(
       context,
-      info,
+      () => fieldWrapper.createRequestData?.(context) ?? {},
     );
+
+    const subscribeHookOrPromise =
+      fieldWrapper.beforeSubscribe?.(requestData, originalParent, args, context, info) ?? {};
 
     const subscribeHook = types.isPromise(subscribeHookOrPromise)
       ? await subscribeHookOrPromise

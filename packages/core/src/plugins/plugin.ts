@@ -38,4 +38,8 @@ export class BasePlugin<Types extends SchemaTypes> {
   ): BaseFieldWrapper<Types> | BaseFieldWrapper<Types>[] | null {
     return null;
   }
+
+  usesFieldWrapper() {
+    return this.wrapOutputField !== BasePlugin.prototype.wrapOutputField;
+  }
 }
