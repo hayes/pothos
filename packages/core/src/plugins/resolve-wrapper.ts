@@ -29,8 +29,7 @@ export class ValueWrapper<T> {
     return this.fieldResults.has(key);
   }
 
-  // eslint-disable-next-line @typescript-eslint/require-await
-  async getFieldResult(info: GraphQLResolveInfo, isList: boolean) {
+  getFieldResult(info: GraphQLResolveInfo, isList: boolean) {
     const key = String(info.path.key);
 
     const result = this.fieldResults.get(key);
@@ -81,10 +80,10 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
     this.hooks = hooks;
   }
 
-  async updateData(type: GiraphQLObjectTypeConfig) {
+  updateData(type: GiraphQLObjectTypeConfig) {
     this.queueDataUpdate(type);
 
-    await this.getData();
+    return this.getData();
   }
 
   private updateValue(value: unknown) {
@@ -104,8 +103,11 @@ export class ResolveValueWrapper<Types extends SchemaTypes, T> extends ValueWrap
   private queueDataUpdate(type: GiraphQLObjectTypeConfig) {
     if (this.hooks.onChild) {
       this.getData = () => {
-        const data = this.hooks.onChild!(this.value, this.index, type, (next) =>
-          void this.updateValue(next),
+        const data = this.hooks.onChild!(
+          this.value,
+          this.index,
+          type,
+          (next) => void this.updateValue(next),
         );
 
         this.getData = () => data ?? null;

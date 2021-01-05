@@ -19,6 +19,7 @@ import {
   GraphQLBoolean,
   GraphQLString,
 } from 'graphql';
+import { types } from 'util';
 import {
   BasePlugin,
   assertNever,
@@ -400,22 +401,31 @@ export default class BuildCache<Types extends SchemaTypes> {
       },
       interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
-      resolveType: wrapResolveType(this.configStore, async (parent, context, info) => {
+      resolveType: wrapResolveType(this.configStore, (parent, context, info) => {
         const implementers = this.getImplementers(type!);
 
-        const results = await Promise.all(
-          implementers.map((impl) =>
-            impl.isTypeOf
-              ? Promise.resolve(impl.isTypeOf(parent, context, info)).then((result) =>
-                  result ? impl : null,
-                )
-              : null,
-          ),
-        );
+        const promises: Promise<GiraphQLObjectTypeConfig | null>[] = [];
 
-        const resolved = results.find((result) => !!result);
+        for (const impl of implementers) {
+          if (!impl.isTypeOf) {
+            // eslint-disable-next-line no-continue
+            continue;
+          }
 
-        return resolved?.name;
+          const result = impl.isTypeOf(parent, context, info);
+
+          if (types.isPromise(result)) {
+            promises.push(result.then((res) => (res ? impl : null)));
+          } else if (result) {
+            return impl.name;
+          }
+        }
+
+        if (promises.length > 0) {
+          return Promise.all(promises).then((results) => results.find((result) => !!result)?.name);
+        }
+
+        return null;
       }),
     });
 
@@ -430,26 +440,34 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: wrapResolveType(this.configStore, async (...args) => {
-        const result = await config.resolveType!(...args);
+      resolveType: wrapResolveType(this.configStore, (...args) => {
+        const resultOrPromise = config.resolveType!(...args);
 
-        if (typeof result === 'string' || !result) {
+        const getResult = (
+          result: string | GraphQLObjectType<unknown, object> | null | undefined,
+        ) => {
+          if (typeof result === 'string' || !result) {
+            return result;
+          }
+
+          if (result instanceof GraphQLObjectType) {
+            return result;
+          }
+
+          try {
+            const typeConfig = this.configStore.getTypeConfig(result);
+
+            return typeConfig.name;
+          } catch (error) {
+            // ignore
+          }
+
           return result;
-        }
+        };
 
-        if (result instanceof GraphQLObjectType) {
-          return result;
-        }
-
-        try {
-          const typeConfig = this.configStore.getTypeConfig(result);
-
-          return typeConfig.name;
-        } catch (error) {
-          // ignore
-        }
-
-        return result;
+        return types.isPromise(resultOrPromise)
+          ? resultOrPromise.then(getResult)
+          : getResult(resultOrPromise);
       }),
     });
   }

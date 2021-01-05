@@ -4,6 +4,7 @@ import {
   GraphQLTypeResolver,
   GraphQLAbstractType,
 } from 'graphql';
+import { types } from 'util';
 import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, MaybePromise } from '..';
 import { ResolveValueWrapper, ValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
@@ -53,20 +54,37 @@ export function wrapResolver<Types extends SchemaTypes>(
     context: object,
     info: GraphQLResolveInfo,
   ) => {
-    const parentValue =
-      originalParent instanceof ValueWrapper ? await originalParent.unwrap() : originalParent;
+    const parentOrPromise =
+      originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
+    const parentValue = types.isPromise(parentOrPromise)
+      ? ((await parentOrPromise) as unknown)
+      : parentOrPromise;
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const parentData = originalParent instanceof ValueWrapper ? await originalParent.getData() : {};
+    const parentDataOrPromise: {} | Promise<{}> =
+      originalParent instanceof ValueWrapper ? originalParent.getData() : {};
+    const parentData = types.isPromise(parentDataOrPromise)
+      ? await parentDataOrPromise
+      : parentDataOrPromise;
 
     const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
 
     if (originalParent instanceof ValueWrapper && originalParent.hasFieldResult(info)) {
-      if (await fieldWrapper.allowReuse(requestData, parentData, parentValue, args, config, info)) {
+      const allowReuse = fieldWrapper.allowReuse(
+        requestData,
+        parentData,
+        parentValue,
+        args,
+        config,
+        info,
+      );
+
+      if (types.isPromise(allowReuse) ? await allowReuse : allowReuse) {
         return originalParent.getFieldResult(info, isListResolver);
       }
     }
 
-    const resolveHooks = await fieldWrapper.beforeResolve(
+    const resolveHooksOrPromise = fieldWrapper.beforeResolve(
       requestData,
       parentData,
       parentValue,
@@ -75,13 +93,21 @@ export function wrapResolver<Types extends SchemaTypes>(
       info,
     );
 
-    const result: unknown = resolveHooks.overwriteResolve
-      ? await resolveHooks.overwriteResolve(parentValue, args, context, info, originalResolver)
-      : await originalResolver(parentValue, args, context, info);
+    const resolveHooks = types.isPromise(resolveHooksOrPromise)
+      ? await resolveHooksOrPromise
+      : resolveHooksOrPromise;
+
+    const resultOrPromise: unknown = resolveHooks.overwriteResolve
+      ? resolveHooks.overwriteResolve(parentValue, args, context, info, originalResolver)
+      : originalResolver(parentValue, args, context, info);
+
+    const result: unknown = types.isPromise(resultOrPromise)
+      ? await resultOrPromise
+      : resultOrPromise;
 
     await resolveHooks?.onResolve?.(result);
 
-    const wrapChild = async (child: unknown, index: number | null) => {
+    const wrapChild = (child: unknown, index: number | null) => {
       if (child == null) {
         return null;
       }
@@ -96,7 +122,13 @@ export function wrapResolver<Types extends SchemaTypes>(
       if (returnType.graphqlKind === 'Object') {
         wrapped.type = returnType;
 
-        await wrapped.updateData(returnType);
+        const maybePromise = wrapped.updateData(returnType);
+
+        if (types.isPromise(maybePromise)) {
+          return maybePromise.then(() => wrapped);
+        }
+
+        return wrapped;
       }
 
       return wrapped;
@@ -111,15 +143,29 @@ export function wrapResolver<Types extends SchemaTypes>(
         const wrappedList: MaybePromise<ResolveValueWrapper<
           Types,
           unknown
-        > | null>[] = resultValue.map((item, i) =>
-          Promise.resolve(item)
-            .then((value) => wrapChild(value, i))
-            .then((wrapped) => {
+        > | null>[] = resultValue.map((item, i) => {
+          if (types.isPromise(item)) {
+            return Promise.resolve(item)
+              .then((value) => wrapChild(value, i))
+              .then((wrapped) => {
+                wrappedList[i] = wrapped;
+
+                return wrapped;
+              });
+          }
+
+          const maybePromise = wrapChild(item, i);
+
+          if (types.isPromise(maybePromise)) {
+            return maybePromise.then((wrapped) => {
               wrappedList[i] = wrapped;
 
               return wrapped;
-            }),
-        );
+            });
+          }
+
+          return maybePromise;
+        });
 
         return wrappedList;
       }
@@ -127,9 +173,16 @@ export function wrapResolver<Types extends SchemaTypes>(
       return wrapChild(resultValue, null);
     };
 
-    const wrappedResult = await wrapResult(result);
+    const wrappedResultOrPromise = wrapResult(result);
+    const wrappedResult = types.isPromise(wrappedResultOrPromise)
+      ? ((await wrappedResultOrPromise) as unknown)
+      : wrappedResultOrPromise;
 
-    await resolveHooks?.onWrappedResolve?.(wrappedResult);
+    const onResolvedPromise = resolveHooks?.onWrappedResolve?.(wrappedResult);
+
+    if (types.isPromise(onResolvedPromise)) {
+      await onResolvedPromise;
+    }
 
     if (originalParent instanceof ValueWrapper) {
       originalParent.setFieldResult(info, wrappedResult);
@@ -161,7 +214,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
   ) => {
     const requestData = getRequestData(context, () => fieldWrapper.createRequestData(context));
 
-    const subscribeHook = await fieldWrapper.beforeSubscribe(
+    const subscribeHookOrPromise = fieldWrapper.beforeSubscribe(
       requestData,
       originalParent,
       args,
@@ -169,16 +222,16 @@ export function wrapSubscriber<Types extends SchemaTypes>(
       info,
     );
 
+    const subscribeHook = types.isPromise(subscribeHookOrPromise)
+      ? await subscribeHookOrPromise
+      : subscribeHookOrPromise;
+
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const result: AsyncIterable<unknown> = subscribeHook.overwriteSubscribe
-      ? await subscribeHook.overwriteSubscribe(
-          originalParent,
-          args,
-          context,
-          info,
-          originalSubscribe,
-        )
-      : await originalSubscribe(originalParent, args, context, info);
+    const resultOrPromise: MaybePromise<AsyncIterable<unknown>> = subscribeHook.overwriteSubscribe
+      ? subscribeHook.overwriteSubscribe(originalParent, args, context, info, originalSubscribe)
+      : originalSubscribe(originalParent, args, context, info);
+
+    const result = types.isPromise(resultOrPromise) ? await resultOrPromise : resultOrPromise;
 
     await subscribeHook?.onSubscribe?.(result);
 
