@@ -1,11 +1,13 @@
+import { MaybePromise } from '@giraphql/core';
+import { types } from 'util';
 import { PermissionCheck, PermissionMatcher } from '../types';
 
-export async function resolvePermissionCheck(
+export function resolvePermissionCheck(
   check: PermissionCheck<any, any, any>,
   parent: unknown,
   args: unknown,
   context: unknown,
-): Promise<PermissionMatcher | boolean> {
+): MaybePromise<PermissionMatcher | boolean> {
   if (typeof check === 'string') {
     return { all: [check] };
   }
@@ -15,13 +17,21 @@ export async function resolvePermissionCheck(
   if (typeof check !== 'function') {
     return check;
   }
-  const result = await check(parent, args, context);
+
+  const resultOrPromise = check(parent, args, context);
+
+  return types.isPromise(resultOrPromise)
+    ? resultOrPromise.then(normalizeResult)
+    : normalizeResult(resultOrPromise);
+}
+
+function normalizeResult(result: boolean | string | string[] | PermissionMatcher) {
   if (typeof result === 'string') {
     return { all: [result] };
   }
   if (Array.isArray(result)) {
     return { all: result };
   }
-  
-return result;
+
+  return result;
 }

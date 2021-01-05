@@ -23,10 +23,11 @@ export async function evaluateMatcher(
               if (!result) {
                 failedChecks.add(perm);
               }
-              
-return result;
+
+              return result;
             })
           : evaluateMatcher(perm, fieldName, getResult, failedChecks).then((result) => !result);
+
       if (matcher.sequential) {
         // eslint-disable-next-line no-await-in-loop
         if (!(await permPromise)) {
@@ -53,8 +54,8 @@ return result;
               if (!result) {
                 failedChecks.add(perm);
               }
-              
-return result;
+
+              return result;
             })
           : evaluateMatcher(perm, fieldName, getResult, failedChecks).then((result) => !result);
       if (matcher.sequential) {
@@ -71,8 +72,8 @@ return result;
       return null;
     }
   }
-  
-return {
+
+  return {
     type: matcher.all ? 'all' : 'any',
     failedChecks,
   };

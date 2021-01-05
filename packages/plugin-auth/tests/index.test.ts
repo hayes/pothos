@@ -480,12 +480,12 @@ describe('auth example schema', () => {
           expect.objectContaining({
             message:
               'Permission check on Triangle.edges failed. Missing the following permission: readTriangle',
-            path: ['polygons', 1, 'edges'],
+            path: ['shapes', 2, 'edges'],
           }),
           expect.objectContaining({
             message:
               'Permission check on Triangle.edges failed. Missing the following permission: readTriangle',
-            path: ['shapes', 2, 'edges'],
+            path: ['polygons', 1, 'edges'],
           }),
           expect.objectContaining({
             message:

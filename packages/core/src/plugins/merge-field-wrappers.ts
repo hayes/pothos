@@ -1,5 +1,6 @@
-/* eslint-disable no-await-in-loop */
+/* eslint-disable promise/always-return, no-plusplus */
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
+import { types } from 'util';
 
 import {
   MaybePromise,
@@ -57,7 +58,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       return requestData;
     },
 
-    async allowReuse(
+    allowReuse(
       requestData: RequestData,
       parentData: ParentData | null,
       parent: unknown,
@@ -65,25 +66,37 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) {
-      for (const plugin of allowReusePlugins) {
-        if (
-          await plugin.allowReuse(
+      return maybeAsyncForEach(
+        allowReusePlugins,
+        (plugin, earlyReturn) => {
+          const maybePromise = plugin.allowReuse(
             requestData[plugin.name] ?? null,
             parentData?.[plugin.name] ?? null,
             parent,
             args,
             context,
             info,
-          )
-        ) {
-          return true;
-        }
-      }
+          );
 
-      return false;
+          if (types.isPromise(maybePromise)) {
+            return maybePromise.then((result) => {
+              if (result) {
+                earlyReturn(true);
+              }
+            });
+          }
+
+          if (maybePromise) {
+            earlyReturn(true);
+          }
+
+          return null;
+        },
+        () => false as boolean,
+      );
     },
 
-    async beforeResolve(
+    beforeResolve(
       requestData: RequestData,
       parentData: ParentData | null,
       parent: unknown,
@@ -107,95 +120,124 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
         ResolveHooks<Types, unknown>['overwriteResolve']
       >[] = [];
 
-      for (const plugin of beforeResolvePlugins) {
-        const pluginRequestData =
-          requestData?.[plugin.name] ?? plugin.createRequestData?.(context) ?? {};
+      return maybeAsyncForEach(
+        beforeResolvePlugins,
+        (plugin) => {
+          const pluginRequestData =
+            requestData?.[plugin.name] ?? plugin.createRequestData?.(context) ?? {};
 
-        const hooks = await plugin.beforeResolve(
-          pluginRequestData,
-          parentData?.[plugin.name] ?? null,
-          parent,
-          args,
-          context,
-          info,
-        );
+          const maybePromise = plugin.beforeResolve(
+            pluginRequestData,
+            parentData?.[plugin.name] ?? null,
+            parent,
+            args,
+            context,
+            info,
+          );
 
-        if (hooks?.onResolve) {
-          onResolveFns.push(hooks.onResolve);
-        }
+          if (types.isPromise(maybePromise)) {
+            return maybePromise.then(addHooks);
+          }
 
-        if (hooks?.onWrappedResolve) {
-          onWrappedResolveFns.push(hooks.onWrappedResolve);
-        }
+          addHooks(maybePromise);
 
-        if (hooks?.onChild) {
-          onChildFns.push([plugin.name, hooks.onChild]);
-        }
+          function addHooks(hooks: ResolveHooks<Types, object>) {
+            if (hooks?.onResolve) {
+              onResolveFns.push(hooks.onResolve);
+            }
 
-        if (hooks.overwriteResolve) {
-          overwriteResolveFns.push(hooks.overwriteResolve);
-        }
-      }
+            if (hooks?.onWrappedResolve) {
+              onWrappedResolveFns.push(hooks.onWrappedResolve);
+            }
 
-      const overwriteResolve: ResolveHooks<Types, unknown>['overwriteResolve'] =
-        overwriteResolveFns.length === 0
-          ? undefined
-          : (_parent, _args, _context, _info, originalResolve) => {
-              function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
-                if (i >= overwriteResolveFns.length) {
-                  return originalResolve;
-                }
+            if (hooks?.onChild) {
+              onChildFns.push([plugin.name, hooks.onChild]);
+            }
 
-                return (...resolveArgs) => overwriteResolveFns[i](
-                    resolveArgs[0],
-                    resolveArgs[1],
-                    resolveArgs[2],
-                    resolveArgs[3],
-                    resolverFor(i + 1),
-                  );
-              }
+            if (hooks.overwriteResolve) {
+              overwriteResolveFns.push(hooks.overwriteResolve);
+            }
+          }
 
-              return resolverFor(0)(_parent, _args, _context, _info) as unknown;
-            };
+          return null;
+        },
+        () => {
+          const overwriteResolve: ResolveHooks<Types, unknown>['overwriteResolve'] =
+            overwriteResolveFns.length === 0
+              ? undefined
+              : (_parent, _args, _context, _info, originalResolve) => {
+                  function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
+                    if (i >= overwriteResolveFns.length) {
+                      return originalResolve;
+                    }
 
-      return {
-        overwriteResolve,
-        onResolve:
-          onResolveFns.length === 0
-            ? undefined
-            : async (value: unknown) => {
-                for (const fn of onResolveFns) {
-                  await fn(value);
-                }
-              },
-        onChild:
-          onChildFns.length === 0
-            ? undefined
-            : async (
-                child: unknown,
-                index: number | null,
-                type: GiraphQLObjectTypeConfig,
-                update: (value: unknown) => void,
-              ) => {
-                const childData: ParentData = {};
-                for (const [name, fn] of onChildFns) {
-                  childData[name] = await fn(child, index, type, update);
-                }
+                    return (...resolveArgs) =>
+                      overwriteResolveFns[i](
+                        resolveArgs[0],
+                        resolveArgs[1],
+                        resolveArgs[2],
+                        resolveArgs[3],
+                        resolverFor(i + 1),
+                      );
+                  }
 
-                return childData;
-              },
-        onWrappedResolve:
-          onWrappedResolveFns.length === 0
-            ? undefined
-            : (wrapped: unknown) => {
-                for (const fn of onWrappedResolveFns) {
-                  fn(wrapped);
-                }
-              },
-      };
+                  return resolverFor(0)(_parent, _args, _context, _info) as unknown;
+                };
+
+          return {
+            overwriteResolve,
+            onResolve:
+              onResolveFns.length === 0
+                ? undefined
+                : (value: unknown) =>
+                    maybeAsyncForEach(
+                      onResolveFns,
+                      (fn) => fn(value),
+                      () => {},
+                    ),
+            onChild:
+              onChildFns.length === 0
+                ? undefined
+                : (
+                    child: unknown,
+                    index: number | null,
+                    type: GiraphQLObjectTypeConfig,
+                    update: (value: unknown) => void,
+                  ) => {
+                    const childData: ParentData = {};
+
+                    return maybeAsyncForEach(
+                      onChildFns,
+                      ([name, fn]) => {
+                        const maybePromise = fn(child, index, type, update);
+
+                        if (types.isPromise(maybePromise)) {
+                          return maybePromise.then((value) => {
+                            childData[name] = value;
+                          });
+                        }
+
+                        childData[name] = maybePromise;
+
+                        return null;
+                      },
+                      () => childData,
+                    );
+                  },
+            onWrappedResolve:
+              onWrappedResolveFns.length === 0
+                ? undefined
+                : (wrapped: unknown) => {
+                    for (const fn of onWrappedResolveFns) {
+                      fn(wrapped);
+                    }
+                  },
+          };
+        },
+      );
     },
 
-    async beforeSubscribe(
+    beforeSubscribe(
       requestData: RequestData,
       parent: unknown,
       args: object,
@@ -209,67 +251,147 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
         SubscribeHooks<Types, unknown>['overwriteSubscribe']
       >[] = [];
 
-      for (const plugin of beforeSubscribePlugins) {
-        const pluginRequestData =
-          requestData?.[plugin.name] ?? plugin.createRequestData?.(context) ?? {};
-        const hooks = await plugin.beforeSubscribe(pluginRequestData, parent, args, context, info);
+      return maybeAsyncForEach(
+        beforeSubscribePlugins,
+        (plugin) => {
+          const pluginRequestData =
+            requestData?.[plugin.name] ?? plugin.createRequestData?.(context) ?? {};
 
-        if (hooks?.onSubscribe) {
-          onSubscribeFns.push(hooks.onSubscribe);
-        }
+          const maybePromise = plugin.beforeSubscribe(
+            pluginRequestData,
+            parent,
+            args,
+            context,
+            info,
+          );
 
-        if (hooks?.onValue) {
-          onValueFns.push([plugin.name, hooks.onValue]);
-        }
+          if (types.isPromise(maybePromise)) {
+            return maybePromise.then(addHooks);
+          }
 
-        if (hooks.overwriteSubscribe) {
-          overwriteSubscribeFns.push(hooks.overwriteSubscribe);
-        }
-      }
+          addHooks(maybePromise);
 
-      const overwriteSubscribe: SubscribeHooks<Types, unknown>['overwriteSubscribe'] =
-        overwriteSubscribeFns.length === 0
-          ? undefined
-          : (_parent, _args, _context, _info, originalResolve) => {
-              function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
-                if (i >= overwriteSubscribeFns.length) {
-                  return originalResolve;
-                }
+          return null;
 
-                return (...resolveArgs) => overwriteSubscribeFns[i](
-                    resolveArgs[0],
-                    resolveArgs[1],
-                    resolveArgs[2],
-                    resolveArgs[3],
-                    resolverFor(i + 1),
-                  );
-              }
+          function addHooks(hooks: SubscribeHooks<Types, object>) {
+            if (hooks?.onSubscribe) {
+              onSubscribeFns.push(hooks.onSubscribe);
+            }
 
-              return resolverFor(0)(_parent, _args, _context, _info) as unknown;
-            };
+            if (hooks?.onValue) {
+              onValueFns.push([plugin.name, hooks.onValue]);
+            }
 
-      return {
-        overwriteSubscribe,
-        onSubscribe:
-          onSubscribeFns.length === 0
-            ? undefined
-            : async (value: unknown) => {
-                for (const fn of onSubscribeFns) {
-                  await fn(value);
-                }
-              },
-        onValue:
-          onValueFns.length === 0
-            ? undefined
-            : async (child: unknown) => {
-                const childData: ParentData = {};
-                for (const [name, fn] of onValueFns) {
-                  childData[name] = await fn(child);
-                }
+            if (hooks.overwriteSubscribe) {
+              overwriteSubscribeFns.push(hooks.overwriteSubscribe);
+            }
+          }
+        },
+        () => {
+          const overwriteSubscribe: SubscribeHooks<Types, unknown>['overwriteSubscribe'] =
+            overwriteSubscribeFns.length === 0
+              ? undefined
+              : (_parent, _args, _context, _info, originalResolve) => {
+                  function resolverFor(i: number): GraphQLFieldResolver<unknown, Types['Context']> {
+                    if (i >= overwriteSubscribeFns.length) {
+                      return originalResolve;
+                    }
 
-                return childData;
-              },
-      };
+                    return (...resolveArgs) =>
+                      overwriteSubscribeFns[i](
+                        resolveArgs[0],
+                        resolveArgs[1],
+                        resolveArgs[2],
+                        resolveArgs[3],
+                        resolverFor(i + 1),
+                      );
+                  }
+
+                  return resolverFor(0)(_parent, _args, _context, _info) as unknown;
+                };
+
+          return {
+            overwriteSubscribe,
+            onSubscribe:
+              onSubscribeFns.length === 0
+                ? undefined
+                : (value: unknown) =>
+                    maybeAsyncForEach(
+                      onSubscribeFns,
+                      (fn) => fn(value),
+                      () => {},
+                    ),
+            onValue:
+              onValueFns.length === 0
+                ? undefined
+                : (child: unknown) => {
+                    const childData: ParentData = {};
+
+                    return maybeAsyncForEach(
+                      onValueFns,
+                      ([name, fn]) => {
+                        const maybePromise = fn(child);
+
+                        if (types.isPromise(maybePromise)) {
+                          return maybePromise.then((value) => {
+                            childData[name] = value;
+                          });
+                        }
+
+                        childData[name] = maybePromise;
+
+                        return null;
+                      },
+                      () => childData,
+                    );
+                  },
+          };
+        },
+      );
     },
   };
+}
+
+function maybeAsyncForEach<T, U>(
+  list: MaybePromise<T>[],
+  each: (item: T, earlyReturn: (val: U) => void, offset: number) => MaybePromise<unknown>,
+  then: () => MaybePromise<U>,
+): MaybePromise<U> {
+  let returned = false;
+  let returnVal: U;
+  let current = 0;
+
+  return next(null);
+
+  function next(prev: unknown): MaybePromise<U> {
+    if (types.isPromise(prev)) {
+      // eslint-disable-next-line promise/no-callback-in-promise
+      return prev.then(next);
+    }
+
+    if (returned) {
+      return returnVal;
+    }
+
+    if (current >= list.length) {
+      return then();
+    }
+
+    const item = list[current];
+
+    if (types.isPromise(item)) {
+      // eslint-disable-next-line arrow-body-style
+      return item.then((realItem) => {
+        // eslint-disable-next-line promise/no-callback-in-promise,
+        return next(each(realItem, earlyReturn, current++));
+      });
+    }
+
+    return next(each(item, earlyReturn, current++));
+  }
+
+  function earlyReturn(val: U) {
+    returned = true;
+    returnVal = val;
+  }
 }
