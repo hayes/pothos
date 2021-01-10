@@ -1,6 +1,7 @@
 import { GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
 import { MaybePromise, SchemaTypes, ObjectParam, OutputShape } from '@giraphql/core';
 import { GrantedPermissions } from './grant-map';
+import ValueOrPromise from './utils/then';
 
 export interface AuthPluginOptions {
   requirePermissionChecks?: boolean;
@@ -10,7 +11,7 @@ export interface AuthPluginOptions {
 }
 
 export interface AuthRequestData {
-  preResolveAuthCheckCache: Map<PreResolveCheck<any>, MaybePromise<boolean | PermissionGrantMap>>;
+  preResolveAuthCheckCache: Map<PreResolveCheck<any>, ValueOrPromise<boolean | PermissionGrantMap>>;
 }
 
 export type SharedPermissionCheck<Types extends SchemaTypes, ParentShape> = (
@@ -24,7 +25,9 @@ export type FieldPermissionCheck<Types extends SchemaTypes, ParentShape, Args> =
   context: Types['Context'],
 ) => MaybePromise<boolean | string | string[] | PermissionMatcher>;
 
-export interface PermissionGrantMap { [s: string]: boolean | undefined }
+export interface PermissionGrantMap {
+  [s: string]: boolean | undefined;
+}
 
 export type PreResolveCheck<Types extends SchemaTypes> = (
   context: Types['Context'],

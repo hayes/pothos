@@ -4,38 +4,41 @@ import { GrantMap } from '.';
 import { PermissionGrantMap, AuthRequestData } from './types';
 import { AuthFieldWrapper } from './field-wrapper';
 import { ForbiddenError } from './errors';
+import ValueOrPromise from './utils/then';
 
-export default async function runPreResolveChecks<Types extends SchemaTypes>(
+export default function runPreResolveChecks<Types extends SchemaTypes>(
   this: AuthFieldWrapper<Types>,
   requestData: AuthRequestData,
   context: object,
-): Promise<GrantMap> {
+): ValueOrPromise<GrantMap> {
   const preResolveCheckMap = this.resolveChecks.preResolveMap;
 
   const newGrants = new GrantMap();
 
-  if (preResolveCheckMap?.size !== 0) {
-    const preResolveCache = requestData.preResolveAuthCheckCache;
+  if (preResolveCheckMap?.size === 0) {
+    return new ValueOrPromise(newGrants);
+  }
+  const preResolveCache = requestData.preResolveAuthCheckCache;
 
-    const preResolvePromises: Promise<{
-      name: string;
-      result: boolean | PermissionGrantMap;
-    }>[] = [];
+  const preResolvePromises: ValueOrPromise<{
+    name: string;
+    result: boolean | PermissionGrantMap;
+  }>[] = [];
 
-    for (const [typeName, preResolveCheck] of preResolveCheckMap!) {
-      if (!preResolveCache.has(preResolveCheck)) {
-        preResolveCache.set(preResolveCheck, preResolveCheck(context));
-      }
-
-      preResolvePromises.push(
-        Promise.resolve(preResolveCache.get(preResolveCheck)!).then((result) => ({
-          name: typeName,
-          result,
-        })),
-      );
+  for (const [typeName, preResolveCheck] of preResolveCheckMap!) {
+    if (!preResolveCache.has(preResolveCheck)) {
+      preResolveCache.set(preResolveCheck, new ValueOrPromise(preResolveCheck(context)));
     }
 
-    const results = await Promise.all(preResolvePromises);
+    preResolvePromises.push(
+      preResolveCache.get(preResolveCheck)!.nowOrThen((result) => ({
+        name: typeName,
+        result,
+      })),
+    );
+  }
+
+  return ValueOrPromise.all(preResolvePromises).nowOrThen((results) => {
     const failedChecks: string[] = [];
 
     results.forEach(({ name, result }) => {
@@ -51,16 +54,17 @@ export default async function runPreResolveChecks<Types extends SchemaTypes>(
     });
 
     if (failedChecks.length > 0) {
-      const error = failedChecks.length === 1 ? new ForbiddenError(
-          `preResolveCheck failed for ${this.fieldName} on ${failedChecks[0]}`,
-        ) : new ForbiddenError(
-          `preResolveChecks failed for ${this.fieldName} on ${failedChecks
-            .slice(0, -1)
-            .join(', ')} and ${failedChecks[failedChecks.length - 1]}`,
-        );
+      const error =
+        failedChecks.length === 1
+          ? new ForbiddenError(`preResolveCheck failed for ${this.fieldName} on ${failedChecks[0]}`)
+          : new ForbiddenError(
+              `preResolveChecks failed for ${this.fieldName} on ${failedChecks
+                .slice(0, -1)
+                .join(', ')} and ${failedChecks[failedChecks.length - 1]}`,
+            );
       throw error;
     }
-  }
 
-  return newGrants;
+    return newGrants;
+  });
 }

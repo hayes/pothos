@@ -1,5 +1,11 @@
 import { types } from 'util';
 
+type ResolveValue<T> = T extends ValueOrPromise<infer U> ? U : T extends Promise<infer U> ? U : T;
+
+type ResolveAll<T extends unknown[]> = {
+  [K in keyof T]: ResolveValue<T>;
+};
+
 export default class ValueOrPromise<T> {
   private valueOrPromise: T | Promise<T>;
 
@@ -11,7 +17,15 @@ export default class ValueOrPromise<T> {
     }
   }
 
-  static all<T>(values: (ValueOrPromise<T> | Promise<T> | T)[]): ValueOrPromise<T[]> {
+  static resolve<T>(valueOrPromise: ValueOrPromise<T> | Promise<T> | T) {
+    if (valueOrPromise instanceof ValueOrPromise) {
+      return valueOrPromise;
+    }
+
+    return new ValueOrPromise(valueOrPromise);
+  }
+
+  static all<T extends unknown[]>(values: T): ValueOrPromise<ResolveAll<T>> {
     let hasPromise = false;
 
     const list = values.map((value) => {
@@ -26,7 +40,9 @@ export default class ValueOrPromise<T> {
       return unwrapped;
     });
 
-    return new ValueOrPromise(hasPromise ? Promise.all(list) : (list as T[]));
+    return new ValueOrPromise(hasPromise ? Promise.all(list) : list) as ValueOrPromise<
+      ResolveAll<T>
+    >;
   }
 
   static unwrap<T>(value: ValueOrPromise<T> | T) {
@@ -46,6 +62,26 @@ export default class ValueOrPromise<T> {
     }
 
     return new ValueOrPromise(cb(this.valueOrPromise));
+  }
+
+  inject(cb: (val: T) => void | Promise<void>) {
+    const currentValue = this.valueOrPromise;
+    if (types.isPromise(currentValue)) {
+      this.valueOrPromise = currentValue.then((value) => {
+        // eslint-disable-next-line promise/no-callback-in-promise
+        const next = cb(value);
+
+        return types.isPromise(next) ? next.then(() => currentValue) : currentValue;
+      });
+    } else {
+      const next = cb(currentValue);
+
+      if (types.isPromise(next)) {
+        this.valueOrPromise = next.then(() => currentValue);
+      }
+    }
+
+    return this;
   }
 
   toValueOrPromise() {

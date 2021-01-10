@@ -18,6 +18,7 @@ import { checkFieldPermissions } from './check-field-permissions';
 import runPostResolveChecks from './post-resolve-check';
 import runPreResolveChecks from './pre-resolve-checks';
 import { getResolveChecks, getPermissionCheckers, getPermissionCheck } from './create-field-data';
+import ValueOrPromise from './utils/then';
 
 export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrapper<
   Types,
@@ -74,7 +75,7 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
     };
   }
 
-  async beforeResolve(
+  beforeResolve(
     requestData: AuthRequestData,
     parentData: AuthMeta | null,
     parent: unknown,
@@ -85,49 +86,55 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
 
     if (this.field.parentType === 'Subscription') {
       return {
-        onWrap: async (child: unknown): Promise<AuthMeta> => {
+        onChild: (child: unknown): AuthMeta | Promise<AuthMeta> => {
           const childMeta = new AuthMeta(parentMeta.grantedPermissions.clone(), parentMeta);
 
-          await this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
-
-          return childMeta;
+          return this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context)
+            .nowOrThen(() => childMeta)
+            .toValueOrPromise();
         },
       };
     }
 
-    await this.checkFieldPermissions(parentMeta, parent, args, context);
-
-    const newGrants: GrantMap = await this.runPreResolveChecks(requestData, context);
+    let newGrantsValueOrPromise: ValueOrPromise<GrantMap> = new ValueOrPromise(
+      this.checkFieldPermissions(parentMeta, parent, args, context),
+    ).nowOrThen(() => this.runPreResolveChecks(requestData, context));
 
     if (this.grantPermissions) {
-      const grants =
-        typeof this.grantPermissions === 'function'
-          ? await this.grantPermissions(parent, args, context)
-          : this.grantPermissions;
-
-      newGrants.mergeSharedGrants(grants);
+      newGrantsValueOrPromise = newGrantsValueOrPromise.nowOrThen((newGrants) =>
+        new ValueOrPromise(
+          typeof this.grantPermissions === 'function'
+            ? this.grantPermissions(parent, args, context)
+            : this.grantPermissions!,
+        ).nowOrThen((grants) => newGrants.mergeSharedGrants(grants)),
+      );
     }
 
-    return {
-      onChild: async (
-        child: unknown,
-        index: number | null,
-        type: GiraphQLObjectTypeConfig,
-      ): Promise<AuthMeta> => {
-        const childMeta = new AuthMeta(newGrants, parentMeta);
+    return newGrantsValueOrPromise
+      .nowOrThen((newGrants) => ({
+        onChild: (
+          child: unknown,
+          index: number | null,
+          type: GiraphQLObjectTypeConfig,
+        ): AuthMeta | Promise<AuthMeta> => {
+          const childMeta = new AuthMeta(newGrants, parentMeta);
 
-        if (type.name !== this.returnTyeConfig.name) {
-          await this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context);
-        }
+          if (type.name !== this.returnTyeConfig.name) {
+            return this.runPostResolveChecks(this.returnTyeConfig, childMeta, child, context)
+              .nowOrThen(() => this.runPostResolveChecks(type, childMeta, child, context))
+              .nowOrThen(() => childMeta)
+              .toValueOrPromise();
+          }
 
-        await this.runPostResolveChecks(type, childMeta, child, context);
-
-        return childMeta;
-      },
-    };
+          return this.runPostResolveChecks(type, childMeta, child, context)
+            .nowOrThen(() => childMeta)
+            .toValueOrPromise();
+        },
+      }))
+      .toValueOrPromise();
   }
 
-  async beforeSubscribe(
+  beforeSubscribe(
     requestData: AuthRequestData,
     parent: unknown,
     args: object,
@@ -135,23 +142,26 @@ export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrappe
   ) {
     const parentMeta = new AuthMeta();
 
-    await this.checkFieldPermissions(parentMeta, parent, args, context);
-
-    const newGrants = await this.runPreResolveChecks(requestData, context);
+    let newGrantsValueOrPromise: ValueOrPromise<GrantMap> = new ValueOrPromise(
+      this.checkFieldPermissions(parentMeta, parent, args, context),
+    ).nowOrThen(() => this.runPreResolveChecks(requestData, context));
 
     if (this.grantPermissions) {
-      const grants =
-        typeof this.grantPermissions === 'function'
-          ? await this.grantPermissions(parent, args, context)
-          : this.grantPermissions;
-
-      newGrants.mergeSharedGrants(grants);
+      newGrantsValueOrPromise = newGrantsValueOrPromise.nowOrThen((newGrants) =>
+        new ValueOrPromise(
+          typeof this.grantPermissions === 'function'
+            ? this.grantPermissions(parent, args, context)
+            : this.grantPermissions!,
+        ).nowOrThen((grants) => newGrants.mergeSharedGrants(grants)),
+      );
     }
 
-    return {
-      onValue(child: unknown): AuthMeta {
-        return new AuthMeta(newGrants);
-      },
-    };
+    return newGrantsValueOrPromise
+      .nowOrThen((newGrants) => ({
+        onValue(child: unknown): AuthMeta {
+          return new AuthMeta(newGrants);
+        },
+      }))
+      .toValueOrPromise();
   }
 }

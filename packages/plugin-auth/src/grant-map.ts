@@ -73,6 +73,8 @@ export default class GrantMap {
         this.addSharedPermission(key);
       }
     });
+
+    return this;
   }
 
   clone() {

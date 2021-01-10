@@ -474,7 +474,7 @@ describe('auth example schema', () => {
           }),
           expect.objectContaining({
             message:
-              'Permission check on Rectangle.area failed. Missing the following permissions: postResolve, readRectangle',
+              'Permission check on Rectangle.area failed. Missing the following permissions: readRectangle, postResolve',
             path: ['rectangleNoGrantFromPostResolve', 'area'],
           }),
           expect.objectContaining({
@@ -566,7 +566,7 @@ describe('auth example schema', () => {
           }),
           expect.objectContaining({
             message:
-              'Permission check on Rectangle.area failed. Missing the following permissions: postResolve, readRectangle',
+              'Permission check on Rectangle.area failed. Missing the following permissions: readRectangle, postResolve',
             path: ['noGrantFromPostResolve', 'area'],
           }),
         ],
@@ -705,7 +705,7 @@ describe('auth example schema', () => {
           }),
           expect.objectContaining({
             message:
-              'Permission check on Rectangle.area failed. Missing the following permissions: postResolve, readRectangle',
+              'Permission check on Rectangle.area failed. Missing the following permissions: readRectangle, postResolve',
             path: ['noGrantFromPostResolve', 'area'],
           }),
         ],
