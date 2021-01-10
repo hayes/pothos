@@ -7,7 +7,7 @@
       "ignoreChanges": [
         "*.md",
         "*.test.ts",
-        "*.test.tsx"
+        "tests/*"
       ]
     }
   }

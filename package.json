@@ -13,10 +13,11 @@
     "coverage": "yarn run test --coverage",
     "format": "beemo prettier",
     "lint": "beemo eslint",
-    "release": "lerna publish --push",
     "test": "beemo jest",
     "type": "beemo typescript --build --reference-workspaces",
-    "prerelease": "yarn run ci && yarn run build"
+    "prerelease": "yarn run ci && yarn run build",
+    "release": "lerna version --conventional-commits --changelog-graduate conventional-changelog-beemo --create-release github --push && lerna publish from-github",
+    "preview": "yarn prerelease && lerna version --conventional-prerelease --changelog-preset conventional-changelog-beemo --push && lerna publish from-git"
   },
   "workspaces": [
     "./packages/*"
@@ -29,6 +30,7 @@
     "@types/jest": "^26.0.19",
     "@types/node": "^14.14.16",
     "@types/node-fetch": "^2.5.7",
+    "conventional-changelog-beemo": "^2.0.0",
     "graphql": "^15.4.0",
     "husky": "^4.3.6",
     "lerna": "^3.22.1",
