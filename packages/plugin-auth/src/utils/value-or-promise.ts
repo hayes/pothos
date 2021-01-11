@@ -3,7 +3,7 @@ import { types } from 'util';
 type ResolveValue<T> = T extends ValueOrPromise<infer U> ? U : T extends Promise<infer U> ? U : T;
 
 type ResolveAll<T extends unknown[]> = {
-  [K in keyof T]: ResolveValue<T>;
+  [K in keyof T]: ResolveValue<T[K]>;
 };
 
 export default class ValueOrPromise<T> {

@@ -18,7 +18,7 @@ import { checkFieldPermissions } from './check-field-permissions';
 import runPostResolveChecks from './post-resolve-check';
 import runPreResolveChecks from './pre-resolve-checks';
 import { getResolveChecks, getPermissionCheckers, getPermissionCheck } from './create-field-data';
-import ValueOrPromise from './utils/then';
+import ValueOrPromise from './utils/value-or-promise';
 
 export class AuthFieldWrapper<Types extends SchemaTypes> extends BaseFieldWrapper<
   Types,
