@@ -1,5 +1,5 @@
 import { PermissionMatcher } from '../types';
-import ValueOrPromise from './then';
+import ValueOrPromise from './value-or-promise';
 
 export function evaluateMatcher(
   matcher: PermissionMatcher,

@@ -5,7 +5,7 @@ import { evaluateMatcher } from './utils/evaluate-matcher';
 import { AuthMeta } from '.';
 import { AuthFieldWrapper } from './field-wrapper';
 import { ForbiddenError } from './errors';
-import ValueOrPromise from './utils/then';
+import ValueOrPromise from './utils/value-or-promise';
 
 export function checkFieldPermissions<Types extends SchemaTypes>(
   this: AuthFieldWrapper<Types>,

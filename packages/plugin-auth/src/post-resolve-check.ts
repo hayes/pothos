@@ -4,7 +4,7 @@ import { PermissionGrantMap } from './types';
 import { AuthMeta } from '.';
 import { AuthFieldWrapper } from './field-wrapper';
 import { ForbiddenError } from './errors';
-import ValueOrPromise from './utils/then';
+import ValueOrPromise from './utils/value-or-promise';
 
 export default function runPostResolveChecks<Types extends SchemaTypes>(
   this: AuthFieldWrapper<Types>,

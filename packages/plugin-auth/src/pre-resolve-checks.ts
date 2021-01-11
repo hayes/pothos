@@ -4,7 +4,7 @@ import { GrantMap } from '.';
 import { PermissionGrantMap, AuthRequestData } from './types';
 import { AuthFieldWrapper } from './field-wrapper';
 import { ForbiddenError } from './errors';
-import ValueOrPromise from './utils/then';
+import ValueOrPromise from './utils/value-or-promise';
 
 export default function runPreResolveChecks<Types extends SchemaTypes>(
   this: AuthFieldWrapper<Types>,

@@ -1,7 +1,7 @@
 import { GraphQLObjectType, GraphQLInterfaceType } from 'graphql';
 import { MaybePromise, SchemaTypes, ObjectParam, OutputShape } from '@giraphql/core';
 import { GrantedPermissions } from './grant-map';
-import ValueOrPromise from './utils/then';
+import ValueOrPromise from './utils/value-or-promise';
 
 export interface AuthPluginOptions {
   requirePermissionChecks?: boolean;
