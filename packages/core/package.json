@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/core",
-  "version": "1.4.0-alpha.1",
+  "version": "1.4.0",
   "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "lib/index.js",
   "scripts": {
