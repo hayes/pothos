@@ -16,7 +16,7 @@
     "test": "beemo jest",
     "type": "beemo typescript --build --reference-workspaces",
     "prerelease": "yarn run ci && yarn run build",
-    "release": "lerna version --conventional-commits --changelog-graduate conventional-changelog-beemo --create-release github --push && lerna publish from-git",
+    "release": "lerna version --conventional-commits --conventional-graduate --changelog-preset conventional-changelog-beemo --create-release github --push && lerna publish from-git",
     "preview": "yarn prerelease && lerna version --conventional-commits --conventional-prerelease --changelog-preset conventional-changelog-beemo --push && lerna publish from-git"
   },
   "workspaces": [
