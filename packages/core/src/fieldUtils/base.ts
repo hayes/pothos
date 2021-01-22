@@ -37,36 +37,43 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   >(
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
-    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = {} as any;
+    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(
+      this.kind,
+      this.typename,
+    );
 
-    const args: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
+    this.builder.configStore.addFieldRef(ref, options.type, options.args || {}, (name) => {
+      const args: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
 
-    if (options.args) {
-      Object.keys(options.args).forEach((name) => {
-        args[name] = this.builder.configStore.createFieldConfig(options.args![name], name, 'Arg');
-      });
-    }
+      if (options.args) {
+        Object.keys(options.args).forEach((name) => {
+          const ref = options.args![name];
 
-    this.builder.configStore.addFieldRef(ref, options.type, (name) => ({
-      kind: this.kind as any,
-      graphqlKind: this.graphqlKind as GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
-      parentType: this.typename,
-      name,
-      args,
-      type: typeFromParam(
-        options.type,
-        this.builder.configStore,
-        options.nullable ?? this.builder.defaultFieldNullability,
-      ),
-      giraphqlOptions: options as any,
-      description: options.description,
-      resolve:
-        (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
-        (() => {
-          throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
-        }),
-      subscribe: (options as { subscribe?: (...argList: unknown[]) => unknown }).subscribe,
-    }));
+          args[name] = this.builder.configStore.createFieldConfig(ref, name, 'Arg');
+        });
+      }
+
+      return {
+        kind: this.kind as any,
+        graphqlKind: this.graphqlKind as GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
+        parentType: this.typename,
+        name,
+        args,
+        type: typeFromParam(
+          options.type,
+          this.builder.configStore,
+          options.nullable ?? this.builder.defaultFieldNullability,
+        ),
+        giraphqlOptions: options as any,
+        description: options.description,
+        resolve:
+          (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
+          (() => {
+            throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+          }),
+        subscribe: (options as { subscribe?: (...argList: unknown[]) => unknown }).subscribe,
+      };
+    });
 
     return ref;
   }
