@@ -90,6 +90,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     ref: FieldRef | InputFieldRef,
     // We need to be able to resolve the types kind before configuring the field
     typeParam: TypeParam<Types> | InputTypeParam<Types>,
+    args: InputFieldMap,
     getConfig: (name: string) => GiraphQLFieldConfig<Types>,
   ) {
     if (this.fieldRefs.has(ref)) {
@@ -97,18 +98,41 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     const typeRefOrName = Array.isArray(typeParam) ? typeParam[0] : typeParam;
+    const argRefs = Object.keys(args).map((argName) => {
+      const argRef = args[argName];
+
+      argRef.fieldName = argName;
+      argRef.argFor = ref;
+
+      return argRef;
+    });
+
+    const checkArgs = () => {
+      for (const arg of argRefs) {
+        if (this.pendingFields.has(arg)) {
+          const unresolvedArgType = this.pendingFields.get(arg)!;
+          this.pendingFields.set(ref, unresolvedArgType);
+
+          this.onTypeConfig(unresolvedArgType, checkArgs);
+
+          return;
+        }
+      }
+
+      this.pendingFields.delete(ref);
+      this.fieldRefs.set(ref, getConfig);
+    };
 
     if (
       this.hasConfig(typeRefOrName) ||
       typeRefOrName instanceof BaseTypeRef ||
       this.scalarsToRefs.has(typeRefOrName as string)
     ) {
-      this.fieldRefs.set(ref, getConfig);
+      checkArgs();
     } else {
       this.pendingFields.set(ref, typeRefOrName);
       this.onTypeConfig(typeRefOrName, () => {
-        this.pendingFields.delete(ref);
-        this.fieldRefs.set(ref, getConfig);
+        checkArgs();
       });
     }
   }
@@ -119,7 +143,13 @@ export default class ConfigStore<Types extends SchemaTypes> {
     kind?: T,
   ): Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }> {
     if (!this.fieldRefs.has(ref)) {
-      throw new Error(`FieldRef for field named ${name} has not been added to config store yet`);
+      if (this.pendingFields.has(ref)) {
+        throw new Error(
+          `Missing implementation for ${this.describeRef(this.pendingFields.get(ref)!)}`,
+        );
+      }
+
+      throw new Error(`Missing definition for for ${ref}`);
     }
 
     const config = this.fieldRefs.get(ref)!(name);
@@ -322,11 +352,31 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     if (this.pendingRefResolutions.size !== 0) {
       throw new Error(
-        `Missing implementations for some references (${[...this.pendingRefResolutions.keys()].join(
-          ', ',
-        )}).`,
+        `Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
+          .map((ref) => this.describeRef(ref))
+          .join(', ')}).`,
       );
     }
+  }
+
+  describeRef(ref: ConfigurableRef<Types>): string {
+    if (typeof ref === 'string') {
+      return ref;
+    }
+
+    if (ref.toString !== {}.toString) {
+      return ref.toString();
+    }
+
+    const usedBy = [...this.pendingFields.entries()].find(
+      ([fieldRef, typeRef]) => typeRef === ref,
+    )?.[0];
+
+    if (usedBy) {
+      return `<unnamed ref or enum: used by ${usedBy}>`;
+    }
+
+    return `<unnamed ref or enum>`;
   }
 
   addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
@@ -356,6 +406,9 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     Object.keys(fields).forEach((fieldName) => {
       const fieldRef = fields[fieldName];
+
+      fieldRef.fieldName = fieldName;
+
       if (this.pendingFields.has(fieldRef)) {
         this.onTypeConfig(this.pendingFields.get(fieldRef)!, () => {
           this.buildField(typeRef, fieldRef, fieldName);

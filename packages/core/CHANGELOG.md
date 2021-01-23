@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.5.0-alpha.0 - 2021-01-23
+
+#### 🚀 Updates
+
+- improve error messages for unresolved refs and allow arguments to be implemented after references ([8c5a8b0](https://github.com/hayes/giraphql/commit/8c5a8b0))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 1.4.0 - 2021-01-11
 
 **Note:** Version bump only for package @giraphql/core

@@ -56,10 +56,12 @@ export default class InputFieldBuilder<
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
     options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = {} as any;
+    const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = new InputFieldRef(
+      this.kind,
+      this.typename,
+    );
 
-    this.builder.configStore.addFieldRef(ref, options.type, (name) => ({
+    this.builder.configStore.addFieldRef(ref, options.type, {}, (name) => ({
       name,
       kind: this.kind,
       graphqlKind: this.kind,
