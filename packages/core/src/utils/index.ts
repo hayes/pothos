@@ -12,3 +12,11 @@ export function assertArray(value: unknown): value is unknown[] {
 
   return true;
 }
+
+export function isThenable(value: unknown): value is Promise<unknown> {
+  return !!(
+    value &&
+    (typeof value === 'object' || typeof value === 'function') &&
+    typeof (value as Record<string, unknown>).then === 'function'
+  );
+}

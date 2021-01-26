@@ -1,6 +1,5 @@
 /* eslint-disable promise/always-return, no-plusplus */
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
-import { types } from 'util';
 
 import {
   MaybePromise,
@@ -10,6 +9,7 @@ import {
   ResolveHooks,
   SubscribeHooks,
 } from '../types';
+import { isThenable } from '../utils';
 import BaseFieldWrapper from './field-wrapper';
 
 type RequestData = Record<string, object>;
@@ -83,7 +83,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   info,
                 );
 
-                if (types.isPromise(maybePromise)) {
+                if (isThenable(maybePromise)) {
                   return maybePromise.then((result) => {
                     if (result) {
                       earlyReturn(true);
@@ -142,7 +142,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   info,
                 );
 
-                if (types.isPromise(maybePromise)) {
+                if (isThenable(maybePromise)) {
                   return maybePromise.then(addHooks);
                 }
 
@@ -220,7 +220,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                             ([name, fn]) => {
                               const maybePromise = fn(child, index, type, update);
 
-                              if (types.isPromise(maybePromise)) {
+                              if (isThenable(maybePromise)) {
                                 return maybePromise.then((value) => {
                                   childData[name] = value;
                                 });
@@ -277,7 +277,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                   info,
                 );
 
-                if (types.isPromise(maybePromise)) {
+                if (isThenable(maybePromise)) {
                   return maybePromise.then(addHooks);
                 }
 
@@ -346,7 +346,7 @@ export function mergeFieldWrappers<Types extends SchemaTypes>(
                             ([name, fn]) => {
                               const maybePromise = fn(child);
 
-                              if (types.isPromise(maybePromise)) {
+                              if (isThenable(maybePromise)) {
                                 return maybePromise.then((value) => {
                                   childData[name] = value;
                                 });
@@ -379,7 +379,7 @@ function maybeAsyncForEach<T, U>(
   return next(null);
 
   function next(prev: unknown): MaybePromise<U> {
-    if (types.isPromise(prev)) {
+    if (isThenable(prev)) {
       // eslint-disable-next-line promise/no-callback-in-promise
       return prev.then(next);
     }
@@ -394,7 +394,7 @@ function maybeAsyncForEach<T, U>(
 
     const item = list[current];
 
-    if (types.isPromise(item)) {
+    if (isThenable(item)) {
       // eslint-disable-next-line arrow-body-style
       return item.then((realItem) => {
         // eslint-disable-next-line promise/no-callback-in-promise,

@@ -1,9 +1,8 @@
 /* eslint-disable max-classes-per-file */
 import { GraphQLResolveInfo } from 'graphql';
-import { types } from 'util';
 
 import { GiraphQLObjectTypeConfig, ResolveHooks, SchemaTypes, MaybePromise } from '..';
-import { assertArray } from '../utils';
+import { assertArray, isThenable } from '../utils';
 
 export class ValueWrapper<T> {
   getData: () => MaybePromise<T | null>;
@@ -40,8 +39,8 @@ export class ValueWrapper<T> {
 
     if (isList && assertArray(result)) {
       return result.map((itemOrPromise) => {
-        if (types.isPromise(itemOrPromise)) {
-          return (itemOrPromise as Promise<unknown>).then((item: unknown) =>
+        if (isThenable(itemOrPromise)) {
+          return itemOrPromise.then((item: unknown) =>
             item instanceof ValueWrapper ? item.asResolvable() : result,
           );
         }
@@ -58,8 +57,8 @@ export class ValueWrapper<T> {
   }
 
   private asResolvable() {
-    if (types.isPromise(this.value)) {
-      return (this.value as Promise<unknown>).then((value) => (value == null ? null : this));
+    if (isThenable(this.value)) {
+      return this.value.then((value) => (value == null ? null : this));
     }
 
     return this.value == null ? null : this;
