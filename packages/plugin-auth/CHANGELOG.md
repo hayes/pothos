@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 1.3.1 - 2021-01-26
+
+#### 🐞 Fixes
+
+- use thenable instead of types.isPromise to support custom promise implementations ([f5625e4](https://github.com/hayes/giraphql/commit/f5625e4))
+
+**Note:** Version bump only for package @giraphql/plugin-auth
+
+
+
+
+
 ### 1.3.0 - 2021-01-11
 
 **Note:** Version bump only for package @giraphql/plugin-auth
