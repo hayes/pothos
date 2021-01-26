@@ -21,7 +21,6 @@ import {
   defaultFieldResolver,
   GraphQLTypeResolver,
 } from 'graphql';
-import { types } from 'util';
 import {
   BasePlugin,
   assertNever,
@@ -49,6 +48,7 @@ import ConfigStore from './config-store';
 import { wrapResolveType, wrapResolver, wrapSubscriber } from './plugins/wrap-field';
 import { mergeFieldWrappers } from './plugins/merge-field-wrappers';
 import BuiltinScalarRef from './refs/builtin-scalar';
+import { isThenable } from './utils';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
@@ -409,7 +409,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
         const result = impl.isTypeOf(parent, context, info);
 
-        if (types.isPromise(result)) {
+        if (isThenable(result)) {
           promises.push(result.then((res) => (res ? impl : null)));
         } else if (result) {
           return impl.name;
@@ -465,7 +465,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         return result;
       };
 
-      return types.isPromise(resultOrPromise)
+      return isThenable(resultOrPromise)
         ? resultOrPromise.then(getResult)
         : getResult(resultOrPromise);
     };

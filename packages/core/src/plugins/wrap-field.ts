@@ -4,12 +4,11 @@ import {
   GraphQLTypeResolver,
   GraphQLAbstractType,
 } from 'graphql';
-import { types } from 'util';
 import { SchemaTypes, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, MaybePromise } from '..';
 import { ResolveValueWrapper, ValueWrapper } from './resolve-wrapper';
 import BaseFieldWrapper from './field-wrapper';
 import ConfigStore from '../config-store';
-import { assertArray } from '../utils';
+import { assertArray, isThenable } from '../utils';
 
 const requestDataStore = new WeakMap<object, {}>();
 
@@ -56,14 +55,14 @@ export function wrapResolver<Types extends SchemaTypes>(
   ) => {
     const parentOrPromise =
       originalParent instanceof ValueWrapper ? originalParent.unwrap() : originalParent;
-    const parentValue = types.isPromise(parentOrPromise)
+    const parentValue = isThenable(parentOrPromise)
       ? ((await parentOrPromise) as unknown)
       : parentOrPromise;
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
     const parentDataOrPromise: {} | Promise<{}> =
       originalParent instanceof ValueWrapper ? originalParent.getData() : {};
-    const parentData = types.isPromise(parentDataOrPromise)
+    const parentData = isThenable(parentDataOrPromise)
       ? await parentDataOrPromise
       : parentDataOrPromise;
 
@@ -82,7 +81,7 @@ export function wrapResolver<Types extends SchemaTypes>(
         info,
       );
 
-      if (types.isPromise(allowReuse) ? await allowReuse : allowReuse) {
+      if (isThenable(allowReuse) ? await allowReuse : allowReuse) {
         return originalParent.getFieldResult(info, isListResolver);
       }
     }
@@ -90,7 +89,7 @@ export function wrapResolver<Types extends SchemaTypes>(
     const resolveHooksOrPromise =
       fieldWrapper.beforeResolve?.(requestData, parentData, parentValue, args, context, info) ?? {};
 
-    const resolveHooks = types.isPromise(resolveHooksOrPromise)
+    const resolveHooks = isThenable(resolveHooksOrPromise)
       ? await resolveHooksOrPromise
       : resolveHooksOrPromise;
 
@@ -98,9 +97,7 @@ export function wrapResolver<Types extends SchemaTypes>(
       ? resolveHooks.overwriteResolve(parentValue, args, context, info, originalResolver)
       : originalResolver(parentValue, args, context, info);
 
-    const result: unknown = types.isPromise(resultOrPromise)
-      ? await resultOrPromise
-      : resultOrPromise;
+    const result: unknown = isThenable(resultOrPromise) ? await resultOrPromise : resultOrPromise;
 
     await resolveHooks?.onResolve?.(result);
 
@@ -121,7 +118,7 @@ export function wrapResolver<Types extends SchemaTypes>(
 
         const maybePromise = wrapped.updateData(returnType);
 
-        if (types.isPromise(maybePromise)) {
+        if (isThenable(maybePromise)) {
           return maybePromise.then(() => wrapped);
         }
 
@@ -141,7 +138,7 @@ export function wrapResolver<Types extends SchemaTypes>(
           Types,
           unknown
         > | null>[] = resultValue.map((item, i) => {
-          if (types.isPromise(item)) {
+          if (isThenable(item)) {
             return Promise.resolve(item)
               .then((value) => wrapChild(value, i))
               .then((wrapped) => {
@@ -153,7 +150,7 @@ export function wrapResolver<Types extends SchemaTypes>(
 
           const maybePromise = wrapChild(item, i);
 
-          if (types.isPromise(maybePromise)) {
+          if (isThenable(maybePromise)) {
             return maybePromise.then((wrapped) => {
               wrappedList[i] = wrapped;
 
@@ -171,13 +168,13 @@ export function wrapResolver<Types extends SchemaTypes>(
     };
 
     const wrappedResultOrPromise = wrapResult(result);
-    const wrappedResult = types.isPromise(wrappedResultOrPromise)
+    const wrappedResult = isThenable(wrappedResultOrPromise)
       ? ((await wrappedResultOrPromise) as unknown)
       : wrappedResultOrPromise;
 
     const onResolvedPromise = resolveHooks?.onWrappedResolve?.(wrappedResult);
 
-    if (types.isPromise(onResolvedPromise)) {
+    if (isThenable(onResolvedPromise)) {
       await onResolvedPromise;
     }
 
@@ -217,7 +214,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
     const subscribeHookOrPromise =
       fieldWrapper.beforeSubscribe?.(requestData, originalParent, args, context, info) ?? {};
 
-    const subscribeHook = types.isPromise(subscribeHookOrPromise)
+    const subscribeHook = isThenable(subscribeHookOrPromise)
       ? await subscribeHookOrPromise
       : subscribeHookOrPromise;
 
@@ -226,7 +223,7 @@ export function wrapSubscriber<Types extends SchemaTypes>(
       ? subscribeHook.overwriteSubscribe(originalParent, args, context, info, originalSubscribe)
       : originalSubscribe(originalParent, args, context, info);
 
-    const result = types.isPromise(resultOrPromise) ? await resultOrPromise : resultOrPromise;
+    const result = isThenable(resultOrPromise) ? await resultOrPromise : resultOrPromise;
 
     await subscribeHook?.onSubscribe?.(result);
 

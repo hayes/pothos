@@ -1,4 +1,4 @@
-import { types } from 'util';
+import { isThenable } from '@giraphql/core';
 
 type ResolveValue<T> = T extends ValueOrPromise<infer U> ? U : T extends Promise<infer U> ? U : T;
 
@@ -31,7 +31,7 @@ export default class ValueOrPromise<T> {
     const list = values.map((value) => {
       const unwrapped = ValueOrPromise.unwrap(value);
 
-      if (types.isPromise(unwrapped)) {
+      if (isThenable(unwrapped)) {
         hasPromise = true;
 
         return (unwrapped as Promise<T>).then((result) => ValueOrPromise.unwrap(result));
@@ -50,7 +50,7 @@ export default class ValueOrPromise<T> {
   }
 
   nowOrThen<U>(cb: (val: T) => ValueOrPromise<U> | Promise<U> | U): ValueOrPromise<U> {
-    if (types.isPromise(this.valueOrPromise)) {
+    if (isThenable(this.valueOrPromise)) {
       return new ValueOrPromise<U>(
         this.valueOrPromise.then((value) => {
           // eslint-disable-next-line promise/no-callback-in-promise
@@ -66,17 +66,17 @@ export default class ValueOrPromise<T> {
 
   inject(cb: (val: T) => void | Promise<void>) {
     const currentValue = this.valueOrPromise;
-    if (types.isPromise(currentValue)) {
+    if (isThenable(currentValue)) {
       this.valueOrPromise = currentValue.then((value) => {
         // eslint-disable-next-line promise/no-callback-in-promise
         const next = cb(value);
 
-        return types.isPromise(next) ? next.then(() => currentValue) : currentValue;
+        return isThenable(next) ? next.then(() => currentValue) : currentValue;
       });
     } else {
       const next = cb(currentValue);
 
-      if (types.isPromise(next)) {
+      if (isThenable(next)) {
         this.valueOrPromise = next.then(() => currentValue);
       }
     }

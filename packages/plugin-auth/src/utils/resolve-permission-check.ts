@@ -1,5 +1,4 @@
-import { MaybePromise } from '@giraphql/core';
-import { types } from 'util';
+import { isThenable, MaybePromise } from '@giraphql/core';
 import { PermissionCheck, PermissionMatcher } from '../types';
 
 export function resolvePermissionCheck(
@@ -20,7 +19,7 @@ export function resolvePermissionCheck(
 
   const resultOrPromise = check(parent, args, context);
 
-  return types.isPromise(resultOrPromise)
+  return isThenable(resultOrPromise)
     ? resultOrPromise.then(normalizeResult)
     : normalizeResult(resultOrPromise);
 }
