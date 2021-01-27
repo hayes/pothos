@@ -74,8 +74,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       if (err) {
         this.handleError(err);
       } else {
-        // eslint-disable-next-line promise/no-promise-in-callback
-        this.handleValue(name, value).catch((error) => void this.handleError(error));
+        this.handleValue(name, value);
       }
     });
 
@@ -205,11 +204,11 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     this.nextOptions.get(name)!.push(options);
   }
 
-  private async filterValue(name: string, value: unknown) {
+  private filterValue(name: string, value: unknown) {
     const optionsList = this.activeOptions.get(name);
 
     if (!optionsList) {
-      return true;
+      return { allowed: true };
     }
 
     let allowed = false;
@@ -230,17 +229,19 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       }
     }
 
-    await Promise.all(promises);
-
-    return allowed;
+    return { allowed, promises: Promise.all(promises) };
   }
 
-  private async handleValue(name: string, value: unknown) {
+  private handleValue(name: string, value: unknown) {
     if (this.stopped) {
       return;
     }
 
-    const allowed = await this.filterValue(name, value);
+    const { allowed, promises } = this.filterValue(name, value);
+
+    if (promises) {
+      promises.catch((error) => void this.handleError(error));
+    }
 
     if (!allowed) {
       return;

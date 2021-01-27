@@ -1,5 +1,7 @@
-import { GraphQLFieldResolver } from 'graphql';
-import { MaybePromise } from '@giraphql/core';
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import { MaybePromise, SchemaTypes } from '@giraphql/core';
+import SubscriptionManager from './manager';
+import { FieldSubscriptionManager } from '.';
 
 export interface SmartSubscriptionOptions<Context extends object> {
   debounceDelay?: number | null;
@@ -36,3 +38,15 @@ export interface RegisterTypeSubscriptionOptions<T, ParentShape> {
   filter?: IteratorFilterFunction<T>;
   invalidateCache?: IteratorCacheInvalidator<T>;
 }
+
+export interface RequestData {
+  manager?: SubscriptionManager;
+}
+
+export type FieldSubscriber<Types extends SchemaTypes> = (
+  subscriptions: FieldSubscriptionManager<Types>,
+  parent: unknown,
+  args: {},
+  context: object,
+  info: GraphQLResolveInfo,
+) => void;
