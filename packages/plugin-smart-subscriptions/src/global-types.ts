@@ -38,7 +38,7 @@ declare global {
     > {
       smartSubscription?: boolean;
       subscribe?: (
-        subscriptions: FieldSubscriptionManager,
+        subscriptions: FieldSubscriptionManager<Types>,
         parent: Types['Root'],
         args: InputShapeFromFields<Args>,
         context: Types['Context'],
@@ -55,7 +55,7 @@ declare global {
       ResolveReturnShape
     > {
       subscribe?: (
-        subscriptions: FieldSubscriptionManager,
+        subscriptions: FieldSubscriptionManager<Types>,
         parent: ParentShape,
         args: InputShapeFromFields<Args>,
         context: Types['Context'],

@@ -6,8 +6,10 @@ const POLLS = 'polls';
 
 builder.objectType('Poll', {
   subscribe: (subscriptions, poll, context) => {
+    console.log('subscribing to poll', poll.id);
     subscriptions.register(`poll/${poll.id}`, {
       refetch: (): Promise<Poll> => {
+        console.log('reFetching poll', poll.id);
         return new Promise<Poll>((resolve) => {
           setTimeout(() => resolve(context.Poll.map.get(poll.id)!), 1000);
         });
@@ -36,7 +38,12 @@ builder.objectType('Answer', {
   fields: (t) => ({
     id: t.exposeID('id', {}),
     value: t.exposeString('value', {}),
-    count: t.exposeInt('count', {}),
+    count: t.exposeInt('count', {
+      subscribe: (subscriptions, parent, args) => {
+        subscriptions.register(`poll-result/${parent.id}`);
+      },
+      // canRefetch: true,
+    }),
   }),
 });
 
@@ -86,6 +93,7 @@ builder.mutationFields((t) => ({
     args: {
       id: t.arg.id({ required: true }),
       answer: t.arg.int({ required: true }),
+      skipPollPublish: t.arg.bool({ required: false }),
     },
     resolve: (root, args, { pubsub }, info) => {
       console.log(info.operation.name?.value, 'answering poll', args.id, 'with', args.answer);
@@ -104,7 +112,10 @@ builder.mutationFields((t) => ({
 
       answer.count += 1;
 
-      pubsub.publish(`poll/${args.id}`, {});
+      if (!args.skipPollPublish) {
+        pubsub.publish(`poll/${args.id}`, {});
+      }
+
       pubsub.publish(`poll-result/${args.answer}`, {});
 
       return poll;

@@ -1,79 +1,123 @@
-/* eslint-disable max-classes-per-file */
+import { SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
-import { MaybePromise } from '@giraphql/core';
-import { FieldSubscriptionManager, TypeSubscriptionManager, SubscriptionManager } from '.';
+import { Path } from 'graphql/jsutils/Path';
+import CacheNode from './cache-node';
+import SubscriptionManager from './manager';
 
-export function keyFromPath(path: GraphQLResolveInfo['path']): string {
-  return String(path.key);
-}
+export default class SubscriptionCache<Types extends SchemaTypes> {
+  manager: SubscriptionManager;
 
-export class CacheForField {
-  fieldManagers: FieldSubscriptionManager[] = [];
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  typeManagers: TypeSubscriptionManager[] = [];
+  currentCache = new Map<string, CacheNode<Types>>();
 
-  reRegister() {
-    this.fieldManagers.forEach((manager) => void manager.reRegister());
-    this.typeManagers.forEach((manager) => void manager.reRegister());
-  }
-}
+  nextCache = new Map<string, CacheNode<Types>>();
 
-export default class SubscriptionCache {
-  fields = new Map<string, CacheForField>();
+  invalidPaths: string[] = [];
 
-  managerForField(
-    info: GraphQLResolveInfo,
-    manager: SubscriptionManager,
-    refetch: () => MaybePromise<void>,
-  ) {
-    const path = keyFromPath(info.path);
-    const fieldManager = new FieldSubscriptionManager(manager, refetch);
+  prevInvalidPaths: string[] = [];
 
-    this.getOrCreateByPath(path).fieldManagers.push(fieldManager);
-
-    return fieldManager;
+  constructor(manager: SubscriptionManager, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+    this.manager = manager;
+    this.builder = builder;
   }
 
-  managerForType(
-    info: GraphQLResolveInfo,
-    manager: SubscriptionManager,
-    replace: (promise: MaybePromise<unknown>) => void,
-    refetchParent: () => MaybePromise<void>,
-  ) {
-    const path = keyFromPath(info.path);
-    const typeManager = new TypeSubscriptionManager(manager, replace, refetchParent);
+  get(path: string, reRegister: boolean) {
+    const node = this.currentCache.get(path);
 
-    this.getOrCreateByPath(path).typeManagers.push(typeManager);
-
-    return typeManager;
-  }
-
-  has(path: string) {
-    return this.fields.has(path);
-  }
-
-  get(path: string) {
-    return this.fields.get(path);
-  }
-
-  delete(info: GraphQLResolveInfo) {
-    const path = keyFromPath(info.path);
-
-    return this.fields.delete(path);
-  }
-
-  getOrCreate(info: GraphQLResolveInfo) {
-    return this.getOrCreateByPath(keyFromPath(info.path));
-  }
-
-  getOrCreateByPath(path: string) {
-    if (this.fields.has(path)) {
-      return this.fields.get(path)!;
+    if (!node) {
+      return null;
     }
 
-    const cache = new CacheForField();
-    this.fields.set(path, cache);
+    for (const invalid of this.prevInvalidPaths) {
+      if (path.startsWith(invalid)) {
+        return null;
+      }
+    }
 
-    return cache;
+    if (reRegister) {
+      this.nextCache.set(path, node);
+      node.reRegister();
+    }
+
+    return node;
+  }
+
+  getTypeSubscriber(type: string) {
+    const config = this.builder.configStore.getTypeConfig(type, 'Object');
+
+    if (config.graphqlKind === 'Object') {
+      return config.giraphqlOptions.subscribe || null;
+    }
+
+    return null;
+  }
+
+  getParent(info: GraphQLResolveInfo): CacheNode<Types> | null {
+    let parentPath = info.path.prev;
+
+    if (!parentPath) {
+      return null;
+    }
+
+    if (typeof parentPath.key === 'number') {
+      parentPath = parentPath.prev!;
+    }
+
+    const parentKey = this.cacheKey(parentPath);
+
+    if (this.nextCache.has(parentKey)) {
+      return this.nextCache.get(parentKey)!;
+    }
+
+    return null;
+  }
+
+  managerForParentType(info: GraphQLResolveInfo) {
+    const parentPath = info.path.prev;
+
+    if (!parentPath) {
+      return null;
+    }
+
+    const isListItem = typeof parentPath.key === 'number';
+
+    const parentKey = this.cacheKey(isListItem ? parentPath.prev! : parentPath);
+    const parentCacheNode = this.nextCache.get(parentKey);
+
+    return parentCacheNode?.managerForType(parentPath.key) || null;
+  }
+
+  add(info: GraphQLResolveInfo, path: string, canRefetch: boolean, value: unknown) {
+    const parent = this.getParent(info);
+
+    const node = new CacheNode(
+      this,
+      path,
+      value,
+      canRefetch || !parent ? () => void this.invalidPaths.push(path) : parent.refetch,
+    );
+
+    this.nextCache.set(path, node);
+
+    return node;
+  }
+
+  next() {
+    this.prevInvalidPaths = this.invalidPaths;
+    this.invalidPaths = [];
+    this.currentCache = this.nextCache;
+    this.nextCache = new Map<string, CacheNode<Types>>();
+  }
+
+  cacheKey(path: Path) {
+    let { key, prev } = path;
+
+    while (prev) {
+      key = `${prev.key}.${key}`;
+      prev = prev.prev;
+    }
+
+    return key.toString();
   }
 }

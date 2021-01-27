@@ -14,10 +14,10 @@ builder.subscriptionType({
             new Promise<IteratorResult<number, never>>((resolve) =>
               setTimeout(() => {
                 resolve({
-                  value: i += 1,
+                  value: (i += 1),
                   done: false,
                 });
-              }),
+              }, 1000),
             ),
         };
 

@@ -33,15 +33,14 @@ export default class TypeSubscriptionManager<
         }
 
         if (refetch) {
-          return Promise.resolve(refetch(value)).then(
-            // eslint-disable-next-line promise/always-return
-            (result: unknown) => {
-              this.replace(result);
-            },
-            (error: unknown) => {
-              this.manager.handleError(error);
-            },
-          );
+          let resultOrPromise: MaybePromise<unknown>;
+          try {
+            resultOrPromise = refetch(value);
+          } catch (error) {
+            this.manager.handleError(error);
+          }
+
+          return resultOrPromise as MaybePromise<void>;
         }
 
         return this.refetchParent();

@@ -1,15 +1,18 @@
-import { MaybePromise } from '@giraphql/core';
+import { SchemaTypes } from '@giraphql/core';
 import { SubscriptionManager } from '..';
 import { RegisterFieldSubscriptionOptions } from '../types';
 import BaseSubscriptionManager from './base';
+import CacheNode from '../cache-node';
 
-export default class FieldSubscriptionManager extends BaseSubscriptionManager {
-  refetch: () => MaybePromise<void>;
+export default class FieldSubscriptionManager<
+  Types extends SchemaTypes
+> extends BaseSubscriptionManager {
+  cacheNode: CacheNode<Types>;
 
-  constructor(manager: SubscriptionManager, refetch: () => MaybePromise<void>) {
+  constructor(manager: SubscriptionManager, cacheNode: CacheNode<Types>) {
     super(manager);
 
-    this.refetch = refetch;
+    this.cacheNode = cacheNode;
   }
 
   register<T>(name: string, { filter, invalidateCache }: RegisterFieldSubscriptionOptions<T> = {}) {
@@ -21,7 +24,7 @@ export default class FieldSubscriptionManager extends BaseSubscriptionManager {
           invalidateCache(value);
         }
 
-        return this.refetch();
+        return this.cacheNode.refetch();
       },
     });
   }
