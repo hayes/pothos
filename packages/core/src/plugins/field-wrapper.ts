@@ -2,6 +2,9 @@ import { GraphQLResolveInfo } from 'graphql';
 import { GiraphQLOutputFieldConfig, SchemaTypes, MaybePromise, ResolveHooks } from '..';
 import { SubscribeHooks } from '../types';
 
+/**
+ * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
+ */
 export default class BaseFieldWrapper<
   Types extends SchemaTypes,
   RequestData extends object = object,

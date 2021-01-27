@@ -2,6 +2,9 @@ import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
 import { SchemaTypes, MaybePromise, GiraphQLObjectTypeConfig } from '..';
 import { BasePlugin } from '../plugins';
 
+/**
+ * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
+ */
 export interface ResolveHooks<Types extends SchemaTypes, T> {
   overwriteResolve?: (
     parent: unknown,
@@ -20,6 +23,9 @@ export interface ResolveHooks<Types extends SchemaTypes, T> {
   onWrappedResolve?: (wrapped: unknown) => MaybePromise<void>;
 }
 
+/**
+ * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
+ */
 export interface SubscribeHooks<Types extends SchemaTypes, T> {
   overwriteSubscribe?: (
     parent: unknown,

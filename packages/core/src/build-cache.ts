@@ -288,10 +288,19 @@ export default class BuildCache<Types extends SchemaTypes> {
           ...config.extensions,
           giraphqlOptions: config.giraphqlOptions,
         },
-        resolve: fieldWrapper
-          ? wrapResolver(config, fieldWrapper, returnType)
-          : config.resolve || defaultFieldResolver,
-        subscribe: fieldWrapper ? wrapSubscriber(config, fieldWrapper) : config.subscribe,
+        resolve: this.plugin.wrapResolve(
+          fieldWrapper
+            ? wrapResolver(config, fieldWrapper, returnType)
+            : config.resolve || defaultFieldResolver,
+          config,
+          this.options,
+        ),
+        // TODO: only do this for real subscribes
+        subscribe: this.plugin.wrapSubscribe(
+          fieldWrapper ? wrapSubscriber(config, fieldWrapper) : config.subscribe,
+          config,
+          this.options,
+        ),
       };
     });
 
@@ -431,9 +440,13 @@ export default class BuildCache<Types extends SchemaTypes> {
       },
       interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
-      resolveType: this.plugin.usesFieldWrapper()
-        ? wrapResolveType(this.configStore, resolveType)
-        : resolveType,
+      resolveType: this.plugin.wrapResolveType(
+        this.plugin.usesFieldWrapper()
+          ? wrapResolveType(this.configStore, resolveType)
+          : resolveType,
+        config,
+        this.options,
+      ),
     });
 
     return type;
@@ -477,9 +490,13 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: this.plugin.usesFieldWrapper()
-        ? wrapResolveType(this.configStore, resolveType)
-        : resolveType,
+      resolveType: this.plugin.wrapResolveType(
+        this.plugin.usesFieldWrapper()
+          ? wrapResolveType(this.configStore, resolveType)
+          : resolveType,
+        config,
+        this.options,
+      ),
     });
   }
 
