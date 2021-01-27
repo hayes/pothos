@@ -15,6 +15,9 @@ import BaseFieldWrapper from './field-wrapper';
 type RequestData = Record<string, object>;
 type ParentData = Record<string, object | null>;
 
+/**
+ * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
+ */
 export function mergeFieldWrappers<Types extends SchemaTypes>(
   field: GiraphQLOutputFieldConfig<Types>,
   rawFieldWrappers: BaseFieldWrapper<Types>[] | BaseFieldWrapper<Types> | null,

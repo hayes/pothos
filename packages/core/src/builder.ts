@@ -66,7 +66,7 @@ import {
   InterfaceTypeOptions,
   InputFieldsFromShape,
 } from '.';
-import { BasePlugin, mergePlugins } from './plugins';
+import { BasePlugin, MergedPlugins } from './plugins';
 import ConfigStore from './config-store';
 import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import UnionRef from './refs/union';
@@ -107,7 +107,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     this.pluginMap = plugins as PluginMap<Types>;
 
-    this.plugin = mergePlugins(this, this.pluginMap);
+    this.plugin = new MergedPlugins(this, this.pluginMap);
 
     this.configStore = new ConfigStore<Types>(this.plugin);
 
