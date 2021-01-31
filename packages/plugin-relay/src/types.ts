@@ -44,6 +44,13 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
     >,
     'type' | 'args' | 'nullable' | 'resolve'
   >;
+  encodeGlobalID?: (typename: string, id: string | number | bigint) => string;
+  decodeGlobalID?: (
+    globalID: string,
+  ) => {
+    typename: string;
+    id: string;
+  };
 }
 
 export interface PageInfoShape {

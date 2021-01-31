@@ -21,13 +21,13 @@ yarn add @giraphql/plugin-relay
 ```typescript
 import '@giraphql/plugin-relay';
 const builder = new SchemaBuilder({
-    plugins: ['GiraphQLRelay'],
-    relayOptions: {
-        nodeQueryOptions: {},
-        nodesQueryOptions: {},
-        nodeTypeOptions: {},
-        pageInfoTypeOptions: {},
-    },
+  plugins: ['GiraphQLRelay'],
+  relayOptions: {
+    nodeQueryOptions: {},
+    nodesQueryOptions: {},
+    nodeTypeOptions: {},
+    pageInfoTypeOptions: {},
+  },
 });
 ```
 
@@ -45,16 +45,16 @@ globalID fields.
 import { encodeGlobalID } from '@giraphql/plugin-relay';
 
 builder.queryFields((t) => ({
-    singleID: t.globalID({
-        resolve: (parent, args, context) => {
-            return encodeGlobalID('SomeType', 123);
-        },
-    }),
-    listOfIDs: t.globalIDList({
-        resolve: (parent, args, context) => {
-            return [{ id: 123, type: 'SomeType' }];
-        },
-    }),
+  singleID: t.globalID({
+    resolve: (parent, args, context) => {
+      return encodeGlobalID('SomeType', 123);
+    },
+  }),
+  listOfIDs: t.globalIDList({
+    resolve: (parent, args, context) => {
+      return [{ id: 123, type: 'SomeType' }];
+    },
+  }),
 }));
 ```
 
@@ -68,27 +68,27 @@ To create objects that extend the `Node` interface, you can use the new `builder
 
 ```typescript
 class NumberThing {
-    id: number;
+  id: number;
 
-    binary: string;
+  binary: string;
 
-    constructor(n: number) {
-        this.id = n;
-        this.binary = n.toString(2);
-    }
+  constructor(n: number) {
+    this.id = n;
+    this.binary = n.toString(2);
+  }
 }
 
 builder.node(NumberThing, {
-    id: {
-        resolve: (num) => num.id,
-        // other options for id field can be added here
-    },
-    loadOne: (id) => new NumberThing(parseInt(id)),
-    loadMany: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
-    name: 'Number',
-    fields: (t) => ({
-        binary: t.exposeString('binary', {}),
-    }),
+  id: {
+    resolve: (num) => num.id,
+    // other options for id field can be added here
+  },
+  loadOne: (id) => new NumberThing(parseInt(id)),
+  loadMany: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
+  name: 'Number',
+  fields: (t) => ({
+    binary: t.exposeString('binary', {}),
+  }),
 });
 ```
 
@@ -115,43 +115,43 @@ automatically create the `Connection` and `Edge` objects used by the connection,
 
 ```typescript
 builder.queryFields((t) => ({
-    numbers: t.connection(
-        {
-            type: NumberThing,
-            resolve: (parent, { first, last, before, after }) => {
-                return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-                    return {
-                        pageInfo: {
-                            hasNextPage: false,
-                            hasPreviousPage: false,
-                            startCursor: 'abc',
-                            endCursor: 'def',
-                        },
-                        edges: [
-                            {
-                                cursor: 'xyz',
-                                node: new NumberThing(123),
-                            },
-                        ],
-                    };
-                });
+  numbers: t.connection(
+    {
+      type: NumberThing,
+      resolve: (parent, { first, last, before, after }) => {
+        return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+          return {
+            pageInfo: {
+              hasNextPage: false,
+              hasPreviousPage: false,
+              startCursor: 'abc',
+              endCursor: 'def',
             },
-        },
-        {
-            name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
-            fields: () => ({
-                /* define extra fields on Connection */
-            }),
-            // Other options for connection object can be added here
-        },
-        {
-            // Same as above, but for the Edge Object
-            name: 'NameOfEdgeType', // optional, will use Connection name + "Edge" as the default
-            fields: () => ({
-                /* define extra fields on Edge */
-            }),
-        },
-    ),
+            edges: [
+              {
+                cursor: 'xyz',
+                node: new NumberThing(123),
+              },
+            ],
+          };
+        });
+      },
+    },
+    {
+      name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
+      fields: () => ({
+        /* define extra fields on Connection */
+      }),
+      // Other options for connection object can be added here
+    },
+    {
+      // Same as above, but for the Edge Object
+      name: 'NameOfEdgeType', // optional, will use Connection name + "Edge" as the default
+      fields: () => ({
+        /* define extra fields on Edge */
+      }),
+    },
+  ),
 }));
 ```
 
@@ -164,18 +164,18 @@ For limit/offset based apis:
 import { resolveOffsetConnection } from '@giraphql/plugin-relay';
 
 builder.queryFields((t) => ({
-    numbers: t.connection(
-        {
-            type: SomeThings,
-            resolve: (parent, args) => {
-                return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-                    return getThings(offset, limit);
-                });
-            },
-        },
-        {},
-        {},
-    ),
+  numbers: t.connection(
+    {
+      type: SomeThings,
+      resolve: (parent, args) => {
+        return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+          return getThings(offset, limit);
+        });
+      },
+    },
+    {},
+    {},
+  ),
 }));
 ```
 
@@ -197,16 +197,16 @@ just like `resolveOffsetConnection` and accepts the same options.
 import { resolveArrayConnection } from '@giraphql/plugin-relay';
 
 builder.queryFields((t) => ({
-    numbers: t.connection(
-        {
-            type: SomeThings,
-            resolve: (parent, args) => {
-                return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
-            },
-        },
-        {},
-        {},
-    ),
+  numbers: t.connection(
+    {
+      type: SomeThings,
+      resolve: (parent, args) => {
+        return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
+      },
+    },
+    {},
+    {},
+  ),
 }));
 ```
 
@@ -223,11 +223,35 @@ even if it is used multiple times across the schema.
 
 ```typescript
 builder.queryFields((t) => ({
-    extraNode: t.node({
-        id: () => 'TnVtYmVyOjI=',
-    }),
-    moreNodes: t.nodeList({
-        ids: () => ['TnVtYmVyOjI=', { id: 10, type: 'SomeType' }],
-    }),
+  extraNode: t.node({
+    id: () => 'TnVtYmVyOjI=',
+  }),
+  moreNodes: t.nodeList({
+    ids: () => ['TnVtYmVyOjI=', { id: 10, type: 'SomeType' }],
+  }),
 }));
+```
+
+### Using custom encoding for global ids
+
+In some cases you may want to encode global ids differently than the build in ID encoding. To do
+this, you can pass a custom encoding and decoding function into the relay options of the builder:
+
+```typescript
+import '@giraphql/plugin-relay';
+const builder = new SchemaBuilder({
+  plugins: ['GiraphQLRelay'],
+  relayOptions: {
+    nodeQueryOptions: {},
+    nodesQueryOptions: {},
+    nodeTypeOptions: {},
+    pageInfoTypeOptions: {},
+    encodeGlobalID: (typename: string, id: string | number | bigint) => `${typename}:${id}`,
+    decodeGlobalID: (globalID: string) => {
+      const [typename, id] = globalID.split(':');
+
+      return { typename, id };
+    },
+  },
+});
 ```
