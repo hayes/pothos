@@ -400,19 +400,23 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return ref;
   }
 
-  enumType<Param extends EnumParam, Values extends EnumValues>(
+  enumType<Param extends EnumParam, Values extends EnumValues<Types>>(
     param: Param,
     options: EnumTypeOptions<Types, Param, Values>,
   ) {
     const name = typeof param === 'string' ? param : (options as { name: string }).name;
     const ref = new EnumRef<
-      Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Values>
+      Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>
     >(name);
 
     const values =
       typeof param === 'object'
-        ? valuesFromEnum(param as BaseEnum)
-        : normalizeEnumValues((options as { values: EnumValues }).values);
+        ? valuesFromEnum<Types>(param as BaseEnum)
+        : normalizeEnumValues<Types>((options as { values: EnumValues<Types> }).values);
+
+    Object.keys(values).forEach((key) => {
+      this.plugin.onEnumValueConfig(values[key]);
+    });
 
     const config: GiraphQLEnumTypeConfig = {
       kind: 'Enum',

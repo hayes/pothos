@@ -30,7 +30,7 @@ declare global {
     }
     export interface EnumTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Values extends EnumValues = EnumValues
+      Values extends EnumValues<Types> = EnumValues<Types>
     > extends BaseTypeOptions<Types> {
       values: Values;
     }
@@ -113,6 +113,13 @@ declare global {
       parseValue?: GraphQLScalarValueParser<ScalarInputShape>;
       // Parses an externally provided literal value to use as an input.
       parseLiteral?: GraphQLScalarLiteralParser<ScalarInputShape>;
+    }
+
+    export interface EnumValueConfig<Types extends SchemaTypes> {
+      description?: string;
+      value?: string | number;
+      deprecationReason?: string;
+      extensions?: Readonly<Record<string, unknown>>;
     }
   }
 }

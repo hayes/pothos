@@ -1,4 +1,4 @@
-import { GraphQLResolveInfo, GraphQLEnumValueConfigMap } from 'graphql';
+import { GraphQLResolveInfo } from 'graphql';
 import {
   SchemaTypes,
   TypeParam,
@@ -46,11 +46,19 @@ export type Subscriber<Parent, Args, Context, Shape> = (
   info: GraphQLResolveInfo,
 ) => AsyncIterable<Shape>;
 
-export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
+export type EnumValues<Types extends SchemaTypes> = readonly string[] | EnumValueConfigMap<Types>;
 
-export type ShapeFromEnumValues<Values extends EnumValues> = Values extends readonly string[]
+export type EnumValueConfigMap<Types extends SchemaTypes> = Record<
+  string,
+  GiraphQLSchemaTypes.EnumValueConfig<Types>
+>;
+
+export type ShapeFromEnumValues<
+  Types extends SchemaTypes,
+  Values extends EnumValues<Types>
+> = Values extends readonly string[]
   ? Values[number]
-  : Values extends GraphQLEnumValueConfigMap
+  : Values extends EnumValueConfigMap<Types>
   ? {
       [K in keyof Values]: Values[K]['value'] extends string | number ? Values[K]['value'] : K;
     }[keyof Values]
@@ -153,7 +161,7 @@ export type InterfaceTypeOptions<
 export type EnumTypeOptions<
   Types extends SchemaTypes,
   Param extends EnumParam,
-  Values extends EnumValues
+  Values extends EnumValues<Types>
 > = Param extends BaseEnum
   ? Merge<
       Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
