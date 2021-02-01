@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 1.4.3-alpha.0 - 2021-02-01
+
+**Note:** Version bump only for package @giraphql/converter
+
+
+
+
+
 ### 1.4.2 - 2021-01-26
 
 **Note:** Version bump only for package @giraphql/converter
