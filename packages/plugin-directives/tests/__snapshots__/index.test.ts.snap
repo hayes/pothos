@@ -1,0 +1,24 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`extends example schema generates expected schema 1`] = `
+"scalar Date
+
+enum EN {
+  ONE
+}
+
+interface IF
+
+input In {
+  test: String
+}
+
+type Obj
+
+type Query {
+  test(arg1: String): String!
+}
+
+union UN
+"
+`;

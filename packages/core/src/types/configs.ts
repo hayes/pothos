@@ -13,6 +13,7 @@ import {
   GraphQLInputObjectTypeConfig,
   GraphQLFieldConfig,
   GraphQLInputFieldConfig,
+  GraphQLEnumValueConfig,
 } from 'graphql';
 import {
   SchemaTypes,
@@ -144,11 +145,15 @@ export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
   name: string;
   parentType: string;
   type: GiraphQLInputFieldType<Types>;
-  giraphqlOptions: GiraphQLSchemaTypes.InputFieldOptions<
+  giraphqlOptions: GiraphQLSchemaTypes.InputOrArgFieldOptions<
     Types,
     InputTypeParam<Types>,
     FieldRequiredness<[unknown]>
   >;
+}
+
+export interface GiraphQLEnumValueConfig<Types extends SchemaTypes> extends GraphQLEnumValueConfig {
+  giraphqlOptions: GiraphQLSchemaTypes.EnumValueConfig<Types>;
 }
 
 export type GiraphQLOutputFieldConfig<Types extends SchemaTypes> = GiraphQLFieldKindToConfig<

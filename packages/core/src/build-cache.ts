@@ -382,6 +382,29 @@ export default class BuildCache<Types extends SchemaTypes> {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
       },
+      astNode: {
+        kind: 'ObjectTypeDefinition',
+        description: config.description
+          ? {
+              kind: 'StringValue',
+              value: config.description,
+            }
+          : undefined,
+        name: { kind: 'Name', value: config.name },
+        directives: [
+          {
+            kind: 'Directive',
+            name: { kind: 'Name', value: 'Example' },
+            arguments: [
+              {
+                kind: 'Argument',
+                name: { kind: 'Name', value: 'foo' },
+                value: { kind: 'BooleanValue', value: true },
+              },
+            ],
+          },
+        ],
+      },
       fields: () => this.getFields(type),
       interfaces:
         config.kind === 'Object'

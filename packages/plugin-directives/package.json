@@ -1,0 +1,36 @@
+{
+  "name": "@giraphql/plugin-directives",
+  "version": "1.0.0",
+  "description": "",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "directives",
+    "tools",
+    "visitor",
+    "transforms",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "dependencies": {
+    "@graphql-tools/utils": "^7.2.5",
+    "@graphql-tools/schema": "^7.1.2"
+  },
+  "peerDependencies": {
+    "@giraphql/core": "^0.20.3",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.19.1",
+    "graphql-tag": "^2.11.0"
+  }
+}
