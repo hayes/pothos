@@ -1,9 +1,15 @@
+import { SchemaDirectiveVisitor } from 'apollo-server';
+import { createRateLimitDirective } from 'graphql-rate-limit-directive';
 import builder from '../builder';
 
 builder.queryType({
   directives: {
     o: {
       foo: 123,
+    },
+    rateLimit: {
+      limit: 1,
+      duration: 5,
     },
   },
   fields: (t) => ({
@@ -28,17 +34,24 @@ builder.queryType({
   }),
 });
 
-builder.objectRef<{}>('Obj').implement({
+const Obj = builder.objectRef<{}>('Obj').implement({
   directives: {
     o: { foo: 123 },
   },
-  fields: () => ({}),
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'hi',
+    }),
+  }),
 });
 
 builder.interfaceRef<{}>('IF').implement({
   directives: {
     i: { foo: 123 },
   },
+  fields: (t) => ({
+    field: t.string({}),
+  }),
 });
 
 builder.inputRef<{}>('In').implement({
@@ -59,7 +72,7 @@ builder.unionType('UN', {
   resolveType: () => {
     throw new Error('Not implemented');
   },
-  types: [],
+  types: [Obj],
 });
 
 builder.enumType('EN', {
@@ -83,4 +96,10 @@ builder.scalarType('Date', {
   serialize: () => new Date(),
 });
 
-export default builder.toSchema({});
+const schema = builder.toSchema({});
+
+SchemaDirectiveVisitor.visitSchemaDirectives(schema, {
+  rateLimit: createRateLimitDirective(),
+});
+
+export default schema;

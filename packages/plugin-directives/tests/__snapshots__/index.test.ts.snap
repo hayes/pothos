@@ -7,18 +7,22 @@ enum EN {
   ONE
 }
 
-interface IF
+interface IF {
+  field: String!
+}
 
 input In {
   test: String
 }
 
-type Obj
+type Obj {
+  field: String!
+}
 
 type Query {
   test(arg1: String): String!
 }
 
-union UN
+union UN = Obj
 "
 `;

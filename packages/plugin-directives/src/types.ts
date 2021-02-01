@@ -16,7 +16,7 @@ export type DirectiveLocation =
 export type DirectiveList = { name: string; args?: {} }[];
 
 export type DirectivesFor<Types extends SchemaTypes, Location extends DirectiveLocation> = {
-  [K in keyof Types['Directives']]: Types['Directives'][K]['locations'] extends Location
+  [K in keyof Types['Directives']]: Location extends Types['Directives'][K]['locations']
     ? K
     : never;
 }[keyof Types['Directives']];

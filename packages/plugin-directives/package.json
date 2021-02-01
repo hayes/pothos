@@ -22,8 +22,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@graphql-tools/schema": "^7.1.2",
-    "@graphql-tools/utils": "^7.2.5"
+    "graphql-rate-limit-directive": "^1.2.1"
   },
   "peerDependencies": {
     "@giraphql/core": "^0.20.3",

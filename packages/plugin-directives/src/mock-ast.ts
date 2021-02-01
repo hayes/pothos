@@ -1,3 +1,4 @@
+/* eslint-disable no-param-reassign */
 import {
   ArgumentNode,
   DirectiveNode,
@@ -6,7 +7,9 @@ import {
   GraphQLArgument,
   GraphQLEnumType,
   GraphQLEnumValue,
+  GraphQLField,
   GraphQLFieldMap,
+  GraphQLInputField,
   GraphQLInputFieldMap,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
@@ -22,6 +25,7 @@ import {
   NamedTypeNode,
   TypeNode,
   ValueNode,
+  parseValue,
 } from 'graphql';
 import './global-types';
 import { DirectiveList } from './types';
@@ -131,14 +135,6 @@ function valueNode(value: unknown): ValueNode {
   }
 
   switch (typeof value) {
-    case 'number':
-      return { kind: 'FloatValue', value: value.toString() };
-    case 'bigint':
-      return { kind: 'IntValue', value: value.toString() };
-    case 'boolean':
-      return { kind: 'BooleanValue', value };
-    case 'string':
-      return { kind: 'StringValue', value: value.toString() };
     case 'object':
       return {
         kind: 'ObjectValue',
@@ -148,15 +144,20 @@ function valueNode(value: unknown): ValueNode {
           value: valueNode((value as Record<string, unknown>)[key]),
         })),
       };
-    case 'symbol':
-    case 'function':
     default:
-      return { kind: 'NullValue' };
+      return parseValue(JSON.stringify(value));
   }
 }
 
-function directiveNodes(directives: DirectiveList) {
-  return directives.map(
+function directiveNodes(directives: DirectiveList | Record<string, {}>) {
+  const directiveList = Array.isArray(directives)
+    ? directives
+    : Object.keys(directives).map((name) => ({
+        name,
+        args: directives[name],
+      }));
+
+  return directiveList.map(
     (directive): DirectiveNode => ({
       kind: 'Directive',
       name: { kind: 'Name', value: directive.name },
@@ -175,9 +176,9 @@ function directiveNodes(directives: DirectiveList) {
 
 function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionNode[] {
   return Object.keys(fields).map((fieldName) => {
-    const field = fields[fieldName];
+    const field: GraphQLField<unknown, unknown> = fields[fieldName];
 
-    return {
+    field.astNode = {
       kind: 'FieldDefinition',
       description: field.description
         ? { kind: 'StringValue', value: field.description }
@@ -189,14 +190,16 @@ function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionN
         ? directiveNodes(field.extensions.directives as DirectiveList)
         : [],
     };
+
+    return field.astNode;
   });
 }
 
 function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode[] {
   return Object.keys(fields).map((fieldName) => {
-    const field = fields[fieldName];
+    const field: GraphQLInputField = fields[fieldName];
 
-    return {
+    field.astNode = {
       kind: 'InputValueDefinition',
       description: field.description
         ? { kind: 'StringValue', value: field.description }
@@ -207,34 +210,44 @@ function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode
         ? directiveNodes(field.extensions.directives as DirectiveList)
         : [],
     };
+
+    return field.astNode;
   });
 }
 
 function argumentNodes(args: GraphQLArgument[]): InputValueDefinitionNode[] {
   return args.map(
-    (arg): InputValueDefinitionNode => ({
-      kind: 'InputValueDefinition',
-      description: arg.description ? { kind: 'StringValue', value: arg.description } : undefined,
-      name: { kind: 'Name', value: arg.name },
-      type: typeNode(arg.type),
-      directives: arg.extensions?.directives
-        ? directiveNodes(arg.extensions.directives as DirectiveList)
-        : [],
-    }),
+    (arg): InputValueDefinitionNode => {
+      arg.astNode = {
+        kind: 'InputValueDefinition',
+        description: arg.description ? { kind: 'StringValue', value: arg.description } : undefined,
+        name: { kind: 'Name', value: arg.name },
+        type: typeNode(arg.type),
+        directives: arg.extensions?.directives
+          ? directiveNodes(arg.extensions.directives as DirectiveList)
+          : [],
+      };
+
+      return arg.astNode;
+    },
   );
 }
 
 function enumValueNodes(values: GraphQLEnumValue[]): EnumValueDefinitionNode[] {
   return values.map(
-    (value): EnumValueDefinitionNode => ({
-      kind: 'EnumValueDefinition',
-      description: value.description
-        ? { kind: 'StringValue', value: value.description }
-        : undefined,
-      name: { kind: 'Name', value: value.name },
-      directives: value.extensions?.directives
-        ? directiveNodes(value.extensions.directives as DirectiveList)
-        : [],
-    }),
+    (value): EnumValueDefinitionNode => {
+      value.astNode = {
+        kind: 'EnumValueDefinition',
+        description: value.description
+          ? { kind: 'StringValue', value: value.description }
+          : undefined,
+        name: { kind: 'Name', value: value.name },
+        directives: value.extensions?.directives
+          ? directiveNodes(value.extensions.directives as DirectiveList)
+          : [],
+      };
+
+      return value.astNode;
+    },
   );
 }
