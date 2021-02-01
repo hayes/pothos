@@ -5,6 +5,7 @@ import {
   GraphQLEnumType,
   GraphQLInputObjectType,
 } from 'graphql';
+import SchemaBuilder from '@giraphql/core';
 import exampleSchema from './example/schema';
 
 describe('extends example schema', () => {
@@ -15,26 +16,58 @@ describe('extends example schema', () => {
   test('has expected directives in extensions', () => {
     const types = exampleSchema.getTypeMap();
 
-    expect(types.Obj.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'o' }]);
-    expect(types.Query.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'o' }]);
+    expect(types.Obj.extensions?.directives).toStrictEqual({ o: { foo: 123 } });
+    expect(types.Query.extensions?.directives).toStrictEqual({
+      o: { foo: 123 },
+      rateLimit: { limit: 1, duration: 5 },
+    });
 
     const testField = (types.Query as GraphQLObjectType).getFields().test;
 
-    expect(testField.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'f' }]);
-    expect(testField.args[0].extensions?.directives).toStrictEqual([
-      { args: { foo: 123 }, name: 'a' },
-    ]);
+    expect(testField.extensions?.directives).toStrictEqual({ f: [{ foo: 123 }] });
+    expect(testField.args[0].extensions?.directives).toStrictEqual({ a: { foo: 123 } });
 
-    expect(types.IF.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'i' }]);
-    expect(types.UN.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'u' }]);
-    expect(types.EN.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'e' }]);
-    expect((types.EN as GraphQLEnumType).getValue('ONE')?.extensions?.directives).toStrictEqual([
-      { args: { foo: 123 }, name: 'ev' },
-    ]);
-    expect(types.Date.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 's' }]);
-    expect(types.In.extensions?.directives).toStrictEqual([{ args: { foo: 123 }, name: 'io' }]);
+    expect(types.IF.extensions?.directives).toStrictEqual({ i: { foo: 123 } });
+    expect(types.UN.extensions?.directives).toStrictEqual({ u: { foo: 123 } });
+    expect(types.EN.extensions?.directives).toStrictEqual({ e: { foo: 123 } });
+    expect((types.EN as GraphQLEnumType).getValue('ONE')?.extensions?.directives).toStrictEqual({
+      ev: { foo: 123 },
+    });
+    expect(types.Date.extensions?.directives).toStrictEqual({ s: { foo: 123 } });
+    expect(types.In.extensions?.directives).toStrictEqual({ io: { foo: 123 } });
     expect(
       (types.In as GraphQLInputObjectType).getFields().test.extensions?.directives,
-    ).toStrictEqual([{ args: { foo: 123 }, name: 'if' }]);
+    ).toStrictEqual({ if: { foo: 123 } });
+  });
+
+  test('gatsby format', () => {
+    const builder = new SchemaBuilder<{
+      Directives: {
+        rateLimit: {
+          locations: 'OBJECT' | 'FIELD_DEFINITION';
+          args: {
+            limit: number;
+            duration: number;
+          };
+        };
+      };
+    }>({
+      plugins: ['GiraphQLDirectives'],
+    });
+
+    builder.queryType({
+      directives: {
+        rateLimit: { limit: 5, duration: 60 },
+      },
+    });
+
+    const types = builder.toSchema({}).getTypeMap();
+
+    expect(types.Query.extensions?.directives).toStrictEqual([
+      {
+        name: 'rateLimit',
+        args: { limit: 5, duration: 60 },
+      },
+    ]);
   });
 });

@@ -11,8 +11,6 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { SchemaDirectiveVisitor } from '@graphql-tools/utils';
-import { GraphQLSchema } from 'graphql';
 import DirectivePlugin from '.';
 import { DirectiveLocation, Directives } from './types';
 
@@ -39,8 +37,7 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      schemaDirectives?: Record<keyof Types['Directives'], typeof SchemaDirectiveVisitor>;
-      schemaTransforms?: ((schema: GraphQLSchema) => GraphQLSchema)[];
+      useGraphQLToolsUnorderedDirectives?: boolean;
     }
 
     export interface EnumTypeOptions<

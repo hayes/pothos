@@ -3,6 +3,13 @@ import '../../src';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type DirectiveTypes = {
+  rateLimit: {
+    locations: 'OBJECT' | 'FIELD_DEFINITION';
+    args: {
+      limit: number;
+      duration: number;
+    };
+  };
   s: {
     locations: 'SCALAR';
     args: { foo: number };
@@ -52,6 +59,7 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: ['GiraphQLDirectives'],
+  useGraphQLToolsUnorderedDirectives: true,
 });
 
 export default builder;

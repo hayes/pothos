@@ -5980,6 +5980,16 @@ graphql-extensions@^0.12.7:
     apollo-server-env "^2.4.5"
     apollo-server-types "^0.6.2"
 
+graphql-rate-limit-directive@^1.2.1:
+  version "1.2.1"
+  resolved "https://registry.yarnpkg.com/graphql-rate-limit-directive/-/graphql-rate-limit-directive-1.2.1.tgz#24cfab17328eff0ceab4112414d4b920c5319c0d"
+  integrity sha512-DlLWCjT8WMpQlC8G6+btLuN1y4RcC5n5gPEcIKZ2bgs7fANS4KelG/JuaFgLvBU7djRwgM62mMiey6osxUhXxg==
+  dependencies:
+    graphql "^14.0.2"
+    graphql-tag "^2.10.0"
+    graphql-tools "^4.0.0"
+    rate-limiter-flexible "^1.0.0"
+
 graphql-scalars@^1.7.0:
   version "1.7.0"
   resolved "https://registry.yarnpkg.com/graphql-scalars/-/graphql-scalars-1.7.0.tgz#32cf623027664f1d50c5d058767a87387475c107"
@@ -5994,7 +6004,7 @@ graphql-subscriptions@^1.0.0, graphql-subscriptions@^1.1.0:
   dependencies:
     iterall "^1.2.1"
 
-graphql-tag@^2.11.0, graphql-tag@^2.9.2:
+graphql-tag@^2.10.0, graphql-tag@^2.11.0, graphql-tag@^2.9.2:
   version "2.11.0"
   resolved "https://registry.yarnpkg.com/graphql-tag/-/graphql-tag-2.11.0.tgz#1deb53a01c46a7eb401d6cb59dec86fa1cccbffd"
   integrity sha512-VmsD5pJqWJnQZMUeRwrDhfgoyqcfwEkvtpANqcoUG8/tOLkwNgU9mzub/Mc78OJMhHjx7gfAMTxzdG43VGg3bA==
@@ -6019,6 +6029,13 @@ graphql-upload@^8.0.2:
     fs-capacitor "^2.0.4"
     http-errors "^1.7.3"
     object-path "^0.11.4"
+
+graphql@^14.0.2:
+  version "14.7.0"
+  resolved "https://registry.yarnpkg.com/graphql/-/graphql-14.7.0.tgz#7fa79a80a69be4a31c27dda824dc04dac2035a72"
+  integrity sha512-l0xWZpoPKpppFzMfvVyFmp9vLN7w/ZZJPefUicMCepfJeQ8sMcztloGYY9DfjVPo6tIUDzU5Hw3MUbIjj9AVVA==
+  dependencies:
+    iterall "^1.2.2"
 
 graphql@^15.3.0, graphql@^15.4.0:
   version "15.4.0"
@@ -6845,7 +6862,7 @@ istanbul-reports@^3.0.2:
     html-escaper "^2.0.0"
     istanbul-lib-report "^3.0.0"
 
-iterall@^1.1.3, iterall@^1.2.1:
+iterall@^1.1.3, iterall@^1.2.1, iterall@^1.2.2:
   version "1.3.0"
   resolved "https://registry.yarnpkg.com/iterall/-/iterall-1.3.0.tgz#afcb08492e2915cbd8a0884eb93a8c94d0d72fea"
   integrity sha512-QZ9qOMdF+QLHxy1QIpUHUU1D5pS2CG2P69LF6L6CPjPYA/XMOmKV3PZpawHoAjHNyB0swdVTRxdYT4tbBbxqwg==
@@ -9103,6 +9120,11 @@ range-parser@~1.2.1:
   version "1.2.1"
   resolved "https://registry.yarnpkg.com/range-parser/-/range-parser-1.2.1.tgz#3cf37023d199e1c24d1a55b84800c2f3e6468031"
   integrity sha512-Hrgsx+orqoygnmhFbKaHE6c296J+HTAQXoxEF6gNupROmmGJRoyzfG3ccAveqCBrwr/2yxQ5BVd/GTl5agOwSg==
+
+rate-limiter-flexible@^1.0.0:
+  version "1.3.2"
+  resolved "https://registry.yarnpkg.com/rate-limiter-flexible/-/rate-limiter-flexible-1.3.2.tgz#2e2e8730f76bc3c349e9941d1826d40603bcca55"
+  integrity sha512-f+xNvGn+52G4nZVok9VB3LTE1kfDmqbnWKRayX5n2k/LEQ7doWrYvzmzFVh7ltmLgwEdEzoYwxGaXlfCjFg4Ag==
 
 raw-body@2.4.0:
   version "2.4.0"
