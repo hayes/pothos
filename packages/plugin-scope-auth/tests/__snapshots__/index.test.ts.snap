@@ -1,0 +1,14 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`example schema generates expected schema 1`] = `
+"type Article {
+  content: String!
+  title: String!
+  viewCount: Int!
+}
+
+type Query {
+  memberMessage: String!
+}
+"
+`;

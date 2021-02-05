@@ -114,7 +114,8 @@ Example2.implement({
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) => Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
+  resolveType: (parent) =>
+    Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
 });
 
 // Creating an ObjectType and its resolvers
@@ -158,9 +159,9 @@ builder.objectType('User', {
     // Using a union type
     related: t.field({
       resolve: (parent) => ({
-          body: 'stuff',
-          title: 'hi',
-        }),
+        body: 'stuff',
+        title: 'hi',
+      }),
       // reference implementation so we can automatically pull types for all member types
       type: SearchResult,
     }),
@@ -322,7 +323,8 @@ builder.subscriptionType({
   fields: (t) => ({
     event: t.field({
       type: 'String',
-      subscribe: () => (async function* subscribe() {
+      subscribe: () =>
+        (async function* subscribe() {
           yield await Promise.resolve('123');
         })(),
       resolve: (parent) => parent.toLocaleLowerCase(),
