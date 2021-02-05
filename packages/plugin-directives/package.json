@@ -1,7 +1,7 @@
 {
-  "name": "@giraphql/core",
-  "version": "1.6.0-alpha.1",
-  "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
+  "name": "@giraphql/plugin-directives",
+  "version": "1.1.0-alpha.1",
+  "description": "",
   "main": "lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,21 +12,22 @@
     "giraphql",
     "graphql",
     "schema",
-    "types",
-    "typescript",
-    "builder",
-    "framework",
+    "directives",
+    "tools",
+    "visitor",
+    "transforms",
     "plugin"
   ],
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
+    "@giraphql/core": "^0.20.3",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "apollo-server": "^2.19.1",
-    "graphql-scalars": "^1.7.0",
-    "graphql-tag": "^2.11.0"
+    "graphql-tag": "^2.11.0",
+    "graphql-rate-limit-directive": "^1.2.1"
   }
 }

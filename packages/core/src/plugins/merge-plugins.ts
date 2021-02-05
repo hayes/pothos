@@ -7,6 +7,7 @@ import {
   PluginMap,
   PluginName,
 } from '..';
+import { GiraphQLEnumValueConfig } from '../types';
 
 export function mergePlugins<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
@@ -28,6 +29,11 @@ export function mergePlugins<Types extends SchemaTypes>(
   const onOutputFieldPlugins = plugins.filter((plugin) => plugin.onOutputFieldConfig) as Pick<
     Required<BasePlugin<Types>>,
     'onOutputFieldConfig'
+  >[];
+
+  const onEnumValuePlugins = plugins.filter((plugin) => plugin.onEnumValueConfig) as Pick<
+    Required<BasePlugin<Types>>,
+    'onEnumValueConfig'
   >[];
 
   const wrapOutputFieldPlugins = plugins.filter((plugin) => plugin.usesFieldWrapper()) as Pick<
@@ -86,6 +92,12 @@ export function mergePlugins<Types extends SchemaTypes>(
     onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
       for (const plugin of onOutputFieldPlugins) {
         plugin.onOutputFieldConfig(fieldConfig);
+      }
+    },
+
+    onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+      for (const plugin of onEnumValuePlugins) {
+        plugin.onEnumValueConfig(valueConfig);
       }
     },
 

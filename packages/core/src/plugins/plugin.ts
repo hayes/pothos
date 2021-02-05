@@ -4,6 +4,7 @@ import {
   GiraphQLOutputFieldConfig,
   GiraphQLTypeConfig,
   GiraphQLInputFieldConfig,
+  GiraphQLEnumValueConfig,
 } from '../types';
 import BaseFieldWrapper from './field-wrapper';
 
@@ -27,6 +28,8 @@ export class BasePlugin<Types extends SchemaTypes> {
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {}
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {}
+
+  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {}
 
   beforeBuild(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {}
 
