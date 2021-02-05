@@ -21,15 +21,13 @@
   "publishConfig": {
     "access": "public"
   },
-  "dependencies": {
-    "graphql-rate-limit-directive": "^1.2.1"
-  },
   "peerDependencies": {
     "@giraphql/core": "^0.20.3",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "apollo-server": "^2.19.1",
-    "graphql-tag": "^2.11.0"
+    "graphql-tag": "^2.11.0",
+    "graphql-rate-limit-directive": "^1.2.1"
   }
 }
