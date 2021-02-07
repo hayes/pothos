@@ -1,18 +1,18 @@
-import { MaybePromise, SchemaTypes } from '@giraphql/core';
+import { MaybePromise, Merge, SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ScopeAuthPluginOptions {}
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
-  $all: AuthScopeMap<Types>;
-  $any: AuthScopeMap<Types>;
-  $granted: string[];
+  $all?: true extends true ? AuthScopeMap<Types> : never;
+  $any?: true extends true ? AuthScopeMap<Types> : never;
+  $granted?: string[];
 }
 
-export type AuthScopeMap<Types extends SchemaTypes> = {
-  [K in keyof (Types['AuthScopes'] | BuiltInScopes<Types>)]?: Types['AuthScopes'][K];
-};
+export type AuthScopeMap<Types extends SchemaTypes> = Merge<
+  Partial<Types['AuthScopes']> & BuiltInScopes<Types>
+>;
 
 export type ScopeAuthInitializer<Types extends SchemaTypes> = (
   context: Types['Context'],
@@ -35,7 +35,7 @@ export type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {}> 
       args: Args,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<AuthScopeMap<Types>>);
+    ) => MaybePromise<AuthScopeMap<Types> | boolean>);
 
 export type TypeGrantScopes<Types extends SchemaTypes, Parent> = (
   parent: Parent,
