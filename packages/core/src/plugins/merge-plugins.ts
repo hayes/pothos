@@ -7,6 +7,7 @@ import {
   GiraphQLOutputFieldConfig,
   PluginMap,
   PluginName,
+  BuildCache,
 } from '..';
 import {
   GiraphQLEnumValueConfig,
@@ -27,8 +28,8 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
   wrapSubscribePlugins;
   wrapResolveTypePlugins;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, pluginMap: PluginMap<Types>) {
-    super(builder, 'GiraphQLMergedPlugin' as never);
+  constructor(buildCache: BuildCache<Types>, pluginMap: PluginMap<Types>) {
+    super(buildCache, 'GiraphQLMergedPlugin' as never);
 
     const plugins: BasePlugin<Types>[] = [];
 

@@ -1,4 +1,9 @@
-import SchemaBuilder, { BasePlugin, SchemaTypes, GiraphQLOutputFieldConfig } from '@giraphql/core';
+import SchemaBuilder, {
+  BasePlugin,
+  SchemaTypes,
+  GiraphQLOutputFieldConfig,
+  BuildCache,
+} from '@giraphql/core';
 import './global-types';
 import { AuthPluginOptions } from './types';
 import AuthMeta from './auth-meta';
@@ -14,10 +19,10 @@ export default class AuthPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
   options: Required<AuthPluginOptions>;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
-    super(builder, 'GiraphQLAuth');
+  constructor(buildCache: BuildCache<Types>) {
+    super(buildCache, 'GiraphQLAuth');
 
-    const authOptions = builder.options.authOptions || {};
+    const authOptions = this.builder.options.authOptions || {};
 
     this.options = {
       requirePermissionChecks: authOptions.requirePermissionChecks ?? true,

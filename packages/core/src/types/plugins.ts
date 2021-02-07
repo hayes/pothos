@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo, GraphQLFieldResolver } from 'graphql';
-import { SchemaTypes, MaybePromise, GiraphQLObjectTypeConfig } from '..';
+import { SchemaTypes, MaybePromise, GiraphQLObjectTypeConfig, BuildCache } from '..';
 import { BasePlugin } from '../plugins';
 
 /**
@@ -40,10 +40,8 @@ export interface SubscribeHooks<Types extends SchemaTypes, T> {
 
 export type PluginConstructorMap<Types extends SchemaTypes> = {
   [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: {
-    new (
-      builder: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-      name: K,
-    ): GiraphQLSchemaTypes.Plugins<Types>[K] & BasePlugin<Types>;
+    new (buildCache: BuildCache<SchemaTypes>, name: K): GiraphQLSchemaTypes.Plugins<Types>[K] &
+      BasePlugin<Types>;
   };
 };
 

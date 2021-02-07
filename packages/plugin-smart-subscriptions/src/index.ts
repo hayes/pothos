@@ -5,6 +5,7 @@ import SchemaBuilder, {
   GiraphQLOutputFieldConfig,
   ValueWrapper,
   FieldRef,
+  BuildCache,
 } from '@giraphql/core';
 import './global-types';
 
@@ -52,14 +53,13 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
 
   unsubscribe: (name: string, context: Types['Context']) => Promise<void> | void;
 
-  constructor(
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    name: 'GiraphQLSmartSubscriptions',
-  ) {
-    super(builder, name);
-    this.subscribe = builder.options.smartSubscriptions.subscribe;
-    this.unsubscribe = builder.options.smartSubscriptions.unsubscribe;
-    this.debounceDelay = builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
+  constructor(buildCache: BuildCache<Types>, name: 'GiraphQLSmartSubscriptions') {
+    super(buildCache, name);
+
+    this.subscribe = this.builder.options.smartSubscriptions.subscribe;
+    this.unsubscribe = this.builder.options.smartSubscriptions.unsubscribe;
+    this.debounceDelay =
+      this.builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {

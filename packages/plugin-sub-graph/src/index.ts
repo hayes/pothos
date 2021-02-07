@@ -22,52 +22,14 @@ import {
 import './global-types';
 import { replaceType } from './util';
 
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<
-  SchemaTypes
->;
+const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options, subGraph) {
-  return (this.getPlugin('GiraphQLSubGraph') as SubGraphPlugin<SchemaTypes>).createSubGraph(
-    this.toSchema(options),
-    subGraph,
-  );
+  return SubGraphPlugin.createSubGraph(this.toSchema(options), subGraph);
 };
 
 export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    typeConfig.extensions = {
-      ...typeConfig.extensions,
-      subGraphs:
-        typeConfig.giraphqlOptions.subGraphs ||
-        this.builder.options.subGraphs?.defaultForTypes ||
-        [],
-    };
-  }
-
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
-
-    if (typeConfig.graphqlKind !== 'Interface' && typeConfig.graphqlKind !== 'Object') {
-      return;
-    }
-
-    let subGraphs: Types['SubGraphs'][] = [];
-
-    if (fieldConfig.giraphqlOptions.subGraphs) {
-      subGraphs = fieldConfig.giraphqlOptions.subGraphs;
-    } else if (typeConfig.giraphqlOptions.defaultSubGraphsForFields) {
-      subGraphs = typeConfig.giraphqlOptions.defaultSubGraphsForFields;
-    } else if (this.builder.options.subGraphs?.fieldsInheritFromTypes) {
-      subGraphs = (typeConfig.extensions?.subGraphs as Types['SubGraphs'][]) || [];
-    }
-
-    fieldConfig.extensions = {
-      ...fieldConfig.extensions,
-      subGraphs,
-    };
-  }
-
-  createSubGraph(schema: GraphQLSchema, subGraph: string) {
+  static createSubGraph(schema: GraphQLSchema, subGraph: string) {
     const config = schema.toConfig();
     const newTypes = this.filterTypes(config.types, subGraph);
 
@@ -83,15 +45,13 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     });
   }
 
-  filterTypes(types: GraphQLNamedType[], subGraph: string) {
+  static filterTypes(types: GraphQLNamedType[], subGraph: string) {
     const newTypes = new Map<string, GraphQLNamedType>();
 
     types.forEach((type) => {
       if (type.name.startsWith('__')) {
         return;
       }
-
-      const config = this.builder.configStore.getTypeConfig(type.name);
 
       if (
         type.name === 'String' ||
@@ -103,7 +63,7 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
         newTypes.set(type.name, type);
       }
 
-      if (!(config.extensions?.subGraphs as string[])?.includes(subGraph)) {
+      if (!(type.extensions?.subGraphs as string[])?.includes(subGraph)) {
         return;
       }
 
@@ -162,7 +122,7 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     return newTypes;
   }
 
-  filterFields(
+  static filterFields(
     type: GraphQLObjectType | GraphQLInterfaceType,
     newTypes: Map<string, GraphQLNamedType>,
     subGraph: string,
@@ -217,7 +177,7 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     };
   }
 
-  mapInputFields(
+  static mapInputFields(
     type: GraphQLInputObjectType,
     newTypes: Map<string, GraphQLNamedType>,
     subGraph: string,
@@ -245,6 +205,39 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       });
 
       return newFields;
+    };
+  }
+
+  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+    typeConfig.extensions = {
+      ...typeConfig.extensions,
+      subGraphs:
+        typeConfig.giraphqlOptions.subGraphs ||
+        this.builder.options.subGraphs?.defaultForTypes ||
+        [],
+    };
+  }
+
+  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
+
+    if (typeConfig.graphqlKind !== 'Interface' && typeConfig.graphqlKind !== 'Object') {
+      return;
+    }
+
+    let subGraphs: Types['SubGraphs'][] = [];
+
+    if (fieldConfig.giraphqlOptions.subGraphs) {
+      subGraphs = fieldConfig.giraphqlOptions.subGraphs;
+    } else if (typeConfig.giraphqlOptions.defaultSubGraphsForFields) {
+      subGraphs = typeConfig.giraphqlOptions.defaultSubGraphsForFields;
+    } else if (this.builder.options.subGraphs?.fieldsInheritFromTypes) {
+      subGraphs = (typeConfig.extensions?.subGraphs as Types['SubGraphs'][]) || [];
+    }
+
+    fieldConfig.extensions = {
+      ...fieldConfig.extensions,
+      subGraphs,
     };
   }
 }

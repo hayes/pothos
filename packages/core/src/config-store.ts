@@ -7,8 +7,7 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import { SchemaTypes, FieldMap, InputRef, OutputRef } from './types';
-import { BasePlugin } from './plugins';
+import { SchemaTypes, FieldMap, InputRef, OutputRef, GiraphQLEnumValueConfig } from './types';
 import {
   GiraphQLTypeConfig,
   ConfigurableRef,
@@ -28,10 +27,9 @@ import BaseTypeRef from './refs/base';
 import InputTypeRef from './refs/input';
 import OutputTypeRef from './refs/output';
 import BuiltinScalarRef from './refs/builtin-scalar';
+import { BasePlugin } from './plugins';
 
 export default class ConfigStore<Types extends SchemaTypes> {
-  plugin: BasePlugin<Types>;
-
   typeConfigs = new Map<string, GiraphQLTypeConfig>();
 
   private fieldRefs = new WeakMap<
@@ -61,7 +59,9 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private pending = true;
 
-  constructor(plugin: BasePlugin<Types>) {
+  private pluginCallbacks: ((plugin: BasePlugin<Types>) => void)[] = [];
+
+  constructor() {
     const scalars: GraphQLScalarType[] = [
       GraphQLID,
       GraphQLInt,
@@ -69,7 +69,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
       GraphQLString,
       GraphQLBoolean,
     ];
-    this.plugin = plugin;
 
     scalars.forEach((scalar) => {
       const ref = new BuiltinScalarRef(scalar);
@@ -161,9 +160,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     if (config.kind !== 'Arg' && config.kind !== 'InputObject') {
-      this.plugin.onOutputFieldConfig(config as GiraphQLOutputFieldConfig<Types>);
+      this.pluginCallbacks.push(
+        (plugin) => void plugin.onOutputFieldConfig(config as GiraphQLOutputFieldConfig<Types>),
+      );
     } else {
-      this.plugin.onInputFieldConfig(config);
+      this.pluginCallbacks.push((plugin) => void plugin.onInputFieldConfig(config));
     }
 
     return config as Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }>;
@@ -192,9 +193,18 @@ export default class ConfigStore<Types extends SchemaTypes> {
       throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
     }
 
+    if (config.graphqlKind === 'Enum') {
+      Object.keys(config.values).forEach((key) => {
+        this.pluginCallbacks.push(
+          (plugin) =>
+            void plugin.onEnumValueConfig(config.values[key] as GiraphQLEnumValueConfig<Types>),
+        );
+      });
+    }
+
     this.typeConfigs.set(config.name, config);
 
-    this.plugin.onTypeConfig(config);
+    this.pluginCallbacks.push((plugin) => void plugin.onTypeConfig(config));
 
     if (ref) {
       this.associateRefWithName(ref, name);
@@ -347,8 +357,10 @@ export default class ConfigStore<Types extends SchemaTypes> {
     return fields as Record<string, Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }>>;
   }
 
-  prepareForBuild() {
+  prepareForBuild(plugin: BasePlugin<Types>) {
     this.pending = false;
+
+    this.pluginCallbacks.forEach((cb) => void cb(plugin));
 
     if (this.pendingRefResolutions.size !== 0) {
       throw new Error(

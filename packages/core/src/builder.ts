@@ -57,8 +57,6 @@ import {
   GiraphQLInputObjectTypeConfig,
   InputFieldMap,
   PluginConstructorMap,
-  PluginMap,
-  PluginName,
   EnumParam,
   BaseEnum,
   ValuesFromEnum,
@@ -66,7 +64,6 @@ import {
   InterfaceTypeOptions,
   InputFieldsFromShape,
 } from '.';
-import { BasePlugin, MergedPlugins } from './plugins';
 import ConfigStore from './config-store';
 import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import UnionRef from './refs/union';
@@ -86,30 +83,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   defaultInputFieldRequiredness: boolean;
 
-  private plugin: BasePlugin<Types>;
-
-  private pluginMap: PluginMap<Types>;
-
   constructor(options: NormalizeSchemeBuilderOptions<Types>) {
     this.options = options;
 
-    const plugins: Record<string, unknown> = {};
-
-    (options.plugins || []).forEach((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
-
-      if (!Plugin) {
-        throw new Error(`No plugin named ${pluginName} was registered`);
-      }
-
-      plugins[pluginName] = new Plugin(this, pluginName!);
-    });
-
-    this.pluginMap = plugins as PluginMap<Types>;
-
-    this.plugin = new MergedPlugins(this, this.pluginMap);
-
-    this.configStore = new ConfigStore<Types>(this.plugin);
+    this.configStore = new ConfigStore<Types>();
 
     this.defaultFieldNullability =
       (options as {
@@ -131,16 +108,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     this.plugins[name] = plugin;
-  }
-
-  getPlugin(name: PluginName) {
-    const plugin = this.pluginMap[name];
-
-    if (!plugin) {
-      throw new Error(`No plugin named ${name} has not been registered`);
-    }
-
-    return plugin;
   }
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
@@ -414,10 +381,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         ? valuesFromEnum<Types>(param as BaseEnum)
         : normalizeEnumValues<Types>((options as { values: EnumValues<Types> }).values);
 
-    Object.keys(values).forEach((key) => {
-      this.plugin.onEnumValueConfig(values[key]);
-    });
-
     const config: GiraphQLEnumTypeConfig = {
       kind: 'Enum',
       graphqlKind: 'Enum',
@@ -538,11 +501,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       }
     });
 
-    this.configStore.prepareForBuild();
+    const buildCache = new BuildCache(this, options);
 
-    this.plugin.beforeBuild(options);
-
-    const buildCache = new BuildCache(this.configStore, this.plugin, options);
+    buildCache.plugin.beforeBuild(options);
 
     buildCache.buildAll();
 
@@ -557,7 +518,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       types: builtTypes,
     });
 
-    this.plugin.afterBuild(schema, options);
+    buildCache.plugin.afterBuild(schema, options);
 
     return schema;
   }

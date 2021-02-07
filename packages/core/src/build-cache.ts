@@ -49,26 +49,47 @@ import { wrapResolveType, wrapResolver, wrapSubscriber } from './plugins/wrap-fi
 import { mergeFieldWrappers } from './plugins/merge-field-wrappers';
 import BuiltinScalarRef from './refs/builtin-scalar';
 import { isThenable } from './utils';
+import SchemaBuilder from './builder';
+import { PluginMap } from './types';
+import { MergedPlugins } from './plugins';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
 
-  private configStore: ConfigStore<Types>;
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
-  private plugin: BasePlugin<Types>;
+  plugin: BasePlugin<Types>;
 
-  private options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>;
+  configStore: ConfigStore<Types>;
+
+  options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>;
+
+  private pluginMap: PluginMap<Types>;
 
   private implementers = new Map<string, GiraphQLObjectTypeConfig[]>();
 
   constructor(
-    configStore: ConfigStore<any>,
-    plugin: BasePlugin<Types>,
+    builder: SchemaBuilder<Types>,
     options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
-    this.configStore = configStore;
-    this.plugin = plugin;
+    this.builder = builder;
+
+    const plugins: Record<string, unknown> = {};
+
+    (builder.options.plugins || []).forEach((pluginName) => {
+      const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
+
+      if (!Plugin) {
+        throw new Error(`No plugin named ${pluginName} was registered`);
+      }
+
+      plugins[pluginName] = new Plugin(this, pluginName!);
+    });
+
+    this.pluginMap = plugins as PluginMap<Types>;
+
+    this.plugin = new MergedPlugins(this, this.pluginMap);
+    this.configStore = builder.configStore;
     this.options = options;
   }
 
@@ -192,6 +213,8 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   buildAll() {
+    this.configStore.prepareForBuild(this.plugin);
+
     this.configStore.typeConfigs.forEach((config) => {
       const { name } = config;
 

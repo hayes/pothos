@@ -1,4 +1,5 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
+import { BuildCache } from '..';
 import {
   SchemaTypes,
   GiraphQLOutputFieldConfig,
@@ -17,14 +18,14 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
 
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
+  buildCache: BuildCache<Types>;
+
   private requestDataMap = new WeakMap<Types['Context'], T>();
 
-  constructor(
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    name: keyof GiraphQLSchemaTypes.Plugins<Types>,
-  ) {
+  constructor(buildCache: BuildCache<Types>, name: keyof GiraphQLSchemaTypes.Plugins<Types>) {
     this.name = name;
-    this.builder = builder;
+    this.builder = buildCache.builder;
+    this.buildCache = buildCache;
   }
 
   onTypeConfig(typeConfig: GiraphQLTypeConfig) {}
