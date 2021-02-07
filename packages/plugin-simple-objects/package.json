@@ -22,7 +22,7 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@giraphql/core": "^0.20.3",
+    "@giraphql/core": "^1.5.1",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
