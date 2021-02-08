@@ -1,5 +1,6 @@
 import { MaybePromise, Merge, SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
+import ResolveState from './resolve-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ScopeAuthPluginOptions {}
@@ -14,19 +15,24 @@ export type AuthScopeMap<Types extends SchemaTypes> = Merge<
   Partial<Types['AuthScopes']> & BuiltInScopes<Types>
 >;
 
+export type ScopeLoaderMap<Types extends SchemaTypes> = {
+  [K in keyof Types['AuthScopes']]:
+    | boolean
+    | ((param: Types['AuthScopes'][K]) => MaybePromise<boolean>);
+};
+
 export type ScopeAuthInitializer<Types extends SchemaTypes> = (
   context: Types['Context'],
-) => MaybePromise<
-  {
-    [K in keyof Types['AuthScopes']]:
-      | boolean
-      | ((param: Types['AuthScopes'][K]) => MaybePromise<boolean>);
-  }
->;
+) => MaybePromise<ScopeLoaderMap<Types>>;
+
+export type TypeAuthScopesFunction<Types extends SchemaTypes, Parent> = (
+  parent: Parent,
+  context: Types['Context'],
+) => MaybePromise<AuthScopeMap<Types> | boolean>;
 
 export type TypeAuthScopes<Types extends SchemaTypes, Parent> =
   | AuthScopeMap<Types>
-  | ((parent: Parent, context: Types['Context']) => MaybePromise<AuthScopeMap<Types>>);
+  | TypeAuthScopesFunction<Types, Parent>;
 
 export type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {}> =
   | AuthScopeMap<Types>
@@ -50,3 +56,21 @@ export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}>
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<string[]>);
+
+export interface ResolveStep<Types extends SchemaTypes> {
+  run: (
+    state: ResolveState<Types>,
+    parent: unknown,
+    args: Record<string, unknown>,
+    context: {},
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<boolean>;
+  errorMessage:
+    | string
+    | ((
+        parent: unknown,
+        args: Record<string, unknown>,
+        context: {},
+        info: GraphQLResolveInfo,
+      ) => string);
+}

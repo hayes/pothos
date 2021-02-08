@@ -25,7 +25,7 @@ declare global {
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       scopeAuthOptions?: ScopeAuthPluginOptions;
-      authScopes?: ScopeAuthInitializer<Types>;
+      authScopes: ScopeAuthInitializer<Types>;
     }
 
     export interface TypeInfo {
