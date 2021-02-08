@@ -16,7 +16,7 @@ export function resolveHelper<Types extends SchemaTypes>(
     return runSteps(0);
 
     function runSteps(index: number): MaybePromise<unknown> {
-      for (let i = index; index < steps.length; i += 1) {
+      for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
 
         const stepResult = run(state, parent, args, context, info);

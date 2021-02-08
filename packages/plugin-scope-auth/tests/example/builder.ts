@@ -1,27 +1,28 @@
 import SchemaBuilder from '@giraphql/core';
 import '../../src';
-
-type CoolPermissions = 'readStuff' | 'updateStuff' | 'readArticle';
+import User from './user';
 
 const builder = new SchemaBuilder<{
   Context: {
-    User: {
-      id: number;
-    };
+    User: User | null;
   };
   AuthScopes: {
     loggedIn: boolean;
     admin: boolean;
     deferredAdmin: boolean;
-    coolPermission: CoolPermissions;
+    hasPermission: string;
   };
 }>({
   plugins: ['GiraphQLScopeAuth'],
   authScopes: async (context) => ({
-    loggedIn: true,
-    admin: true,
-    deferredAdmin: () => true,
-    coolPermission: (perm) => true,
+    loggedIn: !!context.User,
+    admin: !!context.User?.roles.includes('admin'),
+    deferredAdmin: async () => {
+      const result = await context.User?.roles.includes('admin');
+
+      return !!result;
+    },
+    hasPermission: (perm) => !!context.User?.permissions.includes(perm),
   }),
 });
 

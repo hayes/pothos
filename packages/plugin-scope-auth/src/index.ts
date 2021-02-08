@@ -1,8 +1,11 @@
 import SchemaBuilder, {
   BasePlugin,
   GiraphQLInterfaceTypeConfig,
+  GiraphQLMutationTypeConfig,
   GiraphQLObjectTypeConfig,
   GiraphQLOutputFieldConfig,
+  GiraphQLQueryTypeConfig,
+  GiraphQLSubscriptionTypeConfig,
   SchemaTypes,
 } from '@giraphql/core';
 import { GraphQLFieldResolver } from 'graphql';
@@ -15,7 +18,7 @@ import {
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
 } from './steps';
-import { ResolveStep } from './types';
+import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
 
 export * from './types';
 
@@ -31,7 +34,7 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
 
     const typeConfig = this.configStore.getTypeConfig(fieldConfig.parentType);
 
-    if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
+    if (typeConfig.graphqlKind !== 'Object' && typeConfig.graphqlKind !== 'Interface') {
       throw new Error(
         `Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`,
       );
@@ -48,7 +51,12 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
 
   createResolveSteps(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    typeConfig: GiraphQLObjectTypeConfig | GiraphQLInterfaceTypeConfig,
+    typeConfig:
+      | GiraphQLObjectTypeConfig
+      | GiraphQLInterfaceTypeConfig
+      | GiraphQLQueryTypeConfig
+      | GiraphQLMutationTypeConfig
+      | GiraphQLSubscriptionTypeConfig,
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
   ): ResolveStep<Types>[] {
     const parentAuthScope = typeConfig.giraphqlOptions.authScopes;
@@ -62,11 +70,21 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     // TODO add validation for required checks based on options
 
     if (parentAuthScope) {
-      steps.push(createTypeAuthScopesStep<Types>(parentAuthScope, typeConfig.name));
+      steps.push(
+        createTypeAuthScopesStep<Types>(
+          parentAuthScope as TypeAuthScopes<Types, unknown>,
+          typeConfig.name,
+        ),
+      );
     }
 
     if (parentGrantScopes) {
-      steps.push(createTypeGrantScopesStep<Types>(parentGrantScopes, typeConfig.name));
+      steps.push(
+        createTypeGrantScopesStep<Types>(
+          parentGrantScopes as TypeGrantScopes<Types, unknown>,
+          typeConfig.name,
+        ),
+      );
     }
 
     if (fieldAuthScopes) {

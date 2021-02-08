@@ -73,6 +73,8 @@ export default class BuildCache<Types extends SchemaTypes> {
     options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
     this.builder = builder;
+    this.configStore = builder.configStore;
+    this.options = options;
 
     const plugins: Record<string, unknown> = {};
 
@@ -89,8 +91,6 @@ export default class BuildCache<Types extends SchemaTypes> {
     this.pluginMap = plugins as PluginMap<Types>;
 
     this.plugin = new MergedPlugins(this, this.pluginMap);
-    this.configStore = builder.configStore;
-    this.options = options;
   }
 
   getType(ref: string | OutputType<Types> | InputType<Types>) {
