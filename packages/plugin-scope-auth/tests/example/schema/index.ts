@@ -1,5 +1,90 @@
 import builder from '../builder';
 
+const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
+  authScopes: {
+    admin: true,
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjForSyncPerm = builder.objectRef<{}>('ObjForSyncPerm').implement({
+  authScopes: {
+    syncPermission: 'a',
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjForAsyncPerm = builder.objectRef<{}>('ObjForAsyncPerm').implement({
+  authScopes: {
+    asyncPermission: 'b',
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjForAll = builder.objectRef<{}>('ObjForAll').implement({
+  authScopes: {
+    $all: {
+      admin: true,
+      syncPermission: 'a',
+      asyncPermission: 'b',
+    },
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjForAny = builder.objectRef<{}>('ObjForAny').implement({
+  authScopes: {
+    $any: {
+      admin: true,
+      syncPermission: 'a',
+      asyncPermission: 'b',
+    },
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjEmptyAll = builder.objectRef<{}>('ObjEmptyAll').implement({
+  authScopes: {
+    $all: {},
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjEmptyAny = builder.objectRef<{}>('ObjEmptyAny').implement({
+  authScopes: {
+    $any: {},
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     forAdmin: t.string({
@@ -8,15 +93,15 @@ builder.queryType({
       },
       resolve: () => 'ok',
     }),
-    forDeferredAdmin: t.string({
+    forSyncPermission: t.string({
       authScopes: {
-        deferredAdmin: true,
+        syncPermission: 'a',
       },
       resolve: () => 'ok',
     }),
-    forPermission: t.string({
+    forAsyncPermission: t.string({
       authScopes: {
-        hasPermission: 'a',
+        asyncPermission: 'b',
       },
       resolve: () => 'ok',
     }),
@@ -25,7 +110,8 @@ builder.queryType({
         // TODO should all prevent use of other permissions in same object?
         $all: {
           admin: true,
-          hasPermission: 'a',
+          syncPermission: 'a',
+          asyncPermission: 'b',
         },
       },
       resolve: () => 'ok',
@@ -34,58 +120,53 @@ builder.queryType({
       authScopes: {
         $any: {
           admin: true,
-          hasPermission: 'a',
+          syncPermission: 'a',
+          asyncPermission: 'b',
         },
       },
       resolve: () => 'ok',
     }),
+    emptyAny: t.string({
+      authScopes: {
+        $any: {},
+      },
+      resolve: () => 'ok',
+    }),
+    emptyAll: t.string({
+      authScopes: {
+        $all: {},
+      },
+      resolve: () => 'ok',
+    }),
+    ObjForAdmin: t.field({
+      type: ObjForAdmin,
+      resolve: () => ({}),
+    }),
+    ObjForSyncPerm: t.field({
+      type: ObjForSyncPerm,
+      resolve: () => ({}),
+    }),
+    ObjForAsyncPerm: t.field({
+      type: ObjForAsyncPerm,
+      resolve: () => ({}),
+    }),
+    ObjForAll: t.field({
+      type: ObjForAll,
+      resolve: () => ({}),
+    }),
+    ObjForAny: t.field({
+      type: ObjForAny,
+      resolve: () => ({}),
+    }),
+    ObjEmptyAll: t.field({
+      type: ObjEmptyAll,
+      resolve: () => ({}),
+    }),
+    ObjEmptyAny: t.field({
+      type: ObjEmptyAny,
+      resolve: () => ({}),
+    }),
   }),
 });
-
-// // Using functions with authScope
-// builder
-//   .objectRef<{
-//     title: string;
-//     content: string;
-//     viewCount: number;
-//     author: { id: number };
-//     isDraft: () => boolean;
-//   }>('Article')
-//   .implement({
-//     authScopes: (article, context) => {
-//       if (article.isDraft()) {
-//         // Draft articles can only be read by admins
-//         return {
-//           admin: true,
-//         };
-//       }
-
-//       // normal articles can be read by admins and users with the 'readStuff' permission
-//       return {
-//         admin: true,
-//         coolPermission: 'readStuff',
-//       };
-//     },
-//     fields: (t) => ({
-//       title: t.exposeString('title', {}),
-//       content: t.exposeString('content', {}),
-//       viewCount: t.exposeInt('viewCount', {
-//         // Only admins and authors can view this
-//         // using a function allows you to customize the auth parameters based on parent, args, context or info
-//         authScopes: (article, args, context, info) => {
-//           if (context.User.id === article.author.id) {
-//             // If user is author, let them see it
-//             // returning a boolean lets you set auth without specifying other scopes to check
-//             return true;
-//           }
-
-//           // If the user is not the author, require the admin scope
-//           return {
-//             admin: true,
-//           };
-//         },
-//       }),
-//     }),
-//   });
 
 export default builder.toSchema({});

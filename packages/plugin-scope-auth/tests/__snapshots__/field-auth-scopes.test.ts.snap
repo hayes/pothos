@@ -1,0 +1,137 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`queries for field authScopes with field scope with async loader (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAsyncPermission],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field scope with async loader 1`] = `
+Object {
+  "data": Object {
+    "forAsyncPermission": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field scope with sync loader (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forSyncPermission],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field scope with sync loader 1`] = `
+Object {
+  "data": Object {
+    "forSyncPermission": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field with $all (admin, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAll],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field with $all (async, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAll],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field with $all (sync, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAll],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field with $all 1`] = `
+Object {
+  "data": Object {
+    "forAll": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field with $any (admin) 1`] = `
+Object {
+  "data": Object {
+    "forAny": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field with $any (async) 1`] = `
+Object {
+  "data": Object {
+    "forAny": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field with $any (sync) 1`] = `
+Object {
+  "data": Object {
+    "forAny": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field with $any (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAny],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field with empty $all 1`] = `
+Object {
+  "data": Object {
+    "emptyAll": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field with empty $any 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.emptyAny],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with simple field scope (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAdmin],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with simple field scope 1`] = `
+Object {
+  "data": Object {
+    "forAdmin": "ok",
+  },
+}
+`;

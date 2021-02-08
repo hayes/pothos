@@ -1,0 +1,153 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`queries for type authScopes with simple type scope (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForAdmin],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with simple type scope 1`] = `
+Object {
+  "data": Object {
+    "ObjForAdmin": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type scope with async loader (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForAsyncPerm],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with type scope with async loader 1`] = `
+Object {
+  "data": Object {
+    "ObjForAsyncPerm": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type scope with sync loader (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForSyncPerm],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with type scope with sync loader 1`] = `
+Object {
+  "data": Object {
+    "ObjForSyncPerm": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type with $all (admin, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForAll],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with type with $all (async, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForAll],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with type with $all (sync, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForAll],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with type with $all 1`] = `
+Object {
+  "data": Object {
+    "ObjForAll": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type with $any (admin) 1`] = `
+Object {
+  "data": Object {
+    "ObjForAny": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type with $any (async) 1`] = `
+Object {
+  "data": Object {
+    "ObjForAny": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type with $any (sync) 1`] = `
+Object {
+  "data": Object {
+    "ObjForAny": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type with $any (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjForAny],
+  ],
+}
+`;
+
+exports[`queries for type authScopes with type with empty $all 1`] = `
+Object {
+  "data": Object {
+    "ObjEmptyAll": Object {
+      "field": "ok",
+    },
+  },
+}
+`;
+
+exports[`queries for type authScopes with type with empty $any 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to read fields for ObjEmptyAny],
+  ],
+}
+`;

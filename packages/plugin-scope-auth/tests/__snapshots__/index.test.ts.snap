@@ -1,103 +1,49 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
-exports[`example schema queries query simple field scope (unauthorized) 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: Not authorized to resolve Query.forAdmin],
-  ],
+exports[`example schema generates expected schema 1`] = `
+"type ObjEmptyAll {
+  field: String!
 }
-`;
 
-exports[`example schema queries query simple field scope 1`] = `
-Object {
-  "data": Object {
-    "forAdmin": "ok",
-  },
+type ObjEmptyAny {
+  field: String!
 }
-`;
 
-exports[`example schema query field scope with loader (unauthorized) 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: Not authorized to resolve Query.forDeferredAdmin],
-  ],
+type ObjForAdmin {
+  field: String!
 }
-`;
 
-exports[`example schema query field scope with loader 1`] = `
-Object {
-  "data": Object {
-    "forDeferredAdmin": "ok",
-  },
+type ObjForAll {
+  field: String!
 }
-`;
 
-exports[`example schema query field scope with loader with arg (unauthorized) 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: Not authorized to resolve Query.forPermission],
-  ],
+type ObjForAny {
+  field: String!
 }
-`;
 
-exports[`example schema query field scope with loader with arg 1`] = `
-Object {
-  "data": Object {
-    "forPermission": "ok",
-  },
+type ObjForAsyncPerm {
+  field: String!
 }
-`;
 
-exports[`example schema query field with $all (admin, unauthorized) 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: Not authorized to resolve Query.forAll],
-  ],
+type ObjForSyncPerm {
+  field: String!
 }
-`;
 
-exports[`example schema query field with $all (unauthorized) 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: Not authorized to resolve Query.forAll],
-  ],
+type Query {
+  emptyAll: String!
+  emptyAny: String!
+  forAdmin: String!
+  forAll: String!
+  forAny: String!
+  forAsyncPermission: String!
+  forSyncPermission: String!
+  ObjEmptyAll: ObjEmptyAll!
+  ObjEmptyAny: ObjEmptyAny!
+  ObjForAdmin: ObjForAdmin!
+  ObjForAll: ObjForAll!
+  ObjForAny: ObjForAny!
+  ObjForAsyncPerm: ObjForAsyncPerm!
+  ObjForSyncPerm: ObjForSyncPerm!
 }
-`;
-
-exports[`example schema query field with $all 1`] = `
-Object {
-  "data": Object {
-    "forAll": "ok",
-  },
-}
-`;
-
-exports[`example schema query field with $any (admin) 1`] = `
-Object {
-  "data": Object {
-    "forAny": "ok",
-  },
-}
-`;
-
-exports[`example schema query field with $any (unauthorized) 1`] = `
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: Not authorized to resolve Query.forAny],
-  ],
-}
-`;
-
-exports[`example schema query field with $any 1`] = `
-Object {
-  "data": Object {
-    "forAny": "ok",
-  },
-}
+"
 `;

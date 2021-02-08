@@ -26,6 +26,9 @@ export default class ResolveState<Types extends SchemaTypes> {
 
     for (const scopeName of scopeNames) {
       if (scopes[scopeName] == null || scopes[scopeName] === false) {
+        if (forAll) {
+          return false;
+        }
         // eslint-disable-next-line no-continue
         continue;
       }
