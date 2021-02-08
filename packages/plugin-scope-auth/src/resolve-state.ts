@@ -1,6 +1,7 @@
 import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types';
 import RequestCache from './request-cache';
+import { canCache } from './util';
 
 export default class ResolveState<Types extends SchemaTypes> {
   cache;
@@ -11,14 +12,12 @@ export default class ResolveState<Types extends SchemaTypes> {
     this.cache = cache;
   }
 
-  static evaluateScopeMap<Types extends SchemaTypes>(
-    map: AuthScopeMap<Types>,
+  evaluateScopeMapWithScopes<Types extends SchemaTypes>(
+    { $all, $any, $granted, ...map }: AuthScopeMap<Types>,
     scopes: ScopeLoaderMap<Types>,
-    cache: RequestCache<Types>,
+    forAll: boolean,
   ): MaybePromise<boolean> {
-    const scopeNames: (keyof Types['AuthScopes'])[] = Object.keys(
-      map,
-    ) as (keyof Types['AuthScopes'])[];
+    const scopeNames = Object.keys(map) as (keyof typeof map)[];
 
     const loaderList: [
       keyof Types['AuthScopes'],
@@ -38,37 +37,75 @@ export default class ResolveState<Types extends SchemaTypes> {
 
       if (typeof scope === 'function') {
         loaderList.push([scopeName, map[scopeName]]);
-      } else if (scope === true) {
-        return true;
+      } else if (scope === !forAll) {
+        return scope;
       }
     }
 
     const promises: Promise<boolean>[] = [];
-    let hasSuccess = false;
 
-    loaderList.forEach(([loaderName, arg]) => {
-      const result = cache.evaluateScopeLoader(scopes, loaderName, arg);
+    if ($any) {
+      const anyResult = this.evaluateScopeMap($any!);
+
+      if (typeof anyResult === 'boolean') {
+        if (anyResult === !forAll) {
+          return anyResult;
+        }
+      } else {
+        promises.push(anyResult);
+      }
+    }
+
+    if ($all) {
+      const allResult = this.evaluateScopeMap($all!, true);
+
+      if (typeof allResult === 'boolean') {
+        if (allResult === !forAll) {
+          if (promises.length > 0) {
+            return Promise.all(promises).then(() => allResult);
+          }
+
+          return allResult;
+        }
+      } else {
+        promises.push(allResult);
+      }
+    }
+
+    for (const [loaderName, arg] of loaderList) {
+      const result = this.cache.evaluateScopeLoader(scopes, loaderName, arg);
 
       if (isThenable(result)) {
         promises.push(result);
-      } else if (result === true) {
-        hasSuccess = true;
-      }
-    });
+      } else if (result === !forAll) {
+        if (promises.length > 0) {
+          return Promise.all(promises).then(() => result);
+        }
 
-    if (promises.length === 0) {
-      return hasSuccess;
+        return result;
+      }
     }
 
-    return Promise.all(promises).then((results) => !!results.find(Boolean));
+    if (promises.length === 0) {
+      return forAll;
+    }
+
+    return Promise.all(promises).then((results) =>
+      forAll ? results.every(Boolean) : !!results.find(Boolean),
+    );
   }
 
-  evaluateScopeMap(map: AuthScopeMap<Types>): MaybePromise<boolean> {
+  evaluateScopeMap(map: AuthScopeMap<Types>, forAll = false): MaybePromise<boolean> {
     if (!this.cache.mapCache.has(map)) {
-      this.cache.mapCache.set(
-        map,
-        this.cache.withScopes((scopes) => ResolveState.evaluateScopeMap(map, scopes, this.cache)),
+      const result = this.cache.withScopes((scopes) =>
+        this.evaluateScopeMapWithScopes(map, scopes, forAll),
       );
+
+      if (canCache(map)) {
+        this.cache.mapCache.set(map, result);
+      }
+
+      return result;
     }
 
     return this.cache.mapCache.get(map)!;

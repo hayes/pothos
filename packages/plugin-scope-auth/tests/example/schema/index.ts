@@ -14,6 +14,31 @@ builder.queryType({
       },
       resolve: () => 'ok',
     }),
+    forPermission: t.string({
+      authScopes: {
+        hasPermission: 'a',
+      },
+      resolve: () => 'ok',
+    }),
+    forAll: t.string({
+      authScopes: {
+        // TODO should all prevent use of other permissions in same object?
+        $all: {
+          admin: true,
+          hasPermission: 'a',
+        },
+      },
+      resolve: () => 'ok',
+    }),
+    forAny: t.string({
+      authScopes: {
+        $any: {
+          admin: true,
+          hasPermission: 'a',
+        },
+      },
+      resolve: () => 'ok',
+    }),
   }),
 });
 

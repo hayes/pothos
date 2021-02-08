@@ -33,3 +33,71 @@ Object {
   },
 }
 `;
+
+exports[`example schema query field scope with loader with arg (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forPermission],
+  ],
+}
+`;
+
+exports[`example schema query field scope with loader with arg 1`] = `
+Object {
+  "data": Object {
+    "forPermission": "ok",
+  },
+}
+`;
+
+exports[`example schema query field with $all (admin, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAll],
+  ],
+}
+`;
+
+exports[`example schema query field with $all (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAll],
+  ],
+}
+`;
+
+exports[`example schema query field with $all 1`] = `
+Object {
+  "data": Object {
+    "forAll": "ok",
+  },
+}
+`;
+
+exports[`example schema query field with $any (admin) 1`] = `
+Object {
+  "data": Object {
+    "forAny": "ok",
+  },
+}
+`;
+
+exports[`example schema query field with $any (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAny],
+  ],
+}
+`;
+
+exports[`example schema query field with $any 1`] = `
+Object {
+  "data": Object {
+    "forAny": "ok",
+  },
+}
+`;
