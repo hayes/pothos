@@ -1,5 +1,141 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`queries for field authScopes with field fn return boolean (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forBooleanFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field fn return boolean 1`] = `
+Object {
+  "data": Object {
+    "forBooleanFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field fn with $all (admin, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAllFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field fn with $all (async, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAllFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field fn with $all (sync, unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAllFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field fn with $all 1`] = `
+Object {
+  "data": Object {
+    "forAllFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field fn with $any (admin) 1`] = `
+Object {
+  "data": Object {
+    "forAnyFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field fn with $any (async) 1`] = `
+Object {
+  "data": Object {
+    "forAnyFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field fn with $any (sync) 1`] = `
+Object {
+  "data": Object {
+    "forAnyFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field fn with $any (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAnyFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field fn with empty $all 1`] = `
+Object {
+  "data": Object {
+    "emptyAllFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field fn with empty $any 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.emptyAnyFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field scope fn with async loader (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field scope fn with async loader 1`] = `
+Object {
+  "data": Object {
+    "forAsyncPermissionFn": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with field scope fn with sync loader (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forSyncPermissionFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with field scope fn with sync loader 1`] = `
+Object {
+  "data": Object {
+    "forSyncPermissionFn": "ok",
+  },
+}
+`;
+
 exports[`queries for field authScopes with field scope with async loader (unauthorized) 1`] = `
 Object {
   "data": null,
@@ -132,6 +268,23 @@ exports[`queries for field authScopes with simple field scope 1`] = `
 Object {
   "data": Object {
     "forAdmin": "ok",
+  },
+}
+`;
+
+exports[`queries for field authScopes with simple field scope fn (unauthorized) 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Not authorized to resolve Query.forAdminFn],
+  ],
+}
+`;
+
+exports[`queries for field authScopes with simple field scope fn 1`] = `
+Object {
+  "data": Object {
+    "forAdminFn": "ok",
   },
 }
 `;

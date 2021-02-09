@@ -6,6 +6,7 @@ import User from './user';
 const builder = new SchemaBuilder<{
   Context: {
     User: User | null;
+    count?: (name: string) => void;
   };
   AuthScopes: {
     loggedIn: boolean;

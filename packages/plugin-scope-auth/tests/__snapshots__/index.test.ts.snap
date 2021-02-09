@@ -1,7 +1,15 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`example schema generates expected schema 1`] = `
-"type ObjEmptyAll {
+"type ObjBooleanFn {
+  field: String!
+}
+
+type ObjEmptyAll {
+  field: String!
+}
+
+type ObjEmptyAllFn {
   field: String!
 }
 
@@ -9,7 +17,15 @@ type ObjEmptyAny {
   field: String!
 }
 
+type ObjEmptyAnyFn {
+  field: String!
+}
+
 type ObjForAdmin {
+  field: String!
+}
+
+type ObjForAdminFn {
   field: String!
 }
 
@@ -17,7 +33,15 @@ type ObjForAll {
   field: String!
 }
 
+type ObjForAllFn {
+  field: String!
+}
+
 type ObjForAny {
+  field: String!
+}
+
+type ObjForAnyFn {
   field: String!
 }
 
@@ -25,25 +49,49 @@ type ObjForAsyncPerm {
   field: String!
 }
 
+type ObjForAsyncPermFn {
+  field: String!
+}
+
 type ObjForSyncPerm {
+  field: String!
+}
+
+type ObjForSyncPermFn {
   field: String!
 }
 
 type Query {
   emptyAll: String!
+  emptyAllFn: String!
   emptyAny: String!
+  emptyAnyFn: String!
   forAdmin: String!
+  forAdminFn: String!
   forAll: String!
+  forAllFn: String!
   forAny: String!
+  forAnyFn: String!
   forAsyncPermission: String!
+  forAsyncPermissionFn(permission: String): String!
+  forBooleanFn(result: Boolean!): String!
   forSyncPermission: String!
+  forSyncPermissionFn(permission: String): String!
+  ObjBooleanFn(result: Boolean!): ObjBooleanFn!
   ObjEmptyAll: ObjEmptyAll!
+  ObjEmptyAllFn: ObjEmptyAllFn!
   ObjEmptyAny: ObjEmptyAny!
+  ObjEmptyAnyFn: ObjEmptyAnyFn!
   ObjForAdmin: ObjForAdmin!
+  ObjForAdminFn: ObjForAdminFn!
   ObjForAll: ObjForAll!
+  ObjForAllFn: ObjForAllFn!
   ObjForAny: ObjForAny!
+  ObjForAnyFn: ObjForAnyFn!
   ObjForAsyncPerm: ObjForAsyncPerm!
+  ObjForAsyncPermFn(permission: String): ObjForAsyncPermFn!
   ObjForSyncPerm: ObjForSyncPerm!
+  ObjForSyncPermFn(permission: String): ObjForSyncPermFn!
 }
 "
 `;
