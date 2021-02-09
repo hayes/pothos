@@ -492,6 +492,60 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
+  test('simple field scope fn async', async () => {
+    const query = gql`
+      query {
+        forAdminAsyncFn
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        User: new User({
+          'x-user-id': '1',
+          'x-roles': 'admin',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "forAdminAsyncFn": "ok",
+        },
+      }
+    `);
+  });
+
+  test('simple field scope fn async (unauthorized)', async () => {
+    const query = gql`
+      query {
+        forAdminAsyncFn
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": null,
+        "errors": Array [
+          [GraphQLError: Not authorized to resolve Query.forAdminAsyncFn],
+        ],
+      }
+    `);
+  });
+
   test('field scope fn with sync loader', async () => {
     const query = gql`
       query {

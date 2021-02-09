@@ -17,13 +17,14 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
 ): ResolveStep<Types> {
   if (typeof authScopes === 'function') {
     return {
-      run: (state, parent) => state.evaluateTypeScopeFunction(authScopes, type, parent),
+      run: (state, parent, args, context, info) =>
+        state.evaluateTypeScopeFunction(authScopes, type, parent, info),
       errorMessage: `Not authorized to read fields for ${type}`,
     };
   }
 
   return {
-    run: (state) => state.evaluateScopeMap(authScopes),
+    run: (state, parent, args, context, info) => state.evaluateScopeMap(authScopes, info),
     errorMessage: `Not authorized to read fields for ${type}`,
   };
 }
@@ -33,7 +34,8 @@ export function createTypeGrantScopesStep<Types extends SchemaTypes>(
   type: string,
 ): ResolveStep<Types> {
   return {
-    run: (state, parent) => true,
+    run: (state, parent, args, context, info) =>
+      state.cache.grantTypeScopes(type, parent, info, () => grantScopes(parent, context)),
     errorMessage: `Unknown error creating grants for ${type}`,
   };
 }
@@ -54,7 +56,7 @@ export function createFieldAuthScopesStep<Types extends SchemaTypes>(
               return resolved;
             }
 
-            return state.evaluateScopeMap(resolved);
+            return state.evaluateScopeMap(resolved, info);
           });
         }
 
@@ -62,7 +64,7 @@ export function createFieldAuthScopesStep<Types extends SchemaTypes>(
           return scopeMap;
         }
 
-        return state.evaluateScopeMap(scopeMap);
+        return state.evaluateScopeMap(scopeMap, info);
       },
     };
   }
@@ -70,7 +72,7 @@ export function createFieldAuthScopesStep<Types extends SchemaTypes>(
   return {
     errorMessage: (parent, args, context, info) =>
       `Not authorized to resolve ${info.parentType}.${info.fieldName}`,
-    run: (state) => state.evaluateScopeMap(authScopes),
+    run: (state, parent, args, context, info) => state.evaluateScopeMap(authScopes, info),
   };
 }
 
@@ -80,7 +82,26 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(
   return {
     errorMessage: (parent, args, context, info) =>
       `Unknown issue generating grants for ${info.parentType}.${info.fieldName}`,
-    run: (state, parent, args, context, info) => true,
+    run: (state, parent, args, context, info) => {
+      if (typeof grantScopes !== 'function') {
+        state.cache.saveGrantedScopes(grantScopes, info.path);
+
+        return true;
+      }
+      const result = grantScopes(parent as {}, args, context, info);
+
+      if (isThenable(result)) {
+        return result.then((resolved) => {
+          state.cache.saveGrantedScopes(resolved, info.path);
+
+          return true;
+        });
+      }
+
+      state.cache.saveGrantedScopes(result, info.path);
+
+      return true;
+    },
   };
 }
 

@@ -37,7 +37,19 @@ type ObjEmptyAnyFn {
   field: String!
 }
 
+type ObjExpectsGrants {
+  field: String!
+}
+
+type ObjFieldExpectsGrants {
+  field: String!
+}
+
 type ObjForAdmin {
+  field: String!
+}
+
+type ObjForAdminAsyncFn {
   field: String!
 }
 
@@ -83,6 +95,7 @@ type Query {
   emptyAny: String!
   emptyAnyFn: String!
   forAdmin: String!
+  forAdminAsyncFn: String!
   forAdminFn: String!
   forAll: String!
   forAllFn: String!
@@ -93,25 +106,44 @@ type Query {
   forBooleanFn(result: Boolean!): String!
   forSyncPermission: String!
   forSyncPermissionFn(permission: String): String!
-  IfaceBooleanFn(result: Boolean!): IfaceBooleanFn!
-  IfaceForAdmin: IfaceForAdmin!
-  ObjAdminIface: ObjAdminIface!
-  ObjBooleanFn(result: Boolean!): ObjBooleanFn!
-  ObjBooleanIface(result: Boolean!): ObjBooleanIface!
-  ObjEmptyAll: ObjEmptyAll!
-  ObjEmptyAllFn: ObjEmptyAllFn!
-  ObjEmptyAny: ObjEmptyAny!
-  ObjEmptyAnyFn: ObjEmptyAnyFn!
-  ObjForAdmin: ObjForAdmin!
-  ObjForAdminFn: ObjForAdminFn!
-  ObjForAll: ObjForAll!
-  ObjForAllFn: ObjForAllFn!
-  ObjForAny: ObjForAny!
-  ObjForAnyFn: ObjForAnyFn!
-  ObjForAsyncPerm: ObjForAsyncPerm!
-  ObjForAsyncPermFn(permission: String): ObjForAsyncPermFn!
-  ObjForSyncPerm: ObjForSyncPerm!
-  ObjForSyncPermFn(permission: String): ObjForSyncPermFn!
+  grantedFromRoot: String!
+  IfaceBooleanFn(result: Boolean!): IfaceBooleanFn
+  IfaceForAdmin: IfaceForAdmin
+  notGrantedFromRoot: String!
+  ObjAdminIface: ObjAdminIface
+  ObjBooleanFn(result: Boolean!): ObjBooleanFn
+  ObjBooleanIface(result: Boolean!): ObjBooleanIface
+  ObjEmptyAll: ObjEmptyAll
+  ObjEmptyAllFn: ObjEmptyAllFn
+  ObjEmptyAny: ObjEmptyAny
+  ObjEmptyAnyFn: ObjEmptyAnyFn
+  ObjExpectsGrants: ObjExpectsGrants
+  ObjExpectsGrantsAsyncFn(result: Boolean!): ObjExpectsGrants
+  ObjExpectsGrantsFn(result: Boolean!): ObjExpectsGrants
+  ObjExpectsGrantsList: [ObjExpectsGrants]
+  ObjExpectsGrantsListAsyncFn(result: Boolean!): [ObjExpectsGrants]
+  ObjExpectsGrantsListFn(result: Boolean!): [ObjExpectsGrants]
+  ObjExpectsGrantsListMissing: [ObjExpectsGrants]
+  ObjExpectsGrantsMissing: ObjExpectsGrants
+  ObjFieldExpectsGrants: ObjFieldExpectsGrants
+  ObjFieldExpectsGrantsAsyncFn(result: Boolean!): ObjFieldExpectsGrants
+  ObjFieldExpectsGrantsFn(result: Boolean!): ObjFieldExpectsGrants
+  ObjFieldExpectsGrantsList: [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsListAsyncFn(result: Boolean!): [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsListFn(result: Boolean!): [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsListMissing: [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsMissing: ObjFieldExpectsGrants
+  ObjForAdmin: ObjForAdmin
+  ObjForAdminAsyncFn: ObjForAdminAsyncFn
+  ObjForAdminFn: ObjForAdminFn
+  ObjForAll: ObjForAll
+  ObjForAllFn: ObjForAllFn
+  ObjForAny: ObjForAny
+  ObjForAnyFn: ObjForAnyFn
+  ObjForAsyncPerm: ObjForAsyncPerm
+  ObjForAsyncPermFn(permission: String): ObjForAsyncPermFn
+  ObjForSyncPerm: ObjForSyncPerm
+  ObjForSyncPermFn(permission: String): ObjForSyncPermFn
 }
 "
 `;

@@ -1,4 +1,5 @@
 import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { GraphQLResolveInfo } from 'graphql';
 import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types';
 import RequestCache from './request-cache';
 import { canCache } from './util';
@@ -15,6 +16,7 @@ export default class ResolveState<Types extends SchemaTypes> {
   evaluateScopeMapWithScopes<Types extends SchemaTypes>(
     { $all, $any, $granted, ...map }: AuthScopeMap<Types>,
     scopes: ScopeLoaderMap<Types>,
+    info: GraphQLResolveInfo,
     forAll: boolean,
   ): MaybePromise<boolean> {
     const scopeNames = Object.keys(map) as (keyof typeof map)[];
@@ -47,8 +49,16 @@ export default class ResolveState<Types extends SchemaTypes> {
 
     const promises: Promise<boolean>[] = [];
 
+    if ($granted) {
+      const result = this.cache.testGrantedScopes($granted!, info.path);
+
+      if (result !== forAll) {
+        return result;
+      }
+    }
+
     if ($any) {
-      const anyResult = this.evaluateScopeMap($any!);
+      const anyResult = this.evaluateScopeMap($any!, info);
 
       if (typeof anyResult === 'boolean') {
         if (anyResult === !forAll) {
@@ -60,7 +70,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     }
 
     if ($all) {
-      const allResult = this.evaluateScopeMap($all!, true);
+      const allResult = this.evaluateScopeMap($all!, info, true);
 
       if (typeof allResult === 'boolean') {
         if (allResult === !forAll) {
@@ -98,10 +108,14 @@ export default class ResolveState<Types extends SchemaTypes> {
     );
   }
 
-  evaluateScopeMap(map: AuthScopeMap<Types>, forAll = false): MaybePromise<boolean> {
+  evaluateScopeMap(
+    map: AuthScopeMap<Types>,
+    info: GraphQLResolveInfo,
+    forAll = false,
+  ): MaybePromise<boolean> {
     if (!this.cache.mapCache.has(map)) {
       const result = this.cache.withScopes((scopes) =>
-        this.evaluateScopeMapWithScopes(map, scopes, forAll),
+        this.evaluateScopeMapWithScopes(map, scopes, info, forAll),
       );
 
       if (canCache(map)) {
@@ -118,6 +132,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     authScopes: TypeAuthScopesFunction<Types, unknown>,
     type: string,
     parent: unknown,
+    info: GraphQLResolveInfo,
   ) {
     const { typeCache } = this.cache;
 
@@ -134,11 +149,14 @@ export default class ResolveState<Types extends SchemaTypes> {
         cache.set(
           parent,
           result.then((resolved) =>
-            typeof resolved === 'boolean' ? resolved : this.evaluateScopeMap(resolved),
+            typeof resolved === 'boolean' ? resolved : this.evaluateScopeMap(resolved, info),
           ),
         );
       } else {
-        cache.set(parent, typeof result === 'boolean' ? result : this.evaluateScopeMap(result));
+        cache.set(
+          parent,
+          typeof result === 'boolean' ? result : this.evaluateScopeMap(result, info),
+        );
       }
     }
 

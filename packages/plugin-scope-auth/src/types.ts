@@ -8,7 +8,7 @@ export interface ScopeAuthPluginOptions {}
 export interface BuiltInScopes<Types extends SchemaTypes> {
   $all?: true extends true ? AuthScopeMap<Types> : never;
   $any?: true extends true ? AuthScopeMap<Types> : never;
-  $granted?: string[];
+  $granted?: string;
 }
 
 export type AuthScopeMap<Types extends SchemaTypes> = Merge<

@@ -55,7 +55,9 @@ describe('interfaces', () => {
 
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "data": null,
+        "data": Object {
+          "ObjAdminIface": null,
+        },
         "errors": Array [
           [GraphQLError: Not authorized to read fields for IfaceForAdmin],
         ],
@@ -113,7 +115,9 @@ describe('interfaces', () => {
 
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "data": null,
+        "data": Object {
+          "ObjBooleanIface": null,
+        },
         "errors": Array [
           [GraphQLError: Not authorized to read fields for IfaceBooleanFn],
         ],
@@ -171,7 +175,9 @@ describe('interfaces', () => {
 
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "data": null,
+        "data": Object {
+          "IfaceForAdmin": null,
+        },
         "errors": Array [
           [GraphQLError: Not authorized to read fields for IfaceForAdmin],
         ],
@@ -229,7 +235,9 @@ describe('interfaces', () => {
 
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "data": null,
+        "data": Object {
+          "IfaceBooleanFn": null,
+        },
         "errors": Array [
           [GraphQLError: Not authorized to read fields for IfaceBooleanFn],
         ],

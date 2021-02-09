@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/require-await */
 import builder from '../builder';
 
 const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
@@ -14,6 +15,21 @@ const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
 const ObjForAdminFn = builder.objectRef<{}>('ObjForAdminFn').implement({
   authScopes: (parent, context) => {
     context.count?.('ObjForAdminFn');
+
+    return {
+      admin: true,
+    };
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjForAdminAsyncFn = builder.objectRef<{}>('ObjForAdminAsyncFn').implement({
+  authScopes: async (parent, context) => {
+    context.count?.('ObjForAdminAsyncFn');
 
     return {
       admin: true,
@@ -211,6 +227,28 @@ const ObjBooleanFn = builder.objectRef<{ result: boolean }>('ObjBooleanFn').impl
   }),
 });
 
+const ObjExpectsGrants = builder.objectRef<{}>('ObjExpectsGrants').implement({
+  authScopes: {
+    $granted: 'grantedFromParent',
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjFieldExpectsGrants = builder.objectRef<{}>('ObjFieldExpectsGrants').implement({
+  fields: (t) => ({
+    field: t.string({
+      authScopes: {
+        $granted: 'grantedFromParent',
+      },
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
 const IfaceForAdmin = builder.interfaceRef('IfaceForAdmin').implement({
   authScopes: {
     admin: true,
@@ -256,6 +294,11 @@ const ObjBooleanIface = builder.objectRef<{ result: boolean }>('ObjBooleanIface'
 });
 
 builder.queryType({
+  grantScopes: (root, context) => {
+    context.count?.('Query.grantScopes');
+
+    return ['grantedFromQuery'];
+  },
   fields: (t) => ({
     forAdmin: t.string({
       authScopes: {
@@ -311,6 +354,16 @@ builder.queryType({
     forAdminFn: t.string({
       authScopes: (parent, args, context) => {
         context.count?.('forAdminFn');
+
+        return {
+          admin: true,
+        };
+      },
+      resolve: () => 'ok',
+    }),
+    forAdminAsyncFn: t.string({
+      authScopes: async (parent, args, context) => {
+        context.count?.('forAdminAsyncFn');
 
         return {
           admin: true,
@@ -404,40 +457,66 @@ builder.queryType({
       },
       resolve: () => 'ok',
     }),
+    grantedFromRoot: t.string({
+      authScopes: {
+        $granted: 'grantedFromQuery',
+      },
+      resolve: () => 'ok',
+    }),
+    notGrantedFromRoot: t.string({
+      authScopes: {
+        $granted: 'notGrantedFromRoot',
+      },
+      resolve: () => 'ok',
+    }),
     ObjForAdmin: t.field({
       type: ObjForAdmin,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForSyncPerm: t.field({
       type: ObjForSyncPerm,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForAsyncPerm: t.field({
       type: ObjForAsyncPerm,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForAll: t.field({
       type: ObjForAll,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForAny: t.field({
       type: ObjForAny,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjEmptyAll: t.field({
       type: ObjEmptyAll,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjEmptyAny: t.field({
       type: ObjEmptyAny,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForAdminFn: t.field({
       type: ObjForAdminFn,
+      nullable: true,
+      resolve: () => ({}),
+    }),
+    ObjForAdminAsyncFn: t.field({
+      type: ObjForAdminAsyncFn,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForSyncPermFn: t.field({
       type: ObjForSyncPermFn,
+      nullable: true,
       args: {
         permission: t.arg.string({}),
       },
@@ -445,6 +524,7 @@ builder.queryType({
     }),
     ObjForAsyncPermFn: t.field({
       type: ObjForAsyncPermFn,
+      nullable: true,
       args: {
         permission: t.arg.string({}),
       },
@@ -452,22 +532,27 @@ builder.queryType({
     }),
     ObjForAllFn: t.field({
       type: ObjForAllFn,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjForAnyFn: t.field({
       type: ObjForAnyFn,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjEmptyAllFn: t.field({
       type: ObjEmptyAllFn,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjEmptyAnyFn: t.field({
       type: ObjEmptyAnyFn,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjBooleanFn: t.field({
       type: ObjBooleanFn,
+      nullable: true,
       args: {
         result: t.arg.boolean({
           required: true,
@@ -475,12 +560,131 @@ builder.queryType({
       },
       resolve: (parent, args) => ({ result: args.result }),
     }),
+    ObjExpectsGrants: t.field({
+      type: ObjExpectsGrants,
+      nullable: true,
+      grantScopes: ['grantedFromParent'],
+      resolve: () => ({}),
+    }),
+    ObjExpectsGrantsMissing: t.field({
+      type: ObjExpectsGrants,
+      nullable: true,
+      resolve: () => ({}),
+    }),
+    ObjExpectsGrantsFn: t.field({
+      type: ObjExpectsGrants,
+      nullable: true,
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => ({}),
+    }),
+    ObjExpectsGrantsAsyncFn: t.field({
+      type: ObjExpectsGrants,
+      nullable: true,
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => ({}),
+    }),
+    ObjFieldExpectsGrants: t.field({
+      type: ObjFieldExpectsGrants,
+      nullable: true,
+      grantScopes: ['grantedFromParent'],
+      resolve: () => ({}),
+    }),
+    ObjFieldExpectsGrantsMissing: t.field({
+      type: ObjFieldExpectsGrants,
+      nullable: true,
+      grantScopes: ['wrong'],
+      resolve: () => ({}),
+    }),
+    ObjFieldExpectsGrantsFn: t.field({
+      type: ObjFieldExpectsGrants,
+      nullable: true,
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => ({}),
+    }),
+    ObjFieldExpectsGrantsAsyncFn: t.field({
+      type: ObjFieldExpectsGrants,
+      nullable: true,
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => ({}),
+    }),
+    ObjExpectsGrantsList: t.field({
+      type: [ObjExpectsGrants],
+      nullable: { list: true, items: true },
+      grantScopes: ['grantedFromParent'],
+      resolve: () => [{}, {}],
+    }),
+    ObjExpectsGrantsListMissing: t.field({
+      type: [ObjExpectsGrants],
+      nullable: { list: true, items: true },
+      resolve: () => [{}, {}],
+    }),
+    ObjExpectsGrantsListFn: t.field({
+      type: [ObjExpectsGrants],
+      nullable: { list: true, items: true },
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => [{}, {}],
+    }),
+    ObjExpectsGrantsListAsyncFn: t.field({
+      type: [ObjExpectsGrants],
+      nullable: { list: true, items: true },
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => [{}, {}],
+    }),
+    ObjFieldExpectsGrantsList: t.field({
+      type: [ObjFieldExpectsGrants],
+      nullable: { items: true, list: true },
+      grantScopes: ['grantedFromParent'],
+      resolve: () => [{}, {}],
+    }),
+    ObjFieldExpectsGrantsListMissing: t.field({
+      type: [ObjFieldExpectsGrants],
+      nullable: { items: true, list: true },
+      resolve: () => [{}, {}],
+    }),
+    ObjFieldExpectsGrantsListFn: t.field({
+      type: [ObjFieldExpectsGrants],
+      nullable: { items: true, list: true },
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => [{}, {}],
+    }),
+    ObjFieldExpectsGrantsListAsyncFn: t.field({
+      type: [ObjFieldExpectsGrants],
+      nullable: { items: true, list: true },
+      args: {
+        result: t.arg.boolean({ required: true }),
+      },
+      grantScopes: async (parent, args) => (args.result ? ['grantedFromParent'] : []),
+      resolve: () => [{}, {}],
+    }),
     ObjAdminIface: t.field({
       type: ObjAdminIface,
+      nullable: true,
       resolve: () => ({}),
     }),
     ObjBooleanIface: t.field({
       type: ObjBooleanIface,
+      nullable: true,
       args: {
         result: t.arg.boolean({
           required: true,
@@ -490,10 +694,12 @@ builder.queryType({
     }),
     IfaceForAdmin: t.field({
       type: IfaceForAdmin,
+      nullable: true,
       resolve: () => ({}),
     }),
     IfaceBooleanFn: t.field({
       type: IfaceBooleanFn,
+      nullable: true,
       args: {
         result: t.arg.boolean({
           required: true,
