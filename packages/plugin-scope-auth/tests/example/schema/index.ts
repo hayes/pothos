@@ -211,6 +211,50 @@ const ObjBooleanFn = builder.objectRef<{ result: boolean }>('ObjBooleanFn').impl
   }),
 });
 
+const IfaceForAdmin = builder.interfaceRef('IfaceForAdmin').implement({
+  authScopes: {
+    admin: true,
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const IfaceBooleanFn = builder.interfaceRef<{ result: boolean }>('IfaceBooleanFn').implement({
+  authScopes: (parent, context) => {
+    context.count?.('ObjBooleanFn');
+
+    return parent.result;
+  },
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjAdminIface = builder.objectRef('ObjAdminIface').implement({
+  isTypeOf: () => true,
+  interfaces: [IfaceForAdmin],
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjBooleanIface = builder.objectRef<{ result: boolean }>('ObjBooleanIface').implement({
+  isTypeOf: () => true,
+  interfaces: [IfaceBooleanFn],
+  fields: (t) => ({
+    field: t.string({
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     forAdmin: t.string({
@@ -424,6 +468,32 @@ builder.queryType({
     }),
     ObjBooleanFn: t.field({
       type: ObjBooleanFn,
+      args: {
+        result: t.arg.boolean({
+          required: true,
+        }),
+      },
+      resolve: (parent, args) => ({ result: args.result }),
+    }),
+    ObjAdminIface: t.field({
+      type: ObjAdminIface,
+      resolve: () => ({}),
+    }),
+    ObjBooleanIface: t.field({
+      type: ObjBooleanIface,
+      args: {
+        result: t.arg.boolean({
+          required: true,
+        }),
+      },
+      resolve: (parent, args) => ({ result: args.result }),
+    }),
+    IfaceForAdmin: t.field({
+      type: IfaceForAdmin,
+      resolve: () => ({}),
+    }),
+    IfaceBooleanFn: t.field({
+      type: IfaceBooleanFn,
       args: {
         result: t.arg.boolean({
           required: true,

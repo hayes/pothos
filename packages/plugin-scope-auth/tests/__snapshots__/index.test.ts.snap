@@ -1,7 +1,23 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`example schema generates expected schema 1`] = `
-"type ObjBooleanFn {
+"interface IfaceBooleanFn {
+  field: String!
+}
+
+interface IfaceForAdmin {
+  field: String!
+}
+
+type ObjAdminIface implements IfaceForAdmin {
+  field: String!
+}
+
+type ObjBooleanFn {
+  field: String!
+}
+
+type ObjBooleanIface implements IfaceBooleanFn {
   field: String!
 }
 
@@ -77,7 +93,11 @@ type Query {
   forBooleanFn(result: Boolean!): String!
   forSyncPermission: String!
   forSyncPermissionFn(permission: String): String!
+  IfaceBooleanFn(result: Boolean!): IfaceBooleanFn!
+  IfaceForAdmin: IfaceForAdmin!
+  ObjAdminIface: ObjAdminIface!
   ObjBooleanFn(result: Boolean!): ObjBooleanFn!
+  ObjBooleanIface(result: Boolean!): ObjBooleanIface!
   ObjEmptyAll: ObjEmptyAll!
   ObjEmptyAllFn: ObjEmptyAllFn!
   ObjEmptyAny: ObjEmptyAny!

@@ -64,28 +64,56 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     const fieldAuthScopes = fieldConfig.giraphqlOptions.authScopes;
     const fieldGrantScopes = fieldConfig.giraphqlOptions.grantScopes;
 
+    const interfaceConfigs =
+      typeConfig.kind === 'Object' || typeConfig.kind === 'Interface'
+        ? typeConfig.interfaces.map((iface) =>
+            this.configStore.getTypeConfig(iface.name, 'Interface'),
+          )
+        : [];
+
     const steps: ResolveStep<Types>[] = [];
 
-    // TODO add steps for interfaces
     // TODO add validation for required checks based on options
 
     if (parentAuthScope) {
       steps.push(
-        createTypeAuthScopesStep<Types>(
+        createTypeAuthScopesStep(
           parentAuthScope as TypeAuthScopes<Types, unknown>,
           typeConfig.name,
         ),
       );
     }
 
+    interfaceConfigs.forEach((interfaceConfig) => {
+      if (interfaceConfig.giraphqlOptions.authScopes) {
+        steps.push(
+          createTypeAuthScopesStep(
+            interfaceConfig.giraphqlOptions.authScopes as TypeAuthScopes<Types, unknown>,
+            interfaceConfig.name,
+          ),
+        );
+      }
+    });
+
     if (parentGrantScopes) {
       steps.push(
-        createTypeGrantScopesStep<Types>(
+        createTypeGrantScopesStep(
           parentGrantScopes as TypeGrantScopes<Types, unknown>,
           typeConfig.name,
         ),
       );
     }
+
+    interfaceConfigs.forEach((interfaceConfig) => {
+      if (interfaceConfig.giraphqlOptions.grantScopes) {
+        steps.push(
+          createTypeGrantScopesStep(
+            interfaceConfig.giraphqlOptions.grantScopes as TypeGrantScopes<Types, unknown>,
+            interfaceConfig.name,
+          ),
+        );
+      }
+    });
 
     if (fieldAuthScopes) {
       steps.push(createFieldAuthScopesStep(fieldAuthScopes));
