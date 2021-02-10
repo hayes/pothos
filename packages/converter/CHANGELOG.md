@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.0-alpha.0 - 2021-02-10
+
+#### 🛠 Internals
+
+- bump converter to 2.0 ([bf0964d](https://github.com/hayes/giraphql/commit/bf0964d))
+
+**Note:** Version bump only for package @giraphql/converter
+
+
+
+
+
 ### 1.4.3-alpha.2 - 2021-02-10
 
 **Note:** Version bump only for package @giraphql/converter
