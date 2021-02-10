@@ -1,8 +1,10 @@
 {
+  "version": "independent",
   "npmClient": "yarn",
   "useWorkspaces": true,
   "command": {
     "publish": {
+      "message": "chore(release): publish",
       "ignoreChanges": [
         "*.md",
         "*.test.ts",
@@ -12,6 +14,5 @@
   },
   "packages": [
     "./packages/*"
-  ],
-  "version": "2.0.0-alpha.1"
+  ]
 }
