@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.0-alpha.1 - 2021-02-10
+
+#### 🛠 Internals
+
+- fix broken dev deps ([7af8a0a](https://github.com/hayes/giraphql/commit/7af8a0a))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 # 2.0.0-alpha.0 - 2021-02-10
 
 #### 💥 Breaking
