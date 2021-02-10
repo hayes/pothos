@@ -1,28 +1,40 @@
 import SchemaBuilder, { SchemaTypes, BasePlugin, GiraphQLOutputFieldConfig } from '@giraphql/core';
+import { GraphQLFieldResolver } from 'graphql';
 import { ResolverMap } from './types';
-import { MocksFieldWrapper } from './field-wrapper';
 
 import './global-types';
 
 export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapOutputField(
+  wrapResolve(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
     buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
-  ) {
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const { mocks } = buildOptions;
 
     if (!mocks) {
-      return null;
+      return resolver;
     }
 
     const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
-    const subscribeMock = this.subscribeMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
-    if (resolveMock || subscribeMock) {
-      return new MocksFieldWrapper(fieldConfig, resolveMock, subscribeMock);
+    return resolveMock || resolver;
+  }
+
+  wrapSubscribe(
+    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    const { mocks } = buildOptions;
+
+    if (!mocks) {
+      return subscribe;
     }
 
-    return null;
+    const subscribeMock = this.subscribeMock(fieldConfig.parentType, fieldConfig.name, mocks);
+
+    return subscribeMock || subscribe;
   }
 
   resolveMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {

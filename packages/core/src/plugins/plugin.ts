@@ -10,9 +10,6 @@ import {
   GiraphQLUnionTypeConfig,
   GiraphQLEnumValueConfig,
 } from '../types';
-import BaseFieldWrapper from './field-wrapper';
-
-export { BaseFieldWrapper };
 
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   name: keyof GiraphQLSchemaTypes.Plugins<Types>;
@@ -44,16 +41,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
 
   afterBuild(schema: GraphQLSchema, options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {}
 
-  /**
-   * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
-   */
-  wrapOutputField(
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
-  ): BaseFieldWrapper<Types> | BaseFieldWrapper<Types>[] | null {
-    return null;
-  }
-
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
@@ -76,13 +63,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
     return resolveType;
-  }
-
-  /**
-   * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
-   */
-  usesFieldWrapper() {
-    return this.wrapOutputField !== BasePlugin.prototype.wrapOutputField;
   }
 
   protected createRequestData(context: Types['Context']): T {

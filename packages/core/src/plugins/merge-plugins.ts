@@ -21,7 +21,6 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
   onInputFieldPlugins;
   onOutputFieldPlugins;
   onEnumValuePlugins;
-  wrapOutputFieldPlugins;
   beforeBuildPlugins;
   afterBuildPlugins;
   wrapResolvePlugins;
@@ -50,11 +49,6 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     this.onOutputFieldPlugins = plugins.filter((plugin) => plugin.onOutputFieldConfig) as Pick<
       Required<BasePlugin<Types>>,
       'onOutputFieldConfig'
-    >[];
-
-    this.wrapOutputFieldPlugins = plugins.filter((plugin) => plugin.usesFieldWrapper()) as Pick<
-      Required<BasePlugin<Types>>,
-      'wrapOutputField'
     >[];
 
     this.onEnumValuePlugins = plugins.filter((plugin) => plugin.onEnumValueConfig) as Pick<
@@ -92,29 +86,6 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     for (const plugin of this.onTypePlugins) {
       plugin.onTypeConfig(typeConfig);
     }
-  }
-
-  wrapOutputField(
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
-  ) {
-    const all = [];
-
-    for (const plugin of this.wrapOutputFieldPlugins) {
-      const wrappers = plugin.wrapOutputField(fieldConfig, buildOptions);
-
-      if (Array.isArray(wrappers)) {
-        all.push(...wrappers);
-      } else if (wrappers) {
-        all.push(wrappers);
-      }
-    }
-
-    return all;
-  }
-
-  usesFieldWrapper() {
-    return this.wrapOutputFieldPlugins.length > 0;
   }
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {

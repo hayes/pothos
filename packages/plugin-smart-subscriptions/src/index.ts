@@ -3,7 +3,6 @@ import SchemaBuilder, {
   BasePlugin,
   SchemaTypes,
   GiraphQLOutputFieldConfig,
-  ValueWrapper,
   FieldRef,
   BuildCache,
 } from '@giraphql/core';
@@ -82,7 +81,7 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
             },
             subscribe: (parent, args, context, info) => {
               const manager = new SubscriptionManager({
-                value: new ValueWrapper(parent, {}),
+                value: parent,
                 debounceDelay: this.debounceDelay,
                 subscribe: (subName, cb) => this.subscribe(subName, context, cb),
                 unsubscribe: (subName) => this.unsubscribe(subName, context),
