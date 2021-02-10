@@ -318,7 +318,6 @@ export default class BuildCache<Types extends SchemaTypes> {
           config,
           this.options,
         ),
-        // TODO: only do this for real subscribes
         subscribe: this.plugin.wrapSubscribe(
           fieldWrapper ? wrapSubscriber(config, fieldWrapper) : config.subscribe,
           config,

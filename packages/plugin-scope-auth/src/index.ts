@@ -75,8 +75,6 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
 
     const steps: ResolveStep<Types>[] = [];
 
-    // TODO add validation for required checks based on options
-
     if (parentAuthScope && !fieldConfig.giraphqlOptions.skipTypeScopes) {
       steps.push(
         createTypeAuthScopesStep(
