@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/converter",
-  "version": "1.4.3-alpha.1",
+  "version": "1.4.3-alpha.2",
   "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
   "main": "lib/index.js",
   "scripts": {
@@ -24,7 +24,7 @@
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^1.6.0-alpha.1",
+    "@giraphql/core": "^2.0.0-alpha.0",
     "@types/yargs": "^15.0.12"
   }
 }

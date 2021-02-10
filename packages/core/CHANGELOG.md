@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 2.0.0-alpha.0 - 2021-02-10
+
+#### 💥 Breaking
+
+- remove field wrapper plugin api ([5d7af54](https://github.com/hayes/giraphql/commit/5d7af54))
+- updated plugin API to initialize new plugins when calling toSchema ([05890db](https://github.com/hayes/giraphql/commit/05890db))
+- you can no-longer define args on 'exposed' fields ([240162b](https://github.com/hayes/giraphql/commit/240162b))
+
+#### 🚀 Updates
+
+- add directives plugin ([b44ccde](https://github.com/hayes/giraphql/commit/b44ccde))
+
+#### 🐞 Fixes
+
+- add useGraphQLToolsUnorderedDirectives option to directive plugin ([a9e1ca6](https://github.com/hayes/giraphql/commit/a9e1ca6))
+
+#### 📘 Docs
+
+- add initial docs for scope auth plugin ([15b086d](https://github.com/hayes/giraphql/commit/15b086d))
+
+#### 🛠 Internals
+
+- add some basic scope-auth tests ([7ceb24a](https://github.com/hayes/giraphql/commit/7ceb24a))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 1.6.0-alpha.1 - 2021-02-01
 
 #### 🐞 Fixes

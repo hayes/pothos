@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 2.0.0-alpha.0 - 2021-02-10
+
+#### 💥 Breaking
+
+- bump peer deps to 2.0 range ([2a0fae8](https://github.com/hayes/giraphql/commit/2a0fae8))
+- remove field wrapper plugin api ([5d7af54](https://github.com/hayes/giraphql/commit/5d7af54))
+
+**Note:** Version bump only for package @giraphql/plugin-mocks
+
+
+
+
+
 ### 1.2.1 - 2021-02-07
 
 #### 🐞 Fixes
