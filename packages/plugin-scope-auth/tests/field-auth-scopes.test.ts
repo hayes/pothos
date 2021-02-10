@@ -593,7 +593,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "data": null,
+        "data": Object {
+          "forSyncPermissionFn": null,
+        },
         "errors": Array [
           [GraphQLError: Not authorized to resolve Query.forSyncPermissionFn],
         ],
@@ -648,7 +650,9 @@ describe('queries for field authScopes with', () => {
 
     expect(result).toMatchInlineSnapshot(`
       Object {
-        "data": null,
+        "data": Object {
+          "forAsyncPermissionFn": null,
+        },
         "errors": Array [
           [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
         ],

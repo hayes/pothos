@@ -182,7 +182,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       Object {
         "data": Object {
-          "ObjForAsyncPerm": null,
+          "ObjForAsyncPerm": Object {
+            "field": null,
+          },
         },
         "errors": Array [
           [GraphQLError: Not authorized to read fields for ObjForAsyncPerm],
@@ -680,7 +682,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       Object {
         "data": Object {
-          "ObjForSyncPermFn": null,
+          "ObjForSyncPermFn": Object {
+            "field": null,
+          },
         },
         "errors": Array [
           [GraphQLError: Not authorized to read fields for ObjForSyncPermFn],

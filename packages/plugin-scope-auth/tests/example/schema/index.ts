@@ -63,6 +63,7 @@ const ObjForSyncPermFn = builder.objectRef<{ permission: string }>('ObjForSyncPe
   },
   fields: (t) => ({
     field: t.string({
+      nullable: true,
       resolve: () => 'ok',
     }),
   }),
@@ -74,6 +75,7 @@ const ObjForAsyncPerm = builder.objectRef<{}>('ObjForAsyncPerm').implement({
   },
   fields: (t) => ({
     field: t.string({
+      nullable: true,
       resolve: () => 'ok',
     }),
   }),
@@ -309,6 +311,8 @@ const ObjWithSkipFields = builder.objectRef<{}>('ObjWithSkipFields').implement({
   }),
 });
 
+const Reused = {};
+
 const ObjWithIfaceSkipFields = builder.objectRef<{}>('ObjWithIfaceSkipFields').implement({
   isTypeOf: () => true,
   interfaces: [IfaceForAdmin],
@@ -426,6 +430,7 @@ builder.queryType({
       args: {
         permission: t.arg.string({}),
       },
+      nullable: true,
       authScopes: (parent, args, context) => {
         context.count?.('forSyncPermissionFn');
 
@@ -439,6 +444,7 @@ builder.queryType({
       args: {
         permission: t.arg.string({}),
       },
+      nullable: true,
       authScopes: (parent, args, context) => {
         context.count?.('forAsyncPermissionFn');
 
@@ -559,6 +565,11 @@ builder.queryType({
       type: ObjForAdminFn,
       nullable: true,
       resolve: () => ({}),
+    }),
+    ObjForAdminFnReused: t.field({
+      type: ObjForAdminFn,
+      nullable: true,
+      resolve: () => Reused,
     }),
     ObjForAdminAsyncFn: t.field({
       type: ObjForAdminAsyncFn,

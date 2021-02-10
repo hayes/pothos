@@ -19,8 +19,16 @@ const builder = new SchemaBuilder<{
   authScopes: async (context) => ({
     loggedIn: !!context.User,
     admin: !!context.User?.roles.includes('admin'),
-    syncPermission: (perm) => !!context.User?.permissions.includes(perm),
-    asyncPermission: (perm) => !!context.User?.permissions.includes(perm),
+    syncPermission: (perm) => {
+      context.count?.('syncPermission');
+
+      return !!context.User?.permissions.includes(perm);
+    },
+    asyncPermission: async (perm) => {
+      context.count?.('asyncPermission');
+
+      return !!context.User?.permissions.includes(perm);
+    },
   }),
 });
 

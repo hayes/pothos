@@ -74,7 +74,7 @@ type ObjForAnyFn {
 }
 
 type ObjForAsyncPerm {
-  field: String!
+  field: String
 }
 
 type ObjForAsyncPermFn {
@@ -86,7 +86,7 @@ type ObjForSyncPerm {
 }
 
 type ObjForSyncPermFn {
-  field: String!
+  field: String
 }
 
 type ObjWithIfaceSkipFields implements IfaceForAdmin {
@@ -113,10 +113,10 @@ type Query {
   forAny: String!
   forAnyFn: String!
   forAsyncPermission: String!
-  forAsyncPermissionFn(permission: String): String!
+  forAsyncPermissionFn(permission: String): String
   forBooleanFn(result: Boolean!): String!
   forSyncPermission: String!
-  forSyncPermissionFn(permission: String): String!
+  forSyncPermissionFn(permission: String): String
   grantedFromRoot: String!
   IfaceBooleanFn(result: Boolean!): IfaceBooleanFn
   IfaceForAdmin: IfaceForAdmin
@@ -147,6 +147,7 @@ type Query {
   ObjForAdmin: ObjForAdmin
   ObjForAdminAsyncFn: ObjForAdminAsyncFn
   ObjForAdminFn: ObjForAdminFn
+  ObjForAdminFnReused: ObjForAdminFn
   ObjForAll: ObjForAll
   ObjForAllFn: ObjForAllFn
   ObjForAny: ObjForAny
