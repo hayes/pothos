@@ -100,7 +100,7 @@ export default class FieldBuilder<
         ParentShape,
         ResolveReturnShape
       >,
-      'resolve' | 'type'
+      'resolve' | 'type' | 'args'
     >,
   ) {
     return this.exposeField<'Int', Nullable, Name>(name, { ...options, type: 'Int' });
