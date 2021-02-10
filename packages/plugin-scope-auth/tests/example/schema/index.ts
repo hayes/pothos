@@ -293,6 +293,57 @@ const ObjBooleanIface = builder.objectRef<{ result: boolean }>('ObjBooleanIface'
   }),
 });
 
+const ObjWithSkipFields = builder.objectRef<{}>('ObjWithSkipFields').implement({
+  authScopes: {
+    syncPermission: 'a',
+  },
+  fields: (t) => ({
+    skip: t.string({
+      authScopes: {
+        syncPermission: 'b',
+      },
+      nullable: true,
+      skipTypeScopes: true,
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
+const ObjWithIfaceSkipFields = builder.objectRef<{}>('ObjWithIfaceSkipFields').implement({
+  isTypeOf: () => true,
+  interfaces: [IfaceForAdmin],
+  authScopes: {
+    syncPermission: 'a',
+  },
+  fields: (t) => ({
+    skipType: t.string({
+      authScopes: {
+        syncPermission: 'b',
+      },
+      skipTypeScopes: true,
+      nullable: true,
+      resolve: () => 'ok',
+    }),
+    skipIface: t.string({
+      authScopes: {
+        syncPermission: 'b',
+      },
+      skipInterfaceScopes: true,
+      nullable: true,
+      resolve: () => 'ok',
+    }),
+    skipBoth: t.string({
+      authScopes: {
+        syncPermission: 'b',
+      },
+      skipTypeScopes: true,
+      skipInterfaceScopes: true,
+      nullable: true,
+      resolve: () => 'ok',
+    }),
+  }),
+});
+
 builder.queryType({
   grantScopes: (root, context) => {
     context.count?.('Query.grantScopes');
@@ -706,6 +757,17 @@ builder.queryType({
         }),
       },
       resolve: (parent, args) => ({ result: args.result }),
+    }),
+    ObjWithSkipFields: t.field({
+      type: ObjWithSkipFields,
+      nullable: true,
+      resolve: () => ({}),
+    }),
+    ObjWithIfaceSkipFields: t.field({
+      type: ObjWithIfaceSkipFields,
+      nullable: true,
+
+      resolve: () => ({}),
     }),
   }),
 });

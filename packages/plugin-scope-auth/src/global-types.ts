@@ -64,6 +64,26 @@ declare global {
     > {
       authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
+      skipTypeScopes?: boolean;
+    }
+
+    export interface ObjectFieldOptions<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveReturnShape
+    > extends FieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ParentShape,
+        ResolveReturnShape
+      > {
+      skipInterfaceScopes?: boolean;
     }
 
     export interface InterfaceFieldOptions<
@@ -82,28 +102,7 @@ declare global {
         ParentShape,
         ResolveReturnShape
       > {
-      authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
-      grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
-    }
-
-    export interface SubscriptionFieldOptions<
-      Types extends SchemaTypes,
-      Type extends TypeParam<Types>,
-      Nullable extends FieldNullability<Type>,
-      Args extends InputFieldMap,
-      ResolveShape,
-      ResolveReturnShape
-    > extends FieldOptions<
-        Types,
-        Types['Root'],
-        Type,
-        Nullable,
-        Args,
-        ResolveShape,
-        ResolveReturnShape
-      > {
-      authScopes?: FieldAuthScopes<Types, Types['Root'], InputShapeFromFields<Args>>;
-      grantScopes?: FieldGrantScopes<Types, Types['Root'], InputShapeFromFields<Args>>;
+      skipInterfaceScopes?: boolean;
     }
   }
 }

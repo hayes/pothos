@@ -75,7 +75,7 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
 
     // TODO add validation for required checks based on options
 
-    if (parentAuthScope) {
+    if (parentAuthScope && !fieldConfig.giraphqlOptions.skipTypeScopes) {
       steps.push(
         createTypeAuthScopesStep(
           parentAuthScope as TypeAuthScopes<Types, unknown>,
@@ -84,16 +84,21 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
       );
     }
 
-    interfaceConfigs.forEach((interfaceConfig) => {
-      if (interfaceConfig.giraphqlOptions.authScopes) {
-        steps.push(
-          createTypeAuthScopesStep(
-            interfaceConfig.giraphqlOptions.authScopes as TypeAuthScopes<Types, unknown>,
-            interfaceConfig.name,
-          ),
-        );
-      }
-    });
+    if (
+      !(fieldConfig.kind === 'Interface' || fieldConfig.kind === 'Object') ||
+      !fieldConfig.giraphqlOptions.skipInterfaceScopes
+    ) {
+      interfaceConfigs.forEach((interfaceConfig) => {
+        if (interfaceConfig.giraphqlOptions.authScopes) {
+          steps.push(
+            createTypeAuthScopesStep(
+              interfaceConfig.giraphqlOptions.authScopes as TypeAuthScopes<Types, unknown>,
+              interfaceConfig.name,
+            ),
+          );
+        }
+      });
+    }
 
     if (parentGrantScopes) {
       steps.push(
