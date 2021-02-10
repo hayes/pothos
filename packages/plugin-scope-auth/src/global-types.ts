@@ -28,6 +28,10 @@ declare global {
       authScopes: ScopeAuthInitializer<Types>;
     }
 
+    export interface BuildSchemaOptions<Types extends SchemaTypes> {
+      disableScopeAuth?: boolean;
+    }
+
     export interface TypeInfo {
       AuthScopes: {};
     }

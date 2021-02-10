@@ -89,6 +89,17 @@ type ObjForSyncPermFn {
   field: String!
 }
 
+type ObjWithIfaceSkipFields implements IfaceForAdmin {
+  field: String!
+  skipBoth: String
+  skipIface: String
+  skipType: String
+}
+
+type ObjWithSkipFields {
+  skip: String
+}
+
 type Query {
   emptyAll: String!
   emptyAllFn: String!
@@ -144,6 +155,8 @@ type Query {
   ObjForAsyncPermFn(permission: String): ObjForAsyncPermFn
   ObjForSyncPerm: ObjForSyncPerm
   ObjForSyncPermFn(permission: String): ObjForSyncPermFn
+  ObjWithIfaceSkipFields: ObjWithIfaceSkipFields
+  ObjWithSkipFields: ObjWithSkipFields
 }
 "
 `;

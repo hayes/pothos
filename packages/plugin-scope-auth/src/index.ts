@@ -30,7 +30,9 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
     buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    // TODO add build option for disabling auth
+    if (buildOptions.disableScopeAuth) {
+      return resolver;
+    }
 
     const typeConfig = this.configStore.getTypeConfig(fieldConfig.parentType);
 
