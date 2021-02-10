@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.0-alpha.1 - 2021-02-10
+
+#### 🛠 Internals
+
+- bump simple-objects to 2.0 ([2ee091a](https://github.com/hayes/giraphql/commit/2ee091a))
+
+**Note:** Version bump only for package @giraphql/plugin-simple-objects
+
+
+
+
+
 ### 1.2.2-alpha.0 - 2021-02-10
 
 #### 🛠 Internals
