@@ -1,15 +1,16 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
-import { BuildCache } from '..';
 import ConfigStore from '../config-store';
 import {
-  SchemaTypes,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
+  GiraphQLEnumValueConfig,
   GiraphQLInputFieldConfig,
   GiraphQLInterfaceTypeConfig,
+  GiraphQLOutputFieldConfig,
+  GiraphQLTypeConfig,
   GiraphQLUnionTypeConfig,
-  GiraphQLEnumValueConfig,
+  SchemaTypes,
 } from '../types';
+
+import { BuildCache } from '..';
 
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   name: keyof GiraphQLSchemaTypes.Plugins<Types>;

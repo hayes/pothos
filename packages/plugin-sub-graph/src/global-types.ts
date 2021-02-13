@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -9,7 +10,6 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GraphQLSchema } from 'graphql';
 import SubGraphPlugin from '.';
 
 declare global {

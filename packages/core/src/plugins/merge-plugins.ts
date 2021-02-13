@@ -1,20 +1,21 @@
 /* eslint-disable lines-between-class-members */
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import {
-  SchemaTypes,
-  GiraphQLTypeConfig,
-  GiraphQLInputFieldConfig,
-  GiraphQLOutputFieldConfig,
-  PluginMap,
-  PluginName,
-  BuildCache,
-} from '..';
-import {
   GiraphQLEnumValueConfig,
   GiraphQLInterfaceTypeConfig,
   GiraphQLUnionTypeConfig,
 } from '../types';
 import { BasePlugin } from './plugin';
+
+import {
+  BuildCache,
+  GiraphQLInputFieldConfig,
+  GiraphQLOutputFieldConfig,
+  GiraphQLTypeConfig,
+  PluginMap,
+  PluginName,
+  SchemaTypes,
+} from '..';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
   onTypePlugins;

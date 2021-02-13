@@ -6,7 +6,7 @@ export default class OutputTypeRef<T> extends BaseTypeRef {
 
   [outputShapeKey]: T;
 
-  constructor(kind: 'Object' | 'Interface' | 'Union' | 'Enum' | 'Scalar', name: string) {
+  constructor(kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union', name: string) {
     super(kind, name);
     this.kind = kind;
   }

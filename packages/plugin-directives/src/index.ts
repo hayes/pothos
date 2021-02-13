@@ -1,4 +1,6 @@
 /* eslint-disable no-param-reassign */
+import './global-types';
+import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   GiraphQLEnumValueConfig,
@@ -7,8 +9,6 @@ import SchemaBuilder, {
   GiraphQLTypeConfig,
   SchemaTypes,
 } from '@giraphql/core';
-import { GraphQLSchema } from 'graphql';
-import './global-types';
 import mockAst from './mock-ast';
 import { DirectiveList } from './types';
 
@@ -63,7 +63,7 @@ export default class DirectivesPlugin<Types extends SchemaTypes> extends BasePlu
     mockAst(schema);
   }
 
-  normalizeDirectives(directives: Record<string, {}> | DirectiveList) {
+  normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
     if (this.builder.options.useGraphQLToolsUnorderedDirectives) {
       if (!Array.isArray(directives)) {
         return directives;

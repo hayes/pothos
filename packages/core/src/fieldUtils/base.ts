@@ -1,13 +1,13 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
-import { TypeParam, CompatibleTypes, FieldNullability, SchemaTypes } from '../types';
+import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types';
+import { typeFromParam } from '../utils';
+
 import {
-  ShapeFromTypeParam,
-  InputFieldMap,
   FieldKind,
   FieldRef,
   GiraphQLInputFieldConfig,
+  InputFieldMap,
+  ShapeFromTypeParam,
 } from '..';
-import { typeFromParam } from '../utils';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   typename: string;
@@ -35,6 +35,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>
   >(
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(
@@ -46,15 +47,15 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       const args: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
 
       if (options.args) {
-        Object.keys(options.args).forEach((name) => {
-          const ref = options.args![name];
+        Object.keys(options.args).forEach((argName) => {
+          const argRef = options.args![argName];
 
-          args[name] = this.builder.configStore.createFieldConfig(ref, name, 'Arg');
+          args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, 'Arg');
         });
       }
 
       return {
-        kind: this.kind as any,
+        kind: this.kind as never,
         graphqlKind: this.graphqlKind as GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
         parentType: this.typename,
         name,
@@ -64,7 +65,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
           this.builder.configStore,
           options.nullable ?? this.builder.defaultFieldNullability,
         ),
-        giraphqlOptions: options as any,
+        giraphqlOptions: options as never,
         description: options.description,
         resolve:
           (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
@@ -91,7 +92,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
-      resolve: (parent) => (parent as { [s: string]: any })[name as string],
+      resolve: (parent) => (parent as { [s: string]: never })[name as string],
     });
   }
 }

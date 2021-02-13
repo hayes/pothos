@@ -7,27 +7,27 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import { SchemaTypes, FieldMap, InputRef, OutputRef, GiraphQLEnumValueConfig } from './types';
+import { BasePlugin } from './plugins';
+import BaseTypeRef from './refs/base';
+import BuiltinScalarRef from './refs/builtin-scalar';
+import InputTypeRef from './refs/input';
+import OutputTypeRef from './refs/output';
+import { FieldMap, GiraphQLEnumValueConfig,InputRef, OutputRef, SchemaTypes } from './types';
 import {
-  GiraphQLTypeConfig,
   ConfigurableRef,
   FieldRef,
   GiraphQLFieldConfig,
-  InputFieldRef,
-  InputFieldMap,
-  GraphQLFieldKind,
-  TypeParam,
-  InputTypeParam,
-  OutputType,
-  InputType,
   GiraphQLObjectTypeConfig,
   GiraphQLOutputFieldConfig,
+  GiraphQLTypeConfig,
+  GraphQLFieldKind,
+  InputFieldMap,
+  InputFieldRef,
+  InputType,
+  InputTypeParam,
+  OutputType,
+  TypeParam,
 } from '.';
-import BaseTypeRef from './refs/base';
-import InputTypeRef from './refs/input';
-import OutputTypeRef from './refs/output';
-import BuiltinScalarRef from './refs/builtin-scalar';
-import { BasePlugin } from './plugins';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   typeConfigs = new Map<string, GiraphQLTypeConfig>();
@@ -45,7 +45,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, GiraphQLFieldConfig<Types>[]>();
 
-  private pendingFields = new Map<FieldRef | InputFieldRef, OutputType<Types> | InputType<Types>>();
+  private pendingFields = new Map<FieldRef | InputFieldRef, InputType<Types> | OutputType<Types>>();
 
   private pendingRefResolutions = new Map<
     ConfigurableRef<Types>,
@@ -88,7 +88,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
   addFieldRef(
     ref: FieldRef | InputFieldRef,
     // We need to be able to resolve the types kind before configuring the field
-    typeParam: TypeParam<Types> | InputTypeParam<Types>,
+    typeParam: InputTypeParam<Types> | TypeParam<Types>,
     args: InputFieldMap,
     getConfig: (name: string) => GiraphQLFieldConfig<Types>,
   ) {
@@ -220,7 +220,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
   }
 
   getTypeConfig<T extends GiraphQLTypeConfig['kind']>(
-    ref: string | ConfigurableRef<Types>,
+    ref: ConfigurableRef<Types> | string,
     kind?: T,
   ) {
     let config: GiraphQLTypeConfig;
@@ -243,7 +243,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     return config as Extract<GiraphQLTypeConfig, { kind: T }>;
   }
 
-  getInputTypeRef(ref: string | ConfigurableRef<Types>) {
+  getInputTypeRef(ref: ConfigurableRef<Types> | string) {
     if (ref instanceof BaseTypeRef) {
       if (ref.kind !== 'InputObject' && ref.kind !== 'Enum' && ref.kind !== 'Scalar') {
         throw new TypeError(`Expected ${ref.name} to be an input type but got ${ref.kind}`);
@@ -281,7 +281,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     return ref as InputType<Types>;
   }
 
-  getOutputTypeRef(ref: string | ConfigurableRef<Types>) {
+  getOutputTypeRef(ref: ConfigurableRef<Types> | string) {
     if (ref instanceof BaseTypeRef) {
       if (ref.kind === 'InputObject') {
         throw new TypeError(`Expected ${ref.name} to be an output type but got ${ref.name}`);
@@ -397,7 +397,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     });
   }
 
-  getImplementers(ref: string | ConfigurableRef<Types>) {
+  getImplementers(ref: ConfigurableRef<Types> | string) {
     const typeConfig = this.getTypeConfig(ref, 'Interface');
 
     const implementers = [...this.typeConfigs.values()].filter(

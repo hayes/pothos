@@ -1,5 +1,5 @@
-import { MaybePromise, Merge, SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
+import { MaybePromise, Merge, SchemaTypes } from '@giraphql/core';
 import ResolveState from './resolve-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -12,7 +12,7 @@ export interface BuiltInScopes<Types extends SchemaTypes> {
 }
 
 export type AuthScopeMap<Types extends SchemaTypes> = Merge<
-  Partial<Types['AuthScopes']> & BuiltInScopes<Types>
+  BuiltInScopes<Types> & Partial<Types['AuthScopes']>
 >;
 
 export type ScopeLoaderMap<Types extends SchemaTypes> = {

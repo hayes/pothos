@@ -6,7 +6,7 @@ export default class InputTypeRef<T> extends BaseTypeRef {
 
   [inputShapeKey]: T;
 
-  constructor(kind: 'Enum' | 'Scalar' | 'InputObject', name: string) {
+  constructor(kind: 'Enum' | 'InputObject' | 'Scalar', name: string) {
     super(kind, name);
     this.kind = kind;
   }

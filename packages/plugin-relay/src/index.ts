@@ -1,30 +1,30 @@
-import SchemaBuilder, {
-  SchemaTypes,
-  BasePlugin,
-  RootFieldBuilder,
-  FieldKind,
-  ObjectRef,
-  InterfaceRef,
-  InterfaceParam,
-  InputFieldMap,
-  FieldNullability,
-  InputShapeFromFields,
-  OutputType,
-  assertArray,
-  ObjectParam,
-  MaybePromise,
-  FieldRef,
-  OutputRef,
-} from '@giraphql/core';
-import { GraphQLResolveInfo } from 'graphql';
 import './global-types';
+import { GraphQLResolveInfo } from 'graphql';
+import SchemaBuilder, {
+  assertArray,
+  BasePlugin,
+  FieldKind,
+  FieldNullability,
+  FieldRef,
+  InputFieldMap,
+  InputShapeFromFields,
+  InterfaceParam,
+  InterfaceRef,
+  MaybePromise,
+  ObjectParam,
+  ObjectRef,
+  OutputRef,
+  OutputType,
+  RootFieldBuilder,
+  SchemaTypes,
+} from '@giraphql/core';
 import {
   ConnectionShape,
-  PageInfoShape,
   GlobalIDFieldOptions,
-  NodeObjectOptions,
-  GlobalIDShape,
   GlobalIDListFieldOptions,
+  GlobalIDShape,
+  NodeObjectOptions,
+  PageInfoShape,
 } from './types';
 
 export * from './utils';
@@ -37,7 +37,7 @@ function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
 
-export function encodeGlobalID(typename: string, id: string | number | bigint) {
+export function encodeGlobalID(typename: string, id: bigint | number | string) {
   return Buffer.from(`${typename}:${id}`).toString('base64');
 }
 
@@ -65,7 +65,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
   ids: string[],
-  type: string | OutputType<Types>,
+  type: OutputType<Types> | string,
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
@@ -144,9 +144,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
   );
 }
 
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<
-  SchemaTypes
->;
+const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
@@ -215,7 +213,8 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
           id: t.arg.id({ required: true }),
         },
         nullable: true,
-        resolve: async (root, args, context) => (await resolveNodes(this, context, [String(args.id)]))[0],
+        resolve: async (root, args, context) =>
+          (await resolveNodes(this, context, [String(args.id)]))[0],
       }) as FieldRef<unknown>,
   );
 
@@ -230,9 +229,12 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         list: false,
         items: true,
       },
-      resolve: async (root, args, context) => (await resolveNodes(this, context, args.ids as string[])) as Promise<ObjectParam<
-          SchemaTypes
-        > | null>[],
+      resolve: async (root, args, context) =>
+        (await resolveNodes(
+          this,
+          context,
+          args.ids as string[],
+        )) as Promise<ObjectParam<SchemaTypes> | null>[],
     }),
   );
 
@@ -305,9 +307,9 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
         nullable: false,
         args: {},
         resolve: async (parent, args, context, info) => ({
-            type: nodeConfig.name,
-            id: await options.id.resolve(parent, args, context, info),
-          }),
+          type: nodeConfig.name,
+          id: await options.id.resolve(parent, args, context, info),
+        }),
       }),
     );
   });
@@ -395,9 +397,9 @@ fieldBuilderProto.node = function node({ id, ...options }) {
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawID = (await id(parent, args as any, context, info)) as
-        | string
+      const rawID = (await id(parent, args as never, context, info)) as
         | GlobalIDShape<SchemaTypes>
+        | string
         | null
         | undefined;
 
@@ -427,7 +429,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
     },
     type: [this.builder.nodeInterfaceRef()],
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawIDList = await ids(parent, args as any, context, info);
+      const rawIDList = await ids(parent, args as never, context, info);
 
       assertArray(rawIDList);
 

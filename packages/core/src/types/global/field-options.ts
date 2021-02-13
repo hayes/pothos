@@ -1,17 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { types } from 'util';
 import {
-  SchemaTypes,
-  TypeParam,
   FieldNullability,
+  FieldRequiredness,
   InputFieldMap,
-  Resolver,
   InputShapeFromFields,
+  InputShapeFromTypeParam,
+  InputType,
+  Resolver,
+  SchemaTypes,
   ShapeFromTypeParam,
   Subscriber,
-  InputType,
-  FieldRequiredness,
-  InputShapeFromTypeParam,
+  TypeParam,
 } from '../..';
 
 declare global {
@@ -229,7 +229,7 @@ declare global {
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
       Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
-      Kind extends 'InputObject' | 'Arg' = 'InputObject' | 'Arg'
+      Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject'
     > = {
       Arg: ArgFieldOptions<Types, Type, Req>;
       InputObject: InputObjectFieldOptions<Types, Type, Req>;

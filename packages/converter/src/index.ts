@@ -1,26 +1,26 @@
 import {
+  GraphQLEnumType,
+  GraphQLEnumValue,
+  GraphQLField,
+  GraphQLInputField,
+  GraphQLInputObjectType,
+  GraphQLInterfaceType,
+  GraphQLList,
+  GraphQLNamedType,
+  GraphQLNonNull,
+  GraphQLObjectType,
+  GraphQLScalarType,
+  GraphQLSchema,
+  GraphQLType,
+  GraphQLUnionType,
+} from 'graphql';
+import {
+  CodeBlockWriter,
   Project,
   SourceFile,
   StructureKind,
   VariableDeclarationKind,
-  CodeBlockWriter,
 } from 'ts-morph';
-import {
-  GraphQLSchema,
-  GraphQLObjectType,
-  GraphQLInterfaceType,
-  GraphQLUnionType,
-  GraphQLScalarType,
-  GraphQLInputObjectType,
-  GraphQLEnumType,
-  GraphQLNamedType,
-  GraphQLField,
-  GraphQLNonNull,
-  GraphQLType,
-  GraphQLList,
-  GraphQLInputField,
-  GraphQLEnumValue,
-} from 'graphql';
 
 const builtins = ['Boolean', 'Int', 'Float', 'String', 'ID'];
 
@@ -50,7 +50,7 @@ function isRecursive(type: GraphQLNamedType, seen: string[] = []): boolean {
   const fieldMap = type.getFields();
   const fields = Object.keys(fieldMap).map((name) => fieldMap[name]);
 
-  return !!fields.find((field) => {
+  return fields.some((field) => {
     const fieldType = unwrap(field.type);
 
     if (fieldType.name === type.name) {
@@ -412,7 +412,7 @@ export default class GirphQLConverter {
     });
   }
 
-  writeObjectShape(writer: CodeBlockWriter, type: GraphQLObjectType | GraphQLInterfaceType) {
+  writeObjectShape(writer: CodeBlockWriter, type: GraphQLInterfaceType | GraphQLObjectType) {
     const fieldMap = type.getFields();
     const inheritedFields =
       type instanceof GraphQLObjectType
@@ -480,7 +480,7 @@ export default class GirphQLConverter {
 
   writeDescription(
     writer: CodeBlockWriter,
-    type: GraphQLNamedType | GraphQLField<unknown, unknown> | GraphQLInputField | GraphQLEnumValue,
+    type: GraphQLEnumValue | GraphQLField<unknown, unknown> | GraphQLInputField | GraphQLNamedType,
   ) {
     if (type.description) {
       writer.write('description:');

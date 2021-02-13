@@ -1,11 +1,10 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 
-import InternalFieldBuilder from '../../fieldUtils/builder';
-import InternalRootFieldBuilder from '../../fieldUtils/root';
-import InternalInputFieldBuilder from '../../fieldUtils/input';
+import { FieldKind,SchemaTypes } from '../..';
 import Builder from '../../builder';
-
-import { SchemaTypes, FieldKind } from '../..';
+import InternalFieldBuilder from '../../fieldUtils/builder';
+import InternalInputFieldBuilder from '../../fieldUtils/input';
+import InternalRootFieldBuilder from '../../fieldUtils/root';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -20,7 +19,7 @@ declare global {
     export interface FieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
-      Kind extends 'Object' | 'Interface' = 'Object' | 'Interface'
+      Kind extends 'Interface' | 'Object' = 'Interface' | 'Object'
     > extends RootFieldBuilder<Types, ParentShape, Kind>,
         InternalFieldBuilder<Types, ParentShape, Kind> {}
 
@@ -41,7 +40,7 @@ declare global {
 
     export interface InputFieldBuilder<
       Types extends SchemaTypes,
-      Kind extends 'InputObject' | 'Arg'
+      Kind extends 'Arg' | 'InputObject'
     > extends InternalInputFieldBuilder<Types, Kind> {}
   }
 }

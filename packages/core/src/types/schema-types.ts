@@ -33,8 +33,7 @@ export type MergedScalars<
 > = SchemaTypes['Scalars'] &
   {
     [K in
-      | keyof PartialTypes['Scalars']
-      | keyof DefaultScalars]: K extends keyof PartialTypes['Scalars']
+      keyof DefaultScalars | keyof PartialTypes['Scalars']]: K extends keyof PartialTypes['Scalars']
       ? PartialTypes['Scalars'][K]
       : K extends keyof DefaultScalars
       ? DefaultScalars[K]
@@ -43,15 +42,14 @@ export type MergedScalars<
 
 export interface DefaultScalars {
   String: { Input: string; Output: string };
-  ID: { Input: string | number; Output: string | number };
+  ID: { Input: number | string; Output: number | string };
   Int: { Input: number; Output: number };
   Float: { Input: number; Output: number };
   Boolean: { Input: boolean; Output: boolean };
 }
 
-export type BaseScalarNames = 'String' | 'ID' | 'Int' | 'Float' | 'Boolean';
+export type BaseScalarNames = 'Boolean' | 'Float' | 'ID' | 'Int' | 'String';
 
-export type ScalarName<Types extends SchemaTypes> = (keyof Types['Scalars'] | BaseScalarNames) &
-  string;
+export type ScalarName<Types extends SchemaTypes> = string & (BaseScalarNames | keyof Types['Scalars']);
 
-export type RootName = 'Query' | 'Mutation' | 'Subscription';
+export type RootName = 'Mutation' | 'Query' | 'Subscription';

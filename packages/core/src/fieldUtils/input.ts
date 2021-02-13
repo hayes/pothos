@@ -1,10 +1,11 @@
 import { InputType, SchemaTypes } from '../types';
-import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder, InputFieldRef } from '..';
 import { inputTypeFromParam } from '../utils';
+
+import { ArgBuilder, FieldRequiredness, InputFieldRef,InputShapeFromTypeParam } from '..';
 
 export default class InputFieldBuilder<
   Types extends SchemaTypes,
-  Kind extends 'InputObject' | 'Arg'
+  Kind extends 'Arg' | 'InputObject'
 > {
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 

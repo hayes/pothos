@@ -1,11 +1,11 @@
 import {
-  TypeParam,
   CompatibleTypes,
-  FieldOptionsFromKind,
-  FieldNullability,
-  SchemaTypes,
-  RootName,
   FieldKind,
+  FieldNullability,
+  FieldOptionsFromKind,
+  RootName,
+  SchemaTypes,
+  TypeParam,
 } from '../types';
 import RootFieldBuilder from './root';
 
@@ -100,7 +100,7 @@ export default class FieldBuilder<
         ParentShape,
         ResolveReturnShape
       >,
-      'resolve' | 'type' | 'args'
+      'args' | 'resolve' | 'type'
     >,
   ) {
     return this.exposeField<'Int', Nullable, Name>(name, { ...options, type: 'Int' });

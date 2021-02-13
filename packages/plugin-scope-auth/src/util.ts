@@ -1,5 +1,5 @@
-import { SchemaTypes } from '@giraphql/core';
 import { Path } from 'graphql/jsutils/Path';
+import { SchemaTypes } from '@giraphql/core';
 import { AuthScopeMap } from '.';
 
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {

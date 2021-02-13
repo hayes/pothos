@@ -1,7 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { GraphQLDirective } from 'graphql';
-import { MergedScalars, SchemaTypes } from '..';
 import { PluginConstructorMap } from '../..';
+
+import { MergedScalars, SchemaTypes } from '..';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -60,15 +61,13 @@ declare global {
       DefaultInputFieldRequiredness: PartialTypes['DefaultInputFieldRequiredness'] extends true
         ? true
         : false;
-      outputShapes: { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] } &
-        { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } &
-        {
+      outputShapes: {
           [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
             Output: infer T;
           }
             ? T
             : never;
-        };
+        } & { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } & { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] };
       inputShapes: {
         [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
           Input: infer T;

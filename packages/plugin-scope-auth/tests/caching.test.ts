@@ -1,7 +1,7 @@
 import { gql } from 'apollo-server';
 import { execute } from 'graphql';
-import User from './example/user';
 import schema from './example/schema';
+import User from './example/user';
 
 class Counter {
   counts = new Map<string, number>();

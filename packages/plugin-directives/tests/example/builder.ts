@@ -1,10 +1,10 @@
-import SchemaBuilder from '@giraphql/core';
 import '../../src';
+import SchemaBuilder from '@giraphql/core';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type DirectiveTypes = {
   rateLimit: {
-    locations: 'OBJECT' | 'FIELD_DEFINITION';
+    locations: 'FIELD_DEFINITION' | 'OBJECT';
     args: {
       limit: number;
       duration: number;

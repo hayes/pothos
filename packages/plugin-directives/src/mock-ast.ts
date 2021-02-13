@@ -1,4 +1,5 @@
 /* eslint-disable no-param-reassign */
+import './global-types';
 import {
   ArgumentNode,
   DirectiveNode,
@@ -23,11 +24,10 @@ import {
   InputValueDefinitionNode,
   ListTypeNode,
   NamedTypeNode,
+  parseValue,
   TypeNode,
   ValueNode,
-  parseValue,
 } from 'graphql';
-import './global-types';
 import { DirectiveList } from './types';
 
 export default function mockAst(schema: GraphQLSchema) {
@@ -119,7 +119,7 @@ function typeNode(type: GraphQLType): TypeNode {
   }
 
   if (type instanceof GraphQLNonNull) {
-    return { kind: 'NonNullType', type: typeNode(type.ofType) as NamedTypeNode | ListTypeNode };
+    return { kind: 'NonNullType', type: typeNode(type.ofType) as ListTypeNode | NamedTypeNode };
   }
 
   return { kind: 'NamedType', name: { kind: 'Name', value: type.name } };

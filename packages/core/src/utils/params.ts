@@ -1,18 +1,19 @@
-import {
-  TypeParam,
-  InputTypeParam,
-  FieldNullability,
-  FieldRequiredness,
-  SchemaTypes,
-  OutputType,
-  GiraphQLInputFieldType,
-  GiraphQLNameInputFieldType,
-  InputType,
-  GiraphQLNameOutputFieldType,
-  GiraphQLOutputFieldType,
-} from '..';
 import ConfigStore from '../config-store';
 import BaseTypeRef from '../refs/base';
+
+import {
+  FieldNullability,
+  FieldRequiredness,
+  GiraphQLInputFieldType,
+  GiraphQLNameInputFieldType,
+  GiraphQLNameOutputFieldType,
+  GiraphQLOutputFieldType,
+  InputType,
+  InputTypeParam,
+  OutputType,
+  SchemaTypes,
+  TypeParam,
+} from '..';
 
 export function typeFromNonListParam<Types extends SchemaTypes>(
   type: OutputType<Types>,

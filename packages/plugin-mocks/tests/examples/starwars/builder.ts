@@ -1,6 +1,5 @@
-import SchemaBuilder from '@giraphql/core';
 import '../../../src';
-
+import SchemaBuilder from '@giraphql/core';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
 interface Types {

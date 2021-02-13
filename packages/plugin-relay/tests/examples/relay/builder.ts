@@ -1,7 +1,7 @@
-import SchemaBuilder from '@giraphql/core';
 import '../../../src';
-import { ContextType } from './types';
+import SchemaBuilder from '@giraphql/core';
 import { Poll } from './data';
+import { ContextType } from './types';
 
 interface TypeInfo {
   Objects: {

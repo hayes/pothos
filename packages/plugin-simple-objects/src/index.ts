@@ -1,12 +1,12 @@
-import SchemaBuilder, {
-  SchemaTypes,
-  ObjectRef,
-  FieldMap,
-  InterfaceRef,
-  InterfaceParam,
-  InterfaceTypeOptions,
-} from '@giraphql/core';
 import './global-types';
+import SchemaBuilder, {
+  FieldMap,
+  InterfaceParam,
+  InterfaceRef,
+  InterfaceTypeOptions,
+  ObjectRef,
+  SchemaTypes,
+} from '@giraphql/core';
 import { OutputShapeFromFields } from './types';
 
 const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<

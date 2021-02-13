@@ -22,12 +22,12 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@giraphql/core": "^2.0.0",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "@giraphql/core": "^2.0.0-alpha.0",
-    "apollo-server": "^2.19.1",
+    "apollo-server": "^2.21.0",
+    "graphql": ">=15.1.0",
     "graphql-tag": "^2.11.0"
   }
 }

@@ -1,5 +1,5 @@
-import FieldBuilder from './builder';
 import { SchemaTypes } from '../types';
+import FieldBuilder from './builder';
 
 export default class ObjectFieldBuilder<
   Types extends SchemaTypes,

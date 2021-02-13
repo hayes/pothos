@@ -3,8 +3,8 @@ module.exports = {
     'class-methods-use-this': 'off',
     'no-restricted-syntax': 'off',
     'import/prefer-default-export': 'off',
-    'react/jsx-no-literals': 'off',
     'no-use-before-define': 'off',
+    'import/no-extraneous-dependencies': 'off',
     'sort-keys': 'off',
     complexity: 'off',
     'no-eq-null': 'off',
@@ -23,13 +23,11 @@ module.exports = {
       rules: {
         '@typescript-eslint/no-namespace': 'off',
         '@typescript-eslint/no-use-before-define': 'off',
-        '@typescript-eslint/no-explicit-any': 'off',
       },
     },
     {
       files: ['packages/*/tests/**/*'],
       rules: {
-        'import/no-extraneous-dependencies': 'off',
         'no-magic-numbers': 'off',
       },
     },

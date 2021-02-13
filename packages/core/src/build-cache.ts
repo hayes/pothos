@@ -1,55 +1,55 @@
 import {
-  GraphQLNamedType,
+  defaultFieldResolver,
+  GraphQLBoolean,
   GraphQLEnumType,
-  GraphQLInterfaceType,
-  GraphQLObjectType,
-  GraphQLScalarType,
-  GraphQLUnionType,
+  GraphQLFieldConfigArgumentMap,
   GraphQLFieldConfigMap,
-  GraphQLOutputType,
+  GraphQLFloat,
+  GraphQLID,
+  GraphQLInputFieldConfigMap,
   GraphQLInputObjectType,
   GraphQLInputType,
-  GraphQLInputFieldConfigMap,
-  GraphQLFieldConfigArgumentMap,
-  GraphQLNonNull,
-  GraphQLList,
-  GraphQLID,
   GraphQLInt,
-  GraphQLFloat,
-  GraphQLBoolean,
+  GraphQLInterfaceType,
+  GraphQLList,
+  GraphQLNamedType,
+  GraphQLNonNull,
+  GraphQLObjectType,
+  GraphQLOutputType,
+  GraphQLScalarType,
   GraphQLString,
-  defaultFieldResolver,
   GraphQLTypeResolver,
+  GraphQLUnionType,
 } from 'graphql';
+import SchemaBuilder from './builder';
+import ConfigStore from './config-store';
+import { MergedPlugins } from './plugins';
+import BuiltinScalarRef from './refs/builtin-scalar';
+import { PluginMap } from './types';
+import { isThenable } from './utils';
 import {
-  BasePlugin,
   assertNever,
-  GiraphQLObjectTypeConfig,
-  GiraphQLQueryTypeConfig,
-  GiraphQLSubscriptionTypeConfig,
-  GiraphQLMutationTypeConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLUnionTypeConfig,
-  GiraphQLInputObjectTypeConfig,
-  GiraphQLScalarTypeConfig,
+  BasePlugin,
   GiraphQLEnumTypeConfig,
-  GiraphQLKindToGraphQLTypeClass,
-  GiraphQLTypeKind,
-  OutputType,
-  SchemaTypes,
-  InputType,
-  ImplementableInputObjectRef,
-  GiraphQLOutputFieldConfig,
   GiraphQLInputFieldConfig,
   GiraphQLInputFieldType,
+  GiraphQLInputObjectTypeConfig,
+  GiraphQLInterfaceTypeConfig,
+  GiraphQLKindToGraphQLTypeClass,
+  GiraphQLMutationTypeConfig,
+  GiraphQLObjectTypeConfig,
+  GiraphQLOutputFieldConfig,
   GiraphQLOutputFieldType,
+  GiraphQLQueryTypeConfig,
+  GiraphQLScalarTypeConfig,
+  GiraphQLSubscriptionTypeConfig,
+  GiraphQLTypeKind,
+  GiraphQLUnionTypeConfig,
+  ImplementableInputObjectRef,
+  InputType,
+  OutputType,
+  SchemaTypes,
 } from '.';
-import ConfigStore from './config-store';
-import BuiltinScalarRef from './refs/builtin-scalar';
-import { isThenable } from './utils';
-import SchemaBuilder from './builder';
-import { PluginMap } from './types';
-import { MergedPlugins } from './plugins';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();
@@ -91,7 +91,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     this.plugin = new MergedPlugins(this, this.pluginMap);
   }
 
-  getType(ref: string | OutputType<Types> | InputType<Types>) {
+  getType(ref: InputType<Types> | OutputType<Types> | string) {
     if (ref instanceof BuiltinScalarRef) {
       return ref.type;
     }
@@ -107,7 +107,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     return type;
   }
 
-  getOutputType(ref: string | OutputType<Types>): GraphQLOutputType {
+  getOutputType(ref: OutputType<Types> | string): GraphQLOutputType {
     const type = this.getType(ref);
 
     if (type instanceof GraphQLInputObjectType) {
@@ -119,7 +119,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     return type;
   }
 
-  getInputType(ref: string | InputType<Types>): GraphQLInputType {
+  getInputType(ref: InputType<Types> | string): GraphQLInputType {
     const type = this.getType(ref);
 
     if (!type) {
@@ -148,7 +148,7 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   getTypeOfKind<T extends GiraphQLTypeKind>(
-    ref: string | OutputType<Types> | InputType<Types>,
+    ref: InputType<Types> | OutputType<Types> | string,
     kind: T,
   ): GiraphQLKindToGraphQLTypeClass<T> {
     const type = this.getType(ref);
@@ -287,7 +287,7 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildFields(
-    type: GraphQLObjectType | GraphQLInterfaceType,
+    type: GraphQLInterfaceType | GraphQLObjectType,
     fields: Record<string, GiraphQLOutputFieldConfig<Types>>,
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
@@ -317,7 +317,7 @@ export default class BuildCache<Types extends SchemaTypes> {
   private buildInputFields(
     fields: Record<string, GiraphQLInputFieldConfig<Types>>,
   ): GraphQLInputFieldConfigMap {
-    const built: GraphQLInputFieldConfigMap | GraphQLFieldConfigArgumentMap = {};
+    const built: GraphQLFieldConfigArgumentMap | GraphQLInputFieldConfigMap = {};
 
     Object.keys(fields).forEach((fieldName) => {
       const config = fields[fieldName];
@@ -388,10 +388,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     isTypeOf,
     ...config
   }:
-    | GiraphQLObjectTypeConfig
-    | GiraphQLQueryTypeConfig
-    | GiraphQLMutationTypeConfig
-    | GiraphQLSubscriptionTypeConfig) {
+    GiraphQLMutationTypeConfig | GiraphQLObjectTypeConfig | GiraphQLQueryTypeConfig | GiraphQLSubscriptionTypeConfig) {
     const type: GraphQLObjectType = new GraphQLObjectType({
       ...config,
       extensions: {
@@ -458,7 +455,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       const resultOrPromise = config.resolveType!(...args);
 
       const getResult = (
-        result: string | GraphQLObjectType<unknown, object> | null | undefined,
+        result: GraphQLObjectType<unknown, object> | string | null | undefined,
       ) => {
         if (typeof result === 'string' || !result) {
           return result;

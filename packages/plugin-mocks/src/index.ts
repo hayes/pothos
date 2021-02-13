@@ -1,8 +1,7 @@
-import SchemaBuilder, { SchemaTypes, BasePlugin, GiraphQLOutputFieldConfig } from '@giraphql/core';
-import { GraphQLFieldResolver } from 'graphql';
-import { ResolverMap } from './types';
-
 import './global-types';
+import { GraphQLFieldResolver } from 'graphql';
+import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig,SchemaTypes } from '@giraphql/core';
+import { ResolverMap } from './types';
 
 export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapResolve(

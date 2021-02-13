@@ -1,7 +1,7 @@
-import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
-import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types';
+import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import RequestCache from './request-cache';
+import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types';
 import { canCache } from './util';
 
 export default class ResolveState<Types extends SchemaTypes> {
@@ -104,7 +104,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     }
 
     return Promise.all(promises).then((results) =>
-      forAll ? results.every(Boolean) : !!results.find(Boolean),
+      forAll ? results.every(Boolean) : results.some(Boolean),
     );
   }
 

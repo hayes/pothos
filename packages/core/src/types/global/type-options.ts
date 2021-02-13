@@ -1,24 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   GraphQLResolveInfo,
+  GraphQLScalarLiteralParser,
   GraphQLScalarSerializer,
   GraphQLScalarValueParser,
-  GraphQLScalarLiteralParser,
 } from 'graphql';
 import {
   EnumValues,
-  SchemaTypes,
-  ObjectFieldsShape,
-  InterfaceParam,
-  ValidateInterfaces,
-  OutputShape,
-  QueryFieldsShape,
-  MutationFieldsShape,
-  SubscriptionFieldsShape,
   InputFieldMap,
   InterfaceFieldsShape,
+  InterfaceParam,
+  MutationFieldsShape,
+  ObjectFieldsShape,
   ObjectParam,
+  OutputShape,
+  QueryFieldsShape,
   RootName,
+  SchemaTypes,
+  SubscriptionFieldsShape,
+  ValidateInterfaces,
 } from '../..';
 import { MaybePromise } from '../utils';
 
@@ -117,7 +117,7 @@ declare global {
 
     export interface EnumValueConfig<Types extends SchemaTypes> {
       description?: string;
-      value?: string | number;
+      value?: number | string;
       deprecationReason?: string;
       extensions?: Readonly<Record<string, unknown>>;
     }

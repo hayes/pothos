@@ -1,10 +1,5 @@
 /* eslint-disable no-param-reassign */
-import SchemaBuilder, {
-  SchemaTypes,
-  BasePlugin,
-  GiraphQLTypeConfig,
-  GiraphQLOutputFieldConfig,
-} from '@giraphql/core';
+import './global-types';
 import {
   GraphQLEnumType,
   GraphQLFieldConfigArgumentMap,
@@ -18,8 +13,12 @@ import {
   GraphQLSchema,
   GraphQLUnionType,
 } from 'graphql';
-
-import './global-types';
+import SchemaBuilder, {
+  BasePlugin,
+  GiraphQLOutputFieldConfig,
+  GiraphQLTypeConfig,
+  SchemaTypes,
+} from '@giraphql/core';
 import { replaceType } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -123,7 +122,7 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   static filterFields(
-    type: GraphQLObjectType | GraphQLInterfaceType,
+    type: GraphQLInterfaceType | GraphQLObjectType,
     newTypes: Map<string, GraphQLNamedType>,
     subGraph: string,
   ) {

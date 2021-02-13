@@ -101,26 +101,8 @@ type ObjWithSkipFields {
 }
 
 type Query {
-  emptyAll: String!
-  emptyAllFn: String!
-  emptyAny: String!
-  emptyAnyFn: String!
-  forAdmin: String!
-  forAdminAsyncFn: String!
-  forAdminFn: String!
-  forAll: String!
-  forAllFn: String!
-  forAny: String!
-  forAnyFn: String!
-  forAsyncPermission: String!
-  forAsyncPermissionFn(permission: String): String
-  forBooleanFn(result: Boolean!): String!
-  forSyncPermission: String!
-  forSyncPermissionFn(permission: String): String
-  grantedFromRoot: String!
   IfaceBooleanFn(result: Boolean!): IfaceBooleanFn
   IfaceForAdmin: IfaceForAdmin
-  notGrantedFromRoot: String!
   ObjAdminIface: ObjAdminIface
   ObjBooleanFn(result: Boolean!): ObjBooleanFn
   ObjBooleanIface(result: Boolean!): ObjBooleanIface
@@ -158,6 +140,24 @@ type Query {
   ObjForSyncPermFn(permission: String): ObjForSyncPermFn
   ObjWithIfaceSkipFields: ObjWithIfaceSkipFields
   ObjWithSkipFields: ObjWithSkipFields
+  emptyAll: String!
+  emptyAllFn: String!
+  emptyAny: String!
+  emptyAnyFn: String!
+  forAdmin: String!
+  forAdminAsyncFn: String!
+  forAdminFn: String!
+  forAll: String!
+  forAllFn: String!
+  forAny: String!
+  forAnyFn: String!
+  forAsyncPermission: String!
+  forAsyncPermissionFn(permission: String): String
+  forBooleanFn(result: Boolean!): String!
+  forSyncPermission: String!
+  forSyncPermissionFn(permission: String): String
+  grantedFromRoot: String!
+  notGrantedFromRoot: String!
 }
 "
 `;

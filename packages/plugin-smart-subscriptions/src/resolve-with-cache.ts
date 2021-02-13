@@ -1,7 +1,7 @@
-import { isThenable, SchemaTypes } from '@giraphql/core';
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { SubscriptionCache } from '.';
+import { isThenable, SchemaTypes } from '@giraphql/core';
 import { FieldSubscriber } from './types';
+import { SubscriptionCache } from '.';
 
 export default function resolveWithCache<Types extends SchemaTypes>(
   cache: SubscriptionCache<Types>,

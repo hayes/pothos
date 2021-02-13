@@ -1,33 +1,33 @@
 import {
-  SchemaTypes,
-  InputFieldMap,
-  FieldNullability,
   FieldKind,
-  OutputType,
+  FieldNullability,
   FieldOptionsFromKind,
-  ObjectRef,
   FieldRef,
+  InputFieldMap,
+  InputFieldsFromShape,
+  InterfaceParam,
   InterfaceRef,
   ObjectFieldsShape,
-  OutputShape,
-  InterfaceParam,
   ObjectParam,
+  ObjectRef,
+  OutputShape,
+  OutputType,
+  SchemaTypes,
   ShapeFromTypeParam,
-  InputFieldsFromShape,
 } from '@giraphql/core';
 import {
+  ConnectionEdgeObjectOptions,
   ConnectionFieldOptions,
   ConnectionObjectOptions,
-  ConnectionEdgeObjectOptions,
-  ConnectionShapeFromResolve,
-  PageInfoShape,
-  NodeObjectOptions,
   ConnectionShapeForType,
-  GlobalIDFieldOptions,
+  ConnectionShapeFromResolve,
   DefaultConnectionArguments,
+  GlobalIDFieldOptions,
+  GlobalIDListFieldOptions,
   NodeFieldOptions,
   NodeListFieldOptions,
-  GlobalIDListFieldOptions,
+  NodeObjectOptions,
+  PageInfoShape,
   RelayPluginOptions,
 } from './types';
 import RelayPlugin from '.';
@@ -91,7 +91,7 @@ declare global {
         Nullable extends boolean,
         ResolveReturnShape
       >(
-        options: Omit<
+        options: ConnectionFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -102,9 +102,8 @@ declare global {
             ParentShape,
             ResolveReturnShape
           >,
-          'type' | 'resolve' | 'args'
-        > &
-          ConnectionFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+          'args' | 'resolve' | 'type'
+        >,
         connectionOptions: ConnectionObjectOptions<
           Types,
           ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>

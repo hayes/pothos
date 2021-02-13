@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
-import SchemaBuilder from '@giraphql/core';
 import '../../src';
+import SchemaBuilder from '@giraphql/core';
 import User from './user';
 
 const builder = new SchemaBuilder<{

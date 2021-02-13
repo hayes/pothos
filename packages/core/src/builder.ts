@@ -1,76 +1,75 @@
 import {
-  GraphQLScalarType,
+  GraphQLBoolean,
   GraphQLDirective,
-  GraphQLSchema,
-  GraphQLIsTypeOfFn,
-  GraphQLObjectType,
-  GraphQLTypeResolver,
+  GraphQLFloat,
   GraphQLID,
   GraphQLInt,
-  GraphQLFloat,
+  GraphQLIsTypeOfFn,
+  GraphQLObjectType,
+  GraphQLScalarType,
+  GraphQLSchema,
   GraphQLString,
-  GraphQLBoolean,
+  GraphQLTypeResolver,
 } from 'graphql';
-
+import BuildCache from './build-cache';
+import ConfigStore from './config-store';
+import EnumRef from './refs/enum';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
+import ObjectRef, { ImplementableObjectRef } from './refs/object';
+import ScalarRef from './refs/scalar';
+import UnionRef from './refs/union';
 import {
   EnumValues,
-  ObjectFieldsShape,
-  QueryFieldsShape,
-  MutationFieldsShape,
-  SubscriptionFieldsShape,
-  InterfaceFieldsShape,
-  ObjectFieldThunk,
-  InterfaceFieldThunk,
-  QueryFieldThunk,
-  MutationFieldThunk,
-  SubscriptionFieldThunk,
-  SchemaTypes,
-  OutputShape,
   InputShape,
-  ObjectParam,
+  InterfaceFieldsShape,
+  InterfaceFieldThunk,
   InterfaceParam,
-  ShapeFromEnumValues,
-  ScalarName,
+  MutationFieldsShape,
+  MutationFieldThunk,
   NormalizeSchemeBuilderOptions,
+  ObjectFieldsShape,
+  ObjectFieldThunk,
+  ObjectParam,
+  OutputShape,
   OutputType,
+  QueryFieldsShape,
+  QueryFieldThunk,
+  ScalarName,
+  SchemaTypes,
+  ShapeFromEnumValues,
+  SubscriptionFieldsShape,
+  SubscriptionFieldThunk,
 } from './types';
-import BuildCache from './build-cache';
-import {
-  InputFieldBuilder,
-  ObjectFieldBuilder,
-  QueryFieldBuilder,
-  MutationFieldBuilder,
-  SubscriptionFieldBuilder,
-  InterfaceFieldBuilder,
-  InputShapeFromFields,
-  ObjectTypeOptions,
-  GiraphQLQueryTypeConfig,
-  GiraphQLObjectTypeConfig,
-  GiraphQLMutationTypeConfig,
-  GiraphQLSubscriptionTypeConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLUnionTypeConfig,
-  GiraphQLEnumTypeConfig,
-  GiraphQLScalarTypeConfig,
-  ImplementableInputObjectRef,
-  InputObjectRef,
-  GiraphQLInputObjectTypeConfig,
-  InputFieldMap,
-  PluginConstructorMap,
-  EnumParam,
-  BaseEnum,
-  ValuesFromEnum,
-  EnumTypeOptions,
-  InterfaceTypeOptions,
-  InputFieldsFromShape,
-} from '.';
-import ConfigStore from './config-store';
-import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
-import UnionRef from './refs/union';
-import EnumRef from './refs/enum';
-import ScalarRef from './refs/scalar';
-import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import { normalizeEnumValues, valuesFromEnum } from './utils';
+import {
+  BaseEnum,
+  EnumParam,
+  EnumTypeOptions,
+  GiraphQLEnumTypeConfig,
+  GiraphQLInputObjectTypeConfig,
+  GiraphQLInterfaceTypeConfig,
+  GiraphQLMutationTypeConfig,
+  GiraphQLObjectTypeConfig,
+  GiraphQLQueryTypeConfig,
+  GiraphQLScalarTypeConfig,
+  GiraphQLSubscriptionTypeConfig,
+  GiraphQLUnionTypeConfig,
+  ImplementableInputObjectRef,
+  InputFieldBuilder,
+  InputFieldMap,
+  InputFieldsFromShape,
+  InputObjectRef,
+  InputShapeFromFields,
+  InterfaceFieldBuilder,
+  InterfaceTypeOptions,
+  MutationFieldBuilder,
+  ObjectFieldBuilder,
+  ObjectTypeOptions,
+  PluginConstructorMap,
+  QueryFieldBuilder,
+  SubscriptionFieldBuilder,
+  ValuesFromEnum,
+} from '.';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -446,7 +445,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   inputType<
-    Param extends string | InputObjectRef<unknown>,
+    Param extends InputObjectRef<unknown> | string,
     Fields extends Param extends InputObjectRef<unknown>
       ? InputFieldsFromShape<InputShape<Types, Param> & {}>
       : InputFieldMap

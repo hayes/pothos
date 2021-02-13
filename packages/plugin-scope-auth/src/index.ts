@@ -1,3 +1,5 @@
+import './global-types';
+import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   GiraphQLInterfaceTypeConfig,
@@ -8,8 +10,6 @@ import SchemaBuilder, {
   GiraphQLSubscriptionTypeConfig,
   SchemaTypes,
 } from '@giraphql/core';
-import { GraphQLFieldResolver } from 'graphql';
-import './global-types';
 import { resolveHelper } from './resolve-helper';
 import {
   createFieldAuthScopesStep,
@@ -54,11 +54,7 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
   createResolveSteps(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
     typeConfig:
-      | GiraphQLObjectTypeConfig
-      | GiraphQLInterfaceTypeConfig
-      | GiraphQLQueryTypeConfig
-      | GiraphQLMutationTypeConfig
-      | GiraphQLSubscriptionTypeConfig,
+      GiraphQLInterfaceTypeConfig | GiraphQLMutationTypeConfig | GiraphQLObjectTypeConfig | GiraphQLQueryTypeConfig | GiraphQLSubscriptionTypeConfig,
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
   ): ResolveStep<Types>[] {
     const parentAuthScope = typeConfig.giraphqlOptions.authScopes;

@@ -1,10 +1,10 @@
-import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
+import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { ForbiddenError } from './errors';
+import RequestCache from './request-cache';
 import ResolveState from './resolve-state';
 import { ResolveStep } from './types';
 import ScopeAuthPlugin from '.';
-import RequestCache from './request-cache';
-import { ForbiddenError } from './errors';
 
 export function resolveHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],

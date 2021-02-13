@@ -1,7 +1,7 @@
-import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import { gql } from 'apollo-server';
-import exampleSchema from './example/schema';
+import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import builder from './example/builder';
+import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('example schema', () => {

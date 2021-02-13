@@ -68,12 +68,6 @@ type Sheep implements Countable & Shaveable {
   thing: stuff!
 }
 
-enum stuff {
-  BattlestarGalactica
-  Bears
-  Beats
-}
-
 type Subscription {
   event: String!
 }
@@ -96,6 +90,12 @@ type User {
   related: SearchResult!
   sparseList(ids: [ID]!): [ID]!
   stuff: [String!]!
+}
+
+enum stuff {
+  BattlestarGalactica
+  Bears
+  Beats
 }
 "
 `;

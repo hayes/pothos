@@ -1,14 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLResolveInfo } from 'graphql';
 import {
-  TypeParam,
   FieldNullability,
   InputFieldMap,
   InputShapeFromFields,
   SchemaTypes,
+  TypeParam,
 } from '@giraphql/core';
-import { GraphQLResolveInfo } from 'graphql';
-import SmartSubscriptionsPlugin, { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
 import { SmartSubscriptionOptions } from './types';
+import SmartSubscriptionsPlugin, { FieldSubscriptionManager,TypeSubscriptionManager } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

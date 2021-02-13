@@ -88,15 +88,15 @@ const Example = builder.inputType('Example', {
 
 interface ExampleShape {
   example: {
-    id: string | number;
+    id: number | string;
     id2?: number;
-    ids: (string | number)[];
+    ids: (number | string)[];
     ids2?: number[];
     enum?: MyEnum;
     date?: string;
   };
-  id?: string | number;
-  ids: (string | number)[];
+  id?: number | string;
+  ids: (number | string)[];
   more: ExampleShape;
 }
 

@@ -1,6 +1,6 @@
 import builder from '../builder';
-import { Episode } from './episode';
 import { getFriends } from '../data';
+import { Episode } from './episode';
 
 export default builder.interfaceType('Character', {
   fields: (t) => ({

@@ -5,7 +5,7 @@ export default class User {
 
   roles: string[];
 
-  constructor(headers: Record<string, string | string[] | undefined>) {
+  constructor(headers: Record<string, string[] | string | undefined>) {
     this.id = headers['x-user-id'] as string;
     this.permissions = headers['x-permissions']
       ? (headers['x-permissions'] as string).split(',').map((perm) => perm.trim())

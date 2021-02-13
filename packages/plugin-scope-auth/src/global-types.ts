@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  TypeParam,
-  InputFieldMap,
   FieldNullability,
-  RootName,
+  InputFieldMap,
   InputShapeFromFields,
+  RootName,
   SchemaTypes,
+  TypeParam,
 } from '@giraphql/core';
 import {
   FieldAuthScopes,

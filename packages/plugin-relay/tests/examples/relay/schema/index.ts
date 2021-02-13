@@ -1,6 +1,6 @@
-import builder from '../builder';
 import './poll';
 import './numbers';
+import builder from '../builder';
 
 builder.queryType({ fields: (t) => ({}) });
 builder.mutationType({ fields: (t) => ({}) });

@@ -1,6 +1,6 @@
+import './examples/starwars/schema';
 import { lexicographicSortSchema, printSchema } from 'graphql';
 import builder from './examples/starwars/builder';
-import './examples/starwars/schema';
 
 describe('subGraphs', () => {
   test('full graph', () => {

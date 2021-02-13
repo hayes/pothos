@@ -1,9 +1,9 @@
 import {
-  printSchema,
-  lexicographicSortSchema,
-  GraphQLObjectType,
   GraphQLEnumType,
   GraphQLInputObjectType,
+  GraphQLObjectType,
+  lexicographicSortSchema,
+  printSchema,
 } from 'graphql';
 import SchemaBuilder from '@giraphql/core';
 import exampleSchema from './example/schema';
@@ -44,7 +44,7 @@ describe('extends example schema', () => {
     const builder = new SchemaBuilder<{
       Directives: {
         rateLimit: {
-          locations: 'OBJECT' | 'FIELD_DEFINITION';
+          locations: 'FIELD_DEFINITION' | 'OBJECT';
           args: {
             limit: number;
             duration: number;

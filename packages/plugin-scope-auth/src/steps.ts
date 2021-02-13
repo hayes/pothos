@@ -1,12 +1,12 @@
 /* eslint-disable no-param-reassign */
-import { isThenable, SchemaTypes } from '@giraphql/core';
 import { GraphQLFieldResolver } from 'graphql';
+import { isThenable, SchemaTypes } from '@giraphql/core';
 import {
+  FieldAuthScopes,
+  FieldGrantScopes,
   ResolveStep,
   TypeAuthScopes,
   TypeGrantScopes,
-  FieldAuthScopes,
-  FieldGrantScopes,
 } from './types';
 
 // TODO generate useful error messages

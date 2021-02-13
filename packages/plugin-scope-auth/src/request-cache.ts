@@ -1,10 +1,11 @@
-import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { GraphQLResolveInfo } from 'graphql';
 import { Path } from 'graphql/jsutils/Path';
-import ScopeAuthPlugin from '.';
+import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { ScopeLoaderMap } from './types';
 import { cacheKey } from './util';
+import ScopeAuthPlugin from '.';
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();
 
 export default class RequestCache<Types extends SchemaTypes> {

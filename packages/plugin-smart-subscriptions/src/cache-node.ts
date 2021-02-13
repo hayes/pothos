@@ -8,7 +8,7 @@ export default class CacheNode<Types extends SchemaTypes> {
 
   fieldManager: FieldSubscriptionManager<Types> | null = null;
 
-  typeManagers = new Map<string | number, TypeSubscriptionManager>();
+  typeManagers = new Map<number | string, TypeSubscriptionManager>();
 
   cache: SubscriptionCache<Types>;
 
@@ -40,7 +40,7 @@ export default class CacheNode<Types extends SchemaTypes> {
     return this.fieldManager;
   }
 
-  managerForType(key: string | number) {
+  managerForType(key: number | string) {
     if (this.typeManagers.has(key)) {
       return null;
     }
@@ -58,7 +58,7 @@ export default class CacheNode<Types extends SchemaTypes> {
     return typeManager;
   }
 
-  replaceValue(value: unknown, key: string | number) {
+  replaceValue(value: unknown, key: number | string) {
     if (typeof key === 'number') {
       if (!Array.isArray(this.value)) {
         throw new TypeError('Expected value of CacheNode for list path to be an array');

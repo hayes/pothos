@@ -1,31 +1,30 @@
+import './global-types';
 import { defaultFieldResolver, GraphQLFieldResolver, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  SchemaTypes,
-  GiraphQLOutputFieldConfig,
-  FieldRef,
   BuildCache,
+  FieldRef,
+  GiraphQLOutputFieldConfig,
+  SchemaTypes,
 } from '@giraphql/core';
-import './global-types';
-
-import SubscriptionManager from './manager';
-import FieldSubscriptionManager from './manager/field';
-import TypeSubscriptionManager from './manager/type';
-import BaseSubscriptionManager from './manager/base';
-import { getFieldSubscribe } from './create-field-data';
 import SubscriptionCache from './cache';
 import CacheNode from './cache-node';
+import { getFieldSubscribe } from './create-field-data';
+import SubscriptionManager from './manager';
+import BaseSubscriptionManager from './manager/base';
+import FieldSubscriptionManager from './manager/field';
+import TypeSubscriptionManager from './manager/type';
 import resolveWithCache from './resolve-with-cache';
 
 const DEFAULT_DEBOUNCE_DELAY = 10;
 
 export {
-  SubscriptionManager,
   BaseSubscriptionManager,
-  TypeSubscriptionManager,
+  CacheNode,
   FieldSubscriptionManager,
   SubscriptionCache,
-  CacheNode,
+  SubscriptionManager,
+  TypeSubscriptionManager,
 };
 
 export * from './types';

@@ -19,12 +19,12 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "^15.4.0",
+    "graphql": "^15.5.0",
     "ts-morph": "^9.1.0",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
     "@giraphql/core": "^2.0.0-alpha.0",
-    "@types/yargs": "^15.0.12"
+    "@types/yargs": "^16.0.0"
   }
 }

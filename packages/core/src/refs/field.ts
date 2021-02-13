@@ -1,4 +1,4 @@
-import { outputFieldShapeKey, FieldKind } from '../types';
+import { FieldKind,outputFieldShapeKey } from '../types';
 
 export default class FieldRef<T = unknown, Kind extends FieldKind = FieldKind> {
   kind: FieldKind;
