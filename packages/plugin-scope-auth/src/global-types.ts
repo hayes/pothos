@@ -15,12 +15,12 @@ import {
   TypeAuthScopes,
   TypeGrantScopes,
 } from './types';
-import ScopeAuthPlugin from '.';
+import { GiraphQLScopeAuthPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLScopeAuth: ScopeAuthPlugin<Types>;
+      scopeAuth: GiraphQLScopeAuthPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

@@ -4,6 +4,8 @@ import { SchemaTypes } from '@giraphql/core';
 import CacheNode from './cache-node';
 import SubscriptionManager from './manager';
 
+export { CacheNode };
+
 export default class SubscriptionCache<Types extends SchemaTypes> {
   manager: SubscriptionManager;
 

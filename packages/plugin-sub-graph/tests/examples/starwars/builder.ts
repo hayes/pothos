@@ -1,5 +1,5 @@
-import '../../../src';
 import SchemaBuilder from '@giraphql/core';
+import SubGraphPlugin from  '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
 interface Types {
@@ -10,7 +10,7 @@ interface Types {
 }
 
 export default new SchemaBuilder<Types>({
-  plugins: ['GiraphQLSubGraph'],
+  plugins: [SubGraphPlugin],
   subGraphs: {
     fieldsInheritFromTypes: true,
     defaultForTypes: ['Private'],

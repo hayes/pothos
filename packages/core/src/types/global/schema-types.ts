@@ -62,18 +62,26 @@ declare global {
         ? true
         : false;
       outputShapes: {
-          [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
-            Output: infer T;
-          }
-            ? T
-            : never;
-        } & { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } & { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] };
+        [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
+          Output: infer T;
+        }
+          ? T
+          : never;
+      } &
+        { [K in keyof PartialTypes['Interfaces']]: PartialTypes['Interfaces'][K] } &
+        { [K in keyof PartialTypes['Objects']]: PartialTypes['Objects'][K] };
       inputShapes: {
         [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
           Input: infer T;
         }
           ? T
           : never;
+      };
+      FieldHelpers: {
+        boolean: MergedScalars<PartialTypes>['Boolean'];
+        booleanList: MergedScalars<PartialTypes>['Boolean'][];
+        int: MergedScalars<PartialTypes>['Int'];
+        intList: MergedScalars<PartialTypes>['Int'][];
       };
     }
   }

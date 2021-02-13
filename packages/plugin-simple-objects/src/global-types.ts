@@ -10,10 +10,14 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { OutputShapeFromFields,SimpleObjectFieldsShape } from './types';
+import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
+import { GiraphQLSimpleObjectsPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface Plugins<Types extends SchemaTypes> {
+      simpleObjects: GiraphQLSimpleObjectsPlugin<Types>;
+    }
     export interface SchemaBuilder<Types extends SchemaTypes> {
       simpleObject: <
         Interfaces extends InterfaceParam<Types>[],

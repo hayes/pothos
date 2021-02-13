@@ -52,7 +52,7 @@ describe('extends example schema', () => {
         };
       };
     }>({
-      plugins: ['GiraphQLDirectives'],
+      plugins: ['directives'],
     });
 
     builder.queryType({

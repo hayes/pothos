@@ -29,9 +29,13 @@ import {
 
 export * from './utils';
 
-export default class RelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+const pluginName = 'relay';
 
-SchemaBuilder.registerPlugin('GiraphQLRelay', RelayPlugin);
+export default pluginName;
+
+export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+
+SchemaBuilder.registerPlugin(pluginName, GiraphQLRelayPlugin);
 
 function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;

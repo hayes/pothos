@@ -1,5 +1,5 @@
-import '../../../src';
 import SchemaBuilder from '@giraphql/core';
+import RelayPlugin from '../../../src';
 import { Poll } from './data';
 import { ContextType } from './types';
 
@@ -12,7 +12,7 @@ interface TypeInfo {
 }
 
 export default new SchemaBuilder<TypeInfo>({
-  plugins: ['GiraphQLRelay'],
+  plugins: [RelayPlugin],
   relayOptions: {
     nodeQueryOptions: {},
     nodesQueryOptions: {},

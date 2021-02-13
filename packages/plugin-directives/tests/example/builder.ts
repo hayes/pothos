@@ -1,5 +1,5 @@
-import '../../src';
 import SchemaBuilder from '@giraphql/core';
+import DirectivePlugin from '../../src';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions
 type DirectiveTypes = {
@@ -58,7 +58,7 @@ const builder = new SchemaBuilder<{
     Date: { Input: Date; Output: Date };
   };
 }>({
-  plugins: ['GiraphQLDirectives'],
+  plugins: [DirectivePlugin],
   useGraphQLToolsUnorderedDirectives: true,
 });
 

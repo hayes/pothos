@@ -30,7 +30,10 @@ export {
 export * from './types';
 export * from './utils';
 
-export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<
+const pluginName = 'smartSubscriptions' as const;
+
+export default pluginName;
+export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<
   Types,
   {
     cache?: SubscriptionCache<Types>;
@@ -51,8 +54,8 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
 
   unsubscribe: (name: string, context: Types['Context']) => Promise<void> | void;
 
-  constructor(buildCache: BuildCache<Types>, name: 'GiraphQLSmartSubscriptions') {
-    super(buildCache, name);
+  constructor(buildCache: BuildCache<Types>) {
+    super(buildCache, pluginName);
 
     this.subscribe = this.builder.options.smartSubscriptions.subscribe;
     this.unsubscribe = this.builder.options.smartSubscriptions.unsubscribe;
@@ -133,4 +136,4 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLSmartSubscriptions', SmartSubscriptionsPlugin);
+SchemaBuilder.registerPlugin(pluginName, GiraphQLSmartSubscriptionsPlugin);

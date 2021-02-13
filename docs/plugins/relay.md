@@ -19,9 +19,9 @@ yarn add @giraphql/plugin-relay
 ### Setup
 
 ```typescript
-import '@giraphql/plugin-relay';
+import RelayPlugin from '@giraphql/plugin-relay';
 const builder = new SchemaBuilder({
-    plugins: ['GiraphQLRelay'],
+    plugins: [RelayPlugin],
     relayOptions: {
         nodeQueryOptions: {},
         nodesQueryOptions: {},

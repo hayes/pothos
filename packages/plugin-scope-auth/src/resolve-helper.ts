@@ -4,11 +4,11 @@ import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import ResolveState from './resolve-state';
 import { ResolveStep } from './types';
-import ScopeAuthPlugin from '.';
+import { GiraphQLScopeAuthPlugin } from '.';
 
 export function resolveHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],
-  plugin: ScopeAuthPlugin<Types>,
+  plugin: GiraphQLScopeAuthPlugin<Types>,
 ) {
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
     const state = new ResolveState(RequestCache.fromContext(context, plugin));

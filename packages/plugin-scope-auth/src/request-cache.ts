@@ -3,7 +3,7 @@ import { Path } from 'graphql/jsutils/Path';
 import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { ScopeLoaderMap } from './types';
 import { cacheKey } from './util';
-import ScopeAuthPlugin from '.';
+import { GiraphQLScopeAuthPlugin } from '.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();
@@ -25,14 +25,14 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   scopes?: MaybePromise<ScopeLoaderMap<Types>>;
 
-  constructor(plugin: ScopeAuthPlugin<Types>, context: Types['Context']) {
+  constructor(plugin: GiraphQLScopeAuthPlugin<Types>, context: Types['Context']) {
     this.plugin = plugin;
     this.context = context;
   }
 
   static fromContext<Types extends SchemaTypes>(
     context: Types['Context'],
-    plugin: ScopeAuthPlugin<Types>,
+    plugin: GiraphQLScopeAuthPlugin<Types>,
   ): RequestCache<Types> {
     if (!requestCache.has(context)) {
       requestCache.set(context, new RequestCache<Types>(plugin, context));

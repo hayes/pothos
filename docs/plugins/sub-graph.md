@@ -20,11 +20,11 @@ yarn add @giraphql/plugin-sub-graph
 ### Setup
 
 ```typescript
-import '@giraphql/plugin-sub-graph';
+import SubGraphPlugin from '@giraphql/plugin-sub-graph';
 const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Other';
 }>({
-  plugins: ['GiraphQLSubGraph'],
+  plugins: [SubGraphPlugin],
   subGraphs: {
     defaultsForTypes: [],
     inheritFieldGraphsFromType: true,

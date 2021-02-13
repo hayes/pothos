@@ -22,9 +22,10 @@ import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
 
 export * from './types';
 
-export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  name: 'GiraphQLScopeAuth' = 'GiraphQLScopeAuth';
+const pluginName = 'scopeAuth' as const;
 
+export default pluginName;
+export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
@@ -54,7 +55,11 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
   createResolveSteps(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
     typeConfig:
-      GiraphQLInterfaceTypeConfig | GiraphQLMutationTypeConfig | GiraphQLObjectTypeConfig | GiraphQLQueryTypeConfig | GiraphQLSubscriptionTypeConfig,
+      | GiraphQLInterfaceTypeConfig
+      | GiraphQLMutationTypeConfig
+      | GiraphQLObjectTypeConfig
+      | GiraphQLQueryTypeConfig
+      | GiraphQLSubscriptionTypeConfig,
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
   ): ResolveStep<Types>[] {
     const parentAuthScope = typeConfig.giraphqlOptions.authScopes;
@@ -130,4 +135,4 @@ export default class ScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLScopeAuth', ScopeAuthPlugin);
+SchemaBuilder.registerPlugin(pluginName, GiraphQLScopeAuthPlugin);

@@ -10,7 +10,7 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import SubGraphPlugin from '.';
+import SubGraphPlugin, { GiraphQLSubGraphPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -49,7 +49,7 @@ declare global {
     }
 
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLSubGraph: SubGraphPlugin<Types>;
+      subGraph: GiraphQLSubGraphPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

@@ -12,4 +12,6 @@ type Types = {
   };
 };
 
-export default new SchemaBuilder<Types>({});
+export default new SchemaBuilder<Types>({
+
+});

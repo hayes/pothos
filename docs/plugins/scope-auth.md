@@ -15,7 +15,7 @@ yarn add @giraphql/plugin-scope-auth
 
 ```typescript
 import SchemaBuilder from '@giraphql/core';
-import '@giraphql/plugin-scope-auth';
+import ScopeAuthPlugin from '@giraphql/plugin-scope-auth';
 
 type MyPerms = 'readStuff' | 'updateStuff' | 'readArticle';
 
@@ -28,6 +28,7 @@ const builder = new SchemaBuilder<{
     customPerm: MyPerms;
   };
 }>({
+  plugins: [ScopeAuthPlugin],
   // scope initializer, create the scopes and scope loaders for each request
   authScopes: async (context) => ({
     public: !!context.User,
@@ -105,6 +106,7 @@ const builder = new SchemaBuilder<{
     customPerm: MyPerms;
   };
 }>({
+  plugins: [ScopeAuthPlugin],
   authScopes: async (context) => ({
     public: !!context.User,
     employee: await context.User.isEmployee(),
@@ -259,6 +261,7 @@ const builder = new SchemaBuilder<{
     humanPermission: string;
   };
 }>({
+  plugins: [ScopeAuthPlugin],
   authScopes: async (context) => ({
     humanPermission: context.user.isHuman() ? (perm) => context.user.hasPermission(perm) : false,
   }),

@@ -37,10 +37,10 @@ yarn add @giraphql/plugin-auth
 
 ```typescript
 import SchemaBuilder from '@giraphql/core';
-import '@giraphql/plugin-smart-subscriptions';
+import SmartSubscriptionsPlugin from '@giraphql/plugin-smart-subscriptions';
 
 const builder = new SchemaBuilder({
-  plugins: ['GiraphQLSmartSubscriptions'],
+  plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
     debounceDelay: number | null;
     subscribe: (

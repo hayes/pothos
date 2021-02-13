@@ -19,9 +19,11 @@ yarn add @giraphql/plugin-simple-objects
 
 ```typescript
 import SchemaBuilder from '@giraphql/core';
-import '@giraphql/plugin-simple-objects';
+import SimpleObjectsPlugin from '@giraphql/plugin-simple-objects';
 
-const builder = new SchemaBuilder({});
+const builder = new SchemaBuilder({
+    plugins: [SimpleObjectsPlugin],
+});
 
 const ContactInfo = builder.simpleObject('ContactInfo', {
     fields: (t) => ({

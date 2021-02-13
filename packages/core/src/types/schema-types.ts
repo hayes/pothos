@@ -26,6 +26,7 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.TypeInfo {
   DefaultInputFieldRequiredness: boolean;
   Root: object;
   Context: object;
+  FieldHelpers: {};
 }
 
 export type MergedScalars<
@@ -33,7 +34,8 @@ export type MergedScalars<
 > = SchemaTypes['Scalars'] &
   {
     [K in
-      keyof DefaultScalars | keyof PartialTypes['Scalars']]: K extends keyof PartialTypes['Scalars']
+      | keyof DefaultScalars
+      | keyof PartialTypes['Scalars']]: K extends keyof PartialTypes['Scalars']
       ? PartialTypes['Scalars'][K]
       : K extends keyof DefaultScalars
       ? DefaultScalars[K]
@@ -50,6 +52,7 @@ export interface DefaultScalars {
 
 export type BaseScalarNames = 'Boolean' | 'Float' | 'ID' | 'Int' | 'String';
 
-export type ScalarName<Types extends SchemaTypes> = string & (BaseScalarNames | keyof Types['Scalars']);
+export type ScalarName<Types extends SchemaTypes> = string &
+  (BaseScalarNames | keyof Types['Scalars']);
 
 export type RootName = 'Mutation' | 'Query' | 'Subscription';

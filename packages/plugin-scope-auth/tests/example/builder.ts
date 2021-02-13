@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
-import '../../src';
 import SchemaBuilder from '@giraphql/core';
+import ScopeAuthPlugin from '../../src';
 import User from './user';
 
 const builder = new SchemaBuilder<{
@@ -15,7 +15,7 @@ const builder = new SchemaBuilder<{
     asyncPermission: string;
   };
 }>({
-  plugins: ['GiraphQLScopeAuth'],
+  plugins: [ScopeAuthPlugin],
   authScopes: async (context) => ({
     loggedIn: !!context.User,
     admin: !!context.User?.roles.includes('admin'),

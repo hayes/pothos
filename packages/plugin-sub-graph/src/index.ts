@@ -24,10 +24,14 @@ import { replaceType } from './util';
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options, subGraph) {
-  return SubGraphPlugin.createSubGraph(this.toSchema(options), subGraph);
+  return GiraphQLSubGraphPlugin.createSubGraph(this.toSchema(options), subGraph);
 };
 
-export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+const pluginName = 'subGraph' as const;
+
+export default pluginName;
+
+export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   static createSubGraph(schema: GraphQLSchema, subGraph: string) {
     const config = schema.toConfig();
     const newTypes = this.filterTypes(config.types, subGraph);
@@ -241,4 +245,4 @@ export default class SubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLSubGraph', SubGraphPlugin);
+SchemaBuilder.registerPlugin(pluginName, GiraphQLSubGraphPlugin);

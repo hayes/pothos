@@ -14,7 +14,10 @@ import { DirectiveList } from './types';
 
 export * from './types';
 
-export default class DirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+const pluginName = 'directives' as const;
+
+export default pluginName;
+export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     const options = fieldConfig.giraphqlOptions;
 
@@ -88,4 +91,4 @@ export default class DirectivesPlugin<Types extends SchemaTypes> extends BasePlu
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLDirectives', DirectivesPlugin);
+SchemaBuilder.registerPlugin(pluginName, GiraphQLDirectivesPlugin);

@@ -1,5 +1,5 @@
-import '../../../src';
 import SchemaBuilder from '@giraphql/core';
+import Mocks from '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
 interface Types {
@@ -9,5 +9,5 @@ interface Types {
 }
 
 export default new SchemaBuilder<Types>({
-  plugins: ['GiraphQLMocks'],
+  plugins: [Mocks],
 });

@@ -1,9 +1,12 @@
 import './global-types';
 import { GraphQLFieldResolver } from 'graphql';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig,SchemaTypes } from '@giraphql/core';
+import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, SchemaTypes } from '@giraphql/core';
 import { ResolverMap } from './types';
 
-export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+const pluginName = 'mocks' as const;
+
+export default pluginName;
+export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
@@ -65,4 +68,4 @@ export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLMocks', MocksPlugin);
+SchemaBuilder.registerPlugin(pluginName, MocksPlugin);

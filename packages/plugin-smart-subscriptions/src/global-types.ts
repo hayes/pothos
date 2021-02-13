@@ -8,12 +8,16 @@ import {
   TypeParam,
 } from '@giraphql/core';
 import { SmartSubscriptionOptions } from './types';
-import SmartSubscriptionsPlugin, { FieldSubscriptionManager,TypeSubscriptionManager } from '.';
+import {
+  FieldSubscriptionManager,
+  GiraphQLSmartSubscriptionsPlugin,
+  TypeSubscriptionManager,
+} from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLSmartSubscriptions: SmartSubscriptionsPlugin<Types>;
+      smartSubscriptions: GiraphQLSmartSubscriptionsPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

@@ -12,12 +12,12 @@ import {
   TypeParam,
 } from '@giraphql/core';
 import { DirectiveLocation, Directives } from './types';
-import DirectivePlugin from '.';
+import { GiraphQLDirectivesPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLDirectives: DirectivePlugin<Types>;
+      directives: GiraphQLDirectivesPlugin<Types>;
     }
 
     export interface TypeInfo {

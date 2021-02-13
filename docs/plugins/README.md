@@ -15,3 +15,5 @@
 - [`@giraphql/plugin-mocks`](mocks.md): A plugin for mocking out resolvers in your schema.
 
 - [`@giraphql/plugin-sub-graph`](sub-graph.md): A plugin for creating sub selections of your graph.
+
+- [`@giraphql/plugin-directives`](sub-graph.md): A plugin for using directives with GiraphQL schemas.

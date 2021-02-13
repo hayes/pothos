@@ -1,11 +1,11 @@
 import './global-types';
 import { GiraphQLOutputFieldConfig, SchemaTypes } from '@giraphql/core';
 import { FieldSubscriber } from './types';
-import SmartSubscriptionsPlugin from '.';
+import { GiraphQLSmartSubscriptionsPlugin } from '.';
 
 export function getFieldSubscribe<Types extends SchemaTypes>(
   field: GiraphQLOutputFieldConfig<Types>,
-  plugin: SmartSubscriptionsPlugin<Types>,
+  plugin: GiraphQLSmartSubscriptionsPlugin<Types>,
 ) {
   if (
     field.graphqlKind === 'Object' &&

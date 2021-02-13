@@ -2,9 +2,13 @@
   "name": "@giraphql/plugin-scope-auth",
   "version": "2.0.0-alpha.0",
   "description": "A GiraphQL plugin for adding scope based authorization checks to your GraphQL Schema",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
