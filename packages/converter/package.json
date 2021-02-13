@@ -25,6 +25,17 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.0.0-alpha.0",
-    "@types/yargs": "^15.0.12"
+    "@types/yargs": "^16.0.0"
+  },
+  "packemon": {
+    "inputs": {
+      "index": "src/index.ts"
+    },
+    "format": [
+      "mjs",
+      "lib"
+    ],
+    "platform": "node",
+    "support": "current"
   }
 }

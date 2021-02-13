@@ -6,6 +6,7 @@ module.exports = {
     'react/jsx-no-literals': 'off',
     'no-use-before-define': 'off',
     'sort-keys': 'off',
+    'simple-import-sort/imports': 'off',
     complexity: 'off',
     'no-eq-null': 'off',
     'no-shadow': 'off',

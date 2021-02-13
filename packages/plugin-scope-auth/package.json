@@ -24,11 +24,19 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@giraphql/core": "^0.20.3",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "apollo-server": "^2.19.1",
-    "graphql-tag": "^2.11.0"
+    "graphql-tag": "^2.11.0",
+    "graphql": ">=15.1.0"
+  },
+  "packemon": {
+    "format": [
+      "lib",
+      "mjs"
+    ],
+    "platform": "node",
+    "support": "current"
   }
 }
