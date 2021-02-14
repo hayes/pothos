@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 import './global-types';
 import {
   GraphQLEnumType,
@@ -20,12 +19,6 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@giraphql/core';
 import { replaceType } from './util';
-
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
-
-schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options, subGraph) {
-  return GiraphQLSubGraphPlugin.createSubGraph(this.toSchema(options), subGraph);
-};
 
 const pluginName = 'subGraph' as const;
 
@@ -211,21 +204,32 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     };
   }
 
+  afterBuild(schema: GraphQLSchema) {
+    if (this.options.subGraph) {
+      return GiraphQLSubGraphPlugin.createSubGraph(schema, this.options.subGraph);
+    }
+
+    return schema;
+  }
+
   onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    typeConfig.extensions = {
-      ...typeConfig.extensions,
-      subGraphs:
-        typeConfig.giraphqlOptions.subGraphs ||
-        this.builder.options.subGraphs?.defaultForTypes ||
-        [],
+    return {
+      ...typeConfig,
+      extensions: {
+        ...typeConfig.extensions,
+        subGraphs:
+          typeConfig.giraphqlOptions.subGraphs ||
+          this.builder.options.subGraphs?.defaultForTypes ||
+          [],
+      },
     };
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    const typeConfig = this.builder.configStore.getTypeConfig(fieldConfig.parentType);
+    const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
 
     if (typeConfig.graphqlKind !== 'Interface' && typeConfig.graphqlKind !== 'Object') {
-      return;
+      return fieldConfig;
     }
 
     let subGraphs: Types['SubGraphs'][] = [];
@@ -238,9 +242,12 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       subGraphs = (typeConfig.extensions?.subGraphs as Types['SubGraphs'][]) || [];
     }
 
-    fieldConfig.extensions = {
-      ...fieldConfig.extensions,
-      subGraphs,
+    return {
+      ...fieldConfig,
+      extensions: {
+        ...fieldConfig.extensions,
+        subGraphs,
+      },
     };
   }
 }

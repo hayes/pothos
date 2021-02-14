@@ -35,7 +35,7 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
       return resolver;
     }
 
-    const typeConfig = this.configStore.getTypeConfig(fieldConfig.parentType);
+    const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
 
     if (typeConfig.graphqlKind !== 'Object' && typeConfig.graphqlKind !== 'Interface') {
       throw new Error(
@@ -70,7 +70,7 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     const interfaceConfigs =
       typeConfig.kind === 'Object' || typeConfig.kind === 'Interface'
         ? typeConfig.interfaces.map((iface) =>
-            this.configStore.getTypeConfig(iface.name, 'Interface'),
+            this.buildCache.getTypeConfig(iface.name, 'Interface'),
           )
         : [];
 

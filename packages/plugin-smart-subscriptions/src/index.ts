@@ -64,11 +64,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    if (fieldConfig.kind !== 'Query') {
-      return;
-    }
-
-    if (fieldConfig.giraphqlOptions.smartSubscription) {
+    if (fieldConfig.kind === 'Query' && fieldConfig.giraphqlOptions.smartSubscription) {
       this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
 
       this.builder.subscriptionField(
@@ -89,7 +85,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
                 unsubscribe: (subName) => this.unsubscribe(subName, context),
               });
 
-              const cache = new SubscriptionCache(manager, this.builder);
+              const cache = new SubscriptionCache(manager, this.buildCache);
 
               this.requestData(context).cache = cache;
 
@@ -98,6 +94,8 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
           }) as FieldRef<unknown>,
       );
     }
+
+    return fieldConfig;
   }
 
   createRequestData(context: Types['Context']) {

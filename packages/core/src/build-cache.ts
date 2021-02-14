@@ -31,6 +31,7 @@ import {
   assertNever,
   BasePlugin,
   GiraphQLEnumTypeConfig,
+  GiraphQLEnumValueConfig,
   GiraphQLInputFieldConfig,
   GiraphQLInputFieldType,
   GiraphQLInputObjectTypeConfig,
@@ -43,6 +44,7 @@ import {
   GiraphQLQueryTypeConfig,
   GiraphQLScalarTypeConfig,
   GiraphQLSubscriptionTypeConfig,
+  GiraphQLTypeConfig,
   GiraphQLTypeKind,
   GiraphQLUnionTypeConfig,
   ImplementableInputObjectRef,
@@ -58,13 +60,30 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   plugin: BasePlugin<Types>;
 
-  configStore: ConfigStore<Types>;
-
   options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>;
+
+  private configStore: ConfigStore<Types>;
 
   private pluginMap: PluginMap<Types>;
 
   private implementers = new Map<string, GiraphQLObjectTypeConfig[]>();
+
+  private typeConfigs = new Map<string, GiraphQLTypeConfig>();
+
+  private enumValueConfigs = new Map<
+    GiraphQLEnumValueConfig<Types>,
+    GiraphQLEnumValueConfig<Types>
+  >();
+
+  private outputFieldConfigs = new Map<
+    GiraphQLOutputFieldConfig<Types>,
+    GiraphQLOutputFieldConfig<Types>
+  >();
+
+  private inputFieldConfigs = new Map<
+    GiraphQLInputFieldConfig<Types>,
+    GiraphQLInputFieldConfig<Types>
+  >();
 
   constructor(
     builder: SchemaBuilder<Types>,
@@ -105,6 +124,21 @@ export default class BuildCache<Types extends SchemaTypes> {
     }
 
     return type;
+  }
+
+  getTypeConfig<T extends GiraphQLTypeConfig['kind']>(
+    ref: InputType<Types> | OutputType<Types> | string,
+    kind?: T,
+  ) {
+    const { name } = this.configStore.getTypeConfig(ref, kind);
+
+    const typeConfig = this.typeConfigs.get(name);
+
+    if (!typeConfig) {
+      throw new TypeError(`Missing implementation of for type ${name}`);
+    }
+
+    return typeConfig as Extract<GiraphQLTypeConfig, { kind: T }>;
   }
 
   getOutputType(ref: OutputType<Types> | string): GraphQLOutputType {
@@ -211,10 +245,14 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   buildAll() {
-    this.configStore.prepareForBuild(this.plugin);
+    this.configStore.prepareForBuild();
 
-    this.configStore.typeConfigs.forEach((config) => {
+    this.configStore.typeConfigs.forEach((baseConfig) => {
+      const config = this.plugin.onTypeConfig(baseConfig);
+
       const { name } = config;
+
+      this.typeConfigs.set(name, config);
 
       switch (config.kind) {
         case 'Enum':
@@ -287,12 +325,19 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildFields(
-    type: GraphQLInterfaceType | GraphQLObjectType,
     fields: Record<string, GiraphQLOutputFieldConfig<Types>>,
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
     Object.keys(fields).forEach((fieldName) => {
-      const config = fields[fieldName];
+      const originalConfig = fields[fieldName];
+      if (!this.outputFieldConfigs.has(originalConfig)) {
+        this.outputFieldConfigs.set(
+          originalConfig,
+          this.plugin.onOutputFieldConfig(originalConfig),
+        );
+      }
+
+      const config = this.outputFieldConfigs.get(originalConfig)!;
 
       built[fieldName] = {
         ...config,
@@ -320,7 +365,12 @@ export default class BuildCache<Types extends SchemaTypes> {
     const built: GraphQLFieldConfigArgumentMap | GraphQLInputFieldConfigMap = {};
 
     Object.keys(fields).forEach((fieldName) => {
-      const config = fields[fieldName];
+      const originalConfig = fields[fieldName];
+      if (!this.inputFieldConfigs.has(originalConfig)) {
+        this.inputFieldConfigs.set(originalConfig, this.plugin.onInputFieldConfig(originalConfig));
+      }
+
+      const config = this.inputFieldConfigs.get(originalConfig)!;
 
       built[fieldName] = {
         ...config,
@@ -342,7 +392,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
     const configs = this.configStore.getFields(type.name, 'Interface');
 
-    const fields = this.buildFields(type, configs);
+    const fields = this.buildFields(configs);
 
     return {
       ...interfaceFields,
@@ -355,13 +405,13 @@ export default class BuildCache<Types extends SchemaTypes> {
       .getInterfaces()
       .reduce((all, iface) => ({ ...this.getFields(iface), ...all }), {});
 
-    const objectFields = this.buildFields(type, this.configStore.getFields(type.name, 'Object'));
+    const objectFields = this.buildFields(this.configStore.getFields(type.name, 'Object'));
 
     return { ...interfaceFields, ...objectFields };
   }
 
   private getRootFields(type: GraphQLObjectType): GraphQLFieldConfigMap<unknown, object> {
-    return this.buildFields(type, this.configStore.getFields(type.name, 'Object'));
+    return this.buildFields(this.configStore.getFields(type.name, 'Object'));
   }
 
   private getFields(type: GraphQLNamedType): GraphQLFieldConfigMap<unknown, object> {
@@ -388,7 +438,10 @@ export default class BuildCache<Types extends SchemaTypes> {
     isTypeOf,
     ...config
   }:
-    GiraphQLMutationTypeConfig | GiraphQLObjectTypeConfig | GiraphQLQueryTypeConfig | GiraphQLSubscriptionTypeConfig) {
+    | GiraphQLMutationTypeConfig
+    | GiraphQLObjectTypeConfig
+    | GiraphQLQueryTypeConfig
+    | GiraphQLSubscriptionTypeConfig) {
     const type: GraphQLObjectType = new GraphQLObjectType({
       ...config,
       extensions: {
@@ -536,8 +589,21 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildEnum(config: GiraphQLEnumTypeConfig) {
+    const values: Record<string, GiraphQLEnumValueConfig<Types>> = {};
+
+    for (const key of Object.keys(config.values)) {
+      const original = config.values[key] as GiraphQLEnumValueConfig<Types>;
+
+      if (!this.enumValueConfigs.has(original)) {
+        this.enumValueConfigs.set(original, this.plugin.onEnumValueConfig(original));
+      }
+
+      values[key] = this.enumValueConfigs.get(original)!;
+    }
+
     return new GraphQLEnumType({
       ...config,
+      values,
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,

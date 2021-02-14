@@ -22,7 +22,7 @@ yarn add @giraphql/plugin-sub-graph
 ```typescript
 import SubGraphPlugin from '@giraphql/plugin-sub-graph';
 const builder = new SchemaBuilder<{
-  SubGraphs: 'Public' | 'Other';
+  SubGraphs: 'Public' | 'Internal';
 }>({
   plugins: [SubGraphPlugin],
   subGraphs: {
@@ -34,8 +34,8 @@ const builder = new SchemaBuilder<{
 //in another file:
 
 const schema = builder.toSchema({});
-const publicSchema = builder.toSubGraphSchema({}, 'Public');
-const otherSchema = builder.toSubGraphSchema({}, 'Other');
+const publicSchema = builder.toSchema({ subGraph: 'Public' });
+const internalSchema = builder.toSubGraphSchema({ subGraph: 'Internal' });
 ```
 
 ### Options on Types
@@ -71,11 +71,11 @@ You can mock any field by adding a mock in the options passed to `builder.buildS
 
 ```typescript
 builder.queryType({
-  subGraphs: ['Public', 'Other'], // Query type will be available in default, Public, and Other schemas
+  subGraphs: ['Public', 'Internal'], // Query type will be available in default, Public, and Other schemas
   defaultSubGraphsForFields: []; // Fields on the Query object will now default to not being a part of any subgraph
   fields: (t) => ({
     someField: t.string({
-      subGraphs: ['Other'] // someField will be in the default schema and "Other" sub graph, but not present in the Public sub graph
+      subGraphs: ['Internal'] // someField will be in the default schema and "Other" sub graph, but not present in the Public sub graph
       resolve: () => {
         throw new Error('Not implemented');
       },

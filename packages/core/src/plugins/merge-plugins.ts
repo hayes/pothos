@@ -84,39 +84,29 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
   }
 
   onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    for (const plugin of this.onTypePlugins) {
-      plugin.onTypeConfig(typeConfig);
-    }
+    return this.onTypePlugins.reduce((config, plugin) => plugin.onTypeConfig(config), typeConfig);
   }
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    for (const plugin of this.onInputFieldPlugins) {
-      plugin.onInputFieldConfig(fieldConfig);
-    }
+    return this.onInputFieldPlugins.reduce((config, plugin) => plugin.onInputFieldConfig(config), fieldConfig);
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    for (const plugin of this.onOutputFieldPlugins) {
-      plugin.onOutputFieldConfig(fieldConfig);
-    }
+    return this.onOutputFieldPlugins.reduce((config, plugin) => plugin.onOutputFieldConfig(config), fieldConfig);
   }
 
   onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
-    for (const plugin of this.onEnumValuePlugins) {
-      plugin.onEnumValueConfig(valueConfig);
-    }
+    return this.onEnumValuePlugins.reduce((config, plugin) => plugin.onEnumValueConfig(config), valueConfig);
   }
 
-  beforeBuild(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {
+  beforeBuild() {
     for (const plugin of this.beforeBuildPlugins) {
-      plugin.beforeBuild(options);
+      plugin.beforeBuild();
     }
   }
 
-  afterBuild(schema: GraphQLSchema, options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {
-    for (const plugin of this.afterBuildPlugins) {
-      plugin.afterBuild(schema, options);
-    }
+  afterBuild(schema: GraphQLSchema) {
+    return this.afterBuildPlugins.reduce((nextSchema, plugin) => plugin.afterBuild(nextSchema), schema);
   }
 
   wrapResolve(

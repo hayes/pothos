@@ -10,12 +10,16 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import SubGraphPlugin, { GiraphQLSubGraphPlugin } from '.';
+import { GiraphQLSubGraphPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       subGraphs?: Types['SubGraphs'][];
+    }
+
+    export interface BuildSchemaOptions<Types extends SchemaTypes> {
+      subGraph?: Types['SubGraphs'];
     }
 
     export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown>
@@ -66,13 +70,6 @@ declare global {
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>> {
       SubGraphs: PartialTypes['SubGraphs'] extends string ? PartialTypes['SubGraphs'] : string;
-    }
-
-    export interface SchemaBuilder<Types extends SchemaTypes> {
-      toSubGraphSchema: (
-        options: BuildSchemaOptions<Types>,
-        subGraph: Types['SubGraphs'],
-      ) => GraphQLSchema;
     }
   }
 }

@@ -502,7 +502,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const buildCache = new BuildCache(this, options);
 
-    buildCache.plugin.beforeBuild(options);
+    buildCache.plugin.beforeBuild();
 
     buildCache.buildAll();
 
@@ -517,8 +517,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       types: builtTypes,
     });
 
-    buildCache.plugin.afterBuild(schema, options);
-
-    return schema;
+    return buildCache.plugin.afterBuild(schema);
   }
 }

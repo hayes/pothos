@@ -1,5 +1,4 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
-import ConfigStore from '../config-store';
 import {
   GiraphQLEnumValueConfig,
   GiraphQLInputFieldConfig,
@@ -12,14 +11,15 @@ import {
 
 import { BuildCache } from '..';
 
+const runCache = new WeakMap<{}, Set<unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
-  name: keyof GiraphQLSchemaTypes.Plugins<Types>;
+  name;
 
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+  builder;
 
-  buildCache: BuildCache<Types>;
+  buildCache;
 
-  configStore: ConfigStore<Types>;
+  options;
 
   private requestDataMap = new WeakMap<Types['Context'], T>();
 
@@ -27,20 +27,30 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     this.name = name;
     this.builder = buildCache.builder;
     this.buildCache = buildCache;
-    this.configStore = buildCache.configStore;
+    this.options = buildCache.options;
   }
 
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {}
+  onTypeConfig(typeConfig: GiraphQLTypeConfig): GiraphQLTypeConfig {
+    return typeConfig;
+  }
 
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {}
+  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> {
+    return fieldConfig;
+  }
 
-  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {}
+  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>): GiraphQLInputFieldConfig<Types> {
+    return fieldConfig;
+  }
 
-  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {}
+  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>): GiraphQLEnumValueConfig<Types> {
+    return valueConfig;
+  }
 
-  beforeBuild(options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {}
+  beforeBuild() {}
 
-  afterBuild(schema: GraphQLSchema, options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {}
+  afterBuild(schema: GraphQLSchema): GraphQLSchema {
+    return schema;
+  }
 
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
@@ -64,6 +74,18 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
     return resolveType;
+  }
+
+  protected runUnique(key: unknown, cb: () => void) {
+    if (!runCache.has(this.builder)) {
+      runCache.set(this.beforeBuild, new Set());
+    }
+
+    if (!runCache.get(this.builder)!.has(key)) {
+      cb();
+
+      runCache.get(this.builder)!.add(key);
+    }
   }
 
   protected createRequestData(context: Types['Context']): T {

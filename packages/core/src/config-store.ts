@@ -7,18 +7,16 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import { BasePlugin } from './plugins';
 import BaseTypeRef from './refs/base';
 import BuiltinScalarRef from './refs/builtin-scalar';
 import InputTypeRef from './refs/input';
 import OutputTypeRef from './refs/output';
-import { FieldMap, GiraphQLEnumValueConfig,InputRef, OutputRef, SchemaTypes } from './types';
+import { FieldMap,InputRef, OutputRef, SchemaTypes } from './types';
 import {
   ConfigurableRef,
   FieldRef,
   GiraphQLFieldConfig,
   GiraphQLObjectTypeConfig,
-  GiraphQLOutputFieldConfig,
   GiraphQLTypeConfig,
   GraphQLFieldKind,
   InputFieldMap,
@@ -58,8 +56,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
   >();
 
   private pending = true;
-
-  private pluginCallbacks: ((plugin: BasePlugin<Types>) => void)[] = [];
 
   constructor() {
     const scalars: GraphQLScalarType[] = [
@@ -159,14 +155,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
       );
     }
 
-    if (config.kind !== 'Arg' && config.kind !== 'InputObject') {
-      this.pluginCallbacks.push(
-        (plugin) => void plugin.onOutputFieldConfig(config as GiraphQLOutputFieldConfig<Types>),
-      );
-    } else {
-      this.pluginCallbacks.push((plugin) => void plugin.onInputFieldConfig(config));
-    }
-
     return config as Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }>;
   }
 
@@ -193,18 +181,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
       throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
     }
 
-    if (config.graphqlKind === 'Enum') {
-      Object.keys(config.values).forEach((key) => {
-        this.pluginCallbacks.push(
-          (plugin) =>
-            void plugin.onEnumValueConfig(config.values[key] as GiraphQLEnumValueConfig<Types>),
-        );
-      });
-    }
-
     this.typeConfigs.set(config.name, config);
-
-    this.pluginCallbacks.push((plugin) => void plugin.onTypeConfig(config));
 
     if (ref) {
       this.associateRefWithName(ref, name);
@@ -357,10 +334,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
     return fields as Record<string, Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }>>;
   }
 
-  prepareForBuild(plugin: BasePlugin<Types>) {
+  prepareForBuild() {
     this.pending = false;
-
-    this.pluginCallbacks.forEach((cb) => void cb(plugin));
 
     if (this.pendingRefResolutions.size !== 0) {
       throw new Error(

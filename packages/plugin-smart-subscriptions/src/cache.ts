@@ -1,6 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { Path } from 'graphql/jsutils/Path';
-import { SchemaTypes } from '@giraphql/core';
+import { BuildCache, SchemaTypes } from '@giraphql/core';
 import CacheNode from './cache-node';
 import SubscriptionManager from './manager';
 
@@ -9,7 +9,7 @@ export { CacheNode };
 export default class SubscriptionCache<Types extends SchemaTypes> {
   manager: SubscriptionManager;
 
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+  buildCache: BuildCache<Types>;
 
   currentCache = new Map<string, CacheNode<Types>>();
 
@@ -19,9 +19,9 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
 
   prevInvalidPaths: string[] = [];
 
-  constructor(manager: SubscriptionManager, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+  constructor(manager: SubscriptionManager, buildCache: BuildCache<Types>) {
     this.manager = manager;
-    this.builder = builder;
+    this.buildCache = buildCache;
   }
 
   get(path: string, reRegister: boolean) {
@@ -46,7 +46,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
   }
 
   getTypeSubscriber(type: string) {
-    const config = this.builder.configStore.getTypeConfig(type, 'Object');
+    const config = this.buildCache.getTypeConfig(type, 'Object');
 
     if (config.graphqlKind === 'Object') {
       return config.giraphqlOptions.subscribe || null;

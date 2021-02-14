@@ -21,49 +21,71 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     const options = fieldConfig.giraphqlOptions;
 
-    if (options.directives) {
-      fieldConfig.extensions = {
-        ...fieldConfig.extensions,
-        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-      };
+    if (!options.directives) {
+      return fieldConfig;
     }
+
+    return {
+      ...fieldConfig,
+        extensions: {
+          ...fieldConfig.extensions,
+          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+        },
+    };
   }
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
     const options = fieldConfig.giraphqlOptions;
 
-    if (options.directives) {
-      fieldConfig.extensions = {
-        ...fieldConfig.extensions,
-        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-      };
+    if (!options.directives) {
+      return fieldConfig;
     }
+
+    return {
+      ...fieldConfig,
+        extensions: {
+          ...fieldConfig.extensions,
+          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+        },
+    };
   }
 
   onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
     const options = valueConfig.giraphqlOptions;
 
-    if (options.directives) {
-      valueConfig.extensions = {
-        ...valueConfig.extensions,
-        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-      };
+    if (!options.directives) {
+      return valueConfig;
     }
+
+    return {
+      ...valueConfig,
+        extensions: {
+          ...valueConfig.extensions,
+          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+        },
+    };
   }
 
   onTypeConfig(typeConfig: GiraphQLTypeConfig) {
     const options = typeConfig.giraphqlOptions;
 
-    if (options.directives) {
-      typeConfig.extensions = {
-        ...typeConfig.extensions,
-        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-      };
+    if (!options.directives) {
+      return typeConfig;
     }
+
+    return {
+      ...typeConfig,
+        extensions: {
+          ...typeConfig.extensions,
+          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+        },
+    };
   }
 
-  afterBuild(schema: GraphQLSchema, options: GiraphQLSchemaTypes.BuildSchemaOptions<Types>) {
+  afterBuild(schema: GraphQLSchema) {
     mockAst(schema);
+
+    return schema;
   }
 
   normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
