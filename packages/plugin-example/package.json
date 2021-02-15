@@ -1,7 +1,7 @@
 {
-  "name": "@giraphql/plugin-directives",
+  "name": "@giraphql/plugin-example",
   "version": "2.0.0-alpha.1",
-  "description": "Directive plugin for GiraphQL, enables using graphql-tools based directives with GiraphQL",
+  "description": "An example plugin for GiraphQL",
   "main": "./lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -16,10 +16,7 @@
     "giraphql",
     "graphql",
     "schema",
-    "directives",
-    "tools",
-    "visitor",
-    "transforms",
+    "example",
     "plugin"
   ],
   "publishConfig": {
@@ -31,7 +28,6 @@
   "devDependencies": {
     "@giraphql/core": "^2.0.0-alpha.0",
     "apollo-server": "^2.21.0",
-    "graphql-rate-limit-directive": "^1.2.1",
     "graphql": ">=15.1.0",
     "graphql-tag": "^2.11.0"
   }

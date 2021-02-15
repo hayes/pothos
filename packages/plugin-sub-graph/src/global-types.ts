@@ -64,11 +64,11 @@ declare global {
       };
     }
 
-    export interface TypeInfo {
+    export interface UserSchemaTypes {
       SubGraphs: string;
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>> {
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       SubGraphs: PartialTypes['SubGraphs'] extends string ? PartialTypes['SubGraphs'] : string;
     }
   }

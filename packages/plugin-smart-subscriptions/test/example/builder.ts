@@ -3,7 +3,7 @@ import { ContextType } from './types';
 import { Poll } from './data';
 import SmartSubscriptionsPlugin, { subscribeOptionsFromIterator } from '../../src';
 
-interface TypeInfo {
+interface UserSchemaTypes {
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
@@ -12,7 +12,7 @@ interface TypeInfo {
   SmartSubscriptions: string;
 }
 
-export default new SchemaBuilder<TypeInfo>({
+export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
     ...subscribeOptionsFromIterator((name, { pubsub }) => {

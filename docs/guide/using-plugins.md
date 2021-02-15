@@ -40,7 +40,7 @@ const builder = new SchemaBuilder({
 ```
 
 Some plugins may allow you to use your own types for one of their features. This is done by passing
-types in through the Generic TypeInfo used by the Schema builder:
+types in through the Generic SchemaTypes used by the Schema builder:
 
 ```ts
 import SchemaBuilder from '@giraphql/core';

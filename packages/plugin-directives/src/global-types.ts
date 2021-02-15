@@ -20,7 +20,7 @@ declare global {
       directives: GiraphQLDirectivesPlugin<Types>;
     }
 
-    export interface TypeInfo {
+    export interface UserSchemaTypes {
       Directives: Record<
         string,
         {
@@ -30,7 +30,7 @@ declare global {
       >;
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>> {
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       Directives: undefined extends PartialTypes['Directives']
         ? {}
         : PartialTypes['Directives'] & {};

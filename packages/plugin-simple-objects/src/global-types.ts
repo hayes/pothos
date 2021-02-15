@@ -55,9 +55,7 @@ declare global {
       SimpleObject: Omit<
         ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
         'resolve'
-      > & {
-        parent?: (parent: ParentShape) => void;
-      };
+      >;
       SimpleInterface: Omit<
         InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
         'resolve'

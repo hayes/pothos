@@ -11,7 +11,7 @@ import BaseTypeRef from './refs/base';
 import BuiltinScalarRef from './refs/builtin-scalar';
 import InputTypeRef from './refs/input';
 import OutputTypeRef from './refs/output';
-import { FieldMap,InputRef, OutputRef, SchemaTypes } from './types';
+import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types';
 import {
   ConfigurableRef,
   FieldRef,
@@ -346,7 +346,25 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
   }
 
-  describeRef(ref: ConfigurableRef<Types>): string {
+  addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
+    this.onTypeConfig(typeRef, (config) => {
+      this.buildFields(typeRef, fields);
+    });
+  }
+
+  getImplementers(ref: ConfigurableRef<Types> | string) {
+    const typeConfig = this.getTypeConfig(ref, 'Interface');
+
+    const implementers = [...this.typeConfigs.values()].filter(
+      (type) =>
+        type.kind === 'Object' &&
+        type.interfaces.find((i) => this.getTypeConfig(i).name === typeConfig.name),
+    ) as GiraphQLObjectTypeConfig[];
+
+    return implementers;
+  }
+
+  private describeRef(ref: ConfigurableRef<Types>): string {
     if (typeof ref === 'string') {
       return ref;
     }
@@ -364,24 +382,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     return `<unnamed ref or enum>`;
-  }
-
-  addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
-    this.onTypeConfig(typeRef, (config) => {
-      this.buildFields(typeRef, fields);
-    });
-  }
-
-  getImplementers(ref: ConfigurableRef<Types> | string) {
-    const typeConfig = this.getTypeConfig(ref, 'Interface');
-
-    const implementers = [...this.typeConfigs.values()].filter(
-      (type) =>
-        type.kind === 'Object' &&
-        type.interfaces.find((i) => this.getTypeConfig(i).name === typeConfig.name),
-    ) as GiraphQLObjectTypeConfig[];
-
-    return implementers;
   }
 
   private buildFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {

@@ -48,7 +48,7 @@ export {
 
 const SchemaBuilder = SchemaBuilderClass as {
   registerPlugin: typeof SchemaBuilderClass.registerPlugin;
-  new <Types extends Partial<GiraphQLSchemaTypes.TypeInfo> = {}>(
+  new <Types extends Partial<GiraphQLSchemaTypes.UserSchemaTypes> = {}>(
     options: NormalizeSchemeBuilderOptions<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>,
   ): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
 };

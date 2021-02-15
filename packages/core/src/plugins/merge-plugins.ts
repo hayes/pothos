@@ -1,4 +1,3 @@
-/* eslint-disable lines-between-class-members */
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import {
   GiraphQLEnumValueConfig,

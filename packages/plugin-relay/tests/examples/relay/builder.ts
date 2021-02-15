@@ -3,7 +3,7 @@ import RelayPlugin from '../../../src';
 import { Poll } from './data';
 import { ContextType } from './types';
 
-interface TypeInfo {
+interface UserSchemaTypes {
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
@@ -11,7 +11,7 @@ interface TypeInfo {
   Context: ContextType;
 }
 
-export default new SchemaBuilder<TypeInfo>({
+export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [RelayPlugin],
   relayOptions: {
     nodeQueryOptions: {},

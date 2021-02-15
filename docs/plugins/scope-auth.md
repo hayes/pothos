@@ -50,7 +50,7 @@ const builder = new SchemaBuilder<{
 In the above setup, We import the `scope-auth` plugin, and include it in the builders plugin list.
 We also define 2 important things:
 
-1. The `AuthScopes` type in the builder `TypeInfo`. This is a map of types that define the types
+1. The `AuthScopes` type in the builder `SchemaTypes`. This is a map of types that define the types
    used by each of your scopes. We'll see how this is used in more detail below.
 2. The `scope initializer` function, which is the implementation of each of the scopes defined in
    the type above. This function returns a map of either booleans (indicating if the request has the

@@ -166,7 +166,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-### Using TypeInfo
+### Using SchemaTypes
 
 You can provide a type mappings when you create the [SchemaBuilder](schema-builder.md). This will
 allow you to reference you type by name throughout your schema \(as a string\).
@@ -223,10 +223,10 @@ builder.queryFields((t) => ({
 }));
 ```
 
-`ObjectRefs` are useful when you don't want to define all the types in a single place \(`TypeInfo`\)
-and your data is not represented as classes. Regardless of how you define your object types,
-`builder.objectType` returns an `ObjectRef` that can be used as a type parameter in other parts of
-the schema.
+`ObjectRefs` are useful when you don't want to define all the types in a single place
+\(`SchemaTypes`\) and your data is not represented as classes. Regardless of how you define your
+object types, `builder.objectType` returns an `ObjectRef` that can be used as a type parameter in
+other parts of the schema.
 
 A slightly simplified version of the above could be written as
 

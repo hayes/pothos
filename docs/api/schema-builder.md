@@ -8,15 +8,15 @@ menu: Api
 SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a
 graphql.js Schema.
 
-## `constructor<TypeInfo>(options)`
+## `constructor<SchemaTypes>(options)`
 
-- typeParam: `TypeInfo`: A type that describes the backing models for your schema
+- typeParam: `SchemaTypes`: A type that describes the backing models for your schema
 - options: `SchemaBuilderOptions`
 
-### `TypeInfo`
+### `SchemaTypes`
 
 ```typescript
-type TypeInfo {
+type SchemaTypes {
   // Shape of the context arg in your resolvers
   Context?: {};
   // A map of Object type names to their backing models.
@@ -180,7 +180,7 @@ add a single field to the `Subscription` type.
 
 ## `objectType(param, options, fields?)`
 
-- `param`: A key of the `Objects` property in `TypeInfo`, a class, or a TypeRef created by
+- `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
@@ -222,7 +222,7 @@ type ObjectTypeOptions = {
 
 add a set of fields to the object type.
 
-- `param`: A key of the `Objects` property in `TypeInfo`, a class, or a TypeRef created by
+- `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
@@ -236,7 +236,7 @@ add a set of fields to the object type.
 add a single field to the object type.
 
 - `name`: the name of the field
-- `param`: A key of the `Objects` property in `TypeInfo`, a class, or a TypeRef created by
+- `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
@@ -249,14 +249,14 @@ add a single field to the object type.
 
 Creates a Ref object represent an object that has not been implemented. This can be useful for
 building certain types of plugins, or when building a modular schema where you don't want to define
-all types in TypeInfo, or import the actual implementation of each object type you use.
+all types in SchemaTypes, or import the actual implementation of each object type you use.
 
 - `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
 - `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `interfaceType(param, options, fields?)`
 
-- `param`: A key of the `Interfaces` property in `TypeInfo`, a class, or a TypeRef created by
+- `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
@@ -293,7 +293,7 @@ type InterfaceTypeOptions = {
 
 add a set of fields to the interface type.
 
-- `param`: A key of the `Interfaces` property in `TypeInfo`, a class, or a TypeRef created by
+- `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
@@ -306,7 +306,7 @@ add a set of fields to the interface type.
 
 add a single field to the interface type.
 
-- `param`: A key of the `Interfaces` property in `TypeInfo`, a class, or a TypeRef created by
+- `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
@@ -320,7 +320,7 @@ add a single field to the interface type.
 
 Creates a Ref object represent an interface that has not been implemented. This can be useful for
 building certain types of plugins, or when building a modular schema where you don't want to define
-all types in TypeInfo, or import the actual implementation of each interface type you use.
+all types in SchemaTypes, or import the actual implementation of each interface type you use.
 
 - `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
 - `T`: a type param to define the backing shape for the type that this ref represents
@@ -377,12 +377,12 @@ type UnionTypeOptions = {
 
 ## `addScalarType(name, scalar, options)`
 
-- `name`: A key of the `Interface` property in `TypeInfo`
+- `name`: A key of the `Interface` property in `SchemaTypes`
 - `scalar`: A `GraphQLScalar`
 
 ## `scalarType(name, options)`
 
-- `name`: A key of the `Interface` property in `TypeInfo`
+- `name`: A key of the `Interface` property in `SchemaTypes`
 - `options`: `ScalarTypeOptions`
 
 ### ScalarTypeOptions
@@ -418,16 +418,16 @@ type InputTypeOptions = {
   to field definitions. See [`InputFieldBuilder`](input-field-builder.md) for more details. If
   `name` is a key of the `Input`
 
-  property in `TypeInfo`, shape will show type errors for any fields that do not match the types
+  property in `SchemaTypes`, shape will show type errors for any fields that do not match the types
 
-  provided in `TypeInfo`.
+  provided in `SchemaTypes`.
 
 ## `inputRef<T>(name)`
 
 Creates a Ref object represent an input object that has not been implemented. This can be useful for
 defining recursive input types, for building certain types of plugins, or when building a modular
-schema where you don't want to define all types in TypeInfo, or import the actual implementation of
-each input type you use.
+schema where you don't want to define all types in SchemaTypes, or import the actual implementation
+of each input type you use.
 
 - `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
 - `T`: a type param to define the backing shape for the type that this ref represents

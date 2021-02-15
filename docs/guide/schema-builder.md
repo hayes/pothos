@@ -10,7 +10,7 @@ into a GraphQL schema.
 
 ## Creating a Schema Builder
 
-The SchemaBuilder takes a generic type parameter that extends a Partial `TypeInfo`.
+The SchemaBuilder takes a generic type parameter that extends a Partial `SchemaTypes`.
 
 These types are used to map type names to the typescript types that describe the data that used by
 those types. For example, In the example below, when a resolver for a field of type `'Giraffe'` will
@@ -44,6 +44,6 @@ const builder = new SchemaBuilder<{
 ```
 
 The types provided here are used to enforce the types in resolvers, both for resolver arguments and
-return values, but not all types need to be added to this TypeInfo object. As described in the
+return values, but not all types need to be added to this SchemaTypes object. As described in the
 [Object guide](objects.md) there are a number of different ways to provide type information for a
 GiraphQL type.

@@ -35,7 +35,7 @@ declare global {
       InputObject: 'InputObject';
     }
 
-    export interface TypeInfo {
+    export interface UserSchemaTypes {
       Scalars: {
         [s: string]: {
           Input: unknown;
@@ -50,7 +50,7 @@ declare global {
       DefaultInputFieldRequiredness: boolean;
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>>
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>>
       extends SchemaTypes {
       Scalars: MergedScalars<PartialTypes>;
       Objects: PartialTypes['Objects'] & {};
@@ -76,12 +76,6 @@ declare global {
         }
           ? T
           : never;
-      };
-      FieldHelpers: {
-        boolean: MergedScalars<PartialTypes>['Boolean'];
-        booleanList: MergedScalars<PartialTypes>['Boolean'][];
-        int: MergedScalars<PartialTypes>['Int'];
-        intList: MergedScalars<PartialTypes>['Int'][];
       };
     }
   }

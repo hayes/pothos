@@ -18,7 +18,7 @@ see what all is available is highly encouraged, but should not be required for m
 GiraphQL has 2 main pieces to it's type system:
 
 1. `GiraphQLSchemaTypes`: A global namespace for shared types
-2. `TypeInfo`: A collection of types passed around through Generics specific to each instance of
+2. `SchemaTypes`: A collection of types passed around through Generics specific to each instance of
    `SchemaBuilder`
 
 ### `GiraphQLSchemaTypes`
@@ -30,9 +30,9 @@ parameters that can be used to make the options more useful. For example, the in
 options will be able to use the the shape of the parent, the expected return type, and any
 arguments.
 
-### `TypeInfo`
+### `SchemaTypes`
 
-The `TypeInfo` type is based on the Generic argument passed to the `SchemaBuilder`, and extended
+The `SchemaTypes` type is based on the Generic argument passed to the `SchemaBuilder`, and extended
 with reasonable defaults. Almost every interface in the `GiraphQLSchemaTypes` will have access to it
 (look for `Types extends SchemaTypes` in the generics of almost any interface). This Type contains
 the types for Scalars, backing models for some object, and interface types, and many custom
@@ -102,7 +102,7 @@ main file that define the types that make up `GiraphQLSchemaTypes` namespace.
 2. [`field-options.ts`](`https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/field-options.ts`):
    Contains the interfaces that define the options objects for creating fields
 3. [`schema-types.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/schema-types.ts)
-   Contains the interfaces for SchemaBuilder options, TypeInfo, options for `toSchema`, and other
+   Contains the interfaces for SchemaBuilder options, SchemaTypes, options for `toSchema`, and other
    utility interfaces that may be useful for plugins to extend that do not fall into one of the
    other categories.
 4. [`classes.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/classes.ts)
@@ -148,17 +148,18 @@ For the exact function signature, see the `index.ts` of the example plugin.
 - `onInputFieldConfig`: Invoked for each InputObject field, or field argument, with the config
   object describing the field.
 - `onEnumValueConfig`: Invoked for each value in an enum
+- `beforeBuild`: Invoked before building schemas, last chance to add new types or fields.
 - `afterBuild`: Invoked with the fully built Schema.
 - `wrapResolve`: Invoked when creating the resolver for each field
 - `wrapSubscribe`: Invoked for each field in the `Subscriptions` object.
 - `wrapResolveType`: Invoked for each Union and Interface.
 
-Each of the lifecycle methods above expect a return value that matches their first argument (either
-a config object, or the resolve/subscribe/resolveType function). If your plugin does not need to
-modify these values, it can simple return the value that was passed in. When your plugin does need
-to change one of the config values, you should return a copy of the config object with your
-modifications, rather than modifying the config object that was passed in. This can be done by
-either using `Object.assign`, or spreading the original config into a new object
+Each of the lifecycle methods above (except `beforeBuild`) expect a return value that matches their
+first argument (either a config object, or the resolve/subscribe/resolveType function). If your
+plugin does not need to modify these values, it can simple return the value that was passed in. When
+your plugin does need to change one of the config values, you should return a copy of the config
+object with your modifications, rather than modifying the config object that was passed in. This can
+be done by either using `Object.assign`, or spreading the original config into a new object
 `{...originalConfig, newProp: newValue }`.
 
 Each config object will have the properties expected by the GraphQL for creating the types or fields
@@ -166,6 +167,14 @@ Each config object will have the properties expected by the GraphQL for creating
 GiraphQL specific properties. These properties include `graphqlKind` to indicate what kind of
 graphql type the config object is for, `giraphQLOptions`, which contains all the options passed in
 to the schema builder when creating the type or field.
+
+If your plugin needs to add additional types or fields to the schema it should do this in the
+`beforeBuild` hook. Any types added to the schema after this, may not be included correctly. Plugins
+should also account for the fact that a new instance of the plugin will be created each time the
+schema is called, so any types or fields added the the schema should only be applied once (per
+schema), even if multiple instances of the plugin are created. The help with this, there is a
+`runUnique` helper on the base plugin class, which accepts a key, and a callback, and will only run
+a callback once per schema for the given key.
 
 ## Use cases
 
@@ -366,10 +375,90 @@ to use 3rd party libraries like graphql-tools to arbitrarily transform schemas i
 
 ### Using SchemaTypes
 
+You may have noticed that almost every interface and type in `@giraphql/core` take a generic that
+looks like: `Types extends SchemaTypes`. This type is what allows GiraphQL and its plugins to share
+type information across the entire schema, and to incorporate user defined types into that system.
+These SchemaTypes are a combination of default types merged with the Types provided in the Generic
+parameter of the SchemaBuilder constructor, and includes a wide variety of useful types:
+
+- Types for all the scalars
+- Types for backing models used by objects and interfaces when referenced via strings
+- The type used for the context and root objects
+- Settings for default nullability of fields
+- Any user defined types specific to plugins (more info below)
+
+There are many ways these types can be used, but one of the most common is to access the type for
+the context object, so that you can correctly type a callback function for your plugin that accepts
+the context object.
+
+```ts
+export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+  exampleSetupFn?: (context: Types['Context']) => ExamplePluginSetupConfig;
+}
+```
+
 ### Using user defined types
 
-### context
+As mentioned above, your plugin can also contribute its own user definable types to the SchemaTypes
+interface. You can see examples of this in the several of the plugins including the directives and
+scope-auth plugins. Adding your own types to SchemaTypes requires extending 2 interfaces: The
+`UserSchemaTypes` which describes the user provided type will need to extend, and the
+`ExtendDefaultTypes` interface, which is used to set default values if the User does not provide
+their own types.
 
-## Best practices
+```ts
+export interface UserSchemaTypes {
+  NewExampleTypes: Record<string, ExampleShape>;
+}
 
-### Side effects
+export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+  NewExampleTypes: undefined extends PartialTypes['NewExampleTypes']
+    ? {}
+    : PartialTypes['NewExampleTypes'] & {};
+}
+```
+
+The User provided type can then be accessed using `Types['NewExampleTypes']` in any interface or
+type that receive `SchemaTypes` as a generic argument.
+
+### Request data
+
+Plugins that wrap resolvers may need to store some data that us unique the current request. In these
+cases your plugin can define a `createRequestData` method, and use the `requestData` method to get
+the data for the current request.
+
+```ts
+export class GiraphQLExamplePlugin<Types extends SchemaTypes, { resolveCount: number }> extends BasePlugin<Types> {
+  createRequestData(context: Types['Context']): T {
+    return { resolveCount: 0 };
+  }
+
+  wrapResolve(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    return (parent, args, context, info) => {
+      const requestData = this.requestData(context);
+
+      requestData.resolveCount += 1;
+
+      console.log(`request has resolved ${requestData.resolveCount} fields`);
+
+      return resolver(parent, args, context, info);
+    };
+  }
+}
+```
+
+The shape of requestData can be defined via the second generic parameter of the `BasePlugin` class.
+The `requestData` method expects the context object as its only argument, which is used to uniquely
+identify the current request.
+
+## Useful methods:
+
+- `builder.configStore.onTypeConfig`: Takes a type ref and a callback, and will invoke the callback
+  with the config for the referenced type once available.
+- `builder.configStore.onFieldUse` Takes a field ref (returned by a field builder) and a callback to
+  invoke once the config for the field is available.
+- `buildCache.getTypeConfig` Gets the config for a given type after it has been passed through any
+  modifications applied by plugins.

@@ -32,11 +32,11 @@ declare global {
       disableScopeAuth?: boolean;
     }
 
-    export interface TypeInfo {
+    export interface UserSchemaTypes {
       AuthScopes: {};
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>> {
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       AuthScopes: undefined extends PartialTypes['AuthScopes']
         ? {}
         : PartialTypes['AuthScopes'] & {};

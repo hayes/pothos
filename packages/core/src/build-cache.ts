@@ -114,122 +114,19 @@ export default class BuildCache<Types extends SchemaTypes> {
     this.plugin = new MergedPlugins(this, this.pluginList);
   }
 
-  getType(ref: InputType<Types> | OutputType<Types> | string) {
-    if (ref instanceof BuiltinScalarRef) {
-      return ref.type;
-    }
-
-    const { name } = this.configStore.getTypeConfig(ref);
-
-    const type = this.types.get(name);
-
-    if (!type) {
-      throw new TypeError(`Missing implementation of for type ${name}`);
-    }
-
-    return type;
-  }
-
   getTypeConfig<T extends GiraphQLTypeConfig['kind']>(
     ref: InputType<Types> | OutputType<Types> | string,
     kind?: T,
   ) {
-    const { name } = this.configStore.getTypeConfig(ref, kind);
+    const baseConfig = this.configStore.getTypeConfig(ref, kind);
 
-    const typeConfig = this.typeConfigs.get(name);
-
-    if (!typeConfig) {
-      throw new TypeError(`Missing implementation of for type ${name}`);
+    if (!this.typeConfigs.has(baseConfig.name)) {
+      this.typeConfigs.set(baseConfig.name, this.plugin.onTypeConfig(baseConfig));
     }
+
+    const typeConfig = this.typeConfigs.get(baseConfig.name)!;
 
     return typeConfig as Extract<GiraphQLTypeConfig, { kind: T }>;
-  }
-
-  getOutputType(ref: OutputType<Types> | string): GraphQLOutputType {
-    const type = this.getType(ref);
-
-    if (type instanceof GraphQLInputObjectType) {
-      throw new TypeError(
-        `Expected ${ref} to be an output type but it was defined as an InputObject`,
-      );
-    }
-
-    return type;
-  }
-
-  getInputType(ref: InputType<Types> | string): GraphQLInputType {
-    const type = this.getType(ref);
-
-    if (!type) {
-      throw new TypeError(`Missing implementation of for type ${ref}`);
-    }
-
-    if (type instanceof GraphQLObjectType) {
-      throw new TypeError(
-        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLObjectType`,
-      );
-    }
-
-    if (type instanceof GraphQLInterfaceType) {
-      throw new TypeError(
-        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLInterfaceType`,
-      );
-    }
-
-    if (type instanceof GraphQLUnionType) {
-      throw new TypeError(
-        `Expected ${ref} to be an input type but it was defined as an GraphQLUnionType`,
-      );
-    }
-
-    return type;
-  }
-
-  getTypeOfKind<T extends GiraphQLTypeKind>(
-    ref: InputType<Types> | OutputType<Types> | string,
-    kind: T,
-  ): GiraphQLKindToGraphQLTypeClass<T> {
-    const type = this.getType(ref);
-
-    switch (kind) {
-      case 'Object':
-      case 'Query':
-      case 'Mutation':
-      case 'Subscription':
-        if (type instanceof GraphQLObjectType) {
-          return type as GiraphQLKindToGraphQLTypeClass<T>;
-        }
-        break;
-      case 'Interface':
-        if (type instanceof GraphQLInterfaceType) {
-          return type as GiraphQLKindToGraphQLTypeClass<T>;
-        }
-        break;
-      case 'Union':
-        if (type instanceof GraphQLUnionType) {
-          return type as GiraphQLKindToGraphQLTypeClass<T>;
-        }
-        break;
-      case 'Enum':
-        if (type instanceof GraphQLEnumType) {
-          return type as GiraphQLKindToGraphQLTypeClass<T>;
-        }
-        break;
-      case 'Scalar':
-        if (type instanceof GraphQLScalarType) {
-          return type as GiraphQLKindToGraphQLTypeClass<T>;
-        }
-        break;
-      case 'InputObject':
-        if (type instanceof GraphQLScalarType) {
-          return type as GiraphQLKindToGraphQLTypeClass<T>;
-        }
-        break;
-      default:
-        break;
-    }
-
-    throw new Error(`Expected ${ref} to be of type ${kind}`);
   }
 
   getImplementers(iface: GraphQLInterfaceType) {
@@ -252,7 +149,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     this.configStore.prepareForBuild();
 
     this.configStore.typeConfigs.forEach((baseConfig) => {
-      const config = this.plugin.onTypeConfig(baseConfig);
+      const config = this.getTypeConfig(baseConfig.name);
 
       const { name } = config;
 
@@ -432,6 +329,109 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private getInputFields(type: GraphQLInputObjectType): GraphQLInputFieldConfigMap {
     return this.buildInputFields(this.configStore.getFields(type.name, 'InputObject'));
+  }
+
+  private getType(ref: InputType<Types> | OutputType<Types> | string) {
+    if (ref instanceof BuiltinScalarRef) {
+      return ref.type;
+    }
+
+    const { name } = this.configStore.getTypeConfig(ref);
+
+    const type = this.types.get(name);
+
+    if (!type) {
+      throw new TypeError(`Missing implementation of for type ${name}`);
+    }
+
+    return type;
+  }
+
+  private getOutputType(ref: OutputType<Types> | string): GraphQLOutputType {
+    const type = this.getType(ref);
+
+    if (type instanceof GraphQLInputObjectType) {
+      throw new TypeError(
+        `Expected ${ref} to be an output type but it was defined as an InputObject`,
+      );
+    }
+
+    return type;
+  }
+
+  private getInputType(ref: InputType<Types> | string): GraphQLInputType {
+    const type = this.getType(ref);
+
+    if (!type) {
+      throw new TypeError(`Missing implementation of for type ${ref}`);
+    }
+
+    if (type instanceof GraphQLObjectType) {
+      throw new TypeError(
+        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLObjectType`,
+      );
+    }
+
+    if (type instanceof GraphQLInterfaceType) {
+      throw new TypeError(
+        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLInterfaceType`,
+      );
+    }
+
+    if (type instanceof GraphQLUnionType) {
+      throw new TypeError(
+        `Expected ${ref} to be an input type but it was defined as an GraphQLUnionType`,
+      );
+    }
+
+    return type;
+  }
+
+  private getTypeOfKind<T extends GiraphQLTypeKind>(
+    ref: InputType<Types> | OutputType<Types> | string,
+    kind: T,
+  ): GiraphQLKindToGraphQLTypeClass<T> {
+    const type = this.getType(ref);
+
+    switch (kind) {
+      case 'Object':
+      case 'Query':
+      case 'Mutation':
+      case 'Subscription':
+        if (type instanceof GraphQLObjectType) {
+          return type as GiraphQLKindToGraphQLTypeClass<T>;
+        }
+        break;
+      case 'Interface':
+        if (type instanceof GraphQLInterfaceType) {
+          return type as GiraphQLKindToGraphQLTypeClass<T>;
+        }
+        break;
+      case 'Union':
+        if (type instanceof GraphQLUnionType) {
+          return type as GiraphQLKindToGraphQLTypeClass<T>;
+        }
+        break;
+      case 'Enum':
+        if (type instanceof GraphQLEnumType) {
+          return type as GiraphQLKindToGraphQLTypeClass<T>;
+        }
+        break;
+      case 'Scalar':
+        if (type instanceof GraphQLScalarType) {
+          return type as GiraphQLKindToGraphQLTypeClass<T>;
+        }
+        break;
+      case 'InputObject':
+        if (type instanceof GraphQLScalarType) {
+          return type as GiraphQLKindToGraphQLTypeClass<T>;
+        }
+        break;
+      default:
+        break;
+    }
+
+    throw new Error(`Expected ${ref} to be of type ${kind}`);
   }
 
   private buildObject({

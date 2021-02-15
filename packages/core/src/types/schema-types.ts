@@ -1,4 +1,4 @@
-export interface SchemaTypes extends GiraphQLSchemaTypes.TypeInfo {
+export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
   outputShapes: {
     String: unknown;
     ID: unknown;
@@ -26,11 +26,10 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.TypeInfo {
   DefaultInputFieldRequiredness: boolean;
   Root: object;
   Context: object;
-  FieldHelpers: {};
 }
 
 export type MergedScalars<
-  PartialTypes extends Partial<GiraphQLSchemaTypes.TypeInfo>
+  PartialTypes extends Partial<GiraphQLSchemaTypes.UserSchemaTypes>
 > = SchemaTypes['Scalars'] &
   {
     [K in
