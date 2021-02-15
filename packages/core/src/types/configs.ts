@@ -95,7 +95,15 @@ export interface GiraphQLInputObjectTypeConfig
 }
 
 export type GiraphQLTypeConfig =
-  GiraphQLEnumTypeConfig | GiraphQLInputObjectTypeConfig | GiraphQLInterfaceTypeConfig | GiraphQLMutationTypeConfig | GiraphQLObjectTypeConfig | GiraphQLQueryTypeConfig | GiraphQLScalarTypeConfig | GiraphQLSubscriptionTypeConfig | GiraphQLUnionTypeConfig;
+  | GiraphQLEnumTypeConfig
+  | GiraphQLInputObjectTypeConfig
+  | GiraphQLInterfaceTypeConfig
+  | GiraphQLMutationTypeConfig
+  | GiraphQLObjectTypeConfig
+  | GiraphQLQueryTypeConfig
+  | GiraphQLScalarTypeConfig
+  | GiraphQLSubscriptionTypeConfig
+  | GiraphQLUnionTypeConfig;
 
 export type GiraphQLTypeKind = GiraphQLTypeConfig['kind'];
 
@@ -138,11 +146,11 @@ export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
   name: string;
   parentType: string;
   type: GiraphQLInputFieldType<Types>;
-  giraphqlOptions: GiraphQLSchemaTypes.InputOrArgFieldOptions<
+  giraphqlOptions: GiraphQLSchemaTypes.InputFieldOptionsByKind<
     Types,
     InputTypeParam<Types>,
     FieldRequiredness<[unknown]>
-  >;
+  >[keyof GiraphQLSchemaTypes.InputFieldOptionsByKind];
 }
 
 export interface GiraphQLEnumValueConfig<Types extends SchemaTypes> extends GraphQLEnumValueConfig {
@@ -155,16 +163,18 @@ export type GiraphQLOutputFieldConfig<Types extends SchemaTypes> = GiraphQLField
 >;
 
 export type GiraphQLFieldConfig<Types extends SchemaTypes> =
-  GiraphQLInputFieldConfig<Types> | GiraphQLOutputFieldConfig<Types>;
+  | GiraphQLInputFieldConfig<Types>
+  | GiraphQLOutputFieldConfig<Types>;
 
 export type GraphQLFieldKind = GiraphQLFieldConfig<SchemaTypes>['graphqlKind'];
 
 export type GiraphQLOutputFieldType<Types extends SchemaTypes> =
-  {
+  | {
       kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
       ref: OutputType<Types>;
       nullable: boolean;
-    } | {
+    }
+  | {
       kind: 'List';
       type: GiraphQLNameOutputFieldType<Types>;
       nullable: boolean;

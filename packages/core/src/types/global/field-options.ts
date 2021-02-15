@@ -225,14 +225,13 @@ declare global {
       Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
     > extends InputFieldOptions<Types, Type, Req> {}
 
-    export type InputOrArgFieldOptions<
+    export interface InputFieldOptionsByKind<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
-      Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject'
-    > = {
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+    > {
       Arg: ArgFieldOptions<Types, Type, Req>;
       InputObject: InputObjectFieldOptions<Types, Type, Req>;
-    }[Kind];
+    }
   }
 }
