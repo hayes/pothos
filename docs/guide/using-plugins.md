@@ -61,8 +61,9 @@ documentation for the plugin.
 
 ## Ordering
 
-In some cases, it may be important to understand the order in which plugins are applied. In general,
-most plugin hooks will run in the order they are defined in the plugins array passed to the
-SchemaBuilder. The important exception to this is for plugins that wrap `resolve`, `subscribe`, or
-`resolveType` methods. For these cases, the plugins are applied in reverse order, so that the first
-plugin is the outermost wrapper, and will be executed first.
+In some cases, it may be important to understand the order in which plugins are applied. All plugin
+lifecycle hooks are applied in REVERSE order. This is done to ensure that the most important (first)
+plugins are applied after all other effects have been applied. For plugins that wrap resolvers,
+because they fist plugins are applied last, they will be the outermost layer of wrapping an applied
+executed first. This means it is important to have plugins like `scope-auth` listed before other
+less critical plugins in your SchemaBuilder.

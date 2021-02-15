@@ -34,11 +34,15 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     return typeConfig;
   }
 
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> {
+  onOutputFieldConfig(
+    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+  ): GiraphQLOutputFieldConfig<Types> {
     return fieldConfig;
   }
 
-  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>): GiraphQLInputFieldConfig<Types> {
+  onInputFieldConfig(
+    fieldConfig: GiraphQLInputFieldConfig<Types>,
+  ): GiraphQLInputFieldConfig<Types> {
     return fieldConfig;
   }
 
@@ -55,7 +59,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return resolver;
   }
@@ -63,7 +66,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
     return subscribe;
   }
@@ -71,7 +73,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
     typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLTypeResolver<unknown, Types['Context']> {
     return resolveType;
   }

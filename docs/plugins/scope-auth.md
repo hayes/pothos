@@ -11,6 +11,11 @@ variety of authorization use cases, while incurring a minimal performance overhe
 yarn add @giraphql/plugin-scope-auth
 ```
 
+#### IMPORTANT
+
+When using `scope-auth` with other plugins, make sure that the `scope-auth` plugin is listed first
+to ensure that other plugins that wrap resolvers do not execute first.
+
 ### Setup
 
 ```typescript

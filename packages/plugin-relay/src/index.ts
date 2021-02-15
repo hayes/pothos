@@ -149,6 +149,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
 }
 
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,

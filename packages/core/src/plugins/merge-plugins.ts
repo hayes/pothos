@@ -12,142 +12,80 @@ import {
   GiraphQLInputFieldConfig,
   GiraphQLOutputFieldConfig,
   GiraphQLTypeConfig,
-  PluginMap,
-  PluginName,
   SchemaTypes,
 } from '..';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypePlugins;
-  onInputFieldPlugins;
-  onOutputFieldPlugins;
-  onEnumValuePlugins;
-  beforeBuildPlugins;
-  afterBuildPlugins;
-  wrapResolvePlugins;
-  wrapSubscribePlugins;
-  wrapResolveTypePlugins;
+  plugins;
 
-  constructor(buildCache: BuildCache<Types>, pluginMap: PluginMap<Types>) {
+  constructor(buildCache: BuildCache<Types>, plugins: BasePlugin<Types>[]) {
     super(buildCache, 'GiraphQLMergedPlugin' as never);
 
-    const plugins: BasePlugin<Types>[] = [];
-
-    Object.keys(pluginMap).forEach((pluginName) =>
-      plugins.push(pluginMap[pluginName as PluginName]),
-    );
-
-    this.onTypePlugins = plugins.filter((plugin) => plugin.onTypeConfig) as Pick<
-      Required<BasePlugin<Types>>,
-      'onTypeConfig'
-    >[];
-
-    this.onInputFieldPlugins = plugins.filter((plugin) => plugin.onInputFieldConfig) as Pick<
-      Required<BasePlugin<Types>>,
-      'onInputFieldConfig'
-    >[];
-
-    this.onOutputFieldPlugins = plugins.filter((plugin) => plugin.onOutputFieldConfig) as Pick<
-      Required<BasePlugin<Types>>,
-      'onOutputFieldConfig'
-    >[];
-
-    this.onEnumValuePlugins = plugins.filter((plugin) => plugin.onEnumValueConfig) as Pick<
-      Required<BasePlugin<Types>>,
-      'onEnumValueConfig'
-    >[];
-
-    this.beforeBuildPlugins = plugins.filter((plugin) => plugin.beforeBuild) as Pick<
-      Required<BasePlugin<Types>>,
-      'beforeBuild'
-    >[];
-
-    this.afterBuildPlugins = plugins.filter((plugin) => plugin.afterBuild) as Pick<
-      Required<BasePlugin<Types>>,
-      'afterBuild'
-    >[];
-
-    this.wrapResolvePlugins = plugins.filter((plugin) => plugin.wrapResolve) as Pick<
-      Required<BasePlugin<Types>>,
-      'wrapResolve'
-    >[];
-
-    this.wrapSubscribePlugins = plugins.filter((plugin) => plugin.wrapSubscribe) as Pick<
-      Required<BasePlugin<Types>>,
-      'wrapSubscribe'
-    >[];
-
-    this.wrapResolveTypePlugins = plugins.filter((plugin) => plugin.wrapResolveType) as Pick<
-      Required<BasePlugin<Types>>,
-      'wrapResolveType'
-    >[];
+    this.plugins = plugins;
   }
 
   onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    return this.onTypePlugins.reduce((config, plugin) => plugin.onTypeConfig(config), typeConfig);
+    return this.plugins.reduceRight((config, plugin) => plugin.onTypeConfig(config), typeConfig);
   }
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    return this.onInputFieldPlugins.reduce((config, plugin) => plugin.onInputFieldConfig(config), fieldConfig);
+    return this.plugins.reduceRight(
+      (config, plugin) => plugin.onInputFieldConfig(config),
+      fieldConfig,
+    );
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    return this.onOutputFieldPlugins.reduce((config, plugin) => plugin.onOutputFieldConfig(config), fieldConfig);
+    return this.plugins.reduceRight(
+      (config, plugin) => plugin.onOutputFieldConfig(config),
+      fieldConfig,
+    );
   }
 
   onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
-    return this.onEnumValuePlugins.reduce((config, plugin) => plugin.onEnumValueConfig(config), valueConfig);
+    return this.plugins.reduceRight(
+      (config, plugin) => plugin.onEnumValueConfig(config),
+      valueConfig,
+    );
   }
 
   beforeBuild() {
-    for (const plugin of this.beforeBuildPlugins) {
+    for (const plugin of this.plugins) {
       plugin.beforeBuild();
     }
   }
 
   afterBuild(schema: GraphQLSchema) {
-    return this.afterBuildPlugins.reduce((nextSchema, plugin) => plugin.afterBuild(nextSchema), schema);
+    return this.plugins.reduceRight((nextSchema, plugin) => plugin.afterBuild(nextSchema), schema);
   }
 
   wrapResolve(
     resolve: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
-    let wrapped = resolve;
-
-    for (let i = this.wrapResolvePlugins.length - 1; i >= 0; i -= 1) {
-      wrapped = this.wrapResolvePlugins[i].wrapResolve(wrapped, fieldConfig, buildOptions);
-    }
-
-    return wrapped;
+    return this.plugins.reduceRight(
+      (nextResolve, plugin) => plugin.wrapResolve(nextResolve, fieldConfig),
+      resolve,
+    );
   }
 
   wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
-    let wrapped = subscribe;
-
-    for (let i = this.wrapSubscribePlugins.length - 1; i >= 0; i -= 1) {
-      wrapped = this.wrapSubscribePlugins[i].wrapSubscribe(wrapped, fieldConfig, buildOptions);
-    }
-
-    return wrapped;
+    return this.plugins.reduceRight(
+      (nextSubscribe, plugin) => plugin.wrapSubscribe(nextSubscribe, fieldConfig),
+      subscribe,
+    );
   }
 
   wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
     typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ) {
-    let wrapped = resolveType;
-
-    for (let i = this.wrapResolveTypePlugins.length - 1; i >= 0; i -= 1) {
-      wrapped = this.wrapResolveTypePlugins[i].wrapResolveType(wrapped, typeConfig, buildOptions);
-    }
-
-    return wrapped;
+    return this.plugins.reduceRight(
+      (nextResolveType, plugin) => plugin.wrapResolveType(nextResolveType, typeConfig),
+      resolveType,
+    );
   }
 }

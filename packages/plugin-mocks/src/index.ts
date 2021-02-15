@@ -10,9 +10,8 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const { mocks } = buildOptions;
+    const { mocks } = this.options;
 
     if (!mocks) {
       return resolver;
@@ -26,9 +25,8 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
-    const { mocks } = buildOptions;
+    const { mocks } = this.options;
 
     if (!mocks) {
       return subscribe;

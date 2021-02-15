@@ -29,9 +29,8 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    if (buildOptions.disableScopeAuth) {
+    if (this.options.disableScopeAuth) {
       return resolver;
     }
 

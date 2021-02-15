@@ -66,6 +66,8 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private pluginMap: PluginMap<Types>;
 
+  private pluginList: BasePlugin<Types>[];
+
   private implementers = new Map<string, GiraphQLObjectTypeConfig[]>();
 
   private typeConfigs = new Map<string, GiraphQLTypeConfig>();
@@ -95,7 +97,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
     const plugins: Record<string, unknown> = {};
 
-    (builder.options.plugins || []).forEach((pluginName) => {
+    this.pluginList = (builder.options.plugins || []).map((pluginName) => {
       const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
 
       if (!Plugin) {
@@ -103,11 +105,13 @@ export default class BuildCache<Types extends SchemaTypes> {
       }
 
       plugins[pluginName] = new Plugin(this, pluginName!);
+
+      return plugins[pluginName] as BasePlugin<Types>;
     });
 
     this.pluginMap = plugins as PluginMap<Types>;
 
-    this.plugin = new MergedPlugins(this, this.pluginMap);
+    this.plugin = new MergedPlugins(this, this.pluginList);
   }
 
   getType(ref: InputType<Types> | OutputType<Types> | string) {
@@ -347,12 +351,8 @@ export default class BuildCache<Types extends SchemaTypes> {
           ...config.extensions,
           giraphqlOptions: config.giraphqlOptions,
         },
-        resolve: this.plugin.wrapResolve(
-          config.resolve || defaultFieldResolver,
-          config,
-          this.options,
-        ),
-        subscribe: this.plugin.wrapSubscribe(config.subscribe, config, this.options),
+        resolve: this.plugin.wrapResolve(config.resolve || defaultFieldResolver, config),
+        subscribe: this.plugin.wrapSubscribe(config.subscribe, config),
       };
     });
 
@@ -497,7 +497,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       },
       interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
-      resolveType: this.plugin.wrapResolveType(resolveType, config, this.options),
+      resolveType: this.plugin.wrapResolveType(resolveType, config),
     });
 
     return type;
@@ -541,7 +541,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
-      resolveType: this.plugin.wrapResolveType(resolveType, config, this.options),
+      resolveType: this.plugin.wrapResolveType(resolveType, config),
     });
   }
 
