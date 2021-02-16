@@ -13,6 +13,7 @@
   - [Interfaces](guide/interfaces.md)
   - [Unions](guide/unions.md)
   - [Using Plugins](guide/using-plugins.md)
+  - [App layout](guide/app-layout.md)
   - [Printing Schema](guide/printing-schemas.md)
   - [Changing Default Nullability](guide/changing-default-nullability.md)
   - [Writing Plugins](guide/writing-plugins.md)
