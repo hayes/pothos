@@ -1,3 +1,8 @@
+---
+name: Auth
+menu: Plugins
+---
+
 # Scope Auth
 
 The scope auth plugin aims to be a general purpose authorization plugin that can handle a wide
