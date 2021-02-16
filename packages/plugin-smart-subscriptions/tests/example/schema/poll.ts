@@ -135,7 +135,7 @@ builder.mutationFields((t) => ({
     args: {
       id: t.arg.id({ required: true }),
       answer: t.arg.int({ required: true }),
-      skipPollPublish: t.arg.bool({ required: false }),
+      skipPollPublish: t.arg.boolean({ required: false }),
     },
     resolve: async (root, args, { pubsub, log }, info) => {
       log(info);

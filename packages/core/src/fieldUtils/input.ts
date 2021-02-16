@@ -13,8 +13,6 @@ export default class InputFieldBuilder<
 
   typename: string;
 
-  bool = this.helper('Boolean');
-
   boolean = this.helper('Boolean');
 
   float = this.helper('Float');
@@ -24,8 +22,6 @@ export default class InputFieldBuilder<
   int = this.helper('Int');
 
   string = this.helper('String');
-
-  boolList = this.helper(['Boolean']);
 
   booleanList = this.helper(['Boolean']);
 
