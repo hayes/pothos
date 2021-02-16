@@ -1,10 +1,14 @@
 {
   "name": "@giraphql/converter",
-  "version": "1.4.2",
+  "version": "2.0.0-alpha.0",
   "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -19,12 +23,12 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "^15.4.0",
+    "graphql": "^15.5.0",
     "ts-morph": "^9.1.0",
     "yargs": "^16.2.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^1.5.1",
-    "@types/yargs": "^15.0.12"
+    "@giraphql/core": "^2.0.0-alpha.0",
+    "@types/yargs": "^16.0.0"
   }
 }

@@ -1,11 +1,10 @@
-import builder from './builder';
-
 import './objects';
 import './interfaces';
 import './unions';
 import './enums';
 import './scalars';
 import './inputs';
+import builder from './builder';
 
 builder.queryType({});
 

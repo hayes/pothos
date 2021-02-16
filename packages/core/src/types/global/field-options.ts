@@ -1,16 +1,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { types } from 'util';
 import {
-  SchemaTypes,
-  TypeParam,
   FieldNullability,
+  FieldRequiredness,
   InputFieldMap,
-  Resolver,
   InputShapeFromFields,
+  InputShapeFromTypeParam,
+  InputType,
+  Resolver,
+  SchemaTypes,
   ShapeFromTypeParam,
   Subscriber,
-  InputType,
-  FieldRequiredness,
-  InputShapeFromTypeParam,
+  TypeParam,
 } from '../..';
 
 declare global {
@@ -46,8 +47,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape
-    >
-      extends FieldOptions<
+    > extends FieldOptions<
         Types,
         ParentShape,
         Type,
@@ -71,8 +71,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape
-    >
-      extends FieldOptions<
+    > extends FieldOptions<
         Types,
         Types['Root'],
         Type,
@@ -96,8 +95,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape
-    >
-      extends FieldOptions<
+    > extends FieldOptions<
         Types,
         Types['Root'],
         Type,
@@ -122,8 +120,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape
-    >
-      extends FieldOptions<
+    > extends FieldOptions<
         Types,
         ParentShape,
         Type,
@@ -148,8 +145,7 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape
-    >
-      extends FieldOptions<
+    > extends FieldOptions<
         Types,
         Types['Root'],
         Type,
@@ -213,6 +209,29 @@ declare global {
       required?: Req;
       defaultValue?: NonNullable<InputShapeFromTypeParam<Types, Type, Req>>;
       extensions?: Readonly<Record<string, unknown>>;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    export interface ArgFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+    > extends InputFieldOptions<Types, Type, Req> {}
+
+    // eslint-disable-next-line @typescript-eslint/no-empty-interface
+    export interface InputObjectFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+    > extends InputFieldOptions<Types, Type, Req> {}
+
+    export interface InputFieldOptionsByKind<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+    > {
+      Arg: ArgFieldOptions<Types, Type, Req>;
+      InputObject: InputObjectFieldOptions<Types, Type, Req>;
     }
   }
 }

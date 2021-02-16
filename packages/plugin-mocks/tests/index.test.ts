@@ -1,7 +1,7 @@
+import './examples/starwars/schema';
 import { gql } from 'apollo-server';
 import { execute } from 'graphql';
 import builder from './examples/starwars/builder';
-import './examples/starwars/schema';
 
 describe('mocked', () => {
   test('query some stuff', async () => {

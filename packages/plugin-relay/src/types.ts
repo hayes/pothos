@@ -1,25 +1,25 @@
+import { GraphQLResolveInfo } from 'graphql';
 import {
-  SchemaTypes,
-  OutputType,
+  FieldKind,
   FieldNullability,
+  FieldOptionsFromKind,
   InputFieldMap,
-  Resolver,
+  InputFieldRef,
+  InputFieldsFromShape,
+  InputShape,
   InputShapeFromFields,
-  ShapeFromTypeParam,
-  ObjectTypeOptions,
-  ObjectParam,
-  OutputShape,
   InterfaceParam,
   MaybePromise,
-  FieldOptionsFromKind,
-  FieldKind,
-  InputFieldsFromShape,
-  OutputRefShape,
+  ObjectParam,
   ObjectRef,
-  InputFieldRef,
-  InputShape,
+  ObjectTypeOptions,
+  OutputRefShape,
+  OutputShape,
+  OutputType,
+  Resolver,
+  SchemaTypes,
+  ShapeFromTypeParam,
 } from '@giraphql/core';
-import { GraphQLResolveInfo } from 'graphql';
 
 export interface RelayPluginOptions<Types extends SchemaTypes> {
   nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
@@ -32,7 +32,7 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
       { id: InputFieldRef<InputShape<Types, 'ID'>> },
       Promise<unknown>
     >,
-    'type' | 'args' | 'nullable' | 'resolve'
+    'args' | 'nullable' | 'resolve' | 'type'
   >;
   nodesQueryOptions: Omit<
     GiraphQLSchemaTypes.QueryFieldOptions<
@@ -42,8 +42,15 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
       { ids: InputFieldRef<InputShape<Types, 'ID'>[]> },
       Promise<unknown>[]
     >,
-    'type' | 'args' | 'nullable' | 'resolve'
+    'args' | 'nullable' | 'resolve' | 'type'
   >;
+  encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
+  decodeGlobalID?: (
+    globalID: string,
+  ) => {
+    typename: string;
+    id: string;
+  };
 }
 
 export interface PageInfoShape {
@@ -59,6 +66,7 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
 }
 
 export type ConnectionShape<T, Nullable> =
+  | (Nullable extends false ? never : null | undefined)
   | {
       pageInfo: PageInfoShape;
       edges: (
@@ -69,8 +77,7 @@ export type ConnectionShape<T, Nullable> =
         | null
         | undefined
       )[];
-    }
-  | (Nullable extends false ? never : null | undefined);
+    };
 
 export type ConnectionShapeForType<
   Types extends SchemaTypes,
@@ -131,32 +138,33 @@ export type NodeBaseObjectOptionsForParam<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[]
-> = (Param extends {
-  new (...args: any[]): any;
-}
-  ? {
-      isTypeOf?: (
-        obj: OutputShape<Types, Interfaces[number]>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => boolean;
-    }
-  : OutputShape<Types, Param> extends { __type: string }
-  ? {
-      isTypeOf?: (
-        obj: OutputShape<Types, Interfaces[number]>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => boolean;
-    }
-  : {
-      isTypeOf: (
-        obj: OutputShape<Types, Interfaces[number]>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => boolean;
-    }) &
-  Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'>;
+> = Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'> &
+  (Param extends {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    new (...args: any[]): any;
+  }
+    ? {
+        isTypeOf?: (
+          obj: OutputShape<Types, Interfaces[number]>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => boolean;
+      }
+    : OutputShape<Types, Param> extends { __type: string }
+    ? {
+        isTypeOf?: (
+          obj: OutputShape<Types, Interfaces[number]>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => boolean;
+      }
+    : {
+        isTypeOf: (
+          obj: OutputShape<Types, Interfaces[number]>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => boolean;
+      });
 
 export type NodeObjectOptions<
   Types extends SchemaTypes,
@@ -174,7 +182,7 @@ export type NodeObjectOptions<
       OutputShape<Types, Param>,
       MaybePromise<OutputShape<Types, 'ID'>>
     >,
-    'type' | 'args' | 'nullable'
+    'args' | 'nullable' | 'type'
   >;
   loadOne?: (
     id: string,
@@ -204,7 +212,7 @@ export type GlobalIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | 'resolve'
+  'resolve' | 'type'
 > & {
   resolve: Resolver<
     ParentShape,
@@ -233,7 +241,7 @@ export type NodeIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | 'resolve'
+  'resolve' | 'type'
 > & {
   resolve: Resolver<
     ParentShape,
@@ -262,7 +270,7 @@ export type GlobalIDListFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | 'resolve'
+  'resolve' | 'type'
 > & {
   resolve: Resolver<
     ParentShape,
@@ -297,7 +305,7 @@ export type NodeFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | 'resolve' | 'nullable'
+  'nullable' | 'resolve' | 'type'
 > & {
   id: Resolver<
     ParentShape,
@@ -328,7 +336,7 @@ export type NodeListFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'type' | 'resolve' | 'nullable'
+  'nullable' | 'resolve' | 'type'
 > & {
   ids: Resolver<
     ParentShape,

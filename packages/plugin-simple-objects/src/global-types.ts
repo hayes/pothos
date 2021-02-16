@@ -1,24 +1,28 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  SchemaTypes,
-  ObjectRef,
-  InterfaceRef,
-  InputFieldMap,
-  FieldNullability,
-  TypeParam,
   FieldMap,
+  FieldNullability,
+  InputFieldMap,
   InterfaceParam,
+  InterfaceRef,
+  ObjectRef,
   OutputShape,
+  SchemaTypes,
+  TypeParam,
 } from '@giraphql/core';
-import { SimpleObjectFieldsShape, OutputShapeFromFields } from './types';
+import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
+import { GiraphQLSimpleObjectsPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
+    export interface Plugins<Types extends SchemaTypes> {
+      simpleObjects: GiraphQLSimpleObjectsPlugin<Types>;
+    }
     export interface SchemaBuilder<Types extends SchemaTypes> {
       simpleObject: <
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
-        Shape extends OutputShapeFromFields<Fields> & OutputShape<Types, Interfaces[number]>
+        Shape extends OutputShape<Types, Interfaces[number]> & OutputShapeFromFields<Fields>
       >(
         name: string,
         options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
@@ -51,9 +55,7 @@ declare global {
       SimpleObject: Omit<
         ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
         'resolve'
-      > & {
-        parent?: (parent: ParentShape) => void;
-      };
+      >;
       SimpleInterface: Omit<
         InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
         'resolve'
@@ -77,7 +79,7 @@ declare global {
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>,
       Interfaces extends InterfaceParam<SchemaTypes>[]
-    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'fields' | 'args'> {
+    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'args' | 'fields'> {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }
   }

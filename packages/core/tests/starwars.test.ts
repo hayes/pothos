@@ -1,4 +1,4 @@
-import { printSchema, execute, lexicographicSortSchema } from 'graphql';
+import { execute, lexicographicSortSchema,printSchema } from 'graphql';
 import gql from 'graphql-tag';
 import starwarsSchema from './examples/starwars/schema';
 

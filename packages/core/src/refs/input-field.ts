@@ -1,17 +1,18 @@
-import { FieldRef } from '..';
 import { inputFieldShapeKey } from '../types';
+
+import { FieldRef } from '..';
 
 export default class InputFieldRef<
   T = unknown,
-  Kind extends 'InputObject' | 'Arg' = 'InputObject' | 'Arg'
+  Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject'
 > {
-  kind: 'InputObject' | 'Arg';
+  kind: 'Arg' | 'InputObject';
 
   parentTypename: string;
 
   fieldName?: string;
 
-  argFor?: InputFieldRef | FieldRef;
+  argFor?: FieldRef | InputFieldRef;
 
   [inputFieldShapeKey]: T;
 

@@ -1,28 +1,40 @@
-import SchemaBuilder, { SchemaTypes, BasePlugin, GiraphQLOutputFieldConfig } from '@giraphql/core';
-import { ResolverMap } from './types';
-import { MocksFieldWrapper } from './field-wrapper';
-
 import './global-types';
+import { GraphQLFieldResolver } from 'graphql';
+import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, SchemaTypes } from '@giraphql/core';
+import { ResolverMap } from './types';
 
-export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapOutputField(
+const pluginName = 'mocks' as const;
+
+export default pluginName;
+export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  wrapResolve(
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-    buildOptions: GiraphQLSchemaTypes.BuildSchemaOptions<Types>,
-  ) {
-    const { mocks } = buildOptions;
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const { mocks } = this.options;
 
     if (!mocks) {
-      return null;
+      return resolver;
     }
 
     const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
-    const subscribeMock = this.subscribeMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
-    if (resolveMock || subscribeMock) {
-      return new MocksFieldWrapper(fieldConfig, resolveMock, subscribeMock);
+    return resolveMock || resolver;
+  }
+
+  wrapSubscribe(
+    subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
+    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    const { mocks } = this.options;
+
+    if (!mocks) {
+      return subscribe;
     }
 
-    return null;
+    const subscribeMock = this.subscribeMock(fieldConfig.parentType, fieldConfig.name, mocks);
+
+    return subscribeMock || subscribe;
   }
 
   resolveMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {
@@ -54,4 +66,4 @@ export default class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLMocks', MocksPlugin);
+SchemaBuilder.registerPlugin(pluginName, MocksPlugin);

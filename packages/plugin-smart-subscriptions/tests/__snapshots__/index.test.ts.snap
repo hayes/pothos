@@ -1,0 +1,40 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`smart subscriptions generates expected schema 1`] = `
+"type Answer {
+  count: Int!
+  id: ID!
+  value: String!
+}
+
+type Mutation {
+  answerPoll(answer: Int!, id: ID!, skipPollPublish: Boolean): Poll!
+  createPoll(answers: [String!]!, question: String!): Poll!
+}
+
+type Poll {
+  answers: [Answer!]
+  id: ID!
+  question: String!
+  refetchableAnswers: [RefetchableAnswer!]
+  updatedAt: String!
+}
+
+type Query {
+  poll(id: Int!): Poll
+  polls: [Poll!]!
+}
+
+type RefetchableAnswer {
+  count: Int!
+  id: ID!
+  value: String!
+}
+
+type Subscription {
+  poll(id: Int!): Poll
+  polls: [Poll!]!
+  test: Int!
+}
+"
+`;

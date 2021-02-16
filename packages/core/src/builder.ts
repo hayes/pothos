@@ -1,79 +1,75 @@
 import {
-  GraphQLScalarType,
+  GraphQLBoolean,
   GraphQLDirective,
-  GraphQLSchema,
-  GraphQLIsTypeOfFn,
-  GraphQLObjectType,
-  GraphQLTypeResolver,
+  GraphQLFloat,
   GraphQLID,
   GraphQLInt,
-  GraphQLFloat,
+  GraphQLIsTypeOfFn,
+  GraphQLObjectType,
+  GraphQLScalarType,
+  GraphQLSchema,
   GraphQLString,
-  GraphQLBoolean,
+  GraphQLTypeResolver,
 } from 'graphql';
-
+import BuildCache from './build-cache';
+import ConfigStore from './config-store';
+import EnumRef from './refs/enum';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
+import ObjectRef, { ImplementableObjectRef } from './refs/object';
+import ScalarRef from './refs/scalar';
+import UnionRef from './refs/union';
 import {
   EnumValues,
-  ObjectFieldsShape,
-  QueryFieldsShape,
-  MutationFieldsShape,
-  SubscriptionFieldsShape,
-  InterfaceFieldsShape,
-  ObjectFieldThunk,
-  InterfaceFieldThunk,
-  QueryFieldThunk,
-  MutationFieldThunk,
-  SubscriptionFieldThunk,
-  SchemaTypes,
-  OutputShape,
   InputShape,
-  ObjectParam,
+  InterfaceFieldsShape,
+  InterfaceFieldThunk,
   InterfaceParam,
-  ShapeFromEnumValues,
-  ScalarName,
+  MutationFieldsShape,
+  MutationFieldThunk,
   NormalizeSchemeBuilderOptions,
+  ObjectFieldsShape,
+  ObjectFieldThunk,
+  ObjectParam,
+  OutputShape,
   OutputType,
+  QueryFieldsShape,
+  QueryFieldThunk,
+  ScalarName,
+  SchemaTypes,
+  ShapeFromEnumValues,
+  SubscriptionFieldsShape,
+  SubscriptionFieldThunk,
 } from './types';
-import BuildCache from './build-cache';
-import {
-  InputFieldBuilder,
-  ObjectFieldBuilder,
-  QueryFieldBuilder,
-  MutationFieldBuilder,
-  SubscriptionFieldBuilder,
-  InterfaceFieldBuilder,
-  InputShapeFromFields,
-  ObjectTypeOptions,
-  GiraphQLQueryTypeConfig,
-  GiraphQLObjectTypeConfig,
-  GiraphQLMutationTypeConfig,
-  GiraphQLSubscriptionTypeConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLUnionTypeConfig,
-  GiraphQLEnumTypeConfig,
-  GiraphQLScalarTypeConfig,
-  ImplementableInputObjectRef,
-  InputObjectRef,
-  GiraphQLInputObjectTypeConfig,
-  InputFieldMap,
-  PluginConstructorMap,
-  PluginMap,
-  PluginName,
-  EnumParam,
-  BaseEnum,
-  ValuesFromEnum,
-  EnumTypeOptions,
-  InterfaceTypeOptions,
-  InputFieldsFromShape,
-} from '.';
-import { BasePlugin, mergePlugins } from './plugins';
-import ConfigStore from './config-store';
-import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
-import UnionRef from './refs/union';
-import EnumRef from './refs/enum';
-import ScalarRef from './refs/scalar';
-import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import { normalizeEnumValues, valuesFromEnum } from './utils';
+import {
+  BaseEnum,
+  EnumParam,
+  EnumTypeOptions,
+  GiraphQLEnumTypeConfig,
+  GiraphQLInputObjectTypeConfig,
+  GiraphQLInterfaceTypeConfig,
+  GiraphQLMutationTypeConfig,
+  GiraphQLObjectTypeConfig,
+  GiraphQLQueryTypeConfig,
+  GiraphQLScalarTypeConfig,
+  GiraphQLSubscriptionTypeConfig,
+  GiraphQLUnionTypeConfig,
+  ImplementableInputObjectRef,
+  InputFieldBuilder,
+  InputFieldMap,
+  InputFieldsFromShape,
+  InputObjectRef,
+  InputShapeFromFields,
+  InterfaceFieldBuilder,
+  InterfaceTypeOptions,
+  MutationFieldBuilder,
+  ObjectFieldBuilder,
+  ObjectTypeOptions,
+  PluginConstructorMap,
+  QueryFieldBuilder,
+  SubscriptionFieldBuilder,
+  ValuesFromEnum,
+} from '.';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -86,30 +82,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   defaultInputFieldRequiredness: boolean;
 
-  private plugin: BasePlugin<Types>;
-
-  private pluginMap: PluginMap<Types>;
-
   constructor(options: NormalizeSchemeBuilderOptions<Types>) {
     this.options = options;
 
-    const plugins: Record<string, unknown> = {};
-
-    (options.plugins || []).forEach((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
-
-      if (!Plugin) {
-        throw new Error(`No plugin named ${pluginName} was registered`);
-      }
-
-      plugins[pluginName] = new Plugin(this, pluginName!);
-    });
-
-    this.pluginMap = plugins as PluginMap<Types>;
-
-    this.plugin = mergePlugins(this, this.pluginMap);
-
-    this.configStore = new ConfigStore<Types>(this.plugin);
+    this.configStore = new ConfigStore<Types>();
 
     this.defaultFieldNullability =
       (options as {
@@ -131,16 +107,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     this.plugins[name] = plugin;
-  }
-
-  getPlugin(name: PluginName) {
-    const plugin = this.pluginMap[name];
-
-    if (!plugin) {
-      throw new Error(`No plugin named ${name} has not been registered`);
-    }
-
-    return plugin;
   }
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
@@ -400,19 +366,19 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return ref;
   }
 
-  enumType<Param extends EnumParam, Values extends EnumValues>(
+  enumType<Param extends EnumParam, Values extends EnumValues<Types>>(
     param: Param,
     options: EnumTypeOptions<Types, Param, Values>,
   ) {
     const name = typeof param === 'string' ? param : (options as { name: string }).name;
     const ref = new EnumRef<
-      Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Values>
+      Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>
     >(name);
 
     const values =
       typeof param === 'object'
-        ? valuesFromEnum(param as BaseEnum)
-        : normalizeEnumValues((options as { values: EnumValues }).values);
+        ? valuesFromEnum<Types>(param as BaseEnum)
+        : normalizeEnumValues<Types>((options as { values: EnumValues<Types> }).values);
 
     const config: GiraphQLEnumTypeConfig = {
       kind: 'Enum',
@@ -479,7 +445,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   inputType<
-    Param extends string | InputObjectRef<unknown>,
+    Param extends InputObjectRef<unknown> | string,
     Fields extends Param extends InputObjectRef<unknown>
       ? InputFieldsFromShape<InputShape<Types, Param> & {}>
       : InputFieldMap
@@ -534,11 +500,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       }
     });
 
-    this.configStore.prepareForBuild();
+    const buildCache = new BuildCache(this, options);
 
-    this.plugin.beforeBuild(options);
-
-    const buildCache = new BuildCache(this.configStore, this.plugin, options);
+    buildCache.plugin.beforeBuild();
 
     buildCache.buildAll();
 
@@ -553,8 +517,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       types: builtTypes,
     });
 
-    this.plugin.afterBuild(schema, options);
-
-    return schema;
+    return buildCache.plugin.afterBuild(schema);
   }
 }

@@ -1,34 +1,44 @@
+import './global-types';
+import { defaultFieldResolver, GraphQLFieldResolver, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  SchemaTypes,
-  GiraphQLOutputFieldConfig,
-  ValueWrapper,
+  BuildCache,
   FieldRef,
+  GiraphQLOutputFieldConfig,
+  SchemaTypes,
 } from '@giraphql/core';
-import './global-types';
-
+import SubscriptionCache from './cache';
+import CacheNode from './cache-node';
+import { getFieldSubscribe } from './create-field-data';
 import SubscriptionManager from './manager';
+import BaseSubscriptionManager from './manager/base';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
-import ResolverCache, { CacheForField } from './cache';
-import BaseSubscriptionManager from './manager/base';
-import SmartSubscriptionsFieldWrapper from './field-wrapper';
+import resolveWithCache from './resolve-with-cache';
 
 const DEFAULT_DEBOUNCE_DELAY = 10;
 
 export {
-  SubscriptionManager,
   BaseSubscriptionManager,
-  TypeSubscriptionManager,
+  CacheNode,
   FieldSubscriptionManager,
-  ResolverCache,
-  CacheForField,
+  SubscriptionCache,
+  SubscriptionManager,
+  TypeSubscriptionManager,
 };
 
 export * from './types';
 export * from './utils';
 
-export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+const pluginName = 'smartSubscriptions' as const;
+
+export default pluginName;
+export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<
+  Types,
+  {
+    cache?: SubscriptionCache<Types>;
+  }
+> {
   debounceDelay: number | null;
 
   smartSubscriptionsToQueryField = new Map<
@@ -44,22 +54,17 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
 
   unsubscribe: (name: string, context: Types['Context']) => Promise<void> | void;
 
-  constructor(
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    name: 'GiraphQLSmartSubscriptions',
-  ) {
-    super(builder, name);
-    this.subscribe = builder.options.smartSubscriptions.subscribe;
-    this.unsubscribe = builder.options.smartSubscriptions.unsubscribe;
-    this.debounceDelay = builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
+  constructor(buildCache: BuildCache<Types>) {
+    super(buildCache, pluginName);
+
+    this.subscribe = this.builder.options.smartSubscriptions.subscribe;
+    this.unsubscribe = this.builder.options.smartSubscriptions.unsubscribe;
+    this.debounceDelay =
+      this.builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    if (fieldConfig.kind !== 'Query') {
-      return;
-    }
-
-    if (fieldConfig.giraphqlOptions.smartSubscription) {
+    if (fieldConfig.kind === 'Query' && fieldConfig.giraphqlOptions.smartSubscription) {
       this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
 
       this.builder.subscriptionField(
@@ -67,24 +72,81 @@ export default class SmartSubscriptionsPlugin<Types extends SchemaTypes> extends
         (t) =>
           t.field({
             ...fieldConfig.giraphqlOptions,
+            resolve: (parent, args, context, info) =>
+              (fieldConfig.resolve || defaultFieldResolver)(parent, args, context, info),
             subscribe: (parent, args, context, info) => {
               const manager = new SubscriptionManager({
-                value: new ValueWrapper(parent, {}),
+                value: parent,
                 debounceDelay: this.debounceDelay,
                 subscribe: (subName, cb) => this.subscribe(subName, context, cb),
                 unsubscribe: (subName) => this.unsubscribe(subName, context),
               });
 
-              return manager;
+              const cache = new SubscriptionCache(manager, this.buildCache);
+
+              this.requestData(context).cache = cache;
+
+              return {
+                [Symbol.asyncIterator]() {
+                  return {
+                    next() {
+                      return manager.next().then((next) => {
+                        cache.next();
+
+                        return next;
+                      });
+                    },
+                    return() {
+                      return manager.return();
+                    },
+                    throw(error: unknown) {
+                      return manager.throw(error);
+                    },
+                  };
+                },
+              };
             },
           }) as FieldRef<unknown>,
       );
     }
+
+    return fieldConfig;
   }
 
-  wrapOutputField(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    return new SmartSubscriptionsFieldWrapper(fieldConfig, this);
+  createRequestData(context: Types['Context']) {
+    return {};
+  }
+
+  wrapResolve(
+    resolve: GraphQLFieldResolver<unknown, Types['Context']>,
+    field: GiraphQLOutputFieldConfig<Types>,
+  ): GraphQLFieldResolver<unknown, Types['Context']> {
+    let canRefetch = false;
+    if (
+      field.graphqlKind === 'Object' &&
+      field.kind !== 'Query' &&
+      field.kind !== 'Subscription' &&
+      field.kind !== 'Mutation'
+    ) {
+      canRefetch = field.giraphqlOptions.canRefetch ?? false;
+    }
+
+    const subscribe = getFieldSubscribe(field, this);
+
+    return (parent, args, context, info) => {
+      const { cache } = this.requestData(context);
+
+      if (!cache) {
+        return resolve(parent, args, context, info);
+      }
+
+      return resolveWithCache(cache, subscribe, resolve, canRefetch, parent, args, context, info);
+    };
+  }
+
+  wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types['Context']>) {
+    return resolveType;
   }
 }
 
-SchemaBuilder.registerPlugin('GiraphQLSmartSubscriptions', SmartSubscriptionsPlugin);
+SchemaBuilder.registerPlugin(pluginName, GiraphQLSmartSubscriptionsPlugin);

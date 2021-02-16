@@ -72,7 +72,7 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 
 export async function resolveOffsetConnection<T>(
   options: ResolveOffsetConnectionOptions,
-  resolve: (params: { offset: number; limit: number }) => T[] | Promise<T[]>,
+  resolve: (params: { offset: number; limit: number }) => Promise<T[]> | T[],
 ): Promise<ConnectionShape<T, boolean>> {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 

@@ -18,9 +18,9 @@ yarn add @giraphql/plugin-mocks
 ### Setup
 
 ```typescript
-import '@giraphql/plugin-mocks';
+import MocksPlugin from '@giraphql/plugin-mocks';
 const builder = new SchemaBuilder({
-    plugins: ['GiraphQLMocks'],
+    plugins: [MocksPlugin],
 });
 ```
 

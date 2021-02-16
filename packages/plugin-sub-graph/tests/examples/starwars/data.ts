@@ -1,4 +1,4 @@
-import { Character, Human, Droid } from './backing-models';
+import { Character, Droid,Human } from './backing-models';
 
 /**
  * Copied from GraphQL JS:
@@ -127,7 +127,7 @@ export const allHumans = Object.keys(humanData).map((key) => humanData[key]);
 /**
  * Allows us to query for the human with the given id.
  */
-export function getHuman(id: string | number): Human {
+export function getHuman(id: number | string): Human {
   return humanData[id];
 }
 
@@ -136,6 +136,6 @@ export const allDroids = Object.keys(droidData).map((key) => droidData[key]);
 /**
  * Allows us to query for the droid with the given id.
  */
-export function getDroid(id: string | number): Droid {
+export function getDroid(id: number | string): Droid {
   return droidData[id];
 }

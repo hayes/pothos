@@ -1,19 +1,23 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLResolveInfo } from 'graphql';
 import {
-  TypeParam,
   FieldNullability,
   InputFieldMap,
   InputShapeFromFields,
   SchemaTypes,
+  TypeParam,
 } from '@giraphql/core';
-import { GraphQLResolveInfo } from 'graphql';
-import SmartSubscriptionsPlugin, { TypeSubscriptionManager, FieldSubscriptionManager } from '.';
 import { SmartSubscriptionOptions } from './types';
+import {
+  FieldSubscriptionManager,
+  GiraphQLSmartSubscriptionsPlugin,
+  TypeSubscriptionManager,
+} from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLSmartSubscriptions: SmartSubscriptionsPlugin<Types>;
+      smartSubscriptions: GiraphQLSmartSubscriptionsPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -38,7 +42,7 @@ declare global {
     > {
       smartSubscription?: boolean;
       subscribe?: (
-        subscriptions: FieldSubscriptionManager,
+        subscriptions: FieldSubscriptionManager<Types>,
         parent: Types['Root'],
         args: InputShapeFromFields<Args>,
         context: Types['Context'],
@@ -55,7 +59,7 @@ declare global {
       ResolveReturnShape
     > {
       subscribe?: (
-        subscriptions: FieldSubscriptionManager,
+        subscriptions: FieldSubscriptionManager<Types>,
         parent: ParentShape,
         args: InputShapeFromFields<Args>,
         context: Types['Context'],

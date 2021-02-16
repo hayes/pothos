@@ -1,5 +1,5 @@
-import Character from './character';
 import builder from '../builder';
+import Character from './character';
 
 export default builder.objectType('Human', {
   description: 'A humanoid creature in the Star Wars universe.',

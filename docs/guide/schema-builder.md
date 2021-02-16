@@ -5,17 +5,11 @@ menu: Guide
 
 # SchemaBuilder
 
-The schema builder is the core of GiraphQL. It is used to create types, and then stitch those types
-into a GraphQL schema.
+The schema builder is the core of GiraphQL. It is used to create types, and then stitch those types into a GraphQL schema.
 
 ## Creating a Schema Builder
 
-The SchemaBuilder takes a generic type parameter that extends a Partial `TypeInfo`.
-
-These types are used to map type names to the typescript types that describe the data that used by
-those types. For example, In the example below, when a resolver for a field of type `'Giraffe'` will
-be expected to return an object of the shape `{name: string, age: number }` and any field on the
-`Giraffe` type will receive an object with that same shape as it's first argument \(`parent`\).
+The SchemaBuilder takes a generic type parameter that extends a Partial `SchemaTypes`.
 
 ```typescript
 import SchemaBuilder from '@giraphql/core';
@@ -23,27 +17,36 @@ import SchemaBuilder from '@giraphql/core';
 const builder = new SchemaBuilder<{
   // Type of the context object
   Context: {};
-  // parent type in root resolvers (Query, Mutation, Subscription)
-  Root: {};
-  // Backing models/shapes for Objects to allow referencing the type as a string
-  Objects: {
-    Giraffe: { name: string; age: number };
-  };
-  // Backing models/shapes for Interfaces
-  Interfaces: {
-    Animal: { name: string };
-  };
-  // Shapes for custom scalrs or to overwrite default types used for built in scalars
-  Scalars: {
-    // Defines a shape for both input (field args) and outout (resolver return types)
-    ID: { Input: string; Output: string | number };
-  };
 }>({
-  // plugins may add options that can be provided here
+  // plugins may add options that can  be provided here
 });
 ```
 
-The types provided here are used to enforce the types in resolvers, both for resolver arguments and
-return values, but not all types need to be added to this TypeInfo object. As described in the
-[Object guide](objects.md) there are a number of different ways to provide type information for a
-GiraphQL type.
+The types provided here are used to enforce the types in resolvers, both for resolver arguments and return values, but not all types need to be added to this SchemaTypes object. As described in the [Object guide](objects.md) there are a number of different ways to provide type information for a GiraphQL type.
+
+## Backing models
+
+GiraphQL is built around a concept of "backing models". This may be a little confusing at first, but once you get your head around it can be very powerful. When you implement a GraphQL schema, you really have 2 schemas. The first, and obvious schema is your GraphQL schema and it is made up of the types you define with the schema builder. The second schema is the set of contracts your resolvers must follow. The primitive types in typescript and graphql do not map cleanly to each other, so there will always be some translation between type types you have in your application, and the types that are defined in your GraphQL schema. This is part of the issue, but is not the full story. Your data and your schema have many other ways in which they may not match. The objects in your code may have many properties you do not want to expose in your API, and API may have fields which need to be loaded separately from the properties you have when first load an object in your application. This misalignment in types is resolved by GiraphQLs backing models.
+
+To put it simple, backing models are the types that describe the data as it flows through your application, which can be substantially different than the types describe in your GraphQL schema. Each object and interface type in your schema has a backing model that is tied to a typescript type that describes your data. These types are how GiraphQL types the parent argument and return type of your resolver functions \(among other things\).
+
+Now that we covered what backing models are, lets go over where they come from. There are currently 3 ways that GiraphQL gets a backing model for an object or interface:
+
+1. Classes: If you use classes when defining you object types, GiraphQL can infer that any field
+
+   that resolves to that type should resolve to an instance of that class
+
+2. TypeRefs: Every time you create a type with the schema builder, it returns a `TypeRef` object,
+
+   which contains the backing model type for that type. Object Refs can also be created explicitly
+
+   with the `builder.objectRef` method.
+
+3. SchemaTypes: The `SchemaTypes` type that is passed into the generic parameter of the
+
+   `SchemaBuilder` can also be used to provide backing models for various types. When you reference
+
+   a type in your schema by name \(as a string\), GiraphQL checks the SchemaTypes to see if there is a
+
+   backing model defined for that type.
+

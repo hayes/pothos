@@ -1,12 +1,13 @@
 import {
-  TypeParam,
+  FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
-  FieldKind,
   SchemaTypes,
+  TypeParam,
 } from '../types';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
+
 import { ArgBuilder, InputFieldMap } from '..';
 
 export default class RootFieldBuilder<

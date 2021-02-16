@@ -1,0 +1,163 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`example schema generates expected schema 1`] = `
+"interface IfaceBooleanFn {
+  field: String!
+}
+
+interface IfaceForAdmin {
+  field: String!
+}
+
+type ObjAdminIface implements IfaceForAdmin {
+  field: String!
+}
+
+type ObjBooleanFn {
+  field: String!
+}
+
+type ObjBooleanIface implements IfaceBooleanFn {
+  field: String!
+}
+
+type ObjEmptyAll {
+  field: String!
+}
+
+type ObjEmptyAllFn {
+  field: String!
+}
+
+type ObjEmptyAny {
+  field: String!
+}
+
+type ObjEmptyAnyFn {
+  field: String!
+}
+
+type ObjExpectsGrants {
+  field: String!
+}
+
+type ObjFieldExpectsGrants {
+  field: String!
+}
+
+type ObjForAdmin {
+  field: String!
+}
+
+type ObjForAdminAsyncFn {
+  field: String!
+}
+
+type ObjForAdminFn {
+  field: String!
+}
+
+type ObjForAll {
+  field: String!
+}
+
+type ObjForAllFn {
+  field: String!
+}
+
+type ObjForAny {
+  field: String!
+}
+
+type ObjForAnyFn {
+  field: String!
+}
+
+type ObjForAsyncPerm {
+  field: String
+}
+
+type ObjForAsyncPermFn {
+  field: String!
+}
+
+type ObjForSyncPerm {
+  field: String!
+}
+
+type ObjForSyncPermFn {
+  field: String
+}
+
+type ObjWithIfaceSkipFields implements IfaceForAdmin {
+  field: String!
+  skipBoth: String
+  skipIface: String
+  skipType: String
+}
+
+type ObjWithSkipFields {
+  skip: String
+}
+
+type Query {
+  IfaceBooleanFn(result: Boolean!): IfaceBooleanFn
+  IfaceForAdmin: IfaceForAdmin
+  ObjAdminIface: ObjAdminIface
+  ObjBooleanFn(result: Boolean!): ObjBooleanFn
+  ObjBooleanIface(result: Boolean!): ObjBooleanIface
+  ObjEmptyAll: ObjEmptyAll
+  ObjEmptyAllFn: ObjEmptyAllFn
+  ObjEmptyAny: ObjEmptyAny
+  ObjEmptyAnyFn: ObjEmptyAnyFn
+  ObjExpectsGrants: ObjExpectsGrants
+  ObjExpectsGrantsAsyncFn(result: Boolean!): ObjExpectsGrants
+  ObjExpectsGrantsFn(result: Boolean!): ObjExpectsGrants
+  ObjExpectsGrantsList: [ObjExpectsGrants]
+  ObjExpectsGrantsListAsyncFn(result: Boolean!): [ObjExpectsGrants]
+  ObjExpectsGrantsListFn(result: Boolean!): [ObjExpectsGrants]
+  ObjExpectsGrantsListMissing: [ObjExpectsGrants]
+  ObjExpectsGrantsMissing: ObjExpectsGrants
+  ObjFieldExpectsGrants: ObjFieldExpectsGrants
+  ObjFieldExpectsGrantsAsyncFn(result: Boolean!): ObjFieldExpectsGrants
+  ObjFieldExpectsGrantsFn(result: Boolean!): ObjFieldExpectsGrants
+  ObjFieldExpectsGrantsList: [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsListAsyncFn(result: Boolean!): [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsListFn(result: Boolean!): [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsListMissing: [ObjFieldExpectsGrants]
+  ObjFieldExpectsGrantsMissing: ObjFieldExpectsGrants
+  ObjForAdmin: ObjForAdmin
+  ObjForAdminAsyncFn: ObjForAdminAsyncFn
+  ObjForAdminFn: ObjForAdminFn
+  ObjForAdminFnReused: ObjForAdminFn
+  ObjForAll: ObjForAll
+  ObjForAllFn: ObjForAllFn
+  ObjForAny: ObjForAny
+  ObjForAnyFn: ObjForAnyFn
+  ObjForAsyncPerm: ObjForAsyncPerm
+  ObjForAsyncPermFn(permission: String): ObjForAsyncPermFn
+  ObjForSyncPerm: ObjForSyncPerm
+  ObjForSyncPermFn(permission: String): ObjForSyncPermFn
+  ObjWithIfaceSkipFields: ObjWithIfaceSkipFields
+  ObjWithSkipFields: ObjWithSkipFields
+  emptyAll: String!
+  emptyAllFn: String!
+  emptyAny: String!
+  emptyAnyFn: String!
+  forAdmin: String!
+  forAdminAsyncFn: String!
+  forAdminFn: String!
+  forAll: String!
+  forAllFn: String!
+  forAny: String!
+  forAnyFn: String!
+  forAsyncPermission: String!
+  forAsyncPermissionFn(permission: String): String
+  forBooleanFn(result: Boolean!): String!
+  forSyncPermission: String!
+  forSyncPermissionFn(permission: String): String
+  grantedFromRoot: String!
+  notGrantedFromRoot: String!
+}
+"
+`;
