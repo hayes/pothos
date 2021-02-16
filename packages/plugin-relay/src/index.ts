@@ -37,15 +37,26 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 SchemaBuilder.registerPlugin(pluginName, GiraphQLRelayPlugin);
 
-function capitalize(s: string) {
-  return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
-}
+function encodeGlobalID<Types extends SchemaTypes>(
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  typename: string,
+  id: string | number | bigint,
+) {
+  if (builder.options.relayOptions.encodeGlobalID) {
+    return builder.options.relayOptions.encodeGlobalID(typename, id);
+  }
 
-export function encodeGlobalID(typename: string, id: bigint | number | string) {
   return Buffer.from(`${typename}:${id}`).toString('base64');
 }
 
-export function decodeGlobalID(globalID: string) {
+function decodeGlobalID<Types extends SchemaTypes>(
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  globalID: string,
+) {
+  if (builder.options.relayOptions.decodeGlobalID) {
+    return builder.options.relayOptions.decodeGlobalID(globalID);
+  }
+
   const [typename, id] = Buffer.from(globalID, 'base64').toString().split(':');
 
   if (!typename || !id) {
@@ -53,6 +64,10 @@ export function decodeGlobalID(globalID: string) {
   }
 
   return { typename, id };
+}
+
+function capitalize(s: string) {
+  return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
 
 const nodeCache = new WeakMap<object, Map<string, MaybePromise<unknown>>>();
@@ -80,7 +95,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
 
     return Promise.all(
       ids.map((id, i) => {
-        const globalID = encodeGlobalID(config.name, id);
+        const globalID = encodeGlobalID(builder, config.name, id);
         const entryPromise = loadManyPromise
           .then((results: unknown[]) => results[i])
           .then((result: unknown) => {
@@ -99,7 +114,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   if (options.loadOne) {
     return Promise.all(
       ids.map((id, i) => {
-        const globalID = encodeGlobalID(config.name, id);
+        const globalID = encodeGlobalID(builder, config.name, id);
         const entryPromise = Promise.resolve(options.loadOne!(id, context)).then(
           (result: unknown) => {
             requestCache.set(globalID, result);
@@ -131,7 +146,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
       return;
     }
 
-    const { id, typename } = decodeGlobalID(globalID);
+    const { id, typename } = decodeGlobalID(builder, globalID);
 
     idsByType[typename] = idsByType[typename] || new Set();
     idsByType[typename].add(id);
@@ -350,7 +365,11 @@ fieldBuilderProto.globalIDList = function globalIDList<
       ).map((item: GlobalIDShape<SchemaTypes> | null | undefined) =>
         item == null || typeof item === 'string'
           ? item
-          : encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, String(item.id)),
+          : encodeGlobalID(
+              this.builder,
+              this.builder.configStore.getTypeConfig(item.type).name,
+              String(item.id),
+            ),
       );
     }
 
@@ -386,7 +405,11 @@ fieldBuilderProto.globalID = function globalID<
 
     const item = (result as unknown) as GlobalIDShape<SchemaTypes>;
 
-    return encodeGlobalID(this.builder.configStore.getTypeConfig(item.type).name, String(item.id));
+    return encodeGlobalID(
+      this.builder,
+      this.builder.configStore.getTypeConfig(item.type).name,
+      String(item.id),
+    );
   };
 
   return this.field({
@@ -416,6 +439,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
         typeof rawID === 'string'
           ? rawID
           : encodeGlobalID(
+              this.builder,
               this.builder.configStore.getTypeConfig(rawID.type).name,
               String(rawID.id),
             );
@@ -452,7 +476,11 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
       const globalIds = rawIds.map((id) =>
         !id || typeof id === 'string'
           ? id
-          : encodeGlobalID(this.builder.configStore.getTypeConfig(id.type).name, String(id.id)),
+          : encodeGlobalID(
+              this.builder,
+              this.builder.configStore.getTypeConfig(id.type).name,
+              String(id.id),
+            ),
       );
 
       return resolveNodes(this.builder, context, globalIds);
