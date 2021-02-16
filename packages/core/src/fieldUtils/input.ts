@@ -1,18 +1,17 @@
 import { InputType, SchemaTypes } from '../types';
-import { FieldRequiredness, InputShapeFromTypeParam, ArgBuilder, InputFieldRef } from '..';
 import { inputTypeFromParam } from '../utils';
+
+import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam } from '..';
 
 export default class InputFieldBuilder<
   Types extends SchemaTypes,
-  Kind extends 'InputObject' | 'Arg'
+  Kind extends keyof GiraphQLSchemaTypes.InputFieldOptionsByKind
 > {
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
   kind: Kind;
 
   typename: string;
-
-  bool = this.helper('Boolean');
 
   boolean = this.helper('Boolean');
 
@@ -23,8 +22,6 @@ export default class InputFieldBuilder<
   int = this.helper('Int');
 
   string = this.helper('String');
-
-  boolList = this.helper(['Boolean']);
 
   booleanList = this.helper(['Boolean']);
 
@@ -54,7 +51,7 @@ export default class InputFieldBuilder<
   }
 
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
-    options: GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>,
+    options: GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
   ) {
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = new InputFieldRef(
       this.kind,
@@ -71,7 +68,7 @@ export default class InputFieldBuilder<
         this.builder.configStore,
         options.required ?? this.builder.defaultInputFieldRequiredness,
       ),
-      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptions<Types>,
+      giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
       description: options.description,
       defaultValue: options.defaultValue,
     }));
@@ -81,11 +78,11 @@ export default class InputFieldBuilder<
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
-      options: Omit<GiraphQLSchemaTypes.InputFieldOptions<Types, Type, Req>, 'type'>,
+      options: Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind], 'type'>,
     ) =>
       this.field({
         ...options,
         type,
-      });
+      } as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind]);
   }
 }

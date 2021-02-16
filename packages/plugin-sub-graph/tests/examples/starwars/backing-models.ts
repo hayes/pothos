@@ -1,4 +1,4 @@
-export type Episode = 'NEWHOPE' | 'EMPIRE' | 'JEDI';
+export type Episode = 'EMPIRE' | 'JEDI' | 'NEWHOPE';
 
 export interface CharacterFields {
   id: string;
@@ -17,7 +17,7 @@ export interface Droid extends CharacterFields {
   primaryFunc: string;
 }
 
-export type Character = Human | Droid;
+export type Character = Droid | Human;
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ContextType {}

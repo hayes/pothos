@@ -1,37 +1,41 @@
-import SchemaBuilder, {
-  SchemaTypes,
-  BasePlugin,
-  RootFieldBuilder,
-  FieldKind,
-  ObjectRef,
-  InterfaceRef,
-  InterfaceParam,
-  InputFieldMap,
-  FieldNullability,
-  InputShapeFromFields,
-  OutputType,
-  assertArray,
-  ObjectParam,
-  MaybePromise,
-  FieldRef,
-  OutputRef,
-} from '@giraphql/core';
-import { GraphQLResolveInfo } from 'graphql';
 import './global-types';
+import { GraphQLResolveInfo } from 'graphql';
+import SchemaBuilder, {
+  assertArray,
+  BasePlugin,
+  FieldKind,
+  FieldNullability,
+  FieldRef,
+  InputFieldMap,
+  InputShapeFromFields,
+  InterfaceParam,
+  InterfaceRef,
+  MaybePromise,
+  ObjectParam,
+  ObjectRef,
+  OutputRef,
+  OutputType,
+  RootFieldBuilder,
+  SchemaTypes,
+} from '@giraphql/core';
 import {
   ConnectionShape,
-  PageInfoShape,
   GlobalIDFieldOptions,
-  NodeObjectOptions,
-  GlobalIDShape,
   GlobalIDListFieldOptions,
+  GlobalIDShape,
+  NodeObjectOptions,
+  PageInfoShape,
 } from './types';
 
 export * from './utils';
 
-export default class RelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+const pluginName = 'relay';
 
-SchemaBuilder.registerPlugin('GiraphQLRelay', RelayPlugin);
+export default pluginName;
+
+export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+
+SchemaBuilder.registerPlugin(pluginName, GiraphQLRelayPlugin);
 
 function encodeGlobalID<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
@@ -80,7 +84,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
   ids: string[],
-  type: string | OutputType<Types>,
+  type: OutputType<Types> | string,
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
@@ -160,6 +164,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
 }
 
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
@@ -420,9 +425,9 @@ fieldBuilderProto.node = function node({ id, ...options }) {
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawID = (await id(parent, args as any, context, info)) as
-        | string
+      const rawID = (await id(parent, args as never, context, info)) as
         | GlobalIDShape<SchemaTypes>
+        | string
         | null
         | undefined;
 
@@ -453,7 +458,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
     },
     type: [this.builder.nodeInterfaceRef()],
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawIDList = await ids(parent, args as any, context, info);
+      const rawIDList = await ids(parent, args as never, context, info);
 
       assertArray(rawIDList);
 

@@ -1,41 +1,41 @@
 import {
-  SchemaTypes,
-  InputFieldMap,
-  FieldNullability,
   FieldKind,
-  OutputType,
+  FieldNullability,
   FieldOptionsFromKind,
-  ObjectRef,
   FieldRef,
+  InputFieldMap,
+  InputFieldsFromShape,
+  InterfaceParam,
   InterfaceRef,
   ObjectFieldsShape,
-  OutputShape,
-  InterfaceParam,
   ObjectParam,
+  ObjectRef,
+  OutputShape,
+  OutputType,
+  SchemaTypes,
   ShapeFromTypeParam,
-  InputFieldsFromShape,
 } from '@giraphql/core';
 import {
+  ConnectionEdgeObjectOptions,
   ConnectionFieldOptions,
   ConnectionObjectOptions,
-  ConnectionEdgeObjectOptions,
-  ConnectionShapeFromResolve,
-  PageInfoShape,
-  NodeObjectOptions,
   ConnectionShapeForType,
-  GlobalIDFieldOptions,
+  ConnectionShapeFromResolve,
   DefaultConnectionArguments,
+  GlobalIDFieldOptions,
+  GlobalIDListFieldOptions,
   NodeFieldOptions,
   NodeListFieldOptions,
-  GlobalIDListFieldOptions,
+  NodeObjectOptions,
+  PageInfoShape,
   RelayPluginOptions,
 } from './types';
-import RelayPlugin from '.';
+import { GiraphQLRelayPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLRelay: RelayPlugin<Types>;
+      relay: GiraphQLRelayPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -91,20 +91,27 @@ declare global {
         Nullable extends boolean,
         ResolveReturnShape
       >(
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            Type,
-            Nullable,
-            Args & InputFieldsFromShape<DefaultConnectionArguments>,
-            Kind,
-            ParentShape,
-            ResolveReturnShape
-          >,
-          'type' | 'resolve' | 'args'
+        options: ConnectionFieldOptions<
+          Types,
+          ParentShape,
+          Type,
+          Nullable,
+          Args,
+          ResolveReturnShape
         > &
-          ConnectionFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              Type,
+              Nullable,
+              Args & InputFieldsFromShape<DefaultConnectionArguments>,
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'args' | 'resolve' | 'type'
+          >,
         connectionOptions: ConnectionObjectOptions<
           Types,
           ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>

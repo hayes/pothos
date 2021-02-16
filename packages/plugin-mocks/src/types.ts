@@ -1,4 +1,4 @@
-import { Subscriber, Resolver, SchemaTypes } from '@giraphql/core';
+import { Resolver, SchemaTypes,Subscriber } from '@giraphql/core';
 
 export interface Resolvers<Types extends SchemaTypes, Parent = unknown> {
   [s: string]:

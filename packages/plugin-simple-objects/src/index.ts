@@ -1,17 +1,24 @@
-import SchemaBuilder, {
-  SchemaTypes,
-  ObjectRef,
-  FieldMap,
-  InterfaceRef,
-  InterfaceParam,
-  InterfaceTypeOptions,
-} from '@giraphql/core';
 import './global-types';
+import SchemaBuilder, {
+  BasePlugin,
+  FieldMap,
+  InterfaceParam,
+  InterfaceRef,
+  InterfaceTypeOptions,
+  ObjectRef,
+  SchemaTypes,
+} from '@giraphql/core';
 import { OutputShapeFromFields } from './types';
 
-const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<
-  SchemaTypes
->;
+const pluginName = 'simpleObjects' as const;
+
+export default pluginName;
+
+export class GiraphQLSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+
+SchemaBuilder.registerPlugin(pluginName, GiraphQLSimpleObjectsPlugin);
+
+const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 proto.simpleObject = function simpleObject<
   Interfaces extends InterfaceParam<SchemaTypes>[],

@@ -15,6 +15,7 @@ logs/
 .vscode/
 .eslintcache
 .yarnclean
+.husky
 
 # Directories
 coverage/

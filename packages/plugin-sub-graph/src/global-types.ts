@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -9,13 +10,16 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GraphQLSchema } from 'graphql';
-import SubGraphPlugin from '.';
+import { GiraphQLSubGraphPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       subGraphs?: Types['SubGraphs'][];
+    }
+
+    export interface BuildSchemaOptions<Types extends SchemaTypes> {
+      subGraph?: Types['SubGraphs'];
     }
 
     export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown>
@@ -49,7 +53,7 @@ declare global {
     }
 
     export interface Plugins<Types extends SchemaTypes> {
-      GiraphQLSubGraph: SubGraphPlugin<Types>;
+      subGraph: GiraphQLSubGraphPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -60,19 +64,12 @@ declare global {
       };
     }
 
-    export interface TypeInfo {
+    export interface UserSchemaTypes {
       SubGraphs: string;
     }
 
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<TypeInfo>> {
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       SubGraphs: PartialTypes['SubGraphs'] extends string ? PartialTypes['SubGraphs'] : string;
-    }
-
-    export interface SchemaBuilder<Types extends SchemaTypes> {
-      toSubGraphSchema: (
-        options: BuildSchemaOptions<Types>,
-        subGraph: Types['SubGraphs'],
-      ) => GraphQLSchema;
     }
   }
 }

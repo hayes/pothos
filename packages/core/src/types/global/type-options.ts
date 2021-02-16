@@ -1,24 +1,24 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   GraphQLResolveInfo,
+  GraphQLScalarLiteralParser,
   GraphQLScalarSerializer,
   GraphQLScalarValueParser,
-  GraphQLScalarLiteralParser,
 } from 'graphql';
 import {
   EnumValues,
-  SchemaTypes,
-  ObjectFieldsShape,
-  InterfaceParam,
-  ValidateInterfaces,
-  OutputShape,
-  QueryFieldsShape,
-  MutationFieldsShape,
-  SubscriptionFieldsShape,
   InputFieldMap,
   InterfaceFieldsShape,
+  InterfaceParam,
+  MutationFieldsShape,
+  ObjectFieldsShape,
   ObjectParam,
+  OutputShape,
+  QueryFieldsShape,
   RootName,
+  SchemaTypes,
+  SubscriptionFieldsShape,
+  ValidateInterfaces,
 } from '../..';
 import { MaybePromise } from '../utils';
 
@@ -30,7 +30,7 @@ declare global {
     }
     export interface EnumTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Values extends EnumValues = EnumValues
+      Values extends EnumValues<Types> = EnumValues<Types>
     > extends BaseTypeOptions<Types> {
       values: Values;
     }
@@ -113,6 +113,13 @@ declare global {
       parseValue?: GraphQLScalarValueParser<ScalarInputShape>;
       // Parses an externally provided literal value to use as an input.
       parseLiteral?: GraphQLScalarLiteralParser<ScalarInputShape>;
+    }
+
+    export interface EnumValueConfig<Types extends SchemaTypes> {
+      description?: string;
+      value?: number | string;
+      deprecationReason?: string;
+      extensions?: Readonly<Record<string, unknown>>;
     }
   }
 }

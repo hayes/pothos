@@ -1,5 +1,5 @@
-import RootFieldBuilder from './root';
 import { SchemaTypes } from '../types';
+import RootFieldBuilder from './root';
 
 export default class MutationFieldBuilder<
   Types extends SchemaTypes,

@@ -1,9 +1,9 @@
-import { printSchema, lexicographicSortSchema } from 'graphql';
-import exampleSchema from './examples/random-stuff';
+import { lexicographicSortSchema,printSchema } from 'graphql';
 import {
-  nullableFieldBuilder,
   nonNullableFieldBuilder,
+  nullableFieldBuilder,
 } from './examples/default-field-nullability';
+import exampleSchema from './examples/random-stuff';
 
 describe('Example schema', () => {
   test('generates expected schema', () => {

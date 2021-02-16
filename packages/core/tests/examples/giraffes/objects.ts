@@ -1,4 +1,4 @@
-import builder, { Giraffe, Animal } from './builder';
+import builder, { Animal,Giraffe } from './builder';
 import { AnimalRef } from './interfaces';
 
 const GiraffeRef = builder.objectRef<Giraffe>('GiraffeFromRef');

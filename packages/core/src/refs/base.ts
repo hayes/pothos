@@ -4,7 +4,7 @@ export default class BaseTypeRef {
   name;
 
   constructor(
-    kind: 'Object' | 'Interface' | 'Union' | 'Enum' | 'Scalar' | 'InputObject',
+    kind: 'Enum' | 'InputObject' | 'Interface' | 'Object' | 'Scalar' | 'Union',
     name: string,
   ) {
     this.kind = kind;

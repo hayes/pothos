@@ -1,7 +1,8 @@
 import { MaybePromise } from '@giraphql/core';
-import { SubscriptionManager } from '..';
 import { RegisterTypeSubscriptionOptions } from '../types';
 import BaseSubscriptionManager from './base';
+
+import { SubscriptionManager } from '..';
 
 export default class TypeSubscriptionManager<
   ParentShape = unknown
@@ -33,15 +34,16 @@ export default class TypeSubscriptionManager<
         }
 
         if (refetch) {
-          return Promise.resolve(refetch(value)).then(
-            // eslint-disable-next-line promise/always-return
-            (result: unknown) => {
-              this.replace(result);
-            },
-            (error: unknown) => {
-              this.manager.handleError(error);
-            },
-          );
+          let resultOrPromise: MaybePromise<unknown>;
+          try {
+            resultOrPromise = refetch(value);
+          } catch (error) {
+            this.manager.handleError(error);
+          }
+
+          this.replace(resultOrPromise);
+
+          return resultOrPromise as MaybePromise<void>;
         }
 
         return this.refetchParent();

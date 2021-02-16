@@ -1,8 +1,8 @@
 /* eslint-disable no-console */
 import { ApolloServer } from 'apollo-server';
 import { PubSub } from 'graphql-subscriptions';
-import schema from './schema';
 import { Poll } from './data';
+import schema from './schema';
 
 export const pubsub = new PubSub();
 

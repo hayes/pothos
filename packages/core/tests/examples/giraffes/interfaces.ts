@@ -1,4 +1,4 @@
-import builder, { Giraffe, Animal, Diet } from './builder';
+import builder, { Animal, Diet,Giraffe } from './builder';
 
 export const AnimalRef = builder.interfaceRef<Animal>('AnimalFromRef');
 

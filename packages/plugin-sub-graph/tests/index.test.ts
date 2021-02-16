@@ -1,6 +1,6 @@
+import './examples/starwars/schema';
 import { lexicographicSortSchema, printSchema } from 'graphql';
 import builder from './examples/starwars/builder';
-import './examples/starwars/schema';
 
 describe('subGraphs', () => {
   test('full graph', () => {
@@ -10,13 +10,13 @@ describe('subGraphs', () => {
   });
 
   test('Private graph', () => {
-    const privateSchema = builder.toSubGraphSchema({}, 'Private');
+    const privateSchema = builder.toSchema({ subGraph: 'Private' });
 
     expect(printSchema(lexicographicSortSchema(privateSchema))).toMatchSnapshot();
   });
 
   test('Public graph', () => {
-    const publicSchema = builder.toSubGraphSchema({}, 'Public');
+    const publicSchema = builder.toSchema({ subGraph: 'Public' });
 
     expect(printSchema(lexicographicSortSchema(publicSchema))).toMatchSnapshot();
   });

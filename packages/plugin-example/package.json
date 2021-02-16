@@ -1,0 +1,34 @@
+{
+  "name": "@giraphql/plugin-example",
+  "version": "2.0.0-alpha.1",
+  "description": "An example plugin for GiraphQL",
+  "main": "./lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "example",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@giraphql/core": "^2.0.0-alpha.0",
+    "apollo-server": "^2.21.0",
+    "graphql": ">=15.1.0",
+    "graphql-tag": "^2.11.0"
+  }
+}

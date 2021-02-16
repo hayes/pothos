@@ -4,11 +4,15 @@
   "useWorkspaces": true,
   "command": {
     "publish": {
+      "message": "chore(release): publish",
       "ignoreChanges": [
         "*.md",
         "*.test.ts",
         "tests/*"
       ]
     }
-  }
+  },
+  "packages": [
+    "./packages/*"
+  ]
 }

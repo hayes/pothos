@@ -1,24 +1,25 @@
-import { GraphQLResolveInfo, GraphQLEnumValueConfigMap } from 'graphql';
+import { GraphQLResolveInfo } from 'graphql';
+import { Merge, RemoveNeverKeys } from './utils';
+
 import {
-  SchemaTypes,
-  TypeParam,
-  FieldNullability,
-  InterfaceParam,
-  ShapeFromTypeParam,
-  NormalizeNullableFields,
-  OutputShape,
-  InputFieldRef,
-  FieldRef,
-  inputFieldShapeKey,
-  EnumParam,
   BaseEnum,
+  EnumParam,
+  FieldNullability,
+  FieldRef,
+  InputFieldRef,
+  inputFieldShapeKey,
+  InterfaceParam,
+  InterfaceRef,
+  MaybePromise,
+  MaybePromiseWithInference,
+  NormalizeNullableFields,
   ObjectParam,
   ObjectRef,
-  InterfaceRef,
-  MaybePromiseWithInference,
-  MaybePromise,
+  OutputShape,
+  SchemaTypes,
+  ShapeFromTypeParam,
+  TypeParam,
 } from '..';
-import { Merge, RemoveNeverKeys } from './utils';
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   GiraphQLSchemaTypes.SchemaBuilderOptions<Types>
@@ -29,15 +30,14 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => Return &
-  MaybePromiseWithInference<
+) => MaybePromiseWithInference<
     Type extends unknown[]
       ? Readonly<
           Return extends MaybePromise<readonly Promise<unknown>[]> ? Promise<Type[number]>[] : Type
         >
       : Type,
     Return
-  >;
+  > & Return;
 
 export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,
@@ -46,13 +46,21 @@ export type Subscriber<Parent, Args, Context, Shape> = (
   info: GraphQLResolveInfo,
 ) => AsyncIterable<Shape>;
 
-export type EnumValues = readonly string[] | GraphQLEnumValueConfigMap;
+export type EnumValues<Types extends SchemaTypes> = EnumValueConfigMap<Types> | readonly string[];
 
-export type ShapeFromEnumValues<Values extends EnumValues> = Values extends readonly string[]
+export type EnumValueConfigMap<Types extends SchemaTypes> = Record<
+  string,
+  GiraphQLSchemaTypes.EnumValueConfig<Types>
+>;
+
+export type ShapeFromEnumValues<
+  Types extends SchemaTypes,
+  Values extends EnumValues<Types>
+> = Values extends readonly string[]
   ? Values[number]
-  : Values extends GraphQLEnumValueConfigMap
+  : Values extends EnumValueConfigMap<Types>
   ? {
-      [K in keyof Values]: Values[K]['value'] extends string | number ? Values[K]['value'] : K;
+      [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
     }[keyof Values]
   : never;
 
@@ -128,15 +136,14 @@ export type ObjectTypeOptions<
   Param extends ObjectParam<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[]
-> = (
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
-) &
-  (Param extends string
+> = (Param extends string
     ? {}
     : Param extends ObjectRef<unknown>
     ? { name?: string }
-    : { name: string });
+    : { name: string }) & (
+  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
+);
 
 export type InterfaceTypeOptions<
   Types extends SchemaTypes,
@@ -153,7 +160,7 @@ export type InterfaceTypeOptions<
 export type EnumTypeOptions<
   Types extends SchemaTypes,
   Param extends EnumParam,
-  Values extends EnumValues
+  Values extends EnumValues<Types>
 > = Param extends BaseEnum
   ? Merge<
       Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
@@ -194,8 +201,7 @@ export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
   ? T
   : never;
 
-export type FieldKind = keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType &
-  keyof GiraphQLSchemaTypes.FieldOptionsByKind<
+export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
     SchemaTypes,
     {},
     TypeParam<SchemaTypes>,
@@ -203,7 +209,7 @@ export type FieldKind = keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType &
     {},
     {},
     {}
-  >;
+  > & keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType;
 
 export type CompatibleTypes<
   Types extends SchemaTypes,

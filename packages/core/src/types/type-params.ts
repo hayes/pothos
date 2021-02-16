@@ -1,4 +1,4 @@
-import { SchemaTypes, ObjectRef, InterfaceRef, RootName } from '..';
+import { InterfaceRef, ObjectRef, RootName, SchemaTypes } from '..';
 
 export const outputShapeKey = Symbol.for('GiraphQL.outputShapeKey');
 export const inputShapeKey = Symbol.for('GiraphQL.inputShapeKey');
@@ -48,35 +48,36 @@ export interface InputRefShape<T> {
 export interface OutputRef {
   [outputShapeKey]: unknown;
   name: string;
-  kind: 'Object' | 'Interface' | 'Scalar' | 'Enum' | 'Union';
+  kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
 }
 
 export interface InputRef {
   [inputShapeKey]: unknown;
   name: string;
-  kind: 'InputObject' | 'Scalar' | 'Enum';
+  kind: 'Enum' | 'InputObject' | 'Scalar';
 }
 
 export type OutputType<Types extends SchemaTypes> =
+  | BaseEnum
   | keyof Types['outputShapes']
   | {
       [outputShapeKey]: unknown;
     }
   | {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new (...args: any[]): any;
-    }
-  | BaseEnum;
+    };
 
 export type InputType<Types extends SchemaTypes> =
+  | BaseEnum
   | keyof Types['inputShapes']
   | {
       [inputShapeKey]: unknown;
-    }
-  | BaseEnum;
+    };
 
 export type ConfigurableRef<Types extends SchemaTypes> =
-  | OutputType<Types>
   | InputType<Types>
+  | OutputType<Types>
   | RootName;
 
 export type TypeParam<Types extends SchemaTypes> = OutputType<Types> | [OutputType<Types>];
@@ -87,6 +88,7 @@ export type ObjectParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Objects']>
   | ObjectRef<unknown>
   | {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       new (...args: any[]): any;
     };
 
@@ -98,13 +100,13 @@ export type InterfaceParam<Types extends SchemaTypes> =
     };
 
 export interface BaseEnum {
-  [s: string]: string | number;
+  [s: string]: number | string;
   [s: number]: string;
 }
 
 export type ValuesFromEnum<T extends BaseEnum> = T[keyof T];
 
-export type EnumParam = string | BaseEnum;
+export type EnumParam = BaseEnum | string;
 
 export type ShapeFromTypeParam<
   Types extends SchemaTypes,
@@ -117,7 +119,7 @@ export type ShapeFromTypeParam<
     ? OutputShape<Types, Param> | null | undefined
     : OutputShape<Types, Param>
   : Nullable extends true
-  ? OutputShape<Types, Param> | undefined | null
+  ? OutputShape<Types, Param> | null | undefined
   : OutputShape<Types, Param>;
 
 export type ShapeFromListTypeParam<
@@ -129,13 +131,13 @@ export type ShapeFromListTypeParam<
     ? OutputShape<Types, Param[0]>[] | null | undefined
     : OutputShape<Types, Param[0]>[]
   : Nullable extends true
-  ? OutputShape<Types, Param[0]>[] | undefined | null
+  ? OutputShape<Types, Param[0]>[] | null | undefined
   : Nullable extends false
   ? OutputShape<Types, Param[0]>[]
   : Nullable extends { list: infer List; items: infer Items }
   ? Items extends boolean
     ? List extends true
-      ? ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] | undefined | null
+      ? ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] | null | undefined
       : ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
     : never
   : never;
@@ -163,7 +165,7 @@ export type InputShapeFromTypeParam<
     : InputShape<Types, Param>
   : Required extends true
   ? InputShape<Types, Param>
-  : InputShape<Types, Param> | undefined | null;
+  : InputShape<Types, Param> | null | undefined;
 
 export type InputShapeFromListTypeParam<
   Types extends SchemaTypes,
@@ -176,17 +178,17 @@ export type InputShapeFromListTypeParam<
   : Required extends true
   ? InputShape<Types, Param[0]>[]
   : Required extends false
-  ? InputShape<Types, Param[0]>[] | undefined | null
+  ? InputShape<Types, Param[0]>[] | null | undefined
   : FieldRequiredness<Param> extends Required
-  ? InputShape<Types, Param[0]>[] | undefined | null
-  : Required extends { list: infer List; items: infer Items } | boolean
+  ? InputShape<Types, Param[0]>[] | null | undefined
+  : Required extends boolean | { list: infer List; items: infer Items }
   ? Items extends boolean
     ? List extends true
       ? InputShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
       :
           | InputShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
-          | undefined
           | null
+          | undefined
     : never
   : never;
 
