@@ -53,5 +53,5 @@ new ApolloServer({
   * [`@giraphql/plugin-simple-objects`](plugins/simple-objects.md): A plugin for creating simple objects and interfaces without defining types, resolvers, or arguments.
   * [`@giraphql/plugin-mocks`](plugins/mocks.md): A plugin for mocking out resolvers in your schema.
   * [`@giraphql/plugin-sub-graph`](plugins/sub-graph.md): A plugin for creating sub selections of your graph.
-  * [`@giraphql/plugin-directives`](https://github.com/hayes/giraphql/tree/ceaba7d3304347908fc932f5426dcf974078a5fc/docs/plugins/sub-directives.md): A plugin for using directives with GiraphQL schemas.
+  * [`@giraphql/plugin-directives`](plugins/directives.md): A plugin for using directives with GiraphQL schemas.
 

@@ -7,7 +7,7 @@ menu: Api
 
 ## `arg(options)`
 
-- `options`: \[`FieldOptions`\]
+* `options`: \[`FieldOptions`\]
 
 ### FieldOptions
 
@@ -20,36 +20,32 @@ type FieldOptions = {
 };
 ```
 
-- `type`: [Type Parameter](arg-builder.md#type-parameter)
-- `required`: boolean, defaults to `false`, unless overwritten in SchemaBuilder see
+* `type`: [Type Parameter](arg-builder.md#type-parameter)
+* `required`: boolean, defaults to `false`, unless overwritten in SchemaBuilder see
 
   [Changing Default Nullability](../guide/changing-default-nullability.md).
 
-- `description`: string
-- `defaultValue`: default value for field, type based on `type` option.
+* `description`: string
+* `defaultValue`: default value for field, type based on `type` option.
 
 ### Type Parameter
 
-A Type Parameter for a Field can be any `InputTypeRef` returned by one of the
-[`SchemaBuilder`](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/api/guide/schema-builder.md)
-methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts enum used to define a graphql enum
-type, or a string that corresponds to one of they keys of the `Scalars` object defined in
-`SchemaTypes`.
+A Type Parameter for a Field can be any `InputTypeRef` returned by one of the [`SchemaBuilder`](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/api/guide/schema-builder.md) methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts enum used to define a graphql enum type, or a string that corresponds to one of they keys of the `Scalars` object defined in `SchemaTypes`.
 
 ## helpers
 
-A set of helpers for creating scalar fields. This work the same as ArgBuilder, but omit the `type`
-field from options.
+A set of helpers for creating scalar fields. This work the same as ArgBuilder, but omit the `type` field from options.
 
 ### Scalars
 
-- `arg.string(options)`
-- `arg.id(options)`
-- `arg.boolean(options)`
-- `arg.int(options)`
-- `arg.float(options)`
-- `arg.stringList(options)`
-- `arg.idList(options)`
-- `arg.booleanList(options)`
-- `arg.intList(options)`
-- `arg.floatList(options)`
+* `arg.string(options)`
+* `arg.id(options)`
+* `arg.boolean(options)`
+* `arg.int(options)`
+* `arg.float(options)`
+* `arg.stringList(options)`
+* `arg.idList(options)`
+* `arg.booleanList(options)`
+* `arg.intList(options)`
+* `arg.floatList(options)`
+

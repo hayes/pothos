@@ -7,8 +7,7 @@ menu: Guide
 
 ## Defining Interface Types
 
-Defining interfaces works exactly like [defining Objects](objects.md), using `Interfaces` key in
-SchemaTypes object for the builder, and `interfaceRef` rather than `objectRef`.
+Defining interfaces works exactly like [defining Objects](objects.md), using `Interfaces` key in SchemaTypes object for the builder, and `interfaceRef` rather than `objectRef`.
 
 Lets update our Giraffe class a bit to make it work well for interfaces:
 
@@ -41,11 +40,9 @@ export enum Diet {
 }
 ```
 
-Again, using classes is completely optional. The only requirement for interfaces is that the the
-type used for defining objects must be a superset of the the types of any interfaces they implement.
+Again, using classes is completely optional. The only requirement for interfaces is that the the type used for defining objects must be a superset of the the types of any interfaces they implement.
 
-Now that we have our classes set up we can define the interface type. and add a enum definitions for
-our diet field:
+Now that we have our classes set up we can define the interface type. and add a enum definitions for our diet field:
 
 ```typescript
 builder.interfaceType(Animal, {
@@ -77,9 +74,7 @@ builder.objectType(Giraffe, {
 
 There are 2 new properties here: `interfaces` and `isTypeOf`.
 
-Interfaces is an array of interfaces that the object type implements, and `isTypeOf` is a function
-that is run whenever we have an object of the interface type and we want to see if it's actually an
-instance of our object type.
+Interfaces is an array of interfaces that the object type implements, and `isTypeOf` is a function that is run whenever we have an object of the interface type and we want to see if it's actually an instance of our object type.
 
 ## Using an Interface as a return type
 
@@ -107,8 +102,7 @@ query {
 }
 ```
 
-or we can query a field that returns an interface and select different fields depending on the
-concrete type:
+or we can query a field that returns an interface and select different fields depending on the concrete type:
 
 ```graphql
 query {
@@ -120,3 +114,4 @@ query {
   }
 }
 ```
+

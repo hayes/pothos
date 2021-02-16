@@ -5,9 +5,7 @@ menu: Guide
 
 # Args
 
-Similar to the [Fields Guide](fields.md), the examples here will mostly be for the Query type, but
-the same patters can be used anywhere that arguments for fields can be defined, including both
-Object and Interface types.
+Similar to the [Fields Guide](fields.md), the examples here will mostly be for the Query type, but the same patters can be used anywhere that arguments for fields can be defined, including both Object and Interface types.
 
 ## Scalars
 
@@ -83,9 +81,7 @@ const Giraffe = builder.objectType('Giraffe', {
 
 ## Required args
 
-Arguments are optional by default, but can be made required by passing `required: true` in the
-argument options. This default can be changed in the SchemaBuilder constructor, see
-[Changing Default Nullability](guide/changing-default-nullability.md).
+Arguments are optional by default, but can be made required by passing `required: true` in the argument options. This default can be changed in the SchemaBuilder constructor, see [Changing Default Nullability](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/guide/guide/changing-default-nullability.md).
 
 ```typescript
 const Query = builder.queryType({
@@ -108,8 +104,7 @@ const Query = builder.queryType({
 });
 ```
 
-Note that by default even if a list arg is optional, the items in that list are not. The last
-argument in the example above shows how you can make list items optional.
+Note that by default even if a list arg is optional, the items in that list are not. The last argument in the example above shows how you can make list items optional.
 
 ## Lists
 
@@ -137,3 +132,4 @@ const Query = builder.queryType({
   }),
 });
 ```
+

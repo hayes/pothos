@@ -5,15 +5,11 @@ menu: Guide
 
 # Object Types
 
-This will walk you through creating your fist object types, some concepts in this guide will be
-explained further in later guides.
+This will walk you through creating your fist object types, some concepts in this guide will be explained further in later guides.
 
 ### Create some data
 
-When adding a new type to your schema, you'll need to figure how the data behind this type will be
-represented. In this guide, we will use a class to represent some information about giraffes. Using
-classes is completely optional, but it's a good place to start, since it makes it easy to show all
-the different ways that you can tie the shape of your data to a new object type.
+When adding a new type to your schema, you'll need to figure how the data behind this type will be represented. In this guide, we will use a class to represent some information about giraffes. Using classes is completely optional, but it's a good place to start, since it makes it easy to show all the different ways that you can tie the shape of your data to a new object type.
 
 ```typescript
 export class Giraffe {
@@ -43,9 +39,7 @@ builder.objectType(Giraffe, {
 });
 ```
 
-The first argument is an `ObjectParam`, in this case the class that represent our giraffes. This is
-used to convey type information about our underlying data, so that fields can know what properties
-are available on the parent object. \*\*\*\*
+The first argument is an `ObjectParam`, in this case the class that represent our giraffes. This is used to convey type information about our underlying data, so that fields can know what properties are available on the parent object. \*\*\*\*
 
 ### Add some fields
 
@@ -72,12 +66,7 @@ builder.objectType(Giraffe', {
 });
 ```
 
-In GiraphQL we never automatically expose properties from the underlying data. Each property we want
-to add in our schema needs to be explicitly defined. The `fields` property in options object should
-be a function that accepts one argument \(a [FieldBuilder](../field-builder.md)\) and returns an
-object who's keys are the field names, and who's values are `FieldRefs`created by the
-[FieldBuilder](../field-builder.md). Fields are explained in more detail in the
-[fields guide](fields.md).
+In GiraphQL we never automatically expose properties from the underlying data. Each property we want to add in our schema needs to be explicitly defined. The `fields` property in options object should be a function that accepts one argument \(a [FieldBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/field-builder.md)\) and returns an object who's keys are the field names, and who's values are `FieldRefs`created by the [FieldBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/field-builder.md). Fields are explained in more detail in the [fields guide](fields.md).
 
 ## Add a query
 
@@ -94,15 +83,11 @@ builder.queryType({
 });
 ```
 
-The `type` parameter can use whatever was used as the first argument of `builder.objectType`, in
-this case the Giraffe class. `builder.objectType` also returns a `Ref` object that can be used as a
-`TypeParam`.
+The `type` parameter can use whatever was used as the first argument of `builder.objectType`, in this case the Giraffe class. `builder.objectType` also returns a `Ref` object that can be used as a `TypeParam`.
 
 ### Create a server
 
-GiraphQL schemas build into a plain schema that uses types from the `graphql`package. This means it
-should be compatible with most of the popular GraphQL server implementations for node. In this guide
-we will use `apollo-server` but you can use whatever server you want.
+GiraphQL schemas build into a plain schema that uses types from the `graphql`package. This means it should be compatible with most of the popular GraphQL server implementations for node. In this guide we will use `apollo-server` but you can use whatever server you want.
 
 ```typescript
 // import apollo-server at top of file
@@ -139,15 +124,11 @@ query {
 
 ## Different ways to define Object types
 
-There are 3 different ways that you can provide type information to GiraphQL about what the
-underlying data in your graph will be. Depending on how the rest of your application is structured
-you can pick the approach that works best for you, or use a combination of different styles.
+There are 3 different ways that you can provide type information to GiraphQL about what the underlying data in your graph will be. Depending on how the rest of your application is structured you can pick the approach that works best for you, or use a combination of different styles.
 
 ### Using classes
 
-This is the approach used above. If your data is already represented as a class, this is a fairly
-straight forward approach, since you can just use your existing classes anywhere that a `TypeParam`
-is expected.
+This is the approach used above. If your data is already represented as a class, this is a fairly straight forward approach, since you can just use your existing classes anywhere that a `TypeParam` is expected.
 
 ```typescript
 const builder = new SchemaBuilder({});
@@ -168,8 +149,7 @@ builder.queryFields((t) => ({
 
 ### Using SchemaTypes
 
-You can provide a type mappings when you create the [SchemaBuilder](schema-builder.md). This will
-allow you to reference you type by name throughout your schema \(as a string\).
+You can provide a type mappings when you create the [SchemaBuilder](schema-builder.md). This will allow you to reference you type by name throughout your schema \(as a string\).
 
 ```typescript
 const builder = new SchemaBuilder<{ Objects: { Giraffe: Giraffe } }>({});
@@ -187,19 +167,13 @@ builder.queryFields((t) => ({
 }));
 ```
 
-This is ideal when you want to list out all the types for your schema in one place, or you have
-interfaces/types that define your data rather than classes, and means you won't have to import
-anything when referencing the object type in other parts of the schema.
+This is ideal when you want to list out all the types for your schema in one place, or you have interfaces/types that define your data rather than classes, and means you won't have to import anything when referencing the object type in other parts of the schema.
 
-The type signature for [SchemaBuilder](../schema-builder.md) is described in more detail
-[later](schema-builder.md), for now, it is enough to know that the `Objects` type provided to the
-schema builder allows you to map the names of object types to type definitions that describe the
-data for those types.
+The type signature for [SchemaBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/schema-builder.md) is described in more detail [later](schema-builder.md), for now, it is enough to know that the `Objects` type provided to the schema builder allows you to map the names of object types to type definitions that describe the data for those types.
 
 ### Using Refs
 
-You can use an `ObjectRef` to reference your class and provide a `Generic` argument that describes
-the shape or your data.
+You can use an `ObjectRef` to reference your class and provide a `Generic` argument that describes the shape or your data.
 
 ```typescript
 const builder = new SchemaBuilder({});
@@ -223,10 +197,7 @@ builder.queryFields((t) => ({
 }));
 ```
 
-`ObjectRefs` are useful when you don't want to define all the types in a single place
-\(`SchemaTypes`\) and your data is not represented as classes. Regardless of how you define your
-object types, `builder.objectType` returns an `ObjectRef` that can be used as a type parameter in
-other parts of the schema.
+`ObjectRefs` are useful when you don't want to define all the types in a single place \(`SchemaTypes`\) and your data is not represented as classes. Regardless of how you define your object types, `builder.objectType` returns an `ObjectRef` that can be used as a type parameter in other parts of the schema.
 
 A slightly simplified version of the above could be written as
 
@@ -249,3 +220,4 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+

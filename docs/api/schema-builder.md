@@ -3,15 +3,14 @@ name: SchemaBuilder
 menu: Api
 ---
 
-# SchemaBuilder API
+# SchemaBuilder
 
-SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a
-graphql.js Schema.
+SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a graphql.js Schema.
 
 ## `constructor<SchemaTypes>(options)`
 
-- typeParam: `SchemaTypes`: A type that describes the backing models for your schema
-- options: `SchemaBuilderOptions`
+* typeParam: `SchemaTypes`: A type that describes the backing models for your schema
+* options: `SchemaBuilderOptions`
 
 ### `SchemaTypes`
 
@@ -50,9 +49,8 @@ By default there are no options for SchemaBuilder, but plugins may contribute ad
 
 creates the `Query` with a set of Query fields
 
-- `options`: `QueryTypeOptions`
-- `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `options`: `QueryTypeOptions`
+* `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -65,9 +63,8 @@ type QueryTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `description`: A description of the current type
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -75,8 +72,7 @@ type QueryTypeOptions = {
 
 add a set of fields to the `Query` type.
 
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -84,9 +80,8 @@ add a set of fields to the `Query` type.
 
 add a single field to the `Query` type.
 
-- `name`: the name of the field
-- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
-  [`FieldBuilder`](field-builder.md)
+* `name`: the name of the field
+* `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See [`FieldBuilder`](field-builder.md)
 
   for more details.
 
@@ -94,9 +89,8 @@ add a single field to the `Query` type.
 
 creates the `Mutation` with a set of Mutation fields
 
-- `options`: `MutationTypeOptions`
-- `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `options`: `MutationTypeOptions`
+* `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -109,9 +103,8 @@ type MutationTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `description`: A description of the current type
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -119,8 +112,7 @@ type MutationTypeOptions = {
 
 add a set of fields to the `Mutation` type.
 
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -128,9 +120,8 @@ add a set of fields to the `Mutation` type.
 
 add a single field to the `Mutation` type.
 
-- `name`: the name of the field
-- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
-  [`FieldBuilder`](field-builder.md)
+* `name`: the name of the field
+* `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See [`FieldBuilder`](field-builder.md)
 
   for more details.
 
@@ -138,9 +129,8 @@ add a single field to the `Mutation` type.
 
 creates the `Subscription` with a set of Subscription fields
 
-- `options`: `SubscriptionTypeOptions`
-- `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `options`: `SubscriptionTypeOptions`
+* `fields?`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -153,9 +143,8 @@ type SubscriptionTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `description`: A description of the current type
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -163,8 +152,7 @@ type SubscriptionTypeOptions = {
 
 add a set of fields to the `Subscription` type.
 
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -172,21 +160,19 @@ add a set of fields to the `Subscription` type.
 
 add a single field to the `Subscription` type.
 
-- `name`: the name of the field
-- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
-  [`FieldBuilder`](field-builder.md)
+* `name`: the name of the field
+* `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See [`FieldBuilder`](field-builder.md)
 
   for more details.
 
 ## `objectType(param, options, fields?)`
 
-- `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
+* `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
-- `options`: `ObjectTypeOptions`
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `options`: `ObjectTypeOptions`
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -202,32 +188,30 @@ type ObjectTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `description`: A description of the current type
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
-- `isTypeOf`: Only required when implementing interfaces. This is a method that will be used when
+* `isTypeOf`: Only required when implementing interfaces. This is a method that will be used when
 
   determining if a value of an implemented interface is of the current type.
 
-- `interfaces`: an array of interfaces implemented by this interface type. Items in this array
+* `interfaces`: an array of interfaces implemented by this interface type. Items in this array
 
   should be an interface param. See `param` argument of `interfaceType`
 
-- `name`: name of GraphQL type. Required when param is a class
+* `name`: name of GraphQL type. Required when param is a class
 
 ## `objectFields(param, fields)`
 
 add a set of fields to the object type.
 
-- `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
+* `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -235,34 +219,30 @@ add a set of fields to the object type.
 
 add a single field to the object type.
 
-- `name`: the name of the field
-- `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
+* `name`: the name of the field
+* `param`: A key of the `Objects` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.objectRef`
 
-- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
-  [`FieldBuilder`](field-builder.md)
+* `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See [`FieldBuilder`](field-builder.md)
 
   for more details.
 
 ## `objectRef<T>(name)`
 
-Creates a Ref object represent an object that has not been implemented. This can be useful for
-building certain types of plugins, or when building a modular schema where you don't want to define
-all types in SchemaTypes, or import the actual implementation of each object type you use.
+Creates a Ref object represent an object that has not been implemented. This can be useful for building certain types of plugins, or when building a modular schema where you don't want to define all types in SchemaTypes, or import the actual implementation of each object type you use.
 
-- `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
-- `T`: a type param to define the backing shape for the type that this ref represents
+* `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
+* `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `interfaceType(param, options, fields?)`
 
-- `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
+* `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
-- `options`: `InterfaceTypeOptions`
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `options`: `InterfaceTypeOptions`
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -277,28 +257,26 @@ type InterfaceTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `description`: A description of the current type
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
-- `interfaces`: an array of interfaces implemented by this interface type. Items in this array
+* `interfaces`: an array of interfaces implemented by this interface type. Items in this array
 
   should be an interface param. See `param` argument of `interfaceType`
 
-- `name`: name of GraphQL type. Required when param is a class
+* `name`: name of GraphQL type. Required when param is a class
 
 ## `interfaceFields(param, fields)`
 
 add a set of fields to the interface type.
 
-- `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
+* `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
-- `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of
-  field names to
+* `fields`: a function that receives a [`FieldBuilder`](field-builder.md), and returns an object of field names to
 
   field refs. See [`FieldBuilder`](field-builder.md) for more details.
 
@@ -306,29 +284,26 @@ add a set of fields to the interface type.
 
 add a single field to the interface type.
 
-- `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
+* `param`: A key of the `Interfaces` property in `SchemaTypes`, a class, or a TypeRef created by
 
   `builder.interfaceRef`
 
-- `name`: the name of the field
-- `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See
-  [`FieldBuilder`](field-builder.md)
+* `name`: the name of the field
+* `field`: a function that receives a [`FieldBuilder`](field-builder.md), and returns field ref. See [`FieldBuilder`](field-builder.md)
 
   for more details.
 
 ## `interfaceRef<T>(name)`
 
-Creates a Ref object represent an interface that has not been implemented. This can be useful for
-building certain types of plugins, or when building a modular schema where you don't want to define
-all types in SchemaTypes, or import the actual implementation of each interface type you use.
+Creates a Ref object represent an interface that has not been implemented. This can be useful for building certain types of plugins, or when building a modular schema where you don't want to define all types in SchemaTypes, or import the actual implementation of each interface type you use.
 
-- `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
-- `T`: a type param to define the backing shape for the type that this ref represents
+* `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
+* `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `unionType(name, options)`
 
-- `name`: A string
-- `options`: `UnionTypeOptions`
+* `name`: A string
+* `options`: `UnionTypeOptions`
 
 ### `UnionTypeOptions`
 
@@ -340,12 +315,12 @@ type UnionTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `types`: an array of object types included in the union type. Items in this array should be Object
+* `description`: A description of the current type
+* `types`: an array of object types included in the union type. Items in this array should be Object
 
   params. See `param` argument in `builder.objectType`.
 
-- `resolveType`: A function called when resolving the type of a union value. `parent` will be a
+* `resolveType`: A function called when resolving the type of a union value. `parent` will be a
 
   union of the backing models of the types provided in `types`. This function should return the name
 
@@ -353,8 +328,8 @@ type UnionTypeOptions = {
 
 ## `enumType(param, options)`
 
-- `param`: A string name of the enum or a typescript enum
-- `options`: `EnumTypeOptions`
+* `param`: A string name of the enum or a typescript enum
+* `options`: `EnumTypeOptions`
 
 ### `EnumTypeOptions`
 
@@ -366,24 +341,24 @@ type UnionTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `values`: can be either an array of strings \(you may need to use `as const` to get proper type
+* `description`: A description of the current type
+* `values`: can be either an array of strings \(you may need to use `as const` to get proper type
 
   names\) or a `GraphQLEnumValueConfigMap`.
 
   values is only required when param is not an enum
 
-- `name`: required when param is an enum
+* `name`: required when param is an enum
 
 ## `addScalarType(name, scalar, options)`
 
-- `name`: A key of the `Interface` property in `SchemaTypes`
-- `scalar`: A `GraphQLScalar`
+* `name`: A key of the `Interface` property in `SchemaTypes`
+* `scalar`: A `GraphQLScalar`
 
 ## `scalarType(name, options)`
 
-- `name`: A key of the `Interface` property in `SchemaTypes`
-- `options`: `ScalarTypeOptions`
+* `name`: A key of the `Interface` property in `SchemaTypes`
+* `options`: `ScalarTypeOptions`
 
 ### ScalarTypeOptions
 
@@ -400,8 +375,8 @@ extensions?: Readonly<Record<string, unknown>>;
 
 ## `inputType(param, options)`
 
-- `param`: a string or InputRef created by `builder.inputRef`
-- `options`: `InputTypeOptions`
+* `param`: a string or InputRef created by `builder.inputRef`
+* `options`: `InputTypeOptions`
 
 ### `InputTypeOptions`
 
@@ -412,11 +387,10 @@ type InputTypeOptions = {
 };
 ```
 
-- `description`: A description of the current type
-- `fields`: a function that receives an `InputFieldBuilder`, and returns an object of field names
+* `description`: A description of the current type
+* `fields`: a function that receives an `InputFieldBuilder`, and returns an object of field names
 
-  to field definitions. See [`InputFieldBuilder`](input-field-builder.md) for more details. If
-  `name` is a key of the `Input`
+  to field definitions. See [`InputFieldBuilder`](input-field-builder.md) for more details. If `name` is a key of the `Input`
 
   property in `SchemaTypes`, shape will show type errors for any fields that do not match the types
 
@@ -424,24 +398,20 @@ type InputTypeOptions = {
 
 ## `inputRef<T>(name)`
 
-Creates a Ref object represent an input object that has not been implemented. This can be useful for
-defining recursive input types, for building certain types of plugins, or when building a modular
-schema where you don't want to define all types in SchemaTypes, or import the actual implementation
-of each input type you use.
+Creates a Ref object represent an input object that has not been implemented. This can be useful for defining recursive input types, for building certain types of plugins, or when building a modular schema where you don't want to define all types in SchemaTypes, or import the actual implementation of each input type you use.
 
-- `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
-- `T`: a type param to define the backing shape for the type that this ref represents
+* `name`: string, name of the type that this ref represents. Can be overwritten when implemented.
+* `T`: a type param to define the backing shape for the type that this ref represents
 
 ## `args(fields)`
 
 Creates an arguments object which can be used as the `args` option in a field definition.
 
-- `fields`: a function that receives an [`ArgBuilder`](arg-builder.md), and returns an object of
-  field names
+* `fields`: a function that receives an [`ArgBuilder`](arg-builder.md), and returns an object of field names
 
   to field definitions. See [`ArgBuilder`](arg-builder.md) for more details.
 
 ## `toSchema(types)`
 
-Takes an array of types created by [`SchemaBuilder`](schema-builder.md#schemabuilder) and returns a
-[`GraphQLSchema`](https://graphql.org/graphql-js/type/#graphqlschema)
+Takes an array of types created by [`SchemaBuilder`](schema-builder.md#schemabuilder) and returns a [`GraphQLSchema`](https://graphql.org/graphql-js/type/#graphqlschema)
+
