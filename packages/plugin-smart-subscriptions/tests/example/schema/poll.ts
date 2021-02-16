@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import builder from '../builder';
 import { Poll } from '../data';
 
@@ -6,18 +5,25 @@ const POLLS = 'polls';
 
 builder.objectType('Poll', {
   subscribe: (subscriptions, poll, context) => {
-    console.log('subscribing to poll', poll.id);
+    context.logSub('subscribe', `poll ${poll.id}`);
     subscriptions.register(`poll/${poll.id}`, {
       refetch: (): Promise<Poll> => {
-        console.log('reFetching poll', poll.id);
+        context.logSub('re-fetch', `poll ${poll.id}`);
+
         return new Promise<Poll>((resolve) => {
-          setTimeout(() => resolve(context.Poll.map.get(poll.id)!), 1000);
+          setTimeout(() => void resolve(context.Poll.map.get(poll.id)!), 1000);
         });
       },
     });
   },
   fields: (t) => ({
-    id: t.exposeID('id', {}),
+    id: t.id({
+      resolve: (poll, args, ctx, info) => {
+        ctx.log(info);
+
+        return poll.id;
+      },
+    }),
     updatedAt: t.string({
       resolve: () => new Date().toISOString(),
     }),
@@ -25,8 +31,18 @@ builder.objectType('Poll', {
     answers: t.field({
       nullable: true,
       type: ['Answer'],
+      canRefetch: true,
       resolve: (parent, args, context, info) => {
-        console.log(info.operation.name?.value, 'fetching answer for poll', parent.id);
+        context.log(info);
+
+        return parent.answers;
+      },
+    }),
+    refetchableAnswers: t.field({
+      nullable: true,
+      type: ['RefetchableAnswer'],
+      resolve: (parent, args, context, info) => {
+        context.log(info);
 
         return parent.answers;
       },
@@ -38,11 +54,37 @@ builder.objectType('Answer', {
   fields: (t) => ({
     id: t.exposeID('id', {}),
     value: t.exposeString('value', {}),
-    count: t.exposeInt('count', {
-      subscribe: (subscriptions, parent, args) => {
+    count: t.int({
+      subscribe: (subscriptions, parent, args, context) => {
+        context.logSub('subscribe', `poll-result/${parent.id}`);
+
         subscriptions.register(`poll-result/${parent.id}`);
       },
-      // canRefetch: true,
+      resolve: (parent, args, ctx, info) => {
+        ctx.log(info);
+
+        return parent.count;
+      },
+    }),
+  }),
+});
+
+builder.objectType('RefetchableAnswer', {
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+    value: t.exposeString('value', {}),
+    count: t.int({
+      subscribe: (subscriptions, parent, args, context) => {
+        context.logSub('subscribe', `poll-result/${parent.id}`);
+
+        subscriptions.register(`poll-result/${parent.id}`);
+      },
+      resolve: (parent, args, ctx, info) => {
+        ctx.log(info);
+
+        return parent.count;
+      },
+      canRefetch: true,
     }),
   }),
 });
@@ -51,9 +93,9 @@ builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
     smartSubscription: true,
-    subscribe: (subscriptions) => subscriptions.register('polls'),
+    subscribe: (subscriptions) => void subscriptions.register('polls'),
     resolve: (root, args, ctx, info) => {
-      console.log(info.operation.name?.value, 'fetching all polls');
+      ctx.log(info);
 
       return [...Poll.map.values()];
     },
@@ -66,7 +108,7 @@ builder.queryFields((t) => ({
     },
     smartSubscription: true,
     resolve: (root, args, ctx, info) => {
-      console.log(info.operation.name?.value, 'fetching poll', args.id);
+      ctx.log(info);
 
       return Poll.map.get(args.id);
     },
@@ -80,10 +122,10 @@ builder.mutationFields((t) => ({
       question: t.arg.string({ required: true }),
       answers: t.arg.stringList({ required: true }),
     },
-    resolve: (root, args, { pubsub }) => {
+    resolve: async (root, args, { pubsub }) => {
       const poll = Poll.create(args.question, args.answers);
 
-      pubsub.publish(POLLS, poll.id);
+      await pubsub.publish(POLLS, poll.id);
 
       return poll;
     },
@@ -95,8 +137,8 @@ builder.mutationFields((t) => ({
       answer: t.arg.int({ required: true }),
       skipPollPublish: t.arg.bool({ required: false }),
     },
-    resolve: (root, args, { pubsub }, info) => {
-      console.log(info.operation.name?.value, 'answering poll', args.id, 'with', args.answer);
+    resolve: async (root, args, { pubsub, log }, info) => {
+      log(info);
 
       const poll = Poll.map.get(Number(args.id));
 
@@ -113,10 +155,10 @@ builder.mutationFields((t) => ({
       answer.count += 1;
 
       if (!args.skipPollPublish) {
-        pubsub.publish(`poll/${args.id}`, {});
+        await pubsub.publish(`poll/${args.id}`, {});
       }
 
-      pubsub.publish(`poll-result/${args.answer}`, {});
+      await pubsub.publish(`poll-result/${args.answer}`, {});
 
       return poll;
     },

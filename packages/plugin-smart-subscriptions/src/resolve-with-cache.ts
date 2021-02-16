@@ -21,10 +21,14 @@ export default function resolveWithCache<Types extends SchemaTypes>(
     return existingCacheNode.value;
   }
 
-  const parentManager = cache.managerForParentType(info);
+  const parentSubscriber = cache.getTypeSubscriber(info.parentType.name);
 
-  if (parentManager) {
-    cache.getTypeSubscriber(info.parentType.name)?.(parentManager, parent, context, info);
+  if (parentSubscriber) {
+    const parentManager = cache.managerForParentType(info);
+
+    if (parentManager) {
+      parentSubscriber(parentManager, parent, context, info);
+    }
   }
 
   const resultOrPromise = resolve(parent, args, context, info) as unknown;

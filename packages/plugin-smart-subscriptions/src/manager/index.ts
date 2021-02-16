@@ -22,6 +22,8 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
   pendingError: unknown;
 
+  pendingEvents: [string, unknown][] = [];
+
   value: object;
 
   resolveNext: ((done?: boolean) => void) | null = null;
@@ -152,6 +154,16 @@ export default class SubscriptionManager implements AsyncIterator<object> {
         this.rejectNext = null;
         reject(err);
       };
+
+      const pending = this.pendingEvents;
+
+      if (pending.length > 0) {
+        this.pendingEvents = [];
+
+        for (const [name, value] of pending) {
+          this.handleValue(name, value);
+        }
+      }
     });
   }
 
@@ -234,6 +246,12 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
   private handleValue(name: string, value: unknown) {
     if (this.stopped) {
+      return;
+    }
+
+    if (!this.resolveNext) {
+      this.pendingEvents.push([name, value]);
+
       return;
     }
 

@@ -11,14 +11,14 @@ builder.subscriptionType({
         let i = 0;
         const iter = {
           next: () =>
-            new Promise<IteratorResult<number, never>>((resolve) =>
+            new Promise<IteratorResult<number, never>>((resolve) => {
               setTimeout(() => {
                 resolve({
                   value: (i += 1),
                   done: false,
                 });
-              }, 1000),
-            ),
+              }, 1000);
+            }),
         };
 
         return { [Symbol.asyncIterator]: () => iter };

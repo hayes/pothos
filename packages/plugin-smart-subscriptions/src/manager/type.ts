@@ -41,6 +41,8 @@ export default class TypeSubscriptionManager<
             this.manager.handleError(error);
           }
 
+          this.replace(resultOrPromise);
+
           return resultOrPromise as MaybePromise<void>;
         }
 

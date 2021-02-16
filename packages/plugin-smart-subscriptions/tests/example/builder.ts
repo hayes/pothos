@@ -1,12 +1,13 @@
 import SchemaBuilder from '@giraphql/core';
-import { ContextType } from './types';
-import { Poll } from './data';
 import SmartSubscriptionsPlugin, { subscribeOptionsFromIterator } from '../../src';
+import { Poll } from './data';
+import { ContextType } from './types';
 
 interface UserSchemaTypes {
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
+    RefetchableAnswer: { id: number; value: string; count: number };
   };
   Context: ContextType;
   SmartSubscriptions: string;
@@ -15,8 +16,6 @@ interface UserSchemaTypes {
 export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [SmartSubscriptionsPlugin],
   smartSubscriptions: {
-    ...subscribeOptionsFromIterator((name, { pubsub }) => {
-      return pubsub.asyncIterator(name);
-    }),
+    ...subscribeOptionsFromIterator((name, { pubsub }) => pubsub.asyncIterator(name)),
   },
 });

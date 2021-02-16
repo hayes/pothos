@@ -32,4 +32,10 @@ export class Poll {
 
     return poll;
   }
+
+  static reset() {
+    this.map = new Map<number, Poll>();
+    this.lastID = 0;
+    this.lastAnswerID = 0;
+  }
 }

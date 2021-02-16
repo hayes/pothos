@@ -72,11 +72,8 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
         (t) =>
           t.field({
             ...fieldConfig.giraphqlOptions,
-            resolve: (parent, args, context, info) => {
-              this.requestData(context).cache!.next();
-
-              return (fieldConfig.resolve || defaultFieldResolver)(parent, args, context, info);
-            },
+            resolve: (parent, args, context, info) =>
+              (fieldConfig.resolve || defaultFieldResolver)(parent, args, context, info),
             subscribe: (parent, args, context, info) => {
               const manager = new SubscriptionManager({
                 value: parent,
@@ -89,7 +86,25 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
 
               this.requestData(context).cache = cache;
 
-              return manager;
+              return {
+                [Symbol.asyncIterator]() {
+                  return {
+                    next() {
+                      return manager.next().then((next) => {
+                        cache.next();
+
+                        return next;
+                      });
+                    },
+                    return() {
+                      return manager.return();
+                    },
+                    throw(error: unknown) {
+                      return manager.throw(error);
+                    },
+                  };
+                },
+              };
             },
           }) as FieldRef<unknown>,
       );
