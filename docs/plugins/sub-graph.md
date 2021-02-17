@@ -87,7 +87,7 @@ builder.queryType({
 
 ### Missing types
 
-When creating a subgraph, the plugin will only copy in types that are included in the sub-graph, either by explicitly setting it on the type, or because the sub-graph is included in the default list. Like types, output fields that are not included in a sub-graph will also be omitted. Arguments and fields on Input types can not be removed because that would break assumptions about arguments types in resolves.
+When creating a sub-graph, the plugin will only copy in types that are included in the sub-graph, either by explicitly setting it on the type, or because the sub-graph is included in the default list. Like types, output fields that are not included in a sub-graph will also be omitted. Arguments and fields on Input types can not be removed because that would break assumptions about arguments types in resolves.
 
 If a type that is not included in the sub-graph is referenced by another part of the graph that is included in the graph, a runtime error will be thrown when the sub graph is constructed. This can happen in a number of cases including cases where a removed type is used in the interfaces of an object, a member of a union, or the type of an field argument.
 
