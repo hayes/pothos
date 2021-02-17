@@ -71,17 +71,20 @@ You can mock any field by adding a mock in the options passed to `builder.buildS
 
 ```typescript
 builder.queryType({
-  subGraphs: ['Public', 'Internal'], // Query type will be available in default, Public, and Internal schemas
-  defaultSubGraphsForFields: []; // Fields on the Query object will now default to not being a part of any subgraph
+  // Query type will be available in default, Public, and Internal schemas
+  subGraphs: ['Public', 'Internal'],
+  // Fields on the Query object will now default to not being a part of any subgraph
+  defaultSubGraphsForFields: [];
   fields: (t) => ({
     someField: t.string({
-      subGraphs: ['Internal'] // someField will be in the default schema and "Internal" sub graph, but not present in the Public sub graph
+      // someField will be in the default schema and "Internal" sub graph, but
+      // not present in the Public sub graph
+      subGraphs: ['Internal']
       resolve: () => {
         throw new Error('Not implemented');
       },
     }),
   }),
-
 });
 ```
 
