@@ -35,7 +35,7 @@ const builder = new SchemaBuilder<{
 
 const schema = builder.toSchema({});
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
-const internalSchema = builder.toSubGraphSchema({ subGraph: 'Internal' });
+const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 ```
 
 ### Options on Types
@@ -71,11 +71,11 @@ You can mock any field by adding a mock in the options passed to `builder.buildS
 
 ```typescript
 builder.queryType({
-  subGraphs: ['Public', 'Internal'], // Query type will be available in default, Public, and Other schemas
+  subGraphs: ['Public', 'Internal'], // Query type will be available in default, Public, and Internal schemas
   defaultSubGraphsForFields: []; // Fields on the Query object will now default to not being a part of any subgraph
   fields: (t) => ({
     someField: t.string({
-      subGraphs: ['Internal'] // someField will be in the default schema and "Other" sub graph, but not present in the Public sub graph
+      subGraphs: ['Internal'] // someField will be in the default schema and "Internal" sub graph, but not present in the Public sub graph
       resolve: () => {
         throw new Error('Not implemented');
       },
