@@ -26,8 +26,8 @@ builder.queryType({
 });
 
 const schema = builder.toSchema({});
-const schemaAsString = printSchema(lexicographicSortSchema(exampleSchema));
+const schemaAsString = printSchema(lexicographicSortSchema(schema));
 
-writeFileSync('/path/to/schema.graphql', schema);
+writeFileSync('/path/to/schema.graphql', schemaAsString);
 ```
 
