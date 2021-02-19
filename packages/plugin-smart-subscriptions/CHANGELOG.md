@@ -3,6 +3,32 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 2.0.0 - 2021-02-16
+
+#### 💥 Breaking
+
+- update plugin API to avoid modifying args. subGraphs are now build by passing subGraph to toSchema ([66d456e](https://github.com/hayes/giraphql/commit/66d456e))
+- update plugin exports and names to be more consistent ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
+
+#### 📦 Dependencies
+
+- update dependencies and add license files ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
+
+#### 📘 Docs
+
+- add 2.0 migration guide ([48314c5](https://github.com/hayes/giraphql/commit/48314c5))
+- add more docs o writing plugins ([b996fc6](https://github.com/hayes/giraphql/commit/b996fc6))
+
+#### 🛠 Internals
+
+- add tests for smart-subscription plugin ([38f06ff](https://github.com/hayes/giraphql/commit/38f06ff))
+
+**Note:** Version bump only for package @giraphql/plugin-smart-subscriptions
+
+
+
+
+
 ### 2.0.0-alpha.1 - 2021-02-10
 
 #### 🛠 Internals

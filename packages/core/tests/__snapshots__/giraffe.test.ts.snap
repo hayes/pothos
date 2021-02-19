@@ -34,6 +34,7 @@ type Giraffe implements Animal {
   diet: Diet!
   height(unit: LengthUnit! = Meters): Float!
   name: String!
+  oldName(old: Boolean @deprecated(reason: \\"because\\")): String! @deprecated(reason: \\"should use name instead\\")
   species: GiraffeSpecies!
 }
 

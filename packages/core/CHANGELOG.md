@@ -3,6 +3,33 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 2.0.0 - 2021-02-16
+
+#### 💥 Breaking
+
+- update plugin API to avoid modifying args. subGraphs are now build by passing subGraph to toSchema ([66d456e](https://github.com/hayes/giraphql/commit/66d456e))
+- update plugin exports and names to be more consistent ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
+
+#### 🐞 Fixes
+
+- use fieldOptionsByKind pattern for input field builder ([6ccf739](https://github.com/hayes/giraphql/commit/6ccf739))
+
+#### 📦 Dependencies
+
+- update dependencies and add license files ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
+
+#### 📘 Docs
+
+- add 2.0 migration guide ([48314c5](https://github.com/hayes/giraphql/commit/48314c5))
+- add more docs o writing plugins ([b996fc6](https://github.com/hayes/giraphql/commit/b996fc6))
+- wip - plugin guide ([cf9c6ec](https://github.com/hayes/giraphql/commit/cf9c6ec))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 # 2.0.0-alpha.0 - 2021-02-10
 
 #### 💥 Breaking

@@ -67,6 +67,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         ),
         giraphqlOptions: options as never,
         description: options.description,
+        deprecationReason: options.deprecationReason,
         resolve:
           (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
           (() => {

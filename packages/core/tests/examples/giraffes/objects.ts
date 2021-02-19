@@ -1,4 +1,4 @@
-import builder, { Animal,Giraffe } from './builder';
+import builder, { Animal, Giraffe } from './builder';
 import { AnimalRef } from './interfaces';
 
 const GiraffeRef = builder.objectRef<Giraffe>('GiraffeFromRef');
@@ -11,9 +11,7 @@ builder.objectType(Giraffe, {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: (parent) => 
-         5 // hard coded so test don't break over time
-      ,
+      resolve: (parent) => 5, // hard coded so test don't break over time
     }),
   }),
 });
@@ -25,9 +23,14 @@ builder.objectType('Giraffe', {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: (parent) => 
-         5 // hard coded so test don't break over time
-      ,
+      resolve: (parent) => 5, // hard coded so test don't break over time
+    }),
+    oldName: t.string({
+      deprecationReason: 'should use name instead',
+      args: {
+        old: t.arg.boolean({ deprecationReason: 'because' }),
+      },
+      resolve: () => 'old',
     }),
   }),
 });
@@ -39,9 +42,7 @@ builder.objectType(GiraffeRef, {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.int({
-      resolve: (parent) => 
-         5 // hard coded so test don't break over time
-      ,
+      resolve: (parent) => 5, // hard coded so test don't break over time
     }),
   }),
 });

@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+# 2.0.0 - 2021-02-16
+
+#### 💥 Breaking
+
+- update plugin exports and names to be more consistent ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
+
+#### 📦 Dependencies
+
+- update dependencies and add license files ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
+
+**Note:** Version bump only for package @giraphql/converter
+
+
+
+
+
 ### 2.0.0-alpha.0 - 2021-02-10
 
 #### 🛠 Internals

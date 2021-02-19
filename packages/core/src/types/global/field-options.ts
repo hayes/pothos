@@ -206,6 +206,7 @@ declare global {
     > {
       type: Type;
       description?: string;
+      deprecationReason?: string;
       required?: Req;
       defaultValue?: NonNullable<InputShapeFromTypeParam<Types, Type, Req>>;
       extensions?: Readonly<Record<string, unknown>>;
