@@ -70,6 +70,7 @@ export default class InputFieldBuilder<
       ),
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
       description: options.description,
+      deprecationReason: options.deprecationReason,
       defaultValue: options.defaultValue,
     }));
 
