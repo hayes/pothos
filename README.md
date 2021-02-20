@@ -45,9 +45,8 @@ yarn build
 
 ### Scripts
 
--   `yarn docz:dev`: start docs dev server to see a love local copy of docs site
 -   `yarn prepare`: re-create all the config files for tools used in this repo
--   `yarn build`: runs typechecking and babel
+-   `yarn build`: builds .js and .d.ts files
 -   `yarn clean`: removes all build artifacts for code and docs
 -   `yarn lint {path to file/directory}`: runs linter (eslint)
 -   `yarn jest {path to file/directory}`: run run tests
