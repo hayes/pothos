@@ -37,11 +37,11 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 SchemaBuilder.registerPlugin(pluginName, GiraphQLRelayPlugin);
 
-function encodeGlobalID(typename: string, id: bigint | number | string) {
+export function encodeGlobalID(typename: string, id: bigint | number | string) {
   return Buffer.from(`${typename}:${id}`).toString('base64');
 }
 
-function decodeGlobalID(globalID: string) {
+export function decodeGlobalID(globalID: string) {
   const [typename, id] = Buffer.from(globalID, 'base64').toString().split(':');
 
   if (!typename || !id) {

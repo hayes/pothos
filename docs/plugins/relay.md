@@ -5,7 +5,8 @@ menu: Plugins
 
 # Relay Plugin
 
-The Relay plugin adds a number of builder methods a helper functions to simplify building a relay compatible schema.
+The Relay plugin adds a number of builder methods a helper functions to simplify building a relay
+compatible schema.
 
 ## Usage
 
@@ -20,21 +21,25 @@ yarn add @giraphql/plugin-relay
 ```typescript
 import RelayPlugin from '@giraphql/plugin-relay';
 const builder = new SchemaBuilder({
-    plugins: [RelayPlugin],
-    relayOptions: {
-        nodeQueryOptions: {},
-        nodesQueryOptions: {},
-        nodeTypeOptions: {},
-        pageInfoTypeOptions: {},
-    },
+  plugins: [RelayPlugin],
+  relayOptions: {
+    nodeQueryOptions: {},
+    nodesQueryOptions: {},
+    nodeTypeOptions: {},
+    pageInfoTypeOptions: {},
+  },
 });
 ```
 
-The options objects here are required, but will often be empty. Like many other places in the GiraphQL API, options objects are required because other plugins may contribute required options. These options objects will enable things like defining auth policies for your node query fields if you are using the auth plugin.
+The options objects here are required, but will often be empty. Like many other places in the
+GiraphQL API, options objects are required because other plugins may contribute required options.
+These options objects will enable things like defining auth policies for your node query fields if
+you are using the auth plugin.
 
 ### Global ids
 
-To make it easier to create globally unique ids the relay plugin adds new methods for creating globalID fields.
+To make it easier to create globally unique ids the relay plugin adds new methods for creating
+globalID fields.
 
 ```typescript
 import { encodeGlobalID } from '@giraphql/plugin-relay';
@@ -53,7 +58,9 @@ builder.queryFields((t) => ({
 }));
 ```
 
-The returned IDs can either be a string \(which is expected to already be a globalID\), or an object with the an `id` and a `type`, The type can be either the name of a name as a string, or any object that can be used in a type parameter.
+The returned IDs can either be a string \(which is expected to already be a globalID\), or an object
+with the an `id` and a `type`, The type can be either the name of a name as a string, or any object
+that can be used in a type parameter.
 
 ### Creating Nodes
 
@@ -85,13 +92,26 @@ builder.node(NumberThing, {
 });
 ```
 
-`builder.node` will create an object type that implements the `Node` interface. It will also create the `Node` interface the first time it is used. The `resolve` function for `id` should return a number or string, which will be converted to a globalID. The `loadOne` and `loadMany` methods are optional, and `loadMany` will be used if both are present. These methods allow a nodes to be loaded by id. The relay plugin adds to new query fields `node` and `nodes` which can be used to directly fetch nodes using global IDs.
+`builder.node` will create an object type that implements the `Node` interface. It will also create
+the `Node` interface the first time it is used. The `resolve` function for `id` should return a
+number or string, which will be converted to a globalID. The `loadOne` and `loadMany` methods are
+optional, and `loadMany` will be used if both are present. These methods allow a nodes to be loaded
+by id. The relay plugin adds to new query fields `node` and `nodes` which can be used to directly
+fetch nodes using global IDs.
 
-Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to using an `instanceof` check, and falls back to checking the constructor property on the prototype. The means that for many cases if you are using classes in your type parameters, and all your values are instances of those classes, you won't need to implement an `isTypeOf` method, but it is ussually better to explicitly define that behavior.
+Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
+lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
+using an `instanceof` check, and falls back to checking the constructor property on the prototype.
+The means that for many cases if you are using classes in your type parameters, and all your values
+are instances of those classes, you won't need to implement an `isTypeOf` method, but it is ussually
+better to explicitly define that behavior.
 
 ### Creating Connections
 
-The `t.connection` field builder method can be used to define connections. This method will automatically create the `Connection` and `Edge` objects used by the connection, and add `before`, `after`, `first`, and `last` arguments. The first time this method is used, it will also create the `PageInfo` type.
+The `t.connection` field builder method can be used to define connections. This method will
+automatically create the `Connection` and `Edge` objects used by the connection, and add `before`,
+`after`, `first`, and `last` arguments. The first time this method is used, it will also create the
+`PageInfo` type.
 
 ```typescript
 builder.queryFields((t) => ({
@@ -135,7 +155,8 @@ builder.queryFields((t) => ({
 }));
 ```
 
-Manually implementing connections can be cumbersome, so there are a couple of helper methods that can make resolving connections a little easier.
+Manually implementing connections can be cumbersome, so there are a couple of helper methods that
+can make resolving connections a little easier.
 
 For limit/offset based apis:
 
@@ -158,7 +179,8 @@ builder.queryFields((t) => ({
 }));
 ```
 
-`resolveOffsetConnection` has a few default limits to prevent unintentionally allowing too many records to be fetched at once. These limits can be configure using the following options:
+`resolveOffsetConnection` has a few default limits to prevent unintentionally allowing too many
+records to be fetched at once. These limits can be configure using the following options:
 
 ```typescript
 {
@@ -168,7 +190,8 @@ builder.queryFields((t) => ({
 }
 ```
 
-For APIs where you have the full array available you can use `resolveArrayConnection`, which works just like `resolveOffsetConnection` and accepts the same options.
+For APIs where you have the full array available you can use `resolveArrayConnection`, which works
+just like `resolveOffsetConnection` and accepts the same options.
 
 ```typescript
 import { resolveArrayConnection } from '@giraphql/plugin-relay';
@@ -191,9 +214,12 @@ I am planning to add more helpers in the future.
 
 ### Expose nodes
 
-The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be a globalID or an object with and an `id` and a `type`.
+The `t.node` and `t.nodes` methods can be used to add additional node fields. the expected return
+values of `id` and `ids` fields is the same as the resolve value of `t.globalID`, and can either be
+a globalID or an object with and an `id` and a `type`.
 
-Loading nodes by `id` uses a request cache, so the same node will only be loaded once per request, even if it is used multiple times across the schema.
+Loading nodes by `id` uses a request cache, so the same node will only be loaded once per request,
+even if it is used multiple times across the schema.
 
 ```typescript
 builder.queryFields((t) => ({
@@ -206,9 +232,37 @@ builder.queryFields((t) => ({
 }));
 ```
 
+### decoding and encoding global ids
+
+The relay plugin exports `decodeGlobalID` and `encodeGlobalID` as helper methods for interacting
+with global IDs directly. If you accept a global ID as an argument you can use the `decodeGlobalID`
+function to decode it:
+
+```typescript
+builder.mutationFields((t) => ({
+  updateThing: t.field({
+    type: Thing,
+    args: {
+      id: t.args.id({ required: true }),
+      update: t.args.string({ required: true }),
+    },
+    resolve(parent, args) {
+      const { type, id } = decodeGlobalId(args.id);
+
+      const thing = Thing.findById(id);
+
+      thing.update(args.update);
+
+      return thing;
+    },
+  }),
+}));
+```
+
 ### Using custom encoding for global ids
 
-In some cases you may want to encode global ids differently than the build in ID encoding. To do this, you can pass a custom encoding and decoding function into the relay options of the builder:
+In some cases you may want to encode global ids differently than the build in ID encoding. To do
+this, you can pass a custom encoding and decoding function into the relay options of the builder:
 
 ```typescript
 import '@giraphql/plugin-relay';
@@ -228,4 +282,3 @@ const builder = new SchemaBuilder({
   },
 });
 ```
-
