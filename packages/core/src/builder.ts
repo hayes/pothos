@@ -74,6 +74,8 @@ import {
 export default class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
 
+  static allowPluginReRegistration = false;
+
   configStore: ConfigStore<Types>;
 
   options: NormalizeSchemeBuilderOptions<Types>;
@@ -102,7 +104,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     name: T,
     plugin: PluginConstructorMap<SchemaTypes>[T],
   ) {
-    if (this.plugins[name]) {
+    if (!this.allowPluginReRegistration && this.plugins[name]) {
       throw new Error(`Received multiple implementations for plugin ${name}`);
     }
 

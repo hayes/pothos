@@ -45,14 +45,14 @@ export interface InputRefShape<T> {
   [inputShapeKey]: T;
 }
 
-export interface OutputRef {
-  [outputShapeKey]: unknown;
+export interface OutputRef<T = unknown> {
+  [outputShapeKey]: T;
   name: string;
   kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
 }
 
-export interface InputRef {
-  [inputShapeKey]: unknown;
+export interface InputRef<T = unknown> {
+  [inputShapeKey]: T;
   name: string;
   kind: 'Enum' | 'InputObject' | 'Scalar';
 }
