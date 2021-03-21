@@ -8,6 +8,7 @@ import {
   FieldRef,
   InputFieldRef,
   inputFieldShapeKey,
+  InputRef,
   InterfaceParam,
   InterfaceRef,
   MaybePromise,
@@ -31,13 +32,14 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   context: Context,
   info: GraphQLResolveInfo,
 ) => MaybePromiseWithInference<
-    Type extends unknown[]
-      ? Readonly<
-          Return extends MaybePromise<readonly Promise<unknown>[]> ? Promise<Type[number]>[] : Type
-        >
-      : Type,
-    Return
-  > & Return;
+  Type extends unknown[]
+    ? Readonly<
+        Return extends MaybePromise<readonly Promise<unknown>[]> ? Promise<Type[number]>[] : Type
+      >
+    : Type,
+  Return
+> &
+  Return;
 
 export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,
@@ -137,13 +139,14 @@ export type ObjectTypeOptions<
   Shape,
   Interfaces extends InterfaceParam<Types>[]
 > = (Param extends string
-    ? {}
-    : Param extends ObjectRef<unknown>
-    ? { name?: string }
-    : { name: string }) & (
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
-);
+  ? {}
+  : Param extends ObjectRef<unknown>
+  ? { name?: string }
+  : { name: string }) &
+  (
+    | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+    | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
+  );
 
 export type InterfaceTypeOptions<
   Types extends SchemaTypes,
@@ -202,14 +205,21 @@ export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
   : never;
 
 export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
-    SchemaTypes,
-    {},
-    TypeParam<SchemaTypes>,
-    boolean,
-    {},
-    {},
-    {}
-  > & keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType;
+  SchemaTypes,
+  {},
+  TypeParam<SchemaTypes>,
+  boolean,
+  {},
+  {},
+  {}
+> &
+  keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType;
+
+export type InputFieldKind = keyof GiraphQLSchemaTypes.InputFieldOptionsByKind<
+  SchemaTypes,
+  InputRef<unknown>,
+  boolean
+>;
 
 export type CompatibleTypes<
   Types extends SchemaTypes,
