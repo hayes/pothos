@@ -10,6 +10,7 @@ import {
   GraphQLSchema,
   GraphQLString,
   GraphQLTypeResolver,
+  lexicographicSortSchema,
 } from 'graphql';
 import BuildCache from './build-cache';
 import ConfigStore from './config-store';
@@ -519,6 +520,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       types: builtTypes,
     });
 
-    return buildCache.plugin.afterBuild(schema);
+    return lexicographicSortSchema(buildCache.plugin.afterBuild(schema));
   }
 }
