@@ -2,7 +2,6 @@ import {
   BuildCache,
   GiraphQLInputFieldConfig,
   GiraphQLInputFieldType,
-  GiraphQLOutputFieldConfig,
   GiraphQLTypeConfig,
   SchemaTypes,
 } from '..';
@@ -24,7 +23,7 @@ type InputFieldMapping<Types extends SchemaTypes, T> =
       config: GiraphQLInputFieldConfig<Types>;
       isList: boolean;
       value: T | null;
-      typeFields: InputTypeFieldsMapping<Types, T>;
+      fields: InputTypeFieldsMapping<Types, T>;
     }
   | {
       kind: 'Scalar';
@@ -52,14 +51,6 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(
   throw new TypeError(`Unexpected config type ${config.kind} for input ref ${type.ref}`);
 }
 
-export function mapArgFields<Types extends SchemaTypes, T>(
-  fieldConfig: GiraphQLOutputFieldConfig<Types>,
-  buildCache: BuildCache<Types>,
-  mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null,
-): InputFieldsMap<Types, T> | null {
-  return mapInputFields(fieldConfig.args, buildCache, mapper);
-}
-
 export function mapInputFields<Types extends SchemaTypes, T>(
   inputs: { [name: string]: GiraphQLInputFieldConfig<Types> },
   buildCache: BuildCache<Types>,
@@ -85,14 +76,14 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         return;
       }
 
-      const hasNestedMappings = checkForMappings(mapping.typeFields.map!);
+      const hasNestedMappings = checkForMappings(mapping.fields.map!);
 
       if (mapping.value !== null || hasNestedMappings) {
-        const filteredTypeFields = filterMapped(mapping.typeFields.map!);
+        const filteredTypeFields = filterMapped(mapping.fields.map!);
         const mappingForType = {
           ...mapping,
           typeFields: {
-            configs: mapping.typeFields!.configs,
+            configs: mapping.fields!.configs,
             map: filteredTypeFields,
           },
         };
@@ -119,8 +110,8 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     map.forEach((mapping) => {
       if (mapping.kind !== 'InputObject') {
         result = true;
-      } else if (mapping.typeFields.map) {
-        if (checkForMappings(mapping.typeFields.map, hasMappings)) {
+      } else if (mapping.fields.map) {
+        if (checkForMappings(mapping.fields.map, hasMappings)) {
           result = true;
         }
       }
@@ -180,7 +171,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
       isList: inputField.type.kind === 'List',
       config: inputField,
       value: fieldMapping,
-      typeFields,
+      fields: typeFields,
     });
   });
 
@@ -201,8 +192,8 @@ export function createInputValueMapper<Types extends SchemaTypes, T>(
         return;
       }
 
-      if (field.kind === 'InputObject' && field.typeFields.map) {
-        fieldVal = mapObject(fieldVal as Record<string, unknown>, field.typeFields.map);
+      if (field.kind === 'InputObject' && field.fields.map) {
+        fieldVal = mapObject(fieldVal as Record<string, unknown>, field.fields.map);
         mapped[fieldName] = fieldVal;
       }
 
