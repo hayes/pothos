@@ -62,6 +62,31 @@ The returned IDs can either be a string \(which is expected to already be a glob
 with the an `id` and a `type`, The type can be either the name of a name as a string, or any object
 that can be used in a type parameter.
 
+There are also new methods for adding globalIDs in arguments or fields of input types:
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    fieldThatAcceptsGlobalID: t.boolean({
+      args: {
+        id: t.arg.globalID({
+          required: true,
+        }),
+        idList: t.arg.globalIDList({}),
+      },
+      resolve(parent, args) {
+        console.log(`Get request for type ${args.id.type} with id ${args.id.typename}`);
+        return true;
+      },
+    }),
+  }),
+});
+```
+
+globalIDs used in arguments expect the client to send a globalID string, but will automatically be
+converted to an object with 2 properties (`id` and `typename`) before they are passed to your
+resolver in the arguments object.
+
 ### Creating Nodes
 
 To create objects that extend the `Node` interface, you can use the new `builder.node` method.
