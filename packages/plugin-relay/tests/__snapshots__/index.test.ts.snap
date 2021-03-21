@@ -12,9 +12,21 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+input GlobalIDInput {
+  circular: GlobalIDInput
+  circularWithoutGlobalIds: NoGlobalIDInput
+  id: ID!
+  idList: [ID!]!
+}
+
 type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
+}
+
+input NoGlobalIDInput {
+  circular: NoGlobalIDInput
+  id: ID
 }
 
 interface Node {
@@ -76,6 +88,7 @@ type PollAnswersUsingOffsetConnectionEdge {
 type Query {
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
   extraNode: Node
+  inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
