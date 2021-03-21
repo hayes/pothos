@@ -129,6 +129,26 @@ export default class BuildCache<Types extends SchemaTypes> {
     return typeConfig as Extract<GiraphQLTypeConfig, { kind: T }>;
   }
 
+  getInputTypeFieldConfigs(ref: InputType<Types>) {
+    const typeConfig = this.getTypeConfig(ref, 'InputObject');
+    const builtType = this.types.get(typeConfig.name) as GraphQLInputObjectType | undefined;
+
+    if (!builtType) {
+      throw new Error(`Input type ${typeConfig.name} has not been built yet`);
+    }
+
+    const fields = builtType.getFields();
+
+    const fieldConfigs: Record<string, GiraphQLInputFieldConfig<Types>> = {};
+
+    Object.keys(fields).forEach((fieldName) => {
+      fieldConfigs[fieldName] = fields[fieldName].extensions!
+        .giraphqlConfig as GiraphQLInputFieldConfig<Types>;
+    });
+
+    return fieldConfigs;
+  }
+
   getImplementers(iface: GraphQLInterfaceType) {
     if (this.implementers.has(iface.name)) {
       return this.implementers.get(iface.name)!;
@@ -247,6 +267,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         extensions: {
           ...config.extensions,
           giraphqlOptions: config.giraphqlOptions,
+          giraphqlConfig: config,
         },
         resolve: this.plugin.wrapResolve(config.resolve || defaultFieldResolver, config),
         subscribe: this.plugin.wrapSubscribe(config.subscribe, config),
@@ -275,6 +296,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         extensions: {
           ...config.extensions,
           giraphqlOptions: config.giraphqlOptions,
+          giraphqlConfig: config,
         },
       };
     });
@@ -447,6 +469,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
+        giraphqlConfig: config,
       },
       fields: () => this.getFields(type),
       interfaces:
@@ -494,6 +517,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
+        giraphqlConfig: config,
       },
       interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
@@ -539,6 +563,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
+        giraphqlConfig: config,
       },
       types: () => config.types.map((member) => this.getTypeOfKind(member, 'Object')),
       resolveType: this.plugin.wrapResolveType(resolveType, config),
@@ -551,6 +576,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
+        giraphqlConfig: config,
       },
       fields: () => this.getInputFields(type as GraphQLInputObjectType),
     });
@@ -584,6 +610,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
+        giraphqlConfig: config,
       },
     });
   }
@@ -607,6 +634,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       extensions: {
         ...config.extensions,
         giraphqlOptions: config.giraphqlOptions,
+        giraphqlConfig: config,
       },
     });
   }
