@@ -295,5 +295,61 @@ describe('relay example schema', () => {
 
       expect(result).toMatchSnapshot();
     });
+
+    test('globalID inputs', async () => {
+      const query = gql`
+        {
+          inputGlobalID(
+            id: "YWJjOjEyMw=="
+            normalId: 123
+            inputObj: {
+              id: "YWJjOjEyMw=="
+              idList: ["YWJjOjEyMw=="]
+              circular: { id: "YWJjOjEyMw==", idList: ["YWJjOjEyMw=="] }
+            }
+          )
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(JSON.parse(result.data!.inputGlobalID)).toMatchInlineSnapshot(`
+        Object {
+          "id": Object {
+            "id": "123",
+            "typename": "abc",
+          },
+          "inputObj": Object {
+            "circular": Object {
+              "id": Object {
+                "id": "123",
+                "typename": "abc",
+              },
+              "idList": Array [
+                Object {
+                  "id": "123",
+                  "typename": "abc",
+                },
+              ],
+            },
+            "id": Object {
+              "id": "123",
+              "typename": "abc",
+            },
+            "idList": Array [
+              Object {
+                "id": "123",
+                "typename": "abc",
+              },
+            ],
+          },
+          "normal": "123",
+        }
+      `);
+    });
   });
 });
