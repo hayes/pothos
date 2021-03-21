@@ -169,38 +169,92 @@ export default class BuildCache<Types extends SchemaTypes> {
     this.configStore.prepareForBuild();
 
     this.configStore.typeConfigs.forEach((baseConfig) => {
-      const config = this.getTypeConfig(baseConfig.name);
-
-      const { name } = config;
-
-      this.typeConfigs.set(name, config);
-
-      switch (config.kind) {
-        case 'Enum':
-          this.addType(name, this.buildEnum(config));
-          break;
-        case 'InputObject':
-          this.addType(name, this.buildInputObject(config));
-          break;
-        case 'Interface':
-          this.addType(name, this.buildInterface(config));
-          break;
-        case 'Scalar':
-          this.addType(name, this.buildScalar(config));
-          break;
-        case 'Union':
-          this.addType(name, this.buildUnion(config));
-          break;
-        case 'Object':
-        case 'Query':
-        case 'Mutation':
-        case 'Subscription':
-          this.addType(name, this.buildObject(config));
-          break;
-        default:
-          assertNever(config);
+      if (baseConfig.kind === 'Enum' || baseConfig.kind === 'Scalar') {
+        this.buildTypeFromConfig(baseConfig);
       }
     });
+
+    this.configStore.typeConfigs.forEach((baseConfig) => {
+      if (baseConfig.kind === 'InputObject') {
+        this.buildTypeFromConfig(baseConfig);
+      }
+    });
+
+    this.types.forEach((type) => {
+      if (type instanceof GraphQLInputObjectType) {
+        type.getFields();
+      }
+    });
+
+    this.configStore.typeConfigs.forEach((baseConfig) => {
+      if (baseConfig.kind === 'Interface') {
+        this.buildTypeFromConfig(baseConfig);
+      }
+    });
+
+    this.configStore.typeConfigs.forEach((baseConfig) => {
+      if (baseConfig.kind === 'Object') {
+        this.buildTypeFromConfig(baseConfig);
+      }
+    });
+
+    this.configStore.typeConfigs.forEach((baseConfig) => {
+      if (baseConfig.kind === 'Union') {
+        this.buildTypeFromConfig(baseConfig);
+      }
+    });
+
+    this.configStore.typeConfigs.forEach((baseConfig) => {
+      if (
+        baseConfig.kind === 'Query' ||
+        baseConfig.kind === 'Mutation' ||
+        baseConfig.kind === 'Subscription'
+      ) {
+        this.buildTypeFromConfig(baseConfig);
+      }
+    });
+
+    this.types.forEach((type) => {
+      if (type instanceof GraphQLObjectType || type instanceof GraphQLInterfaceType) {
+        type.getFields();
+      } else if (type instanceof GraphQLUnionType) {
+        type.getTypes();
+      }
+    });
+  }
+
+  buildTypeFromConfig(baseConfig: GiraphQLTypeConfig) {
+    const config = this.getTypeConfig(baseConfig.name);
+
+    const { name } = config;
+
+    this.typeConfigs.set(name, config);
+
+    switch (config.kind) {
+      case 'Enum':
+        this.addType(name, this.buildEnum(config));
+        break;
+      case 'InputObject':
+        this.addType(name, this.buildInputObject(config));
+        break;
+      case 'Interface':
+        this.addType(name, this.buildInterface(config));
+        break;
+      case 'Scalar':
+        this.addType(name, this.buildScalar(config));
+        break;
+      case 'Union':
+        this.addType(name, this.buildUnion(config));
+        break;
+      case 'Object':
+      case 'Query':
+      case 'Mutation':
+      case 'Subscription':
+        this.addType(name, this.buildObject(config));
+        break;
+      default:
+        assertNever(config);
+    }
   }
 
   private addType(ref: string, type: GraphQLNamedType) {
