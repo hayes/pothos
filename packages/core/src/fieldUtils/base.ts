@@ -66,6 +66,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
           options.nullable ?? this.builder.defaultFieldNullability,
         ),
         giraphqlOptions: options as never,
+        extensions: options.extensions,
         description: options.description,
         deprecationReason: options.deprecationReason,
         resolve:

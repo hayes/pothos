@@ -72,6 +72,7 @@ export default class InputFieldBuilder<
       description: options.description,
       deprecationReason: options.deprecationReason,
       defaultValue: options.defaultValue,
+      extensions: options.extensions,
     }));
 
     return ref;
