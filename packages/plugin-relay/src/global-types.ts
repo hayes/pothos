@@ -3,8 +3,12 @@ import {
   FieldNullability,
   FieldOptionsFromKind,
   FieldRef,
+  FieldRequiredness,
   InputFieldMap,
+  InputFieldRef,
   InputFieldsFromShape,
+  InputShapeFromTypeParam,
+  inputShapeKey,
   InterfaceParam,
   InterfaceRef,
   ObjectFieldsShape,
@@ -23,7 +27,10 @@ import {
   ConnectionShapeFromResolve,
   DefaultConnectionArguments,
   GlobalIDFieldOptions,
+  GlobalIDInputFieldOptions,
+  GlobalIDInputShape,
   GlobalIDListFieldOptions,
+  GlobalIDListInputFieldOptions,
   NodeFieldOptions,
   NodeListFieldOptions,
   NodeObjectOptions,
@@ -51,6 +58,32 @@ declare global {
         options: NodeObjectOptions<Types, Param, Interfaces>,
         fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
       ) => ObjectRef<OutputShape<Types, Param>>;
+    }
+
+    export interface InputFieldBuilder<
+      Types extends SchemaTypes,
+      Kind extends 'Arg' | 'InputObject'
+    > {
+      globalID: <Req extends boolean>(
+        options: GlobalIDInputFieldOptions<Types, Req, Kind>,
+      ) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>>;
+
+      globalIDList: <Req extends FieldRequiredness<['ID']>>(
+        options: GlobalIDListInputFieldOptions<Types, Req, Kind>,
+      ) => InputFieldRef<
+        InputShapeFromTypeParam<
+          Types,
+          [
+            {
+              [inputShapeKey]: {
+                typename: string;
+                id: string;
+              };
+            },
+          ],
+          Req
+        >
+      >;
     }
 
     export interface RootFieldBuilder<
