@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.4 - 2021-03-28
+
+#### 🐞 Fixes
+
+- **[relay]** include extra fields defined for connections and edges ([2b29e3a](https://github.com/hayes/giraphql/commit/2b29e3a))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.0.3 - 2021-03-16
 
 **Note:** Version bump only for package @giraphql/plugin-relay
