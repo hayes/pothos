@@ -108,11 +108,13 @@ type QueryNumbersConnectionEdge {
 
 type QueryPollsConnection {
   edges: [QueryPollsConnectionEdge]!
+  extraConnectionField: String!
   pageInfo: PageInfo!
 }
 
 type QueryPollsConnectionEdge {
   cursor: String!
+  extraEdgeField: Int!
   node: Poll!
 }
 "

@@ -11,6 +11,7 @@ import SchemaBuilder, {
   InterfaceParam,
   InterfaceRef,
   MaybePromise,
+  ObjectFieldsShape,
   ObjectParam,
   ObjectRef,
   OutputRef,
@@ -498,8 +499,8 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
 
 fieldBuilderProto.connection = function connection(
   { type, ...fieldOptions },
-  connectionOptions,
-  edgeOptions,
+  { name: connectionNameFromOptions, ...connectionOptions },
+  { name: edgeNameFromOptions, ...edgeOptions },
 ) {
   const placeholderRef = this.builder.objectRef<ConnectionShape<unknown, false>>(
     'Unnamed connection',
@@ -520,18 +521,33 @@ fieldBuilderProto.connection = function connection(
 
   this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
     const connectionName =
-      connectionOptions.name ||
+      connectionNameFromOptions ||
       `${this.typename}${capitalize(fieldConfig.name)}${
         fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
       }`;
     const connectionRef = this.builder.objectRef<ConnectionShape<unknown, false>>(connectionName);
-    const edgeName = edgeOptions.name || `${connectionName}Edge`;
+    const edgeName = edgeNameFromOptions || `${connectionName}Edge`;
     const edgeRef = this.builder.objectRef<{
       cursor: string;
       node: unknown;
     }>(edgeName);
 
+    const connectionFields = (connectionOptions.fields as unknown) as
+      | ObjectFieldsShape<SchemaTypes, ConnectionShape<unknown, false>>
+      | undefined;
+
+    const edgeFields = edgeOptions.fields as
+      | ObjectFieldsShape<
+          SchemaTypes,
+          {
+            cursor: string;
+            node: unknown;
+          }
+        >
+      | undefined;
+
     this.builder.objectType(connectionRef, {
+      ...connectionOptions,
       fields: (t) => ({
         pageInfo: t.field({
           type: this.builder.pageInfoRef(),
@@ -545,18 +561,21 @@ fieldBuilderProto.connection = function connection(
           },
           resolve: (parent) => parent.edges,
         }),
+        ...connectionFields?.(t),
       }),
     });
 
     this.builder.configStore.associateRefWithName(placeholderRef, connectionName);
 
     this.builder.objectType(edgeRef, {
+      ...edgeOptions,
       fields: (t) => ({
         node: t.field({
           type,
           resolve: (parent) => parent.node as never,
         }),
         cursor: t.exposeString('cursor', {}),
+        ...edgeFields?.(t),
       }),
     });
   });

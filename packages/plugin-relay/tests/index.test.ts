@@ -1,5 +1,5 @@
 import { gql } from 'apollo-server';
-import { execute,lexicographicSortSchema, printSchema } from 'graphql';
+import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import schema from './examples/relay/schema';
 
 describe('relay example schema', () => {
