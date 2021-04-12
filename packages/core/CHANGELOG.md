@@ -3,6 +3,36 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.1.0-alpha.0 - 2021-04-12
+
+#### 🚀 Updates
+
+- add giraphqlConfig to all extensions and add getInputTypeFieldConfigs method to build cache ([7d9c47f](https://github.com/hayes/giraphql/commit/7d9c47f))
+- add new utils for mapping inputs fields in plugins ([be9fd1d](https://github.com/hayes/giraphql/commit/be9fd1d))
+- add zod plugin ([5a77982](https://github.com/hayes/giraphql/commit/5a77982))
+- build graphql types in specific order to make certain plugin use cases easier ([65b8942](https://github.com/hayes/giraphql/commit/65b8942))
+- schemas are now sorted after being built ([154b51c](https://github.com/hayes/giraphql/commit/154b51c))
+
+#### 🐞 Fixes
+
+- args builder now coppies prototype methods from field builder so that extending FieldBuilder class works as expected ([bc8fd04](https://github.com/hayes/giraphql/commit/bc8fd04))
+- correctly add extensions from giraphql options to build config objects for input fields ([33e59bc](https://github.com/hayes/giraphql/commit/33e59bc))
+
+#### 📦 Dependencies
+
+- update dev dependencies ([25a15d4](https://github.com/hayes/giraphql/commit/25a15d4))
+- update dev deps ([cbfa0a4](https://github.com/hayes/giraphql/commit/cbfa0a4))
+
+#### 📘 Docs
+
+- add docs on mapping inputs ([eed4785](https://github.com/hayes/giraphql/commit/eed4785))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.0.2 - 2021-03-16
 
 **Note:** Version bump only for package @giraphql/core
