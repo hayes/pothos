@@ -6,12 +6,12 @@ import {
   SchemaTypes,
 } from '..';
 
-interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
+export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
   configs: Record<string, GiraphQLInputFieldConfig<Types>>;
-  map: InputFieldsMap<Types, T> | null;
+  map: InputFieldsMapping<Types, T> | null;
 }
 
-type InputFieldMapping<Types extends SchemaTypes, T> =
+export type InputFieldMapping<Types extends SchemaTypes, T> =
   | {
       kind: 'Enum';
       isList: boolean;
@@ -32,7 +32,10 @@ type InputFieldMapping<Types extends SchemaTypes, T> =
       value: T;
     };
 
-type InputFieldsMap<Types extends SchemaTypes, T> = Map<string, InputFieldMapping<Types, T>>;
+export type InputFieldsMapping<Types extends SchemaTypes, T> = Map<
+  string,
+  InputFieldMapping<Types, T>
+>;
 
 export function resolveInputTypeConfig<Types extends SchemaTypes>(
   type: GiraphQLInputFieldType<Types>,
@@ -55,12 +58,12 @@ export function mapInputFields<Types extends SchemaTypes, T>(
   inputs: { [name: string]: GiraphQLInputFieldConfig<Types> },
   buildCache: BuildCache<Types>,
   mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null,
-): InputFieldsMap<Types, T> | null {
-  const filterMappings = new Map<InputFieldsMap<Types, T>, InputFieldsMap<Types, T>>();
+): InputFieldsMapping<Types, T> | null {
+  const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
 
   return filterMapped(internalMapInputFields(inputs, buildCache, mapper, new Map()));
 
-  function filterMapped(map: InputFieldsMap<Types, T>) {
+  function filterMapped(map: InputFieldsMapping<Types, T>) {
     if (filterMappings.has(map)) {
       return filterMappings.get(map)!;
     }
@@ -96,8 +99,8 @@ export function mapInputFields<Types extends SchemaTypes, T>(
   }
 
   function checkForMappings(
-    map: InputFieldsMap<Types, T>,
-    hasMappings = new Map<InputFieldsMap<Types, T>, boolean>(),
+    map: InputFieldsMapping<Types, T>,
+    hasMappings = new Map<InputFieldsMapping<Types, T>, boolean>(),
   ): boolean {
     if (hasMappings.has(map)) {
       return hasMappings.get(map)!;
@@ -179,10 +182,10 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
 }
 
 export function createInputValueMapper<Types extends SchemaTypes, T>(
-  argMap: InputFieldsMap<Types, T>,
+  argMap: InputFieldsMapping<Types, T>,
   mapValue: (val: unknown, mapping: InputFieldMapping<Types, T>) => unknown,
 ) {
-  return function mapObject(obj: object, map: InputFieldsMap<Types, T> = argMap) {
+  return function mapObject(obj: object, map: InputFieldsMapping<Types, T> = argMap) {
     const mapped: Record<string, unknown> = { ...obj };
 
     map.forEach((field, fieldName) => {

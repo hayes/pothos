@@ -303,8 +303,10 @@ export default class BuildCache<Types extends SchemaTypes> {
     fields: Record<string, GiraphQLOutputFieldConfig<Types>>,
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
+
     Object.keys(fields).forEach((fieldName) => {
       const originalConfig = fields[fieldName];
+
       if (!this.outputFieldConfigs.has(originalConfig)) {
         this.outputFieldConfigs.set(
           originalConfig,
@@ -312,12 +314,23 @@ export default class BuildCache<Types extends SchemaTypes> {
         );
       }
 
-      const config = this.outputFieldConfigs.get(originalConfig)!;
+      const config = {
+        ...this.outputFieldConfigs.get(originalConfig)!,
+      };
+
+      const args = this.buildInputFields(config.args);
+      const argConfigs: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
+
+      Object.keys(config.args).forEach((argName) => {
+        argConfigs[argName] = this.inputFieldConfigs.get(config.args[argName])!;
+      });
+
+      config.args = argConfigs;
 
       built[fieldName] = {
         ...config,
         type: this.buildOutputTypeParam(config.type),
-        args: this.buildInputFields(config.args),
+        args,
         extensions: {
           ...config.extensions,
           giraphqlOptions: config.giraphqlOptions,
