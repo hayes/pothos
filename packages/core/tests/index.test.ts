@@ -1,4 +1,4 @@
-import { lexicographicSortSchema,printSchema } from 'graphql';
+import { lexicographicSortSchema, printSchema } from 'graphql';
 import {
   nonNullableFieldBuilder,
   nullableFieldBuilder,

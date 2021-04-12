@@ -46,9 +46,7 @@ builder.queryType({
 
 const schema = builder.toSchema();
 
-SchemaDirectiveVisitor.visitSchemaDirectives(schema, {
-  rateLimit: createRateLimitDirective(),
-});
+createRateLimitDirective().visitSchemaDirectives(schema, {});
 ```
 
 The directives plugin allows you to define types for the directives your schema will use the `SchemaTypes` parameter. Each directive can define a set of locations the directive can appear, and an object type representing the arguments the directive accepts.

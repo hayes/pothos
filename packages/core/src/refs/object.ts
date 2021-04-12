@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
-import { OutputRef,outputShapeKey } from '../types';
+import { OutputRef, outputShapeKey } from '../types';
 import BaseTypeRef from './base';
 
-import { InterfaceParam,ObjectTypeOptions, SchemaTypes } from '..';
+import { InterfaceParam, ObjectTypeOptions, SchemaTypes } from '..';
 
 export default class ObjectRef<T> extends BaseTypeRef implements OutputRef {
   kind = 'Object' as const;

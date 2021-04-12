@@ -1,4 +1,3 @@
-import { SchemaDirectiveVisitor } from 'apollo-server';
 import { createRateLimitDirective } from 'graphql-rate-limit-directive';
 import builder from '../builder';
 
@@ -98,8 +97,6 @@ builder.scalarType('Date', {
 
 const schema = builder.toSchema({});
 
-SchemaDirectiveVisitor.visitSchemaDirectives(schema, {
-  rateLimit: createRateLimitDirective(),
-});
+createRateLimitDirective().visitSchemaDirectives(schema, {});
 
 export default schema;

@@ -1,6 +1,6 @@
 import { GiraphQLEnumValueConfig, SchemaTypes } from '../types';
 
-import { BaseEnum,EnumValues } from '..';
+import { BaseEnum, EnumValues } from '..';
 
 export function normalizeEnumValues<Types extends SchemaTypes>(
   values: EnumValues<SchemaTypes>,

@@ -31,6 +31,7 @@ module.exports = {
       files: ['packages/*/tests/**/*'],
       rules: {
         'no-magic-numbers': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off'
       },
     },
   ],

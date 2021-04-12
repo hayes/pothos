@@ -26,8 +26,8 @@
     "zod": "^1.11.11"
   },
   "devDependencies": {
-    "apollo-server": "^2.21.2",
+    "apollo-server": "^2.22.2",
     "graphql-tag": "^2.11.0",
-    "zod": "^1.11.11"
+    "zod": "^1.11.13"
   }
 }

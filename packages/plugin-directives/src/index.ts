@@ -27,10 +27,10 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
 
     return {
       ...fieldConfig,
-        extensions: {
-          ...fieldConfig.extensions,
-          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-        },
+      extensions: {
+        ...fieldConfig.extensions,
+        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+      },
     };
   }
 
@@ -43,10 +43,10 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
 
     return {
       ...fieldConfig,
-        extensions: {
-          ...fieldConfig.extensions,
-          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-        },
+      extensions: {
+        ...fieldConfig.extensions,
+        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+      },
     };
   }
 
@@ -59,10 +59,10 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
 
     return {
       ...valueConfig,
-        extensions: {
-          ...valueConfig.extensions,
-          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-        },
+      extensions: {
+        ...valueConfig.extensions,
+        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+      },
     };
   }
 
@@ -75,10 +75,10 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
 
     return {
       ...typeConfig,
-        extensions: {
-          ...typeConfig.extensions,
-          directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
-        },
+      extensions: {
+        ...typeConfig.extensions,
+        directives: this.normalizeDirectives((options.directives as unknown) as Record<string, {}>),
+      },
     };
   }
 
