@@ -1,4 +1,5 @@
 module.exports = {
+  plugins: ['prettier'],
   rules: {
     'class-methods-use-this': 'off',
     'no-restricted-syntax': 'off',
@@ -16,6 +17,7 @@ module.exports = {
         ignores: [],
       },
     ],
+    'prettier/prettier': 'error',
   },
   overrides: [
     {
