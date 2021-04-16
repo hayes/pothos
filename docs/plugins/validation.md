@@ -83,7 +83,7 @@ builder.queryType({
         list: t.arg.stringList({
           validate: {
             items: {
-              maxLength: 3,
+              email: true,
             },
             maxLength: 3,
           },
