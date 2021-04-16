@@ -50,7 +50,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         Object.keys(options.args).forEach((argName) => {
           const argRef = options.args![argName];
 
-          args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, 'Arg');
+          args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, name, 'Arg');
         });
       }
 
@@ -66,6 +66,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
           options.nullable ?? this.builder.defaultFieldNullability,
         ),
         giraphqlOptions: options as never,
+        extensions: options.extensions,
         description: options.description,
         deprecationReason: options.deprecationReason,
         resolve:

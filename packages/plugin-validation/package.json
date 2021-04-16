@@ -1,0 +1,33 @@
+{
+  "name": "@giraphql/plugin-validation",
+  "version": "1.1.0-alpha.0",
+  "description": "A GiraphQL plugin for adding argument validation",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "zod",
+    "validation",
+    "validate"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@giraphql/core": "^0.20.3",
+    "graphql": ">=15.1.0",
+    "zod": "^1.11.11"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.22.2",
+    "graphql-tag": "^2.11.0",
+    "zod": "^1.11.13"
+  }
+}

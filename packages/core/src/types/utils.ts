@@ -1,3 +1,4 @@
+/* eslint-disable prettier/prettier */
 export type MaybePromise<T> = Promise<T> | T;
 
 export type MaybePromiseWithInference<T, U> = U extends Promise<unknown> ? Promise<T> : T;

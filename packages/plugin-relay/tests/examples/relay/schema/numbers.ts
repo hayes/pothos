@@ -1,5 +1,5 @@
 /* eslint-disable max-classes-per-file */
-import { resolveArrayConnection,resolveOffsetConnection } from '../../../../src';
+import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
 class NumberThing {
@@ -44,7 +44,8 @@ builder.queryFields((t) => ({
   numbers: t.connection(
     {
       type: NumberThing,
-      resolve: (parent, args) => resolveOffsetConnection({ args }, ({ limit, offset }) => {
+      resolve: (parent, args) =>
+        resolveOffsetConnection({ args }, ({ limit, offset }) => {
           const items = [];
 
           for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {

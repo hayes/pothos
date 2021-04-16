@@ -3,11 +3,13 @@ import {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
+  FieldRequiredness,
   InputFieldMap,
   InputFieldRef,
   InputFieldsFromShape,
   InputShape,
   InputShapeFromFields,
+  inputShapeKey,
   InterfaceParam,
   MaybePromise,
   ObjectParam,
@@ -223,6 +225,18 @@ export type GlobalIDFieldOptions<
   >;
 };
 
+export type GlobalIDInputFieldOptions<
+  Types extends SchemaTypes,
+  Req extends boolean,
+  Kind extends 'Arg' | 'InputObject'
+> = Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'>;
+
+export type GlobalIDListInputFieldOptions<
+  Types extends SchemaTypes,
+  Req extends FieldRequiredness<['ID']>,
+  Kind extends 'Arg' | 'InputObject'
+> = Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'>;
+
 export type NodeIDFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
@@ -353,3 +367,10 @@ export type NodeListFieldOptions<
     ResolveReturnShape
   >;
 };
+
+export interface GlobalIDInputShape {
+  [inputShapeKey]: {
+    typename: string;
+    id: string;
+  };
+}

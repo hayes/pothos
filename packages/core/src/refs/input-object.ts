@@ -1,8 +1,8 @@
 /* eslint-disable max-classes-per-file */
-import { InputRef,inputShapeKey } from '../types';
+import { InputRef, inputShapeKey } from '../types';
 import BaseTypeRef from './base';
 
-import { InputFieldsFromShape, RecursivelyNormalizeNullableFields,SchemaTypes } from '..';
+import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '..';
 
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
   kind = 'InputObject' as const;

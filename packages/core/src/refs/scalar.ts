@@ -1,4 +1,4 @@
-import { InputRef, inputShapeKey,OutputRef, outputShapeKey } from '../types';
+import { InputRef, inputShapeKey, OutputRef, outputShapeKey } from '../types';
 import BaseTypeRef from './base';
 
 export default class ScalarRef<T, U> extends BaseTypeRef implements OutputRef, InputRef {

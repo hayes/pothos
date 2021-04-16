@@ -42,10 +42,18 @@ export default class InputFieldBuilder<
   argBuilder(): ArgBuilder<Types> {
     const builder: InputFieldBuilder<Types, 'Arg'>['field'] = this.field.bind(this);
 
-    ([...Object.keys(this)] as (keyof InputFieldBuilder<Types, 'Arg'>)[]).forEach((key) => {
-      ((builder as unknown) as { [s: string]: unknown })[key] =
-        typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
-    });
+    const protoKeys = Object.keys(Object.getPrototypeOf(this)).filter(
+      (key) =>
+        typeof (this as Record<string, unknown>)[key] === 'function' &&
+        ((Function.prototype as unknown) as Record<string, unknown>)[key] === undefined,
+    );
+
+    ([...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<Types, 'Arg'>)[]).forEach(
+      (key) => {
+        ((builder as unknown) as { [s: string]: unknown })[key] =
+          typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
+      },
+    );
 
     return builder as ArgBuilder<Types>;
   }
@@ -58,8 +66,9 @@ export default class InputFieldBuilder<
       this.typename,
     );
 
-    this.builder.configStore.addFieldRef(ref, options.type, {}, (name) => ({
+    this.builder.configStore.addFieldRef(ref, options.type, {}, (name, parentField) => ({
       name,
+      parentField,
       kind: this.kind,
       graphqlKind: this.kind,
       parentType: this.typename,
@@ -72,6 +81,7 @@ export default class InputFieldBuilder<
       description: options.description,
       deprecationReason: options.deprecationReason,
       defaultValue: options.defaultValue,
+      extensions: options.extensions,
     }));
 
     return ref;

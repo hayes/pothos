@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.1.0-alpha.0 - 2021-04-12
+
+#### 🚀 Updates
+
+- add globalID and globalIDList methods to InputFieldBuilder ([1048354](https://github.com/hayes/giraphql/commit/1048354))
+
+#### 📦 Dependencies
+
+- update dev dependencies ([25a15d4](https://github.com/hayes/giraphql/commit/25a15d4))
+- update dev deps ([cbfa0a4](https://github.com/hayes/giraphql/commit/cbfa0a4))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.0.4 - 2021-03-28
 
 #### 🐞 Fixes

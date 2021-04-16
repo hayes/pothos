@@ -6,7 +6,7 @@
     "lib": "lib"
   },
   "scripts": {
-    "prepare": "beemo create-config --silent",
+    "prepare": "husky install && beemo create-config && beemo typescript:sync-project-refs",
     "build": "beemo typescript --build --reference-workspaces",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib}",
     "ci": "yarn run type && yarn run test && yarn run lint",
@@ -25,20 +25,24 @@
   "private": true,
   "devDependencies": {
     "@babel/plugin-syntax-bigint": "^7.8.3",
-    "@beemo/driver-typescript": "^1.4.1",
-    "@milesj/build-tools": "^2.17.1",
-    "@types/jest": "^26.0.20",
-    "@types/node": "^14.14.27",
-    "@types/node-fetch": "^2.5.8",
+    "@beemo/driver-typescript": "2.0.0-rc.0",
+    "@milesj/build-tools": "^3.0.0-alpha.0",
+    "@types/jest": "^26.0.22",
+    "@types/node": "^14.14.37",
+    "@types/node-fetch": "^2.5.10",
     "conventional-changelog-beemo": "^2.1.0",
+    "eslint-plugin-prettier": "^3.3.1",
     "graphql": "^15.5.0",
-    "husky": "^5.0.9",
-    "lerna": "^3.22.1",
+    "husky": "^6.0.0",
+    "lerna": "^4.0.0",
     "lint-staged": "^10.5.4",
-    "react": "^17.0.1",
-    "react-dom": "^17.0.1",
+    "react": "^17.0.2",
+    "react-dom": "^17.0.2",
     "ts-node": "^9.1.1",
-    "typescript": "^4.1.5"
+    "typescript": "^4.2.4"
+  },
+  "resolutions": {
+    "graphql": "15.5.0"
   },
   "lint-staged": {
     "./src/**/*.{ts,tsx}": [
@@ -62,19 +66,5 @@
   "bugs": {
     "url": "https://github.com/hayes/giraphql/issues"
   },
-  "homepage": "https://github.com/hayes/giraphql#readme",
-  "beemo": {
-    "module": "@milesj/build-tools",
-    "drivers": [
-      "babel",
-      "eslint",
-      "jest",
-      "prettier",
-      "typescript"
-    ],
-    "settings": {
-      "useBuiltIns": false,
-      "node": true
-    }
-  }
+  "homepage": "https://github.com/hayes/giraphql#readme"
 }

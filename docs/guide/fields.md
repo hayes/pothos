@@ -5,7 +5,14 @@ menu: Guide
 
 # Fields
 
-Fields for [Object](objects.md) and [Interface](interfaces.md) types are defined using a shape function. This is a function that takes a [FieldBuilder](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/field-builder.md) as an argument, and returns an object who's keys are field names, and who's values are fields created by the [FieldBuilder](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/field-builder.md). These examples will mostly add fields to the `Query` type, but the topics covered in this guide should apply to any object or interface type.
+Fields for [Object](objects.md) and [Interface](interfaces.md) types are defined using a shape
+function. This is a function that takes a
+[FieldBuilder](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/field-builder.md)
+as an argument, and returns an object who's keys are field names, and who's values are fields
+created by the
+[FieldBuilder](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/field-builder.md).
+These examples will mostly add fields to the `Query` type, but the topics covered in this guide
+should apply to any object or interface type.
 
 ## Scalars
 
@@ -50,7 +57,8 @@ builder.queryType({
 
 Fields for non-scalar fields can also be created with the `field` method.
 
-Some types like [Objects](objects.md) and [Interfaces](interfaces.md) can be referenced by name if they have a backing model defined in the schema builder.
+Some types like [Objects](objects.md) and [Interfaces](interfaces.md) can be referenced by name if
+they have a backing model defined in the schema builder.
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -68,7 +76,11 @@ builder.queryType({
 });
 ```
 
-For types not described in the `SchemaTypes` type provided to the builder, including types that can not be added there like [Unions](unions.md) and [Enums](enums.md), you can use a `Ref` returned by the builder method that created them in the `type` parameter. For types created using a class \([Objects](enums.md) or [Interfaces](interfaces.md)\) or [Enums](enums.md) created using a typescript enum, you can also use the the `class` or `enum` that was used to define them.
+For types not described in the `SchemaTypes` type provided to the builder, including types that can
+not be added there like [Unions](unions.md) and [Enums](enums.md), you can use a `Ref` returned by
+the builder method that created them in the `type` parameter. For types created using a class
+\([Objects](enums.md) or [Interfaces](interfaces.md)\) or [Enums](enums.md) created using a
+typescript enum, you can also use the the `class` or `enum` that was used to define them.
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
@@ -116,7 +128,9 @@ builder.queryType({
 
 ## Nullable fields
 
-Unlike some other GraphQL implementations, fields in GiraphQL are non-nullable by default. It is still often desirable to make fields in your schema nullable. This default can be changed in the SchemaBuilder constructor, see [Changing Default Nullability](changing-default-nullability.md).
+Unlike some other GraphQL implementations, fields in GiraphQL are non-nullable by default. It is
+still often desirable to make fields in your schema nullable. This default can be changed in the
+SchemaBuilder constructor, see [Changing Default Nullability](changing-default-nullability.md).
 
 ```typescript
 builder.queryType({
@@ -147,13 +161,17 @@ builder.queryType({
 });
 ```
 
-Note that by default even if a list field is nullable, the items in that list are not. The last example above shows how you can make list items nullable.
+Note that by default even if a list field is nullable, the items in that list are not. The last
+example above shows how you can make list items nullable.
 
 ## Exposing fields from the underlying data
 
-Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve field that have a property of the same name in the underlying data. In GiraphQL, these relationships need to be explicitly defined, but there are helper methods that make exposing fields easier.
+Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve
+field that have a property of the same name in the underlying data. In GiraphQL, these relationships
+need to be explicitly defined, but there are helper methods that make exposing fields easier.
 
-These helpers are not available for root types \(Query, Mutation and Subscription\), but will work on any other object type or interface.
+These helpers are not available for root types \(Query, Mutation and Subscription\), but will work
+on any other object type or interface.
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -169,16 +187,16 @@ builder.objectType('Giraffe', {
 
 The available expose helpers are:
 
-* `exposeString`
-* `exposeInt`
-* `exposeFloat`
-* `exposeBoolean`
-* `exposeID`
-* `exposeStringList`
-* `exposeIntList`
-* `exposeFloatList`
-* `exposeBooleanList`
-* `exposeIDList`
+- `exposeString`
+- `exposeInt`
+- `exposeFloat`
+- `exposeBoolean`
+- `exposeID`
+- `exposeStringList`
+- `exposeIntList`
+- `exposeFloatList`
+- `exposeBooleanList`
+- `exposeIDList`
 
 ## Arguments
 
@@ -208,7 +226,10 @@ For more information see the [Arguments Guide](args.md).
 
 ## Adding fields to existing type
 
-In addition to being able to define fields when defining types, you can also add additional fields independently. This is useful for breaking up types with a lot of fields into multiple files, or co-locating fields with their type \(eg. add all query/mutation fields for a type in the same file where the type is defined\).
+In addition to being able to define fields when defining types, you can also add additional fields
+independently. This is useful for breaking up types with a lot of fields into multiple files, or
+co-locating fields with their type \(eg. add all query/mutation fields for a type in the same file
+where the type is defined\).
 
 ```typescript
 builder.queryFields((t) => ({
@@ -226,4 +247,3 @@ builder.objectField(Giraffe, 'ageInDogYears', (t) =>
 ```
 
 To see all they methods available for defining fields see the [SchemaBuilder API](schema-builder.md)
-

@@ -32,7 +32,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private fieldRefs = new WeakMap<
     FieldRef | InputFieldRef,
-    (name: string) => GiraphQLFieldConfig<Types>
+    (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>
   >();
 
   private fields = new Map<string, Record<string, GiraphQLFieldConfig<Types>>>();
@@ -86,7 +86,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     // We need to be able to resolve the types kind before configuring the field
     typeParam: InputTypeParam<Types> | TypeParam<Types>,
     args: InputFieldMap,
-    getConfig: (name: string) => GiraphQLFieldConfig<Types>,
+    getConfig: (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>,
   ) {
     if (this.fieldRefs.has(ref)) {
       throw new Error(`FieldRef ${ref} has already been added to config store`);
@@ -135,6 +135,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
   createFieldConfig<T extends GraphQLFieldKind>(
     ref: FieldRef | InputFieldRef,
     name: string,
+    parentField?: string,
     kind?: T,
   ): Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }> {
     if (!this.fieldRefs.has(ref)) {
@@ -147,7 +148,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
       throw new Error(`Missing definition for for ${ref}`);
     }
 
-    const config = this.fieldRefs.get(ref)!(name);
+    const config = this.fieldRefs.get(ref)!(name, parentField);
 
     if (kind && config.graphqlKind !== kind) {
       throw new TypeError(

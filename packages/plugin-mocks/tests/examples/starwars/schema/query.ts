@@ -1,5 +1,5 @@
 import builder from '../builder';
-import { getDroid,getHero, getHuman } from '../data';
+import { getDroid, getHero, getHuman } from '../data';
 import { Episode } from './episode';
 
 const characterArgs = builder.args((t) => ({
