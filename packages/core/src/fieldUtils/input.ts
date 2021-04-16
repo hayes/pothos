@@ -66,8 +66,9 @@ export default class InputFieldBuilder<
       this.typename,
     );
 
-    this.builder.configStore.addFieldRef(ref, options.type, {}, (name) => ({
+    this.builder.configStore.addFieldRef(ref, options.type, {}, (name, parentField) => ({
       name,
+      parentField,
       kind: this.kind,
       graphqlKind: this.kind,
       parentType: this.typename,

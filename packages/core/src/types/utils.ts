@@ -15,9 +15,9 @@ export type RequiredKeys<T extends object> = {
 }[keyof T];
 
 export type NullableToOptional<T extends object> = {
-    [K in RequiredKeys<T>]: T[K];
+    [K in OptionalKeys<T>]?: T[K];
   } & {
-  [K in OptionalKeys<T>]?: T[K];
+  [K in RequiredKeys<T>]: T[K];
 };
 
 export type OptionalKeys<T> = {
@@ -31,27 +31,27 @@ export type NormalizeNullable<T> = undefined extends T
   : T;
 
 export type NormalizeNullableFields<T extends object> = {
-    [K in OptionalKeys<T>]?: T[K] | null | undefined;
+    [K in RequiredKeys<T>]: T[K];
   } & {
-  [K in RequiredKeys<T>]: T[K];
+  [K in OptionalKeys<T>]?: T[K] | null | undefined;
 };
 
 export type RecursivelyNormalizeNullableFields<T> = T extends object[]
   ? ({
-        [K in OptionalKeys<T[number]>]?:
-          | RecursivelyNormalizeNullableFields<T[number][K]>
-          | null
-          | undefined;
+        [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
       } & {
-      [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
+      [K in OptionalKeys<T[number]>]?:
+        | RecursivelyNormalizeNullableFields<T[number][K]>
+        | null
+        | undefined;
     })[]
   : T extends unknown[]
   ? NormalizeNullable<T[number]>[]
   : T extends object
   ? {
-        [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
+        [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
       } & {
-      [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
+      [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
     }
   : NormalizeNullable<T>;
 

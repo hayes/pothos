@@ -50,7 +50,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         Object.keys(options.args).forEach((argName) => {
           const argRef = options.args![argName];
 
-          args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, 'Arg');
+          args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, name, 'Arg');
         });
       }
 

@@ -12,18 +12,18 @@ import { ApolloServer } from 'apollo-server';
 const builder = new SchemaBuilder({});
 
 builder.queryType({
-    fields: (t) => ({
-        hello: t.string({
-            args: {
-                name: t.arg.string({}),
-            },
-            resolve: (parent, { name }) => `hello, ${name || 'World'}`,
-        }),
+  fields: (t) => ({
+    hello: t.string({
+      args: {
+        name: t.arg.string({}),
+      },
+      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
     }),
+  }),
 });
 
 const server = new ApolloServer({
-    schema: builder.toSchema({}),
+  schema: builder.toSchema({}),
 });
 
 server.listen(3000);

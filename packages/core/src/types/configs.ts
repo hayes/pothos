@@ -144,6 +144,7 @@ export interface GiraphQLInputFieldConfig<Types extends SchemaTypes>
   kind: 'Arg' | 'InputObject';
   graphqlKind: 'Arg' | 'InputObject';
   name: string;
+  parentField: string | undefined;
   parentType: string;
   type: GiraphQLInputFieldType<Types>;
   giraphqlOptions: GiraphQLSchemaTypes.InputFieldOptionsByKind<

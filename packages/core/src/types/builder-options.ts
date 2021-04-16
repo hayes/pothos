@@ -190,7 +190,7 @@ export type ValidateInterfaces<
 
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<
   {
-    [K in keyof Fields]: InputShapeFromField<Fields[K]>;
+    [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
   }
 >;
 
