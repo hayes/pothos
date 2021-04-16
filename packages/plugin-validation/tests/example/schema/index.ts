@@ -7,6 +7,7 @@ interface RecursiveShape {
 const Recursive = builder.inputRef<RecursiveShape>('Recursive');
 
 Recursive.implement({
+  validate: [(fields) => fields.number !== 3, { message: 'number must not be 3' }],
   fields: (t) => ({
     number: t.int({
       required: true,
@@ -73,6 +74,49 @@ const ContactInfo = builder.inputType('ContactInfo', {
 
 builder.queryType({
   fields: (t) => ({
+    simple: t.boolean({
+      nullable: true,
+      args: {
+        email: t.arg.string({
+          validate: {
+            email: true,
+          },
+        }),
+        phone: t.arg.string({}),
+      },
+      validate: (args) => !!args.phone || !!args.email,
+      resolve: () => true,
+    }),
+    withMessage: t.boolean({
+      nullable: true,
+      args: {
+        email: t.arg.string({
+          validate: {
+            email: [true, { message: 'invalid email address' }],
+          },
+        }),
+        phone: t.arg.string({}),
+      },
+      validate: [
+        (args) => !!args.phone || !!args.email,
+        { message: 'Must provide either phone number or email address' },
+      ],
+      resolve: () => true,
+    }),
+    list: t.boolean({
+      nullable: true,
+      args: {
+        list: t.arg.stringList({
+          validate: {
+            items: {
+              maxLength: 3,
+            },
+            maxLength: 3,
+          },
+        }),
+      },
+      resolve: () => true,
+    }),
     exampleField: t.int({
       args: {
         enum1: t.arg({
@@ -107,18 +151,74 @@ builder.queryType({
           },
         }),
       },
-      validate: {
-        refine: [
-          (args) => (args.contactInfo?.aliases?.length || 0) > 1,
-          {
-            path: ['contactInfo', 'aliases'],
-            message: 'contactInfo should include at least 2 aliases',
-          },
-        ],
-      },
+      validate: [
+        (args) => (args.contactInfo?.aliases?.length || 0) > 1,
+        {
+          path: ['contactInfo', 'aliases'],
+          message: 'contactInfo should include at least 2 aliases',
+        },
+      ],
       resolve(parent, args) {
         return args.odd;
       },
+    }),
+    all: t.boolean({
+      description: 'all possible validations, (these constraints cant be satisfied',
+      args: {
+        number: t.arg.float({
+          validate: {
+            type: 'number',
+            positive: true,
+            negative: true,
+            nonnegative: true,
+            nonpositive: true,
+            int: true,
+            min: 5,
+            max: 5,
+            refine: () => true,
+          },
+        }),
+        bigint: t.arg.id({
+          validate: {
+            type: 'bigint',
+            refine: () => true,
+          },
+        }),
+        string: t.arg.string({
+          validate: {
+            type: 'string',
+            email: true,
+            url: true,
+            uuid: true,
+            regex: /abc/u,
+            length: 5,
+            maxLength: 5,
+            minLength: 5,
+            refine: () => true,
+          },
+        }),
+        object: t.arg({
+          required: false,
+          type: Recursive,
+          validate: {
+            refine: (obj) => !obj.recurse,
+          },
+        }),
+        array: t.arg.stringList({
+          validate: {
+            type: 'array',
+            length: 5,
+            minLength: 5,
+            maxLength: 5,
+            items: {
+              type: 'string',
+              maxLength: 5,
+            },
+            refine: () => true,
+          },
+        }),
+      },
+      resolve: () => true,
     }),
   }),
 });

@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { unknown } from 'zod';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -6,10 +7,11 @@ import {
   InputShapeFromFields,
   InputShapeFromTypeParam,
   InputType,
+  RecursivelyNormalizeNullableFields,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { ValidationOptions } from './types';
+import { RefineConstraint, ValidationOptions } from './types';
 import { GiraphQLValidationPlugin } from '.';
 
 declare global {
@@ -27,7 +29,14 @@ declare global {
       ResolveShape,
       ResolveReturnShape
     > {
-      validate?: ValidationOptions<InputShapeFromFields<Args>>;
+      validate?: RefineConstraint<InputShapeFromFields<Args>>;
+    }
+
+    export interface InputObjectTypeOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Fields extends InputFieldMap = InputFieldMap
+    > {
+      validate?: RefineConstraint<InputShapeFromFields<Fields>>;
     }
 
     export interface InputFieldOptions<

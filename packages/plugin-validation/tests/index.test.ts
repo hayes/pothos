@@ -35,7 +35,11 @@ describe('validation', () => {
       query {
         exampleField(
           odd: 2
-          recursive: { float: 1, number: 2, recurse: { float: 1, number: 6 } }
+          recursive: {
+            float: 1
+            number: 2
+            recurse: { float: 1, number: 6, recurse: { float: 1.1, number: 3 } }
+          }
           contactInfo: { name: "michael", email: "michael@example.com", aliases: ["hayes"] }
           enum1: [Two, One]
         )
@@ -52,7 +56,7 @@ describe('validation', () => {
       Object {
         "data": null,
         "errors": Array [
-          [GraphQLError: 9 validation issue(s)
+          [GraphQLError: 10 validation issue(s)
 
         Issue #0: custom_error at enum1
         Invalid value.
@@ -66,20 +70,93 @@ describe('validation', () => {
         Issue #3: custom_error at recursive.recurse.float
         Invalid value.
 
-        Issue #4: custom_error at odd
+        Issue #4: custom_error at recursive.recurse.recurse
+        number must not be 3
+
+        Issue #5: custom_error at odd
         number must be odd
 
-        Issue #5: custom_error at contactInfo.name
+        Issue #6: custom_error at contactInfo.name
         Name should be capitalized
 
-        Issue #6: custom_error at contactInfo.aliases
+        Issue #7: custom_error at contactInfo.aliases
         Aliases should be capitalized
 
-        Issue #7: custom_error at contactInfo.email
+        Issue #8: custom_error at contactInfo.email
         no example.com email addresses
 
-        Issue #8: custom_error at contactInfo.aliases
+        Issue #9: custom_error at contactInfo.aliases
         contactInfo should include at least 2 aliases
+      ],
+        ],
+      }
+    `);
+  });
+
+  test('example queries', async () => {
+    const query = gql`
+      query {
+        simpleValid: simple(email: "abc@def.com")
+        simpleInvalid: simple(email: "abc")
+        simpleInvalid2: simple
+        messageValid: withMessage(email: "abc@def.com")
+        messageInvalid: withMessage(email: "abc")
+        messageInvalid2: withMessage
+        listValid: list(list: ["abc", "def", "ghi"])
+        listInvalid: list(list: ["abcdef", "ghi"])
+        listInvalid2: list(list: ["a", "b", "c", "d"])
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "listInvalid": null,
+          "listInvalid2": null,
+          "listValid": true,
+          "messageInvalid": null,
+          "messageInvalid2": null,
+          "messageValid": true,
+          "simpleInvalid": null,
+          "simpleInvalid2": null,
+          "simpleValid": true,
+        },
+        "errors": Array [
+          [GraphQLError: 1 validation issue(s)
+
+        Issue #0: invalid_string at email
+        Invalid email
+      ],
+          [GraphQLError: 1 validation issue(s)
+
+        Issue #0: custom_error at 
+        Invalid value.
+      ],
+          [GraphQLError: 1 validation issue(s)
+
+        Issue #0: invalid_string at email
+        invalid email address
+      ],
+          [GraphQLError: 1 validation issue(s)
+
+        Issue #0: custom_error at 
+        Must provide either phone number or email address
+      ],
+          [GraphQLError: 1 validation issue(s)
+
+        Issue #0: too_big at list.0
+        Should be at most 3 characters long
+      ],
+          [GraphQLError: 1 validation issue(s)
+
+        Issue #0: too_big at list
+        Should have at most 3 items
       ],
         ],
       }
