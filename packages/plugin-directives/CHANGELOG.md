@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.3 - 2021-04-16
+
+**Note:** Version bump only for package @giraphql/plugin-directives
+
+
+
+
+
 ### 2.0.3-alpha.0 - 2021-04-12
 
 #### 📦 Dependencies

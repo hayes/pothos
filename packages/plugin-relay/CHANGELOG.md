@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.0 - 2021-04-16
+
+#### 📘 Docs
+
+- add docs for validation plugin ([f7d83bf](https://github.com/hayes/giraphql/commit/f7d83bf))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ## 2.1.0-alpha.0 - 2021-04-12
 
 #### 🚀 Updates
