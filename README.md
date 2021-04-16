@@ -45,11 +45,11 @@ yarn build
 
 ### Scripts
 
--   `yarn prepare`: re-create all the config files for tools used in this repo
--   `yarn build`: builds .js and .d.ts files
--   `yarn clean`: removes all build artifacts for code and docs
--   `yarn lint {path to file/directory}`: runs linter (eslint)
--   `yarn jest {path to file/directory}`: run run tests
--   `yarn test`: runs typechecking, lint, and tests
--   `yarn prettier`: formats code and docs
--   `yarn type`: run typechecking
+- `yarn prepare`: re-create all the config files for tools used in this repo
+- `yarn build`: builds .js and .d.ts files
+- `yarn clean`: removes all build artifacts for code and docs
+- `yarn lint {path to file/directory}`: runs linter (eslint)
+- `yarn jest {path to file/directory}`: run run tests
+- `yarn test`: runs typechecking, lint, and tests
+- `yarn prettier`: formats code and docs
+- `yarn type`: run typechecking

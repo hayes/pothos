@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-assignment */
 import './poll';
 import './numbers';
 import builder from '../builder';
