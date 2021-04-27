@@ -237,3 +237,39 @@ union of potential types.
 // generated
 zod.union([zod.null(), zod.undefined(), zod.unknown().refine((val) => isValid(val))]);
 ```
+
+### Sharing schemas with client code
+
+If you want to share your validation logic with your client code, or create a zod schema outside of
+your graphql schema with the same rules you can use the `createZodSchema` helper.
+
+```ts
+// shared
+import { ValidationOptions } from '@giraphql/plugin-validation'; 
+
+const numberValidation: ValidationOptions<number> = {
+  max: 5,
+};
+
+// server
+builder.queryType({
+  fields: (t) => ({
+    example: t.boolean({
+      args: {
+        num: t.arg.int({
+          validate: numberValidation,
+        }),
+      },
+      resolve: () => true,
+    }),
+  });
+});
+
+// client
+import { createZodSchema } from '@giraphql/plugin-validation'; 
+
+const validator = createZodSchema(numberValidator);
+
+validator.parse(3) // pass
+validator.parse('3') // fail
+```

@@ -1,3 +1,4 @@
+import { ValidationOptions } from '../../../src';
 import builder from '../builder';
 
 interface RecursiveShape {
@@ -6,14 +7,16 @@ interface RecursiveShape {
 }
 const Recursive = builder.inputRef<RecursiveShape>('Recursive');
 
+const numberValidation: ValidationOptions<number> = {
+  max: 5,
+};
+
 Recursive.implement({
   validate: [(fields) => fields.number !== 3, { message: 'number must not be 3' }],
   fields: (t) => ({
     number: t.int({
       required: true,
-      validate: {
-        max: 5,
-      },
+      validate: numberValidation,
     }),
     float: t.float({
       required: true,
