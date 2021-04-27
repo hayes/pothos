@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.2.0 - 2021-04-27
+
+#### 🚀 Updates
+
+- add createZodSchema function for manually creating zod schemas from validation options ([818e4f3](https://github.com/hayes/giraphql/commit/818e4f3))
+
+**Note:** Version bump only for package @giraphql/plugin-validation
+
+
+
+
+
 ### 1.1.0 - 2021-04-16
 
 **Note:** Version bump only for package @giraphql/plugin-validation
