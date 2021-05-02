@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-relay",
-  "version": "2.1.1",
+  "version": "2.1.2-force",
   "description": "A GiraphQL plugin for adding relay style connections, nodes, and cursor based pagination to your GraphQL schema",
   "main": "./lib/index.js",
   "scripts": {

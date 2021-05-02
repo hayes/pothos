@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-directives",
-  "version": "2.0.4",
+  "version": "2.0.5-force",
   "description": "Directive plugin for GiraphQL, enables using graphql-tools based directives with GiraphQL",
   "main": "./lib/index.js",
   "scripts": {
