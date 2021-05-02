@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.5 - 2021-05-02
+
+#### 🛠 Internals
+
+- force version bumps and update validation to 2.0 range ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
+
+**Note:** Version bump only for package @giraphql/plugin-mocks
+
+
+
+
+
 ### 2.0.4 - 2021-05-02
 
 #### 🛠 Internals

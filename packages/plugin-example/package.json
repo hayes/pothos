@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-example",
-  "version": "2.0.5-force",
+  "version": "2.0.5",
   "description": "An example plugin for GiraphQL",
   "main": "./lib/index.js",
   "scripts": {

@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-sub-graph",
-  "version": "2.0.5-force",
+  "version": "2.0.5",
   "description": "A GiraphQL plugin for creating multiple variants or sub-selections of the same graph",
   "main": "./lib/index.js",
   "scripts": {

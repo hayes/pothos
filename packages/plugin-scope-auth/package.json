@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-scope-auth",
-  "version": "2.0.4-force",
+  "version": "2.0.4",
   "description": "A GiraphQL plugin for adding scope based authorization checks to your GraphQL Schema",
   "main": "./lib/index.js",
   "scripts": {

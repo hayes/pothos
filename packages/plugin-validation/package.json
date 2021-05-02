@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-validation",
-  "version": "2.0.0-force",
+  "version": "2.0.0",
   "description": "A GiraphQL plugin for adding argument validation",
   "main": "lib/index.js",
   "scripts": {
