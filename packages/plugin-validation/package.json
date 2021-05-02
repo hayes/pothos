@@ -21,9 +21,8 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@giraphql/core": "^0.20.3",
     "graphql": ">=15.1.0",
-    "zod": "^1.11.11"
+    "zod": "*"
   },
   "devDependencies": {
     "apollo-server": "^2.22.2",

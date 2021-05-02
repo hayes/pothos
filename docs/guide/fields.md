@@ -130,7 +130,7 @@ builder.queryType({
 
 Unlike some other GraphQL implementations, fields in GiraphQL are non-nullable by default. It is
 still often desirable to make fields in your schema nullable. This default can be changed in the
-SchemaBuilder constructor, see [Changing Default Nullability](changing-default-nullability.md).
+SchemaBuilder constructor, see [Changing Default Nullability](./changing-default-nullability.md).
 
 ```typescript
 builder.queryType({

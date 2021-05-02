@@ -9,7 +9,12 @@ describe('validation', () => {
         exampleField(
           odd: 1
           recursive: { float: 1.1, number: 2, recurse: { float: 1.1, number: 1 } }
-          contactInfo: { name: "Michael", email: "michael@test.com", aliases: ["Hayes", "MHayes"] }
+          contactInfo: {
+            name: "Michael"
+            email: "michael@test.com"
+            phone: "555-123-4567"
+            aliases: ["Hayes", "MHayes"]
+          }
           enum1: [One, Two]
         )
       }
@@ -40,7 +45,12 @@ describe('validation', () => {
             number: 2
             recurse: { float: 1, number: 6, recurse: { float: 1.1, number: 3 } }
           }
-          contactInfo: { name: "michael", email: "michael@example.com", aliases: ["hayes"] }
+          contactInfo: {
+            name: "michael"
+            email: "michael@example.com"
+            phone: "555-123-456"
+            aliases: ["hayes"]
+          }
           enum1: [Two, One]
         )
       }
@@ -56,7 +66,7 @@ describe('validation', () => {
       Object {
         "data": null,
         "errors": Array [
-          [GraphQLError: 10 validation issue(s)
+          [GraphQLError: 11 validation issue(s)
 
         Issue #0: custom_error at enum1
         Invalid value.
@@ -85,7 +95,10 @@ describe('validation', () => {
         Issue #8: custom_error at contactInfo.email
         no example.com email addresses
 
-        Issue #9: custom_error at contactInfo.aliases
+        Issue #9: invalid_union at contactInfo.phone
+        Invalid input
+
+        Issue #10: custom_error at contactInfo.aliases
         contactInfo should include at least 2 aliases
       ],
         ],

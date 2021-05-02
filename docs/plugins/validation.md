@@ -13,8 +13,12 @@ options map closely to the validations available in zod.
 
 ### Install
 
+To use the validation plugin you will need to install both `zod` and the validation plugin:
+
+zod version 2.* and 3.* are likely both compatible, but are not currently stable, so using `zod@1` is recommended.
+
 ```bash
-yarn add @giraphql/plugin-validation
+yarn add zod@1 @giraphql/plugin-validation
 ```
 
 ### Setup
@@ -95,6 +99,28 @@ builder.queryType({
 });
 ```
 
+### Using your own zod schemas
+
+If you just want to use a zod schema defined somewhere else, rather than using the validation options you can use the `schema` option:
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    list: t.boolean({
+      nullable: true,
+      args: {
+        max5: t.arg.int({
+          validate: {
+            schema: zod.number().int().max(5)
+          },
+        }),
+      },
+      resolve: () => true,
+    }),
+  }),
+});
+```
+
 ## API
 
 ### On Object fields
@@ -149,16 +175,25 @@ error message:
 - `negative`?: `Constraint<boolean>`
 - `nonpositive`?: `Constraint<boolean>`
 - `int`?: `Constraint<boolean>`
+- `schema`?: `ZodSchema<number>`
 
 #### BigInt
 
 - `type`?: `'bigint'`
 - `refine`?: `Refinement<bigint> | Refinement<bigint>[]`
+- `schema`?: `ZodSchema<bigint>`
 
 #### Boolean
 
 - `type`?: `'boolean'`
 - `refine`?: `Refinement<boolean> | Refinement<boolean>[]`
+- `schema`?: `ZodSchema<boolean>`
+
+#### Date
+
+- `type`?: `'boolean'`
+- `refine`?: `Refinement<boolean> | Refinement<boolean>[]`
+- `schema`?: `ZodSchema<Date>`
 
 #### String
 
@@ -171,11 +206,13 @@ error message:
 - `uuid`?: `Constraint<boolean>`
 - `email`?: `Constraint<boolean>`
 - `regex`?: `Constraint<RegExp>`
+- `schema`?: `ZodSchema<string>`
 
 #### Object
 
 - `type`?: `'object'`;
-- `refine`?: `Refinement<T[]> | Refinement<T[]>[]`
+- `refine`?: `Refinement<T> | Refinement<T>[]`
+- `schema`?: `ZodSchema<Ts>`
 
 #### Array
 
@@ -185,6 +222,7 @@ error message:
 - `maxLength`?: `Constraint<number>`
 - `length`?: `Constraint<number>`
 - `items`?: `ValidationOptions<T> | Refinement<T>`
+- `schema`?: `ZodSchema<T[]>`
 
 ### How it works
 
@@ -238,10 +276,51 @@ union of potential types.
 zod.union([zod.null(), zod.undefined(), zod.unknown().refine((val) => isValid(val))]);
 ```
 
+If the validation options include a `schema` that schema will be used as an intersection wit the generated validator:
+
+```ts
+// field
+{
+  validate: {
+    int: true,
+    schema: zod.number().max(10),
+}
+// generated
+zod.union([zod.null(), zod.undefined(),  zod.intersection(zod.number().max(10), zod.number().int())]);
+```
+
 ### Sharing schemas with client code
 
-If you want to share your validation logic with your client code, or create a zod schema outside of
-your graphql schema with the same rules you can use the `createZodSchema` helper.
+The easiest way to share validators is the use the to define schemas for your fields in an external file using the normal zod APIs, and then attaching those to your fields using the `schema` option.
+
+```ts
+// shared
+import { ValidationOptions } from '@giraphql/plugin-validation'; 
+
+const numberValidation = zod.number().max(5);
+
+// server
+builder.queryType({
+  fields: (t) => ({
+    example: t.boolean({
+      args: {
+        num: t.arg.int({
+          validate: {
+            schema: numberValidation,
+          }
+        }),
+      },
+      resolve: () => true,
+    }),
+  });
+});
+
+// client
+numberValidator.parse(3) // pass
+numberValidator.parse('3') // fail
+```
+
+You can also use the `createZodSchema` helper from the plugin directly to create zod Schemas from an options object:
 
 ```ts
 // shared

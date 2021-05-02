@@ -45,7 +45,7 @@ builder.objectType(Giraffe, {
 
 The first argument is an `ObjectParam`, in this case the class that represent our giraffes. This is
 used to convey type information about our underlying data, so that fields can know what properties
-are available on the parent object. \*\*\*\*
+are available on the parent object.
 
 ### Add some fields
 

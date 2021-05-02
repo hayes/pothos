@@ -1,3 +1,4 @@
+import * as zod from 'zod';
 import { ValidationOptions } from '../../../src';
 import builder from '../builder';
 
@@ -70,6 +71,12 @@ const ContactInfo = builder.inputType('ContactInfo', {
           (arg) => arg.split('@')[1] !== 'example.com',
           { message: 'no example.com email addresses' },
         ],
+      },
+    }),
+    phone: t.string({
+      validate: {
+        schema: zod.string().regex(/^\d{3}-\d{3}-\d{4}$/u),
+        length: 12,
       },
     }),
   }),

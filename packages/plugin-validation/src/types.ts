@@ -1,3 +1,5 @@
+import { ZodSchema } from 'zod';
+
 export type Constraint<T> =
   | T
   | (T extends object
@@ -9,6 +11,8 @@ export type RefineConstraint<T = unknown> =
   | Constraint<(value: T) => boolean>[];
 export interface BaseValidationOptions<T = unknown> {
   refine?: RefineConstraint<T>;
+  schema?: ZodSchema<T>;
+  type?: string;
 }
 export interface NumberValidationOptions<T extends number = number>
   extends BaseValidationOptions<T> {
@@ -30,6 +34,10 @@ export interface BigIntValidationOptions<T extends bigint = bigint>
 export interface BooleanValidationOptions<T extends boolean = boolean>
   extends BaseValidationOptions<T> {
   type?: 'boolean';
+}
+
+export interface DateValidationOptions<T extends Date = Date> extends BaseValidationOptions<T> {
+  type?: 'date';
 }
 
 export interface StringValidationOptions<T extends string = string>
@@ -68,6 +76,8 @@ export type ValidationOptions<T> =
       ? BooleanValidationOptions<T>
       : T extends string
       ? StringValidationOptions<T>
+      : T extends Date
+      ? DateValidationOptions<T>
       : T extends unknown[]
       ? ArrayValidationOptions<T>
       : T extends object
@@ -76,8 +86,10 @@ export type ValidationOptions<T> =
 
 export type ValidationOptionUnion =
   | ArrayValidationOptions
+  | BaseValidationOptions
   | BigIntValidationOptions
   | BooleanValidationOptions
+  | DateValidationOptions
   | NumberValidationOptions
   | ObjectValidationOptions
   | StringValidationOptions;
