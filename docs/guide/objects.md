@@ -37,7 +37,7 @@ You can use `builder.objectType` to add add new `Object` types to your schema.
 const builder = new SchemaBuilder({});
 
 builder.objectType(Giraffe, {
-    name: 'Giraffe'
+    name: 'Giraffe',
     description: 'Long necks, cool patterns, taller than you.',
     fields: (t) => ({}),
 });
@@ -52,7 +52,7 @@ are available on the parent object.
 Fields define what data is available in your schema
 
 ```typescript
-builder.objectType(Giraffe', {
+builder.objectType(Giraffe, {
     name: 'Giraffe',
     description: 'Long necks, cool patterns, taller than you.',
     fields: (t) => ({
@@ -66,7 +66,7 @@ builder.objectType(Giraffe', {
             },
         }),
         height: t.float({
-            resolve: (parent) => parent.heightMeters,
+            resolve: (parent) => parent.heightInMeters,
         }),
     }),
 });
