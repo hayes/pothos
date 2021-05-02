@@ -6,6 +6,7 @@ const config: TypeScriptConfig = {
     sourceMap: true,
     emitDeclarationOnly: false,
     module: 'commonjs',
+    target: 'es2019'
   },
 };
 
