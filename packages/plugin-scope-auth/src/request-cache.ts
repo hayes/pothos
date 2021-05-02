@@ -30,14 +30,15 @@ export default class RequestCache<Types extends SchemaTypes> {
     this.context = context;
   }
 
-  static fromContext<Types extends SchemaTypes>(
-    context: Types['Context'],
-    plugin: GiraphQLScopeAuthPlugin<Types>,
-  ): RequestCache<Types> {
+  static fromContext<T extends SchemaTypes>(
+    context: T['Context'],
+    plugin: GiraphQLScopeAuthPlugin<T>,
+  ): RequestCache<T> {
     if (!requestCache.has(context)) {
-      requestCache.set(context, new RequestCache<Types>(plugin, context));
+      requestCache.set(context, new RequestCache<T>(plugin, context));
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return requestCache.get(context)!;
   }
 
@@ -45,15 +46,13 @@ export default class RequestCache<Types extends SchemaTypes> {
     if (!this.scopes) {
       const scopes = this.plugin.builder.options.authScopes(this.context);
 
-      if (isThenable(scopes)) {
-        this.scopes = scopes.then((resolved) => {
-          this.scopes = resolved;
+      this.scopes = isThenable(scopes)
+        ? scopes.then((resolved) => {
+            this.scopes = resolved;
 
-          return resolved;
-        });
-      } else {
-        this.scopes = scopes;
-      }
+            return resolved;
+          })
+        : scopes;
     }
 
     return this.scopes;
@@ -63,7 +62,6 @@ export default class RequestCache<Types extends SchemaTypes> {
     const scopes = this.getScopes();
 
     if (isThenable(scopes)) {
-      // eslint-disable-next-line promise/no-callback-in-promise
       return scopes.then((resolvedScopes) => cb(resolvedScopes));
     }
 
@@ -74,7 +72,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     const key = cacheKey(path);
 
     if (this.grantCache.has(key)) {
-      const set = this.grantCache.get!(key)!;
+      const set = this.grantCache.get(key)!;
 
       scopes.forEach((scope) => set.add(scope));
     } else {
@@ -87,7 +85,8 @@ export default class RequestCache<Types extends SchemaTypes> {
   testGrantedScopes(scope: string, path: Path) {
     if (this.grantCache.get(cacheKey(path.prev))?.has(scope)) {
       return true;
-    } else if (
+    }
+    if (
       typeof path.prev?.key === 'number' &&
       this.grantCache.get(cacheKey(path.prev.prev))?.has(scope)
     ) {
@@ -104,7 +103,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     cb: () => MaybePromise<string[]>,
   ) {
     if (!this.typeGrants.has(type)) {
-      this.typeGrants.set(type, new Map());
+      this.typeGrants.set(type, new Map<string, Promise<boolean>>());
     }
 
     const cache = this.typeGrants.get(type)!;
@@ -131,7 +130,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     arg: Types['AuthScopes'][T],
   ) {
     if (!this.scopeCache.has(name)) {
-      this.scopeCache.set(name, new Map());
+      this.scopeCache.set(name, new Map<string, Promise<boolean>>());
     }
 
     const cache = this.scopeCache.get(name)!;

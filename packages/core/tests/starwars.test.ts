@@ -3,12 +3,12 @@ import gql from 'graphql-tag';
 import starwarsSchema from './examples/starwars/schema';
 
 describe('starwars example', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(starwarsSchema))).toMatchSnapshot();
   });
 
   describe('queries', () => {
-    test('query some stuff', async () => {
+    it('query some stuff', async () => {
       const query = gql`
         query {
           droid(id: 2001) {

@@ -5,11 +5,11 @@ import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('example schema', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
   });
 
-  test('with disabled scope auth', async () => {
+  it('with disabled scope auth', async () => {
     const query = gql`
       query {
         forAdmin

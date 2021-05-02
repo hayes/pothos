@@ -13,8 +13,6 @@ export function resolveHelper<Types extends SchemaTypes>(
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
     const state = new ResolveState(RequestCache.fromContext(context, plugin));
 
-    return runSteps(0);
-
     function runSteps(index: number): MaybePromise<unknown> {
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
@@ -25,7 +23,6 @@ export function resolveHelper<Types extends SchemaTypes>(
           return stepResult.then((result) => {
             if (!result) {
               throw new ForbiddenError(
-                // eslint-disable-next-line promise/always-return
                 typeof errorMessage === 'function'
                   ? errorMessage(parent, args, context, info)
                   : errorMessage,
@@ -47,5 +44,7 @@ export function resolveHelper<Types extends SchemaTypes>(
 
       return state.resolveValue;
     }
+
+    return runSteps(0);
   };
 }

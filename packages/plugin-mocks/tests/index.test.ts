@@ -4,7 +4,7 @@ import { execute } from 'graphql';
 import builder from './examples/starwars/builder';
 
 describe('mocked', () => {
-  test('query some stuff', async () => {
+  it('query some stuff', async () => {
     const mockedSchema = builder.toSchema({
       mocks: {
         Character: {

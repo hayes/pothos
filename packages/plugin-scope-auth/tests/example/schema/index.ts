@@ -435,7 +435,7 @@ builder.queryType({
         context.count?.('forSyncPermissionFn');
 
         return {
-          syncPermission: args.permission || 'a',
+          syncPermission: args.permission ?? 'a',
         };
       },
       resolve: () => 'ok',
@@ -449,7 +449,7 @@ builder.queryType({
         context.count?.('forAsyncPermissionFn');
 
         return {
-          asyncPermission: args.permission || 'b',
+          asyncPermission: args.permission ?? 'b',
         };
       },
       resolve: () => 'ok',
@@ -582,7 +582,7 @@ builder.queryType({
       args: {
         permission: t.arg.string({}),
       },
-      resolve: (parent, args) => ({ permission: args.permission || 'a' }),
+      resolve: (parent, args) => ({ permission: args.permission ?? 'a' }),
     }),
     ObjForAsyncPermFn: t.field({
       type: ObjForAsyncPermFn,
@@ -590,7 +590,7 @@ builder.queryType({
       args: {
         permission: t.arg.string({}),
       },
-      resolve: (parent, args) => ({ permission: args.permission || 'b' }),
+      resolve: (parent, args) => ({ permission: args.permission ?? 'b' }),
     }),
     ObjForAllFn: t.field({
       type: ObjForAllFn,

@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 

@@ -3,12 +3,12 @@ import gql from 'graphql-tag';
 import schema from './examples/giraffes';
 
 describe('giraffe example', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
   });
 
   describe('queries', () => {
-    test('query some stuff', async () => {
+    it('query some stuff', async () => {
       const query = gql`
         query {
           date
@@ -73,7 +73,7 @@ describe('giraffe example', () => {
   });
 
   describe('mutations', () => {
-    test('mutate some stuff', async () => {
+    it('mutate some stuff', async () => {
       const query = gql`
         mutation {
           createGiraffe(input: { name: "James", birthdate: "12/12/2020", height: 10 }) {

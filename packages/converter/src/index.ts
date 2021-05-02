@@ -26,11 +26,11 @@ const builtins = ['Boolean', 'Int', 'Float', 'String', 'ID'];
 
 function unwrap(type: GraphQLType): GraphQLNamedType {
   if (type instanceof GraphQLNonNull) {
-    return unwrap(type.ofType);
+    return unwrap(type.ofType as GraphQLType);
   }
 
   if (type instanceof GraphQLList) {
-    return unwrap(type.ofType);
+    return unwrap(type.ofType as GraphQLType);
   }
 
   return type;
@@ -117,7 +117,7 @@ export default class GirphQLConverter {
     }
 
     gqlTypes.forEach((type) => {
-      if (type.name.slice(0, 2) === '__' || builtins.includes(type.name)) {
+      if (type.name.startsWith('__') || builtins.includes(type.name)) {
         return;
       }
 
@@ -161,7 +161,7 @@ export default class GirphQLConverter {
         return;
       }
 
-      if (type.name.slice(0, 2) === '__') {
+      if (type.name.startsWith('__')) {
         return;
       }
 
@@ -416,10 +416,7 @@ export default class GirphQLConverter {
     const fieldMap = type.getFields();
     const inheritedFields =
       type instanceof GraphQLObjectType
-        ? type
-            .getInterfaces()
-            .map((i) => Object.keys(i.getFields()))
-            .reduce<string[]>((all, fields) => [...all, ...fields], [])
+        ? type.getInterfaces().flatMap((i) => Object.keys(i.getFields()))
         : [];
     const fields = Object.keys(fieldMap).map((f) => fieldMap[f]);
     writer.writeLine('fields: t => ({');
@@ -491,14 +488,14 @@ export default class GirphQLConverter {
 
   writeType(writer: CodeBlockWriter, type: GraphQLType): void {
     if (type instanceof GraphQLNonNull) {
-      this.writeType(writer, type.ofType);
+      this.writeType(writer, type.ofType as GraphQLType);
 
       return;
     }
 
     if (type instanceof GraphQLList) {
       writer.write('[');
-      this.writeType(writer, type.ofType);
+      this.writeType(writer, type.ofType as GraphQLType);
       writer.write(']');
 
       return;
@@ -528,7 +525,7 @@ export default class GirphQLConverter {
       this.writeInputFieldShape(writer, wrappedType.ofType.ofType, rootType);
       writer.write('[]');
     } else if (wrappedType instanceof GraphQLList) {
-      this.writeInputFieldShape(writer, wrappedType.ofType, rootType);
+      this.writeInputFieldShape(writer, wrappedType.ofType as GraphQLType, rootType);
       writer.write('[]');
     } else if (type instanceof GraphQLScalarType) {
       switch (type.name) {
@@ -591,10 +588,8 @@ export default class GirphQLConverter {
 
   writeNullability(writer: CodeBlockWriter, type: GraphQLType) {
     if (type instanceof GraphQLNonNull) {
-      if (type.ofType instanceof GraphQLList) {
-        if (!(type.ofType.ofType instanceof GraphQLNonNull)) {
-          writer.write('nullable: { list: false, items: true },');
-        }
+      if (type.ofType instanceof GraphQLList && !(type.ofType.ofType instanceof GraphQLNonNull)) {
+        writer.write('nullable: { list: false, items: true },');
       }
     } else if (type instanceof GraphQLList) {
       if (type.ofType instanceof GraphQLNonNull) {
@@ -663,7 +658,7 @@ export default class GirphQLConverter {
     const typeMap = this.schema.getTypeMap();
     const gqlTypes = Object.keys(typeMap)
       .map((typeName) => typeMap[typeName])
-      .filter((type) => type.name.slice(0, 2) !== '__' && !builtins.includes(type.name));
+      .filter((type) => !type.name.startsWith('__') && !builtins.includes(type.name));
 
     writer.writeLine('Context: {}');
     const objects = gqlTypes.filter(

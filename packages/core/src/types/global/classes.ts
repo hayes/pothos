@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-empty-interface */
-
 import { FieldKind, SchemaTypes } from '../..';
 import Builder from '../../builder';
 import InternalFieldBuilder from '../../fieldUtils/builder';

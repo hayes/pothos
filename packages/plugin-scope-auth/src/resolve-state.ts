@@ -13,7 +13,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     this.cache = cache;
   }
 
-  evaluateScopeMapWithScopes<Types extends SchemaTypes>(
+  evaluateScopeMapWithScopes(
     { $all, $any, $granted, ...map }: AuthScopeMap<Types>,
     scopes: ScopeLoaderMap<Types>,
     info: GraphQLResolveInfo,
@@ -137,7 +137,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     const { typeCache } = this.cache;
 
     if (!typeCache.has(type)) {
-      typeCache.set(type, new Map());
+      typeCache.set(type, new Map<unknown, MaybePromise<boolean>>());
     }
 
     const cache = typeCache.get(type)!;

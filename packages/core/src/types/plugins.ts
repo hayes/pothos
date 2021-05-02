@@ -40,10 +40,10 @@ export interface SubscribeHooks<Types extends SchemaTypes, T> {
 }
 
 export type PluginConstructorMap<Types extends SchemaTypes> = {
-  [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: {
-    new (buildCache: BuildCache<SchemaTypes>, name: K): BasePlugin<Types> &
-      GiraphQLSchemaTypes.Plugins<Types>[K];
-  };
+  [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: new (
+    buildCache: BuildCache<SchemaTypes>,
+    name: K,
+  ) => BasePlugin<Types> & GiraphQLSchemaTypes.Plugins<Types>[K];
 };
 
 export type PluginMap<Types extends SchemaTypes> = {

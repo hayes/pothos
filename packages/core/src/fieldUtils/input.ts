@@ -42,7 +42,7 @@ export default class InputFieldBuilder<
   argBuilder(): ArgBuilder<Types> {
     const builder: InputFieldBuilder<Types, 'Arg'>['field'] = this.field.bind(this);
 
-    const protoKeys = Object.keys(Object.getPrototypeOf(this)).filter(
+    const protoKeys = Object.keys(Object.getPrototypeOf(this) as object).filter(
       (key) =>
         typeof (this as Record<string, unknown>)[key] === 'function' &&
         ((Function.prototype as unknown) as Record<string, unknown>)[key] === undefined,
@@ -50,7 +50,7 @@ export default class InputFieldBuilder<
 
     ([...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<Types, 'Arg'>)[]).forEach(
       (key) => {
-        ((builder as unknown) as { [s: string]: unknown })[key] =
+        ((builder as unknown) as Record<string, unknown>)[key] =
           typeof this[key] === 'function' ? (this[key] as Function).bind(this) : this[key];
       },
     );

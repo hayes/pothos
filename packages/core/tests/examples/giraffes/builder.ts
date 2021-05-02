@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import SchemaBuilder from '../../../src';
 
 export enum Diet {

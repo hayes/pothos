@@ -9,7 +9,7 @@ export type OutputShape<Types extends SchemaTypes, T> = T extends {
   [outputShapeKey]: infer U;
 }
   ? U
-  : T extends { new (...args: any[]): infer U }
+  : T extends new (...args: any[]) => infer U
   ? U extends {
       [outputShapeKey]: infer V;
     }
@@ -25,7 +25,7 @@ export type InputShape<Types extends SchemaTypes, T> = T extends {
   [inputShapeKey]: infer U;
 }
   ? U
-  : T extends { new (...args: any[]): infer U }
+  : T extends new (...args: any[]) => infer U
   ? U extends {
       [inputShapeKey]: infer V;
     }
@@ -60,12 +60,10 @@ export interface InputRef<T = unknown> {
 export type OutputType<Types extends SchemaTypes> =
   | BaseEnum
   | keyof Types['outputShapes']
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | (new (...args: any[]) => any)
   | {
       [outputShapeKey]: unknown;
-    }
-  | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new (...args: any[]): any;
     };
 
 export type InputType<Types extends SchemaTypes> =
@@ -86,18 +84,13 @@ export type InputTypeParam<Types extends SchemaTypes> = InputType<Types> | [Inpu
 
 export type ObjectParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Objects']>
-  | ObjectRef<unknown>
-  | {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      new (...args: any[]): any;
-    };
+  | ObjectRef<unknown> // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | (new (...args: any[]) => any);
 
 export type InterfaceParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Interfaces']>
   | InterfaceRef<unknown>
-  | {
-      new (...args: any[]): unknown;
-    };
+  | (new (...args: any[]) => unknown);
 
 export interface BaseEnum {
   [s: string]: number | string;

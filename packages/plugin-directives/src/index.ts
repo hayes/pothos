@@ -96,9 +96,9 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
 
       return directives.reduce<Record<string, {}[]>>((obj, directive) => {
         if (obj[directive.name]) {
-          obj[directive.name].push(directive.args || {});
+          obj[directive.name].push(directive.args ?? {});
         } else {
-          obj[directive.name] = [directive.args || {}];
+          obj[directive.name] = [directive.args ?? {}];
         }
 
         return obj;

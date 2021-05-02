@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 import SchemaBuilder from '../../src';
 
 // Define backing models/types
@@ -145,7 +144,7 @@ builder.objectType('User', {
         example: t.arg({ type: Example, required: true }),
         firstN: t.arg.int({ required: true }),
       },
-      resolve: (parent, args) => parent.firstName.slice(0, args.firstN) + args.example.id,
+      resolve: (parent, args) => parent.firstName.slice(0, args.firstN) + String(args.example.id),
     }),
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({

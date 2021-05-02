@@ -141,10 +141,8 @@ export type NodeBaseObjectOptionsForParam<
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[]
 > = Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'> &
-  (Param extends {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    new (...args: any[]): any;
-  }
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (Param extends new (...args: any[]) => any
     ? {
         isTypeOf?: (
           obj: OutputShape<Types, Interfaces[number]>,

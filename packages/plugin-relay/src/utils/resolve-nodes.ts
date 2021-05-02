@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import { MaybePromise, ObjectParam, OutputType, SchemaTypes } from '@giraphql/core';
 import { NodeObjectOptions } from '../types';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal';
@@ -6,7 +7,7 @@ const nodeCache = new WeakMap<object, Map<string, MaybePromise<unknown>>>();
 
 function getRequestCache(context: object) {
   if (!nodeCache.has(context)) {
-    nodeCache.set(context, new Map());
+    nodeCache.set(context, new Map<string, MaybePromise<unknown>>());
   }
 
   return nodeCache.get(context)!;

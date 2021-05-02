@@ -54,8 +54,6 @@ declare global {
         info: GraphQLResolveInfo,
       ) => boolean;
     }
-
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
       extends BaseTypeOptions<Types> {}
 

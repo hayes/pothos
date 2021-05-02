@@ -40,7 +40,8 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
       internalDecodeGlobalID(this.builder, String(globalID)),
     );
 
-    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
+    return (parent, args, context, info) =>
+      resolver(parent, argMapper(args), context, info) as unknown;
   }
 
   wrapSubscribe(
@@ -63,7 +64,8 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
       internalDecodeGlobalID(this.builder, String(globalID)),
     );
 
-    return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info);
+    return (parent, args, context, info) =>
+      subscribe(parent, argMapper(args), context, info) as unknown;
   }
 }
 

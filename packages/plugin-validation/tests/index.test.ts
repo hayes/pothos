@@ -3,7 +3,7 @@ import { execute } from 'graphql';
 import schema from './example/schema';
 
 describe('validation', () => {
-  test('valid query', async () => {
+  it('valid query', async () => {
     const query = gql`
       query {
         exampleField(
@@ -35,7 +35,7 @@ describe('validation', () => {
     `);
   });
 
-  test('invalid query', async () => {
+  it('invalid query', async () => {
     const query = gql`
       query {
         exampleField(
@@ -106,7 +106,7 @@ describe('validation', () => {
     `);
   });
 
-  test('example queries', async () => {
+  it('example queries', async () => {
     const query = gql`
       query {
         simpleValid: simple(email: "abc@def.com")
@@ -148,7 +148,7 @@ describe('validation', () => {
       ],
           [GraphQLError: 1 validation issue(s)
 
-        Issue #0: custom_error at 
+        Issue #0: custom_error at [[root]]
         Invalid value.
       ],
           [GraphQLError: 1 validation issue(s)
@@ -158,7 +158,7 @@ describe('validation', () => {
       ],
           [GraphQLError: 1 validation issue(s)
 
-        Issue #0: custom_error at 
+        Issue #0: custom_error at [[root]]
         Must provide either phone number or email address
       ],
           [GraphQLError: 1 validation issue(s)

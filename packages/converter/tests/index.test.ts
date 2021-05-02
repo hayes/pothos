@@ -29,7 +29,7 @@ async function printGeneratedSchema(converter: GirphQLConverter) {
 }
 
 describe('Code generator', () => {
-  test('example schema', async () => {
+  it('example schema', async () => {
     const converter = new GirphQLConverter(exampleSchema);
 
     expect(converter.toString()).toMatchSnapshot();
@@ -40,7 +40,7 @@ describe('Code generator', () => {
     expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(exampleSchema)).trim());
   }, 10000);
 
-  test('starwars schema', async () => {
+  it('starwars schema', async () => {
     const converter = new GirphQLConverter(starwarsSchema);
 
     expect(converter.toString()).toMatchSnapshot();

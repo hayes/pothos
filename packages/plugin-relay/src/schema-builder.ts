@@ -105,7 +105,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
   const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
     this.nodeInterfaceRef(),
-    ...((interfaces || []) as InterfaceParam<SchemaTypes>[]),
+    ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
   ];
 
   let nodeName!: string;
@@ -148,7 +148,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
 
             return config.name === nodeName;
           }
-        } catch (error) {
+        } catch {
           // ignore
         }
 
@@ -169,11 +169,13 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
         args: {},
         resolve: async (parent, args, context, info) => ({
           type: nodeConfig.name,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
           id: await options.id.resolve(parent, args, context, info),
         }),
       }),
     );
   });
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return ref;
 };

@@ -15,15 +15,11 @@ const server = new ApolloServer({
     Poll,
     pubsub,
     log: (info) =>
-      // eslint-disable-next-line no-console
       void console.log(`${info.operation.name?.value}: resolving ${stringPath(info.path)}`),
-    logSub: (action, name) =>
-      // eslint-disable-next-line no-console
-      void console.log(`${action} ${name}`),
+    logSub: (action, name) => void console.log(`${action} ${name}`),
   }),
 });
 
 void server.listen(3000, () => {
-  // eslint-disable-next-line no-console
   console.log('🚀 Server started at http://127.0.0.1:3000');
 });

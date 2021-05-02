@@ -1,3 +1,4 @@
+/* eslint-disable prefer-destructuring */
 import './global-types';
 import {
   GraphQLEnumType,
@@ -133,7 +134,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
 
         const newArguments: GraphQLFieldConfigArgumentMap = {};
 
-        if (!fieldConfig.extensions?.subGraphs?.includes(subGraph)) {
+        if (!(fieldConfig.extensions?.subGraphs as string[] | undefined)?.includes(subGraph)) {
           return;
         }
 
@@ -218,8 +219,8 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       extensions: {
         ...typeConfig.extensions,
         subGraphs:
-          typeConfig.giraphqlOptions.subGraphs ||
-          this.builder.options.subGraphs?.defaultForTypes ||
+          typeConfig.giraphqlOptions.subGraphs ??
+          this.builder.options.subGraphs?.defaultForTypes ??
           [],
       },
     };

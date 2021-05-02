@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import SchemaBuilder from '../../src';
 
 export const nullableFieldBuilder = new SchemaBuilder<{
@@ -23,7 +24,7 @@ nullableFieldBuilder.queryType({
     }),
     nonNullableError: t.boolean({
       nullable: false,
-      // @ts-expect-error
+      // @ts-expect-error testing default nullability
       resolve: () => null,
     }),
     nullableList: t.booleanList({
@@ -32,7 +33,7 @@ nullableFieldBuilder.queryType({
     nullableListError: t.booleanList({
       resolve: () => [
         false,
-        // @ts-expect-error
+        // @ts-expect-error testing default nullability
         null,
       ],
     }),
@@ -42,7 +43,7 @@ nullableFieldBuilder.queryType({
     }),
     nonNullableListError: t.booleanList({
       nullable: false,
-      // @ts-expect-error
+      // @ts-expect-error testing default nullability
       resolve: () => null,
     }),
     nullableListItems: t.booleanList({
@@ -57,7 +58,7 @@ nullableFieldBuilder.queryType({
         items: true,
         list: false,
       },
-      // @ts-expect-error
+      // @ts-expect-error testing default nullability
       resolve: () => null,
     }),
     explicitNullableList: t.booleanList({
@@ -74,7 +75,7 @@ nullableFieldBuilder.queryType({
       },
       resolve: () => [
         true,
-        // @ts-expect-error
+        // @ts-expect-error testing default nullability
         null,
       ],
     }),
@@ -149,14 +150,14 @@ nonNullableFieldBuilder.queryType({
       resolve: () => false,
     }),
     nonNullableError: t.boolean({
-      // @ts-expect-error
+      // @ts-expect-error testing default nullability
       resolve: () => null,
     }),
     nullableListError: t.booleanList({
       nullable: true,
       resolve: () => [
         false,
-        // @ts-expect-error
+        // @ts-expect-error testing default nullability
         null,
       ],
     }),
@@ -164,7 +165,7 @@ nonNullableFieldBuilder.queryType({
       resolve: () => [false],
     }),
     nonNullableListError: t.booleanList({
-      // @ts-expect-error
+      // @ts-expect-error testing default nullability
       resolve: () => null,
     }),
     nullableListItems: t.booleanList({
@@ -179,7 +180,7 @@ nonNullableFieldBuilder.queryType({
         items: true,
         list: false,
       },
-      // @ts-expect-error
+      // @ts-expect-error testing default nullability
       resolve: () => null,
     }),
     explicitNullableList: t.booleanList({
@@ -196,7 +197,7 @@ nonNullableFieldBuilder.queryType({
       },
       resolve: () => [
         true,
-        // @ts-expect-error
+        // @ts-expect-error testing default nullability
         null,
       ],
     }),

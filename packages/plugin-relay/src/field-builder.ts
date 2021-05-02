@@ -204,12 +204,12 @@ fieldBuilderProto.connection = function connection(
 
   this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
     const connectionName =
-      connectionNameFromOptions ||
+      connectionNameFromOptions ??
       `${this.typename}${capitalize(fieldConfig.name)}${
         fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
       }`;
     const connectionRef = this.builder.objectRef<ConnectionShape<unknown, false>>(connectionName);
-    const edgeName = edgeNameFromOptions || `${connectionName}Edge`;
+    const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
     const edgeRef = this.builder.objectRef<{
       cursor: string;
       node: unknown;

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { types } from 'util';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -212,14 +211,12 @@ declare global {
       extensions?: Readonly<Record<string, unknown>>;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     export interface ArgFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
       Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
     > extends InputFieldOptions<Types, Type, Req> {}
 
-    // eslint-disable-next-line @typescript-eslint/no-empty-interface
     export interface InputObjectFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],

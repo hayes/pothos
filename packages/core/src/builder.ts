@@ -93,12 +93,12 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.defaultFieldNullability =
       (options as {
         defaultFieldNullability?: boolean;
-      }).defaultFieldNullability || false;
+      }).defaultFieldNullability ?? false;
 
     this.defaultInputFieldRequiredness =
       (options as {
         defaultInputFieldRequiredness?: boolean;
-      }).defaultInputFieldRequiredness || false;
+      }).defaultInputFieldRequiredness ?? false;
   }
 
   static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
@@ -120,7 +120,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const name =
       typeof param === 'string'
         ? param
-        : (options as { name?: string }).name || (param as { name: string }).name;
+        : (options as { name?: string }).name ?? (param as { name: string }).name;
 
     if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
@@ -133,7 +133,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       kind: 'Object',
       graphqlKind: 'Object',
       name,
-      interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
+      interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
       description: options.description,
       isTypeOf: options.isTypeOf as GraphQLIsTypeOfFn<unknown, Types['Context']>,
       giraphqlOptions: options as GiraphQLSchemaTypes.ObjectTypeOptions,
@@ -153,7 +153,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (options.fields) {
-      this.configStore.addFields(ref, options.fields!(new ObjectFieldBuilder(name, this)));
+      this.configStore.addFields(ref, options.fields(new ObjectFieldBuilder(name, this)));
     }
 
     return ref;
@@ -199,7 +199,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (options.fields) {
-      this.configStore.addFields('Query', options.fields!(new QueryFieldBuilder(this)));
+      this.configStore.addFields('Query', options.fields(new QueryFieldBuilder(this)));
     }
   }
 
@@ -230,7 +230,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (options.fields) {
-      this.configStore.addFields('Mutation', options.fields!(new MutationFieldBuilder(this)));
+      this.configStore.addFields('Mutation', options.fields(new MutationFieldBuilder(this)));
     }
   }
 
@@ -265,7 +265,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     if (options.fields) {
       this.configStore.addFields(
         'Subscription',
-        options.fields!(new SubscriptionFieldBuilder(this)),
+        options.fields(new SubscriptionFieldBuilder(this)),
       );
     }
   }
@@ -294,7 +294,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const name =
       typeof param === 'string'
         ? param
-        : (options as { name?: string }).name || (param as { name: string }).name;
+        : (options as { name?: string }).name ?? (param as { name: string }).name;
 
     const ref: InterfaceRef<OutputShape<Types, Param>> =
       param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Types, Param>>(name);
@@ -305,7 +305,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       kind: 'Interface',
       graphqlKind: 'Interface',
       name: typename,
-      interfaces: (options.interfaces || []) as ObjectParam<SchemaTypes>[],
+      interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
       description: options.description,
       giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InterfaceTypeOptions,
     };
@@ -321,7 +321,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (options.fields) {
-      this.configStore.addFields(ref, options.fields!(new InterfaceFieldBuilder(typename, this)));
+      this.configStore.addFields(ref, options.fields(new InterfaceFieldBuilder(typename, this)));
     }
 
     return ref;

@@ -89,7 +89,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     getConfig: (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>,
   ) {
     if (this.fieldRefs.has(ref)) {
-      throw new Error(`FieldRef ${ref} has already been added to config store`);
+      throw new Error(`FieldRef ${String(ref)} has already been added to config store`);
     }
 
     const typeRefOrName = Array.isArray(typeParam) ? typeParam[0] : typeParam;
@@ -145,7 +145,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         );
       }
 
-      throw new Error(`Missing definition for for ${ref}`);
+      throw new Error(`Missing definition for for ${String(ref)}`);
     }
 
     const config = this.fieldRefs.get(ref)!(name, parentField);
@@ -205,13 +205,13 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     if (typeof ref === 'string') {
       if (!this.typeConfigs.has(ref)) {
-        throw new Error(`Type ${ref} has not been implemented`);
+        throw new Error(`Type ${String(ref)} has not been implemented`);
       }
       config = this.typeConfigs.get(ref)!;
     } else if (this.refsToName.has(ref)) {
       config = this.typeConfigs.get(this.refsToName.get(ref)!)!;
     } else {
-      throw new Error(`Ref ${ref} has not been implemented`);
+      throw new Error(`Ref ${String(ref)} has not been implemented`);
     }
 
     if (kind && config.graphqlKind !== kind) {
@@ -299,7 +299,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     } else if (typeof ref === 'string' && this.typeConfigs.has(ref)) {
       cb(this.typeConfigs.get(ref)!);
     } else if (!this.pending) {
-      throw new Error(`Ref ${ref} has not been implemented`);
+      throw new Error(`Ref ${String(ref)} has not been implemented`);
     } else if (this.pendingRefResolutions.has(ref)) {
       this.pendingRefResolutions.get(ref)!.push(cb);
     } else {
@@ -324,7 +324,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     kind?: T,
   ): Record<string, Extract<GiraphQLFieldConfig<Types>, { graphqlKind: T }>> {
     const typeConfig = this.getTypeConfig(name);
-    const fields = this.fields.get(name) || [];
+    const fields = this.fields.get(name) ?? [];
 
     if (kind && typeConfig.graphqlKind !== kind) {
       throw new TypeError(
@@ -371,7 +371,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     if (ref.toString !== {}.toString) {
-      return ref.toString();
+      return String(ref);
     }
 
     const usedBy = [...this.pendingFields.entries()].find(

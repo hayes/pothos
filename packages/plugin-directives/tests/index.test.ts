@@ -9,11 +9,11 @@ import SchemaBuilder from '@giraphql/core';
 import exampleSchema from './example/schema';
 
 describe('extends example schema', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
   });
 
-  test('has expected directives in extensions', () => {
+  it('has expected directives in extensions', () => {
     const types = exampleSchema.getTypeMap();
 
     expect(types.Obj.extensions?.directives).toStrictEqual({ o: { foo: 123 } });
@@ -40,7 +40,7 @@ describe('extends example schema', () => {
     ).toStrictEqual({ if: { foo: 123 } });
   });
 
-  test('gatsby format', () => {
+  it('gatsby format', () => {
     const builder = new SchemaBuilder<{
       Directives: {
         rateLimit: {

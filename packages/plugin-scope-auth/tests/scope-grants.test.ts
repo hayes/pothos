@@ -4,7 +4,7 @@ import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('query', () => {
-  test('object with expected grants', async () => {
+  it('object with expected grants', async () => {
     const query = gql`
       query {
         ObjExpectsGrants {
@@ -64,7 +64,7 @@ describe('query', () => {
     `);
   });
 
-  test('object with field that expected grants', async () => {
+  it('object with field that expected grants', async () => {
     const query = gql`
       query {
         ObjFieldExpectsGrants {
@@ -124,7 +124,7 @@ describe('query', () => {
     `);
   });
 
-  test('object list that expected grants', async () => {
+  it('object list that expected grants', async () => {
     const query = gql`
       query {
         ObjExpectsGrantsList {
@@ -211,7 +211,7 @@ describe('query', () => {
     `);
   });
 
-  test('object list with field that expected grants', async () => {
+  it('object list with field that expected grants', async () => {
     const query = gql`
       query {
         ObjFieldExpectsGrantsList {

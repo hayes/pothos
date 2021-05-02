@@ -19,7 +19,7 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 
     const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
-    return resolveMock || resolver;
+    return resolveMock ?? resolver;
   }
 
   wrapSubscribe(
@@ -34,7 +34,7 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 
     const subscribeMock = this.subscribeMock(fieldConfig.parentType, fieldConfig.name, mocks);
 
-    return subscribeMock || subscribe;
+    return subscribeMock ?? subscribe;
   }
 
   resolveMock(typename: string, fieldName: string, mocks: ResolverMap<Types>) {

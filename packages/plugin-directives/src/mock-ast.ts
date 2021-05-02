@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-param-reassign */
 import './global-types';
 import {
@@ -115,11 +116,14 @@ export default function mockAst(schema: GraphQLSchema) {
 
 function typeNode(type: GraphQLType): TypeNode {
   if (type instanceof GraphQLList) {
-    return { kind: 'ListType', type: typeNode(type.ofType) };
+    return { kind: 'ListType', type: typeNode(type.ofType as GraphQLType) };
   }
 
   if (type instanceof GraphQLNonNull) {
-    return { kind: 'NonNullType', type: typeNode(type.ofType) as ListTypeNode | NamedTypeNode };
+    return {
+      kind: 'NonNullType',
+      type: typeNode(type.ofType as GraphQLType) as ListTypeNode | NamedTypeNode,
+    };
   }
 
   return { kind: 'NamedType', name: { kind: 'Name', value: type.name } };

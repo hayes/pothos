@@ -1,4 +1,3 @@
-/* eslint-disable no-console */
 import { ApolloServer } from 'apollo-server';
 import { PubSub } from 'graphql-subscriptions';
 import { Poll } from './data';

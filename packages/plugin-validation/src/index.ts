@@ -81,7 +81,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
     const argMap = mapInputFields(
       fieldConfig.args,
       this.buildCache,
-      (field) => field.giraphqlOptions.validate || null,
+      (field) => field.giraphqlOptions.validate ?? null,
     );
 
     if (!argMap && !fieldConfig.giraphqlOptions.validate) {
@@ -106,7 +106,8 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
       validator = refine(validator, { refine: fieldConfig.giraphqlOptions.validate });
     }
 
-    return (parent, args, context, info) => resolver(parent, validator.parse(args), context, info);
+    return (parent, rawArgs, context, info) =>
+      resolver(parent, validator.parse(rawArgs) as object, context, info) as unknown;
   }
 
   createValidator(
@@ -130,7 +131,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 
       let fieldValidator = refine(
         zod.lazy(() =>
-          zod.object(this.inputFieldValidators.get(typeConfig.name) || {}).nonstrict(),
+          zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).nonstrict(),
         ),
         options,
       );

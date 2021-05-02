@@ -124,7 +124,7 @@ export type GiraphQLFieldKindToConfig<Types extends SchemaTypes, Kind extends Fi
       parentType: string;
       name: string;
       type: GiraphQLOutputFieldType<Types>;
-      args: { [name: string]: GiraphQLInputFieldConfig<Types> };
+      args: Record<string, GiraphQLInputFieldConfig<Types>>;
       giraphqlOptions: FieldOptionsFromKind<
         Types,
         unknown,

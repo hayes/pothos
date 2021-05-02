@@ -4,7 +4,7 @@ import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('query', () => {
-  test('object with field that skips type scopes', async () => {
+  it('object with field that skips type scopes', async () => {
     const query = gql`
       query {
         ObjWithSkipFields {
@@ -37,7 +37,7 @@ describe('query', () => {
     `);
   });
 
-  test('object with field that skips interface type scopes', async () => {
+  it('object with field that skips interface type scopes', async () => {
     const query = gql`
       query {
         ObjWithIfaceSkipFields {

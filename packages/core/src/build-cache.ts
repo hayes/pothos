@@ -97,14 +97,14 @@ export default class BuildCache<Types extends SchemaTypes> {
 
     const plugins: Record<string, unknown> = {};
 
-    this.pluginList = (builder.options.plugins || []).map((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[pluginName!] as typeof BasePlugin;
+    this.pluginList = (builder.options.plugins ?? []).map((pluginName) => {
+      const Plugin = SchemaBuilder.plugins[pluginName] as typeof BasePlugin;
 
       if (!Plugin) {
         throw new Error(`No plugin named ${pluginName} was registered`);
       }
 
-      plugins[pluginName] = new Plugin(this, pluginName!);
+      plugins[pluginName] = new Plugin(this, pluginName);
 
       return plugins[pluginName] as BasePlugin<Types>;
     });
@@ -319,7 +319,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       };
 
       const args = this.buildInputFields(config.args);
-      const argConfigs: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
+      const argConfigs: Record<string, GiraphQLInputFieldConfig<Types>> = {};
 
       Object.keys(config.args).forEach((argName) => {
         argConfigs[argName] = this.inputFieldConfigs.get(config.args[argName])!;
@@ -336,7 +336,7 @@ export default class BuildCache<Types extends SchemaTypes> {
           giraphqlOptions: config.giraphqlOptions,
           giraphqlConfig: config,
         },
-        resolve: this.plugin.wrapResolve(config.resolve || defaultFieldResolver, config),
+        resolve: this.plugin.wrapResolve(config.resolve ?? defaultFieldResolver, config),
         subscribe: this.plugin.wrapSubscribe(config.subscribe, config),
       };
     });
@@ -441,7 +441,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
     if (type instanceof GraphQLInputObjectType) {
       throw new TypeError(
-        `Expected ${ref} to be an output type but it was defined as an InputObject`,
+        `Expected ${String(ref)} to be an output type but it was defined as an InputObject`,
       );
     }
 
@@ -452,7 +452,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     const type = this.getType(ref);
 
     if (!type) {
-      throw new TypeError(`Missing implementation of for type ${ref}`);
+      throw new TypeError(`Missing implementation of for type ${String(ref)}`);
     }
 
     if (type instanceof GraphQLObjectType) {
@@ -469,7 +469,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
     if (type instanceof GraphQLUnionType) {
       throw new TypeError(
-        `Expected ${ref} to be an input type but it was defined as an GraphQLUnionType`,
+        `Expected ${String(ref)} to be an input type but it was defined as an GraphQLUnionType`,
       );
     }
 
@@ -520,7 +520,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         break;
     }
 
-    throw new Error(`Expected ${ref} to be of type ${kind}`);
+    throw new Error(`Expected ${String(ref)} to be of type ${kind}`);
   }
 
   private buildObject({
@@ -553,7 +553,8 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private buildInterface(config: GiraphQLInterfaceTypeConfig) {
     const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (parent, context, info) => {
-      const implementers = this.getImplementers(type!);
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      const implementers = this.getImplementers(type);
 
       const promises: Promise<GiraphQLObjectTypeConfig | null>[] = [];
 
@@ -586,7 +587,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         giraphqlOptions: config.giraphqlOptions,
         giraphqlConfig: config,
       },
-      interfaces: () => config!.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
+      interfaces: () => config.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface')),
       fields: () => this.getFields(type),
       resolveType: this.plugin.wrapResolveType(resolveType, config),
     });
@@ -613,7 +614,7 @@ export default class BuildCache<Types extends SchemaTypes> {
           const typeConfig = this.configStore.getTypeConfig(result);
 
           return typeConfig.name;
-        } catch (error) {
+        } catch {
           // ignore
         }
 

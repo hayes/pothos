@@ -43,8 +43,8 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       this.typename,
     );
 
-    this.builder.configStore.addFieldRef(ref, options.type, options.args || {}, (name) => {
-      const args: { [name: string]: GiraphQLInputFieldConfig<Types> } = {};
+    this.builder.configStore.addFieldRef(ref, options.type, options.args ?? {}, (name) => {
+      const args: Record<string, GiraphQLInputFieldConfig<Types>> = {};
 
       if (options.args) {
         Object.keys(options.args).forEach((argName) => {
@@ -94,7 +94,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
-      resolve: (parent) => (parent as { [s: string]: never })[name as string],
+      resolve: (parent) => (parent as Record<string, never>)[name as string],
     });
   }
 }

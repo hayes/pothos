@@ -33,15 +33,15 @@ export default function resolveWithCache<Types extends SchemaTypes>(
 
   const resultOrPromise = resolve(parent, args, context, info) as unknown;
 
-  return isThenable(resultOrPromise)
-    ? resultOrPromise.then(cacheResult)
-    : cacheResult(resultOrPromise);
-
   function cacheResult(result: unknown) {
-    const cacheNode = cache!.add(info, key, canRefetch, result);
+    const cacheNode = cache.add(info, key, canRefetch, result);
 
     subscribe?.(cacheNode.managerForField(), parent, args, context, info);
 
     return result;
   }
+
+  return isThenable(resultOrPromise)
+    ? resultOrPromise.then(cacheResult)
+    : cacheResult(resultOrPromise);
 }

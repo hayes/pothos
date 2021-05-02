@@ -6,13 +6,13 @@ import {
 import exampleSchema from './examples/random-stuff';
 
 describe('Example schema', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
   });
 });
 
 describe('Field Nullability', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     const nullableFieldSchema = printSchema(
       lexicographicSortSchema(nullableFieldBuilder.toSchema({})),
     );

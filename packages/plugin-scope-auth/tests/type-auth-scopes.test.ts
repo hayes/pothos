@@ -4,7 +4,7 @@ import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('queries for type authScopes with', () => {
-  test('simple type scope', async () => {
+  it('simple type scope', async () => {
     const query = gql`
       query {
         ObjForAdmin {
@@ -35,7 +35,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('simple type scope (unauthorized)', async () => {
+  it('simple type scope (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAdmin {
@@ -66,7 +66,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope with sync loader', async () => {
+  it('type scope with sync loader', async () => {
     const query = gql`
       query {
         ObjForSyncPerm {
@@ -97,7 +97,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope with sync loader (unauthorized)', async () => {
+  it('type scope with sync loader (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForSyncPerm {
@@ -128,7 +128,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope with async loader', async () => {
+  it('type scope with async loader', async () => {
     const query = gql`
       query {
         ObjForAsyncPerm {
@@ -159,7 +159,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope with async loader (unauthorized)', async () => {
+  it('type scope with async loader (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAsyncPerm {
@@ -192,7 +192,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $any (sync)', async () => {
+  it('type with $any (sync)', async () => {
     const query = gql`
       query {
         ObjForAny {
@@ -223,7 +223,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $any (admin)', async () => {
+  it('type with $any (admin)', async () => {
     const query = gql`
       query {
         ObjForAny {
@@ -254,7 +254,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $any (async)', async () => {
+  it('type with $any (async)', async () => {
     const query = gql`
       query {
         ObjForAny {
@@ -285,7 +285,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $any (unauthorized)', async () => {
+  it('type with $any (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAny {
@@ -316,7 +316,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $all', async () => {
+  it('type with $all', async () => {
     const query = gql`
       query {
         ObjForAll {
@@ -348,7 +348,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $all (admin, unauthorized)', async () => {
+  it('type with $all (admin, unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAll {
@@ -380,7 +380,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $all (async, unauthorized)', async () => {
+  it('type with $all (async, unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAll {
@@ -413,7 +413,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with $all (sync, unauthorized)', async () => {
+  it('type with $all (sync, unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAll {
@@ -446,7 +446,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with empty $any', async () => {
+  it('type with empty $any', async () => {
     const query = gql`
       query {
         ObjEmptyAny {
@@ -475,7 +475,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type with empty $all', async () => {
+  it('type with empty $all', async () => {
     const query = gql`
       query {
         ObjEmptyAll {
@@ -503,7 +503,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('simple type scope fn', async () => {
+  it('simple type scope fn', async () => {
     const query = gql`
       query {
         ObjForAdminFn {
@@ -534,7 +534,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('simple type scope fn async', async () => {
+  it('simple type scope fn async', async () => {
     const query = gql`
       query {
         ObjForAdminAsyncFn {
@@ -565,7 +565,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('simple type scope fn (unauthorized)', async () => {
+  it('simple type scope fn (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAdminFn {
@@ -596,7 +596,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('simple type scope async fn (unauthorized)', async () => {
+  it('simple type scope async fn (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAdminAsyncFn {
@@ -627,7 +627,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope fn with sync loader', async () => {
+  it('type scope fn with sync loader', async () => {
     const query = gql`
       query {
         ObjForSyncPermFn(permission: "x") {
@@ -658,7 +658,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope fn with sync loader (unauthorized)', async () => {
+  it('type scope fn with sync loader (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForSyncPermFn(permission: "x") {
@@ -692,7 +692,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope fn with async loader', async () => {
+  it('type scope fn with async loader', async () => {
     const query = gql`
       query {
         ObjForAsyncPermFn(permission: "x") {
@@ -723,7 +723,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type scope fn with async loader (unauthorized)', async () => {
+  it('type scope fn with async loader (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAsyncPermFn(permission: "x") {
@@ -755,7 +755,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $any (sync)', async () => {
+  it('type fn with $any (sync)', async () => {
     const query = gql`
       query {
         ObjForAnyFn {
@@ -786,7 +786,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $any (admin)', async () => {
+  it('type fn with $any (admin)', async () => {
     const query = gql`
       query {
         ObjForAnyFn {
@@ -817,7 +817,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $any (async)', async () => {
+  it('type fn with $any (async)', async () => {
     const query = gql`
       query {
         ObjForAnyFn {
@@ -848,7 +848,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $any (unauthorized)', async () => {
+  it('type fn with $any (unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAnyFn {
@@ -879,7 +879,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $all', async () => {
+  it('type fn with $all', async () => {
     const query = gql`
       query {
         ObjForAllFn {
@@ -911,7 +911,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $all (admin, unauthorized)', async () => {
+  it('type fn with $all (admin, unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAllFn {
@@ -943,7 +943,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $all (async, unauthorized)', async () => {
+  it('type fn with $all (async, unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAllFn {
@@ -976,7 +976,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with $all (sync, unauthorized)', async () => {
+  it('type fn with $all (sync, unauthorized)', async () => {
     const query = gql`
       query {
         ObjForAllFn {
@@ -1009,7 +1009,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with empty $any', async () => {
+  it('type fn with empty $any', async () => {
     const query = gql`
       query {
         ObjEmptyAnyFn {
@@ -1038,7 +1038,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with empty $all', async () => {
+  it('type fn with empty $all', async () => {
     const query = gql`
       query {
         ObjEmptyAllFn {
@@ -1066,7 +1066,7 @@ describe('queries for type authScopes with', () => {
     `);
   });
 
-  test('type fn with boolean return', async () => {
+  it('type fn with boolean return', async () => {
     const query = gql`
       query {
         ObjBooleanFn(result: true) {
@@ -1093,7 +1093,7 @@ describe('queries for type authScopes with', () => {
       }
     `);
   });
-  test('type fn with boolean return (unauthorized)', async () => {
+  it('type fn with boolean return (unauthorized)', async () => {
     const query = gql`
       query {
         ObjBooleanFn(result: false) {

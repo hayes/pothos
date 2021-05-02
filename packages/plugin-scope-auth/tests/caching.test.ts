@@ -7,13 +7,13 @@ class Counter {
   counts = new Map<string, number>();
 
   count = (name: string) => {
-    this.counts.set(name, (this.counts.get(name) || 0) + 1);
+    this.counts.set(name, (this.counts.get(name) ?? 0) + 1);
   };
 }
 
 describe('caching', () => {
   describe('loaders', () => {
-    test('sync loaders', async () => {
+    it('sync loaders', async () => {
       const query = gql`
         query {
           a1: forSyncPermissionFn(permission: "a")
@@ -73,7 +73,7 @@ describe('caching', () => {
       `);
     });
 
-    test('async loaders', async () => {
+    it('async loaders', async () => {
       const query = gql`
         query {
           a1: forAsyncPermissionFn(permission: "a")
@@ -130,7 +130,7 @@ describe('caching', () => {
     });
   });
   describe('types', () => {
-    test('sync authScopes', async () => {
+    it('sync authScopes', async () => {
       const query = gql`
         query {
           obj1: ObjForSyncPermFn(permission: "a") {
@@ -180,7 +180,7 @@ describe('caching', () => {
       `);
     });
 
-    test('async authScopes', async () => {
+    it('async authScopes', async () => {
       const query = gql`
         query {
           obj1: ObjForAdminAsyncFn {

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-use-before-define */
 import {
   BuildCache,
   GiraphQLInputFieldConfig,
@@ -51,17 +52,24 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(
     return config;
   }
 
-  throw new TypeError(`Unexpected config type ${config.kind} for input ref ${type.ref}`);
+  throw new TypeError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
 }
 
 export function mapInputFields<Types extends SchemaTypes, T>(
-  inputs: { [name: string]: GiraphQLInputFieldConfig<Types> },
+  inputs: Record<string, GiraphQLInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
   mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null,
 ): InputFieldsMapping<Types, T> | null {
   const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
 
-  return filterMapped(internalMapInputFields(inputs, buildCache, mapper, new Map()));
+  return filterMapped(
+    internalMapInputFields(
+      inputs,
+      buildCache,
+      mapper,
+      new Map<string, InputTypeFieldsMapping<Types, T>>(),
+    ),
+  );
 
   function filterMapped(map: InputFieldsMapping<Types, T>) {
     if (filterMappings.has(map)) {
@@ -86,7 +94,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         const mappingForType = {
           ...mapping,
           typeFields: {
-            configs: mapping.fields!.configs,
+            configs: mapping.fields.configs,
             map: filteredTypeFields,
           },
         };
@@ -113,10 +121,8 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     map.forEach((mapping) => {
       if (mapping.kind !== 'InputObject') {
         result = true;
-      } else if (mapping.fields.map) {
-        if (checkForMappings(mapping.fields.map, hasMappings)) {
-          result = true;
-        }
+      } else if (mapping.fields.map && checkForMappings(mapping.fields.map, hasMappings)) {
+        result = true;
       }
     });
 
@@ -127,7 +133,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
 }
 
 function internalMapInputFields<Types extends SchemaTypes, T>(
-  inputs: { [name: string]: GiraphQLInputFieldConfig<Types> },
+  inputs: Record<string, GiraphQLInputFieldConfig<Types>>,
   buildCache: BuildCache<Types>,
   mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null,
   seenTypes: Map<string, InputTypeFieldsMapping<Types, T>>,

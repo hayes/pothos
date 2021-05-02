@@ -59,7 +59,7 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
     return (parent, args, context, info) => {
       console.log(`Resolving ${info.parentType}.${info.fieldName}`);
 
-      return resolver(parent, args, context, info);
+      return resolver(parent, args, context, info) as unknown;
     };
   }
 

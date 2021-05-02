@@ -37,7 +37,7 @@ export default class TypeSubscriptionManager<
           let resultOrPromise: MaybePromise<unknown>;
           try {
             resultOrPromise = refetch(value);
-          } catch (error) {
+          } catch (error: unknown) {
             this.manager.handleError(error);
           }
 

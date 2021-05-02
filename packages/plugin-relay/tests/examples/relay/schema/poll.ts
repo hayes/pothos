@@ -1,12 +1,12 @@
-/* eslint-disable */
-import { resolveOffsetConnection, resolveArrayConnection } from '../../../../src';
+/* eslint-disable @typescript-eslint/no-shadow */
+/* eslint-disable @typescript-eslint/require-await */
+import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
 builder.queryField('pollIds', (t) =>
   t.globalIDList({
-    resolve: (parent, args, context) => {
-      return [...context.Poll.map.keys()].map((key) => ({ id: key, type: 'Poll' as const }));
-    },
+    resolve: (parent, args, context) =>
+      [...context.Poll.map.keys()].map((key) => ({ id: key, type: 'Poll' as const })),
   }),
 );
 
@@ -14,9 +14,7 @@ builder.node('Poll', {
   id: {
     resolve: (poll) => poll.id,
   },
-  loadMany: (ids, context) => {
-    return ids.map((id) => context.Poll.map.get(parseInt(id, 10)));
-  },
+  loadMany: (ids, context) => ids.map((id) => context.Poll.map.get(Number.parseInt(id, 10))),
   fields: (t) => ({
     updatedAt: t.string({
       resolve: () => new Date().toISOString(),
@@ -29,10 +27,9 @@ builder.node('Poll', {
       {
         type: 'Answer',
         // args automatically gets default cursor pagination args, but you can add more args like any other field
-        resolve: (parent, args) => {
+        resolve: (parent, args) =>
           // This would be for simple cases where you already have all the data
-          return resolveArrayConnection({ args }, parent.answers);
-        },
+          resolveArrayConnection({ args }, parent.answers),
       },
       {},
       {},
@@ -40,13 +37,12 @@ builder.node('Poll', {
     answersUsingOffset: t.connection(
       {
         type: 'Answer',
-        resolve: (parent, args) => {
+        resolve: (parent, args) =>
           // This would be the API for limit/offset based APIs
-          return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+          resolveOffsetConnection({ args }, ({ limit, offset }) =>
             // replace with call to limit/offset based service
-            return parent.answers.slice(offset, offset + limit);
-          });
-        },
+            parent.answers.slice(offset, offset + limit),
+          ),
       },
       {},
       {},
@@ -54,9 +50,9 @@ builder.node('Poll', {
     answersWithoutHelpers: t.connection(
       {
         type: 'Answer',
-        resolve: (parent, args) => {
+        resolve: (parent, args) =>
           // If you don't have a helper, this is the shape you are expected to return
-          return {
+          ({
             pageInfo: {
               hasNextPage: false,
               hasPreviousPage: false,
@@ -69,8 +65,7 @@ builder.node('Poll', {
                 node: parent.answers[0],
               },
             ],
-          };
-        },
+          }),
       },
       {
         // Name for the Connection object
@@ -103,20 +98,18 @@ builder.queryField('pollsConnection', (t) =>
   t.connection(
     {
       type: 'Poll',
-      resolve: async (root, args, { Poll: PollList }) => {
-        return {
-          pageInfo: {
-            hasNextPage: false,
-            hasPreviousPage: false,
-          },
-          edges: [...PollList.map.values()].map((node) => ({
-            cursor: String(node.id),
-            extra: 1,
-            node,
-          })),
-          extra: 'abc',
-        };
-      },
+      resolve: async (root, args, { Poll: PollList }) => ({
+        pageInfo: {
+          hasNextPage: false,
+          hasPreviousPage: false,
+        },
+        edges: [...PollList.map.values()].map((node) => ({
+          cursor: String(node.id),
+          extra: 1,
+          node,
+        })),
+        extra: 'abc',
+      }),
     },
     {
       name: 'QueryPollsConnection',
@@ -140,9 +133,7 @@ builder.queryField('pollsConnection', (t) =>
 builder.queryFields((t) => ({
   polls: t.field({
     type: ['Poll'],
-    resolve: (root, args, { Poll }, info) => {
-      return [...Poll.map.values()];
-    },
+    resolve: (root, args, { Poll }, info) => [...Poll.map.values()],
   }),
   poll: t.field({
     type: 'Poll',
@@ -150,9 +141,7 @@ builder.queryFields((t) => ({
     args: {
       id: t.arg.int({ required: true }),
     },
-    resolve: (root, args, { Poll }, info) => {
-      return Poll.map.get(args.id);
-    },
+    resolve: (root, args, { Poll }, info) => Poll.map.get(args.id),
   }),
 }));
 

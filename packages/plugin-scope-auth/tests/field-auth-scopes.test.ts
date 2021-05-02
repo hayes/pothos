@@ -4,7 +4,7 @@ import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('queries for field authScopes with', () => {
-  test('simple field scope', async () => {
+  it('simple field scope', async () => {
     const query = gql`
       query {
         forAdmin
@@ -31,7 +31,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('simple field scope (unauthorized)', async () => {
+  it('simple field scope (unauthorized)', async () => {
     const query = gql`
       query {
         forAdmin
@@ -58,7 +58,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope with sync loader', async () => {
+  it('field scope with sync loader', async () => {
     const query = gql`
       query {
         forSyncPermission
@@ -85,7 +85,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope with sync loader (unauthorized)', async () => {
+  it('field scope with sync loader (unauthorized)', async () => {
     const query = gql`
       query {
         forSyncPermission
@@ -112,7 +112,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope with async loader', async () => {
+  it('field scope with async loader', async () => {
     const query = gql`
       query {
         forAsyncPermission
@@ -139,7 +139,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope with async loader (unauthorized)', async () => {
+  it('field scope with async loader (unauthorized)', async () => {
     const query = gql`
       query {
         forAsyncPermission
@@ -166,7 +166,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $any (sync)', async () => {
+  it('field with $any (sync)', async () => {
     const query = gql`
       query {
         forAny
@@ -193,7 +193,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $any (admin)', async () => {
+  it('field with $any (admin)', async () => {
     const query = gql`
       query {
         forAny
@@ -220,7 +220,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $any (async)', async () => {
+  it('field with $any (async)', async () => {
     const query = gql`
       query {
         forAny
@@ -247,7 +247,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $any (unauthorized)', async () => {
+  it('field with $any (unauthorized)', async () => {
     const query = gql`
       query {
         forAny
@@ -274,7 +274,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $all', async () => {
+  it('field with $all', async () => {
     const query = gql`
       query {
         forAll
@@ -302,7 +302,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $all (admin, unauthorized)', async () => {
+  it('field with $all (admin, unauthorized)', async () => {
     const query = gql`
       query {
         forAll
@@ -330,7 +330,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $all (async, unauthorized)', async () => {
+  it('field with $all (async, unauthorized)', async () => {
     const query = gql`
       query {
         forAll
@@ -359,7 +359,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with $all (sync, unauthorized)', async () => {
+  it('field with $all (sync, unauthorized)', async () => {
     const query = gql`
       query {
         forAll
@@ -388,7 +388,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with empty $any', async () => {
+  it('field with empty $any', async () => {
     const query = gql`
       query {
         emptyAny
@@ -413,7 +413,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field with empty $all', async () => {
+  it('field with empty $all', async () => {
     const query = gql`
       query {
         emptyAll
@@ -437,7 +437,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('simple field scope fn', async () => {
+  it('simple field scope fn', async () => {
     const query = gql`
       query {
         forAdminFn
@@ -464,7 +464,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('simple field scope fn (unauthorized)', async () => {
+  it('simple field scope fn (unauthorized)', async () => {
     const query = gql`
       query {
         forAdminFn
@@ -491,7 +491,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('simple field scope fn async', async () => {
+  it('simple field scope fn async', async () => {
     const query = gql`
       query {
         forAdminAsyncFn
@@ -518,7 +518,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('simple field scope fn async (unauthorized)', async () => {
+  it('simple field scope fn async (unauthorized)', async () => {
     const query = gql`
       query {
         forAdminAsyncFn
@@ -545,7 +545,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope fn with sync loader', async () => {
+  it('field scope fn with sync loader', async () => {
     const query = gql`
       query {
         forSyncPermissionFn(permission: "x")
@@ -572,7 +572,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope fn with sync loader (unauthorized)', async () => {
+  it('field scope fn with sync loader (unauthorized)', async () => {
     const query = gql`
       query {
         forSyncPermissionFn(permission: "x")
@@ -602,7 +602,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope fn with async loader', async () => {
+  it('field scope fn with async loader', async () => {
     const query = gql`
       query {
         forAsyncPermissionFn(permission: "x")
@@ -629,7 +629,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field scope fn with async loader (unauthorized)', async () => {
+  it('field scope fn with async loader (unauthorized)', async () => {
     const query = gql`
       query {
         forAsyncPermissionFn(permission: "x")
@@ -659,7 +659,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $any (sync)', async () => {
+  it('field fn with $any (sync)', async () => {
     const query = gql`
       query {
         forAnyFn
@@ -686,7 +686,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $any (admin)', async () => {
+  it('field fn with $any (admin)', async () => {
     const query = gql`
       query {
         forAnyFn
@@ -713,7 +713,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $any (async)', async () => {
+  it('field fn with $any (async)', async () => {
     const query = gql`
       query {
         forAnyFn
@@ -740,7 +740,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $any (unauthorized)', async () => {
+  it('field fn with $any (unauthorized)', async () => {
     const query = gql`
       query {
         forAnyFn
@@ -767,7 +767,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $all', async () => {
+  it('field fn with $all', async () => {
     const query = gql`
       query {
         forAllFn
@@ -795,7 +795,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $all (admin, unauthorized)', async () => {
+  it('field fn with $all (admin, unauthorized)', async () => {
     const query = gql`
       query {
         forAllFn
@@ -823,7 +823,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $all (async, unauthorized)', async () => {
+  it('field fn with $all (async, unauthorized)', async () => {
     const query = gql`
       query {
         forAllFn
@@ -852,7 +852,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with $all (sync, unauthorized)', async () => {
+  it('field fn with $all (sync, unauthorized)', async () => {
     const query = gql`
       query {
         forAllFn
@@ -881,7 +881,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with empty $any', async () => {
+  it('field fn with empty $any', async () => {
     const query = gql`
       query {
         emptyAnyFn
@@ -906,7 +906,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn with empty $all', async () => {
+  it('field fn with empty $all', async () => {
     const query = gql`
       query {
         emptyAllFn
@@ -930,7 +930,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn return boolean', async () => {
+  it('field fn return boolean', async () => {
     const query = gql`
       query {
         forBooleanFn(result: true)
@@ -954,7 +954,7 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
-  test('field fn return boolean (unauthorized)', async () => {
+  it('field fn return boolean (unauthorized)', async () => {
     const query = gql`
       query {
         forBooleanFn(result: false)

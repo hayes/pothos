@@ -27,7 +27,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
       const itr = createIterator(name, context);
 
       if (!iterators.has(context)) {
-        iterators.set(context, new Map());
+        iterators.set(context, new Map<string, AsyncIterator<T>>());
       }
 
       const map = iterators.get(context)!;
@@ -42,7 +42,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
         for await (const value of { [Symbol.asyncIterator]: () => itr }) {
           cb(null, value);
         }
-      } catch (error) {
+      } catch (error: unknown) {
         cb(error);
       }
     },

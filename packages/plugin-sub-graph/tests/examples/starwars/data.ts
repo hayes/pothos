@@ -60,7 +60,7 @@ const tarkin = {
   appearsIn: [4],
 };
 
-const humanData: { [s: string]: Human } = {
+const humanData: Record<string, Human> = {
   '1000': luke,
   '1001': vader,
   '1002': han,

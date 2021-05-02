@@ -162,7 +162,7 @@ builder.queryType({
         }),
       },
       validate: [
-        (args) => (args.contactInfo?.aliases?.length || 0) > 1,
+        (args) => (args.contactInfo?.aliases?.length ?? 0) > 1,
         {
           path: ['contactInfo', 'aliases'],
           message: 'contactInfo should include at least 2 aliases',

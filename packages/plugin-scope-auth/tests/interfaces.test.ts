@@ -4,7 +4,7 @@ import exampleSchema from './example/schema';
 import User from './example/user';
 
 describe('interfaces', () => {
-  test('object with simple interface authScope check', async () => {
+  it('object with simple interface authScope check', async () => {
     const query = gql`
       query {
         ObjAdminIface {
@@ -35,7 +35,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('object with simple interface authScope check (unauthorized)', async () => {
+  it('object with simple interface authScope check (unauthorized)', async () => {
     const query = gql`
       query {
         ObjAdminIface {
@@ -64,7 +64,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('object with interface authScope fn', async () => {
+  it('object with interface authScope fn', async () => {
     const query = gql`
       query {
         ObjBooleanIface(result: true) {
@@ -95,7 +95,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('object with interface authScope fn (unauthorized)', async () => {
+  it('object with interface authScope fn (unauthorized)', async () => {
     const query = gql`
       query {
         ObjBooleanIface(result: false) {
@@ -124,7 +124,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('interface with simple authScope check', async () => {
+  it('interface with simple authScope check', async () => {
     const query = gql`
       query {
         IfaceForAdmin {
@@ -155,7 +155,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('interface with simple authScope check (unauthorized)', async () => {
+  it('interface with simple authScope check (unauthorized)', async () => {
     const query = gql`
       query {
         IfaceForAdmin {
@@ -184,7 +184,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('interface with authScope fn', async () => {
+  it('interface with authScope fn', async () => {
     const query = gql`
       query {
         IfaceBooleanFn(result: true) {
@@ -215,7 +215,7 @@ describe('interfaces', () => {
     `);
   });
 
-  test('interface with authScope fn (unauthorized)', async () => {
+  it('interface with authScope fn (unauthorized)', async () => {
     const query = gql`
       query {
         IfaceBooleanFn(result: false) {

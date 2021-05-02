@@ -3,12 +3,12 @@ import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import schema from './examples/relay/schema';
 
 describe('relay example schema', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
   });
 
   describe('queries', () => {
-    test('query offset based connections', async () => {
+    it('query offset based connections', async () => {
       const query = gql`
         {
           numbers(first: 3) {
@@ -124,7 +124,7 @@ describe('relay example schema', () => {
       expect(result).toMatchSnapshot();
     });
 
-    test('query array based connections', async () => {
+    it('query array based connections', async () => {
       const query = gql`
         {
           batchNumbers(first: 3) {
@@ -240,7 +240,7 @@ describe('relay example schema', () => {
       expect(result).toMatchSnapshot();
     });
 
-    test('query node and nodes on query type', async () => {
+    it('query node and nodes on query type', async () => {
       const query = gql`
         {
           extraNode {
@@ -296,7 +296,7 @@ describe('relay example schema', () => {
       expect(result).toMatchSnapshot();
     });
 
-    test('globalID inputs', async () => {
+    it('globalID inputs', async () => {
       const query = gql`
         {
           inputGlobalID(

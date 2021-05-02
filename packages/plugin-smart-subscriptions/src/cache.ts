@@ -49,7 +49,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     const config = this.buildCache.getTypeConfig(type, 'Object');
 
     if (config.graphqlKind === 'Object') {
-      return config.giraphqlOptions.subscribe || null;
+      return config.giraphqlOptions.subscribe ?? null;
     }
 
     return null;
@@ -87,7 +87,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     const parentKey = this.cacheKey(isListItem ? parentPath.prev! : parentPath);
     const parentCacheNode = this.nextCache.get(parentKey);
 
-    return parentCacheNode?.managerForType(parentPath.key) || null;
+    return parentCacheNode?.managerForType(parentPath.key) ?? null;
   }
 
   add(info: GraphQLResolveInfo, path: string, canRefetch: boolean, value: unknown) {
@@ -117,6 +117,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
 
     while (prev) {
       key = `${prev.key}.${key}`;
+      // eslint-disable-next-line prefer-destructuring
       prev = prev.prev;
     }
 

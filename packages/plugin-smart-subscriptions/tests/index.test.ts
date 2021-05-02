@@ -13,11 +13,11 @@ import { Poll } from './example/data';
 import schema from './example/schema';
 
 describe('smart subscriptions', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
   });
 
-  test('subscribe', async () => {
+  it('subscribe', async () => {
     const query = gql`
       subscription subscribe {
         polls {
@@ -259,7 +259,7 @@ describe('smart subscriptions', () => {
     log = [];
   });
 
-  test('refetchable field', async () => {
+  it('refetchable field', async () => {
     Poll.reset();
 
     const query = gql`

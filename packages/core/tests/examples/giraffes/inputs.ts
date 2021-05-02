@@ -46,7 +46,7 @@ builder.mutationType({
       resolve: (root, args) => {
         const date = new Date(2006, 10, 10);
 
-        const friends = (args.input.friends || []).map(
+        const friends = (args.input.friends ?? []).map(
           (friend) => new Giraffe(args.input.name, date, args.input.height),
         );
 

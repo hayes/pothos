@@ -73,6 +73,42 @@ function validatorCreator<T extends BaseValidationOptions<any>>(
   };
 }
 
+export function refine(
+  originalValidator: zod.ZodTypeAny,
+  options: ValidationOptionUnion | null | undefined,
+) {
+  if (!options) {
+    return originalValidator;
+  }
+
+  if (typeof options === 'function') {
+    return originalValidator.refine(options);
+  }
+
+  const validator = options.schema
+    ? zod.intersection(options.schema, originalValidator)
+    : originalValidator;
+
+  if (!options.refine) {
+    return validator;
+  }
+
+  if (typeof options.refine === 'function') {
+    return validator.refine(options.refine);
+  }
+
+  if (typeof options.refine?.[0] === 'function') {
+    return validator.refine(...(options.refine as [() => boolean, { message?: string }]));
+  }
+
+  const refinements = options.refine as [() => boolean, { message?: string }][];
+
+  return refinements.reduce(
+    (prev, [refineFn, opts]) => validator.refine(refineFn, opts),
+    validator,
+  );
+}
+
 export const createNumberValidator = validatorCreator(
   'number',
   numberValidations,
@@ -220,6 +256,27 @@ const validationCreators = [
   createObjectValidator,
 ];
 
+export function isBaseValidator(options: ValidationOptionUnion) {
+  if (typeof options === 'function') {
+    return true;
+  }
+
+  const validations = Object.keys(options);
+
+  return validations.every((validation) =>
+    baseValidations.includes(validation as Exclude<keyof BaseValidationOptions, 'type'>),
+  );
+}
+
+export function combine(validators: zod.ZodTypeAny[], intersect?: zod.ZodTypeAny | null) {
+  const union =
+    validators.length > 1
+      ? zod.union(validators as [zod.ZodTypeAny, zod.ZodTypeAny])
+      : validators[0];
+
+  return intersect ? zod.intersection(intersect, union) : union;
+}
+
 export default function createZodSchema(
   optionsOrConstraint: RefineConstraint | ValidationOptionUnion | null | undefined,
   validators: zod.ZodTypeAny[] = [],
@@ -255,58 +312,4 @@ export default function createZodSchema(
   }
 
   return combine([...validators, ...typeValidators]);
-}
-
-export function isBaseValidator(options: ValidationOptionUnion) {
-  if (typeof options === 'function') {
-    return true;
-  }
-
-  const validations = Object.keys(options);
-
-  return validations.every((validation) =>
-    baseValidations.includes(validation as Exclude<keyof BaseValidationOptions, 'type'>),
-  );
-}
-
-export function refine(
-  originalValidator: zod.ZodTypeAny,
-  options: ValidationOptionUnion | null | undefined,
-) {
-  if (!options) {
-    return originalValidator;
-  }
-
-  if (typeof options === 'function') {
-    return originalValidator.refine(options);
-  }
-
-  const validator = options.schema
-    ? zod.intersection(options.schema, originalValidator)
-    : originalValidator;
-
-  if (!options.refine) {
-    return validator;
-  }
-
-  if (typeof options.refine === 'function') {
-    return validator.refine(options.refine);
-  }
-
-  if (typeof options.refine?.[0] === 'function') {
-    return validator.refine(...(options.refine as [() => boolean, { message?: string }]));
-  }
-
-  const refinements = options.refine as [() => boolean, { message?: string }][];
-
-  return refinements.reduce((prev, [refine, opts]) => validator.refine(refine, opts), validator);
-}
-
-export function combine(validators: zod.ZodTypeAny[], intersect?: zod.ZodTypeAny | null) {
-  const union =
-    validators.length > 1
-      ? zod.union(validators as [zod.ZodTypeAny, zod.ZodTypeAny])
-      : validators[0];
-
-  return intersect ? zod.intersection(intersect, union) : union;
 }

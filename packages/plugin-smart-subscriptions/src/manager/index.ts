@@ -102,7 +102,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     };
   }
 
-  throw(error: unknown) {
+  async throw(error: unknown) {
     this.handleError(error);
 
     return Promise.reject<IteratorResult<object>>(error);

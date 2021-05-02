@@ -106,13 +106,9 @@ export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
   t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
 ) => FieldRef<unknown>;
 
-export interface FieldMap {
-  [s: string]: FieldRef;
-}
+export type FieldMap = Record<string, FieldRef>;
 
-export interface InputFieldMap {
-  [s: string]: InputFieldRef;
-}
+export type InputFieldMap = Record<string, InputFieldRef>;
 
 export type FieldOptionsFromKind<
   Types extends SchemaTypes,
