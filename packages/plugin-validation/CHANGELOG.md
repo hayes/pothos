@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 1.3.0 - 2021-05-02
+
+#### 🚀 Updates
+
+- add ability to pass existing zod validators for the validation plugin ([55ebe2f](https://github.com/hayes/giraphql/commit/55ebe2f))
+
+**Note:** Version bump only for package @giraphql/plugin-validation
+
+
+
+
+
 ## 1.2.0 - 2021-04-27
 
 #### 🚀 Updates
