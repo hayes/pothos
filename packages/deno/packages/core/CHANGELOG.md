@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.1 - 2021-05-05
+
+#### 🐞 Fixes
+
+- add deno files after deno-build ([3f4f94b](https://github.com/hayes/giraphql/commit/3f4f94b))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.2.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/core
