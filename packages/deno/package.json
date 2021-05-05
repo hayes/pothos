@@ -1,0 +1,17 @@
+{
+  "name": "@giraphql/deno",
+  "version": "0.0.0",
+  "description": "Deno compatible versions of GiraphQL packages",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "publishConfig": {
+    "access": "public"
+  },
+  "devDependencies": {
+    "ts-node": "^2.1.1"
+  }
+}

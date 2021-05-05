@@ -1,0 +1,6 @@
+{
+  "imports": {
+    "https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts": "https://cdn.skypack.dev/graphql@v15.5.0?dts",
+    "https://cdn.skypack.dev/graphql?dts": "https://cdn.skypack.dev/graphql@v15.5.0?dts"
+  }
+}
