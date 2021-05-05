@@ -120,12 +120,6 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         ? { refine: optionsOrConstraint }
         : optionsOrConstraint;
 
-    const validators: zod.ZodTypeAny[] = [];
-
-    if (type && !type.required) {
-      validators.push(zod.null(), zod.undefined());
-    }
-
     if (type?.kind === 'InputObject') {
       const typeConfig = this.buildCache.getTypeConfig(type.ref, 'InputObject');
 
@@ -140,9 +134,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         fieldValidator = refine(fieldValidator, { refine: typeConfig.giraphqlOptions.validate });
       }
 
-      validators.push(fieldValidator);
-
-      return combine(validators);
+      return combine([fieldValidator], type.required);
     }
 
     if (type?.kind === 'List') {
@@ -155,19 +147,17 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         : zod.unknown();
 
       if (options) {
-        validators.push(createArrayValidator(options, items));
-      } else {
-        validators.push(items.array());
+        return combine([createArrayValidator(options, items)], type.required);
       }
 
-      return combine(validators);
+      return combine([items.array()], type.required);
     }
 
     if (!options) {
       return zod.unknown();
     }
 
-    return createZodSchema(options, validators);
+    return createZodSchema(options, !type || type.required);
   }
 }
 

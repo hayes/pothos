@@ -241,6 +241,8 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
       subGraphs = typeConfig.giraphqlOptions.defaultSubGraphsForFields;
     } else if (this.builder.options.subGraphs?.fieldsInheritFromTypes) {
       subGraphs = (typeConfig.extensions?.subGraphs as Types['SubGraphs'][]) || [];
+    } else if (this.builder.options.subGraphs?.defaultForFields) {
+      subGraphs = this.builder.options.subGraphs?.defaultForFields;
     }
 
     return {

@@ -268,18 +268,18 @@ export function isBaseValidator(options: ValidationOptionUnion) {
   );
 }
 
-export function combine(validators: zod.ZodTypeAny[], intersect?: zod.ZodTypeAny | null) {
+export function combine(validators: zod.ZodTypeAny[], required: boolean) {
   const union =
     validators.length > 1
       ? zod.union(validators as [zod.ZodTypeAny, zod.ZodTypeAny])
       : validators[0];
 
-  return intersect ? zod.intersection(intersect, union) : union;
+  return required ? union : union.optional().nullable();
 }
 
 export default function createZodSchema(
   optionsOrConstraint: RefineConstraint | ValidationOptionUnion | null | undefined,
-  validators: zod.ZodTypeAny[] = [],
+  required = false,
 ): zod.ZodTypeAny {
   const options: ValidationOptionUnion | null | undefined =
     Array.isArray(optionsOrConstraint) || typeof optionsOrConstraint === 'function'
@@ -291,9 +291,9 @@ export default function createZodSchema(
   }
 
   if (isBaseValidator(options)) {
-    validators.push(refine(zod.unknown(), options));
+    refine(zod.unknown(), options);
 
-    return combine(validators);
+    return combine([refine(zod.unknown(), options)], required);
   }
 
   const typeValidators = validationCreators
@@ -311,5 +311,5 @@ export default function createZodSchema(
     );
   }
 
-  return combine([...validators, ...typeValidators]);
+  return combine([...typeValidators], required);
 }
