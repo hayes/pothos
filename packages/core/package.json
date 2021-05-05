@@ -20,7 +20,8 @@
     "typescript",
     "builder",
     "framework",
-    "plugin"
+    "plugin",
+    "deno"
   ],
   "publishConfig": {
     "access": "public"

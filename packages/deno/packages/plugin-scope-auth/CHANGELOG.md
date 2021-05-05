@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.0 - 2021-05-05
+
+**Note:** Version bump only for package @giraphql/plugin-scope-auth
+
+
+
+
+
+## 2.1.0-alpha.0 - 2021-05-05
+
+#### 🚀 Updates
+
+- add script for generating deno compatible files ([6dc68c1](https://github.com/hayes/giraphql/commit/6dc68c1))
+
+**Note:** Version bump only for package @giraphql/plugin-scope-auth
+
+
+
+
+
 ### 2.0.4 - 2021-05-02
 
 #### 🛠 Internals
