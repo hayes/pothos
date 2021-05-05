@@ -13,6 +13,8 @@
     }
   },
   "packages": [
-    "./packages/*"
+    "./packages/core",
+    "./packages/converter",
+    "./packages/plugin-*"
   ]
 }
