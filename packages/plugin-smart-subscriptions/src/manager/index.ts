@@ -1,6 +1,7 @@
 /* eslint-disable no-await-in-loop */
 import { RegisterOptions } from '../types';
 
+type Timer = ReturnType<typeof setTimeout>;
 export default class SubscriptionManager implements AsyncIterator<object> {
   activeSubscriptions = new Set<string>();
 
@@ -34,7 +35,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
 
   debounceDelay: number | null = null;
 
-  debounceRef: NodeJS.Timeout | null = null;
+  debounceRef: Timer | null = null;
 
   constructor({
     value,
@@ -277,7 +278,9 @@ export default class SubscriptionManager implements AsyncIterator<object> {
         this.pushValue();
       }, this.debounceDelay);
 
-      this.debounceRef.unref();
+      if (typeof this.debounceRef === 'object' && 'unref' in this.debounceRef) {
+        ((this.debounceRef as unknown) as { unref: () => unknown }).unref();
+      }
     }
   }
 

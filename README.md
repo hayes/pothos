@@ -5,6 +5,9 @@ approach. The GiraphQL schema builder makes writing schemas easy by providing a 
 with helpful auto-completes, and removing the need for compile steps or defining the same types in
 multiple files.
 
+GiraphQL works in Node, Deno, or even the browser.
+
+
 ```typescript
 import SchemaBuilder from '@giraphql/core';
 import { ApolloServer } from 'apollo-server';

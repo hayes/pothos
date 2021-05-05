@@ -60,3 +60,9 @@ export type RemoveNeverKeys<T extends {}> = {
 };
 
 export type Merge<T> = { [K in keyof T]: T[K] };
+
+export interface Path {
+  prev: Path | undefined;
+  key: number | string;
+  typename: string | undefined;
+}

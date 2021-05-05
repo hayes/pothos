@@ -1,7 +1,8 @@
-import { ESLintConfig} from '@beemo/driver-eslint';
+import { ESLintConfig } from '@beemo/driver-eslint';
 
-const config: ESLintConfig  = {
+const config: ESLintConfig = {
   plugins: ['prettier'],
+  ignore: ['deno', 'scripts'],
   rules: {
     'import/no-default-export': 'off',
     'prettier/prettier': 'error',
@@ -9,7 +10,7 @@ const config: ESLintConfig  = {
     'promise/prefer-await-to-callbacks': 'off',
     'node/no-unpublished-import': 'off',
     'promise/prefer-await-to-then': 'off',
-    'complexity': 'off',
+    complexity: 'off',
     'import/no-extraneous-dependencies': 'off',
     '@typescript-eslint/no-namespace': 'off',
   },
@@ -18,13 +19,13 @@ const config: ESLintConfig  = {
       files: ['packages/*/tests/**/*'],
       rules: {
         'no-magic-numbers': 'off',
-        '@typescript-eslint/no-unsafe-assignment': 'off'
+        '@typescript-eslint/no-unsafe-assignment': 'off',
       },
     },
     {
       files: ['packages/*/tests/examples?/**/*'],
       rules: {
-        'no-console': 'off'
+        'no-console': 'off',
       },
     },
   ],
