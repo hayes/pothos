@@ -1,6 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { Path } from 'graphql/jsutils/Path';
-import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { isThenable, MaybePromise, Path, SchemaTypes } from '@giraphql/core';
 import { ScopeLoaderMap } from './types';
 import { cacheKey } from './util';
 import { GiraphQLScopeAuthPlugin } from '.';

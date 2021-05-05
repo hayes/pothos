@@ -1,6 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { Path } from 'graphql/jsutils/Path';
-import { BuildCache, SchemaTypes } from '@giraphql/core';
+import { BuildCache, Path, SchemaTypes } from '@giraphql/core';
 import CacheNode from './cache-node';
 import SubscriptionManager from './manager';
 
