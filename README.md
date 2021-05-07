@@ -12,7 +12,7 @@ GiraphQL works in Node, Deno, or even the browser.
 import SchemaBuilder from '@giraphql/core';
 import { ApolloServer } from 'apollo-server';
 
-const builder = new SchemaBuilder({}});
+const builder = new SchemaBuilder({});
 
 builder.queryType({
     fields: (t) => ({
