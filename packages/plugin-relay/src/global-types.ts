@@ -153,7 +153,7 @@ declare global {
           Types,
           ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>['edges'][number]
         >,
-      ) => FieldRef<ConnectionShapeForType<Types, Type, false>>;
+      ) => FieldRef<ConnectionShapeForType<Types, Type, Nullable>>;
     }
   }
 }
