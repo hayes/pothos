@@ -59,7 +59,7 @@ builder.objectField(User, 'self', (t) =>
   }),
 );
 
-builder.queryField('user', (t) =>
+builder.queryField('addOnUser', (t) =>
   t.field({
     type: User,
     resolve: (parent, args, context) => {
