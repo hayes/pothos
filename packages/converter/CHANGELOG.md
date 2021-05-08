@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.2.0-alpha.0 - 2021-05-08
+
+#### 🚀 Updates
+
+- improve resolver types with better errors and async-generator support ([3e39492](https://github.com/hayes/giraphql/commit/3e39492))
+
+**Note:** Version bump only for package @giraphql/converter
+
+
+
+
+
 ### 2.1.4 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/converter

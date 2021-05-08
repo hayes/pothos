@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.2-alpha.0 - 2021-05-08
+
+**Note:** Version bump only for package @giraphql/plugin-smart-subscriptions
+
+
+
+
+
 ### 2.1.1 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-smart-subscriptions

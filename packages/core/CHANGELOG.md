@@ -3,6 +3,20 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.3.0-alpha.0 - 2021-05-08
+
+#### 🚀 Updates
+
+- add new context-cache util for safer context based caching ([c1656cf](https://github.com/hayes/giraphql/commit/c1656cf))
+- add new ParentShape helper to enable refs with different resolve and parent types ([18d8b1c](https://github.com/hayes/giraphql/commit/18d8b1c))
+- improve resolver types with better errors and async-generator support ([3e39492](https://github.com/hayes/giraphql/commit/3e39492))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.2.1 - 2021-05-05
 
 #### 🐞 Fixes

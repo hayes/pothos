@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.5-alpha.0 - 2021-05-08
+
+#### 🛠 Internals
+
+- fix up a couple issues in internal types of relay field builder methods ([1131f42](https://github.com/hayes/giraphql/commit/1131f42))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.1.4 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-relay
