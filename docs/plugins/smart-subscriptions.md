@@ -197,5 +197,6 @@ children\) without having to re-run the rest of the query.
 
 ### Known limitations
 
-Currently value passed to `filter` and `invalidateCache` is typed as `unknown`. This should be
-improved in the future.
+- Currently value passed to `filter` and `invalidateCache` is typed as `unknown`. This should be
+  improved in the future.
+- Does not work with list fields implemented with async-generators (used for `@stream` queries)

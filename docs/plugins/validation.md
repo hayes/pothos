@@ -13,12 +13,15 @@ options map closely to the validations available in zod.
 
 ### Install
 
-To use the validation plugin you will need to install both `zod` and the validation plugin:
+To use the validation plugin you will need to install both `zod` package and the validation plugin:
 
-zod version 2.* and 3.* are likely both compatible, but are not currently stable, so using `zod@1` is recommended.
+zod version 3 is still in beta, but is compatible. Zod version 2 was deprecated, so installing zod@1
+or zod@3 is recommended.
 
 ```bash
 yarn add zod@1 @giraphql/plugin-validation
+# or
+yarn add zod@3 @giraphql/plugin-validation
 ```
 
 ### Setup
@@ -101,7 +104,8 @@ builder.queryType({
 
 ### Using your own zod schemas
 
-If you just want to use a zod schema defined somewhere else, rather than using the validation options you can use the `schema` option:
+If you just want to use a zod schema defined somewhere else, rather than using the validation
+options you can use the `schema` option:
 
 ```typescript
 builder.queryType({
@@ -111,7 +115,7 @@ builder.queryType({
       args: {
         max5: t.arg.int({
           validate: {
-            schema: zod.number().int().max(5)
+            schema: zod.number().int().max(5),
           },
         }),
       },
@@ -276,7 +280,8 @@ union of potential types.
 zod.union([zod.null(), zod.undefined(), zod.unknown().refine((val) => isValid(val))]);
 ```
 
-If the validation options include a `schema` that schema will be used as an intersection wit the generated validator:
+If the validation options include a `schema` that schema will be used as an intersection wit the
+generated validator:
 
 ```ts
 // field
@@ -291,11 +296,12 @@ zod.union([zod.null(), zod.undefined(),  zod.intersection(zod.number().max(10), 
 
 ### Sharing schemas with client code
 
-The easiest way to share validators is the use the to define schemas for your fields in an external file using the normal zod APIs, and then attaching those to your fields using the `schema` option.
+The easiest way to share validators is the use the to define schemas for your fields in an external
+file using the normal zod APIs, and then attaching those to your fields using the `schema` option.
 
 ```ts
 // shared
-import { ValidationOptions } from '@giraphql/plugin-validation'; 
+import { ValidationOptions } from '@giraphql/plugin-validation';
 
 const numberValidation = zod.number().max(5);
 
@@ -320,11 +326,12 @@ numberValidator.parse(3) // pass
 numberValidator.parse('3') // fail
 ```
 
-You can also use the `createZodSchema` helper from the plugin directly to create zod Schemas from an options object:
+You can also use the `createZodSchema` helper from the plugin directly to create zod Schemas from an
+options object:
 
 ```ts
 // shared
-import { ValidationOptions } from '@giraphql/plugin-validation'; 
+import { ValidationOptions } from '@giraphql/plugin-validation';
 
 const numberValidation: ValidationOptions<number> = {
   max: 5,
@@ -345,7 +352,7 @@ builder.queryType({
 });
 
 // client
-import { createZodSchema } from '@giraphql/plugin-validation'; 
+import { createZodSchema } from '@giraphql/plugin-validation';
 
 const validator = createZodSchema(numberValidator);
 
