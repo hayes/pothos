@@ -1,4 +1,3 @@
-import { number, string } from 'zod';
 import { createContextCache } from '@giraphql/core';
 import { rejectErrors } from '../../../src';
 import builder from '../builder';

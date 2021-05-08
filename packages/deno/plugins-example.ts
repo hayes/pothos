@@ -7,6 +7,7 @@ import SimpleObjectsPlugin from './packages/plugin-simple-objects/mod.ts';
 import SmartSubscriptionsPlugin from './packages/plugin-smart-subscriptions/mod.ts';
 import SubGraphPlugin from './packages/plugin-sub-graph/mod.ts';
 import ValidationPlugin from './packages/plugin-validation/mod.ts';
+import DataloaderPlugin from './packages/plugin-dataloader/mod.ts';
 import SchemaBuilder from './packages/core/mod.ts';
 
 const builder = new SchemaBuilder<{
@@ -23,6 +24,7 @@ const builder = new SchemaBuilder<{
     RelayPlugin,
     MocksPlugin,
     DirectivesPlugin,
+    DataloaderPlugin,
   ],
   relayOptions: {
     nodeTypeOptions: {},
@@ -67,6 +69,17 @@ builder.queryType({
 builder.simpleObject('Simple', {
   fields: (t) => ({
     test: t.boolean({}),
+  }),
+});
+
+builder.loadableObject('User', {
+  load: (keys: string[]) => {
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+    );
+  },
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
   }),
 });
 

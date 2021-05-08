@@ -12,6 +12,7 @@ const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo'];
 const moduleMap: Record<string, string> = {
   graphql: 'https://cdn.skypack.dev/graphql?dts',
   zod: 'https://cdn.skypack.dev/zod@v1.11.17?dts',
+  dataloader: 'https://cdn.skypack.dev/dataloader?dts',
   '@giraphql/core': './core/index.ts',
 };
 
