@@ -14,6 +14,7 @@ type Post {
 }
 
 type Query {
+  addOnUser: User!
   counts: [CallCount!]!
   fromContext1: User!
   fromContext2: User!
@@ -28,6 +29,7 @@ type Query {
 
 type User {
   id: ID!
+  self: User!
 }
 "
 `;
