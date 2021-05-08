@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.0.0-alpha.2 - 2021-05-08
+
+#### 🚀 Updates
+
+- add deno support for dataloader plugin ([720ba01](https://github.com/hayes/giraphql/commit/720ba01))
+
+**Note:** Version bump only for package @giraphql/plugin-dataloader
+
+
+
+
+
 ## 2.0.0-alpha.1 - 2021-05-08
 
 #### 🚀 Updates
