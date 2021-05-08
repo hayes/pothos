@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.0-alpha.1 - 2021-05-08
+
+#### 🐞 Fixes
+
+- set deno version to 2.0 and remove auto-release ([cd91f6d](https://github.com/hayes/giraphql/commit/cd91f6d))
+
+**Note:** Version bump only for package @giraphql/deno
+
+
+
+
+
 ## 0.1.0-alpha.0 - 2021-05-08
 
 #### 🚀 Updates
