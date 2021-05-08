@@ -26,7 +26,10 @@ export type LoadableFieldOptions<
   FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve'
 > & {
-  load: (keys: Key[]) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
+  load: (
+    keys: Key[],
+    context: Types['Context'],
+  ) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
   resolve: Resolver<
     ParentShape,
@@ -44,7 +47,7 @@ export type DataloaderObjectTypeOptions<
   Key extends bigint | number | string,
   CacheKey
 > = {
-  load: (keys: Key[]) => Promise<(Error | Shape)[]>;
+  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & (
   | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
@@ -58,3 +61,7 @@ export type LoaderShapeFromType<
 > = Type extends [TypeParam<Types>]
   ? ShapeFromTypeParam<Types, Type[0], Nullable>
   : ShapeFromTypeParam<Types, Type, Nullable>;
+
+export interface LoadableRef<K, V, C> {
+  getDataloader: (context: C) => DataLoader<K, V>;
+}

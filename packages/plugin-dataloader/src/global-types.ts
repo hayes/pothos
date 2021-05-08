@@ -4,12 +4,12 @@ import {
   FieldRef,
   InputFieldMap,
   InterfaceParam,
-  ObjectRef,
   OutputShape,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
 import { DataloaderObjectTypeOptions, LoadableFieldOptions } from './types';
+import { LoadableObjectRef } from './util';
 import { GiraphQLDataloaderPlugin } from '.';
 
 declare global {
@@ -27,7 +27,7 @@ declare global {
       >(
         name: string,
         options: DataloaderObjectTypeOptions<Types, Interfaces, Shape, Key, CacheKey>,
-      ) => ObjectRef<Key | Shape>;
+      ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>;
     }
 
     export interface RootFieldBuilder<

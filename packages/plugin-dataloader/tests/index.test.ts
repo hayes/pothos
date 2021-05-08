@@ -1,178 +1,249 @@
 import { gql } from 'apollo-server';
-import { execute } from 'graphql';
+import { execute, printSchema } from 'graphql';
+import { createContext } from './example/context';
 import schema from './example/schema';
 
-describe('validation', () => {
-  it('valid query', async () => {
-    const query = gql`
-      query {
-        exampleField(
-          odd: 1
-          recursive: { float: 1.1, number: 2, recurse: { float: 1.1, number: 1 } }
-          contactInfo: {
-            name: "Michael"
-            email: "michael@test.com"
-            phone: "555-123-4567"
-            aliases: ["Hayes", "MHayes"]
-          }
-          enum1: [One, Two]
-        )
-      }
-    `;
-
-    const result = await execute({
-      schema,
-      document: query,
-      contextValue: {},
-    });
-
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "exampleField": 1,
-        },
-      }
-    `);
+describe('dataloader', () => {
+  it('generates expected schema', () => {
+    expect(printSchema(schema)).toMatchSnapshot();
   });
 
-  it('invalid query', async () => {
-    const query = gql`
-      query {
-        exampleField(
-          odd: 2
-          recursive: {
-            float: 1
-            number: 2
-            recurse: { float: 1, number: 6, recurse: { float: 1.1, number: 3 } }
+  describe('queries', () => {
+    it('valid queries', async () => {
+      const query = gql`
+        query {
+          counts {
+            name
+            calls
+            loaded
           }
-          contactInfo: {
-            name: "michael"
-            email: "michael@example.com"
-            phone: "555-123-456"
-            aliases: ["hayes"]
+          users {
+            id
           }
-          enum1: [Two, One]
-        )
-      }
-    `;
+          user {
+            id
+          }
+          user2: user(id: "2") {
+            id
+          }
+          posts(ids: [123, 456]) {
+            id
+            title
+            content
+          }
+          posts2: posts(ids: [123, 789]) {
+            id
+            title
+            content
+          }
+          post(id: 1) {
+            id
+          }
+          post2: post(id: 2) {
+            id
+          }
+          fromContext1 {
+            id
+          }
+          fromContext2 {
+            id
+          }
+          fromContext3 {
+            id
+          }
+          fromContext4 {
+            id
+          }
+        }
+      `;
 
-    const result = await execute({
-      schema,
-      document: query,
-      contextValue: {},
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        Object {
+          "data": Object {
+            "counts": Array [
+              Object {
+                "calls": 1,
+                "loaded": 5,
+                "name": "users",
+              },
+              Object {
+                "calls": 1,
+                "loaded": 3,
+                "name": "posts",
+              },
+              Object {
+                "calls": 1,
+                "loaded": 2,
+                "name": "post",
+              },
+            ],
+            "fromContext1": Object {
+              "id": "123",
+            },
+            "fromContext2": Object {
+              "id": "456",
+            },
+            "fromContext3": Object {
+              "id": "789",
+            },
+            "fromContext4": Array [
+              Object {
+                "id": "123",
+              },
+              Object {
+                "id": "456",
+              },
+            ],
+            "post": Object {
+              "id": "1",
+            },
+            "post2": Object {
+              "id": "2",
+            },
+            "posts": Array [
+              Object {
+                "content": "123 title",
+                "id": "123",
+                "title": "123 title",
+              },
+              Object {
+                "content": "456 title",
+                "id": "456",
+                "title": "456 title",
+              },
+            ],
+            "posts2": Array [
+              Object {
+                "content": "123 title",
+                "id": "123",
+                "title": "123 title",
+              },
+              Object {
+                "content": "789 title",
+                "id": "789",
+                "title": "789 title",
+              },
+            ],
+            "user": Object {
+              "id": "1",
+            },
+            "user2": Object {
+              "id": "2",
+            },
+            "users": Array [
+              Object {
+                "id": "123",
+              },
+              Object {
+                "id": "456",
+              },
+              Object {
+                "id": "789",
+              },
+            ],
+          },
+        }
+      `);
     });
 
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": null,
-        "errors": Array [
-          [GraphQLError: 11 validation issue(s)
+    it('query with errors', async () => {
+      const query = gql`
+        query {
+          counts {
+            name
+            calls
+            loaded
+          }
+          users(ids: ["-123", "-456", "789"]) {
+            id
+          }
+          user(id: "-123") {
+            id
+          }
+          user2: user(id: "2") {
+            id
+          }
+          posts(ids: [-123, -456, 780]) {
+            id
+            title
+            content
+          }
+          post(id: -1) {
+            id
+          }
+          post2: post(id: 2) {
+            id
+          }
+        }
+      `;
 
-        Issue #0: custom_error at enum1
-        Invalid value.
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
 
-        Issue #1: custom_error at recursive.float
-        Invalid value.
-
-        Issue #2: too_big at recursive.recurse.number
-        Value should be less than or equal to 5
-
-        Issue #3: custom_error at recursive.recurse.float
-        Invalid value.
-
-        Issue #4: custom_error at recursive.recurse.recurse
-        number must not be 3
-
-        Issue #5: custom_error at odd
-        number must be odd
-
-        Issue #6: custom_error at contactInfo.name
-        Name should be capitalized
-
-        Issue #7: custom_error at contactInfo.aliases
-        Aliases should be capitalized
-
-        Issue #8: custom_error at contactInfo.email
-        no example.com email addresses
-
-        Issue #9: invalid_union at contactInfo.phone
-        Invalid input
-
-        Issue #10: custom_error at contactInfo.aliases
-        contactInfo should include at least 2 aliases
-      ],
-        ],
-      }
-    `);
-  });
-
-  it('example queries', async () => {
-    const query = gql`
-      query {
-        simpleValid: simple(email: "abc@def.com")
-        simpleInvalid: simple(email: "abc")
-        simpleInvalid2: simple
-        messageValid: withMessage(email: "abc@def.com")
-        messageInvalid: withMessage(email: "abc")
-        messageInvalid2: withMessage
-        listValid: list(list: ["abc", "def", "ghi"])
-        listInvalid: list(list: ["abcdef", "ghi"])
-        listInvalid2: list(list: ["a", "b", "c", "d"])
-      }
-    `;
-
-    const result = await execute({
-      schema,
-      document: query,
-      contextValue: {},
+      expect(result.data).toMatchInlineSnapshot(`
+        Object {
+          "counts": Array [
+            Object {
+              "calls": 1,
+              "loaded": 4,
+              "name": "users",
+            },
+            Object {
+              "calls": 1,
+              "loaded": 3,
+              "name": "posts",
+            },
+            Object {
+              "calls": 1,
+              "loaded": 2,
+              "name": "post",
+            },
+          ],
+          "post": null,
+          "post2": Object {
+            "id": "2",
+          },
+          "posts": Array [
+            null,
+            null,
+            Object {
+              "content": "780 title",
+              "id": "780",
+              "title": "780 title",
+            },
+          ],
+          "user": null,
+          "user2": Object {
+            "id": "2",
+          },
+          "users": Array [
+            null,
+            null,
+            Object {
+              "id": "789",
+            },
+          ],
+        }
+      `);
+      expect(result.errors).toMatchInlineSnapshot(`
+        Array [
+          [GraphQLError: Invalid ID -123],
+          [GraphQLError: Invalid ID -456],
+          [GraphQLError: Invalid ID -1],
+          [GraphQLError: Invalid ID -123],
+          [GraphQLError: Invalid ID -123],
+          [GraphQLError: Invalid ID -456],
+        ]
+      `);
     });
-
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "listInvalid": null,
-          "listInvalid2": null,
-          "listValid": true,
-          "messageInvalid": null,
-          "messageInvalid2": null,
-          "messageValid": true,
-          "simpleInvalid": null,
-          "simpleInvalid2": null,
-          "simpleValid": true,
-        },
-        "errors": Array [
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: invalid_string at email
-        Invalid email
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: custom_error at [[root]]
-        Invalid value.
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: invalid_string at email
-        invalid email address
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: custom_error at [[root]]
-        Must provide either phone number or email address
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: too_big at list.0
-        Should be at most 3 characters long
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: too_big at list
-        Should have at most 3 items
-      ],
-        ],
-      }
-    `);
   });
 });
