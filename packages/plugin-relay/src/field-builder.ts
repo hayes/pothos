@@ -117,7 +117,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawID = (await id(parent, args as never, context, info)) as
+      const rawID = ((await id(parent, args as never, context, info)) as unknown) as
         | GlobalIDShape<SchemaTypes>
         | string
         | null
@@ -185,7 +185,7 @@ fieldBuilderProto.connection = function connection(
   { name: connectionNameFromOptions, ...connectionOptions },
   { name: edgeNameFromOptions, ...edgeOptions },
 ) {
-  const placeholderRef = this.builder.objectRef<ConnectionShape<unknown, false>>(
+  const placeholderRef = this.builder.objectRef<ConnectionShape<unknown, boolean>>(
     'Unnamed connection',
   );
 
@@ -263,5 +263,5 @@ fieldBuilderProto.connection = function connection(
     });
   });
 
-  return fieldRef as ReturnType<typeof fieldBuilderProto.connection>;
+  return fieldRef as never;
 };

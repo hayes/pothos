@@ -1,0 +1,30 @@
+{
+  "name": "@giraphql/plugin-dataloader",
+  "version": "2.0.0-alpha.0",
+  "description": "A GiraphQL plugin for attaching dataloader to object types",
+  "main": "lib/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "dataloader"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "graphql": ">=15.1.0",
+    "dataloader": "2"
+  },
+  "devDependencies": {
+    "apollo-server": "^2.22.2",
+    "graphql-tag": "^2.11.0",
+    "dataloader": "^2.0.0"
+  }
+}

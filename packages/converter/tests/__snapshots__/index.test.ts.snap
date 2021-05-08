@@ -161,6 +161,10 @@ const Shaveable = builder.interfaceType('Shaveable', {
 builder.objectType('Article', {
     description: \\"shape can be last arg\\",
     fields: t => ({
+        comments: t.field({
+            type: ['String'],
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
         title: t.field({
             description: \\"Title of the article, probably click bait\\",
             type: 'String',
@@ -359,6 +363,8 @@ exports[`Code generator example schema 2`] = `
 
 \\"\\"\\"shape can be last arg\\"\\"\\"
 type Article {
+  comments: [String!]!
+
   \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
   title: String!
 }

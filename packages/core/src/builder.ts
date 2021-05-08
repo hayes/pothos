@@ -66,6 +66,7 @@ import {
   MutationFieldBuilder,
   ObjectFieldBuilder,
   ObjectTypeOptions,
+  ParentShape,
   PluginConstructorMap,
   QueryFieldBuilder,
   SubscriptionFieldBuilder,
@@ -161,7 +162,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   objectFields<Type extends ObjectParam<Types>>(
     ref: Type,
-    fields: ObjectFieldsShape<Types, OutputShape<Types, Type>>,
+    fields: ObjectFieldsShape<Types, ParentShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, fields(new ObjectFieldBuilder(name, this)));
@@ -171,7 +172,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   objectField<Type extends ObjectParam<Types>>(
     ref: Type,
     fieldName: string,
-    field: ObjectFieldThunk<Types, OutputShape<Types, Type>>,
+    field: ObjectFieldThunk<Types, ParentShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, {
@@ -329,7 +330,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   interfaceFields<Type extends InterfaceParam<Types>>(
     ref: Type,
-    fields: InterfaceFieldsShape<Types, OutputShape<Types, Type>>,
+    fields: InterfaceFieldsShape<Types, ParentShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, fields(new InterfaceFieldBuilder(name, this)));
@@ -339,7 +340,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   interfaceField<Type extends InterfaceParam<Types>>(
     ref: Type,
     fieldName: string,
-    field: InterfaceFieldThunk<Types, OutputShape<Types, Type>>,
+    field: InterfaceFieldThunk<Types, ParentShape<Types, Type>>,
   ) {
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, {
