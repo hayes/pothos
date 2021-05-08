@@ -12,7 +12,6 @@ import {
   InterfaceParam,
   InterfaceRef,
   MaybePromise,
-  MaybePromiseWithInference,
   NormalizeNullableFields,
   ObjectParam,
   ObjectRef,
@@ -31,15 +30,23 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => MaybePromiseWithInference<
-  Type extends unknown[]
-    ? Readonly<
-        Return extends MaybePromise<readonly Promise<unknown>[]> ? Promise<Type[number]>[] : Type
-      >
-    : Type,
-  Return
-> &
-  Return;
+) => [Type] extends [readonly (infer Item)[] | null | undefined]
+  ? ListResolveValue<Type, Item, Return>
+  : MaybePromise<Type>;
+
+export type ListResolveValue<Type, Item, Return> = Return extends AsyncGenerator<unknown, unknown>
+  ? GeneratorResolver<Type, Item> & Return
+  : null extends Type
+  ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
+    ? Return
+    : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
+  : Return extends MaybePromise<readonly MaybePromise<Item>[]>
+  ? Return
+  : MaybePromise<readonly MaybePromise<Item>[]>;
+
+export type GeneratorResolver<Type, Item> = null extends Type
+  ? AsyncGenerator<Item | null | undefined, Item | null | undefined>
+  : AsyncGenerator<Item, Item>;
 
 export type Subscriber<Parent, Args, Context, Shape> = (
   parent: Parent,

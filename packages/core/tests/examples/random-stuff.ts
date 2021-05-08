@@ -315,6 +315,15 @@ builder.objectType(
       description: 'Title of the article, probably click bait',
       resolve: () => 'Things are happening!',
     }),
+    comments: t.stringList({
+      resolve: async function* resolve() {
+        yield 'comment 1';
+
+        yield await Promise.resolve('comment 2');
+
+        return 'final comment';
+      },
+    }),
   }),
 );
 

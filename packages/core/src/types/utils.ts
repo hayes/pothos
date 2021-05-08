@@ -1,7 +1,5 @@
 /* eslint-disable prettier/prettier */
-export type MaybePromise<T> = Promise<T> | T;
-
-export type MaybePromiseWithInference<T, U> = U extends Promise<unknown> ? Promise<T> : T;
+export type MaybePromise<T> = Promise<T> | T
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (
