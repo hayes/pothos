@@ -1,13 +1,21 @@
-# GiraphQL SchemaBuilder
+## GiraphQL - A plugin based GraphQL schema builder for typescript
 
-GiraphQL is library for creating GraphQL schemas in typescript using a strongly typed code first
-approach. The GiraphQL schema builder makes writing schemas easy by providing a simple clean API
-with helpful auto-completes, and removing the need for compile steps or defining the same types in
-multiple files.
+GiraphQL makes writing graphql schemas in typescript easy, fast and enjoyable. The core of GiraphQL
+adds 0 overhead at runtime, and has `graphql` as its only dependency.
+
+By leaning heavily on typescripts ability to infer types, GiraphQL is the most type-safe way of
+writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
+code generation.
+
+GiraphQL has a unique and powerful plugin system that makes every plugin feel like its features are
+built into the core library. Plugins can extend almost any part of the API by adding new options or
+methods that can take full advantage of GiraphQLs type system.
+
+## Hello, World
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
 import { ApolloServer } from 'apollo-server';
+import SchemaBuilder from '@giraphql/core';
 
 const builder = new SchemaBuilder({});
 
@@ -22,11 +30,31 @@ builder.queryType({
   }),
 });
 
-const server = new ApolloServer({
+new ApolloServer({
   schema: builder.toSchema({}),
-});
-
-server.listen(3000);
+}).listen(3000);
 ```
+
+## Plugins that make GiraphQL even better
+
+- ## [Scope Auth](plugins/scope-auth.md)
+  Add global, type level, or field level authorization checks to your schema
+- ## [Validation](plugins/validation.md)
+  Validating your inputs and arguments
+- ## [Dataloader](plugins/dataloader.md)
+  Quickly define data-loaders for your types and fields to avoid n+1 queries.
+- ## [Relay](plugins/relay.md)
+- Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
+  for cursor based pagination.
+- ## [Simple Objects](plugins/simple-objects.md)
+  Define simple object types without resolvers or manual type definitions.
+- ## [Mocks](plugins/mocks.md)
+  Add mock resolver for easier testing
+- ## [Sub-Graph](plugins/sub-graph.md)
+  Build multiple subsets of your graph to easily share code between internal and external APIs.
+- ## [Directives](plugins/directives.md)
+  Integrate with existing schema graphql directives in a type-safe way.
+- ## [Smart Subscriptions](plugins/smart-subscriptions.md)
+  Make any part of your graph subscribable to get live updates as your data changes.
 
 ## Full docs available at https://giraphql.com

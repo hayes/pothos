@@ -1,15 +1,21 @@
 # Plugins
 
-- [`@giraphql/plugin-scope-auth`](scope-auth.md): A plugin for adding authorization checks
-  throughout your schema
-- [`@giraphql/plugin-relay`](relay.md): A plugin for adding builder methods for defining relay style
-  nodes and connections, and some helpful utilities for cursor based pagination
-- [`@giraphql/plugin-smart-subscriptions`](smart-subscriptions.md): A plugin for a more graph
-  friendly way of defining subscriptions.
-- [`@giraphql/plugin-simple-objects`](simple-objects.md): A plugin for creating simple objects and
-  interfaces without resolvers or arguments.
-- [`@giraphql/plugin-mocks`](mocks.md): A plugin for mocking out resolvers in your schema.
-- [`@giraphql/plugin-sub-graph`](sub-graph.md): A plugin for creating sub selections of your graph.
-- [`@giraphql/plugin-directives`](directives.md): A plugin for using directives with GiraphQL
-  schemas.
-- [`@giraphql/plugin-validation`](validation.md): A plugin for validating arguments.
+- ## [Scope Auth](./scope-auth.md)
+  Add global, type level, or field level authorization checks to your schema
+- ## [Validation](./validation.md)
+  Validating your inputs and arguments
+- ## [Dataloader](./dataloader.md)
+  Quickly define data-loaders for your types and fields to avoid n+1 queries.
+- ## [Relay](./relay.md)
+- Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
+  for cursor based pagination.
+- ## [Simple Objects](./simple-objects.md)
+  Define simple object types without resolvers or manual type definitions.
+- ## [Mocks](./mocks.md)
+  Add mock resolver for easier testing
+- ## [Sub-Graph](./sub-graph.md)
+  Build multiple subsets of your graph to easily share code between internal and external APIs.
+- ## [Directives](./directives.md)
+  Integrate with existing schema graphql directives in a type-safe way.
+- ## [Smart Subscriptions](./smart-subscriptions.md)
+  Make any part of your graph subscribable to get live updates as your data changes.
