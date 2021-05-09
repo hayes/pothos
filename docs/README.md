@@ -49,7 +49,7 @@ new ApolloServer({
 - ## [Dataloader](plugins/dataloader.md)
   Quickly define data-loaders for your types and fields to avoid n+1 queries.
 - ## [Relay](plugins/relay.md)
-- Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
+  Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
   for cursor based pagination.
 - ## [Simple Objects](plugins/simple-objects.md)
   Define simple object types without resolvers or manual type definitions.
