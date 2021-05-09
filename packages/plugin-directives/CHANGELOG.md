@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.0.8 - 2021-05-09
+
+#### 📘 Docs
+
+- update readmes ([07c727b](https://github.com/hayes/giraphql/commit/07c727b))
+
+**Note:** Version bump only for package @giraphql/plugin-directives
+
+
+
+
+
 ### 2.0.8-alpha.0 - 2021-05-08
 
 **Note:** Version bump only for package @giraphql/plugin-directives
