@@ -16,6 +16,7 @@ function countCall(context: ContextType, getCounts: typeof usersCounts, loaded: 
 }
 
 export const User = builder.loadableObject('User', {
+  loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, usersCounts, keys.length);
 

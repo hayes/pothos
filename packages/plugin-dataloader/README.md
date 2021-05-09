@@ -119,6 +119,29 @@ builder.objectField(User, 'posts', (t) =>
 );
 ```
 
+### dataloader options
+
+You can provide additional options for your dataloaders using `loaderOptions`.
+
+```ts
+const User = builder.loadableObject('User', {
+  loaderOptions: { maxBatchSize: 20 },
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  fields: (t) => ({ id: t.exposeID('id', {}) }),
+});
+
+builder.objectField(User, 'posts', (t) =>
+  t.loadable({
+    type: [Post],
+    loaderOptions: { maxBatchSize: 20 },
+    load: (ids: number[], context) => context.loadPosts(ids),
+    resolve: (user, args) => user.postIDs,
+  }),
+);
+```
+
+See [dataloader docs](https://github.com/graphql/dataloader#api) for all available options.
+
 ### Manually using dataloader
 
 Dataloaders for "loadable" objects can be accessed via their ref by passing in the context object
