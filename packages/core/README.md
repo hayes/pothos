@@ -39,22 +39,22 @@ new ApolloServer({
 
 ## Plugins that make GiraphQL even better
 
-- ## [Scope Auth](plugins/scope-auth.md)
+- ## [Scope Auth](https://giraphql.com/plugins/scope-auth.md)
   Add global, type level, or field level authorization checks to your schema
-- ## [Validation](plugins/validation.md)
+- ## [Validation](https://giraphql.com/plugins/validation.md)
   Validating your inputs and arguments
-- ## [Dataloader](plugins/dataloader.md)
+- ## [Dataloader](https://giraphql.com/plugins/dataloader.md)
   Quickly define data-loaders for your types and fields to avoid n+1 queries.
-- ## [Relay](plugins/relay.md)
+- ## [Relay](https://giraphql.com/plugins/relay.md)
   Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
   for cursor based pagination.
-- ## [Simple Objects](plugins/simple-objects.md)
+- ## [Simple Objects](https://giraphql.com/plugins/simple-objects.md)
   Define simple object types without resolvers or manual type definitions.
-- ## [Mocks](plugins/mocks.md)
+- ## [Mocks](https://giraphql.com/plugins/mocks.md)
   Add mock resolver for easier testing
-- ## [Sub-Graph](plugins/sub-graph.md)
+- ## [Sub-Graph](https://giraphql.com/plugins/sub-graph.md)
   Build multiple subsets of your graph to easily share code between internal and external APIs.
-- ## [Directives](plugins/directives.md)
+- ## [Directives](https://giraphql.com/plugins/directives.md)
   Integrate with existing schema graphql directives in a type-safe way.
-- ## [Smart Subscriptions](plugins/smart-subscriptions.md)
+- ## [Smart Subscriptions](https://giraphql.com/plugins/smart-subscriptions.md)
   Make any part of your graph subscribable to get live updates as your data changes.
