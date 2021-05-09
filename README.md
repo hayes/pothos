@@ -35,6 +35,8 @@ new ApolloServer({
 }).listen(3000);
 ```
 
+## Full docs available at https://giraphql.com
+
 ## Plugins that make GiraphQL even better
 
 - ## [Scope Auth](plugins/scope-auth.md)
@@ -56,5 +58,3 @@ new ApolloServer({
   Integrate with existing schema graphql directives in a type-safe way.
 - ## [Smart Subscriptions](plugins/smart-subscriptions.md)
   Make any part of your graph subscribable to get live updates as your data changes.
-
-## Full docs available at https://giraphql.com
