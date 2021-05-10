@@ -17,6 +17,7 @@ yarn add dataloader @giraphql/plugin-dataloader
 
 ```typescript
 import DataloaderPlugin from '@giraphql/plugin-dataloader';
+
 const builder = new SchemaBuilder({
   plugins: [DataloaderPlugin],
 });
@@ -84,7 +85,13 @@ In some cases you may need more granular dataloaders. To handle these cases ther
 
 ```ts
 // Normal object that the fields below will load
-const Post = builder.objectRef<{ id: string; title: string; content: string }>('Post').implement({
+interface PostShape {
+  id: string;
+  title: string;
+  content: string;
+}
+
+const Post = builder.objectRef<PostShape>('Post').implement({
   fields: (t) => ({
     id: t.exposeID('id', {}),
     title: t.exposeString('title', {}),
@@ -92,7 +99,7 @@ const Post = builder.objectRef<{ id: string; title: string; content: string }>('
   }),
 });
 
-// Loading a single
+// Loading a single Post
 builder.objectField(User, 'latestPost', (t) =>
   t.loadable({
     type: Post,
@@ -101,7 +108,7 @@ builder.objectField(User, 'latestPost', (t) =>
     resolve: (user, args) => user.lastPostID,
   }),
 );
-// Loading a multiple
+// Loading multiple Posts
 builder.objectField(User, 'posts', (t) =>
   t.loadable({
     type: [Post],
@@ -111,6 +118,29 @@ builder.objectField(User, 'posts', (t) =>
   }),
 );
 ```
+
+### dataloader options
+
+You can provide additional options for your dataloaders using `loaderOptions`.
+
+```ts
+const User = builder.loadableObject('User', {
+  loaderOptions: { maxBatchSize: 20 },
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  fields: (t) => ({ id: t.exposeID('id', {}) }),
+});
+
+builder.objectField(User, 'posts', (t) =>
+  t.loadable({
+    type: [Post],
+    loaderOptions: { maxBatchSize: 20 },
+    load: (ids: number[], context) => context.loadPosts(ids),
+    resolve: (user, args) => user.postIDs,
+  }),
+);
+```
+
+See [dataloader docs](https://github.com/graphql/dataloader#api) for all available options.
 
 ### Manually using dataloader
 
@@ -143,9 +173,9 @@ builder.queryField('user', (t) =>
 
 ### Errors
 
-Calling dataloader.loadMany will resolve to a value like (Type | Error)[]. Your `load` function may
-also return results in that format if your loader can have parital failures. GraphQL does not have
-special handling for Error objects. Instead GiraphQL will map these results to something like
+Calling dataloader.loadMany will resolve to a value like `(Type | Error)[]`. Your `load` function
+may also return results in that format if your loader can have parital failures. GraphQL does not
+have special handling for Error objects. Instead GiraphQL will map these results to something like
 `(Type | Promise<Type>)[]` where Errors are replaced with promises that will be rejected. This
 allows the normal graphql resolver flow to correctly handle these errors.
 

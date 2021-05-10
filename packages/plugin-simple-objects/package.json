@@ -3,6 +3,7 @@
   "version": "2.0.3",
   "description": "A GiraphQL plugin for defining objects and interfaces without ts definitions for those types",
   "main": "./lib/index.js",
+  "module": "./esm/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

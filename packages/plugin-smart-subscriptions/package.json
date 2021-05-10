@@ -3,6 +3,7 @@
   "version": "2.1.2",
   "description": "A GiraphQL plugin for turning queries into subscriptions",
   "main": "./lib/index.js",
+  "module": "./esm/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

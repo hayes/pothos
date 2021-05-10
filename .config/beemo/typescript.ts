@@ -5,7 +5,7 @@ const config: TypeScriptConfig = {
     typeRoots: ['./src/types', './node_modules/@types'],
     sourceMap: true,
     emitDeclarationOnly: false,
-    module: 'commonjs',
+    module: process.env.ESM_BUILD === 'true' ? 'es2020' : 'commonjs',
     target: 'es2019'
   },
 };

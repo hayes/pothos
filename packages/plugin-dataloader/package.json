@@ -2,7 +2,8 @@
   "name": "@giraphql/plugin-dataloader",
   "version": "2.0.0",
   "description": "A GiraphQL plugin for attaching dataloader to object types",
-  "main": "lib/index.js",
+  "main": "./lib/index.js",
+  "module": "./esm/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

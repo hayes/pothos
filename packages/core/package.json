@@ -3,6 +3,7 @@
   "version": "2.3.0",
   "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "./lib/index.js",
+  "module": "./esm/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

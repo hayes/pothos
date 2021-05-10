@@ -3,6 +3,7 @@
   "version": "2.0.8",
   "description": "Directive plugin for GiraphQL, enables using graphql-tools based directives with GiraphQL",
   "main": "./lib/index.js",
+  "module": "./esm/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },

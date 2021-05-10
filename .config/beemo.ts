@@ -11,7 +11,9 @@ const config =  {
         },
         "jest": true,
         "prettier": true,
-        "typescript"  : true,
+        "typescript"  : {
+            buildFolder: process.env.ESM_BUILD === 'true' ? 'esm' : 'lib',
+        },
     },
     "settings": {
         "useBuiltIns": false,
