@@ -11,7 +11,7 @@
     "build-esm": "ESM_BUILD=true yarn refs && ESM_BUILD=true beemo typescript --build --reference-workspaces && beemo create-config",
     "build-deno": "yarn ts-node packages/deno/scripts/build.ts",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm,commonjs} ./packages/deno/packages",
-    "ci": "yarn run type && yarn run test && yarn run lint",
+    "ci": "yarn run build && yarn run test && yarn run lint",
     "coverage": "yarn run test --coverage",
     "format": "beemo prettier",
     "lint": "beemo eslint",
