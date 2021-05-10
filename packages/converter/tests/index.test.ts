@@ -1,8 +1,8 @@
 import { spawn } from 'child_process';
 import { lexicographicSortSchema, printSchema } from 'graphql';
-import exampleSchema from '../../core/tests/examples/random-stuff';
-import starwarsSchema from '../../core/tests/examples/starwars/schema';
 import GirphQLConverter from '../src';
+import exampleSchema from './examples/random-stuff';
+import starwarsSchema from './examples/starwars/schema';
 
 function execTS(script: string) {
   return new Promise<string>((resolve, reject) => {
