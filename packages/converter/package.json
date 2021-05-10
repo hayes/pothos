@@ -3,6 +3,7 @@
   "version": "2.2.1",
   "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
   "main": "./lib/index.js",
+  "module": "./esm/index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
