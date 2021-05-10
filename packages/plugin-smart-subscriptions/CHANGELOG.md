@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.1 - 2021-05-10
+
+#### 🐞 Fixes
+
+- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+
+**Note:** Version bump only for package @giraphql/plugin-smart-subscriptions
+
+
+
+
+
 ## 2.2.0 - 2021-05-10
 
 #### 🚀 Updates
