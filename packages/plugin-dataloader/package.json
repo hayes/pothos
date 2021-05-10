@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-dataloader",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "A GiraphQL plugin for attaching dataloader to object types",
   "main": "./lib/index.js",
   "module": "./esm/index.js",

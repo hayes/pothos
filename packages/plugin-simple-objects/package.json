@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-simple-objects",
-  "version": "2.0.3",
+  "version": "2.1.0",
   "description": "A GiraphQL plugin for defining objects and interfaces without ts definitions for those types",
   "main": "./lib/index.js",
   "module": "./esm/index.js",

@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.2.0 - 2021-05-10
+
+#### 🚀 Updates
+
+- add esm build for all packages ([d8bbdc9](https://github.com/hayes/giraphql/commit/d8bbdc9))
+
+#### 📘 Docs
+
+- update readmes ([07c727b](https://github.com/hayes/giraphql/commit/07c727b))
+
+**Note:** Version bump only for package @giraphql/plugin-scope-auth
+
+
+
+
+
 ### 2.1.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth

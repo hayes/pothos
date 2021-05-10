@@ -3,6 +3,25 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.4.0 - 2021-05-10
+
+#### 🚀 Updates
+
+- add esm build for all packages ([d8bbdc9](https://github.com/hayes/giraphql/commit/d8bbdc9))
+
+#### 📘 Docs
+
+- fix a typo ([0f2bdbb](https://github.com/hayes/giraphql/commit/0f2bdbb))
+- fix links in readme ([a950d39](https://github.com/hayes/giraphql/commit/a950d39))
+- fix links in readme ([6132d42](https://github.com/hayes/giraphql/commit/6132d42))
+- move website link higher in readme ([2260e33](https://github.com/hayes/giraphql/commit/2260e33))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.3.0 - 2021-05-09
 
 #### 📘 Docs

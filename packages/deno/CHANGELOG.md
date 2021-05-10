@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.1.0 - 2021-05-10
+
+#### 🚀 Updates
+
+- add esm build for all packages ([d8bbdc9](https://github.com/hayes/giraphql/commit/d8bbdc9))
+
+#### 🐞 Fixes
+
+- fix issue with yarn run v1.22.10 ([03444ee](https://github.com/hayes/giraphql/commit/03444ee))
+
+**Note:** Version bump only for package @giraphql/deno
+
+
+
+
+
 ### 2.0.0 - 2021-05-09
 
 #### 🐞 Fixes

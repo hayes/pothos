@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.1.0 - 2021-05-10
+
+#### 🚀 Updates
+
+- add esm build for all packages ([d8bbdc9](https://github.com/hayes/giraphql/commit/d8bbdc9))
+
+#### 📘 Docs
+
+- add docs on adding dataloader options ([cdf096a](https://github.com/hayes/giraphql/commit/cdf096a))
+- fix a couple issues in dataloader docs ([10f0a6c](https://github.com/hayes/giraphql/commit/10f0a6c))
+
+**Note:** Version bump only for package @giraphql/plugin-dataloader
+
+
+
+
+
 ### 2.0.0 - 2021-05-09
 
 #### 📘 Docs
