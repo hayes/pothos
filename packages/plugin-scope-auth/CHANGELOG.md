@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.2 - 2021-05-10
+
+#### 🐞 Fixes
+
+- update ci build command ([7e1d1d2](https://github.com/hayes/giraphql/commit/7e1d1d2))
+
+**Note:** Version bump only for package @giraphql/plugin-scope-auth
+
+
+
+
+
 ### 2.2.1 - 2021-05-10
 
 #### 🐞 Fixes
