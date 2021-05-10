@@ -16,7 +16,7 @@
     "format": "beemo prettier",
     "lint": "beemo eslint",
     "test": "beemo jest",
-    "type": "beemo typescript --build --reference-workspaces",
+    "type": "yarn refs && beemo typescript --build --reference-workspaces",
     "prerelease": "yarn clean && yarn run ci",
     "release": "lerna version --conventional-commits --conventional-graduate --changelog-preset conventional-changelog-beemo --create-release github --push && lerna publish from-git",
     "refs": "beemo typescript:sync-project-refs",
