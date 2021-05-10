@@ -1,7 +1,7 @@
 import { spawn } from 'child_process';
 import { lexicographicSortSchema, printSchema } from 'graphql';
-import exampleSchema from '@giraphql/core/tests/examples/random-stuff';
-import starwarsSchema from '@giraphql/core/tests/examples/starwars/schema';
+import exampleSchema from '../../core/tests/examples/random-stuff';
+import starwarsSchema from '../../core/tests/examples/starwars/schema';
 import GirphQLConverter from '../src';
 
 function execTS(script: string) {
