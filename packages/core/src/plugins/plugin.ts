@@ -36,17 +36,19 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
 
   onOutputFieldConfig(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
-  ): GiraphQLOutputFieldConfig<Types> {
+  ): GiraphQLOutputFieldConfig<Types> | null {
     return fieldConfig;
   }
 
   onInputFieldConfig(
     fieldConfig: GiraphQLInputFieldConfig<Types>,
-  ): GiraphQLInputFieldConfig<Types> {
+  ): GiraphQLInputFieldConfig<Types> | null {
     return fieldConfig;
   }
 
-  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>): GiraphQLEnumValueConfig<Types> {
+  onEnumValueConfig(
+    valueConfig: GiraphQLEnumValueConfig<Types>,
+  ): GiraphQLEnumValueConfig<Types> | null {
     return valueConfig;
   }
 
