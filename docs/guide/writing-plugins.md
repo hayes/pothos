@@ -563,31 +563,31 @@ from enums. To do this, simply return null from the corresponding on\*Config plu
 
 ```ts
 onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    if (fieldConfig.name === 'removeMe') {
-      return null;
-    }
-
-    return fieldConfig;
+  if (fieldConfig.name === 'removeMe') {
+    return null;
   }
 
-  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    if (fieldConfig.name === 'removeMe') {
-      return null;
-    }
+  return fieldConfig;
+}
 
-    return fieldConfig;
+onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+  if (fieldConfig.name === 'removeMe') {
+    return null;
   }
 
-  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
-    if (valueConfig.value === 'removeMe') {
-      return null;
-    }
+  return fieldConfig;
+}
 
-    return valueConfig;
+onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+  if (valueConfig.value === 'removeMe') {
+    return null;
   }
+
+  return valueConfig;
+}
 ```
 
-Remocing whole types from the schema needs to be done by transforming the schema during the
+Removing whole types from the schema needs to be done by transforming the schema during the
 `afterBuild` hook. See the `sub-graph` plugin for a more complete example of removing types.
 
 ## Useful methods:
