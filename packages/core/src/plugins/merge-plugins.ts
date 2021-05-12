@@ -24,26 +24,29 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
   }
 
   onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    return this.plugins.reduceRight((config, plugin) => config === null ? config : plugin.onTypeConfig(config), typeConfig);
+    return this.plugins.reduceRight(
+      (config, plugin) => (config === null ? config : plugin.onTypeConfig(config)),
+      typeConfig,
+    );
   }
 
   onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
     return this.plugins.reduceRight<GiraphQLInputFieldConfig<Types> | null>(
-      (config, plugin) => config === null ? config : plugin.onInputFieldConfig(config),
+      (config, plugin) => (config === null ? config : plugin.onInputFieldConfig(config)),
       fieldConfig,
     );
   }
 
   onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     return this.plugins.reduceRight<GiraphQLOutputFieldConfig<Types> | null>(
-      (config, plugin) => config === null ? config : plugin.onOutputFieldConfig(config),
+      (config, plugin) => (config === null ? config : plugin.onOutputFieldConfig(config)),
       fieldConfig,
     );
   }
 
   onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
     return this.plugins.reduceRight<GiraphQLEnumValueConfig<Types> | null>(
-      (config, plugin) => config === null ? config : plugin.onEnumValueConfig(config),
+      (config, plugin) => (config === null ? config : plugin.onEnumValueConfig(config)),
       valueConfig,
     );
   }
