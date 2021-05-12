@@ -74,17 +74,17 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private enumValueConfigs = new Map<
     GiraphQLEnumValueConfig<Types>,
-    GiraphQLEnumValueConfig<Types>
+    GiraphQLEnumValueConfig<Types> | null
   >();
 
   private outputFieldConfigs = new Map<
     GiraphQLOutputFieldConfig<Types>,
-    GiraphQLOutputFieldConfig<Types>
+    GiraphQLOutputFieldConfig<Types> | null
   >();
 
   private inputFieldConfigs = new Map<
     GiraphQLInputFieldConfig<Types>,
-    GiraphQLInputFieldConfig<Types>
+    GiraphQLInputFieldConfig<Types> | null
   >();
 
   constructor(
@@ -314,8 +314,14 @@ export default class BuildCache<Types extends SchemaTypes> {
         );
       }
 
+      const updatedConfig = this.outputFieldConfigs.get(originalConfig)!;
+
+      if (!updatedConfig) {
+        return;
+      }
+
       const config = {
-        ...this.outputFieldConfigs.get(originalConfig)!,
+        ...updatedConfig,
       };
 
       const args = this.buildInputFields(config.args);
@@ -357,15 +363,17 @@ export default class BuildCache<Types extends SchemaTypes> {
 
       const config = this.inputFieldConfigs.get(originalConfig)!;
 
-      built[fieldName] = {
-        ...config,
-        type: this.buildInputTypeParam(config.type),
-        extensions: {
-          ...config.extensions,
-          giraphqlOptions: config.giraphqlOptions,
-          giraphqlConfig: config,
-        },
-      };
+      if (config) {
+        built[fieldName] = {
+          ...config,
+          type: this.buildInputTypeParam(config.type),
+          extensions: {
+            ...config.extensions,
+            giraphqlOptions: config.giraphqlOptions,
+            giraphqlConfig: config,
+          },
+        };
+      }
     });
 
     return built;
@@ -693,7 +701,10 @@ export default class BuildCache<Types extends SchemaTypes> {
         this.enumValueConfigs.set(original, this.plugin.onEnumValueConfig(original));
       }
 
-      values[key] = this.enumValueConfigs.get(original)!;
+      const valueConfig = this.enumValueConfigs.get(original)!;
+      if (valueConfig) {
+        values[key] = this.enumValueConfigs.get(original)!;
+      }
     }
 
     return new GraphQLEnumType({
