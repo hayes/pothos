@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.4 - 2021-05-12
+
+#### 🐞 Fixes
+
+- copy examples for converter tests ([b19fd40](https://github.com/hayes/giraphql/commit/b19fd40))
+- update converted tests to work with esm ([7cb9588](https://github.com/hayes/giraphql/commit/7cb9588))
+
+#### 🛠 Internals
+
+- udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
+
+**Note:** Version bump only for package @giraphql/converter
+
+
+
+
+
 ### 2.2.3 - 2021-05-10
 
 #### 🐞 Fixes

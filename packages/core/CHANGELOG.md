@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.5.0 - 2021-05-12
+
+#### 🚀 Updates
+
+- allow plugins to remove fields ([9370ce1](https://github.com/hayes/giraphql/commit/9370ce1))
+- update deno ([7d11693](https://github.com/hayes/giraphql/commit/7d11693))
+
+#### 🛠 Internals
+
+- add docs and tests for removing fields ([a3aa90e](https://github.com/hayes/giraphql/commit/a3aa90e))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.4.2 - 2021-05-10
 
 #### 🐞 Fixes

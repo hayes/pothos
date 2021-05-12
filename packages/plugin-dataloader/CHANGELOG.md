@@ -3,6 +3,19 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.3 - 2021-05-12
+
+#### 🛠 Internals
+
+- add docs and tests for removing fields ([a3aa90e](https://github.com/hayes/giraphql/commit/a3aa90e))
+- udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
+
+**Note:** Version bump only for package @giraphql/plugin-dataloader
+
+
+
+
+
 ### 2.1.2 - 2021-05-10
 
 #### 🐞 Fixes
