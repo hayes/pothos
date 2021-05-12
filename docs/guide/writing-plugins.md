@@ -556,6 +556,40 @@ Both the root level map, and the `fields.map` maps will only contain entries for
 mapping function did not return null. If the mapping function returned null for all fields, the
 `mapInputFields` will return null instead of returning a map to indicate no wrapping should occur
 
+### Removing fields and enum values
+
+Plugins can remove fields from objects, interfaces, and input objects, and remove specific values
+from enums. To do this, simply return null from the corresponding on\*Config plugin hook:
+
+```ts
+onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    if (fieldConfig.name === 'removeMe') {
+      return null;
+    }
+
+    return fieldConfig;
+  }
+
+  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+    if (fieldConfig.name === 'removeMe') {
+      return null;
+    }
+
+    return fieldConfig;
+  }
+
+  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+    if (valueConfig.value === 'removeMe') {
+      return null;
+    }
+
+    return valueConfig;
+  }
+```
+
+Remocing whole types from the schema needs to be done by transforming the schema during the
+`afterBuild` hook. See the `sub-graph` plugin for a more complete example of removing types.
+
 ## Useful methods:
 
 - `builder.configStore.onTypeConfig`: Takes a type ref and a callback, and will invoke the callback
