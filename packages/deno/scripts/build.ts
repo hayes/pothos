@@ -7,7 +7,7 @@ const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
 const excludedPackages = ['converter', 'deno', 'plugin-example'];
 const excludedDirs = ['lib', 'test', 'tests', 'node_modules'];
-const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo'];
+const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md'];
 
 const moduleMap: Record<string, string> = {
   graphql: 'https://cdn.skypack.dev/graphql?dts',

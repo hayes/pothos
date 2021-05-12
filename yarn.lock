@@ -1389,6 +1389,11 @@
     minimatch "^3.0.4"
     strip-json-comments "^3.1.1"
 
+"@giraphql/core@2.4.0":
+  version "2.4.0"
+  resolved "https://registry.yarnpkg.com/@giraphql/core/-/core-2.4.0.tgz#ca6039f0e4fab0405b14bcc957d30a6402dd18f3"
+  integrity sha512-/EY2wDUoARMcDCOGIEd4hzgMtDD5Vh1+C2fktiUnEVWg7n6yUc181u3eil/h0tCWka5638L7YPaQlJG8h19hxA==
+
 "@graphql-tools/schema@^7.0.0":
   version "7.1.5"
   resolved "https://registry.yarnpkg.com/@graphql-tools/schema/-/schema-7.1.5.tgz#07b24e52b182e736a6b77c829fc48b84d89aa711"
