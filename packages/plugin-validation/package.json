@@ -26,6 +26,7 @@
     "zod": "*"
   },
   "devDependencies": {
+    "@giraphql/core": "2.4.0",
     "apollo-server": "^2.22.2",
     "graphql-tag": "^2.11.0",
     "zod": "^1.11.13"
