@@ -19,7 +19,6 @@ export const User = builder.loadableObject('User', {
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, usersCounts, keys.length);
-
     return Promise.resolve(
       keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
     );
@@ -27,6 +26,21 @@ export const User = builder.loadableObject('User', {
   fields: (t) => ({
     id: t.exposeID('id', {}),
   }),
+});
+
+builder.loadableNode('UserNode', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  isTypeOf: () => false,
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, usersCounts, keys.length);
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+    );
+  },
+  fields: (t) => ({}),
 });
 
 const Post = builder.objectRef<IPost>('Post').implement({
