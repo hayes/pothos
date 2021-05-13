@@ -23,6 +23,21 @@ describe('dataloader', () => {
           user {
             id
           }
+          userNodes {
+            id
+          }
+          userNode {
+            id
+          }
+          userNodes2: userNodes {
+            id
+          }
+          userNode2: userNode {
+            id
+          }
+          nodes(ids: ["VXNlck5vZGU6MTIz", "VXNlck5vZGU6NDU2"]) {
+            id
+          }
           user2: user(id: "2") {
             id
           }
@@ -164,6 +179,12 @@ describe('dataloader', () => {
             id
           }
           user(id: "-123") {
+            id
+          }
+          userNodes(ids: ["-123", "-456", "789"]) {
+            id
+          }
+          userNode(id: "-123") {
             id
           }
           user2: user(id: "2") {

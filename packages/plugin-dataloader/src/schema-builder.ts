@@ -1,5 +1,11 @@
 import DataLoader from 'dataloader';
-import SchemaBuilder, { createContextCache, InterfaceRef, SchemaTypes } from '@giraphql/core';
+import { GraphQLResolveInfo } from 'graphql';
+import SchemaBuilder, {
+  createContextCache,
+  FieldRef,
+  InterfaceRef,
+  SchemaTypes,
+} from '@giraphql/core';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { LoadableObjectRef } from './util';
 
@@ -56,6 +62,13 @@ schemaBuilderProto.loadableNode = (function loadableNode<
   name: string,
   { load, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, CacheKey>,
 ) {
+  if (
+    typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
+      .nodeInterfaceRef !== 'function'
+  ) {
+    throw new TypeError('builder.loadableNode requires @giraphql/plugin-relay to be installed');
+  }
+
   const getDataloader = createContextCache(
     (context: SchemaTypes['Context']) =>
       new DataLoader<Key, Shape, CacheKey>(
@@ -88,6 +101,27 @@ schemaBuilderProto.loadableNode = (function loadableNode<
   };
 
   ref.implement(extendedOptions);
+
+  this.configStore.onTypeConfig(ref, (nodeConfig) => {
+    this.objectField(ref, 'id', (t) =>
+      ((t as unknown) as {
+        globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
+      }).globalID({
+        ...options.id,
+        nullable: false,
+        args: {},
+        resolve: async (
+          parent: Shape,
+          args: object,
+          context: object,
+          info: GraphQLResolveInfo,
+        ) => ({
+          type: nodeConfig.name,
+          id: await options.id.resolve(parent, args, context, info),
+        }),
+      }),
+    );
+  });
 
   return ref;
 } as unknown) as typeof TloadableNode;
