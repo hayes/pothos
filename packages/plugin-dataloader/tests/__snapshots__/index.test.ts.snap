@@ -7,6 +7,10 @@ exports[`dataloader generates expected schema 1`] = `
   name: String!
 }
 
+interface Node {
+  id: ID!
+}
+
 type Post {
   content: String!
   id: ID!
@@ -21,15 +25,23 @@ type Query {
   fromContext3: User!
   fromContext4: [User!]!
   fromContext5: [User!]!
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
   post(id: Int!): Post
   posts(ids: [Int!]!): [Post]
   user(id: String): User
+  userNode(id: String): User
+  userNodes(ids: [String!]): [UserNode]
   users(ids: [String!]): [User]
 }
 
 type User {
   id: ID!
   self: User!
+}
+
+type UserNode implements Node {
+  id: ID!
 }
 "
 `;

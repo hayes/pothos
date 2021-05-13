@@ -90,6 +90,11 @@ describe('dataloader', () => {
               Object {
                 "calls": 1,
                 "loaded": 3,
+                "name": "userNodes",
+              },
+              Object {
+                "calls": 1,
+                "loaded": 3,
                 "name": "posts",
               },
               Object {
@@ -113,6 +118,14 @@ describe('dataloader', () => {
               },
               Object {
                 "id": "456",
+              },
+            ],
+            "nodes": Array [
+              Object {
+                "id": "VXNlck5vZGU6MTIz",
+              },
+              Object {
+                "id": "VXNlck5vZGU6NDU2",
               },
             ],
             "post": Object {
@@ -151,6 +164,34 @@ describe('dataloader', () => {
             "user2": Object {
               "id": "2",
             },
+            "userNode": Object {
+              "id": "1",
+            },
+            "userNode2": Object {
+              "id": "1",
+            },
+            "userNodes": Array [
+              Object {
+                "id": "VXNlck5vZGU6MTIz",
+              },
+              Object {
+                "id": "VXNlck5vZGU6NDU2",
+              },
+              Object {
+                "id": "VXNlck5vZGU6Nzg5",
+              },
+            ],
+            "userNodes2": Array [
+              Object {
+                "id": "VXNlck5vZGU6MTIz",
+              },
+              Object {
+                "id": "VXNlck5vZGU6NDU2",
+              },
+              Object {
+                "id": "VXNlck5vZGU6Nzg5",
+              },
+            ],
             "users": Array [
               Object {
                 "id": "123",
@@ -221,6 +262,11 @@ describe('dataloader', () => {
             Object {
               "calls": 1,
               "loaded": 3,
+              "name": "userNodes",
+            },
+            Object {
+              "calls": 1,
+              "loaded": 3,
               "name": "posts",
             },
             Object {
@@ -246,6 +292,14 @@ describe('dataloader', () => {
           "user2": Object {
             "id": "2",
           },
+          "userNode": null,
+          "userNodes": Array [
+            null,
+            null,
+            Object {
+              "id": "VXNlck5vZGU6Nzg5",
+            },
+          ],
           "users": Array [
             null,
             null,
@@ -259,7 +313,10 @@ describe('dataloader', () => {
         Array [
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -456],
+          [GraphQLError: Invalid ID -123],
+          [GraphQLError: Invalid ID -456],
           [GraphQLError: Invalid ID -1],
+          [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -456],
