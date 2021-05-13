@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/converter",
-  "version": "2.2.4",
+  "version": "2.2.5",
   "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
   "main": "./lib/index.js",
   "module": "./esm/index.js",

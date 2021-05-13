@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.3.4 - 2021-05-13
+
+#### 📘 Docs
+
+- remove changelogs from deno dir ([952109e](https://github.com/hayes/giraphql/commit/952109e))
+
+#### 🛠 Internals
+
+- add tests for loadableNode ([c1b49a0](https://github.com/hayes/giraphql/commit/c1b49a0))
+- restore yarn.lock ([324295e](https://github.com/hayes/giraphql/commit/324295e))
+
+**Note:** Version bump only for package @giraphql/plugin-validation
+
+
+
+
+
 ### 2.3.3 - 2021-05-12
 
 #### 🛠 Internals

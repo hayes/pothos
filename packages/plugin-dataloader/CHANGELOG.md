@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.2.0 - 2021-05-13
+
+#### 🚀 Updates
+
+- add loadableNodes method to use relay and dataloader plugin together ([966c06f](https://github.com/hayes/giraphql/commit/966c06f))
+
+#### 📘 Docs
+
+- add docs for loadableNode ([1ae01e8](https://github.com/hayes/giraphql/commit/1ae01e8))
+
+#### 🛠 Internals
+
+- add tests for loadableNode ([c1b49a0](https://github.com/hayes/giraphql/commit/c1b49a0))
+
+**Note:** Version bump only for package @giraphql/plugin-dataloader
+
+
+
+
+
 ### 2.1.3 - 2021-05-12
 
 #### 🛠 Internals

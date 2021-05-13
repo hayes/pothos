@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.5 - 2021-05-13
+
+#### 📘 Docs
+
+- add docs for loadableNode ([1ae01e8](https://github.com/hayes/giraphql/commit/1ae01e8))
+
+#### 🛠 Internals
+
+- add tests for loadableNode ([c1b49a0](https://github.com/hayes/giraphql/commit/c1b49a0))
+
+**Note:** Version bump only for package @giraphql/converter
+
+
+
+
+
 ### 2.2.4 - 2021-05-12
 
 #### 🐞 Fixes
