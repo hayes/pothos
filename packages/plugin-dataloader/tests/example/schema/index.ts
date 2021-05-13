@@ -4,6 +4,7 @@ import builder from '../builder';
 import { ContextType, IPost } from '../types';
 
 const usersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+const userNodeCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postsCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 
@@ -19,7 +20,6 @@ export const User = builder.loadableObject('User', {
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, usersCounts, keys.length);
-
     return Promise.resolve(
       keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
     );
@@ -27,6 +27,22 @@ export const User = builder.loadableObject('User', {
   fields: (t) => ({
     id: t.exposeID('id', {}),
   }),
+});
+
+const UserNode = builder.loadableNode('UserNode', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  isTypeOf: (obj) =>
+    typeof obj === 'object' && obj !== null && Object.prototype.hasOwnProperty.call(obj, 'id'),
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, userNodeCounts, keys.length);
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+    );
+  },
+  fields: (t) => ({}),
 });
 
 const Post = builder.objectRef<IPost>('Post').implement({
@@ -82,6 +98,7 @@ builder.queryFields((t) => ({
 
       return [
         { name: 'users', ...usersCounts(context) },
+        { name: 'userNodes', ...userNodeCounts(context) },
         { name: 'posts', ...postsCounts(context) },
         { name: 'post', ...postCounts(context) },
       ];
@@ -97,6 +114,25 @@ builder.queryFields((t) => ({
   }),
   users: t.field({
     type: [User],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.stringList({}),
+    },
+    resolve: (_root, args) => args.ids ?? ['123', '456', '789'],
+  }),
+  userNode: t.field({
+    type: User,
+    nullable: true,
+    args: {
+      id: t.arg.string({}),
+    },
+    resolve: (root, args) => args.id ?? '1',
+  }),
+  userNodes: t.field({
+    type: [UserNode],
     nullable: {
       list: true,
       items: true,

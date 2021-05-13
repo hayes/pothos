@@ -273,3 +273,20 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+### Using with the Relay plugin
+
+If you are using the Relay plugin, there is an additional method `loadableNode` that gets added to
+the builder. You can use this method to create `node` objects that work like other loadeble objects.
+
+```ts
+const UserNode = builder.loadableNode('UserNode', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  // For loadable objects we always need to include an isTypeOf check
+  isTypeOf: (obj) => obj instanceof User,
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  fields: (t) => ({}),
+});
+```

@@ -3,12 +3,11 @@ import {
   FieldNullability,
   FieldRef,
   InputFieldMap,
-  InterfaceParam,
-  OutputShape,
+  PluginName,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { DataloaderObjectTypeOptions, LoadableFieldOptions } from './types';
+import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
 import { LoadableObjectRef } from './util';
 import { GiraphQLDataloaderPlugin } from '.';
 
@@ -19,15 +18,17 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
-      loadableObject: <
-        Interfaces extends InterfaceParam<Types>[],
-        Shape extends OutputShape<Types, Interfaces[number]> & object,
-        Key extends bigint | number | string,
-        CacheKey = Key
-      >(
+      loadableObject: <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
         name: string,
-        options: DataloaderObjectTypeOptions<Types, Interfaces, Shape, Key, CacheKey>,
+        options: DataloaderObjectTypeOptions<Types, Shape, Key, CacheKey>,
       ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>;
+
+      loadableNode: 'relay' extends PluginName
+        ? <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
+            name: string,
+            options: LoadableNodeOptions<Types, Shape, Key, CacheKey>,
+          ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>
+        : '@giraphql/plugin-relay is required to use this method';
     }
 
     export interface RootFieldBuilder<
