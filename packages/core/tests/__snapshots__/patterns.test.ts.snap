@@ -1,0 +1,16 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`patterns example generates expected schema 1`] = `
+"type A {
+  b: B!
+}
+
+type B {
+  a: A!
+}
+
+type Query {
+  circular: A!
+}
+"
+`;
