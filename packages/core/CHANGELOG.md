@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.6.0 - 2021-05-18
+
+#### 🚀 Updates
+
+- imporved support for circular imports in schema definitions ([72ddf0a](https://github.com/hayes/giraphql/commit/72ddf0a))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.5.1 - 2021-05-12
 
 **Note:** Version bump only for package @giraphql/core
