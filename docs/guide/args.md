@@ -59,7 +59,7 @@ const Query = builder.queryType({
 
 Args of non-scalar types can also be created with the `t.arg` method.
 
-Valid arg types include `Scalras`, `Enums`, and `Input` types.
+Valid arg types include `Scalars`, `Enums`, and `Input` types.
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
