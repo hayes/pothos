@@ -62,7 +62,8 @@ Enums can be defined a number of different ways:
 
 ## Using Enum Types
 
-Enums can be references either by the `Ref` that was returned by calling `builder.enumType` or by using the typescript enum. They can be used either as arguments, or as field return types:
+Enums can be references either by the `Ref` that was returned by calling `builder.enumType` or by using the typescript enum. 
+They can be used either as arguments, or as field return types:
 
 ```typescript
 builder.objectFields('Giraffe', (t) => ({
