@@ -19,15 +19,15 @@ Enums can be defined a number of different ways:
    }
 
    builder.enumType(Diet, {
-     name: "Diet",
+     name: 'Diet',
    });
    ```
 
 1. Using an array of strings
 
    ```typescript
-   export const LengthUnit = builder.enumType("LengthUnit", {
-     values: ["Feet", "Meters"] as const,
+   export const LengthUnit = builder.enumType('LengthUnit', {
+     values: ['Feet', 'Meters'] as const,
    });
    ```
 
@@ -36,20 +36,20 @@ Enums can be defined a number of different ways:
 1. Using a values object:
 
    ```typescript
-   export const GiraffeSpecies = builder.enumType("GiraffeSpecies", {
+   export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
      values: {
        Southern: {
-         description: "Also known as two-horned giraffe",
-         value: "giraffa",
+         description: 'Also known as two-horned giraffe',
+         value: 'giraffa',
        },
        Masai: {
-         value: "tippelskirchi",
+         value: 'tippelskirchi',
        },
        Reticulated: {
-         value: "reticulata",
+         value: 'reticulata',
        },
        Northern: {
-         value: "camelopardalis",
+         value: 'camelopardalis',
        },
      } as const,
    });
@@ -65,29 +65,29 @@ Enums can be defined a number of different ways:
 Enums can be references either by the `Ref` that was returned by calling `builder.enumType` or by using the typescript enum. They can be used either as arguments, or as field return types:
 
 ```typescript
-builder.objectFields("Giraffe", (t) => ({
+builder.objectFields('Giraffe', (t) => ({
   height: t.float({
     args: {
       unit: t.arg({
         type: LengthUnit,
         required: true,
-        defaultValue: "Meters",
+        defaultValue: 'Meters',
       }),
     },
     resolve: (parent, args) =>
-      args.unit === "Meters"
+      args.unit === 'Meters'
         ? parent.heightInMeters
         : parent.heightInMeters * 3.281,
   }),
   diet: t.field({
     description:
-      "While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium",
+      'While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium',
     type: Diet,
     resolve: () => Diet.HERBIVOROUS,
   }),
   species: t.field({
     type: GiraffeSpecies,
-    resolve: () => "camelopardalis" as const,
+    resolve: () => 'camelopardalis' as const,
   }),
 }));
 ```
