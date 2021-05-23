@@ -5,7 +5,7 @@ menu: Guide
 
 # Object Types
 
-This will walk you through creating your fist object types, some concepts in this guide will be
+This will walk you through creating your first object types, some concepts in this guide will be
 explained further in later guides.
 
 ### Create some data
