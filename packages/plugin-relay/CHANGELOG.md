@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.6 - 2021-05-26
+
+#### 🐞 Fixes
+
+- Make relay connection args optional explicitly ([5eb1390](https://github.com/hayes/giraphql/commit/5eb1390))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.2.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-relay
