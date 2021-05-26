@@ -194,10 +194,10 @@ fieldBuilderProto.connection = function connection(
     type: placeholderRef,
     args: {
       ...fieldOptions.args,
-      before: this.arg.id({}),
-      after: this.arg.id({}),
-      first: this.arg.int({}),
-      last: this.arg.int({}),
+      before: this.arg.id({ required: false }),
+      after: this.arg.id({ required: false }),
+      first: this.arg.int({ required: false }),
+      last: this.arg.int({ required: false }),
     },
     resolve: fieldOptions.resolve as never,
   });
