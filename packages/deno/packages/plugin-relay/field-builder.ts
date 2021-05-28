@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { assertArray, FieldKind, FieldNullability, InputFieldMap, InputShapeFromFields, InterfaceRef, ObjectFieldsShape, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
+import { connectionRefs, globalConnectionFieldsMap } from './schema-builder.ts';
 import { ConnectionShape, GlobalIDFieldOptions, GlobalIDListFieldOptions, GlobalIDShape, } from './types.ts';
 import { resolveNodes } from './utils/index.ts';
 import { internalEncodeGlobalID } from './utils/internal.ts';
@@ -85,29 +86,29 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
     });
 };
 fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { name: connectionNameFromOptions, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions }) {
-    const placeholderRef = this.builder.objectRef<ConnectionShape<unknown, boolean>>("Unnamed connection");
+    const placeholderRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>("Unnamed connection");
     const fieldRef = this.field({
         ...fieldOptions,
         type: placeholderRef,
         args: {
             ...fieldOptions.args,
-            before: this.arg.id({}),
-            after: this.arg.id({}),
-            first: this.arg.int({}),
-            last: this.arg.int({}),
+            before: this.arg.id({ required: false }),
+            after: this.arg.id({ required: false }),
+            first: this.arg.int({ required: false }),
+            last: this.arg.int({ required: false }),
         },
         resolve: fieldOptions.resolve as never,
     });
     this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
         const connectionName = connectionNameFromOptions ??
             `${this.typename}${capitalize(fieldConfig.name)}${fieldConfig.name.toLowerCase().endsWith("connection") ? "" : "Connection"}`;
-        const connectionRef = this.builder.objectRef<ConnectionShape<unknown, false>>(connectionName);
+        const connectionRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
         const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
         const edgeRef = this.builder.objectRef<{
             cursor: string;
             node: unknown;
         }>(edgeName);
-        const connectionFields = (connectionOptions.fields as unknown) as ObjectFieldsShape<SchemaTypes, ConnectionShape<unknown, false>> | undefined;
+        const connectionFields = (connectionOptions.fields as unknown) as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>> | undefined;
         const edgeFields = edgeOptions.fields as ObjectFieldsShape<SchemaTypes, {
             cursor: string;
             node: unknown;
@@ -142,6 +143,11 @@ fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { 
                 ...edgeFields?.(t),
             }),
         });
+        if (!connectionRefs.has(this.builder)) {
+            connectionRefs.set(this.builder, []);
+        }
+        connectionRefs.get(this.builder)!.push(placeholderRef);
+        globalConnectionFieldsMap.get(this.builder)?.forEach((fieldFn) => void fieldFn(placeholderRef));
     });
     return fieldRef as never;
 };

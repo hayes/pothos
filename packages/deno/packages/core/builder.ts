@@ -61,23 +61,23 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             this.configStore.associateRefWithName(param, name);
         }
         if (fields) {
-            this.configStore.addFields(ref, fields(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)));
+            this.configStore.addFields(ref, () => fields(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)));
         }
         if (options.fields) {
-            this.configStore.addFields(ref, options.fields(new ObjectFieldBuilder(name, this)));
+            this.configStore.addFields(ref, () => options.fields!(new ObjectFieldBuilder(name, this)));
         }
         return ref;
     }
     objectFields<Type extends ObjectParam<Types>>(ref: Type, fields: ObjectFieldsShape<Types, ParentShape<Types, Type>>) {
         this.configStore.onTypeConfig(ref, ({ name }) => {
-            this.configStore.addFields(ref, fields(new ObjectFieldBuilder(name, this)));
+            this.configStore.addFields(ref, () => fields(new ObjectFieldBuilder(name, this)));
         });
     }
     objectField<Type extends ObjectParam<Types>>(ref: Type, fieldName: string, field: ObjectFieldThunk<Types, ParentShape<Types, Type>>) {
         this.configStore.onTypeConfig(ref, ({ name }) => {
-            this.configStore.addFields(ref, {
+            this.configStore.addFields(ref, () => ({
                 [fieldName]: field(new ObjectFieldBuilder(name, this)),
-            });
+            }));
         });
     }
     queryType(options: GiraphQLSchemaTypes.QueryTypeOptions<Types>, fields?: QueryFieldsShape<Types>) {
@@ -90,17 +90,17 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         };
         this.configStore.addTypeConfig(config);
         if (fields) {
-            this.configStore.addFields("Query", fields(new QueryFieldBuilder(this)));
+            this.configStore.addFields("Query", () => fields(new QueryFieldBuilder(this)));
         }
         if (options.fields) {
-            this.configStore.addFields("Query", options.fields(new QueryFieldBuilder(this)));
+            this.configStore.addFields("Query", () => options.fields!(new QueryFieldBuilder(this)));
         }
     }
     queryFields(fields: QueryFieldsShape<Types>) {
-        this.configStore.addFields("Query", fields(new QueryFieldBuilder(this)));
+        this.configStore.addFields("Query", () => fields(new QueryFieldBuilder(this)));
     }
     queryField(name: string, field: QueryFieldThunk<Types>) {
-        this.configStore.addFields("Query", { [name]: field(new QueryFieldBuilder(this)) });
+        this.configStore.addFields("Query", () => ({ [name]: field(new QueryFieldBuilder(this)) }));
     }
     mutationType(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>, fields?: MutationFieldsShape<Types>) {
         const config: GiraphQLMutationTypeConfig = {
@@ -112,19 +112,19 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         };
         this.configStore.addTypeConfig(config);
         if (fields) {
-            this.configStore.addFields("Mutation", fields(new MutationFieldBuilder(this)));
+            this.configStore.addFields("Mutation", () => fields(new MutationFieldBuilder(this)));
         }
         if (options.fields) {
-            this.configStore.addFields("Mutation", options.fields(new MutationFieldBuilder(this)));
+            this.configStore.addFields("Mutation", () => options.fields!(new MutationFieldBuilder(this)));
         }
     }
     mutationFields(fields: MutationFieldsShape<Types>) {
-        this.configStore.addFields("Mutation", fields(new MutationFieldBuilder(this)));
+        this.configStore.addFields("Mutation", () => fields(new MutationFieldBuilder(this)));
     }
     mutationField(name: string, field: MutationFieldThunk<Types>) {
-        this.configStore.addFields("Mutation", {
+        this.configStore.addFields("Mutation", () => ({
             [name]: field(new MutationFieldBuilder(this)),
-        });
+        }));
     }
     subscriptionType(options: GiraphQLSchemaTypes.SubscriptionTypeOptions<Types>, fields?: SubscriptionFieldsShape<Types>) {
         const config: GiraphQLSubscriptionTypeConfig = {
@@ -136,19 +136,19 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         };
         this.configStore.addTypeConfig(config);
         if (fields) {
-            this.configStore.addFields("Subscription", fields(new SubscriptionFieldBuilder(this)));
+            this.configStore.addFields("Subscription", () => fields(new SubscriptionFieldBuilder(this)));
         }
         if (options.fields) {
-            this.configStore.addFields("Subscription", options.fields(new SubscriptionFieldBuilder(this)));
+            this.configStore.addFields("Subscription", () => options.fields!(new SubscriptionFieldBuilder(this)));
         }
     }
     subscriptionFields(fields: SubscriptionFieldsShape<Types>) {
-        this.configStore.addFields("Subscription", fields(new SubscriptionFieldBuilder(this)));
+        this.configStore.addFields("Subscription", () => fields(new SubscriptionFieldBuilder(this)));
     }
     subscriptionField(name: string, field: SubscriptionFieldThunk<Types>) {
-        this.configStore.addFields("Subscription", {
+        this.configStore.addFields("Subscription", () => ({
             [name]: field(new SubscriptionFieldBuilder(this)),
-        });
+        }));
     }
     args<Shape extends InputFieldMap>(fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, "Arg">) => Shape): Shape {
         return fields(new InputFieldBuilder<Types, "Arg">(this, "Arg", "[unknown]"));
@@ -176,23 +176,23 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             this.configStore.associateRefWithName(param, name);
         }
         if (fields) {
-            this.configStore.addFields(ref, fields(new InterfaceFieldBuilder(typename, this)));
+            this.configStore.addFields(ref, () => fields(new InterfaceFieldBuilder(typename, this)));
         }
         if (options.fields) {
-            this.configStore.addFields(ref, options.fields(new InterfaceFieldBuilder(typename, this)));
+            this.configStore.addFields(ref, () => options.fields!(new InterfaceFieldBuilder(typename, this)));
         }
         return ref;
     }
     interfaceFields<Type extends InterfaceParam<Types>>(ref: Type, fields: InterfaceFieldsShape<Types, ParentShape<Types, Type>>) {
         this.configStore.onTypeConfig(ref, ({ name }) => {
-            this.configStore.addFields(ref, fields(new InterfaceFieldBuilder(name, this)));
+            this.configStore.addFields(ref, () => fields(new InterfaceFieldBuilder(name, this)));
         });
     }
     interfaceField<Type extends InterfaceParam<Types>>(ref: Type, fieldName: string, field: InterfaceFieldThunk<Types, ParentShape<Types, Type>>) {
         this.configStore.onTypeConfig(ref, ({ name }) => {
-            this.configStore.addFields(ref, {
+            this.configStore.addFields(ref, () => ({
                 [fieldName]: field(new InterfaceFieldBuilder(name, this)),
-            });
+            }));
         });
     }
     unionType<Member extends ObjectParam<Types>>(name: string, options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>) {
@@ -270,7 +270,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputObjectTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);
-        this.configStore.addFields(ref, options.fields(new InputFieldBuilder(this, "InputObject", name)));
+        this.configStore.addFields(ref, () => options.fields(new InputFieldBuilder(this, "InputObject", name)));
         return ref;
     }
     inputRef<T extends object>(name: string): ImplementableInputObjectRef<Types, T> {

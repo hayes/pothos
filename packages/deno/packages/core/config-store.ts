@@ -11,6 +11,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, GiraphQLTypeConfig>();
     private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>>();
     private fields = new Map<string, Record<string, GiraphQLFieldConfig<Types>>>();
+    private addFieldFns: (() => void)[] = [];
     private refsToName = new Map<ConfigurableRef<Types>, string>();
     private scalarsToRefs = new Map<string, BuiltinScalarRef<unknown, unknown>>();
     private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, GiraphQLFieldConfig<Types>[]>();
@@ -188,6 +189,9 @@ export default class ConfigStore<Types extends SchemaTypes> {
         return ref as OutputType<Types>;
     }
     onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: GiraphQLTypeConfig) => void) {
+        if (!ref) {
+            throw new Error(`${ref} is not a valid type ref`);
+        }
         if (this.refsToName.has(ref)) {
             cb(this.getTypeConfig(ref));
         }
@@ -227,16 +231,24 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     prepareForBuild() {
         this.pending = false;
+        const fns = this.addFieldFns;
+        this.addFieldFns = [];
+        fns.forEach((fn) => void fn());
         if (this.pendingRefResolutions.size !== 0) {
             throw new Error(`Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
                 .map((ref) => this.describeRef(ref))
                 .join(", ")}).`);
         }
     }
-    addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
-        this.onTypeConfig(typeRef, (config) => {
-            this.buildFields(typeRef, fields);
-        });
+    addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap | (() => FieldMap | InputFieldMap)) {
+        if (this.pending) {
+            this.addFieldFns.push(() => void this.addFields(typeRef, fields));
+        }
+        else {
+            this.onTypeConfig(typeRef, (config) => {
+                this.buildFields(typeRef, typeof fields === "function" ? fields() : fields);
+            });
+        }
     }
     getImplementers(ref: ConfigurableRef<Types> | string) {
         const typeConfig = this.getTypeConfig(ref, "Interface");

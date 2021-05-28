@@ -26,14 +26,14 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
     id: OutputShape<Types, "ID">;
     type: OutputType<Types> | string;
 }
-export type ConnectionShape<T, Nullable> = (Nullable extends false ? never : null | undefined) | {
+export type ConnectionShape<Types extends SchemaTypes, T, Nullable> = (Nullable extends false ? never : null | undefined) | (Types["Connection"] & {
     pageInfo: PageInfoShape;
     edges: ({
         cursor: string;
         node: T;
     } | null | undefined)[];
-};
-export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean> = ConnectionShape<ShapeFromTypeParam<Types, Type, true>, Nullable>;
+});
+export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, true>, Nullable>;
 export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, Resolved> = Resolved extends Promise<infer T> ? T extends ConnectionShapeForType<Types, Type, Nullable> ? T : never : Resolved extends ConnectionShapeForType<Types, Type, Nullable> ? Resolved : never;
 export interface DefaultConnectionArguments {
     first?: number | null | undefined;

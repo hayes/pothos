@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectParam, ObjectRef, OutputShape, OutputType, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-import { ConnectionEdgeObjectOptions, ConnectionFieldOptions, ConnectionObjectOptions, ConnectionShapeForType, ConnectionShapeFromResolve, DefaultConnectionArguments, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayPluginOptions, } from './types.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { ConnectionEdgeObjectOptions, ConnectionFieldOptions, ConnectionObjectOptions, ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, DefaultConnectionArguments, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayPluginOptions, } from './types.ts';
 import { GiraphQLRelayPlugin } from './index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
@@ -10,10 +10,18 @@ declare global {
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             relayOptions: RelayPluginOptions<Types>;
         }
+        export interface UserSchemaTypes {
+            Connection: {};
+        }
+        export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+            Connection: undefined extends PartialTypes["Connection"] ? {} : PartialTypes["Connection"] & {};
+        }
         export interface SchemaBuilder<Types extends SchemaTypes> {
             pageInfoRef: () => ObjectRef<PageInfoShape>;
             nodeInterfaceRef: () => InterfaceRef<unknown>;
             node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces>, fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>) => ObjectRef<OutputShape<Types, Param>>;
+            globalConnectionFields: (fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>) => void;
+            globalConnectionField: (name: string, field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>) => void;
         }
         export interface InputFieldBuilder<Types extends SchemaTypes, Kind extends "Arg" | "InputObject"> {
             globalID: <Req extends boolean>(options: GlobalIDInputFieldOptions<Types, Req, Kind>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>>;

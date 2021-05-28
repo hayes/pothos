@@ -1,5 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import { SchemaTypes } from '../../core/index.ts';
 import { ConnectionShape, DefaultConnectionArguments } from '../types.ts';
 interface ResolveOffsetConnectionOptions {
     args: DefaultConnectionArguments;
@@ -58,7 +59,7 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 export async function resolveOffsetConnection<T>(options: ResolveOffsetConnectionOptions, resolve: (params: {
     offset: number;
     limit: number;
-}) => Promise<T[]> | T[]): Promise<ConnectionShape<T, boolean>> {
+}) => Promise<T[]> | T[]): Promise<ConnectionShape<SchemaTypes, T, boolean>> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = await resolve({ offset, limit });
     const edges = nodes.map((value, index) => ({
@@ -86,7 +87,7 @@ export function cursorToOffset(cursor: string): number {
 export function offsetToCursor(offset: number): string {
     return Buffer.from(`${OFFSET_CURSOR_PREFIX}${offset}`).toString("base64");
 }
-export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<T, boolean> {
+export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, T, boolean> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = array.slice(offset, offset + limit);
     const edges = nodes.map((value, index) => ({
