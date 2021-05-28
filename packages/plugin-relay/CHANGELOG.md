@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.3.0 - 2021-05-28
+
+#### 🚀 Updates
+
+- add globalConnectionField methods for extending connection objects ([a22e7e3](https://github.com/hayes/giraphql/commit/a22e7e3))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.2.6 - 2021-05-26
 
 #### 🐞 Fixes
