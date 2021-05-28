@@ -67,9 +67,9 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
   type: OutputType<Types> | string;
 }
 
-export type ConnectionShape<T, Nullable> =
+export type ConnectionShape<Types extends SchemaTypes, T, Nullable> =
   | (Nullable extends false ? never : null | undefined)
-  | {
+  | (Types['Connection'] & {
       pageInfo: PageInfoShape;
       edges: (
         | {
@@ -79,13 +79,13 @@ export type ConnectionShape<T, Nullable> =
         | null
         | undefined
       )[];
-    };
+    });
 
 export type ConnectionShapeForType<
   Types extends SchemaTypes,
   Type extends OutputType<Types>,
   Nullable extends boolean
-> = ConnectionShape<ShapeFromTypeParam<Types, Type, true>, Nullable>;
+> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, true>, Nullable>;
 
 export type ConnectionShapeFromResolve<
   Types extends SchemaTypes,

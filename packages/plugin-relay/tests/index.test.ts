@@ -1,10 +1,15 @@
 import { gql } from 'apollo-server';
-import { execute, lexicographicSortSchema, printSchema } from 'graphql';
+import { execute, printSchema } from 'graphql';
+import schemaWithGlobalConnectionFields from './examples/global-connection-fields/schema';
 import schema from './examples/relay/schema';
 
 describe('relay example schema', () => {
   it('generates expected schema', () => {
-    expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
+    expect(printSchema(schema)).toMatchSnapshot();
+  });
+
+  it('generates expected schema with globalConnectionFields', () => {
+    expect(printSchema(schemaWithGlobalConnectionFields)).toMatchSnapshot();
   });
 
   describe('queries', () => {

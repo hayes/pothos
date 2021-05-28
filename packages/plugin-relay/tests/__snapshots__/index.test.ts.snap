@@ -133,6 +133,151 @@ type QueryPollsConnectionEdge {
 "
 `;
 
+exports[`relay example schema generates expected schema with globalConnectionFields 1`] = `
+"type Answer {
+  count: Int!
+  id: ID!
+  value: String!
+}
+
+type BatchNumber implements Node {
+  id: ID!
+  number: Int!
+}
+
+input GlobalIDInput {
+  circular: GlobalIDInput
+  circularWithoutGlobalIds: NoGlobalIDInput
+  id: ID!
+  idList: [ID!]!
+}
+
+type Mutation {
+  answerPoll(answer: Int!, id: ID!): Poll!
+  createPoll(answers: [String!]!, question: String!): Poll!
+}
+
+input NoGlobalIDInput {
+  circular: NoGlobalIDInput
+  id: ID
+}
+
+interface Node {
+  id: ID!
+}
+
+type Number implements Node {
+  id: ID!
+  number: Int!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Poll implements Node {
+  answers: [Answer!]!
+  answersConnection(after: ID, before: ID, first: Int, last: Int): PollAnswersConnection!
+  answersUsingOffset(after: ID, before: ID, first: Int, last: Int): PollAnswersUsingOffsetConnection!
+  answersWithoutHelpers(after: ID, before: ID, first: Int, last: Int): PollAnswersCon!
+  id: ID!
+  question: String!
+  updatedAt: String!
+}
+
+type PollAnswersCon {
+  edges: [PollAnswersConEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type PollAnswersConEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersConnection {
+  edges: [PollAnswersConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type PollAnswersConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersUsingOffsetConnection {
+  edges: [PollAnswersUsingOffsetConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type PollAnswersUsingOffsetConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type Query {
+  batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  extraNode: Node
+  inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
+  moreNodes: [Node]!
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
+  poll(id: Int!): Poll
+  pollIds: [ID!]!
+  polls: [Poll!]!
+  pollsConnection(after: ID, before: ID, first: Int, last: Int): QueryPollsConnection!
+}
+
+type QueryBatchNumbersConnection {
+  edges: [QueryBatchNumbersConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryBatchNumbersConnectionEdge {
+  cursor: String!
+  node: BatchNumber!
+}
+
+type QueryNumbersConnection {
+  edges: [QueryNumbersConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryNumbersConnectionEdge {
+  cursor: String!
+  node: Number!
+}
+
+type QueryPollsConnection {
+  edges: [QueryPollsConnectionEdge]!
+  extraConnectionField: String!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryPollsConnectionEdge {
+  cursor: String!
+  extraEdgeField: Int!
+  node: Poll!
+}
+"
+`;
+
 exports[`relay example schema queries query array based connections 1`] = `
 Object {
   "data": Object {

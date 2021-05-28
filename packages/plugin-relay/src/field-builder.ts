@@ -10,6 +10,7 @@ import {
   RootFieldBuilder,
   SchemaTypes,
 } from '@giraphql/core';
+import { connectionRefs, globalConnectionFieldsMap } from './schema-builder';
 import {
   ConnectionShape,
   GlobalIDFieldOptions,
@@ -185,7 +186,7 @@ fieldBuilderProto.connection = function connection(
   { name: connectionNameFromOptions, ...connectionOptions },
   { name: edgeNameFromOptions, ...edgeOptions },
 ) {
-  const placeholderRef = this.builder.objectRef<ConnectionShape<unknown, boolean>>(
+  const placeholderRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>(
     'Unnamed connection',
   );
 
@@ -208,7 +209,10 @@ fieldBuilderProto.connection = function connection(
       `${this.typename}${capitalize(fieldConfig.name)}${
         fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
       }`;
-    const connectionRef = this.builder.objectRef<ConnectionShape<unknown, false>>(connectionName);
+    const connectionRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(
+      connectionName,
+    );
+
     const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
     const edgeRef = this.builder.objectRef<{
       cursor: string;
@@ -216,7 +220,7 @@ fieldBuilderProto.connection = function connection(
     }>(edgeName);
 
     const connectionFields = (connectionOptions.fields as unknown) as
-      | ObjectFieldsShape<SchemaTypes, ConnectionShape<unknown, false>>
+      | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>
       | undefined;
 
     const edgeFields = edgeOptions.fields as
@@ -261,6 +265,14 @@ fieldBuilderProto.connection = function connection(
         ...edgeFields?.(t),
       }),
     });
+
+    if (!connectionRefs.has(this.builder)) {
+      connectionRefs.set(this.builder, []);
+    }
+
+    connectionRefs.get(this.builder)!.push(placeholderRef);
+
+    globalConnectionFieldsMap.get(this.builder)?.forEach((fieldFn) => void fieldFn(placeholderRef));
   });
 
   return fieldRef as never;
