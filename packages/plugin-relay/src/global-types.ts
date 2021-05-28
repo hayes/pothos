@@ -12,6 +12,7 @@ import {
   InterfaceParam,
   InterfaceRef,
   ObjectFieldsShape,
+  ObjectFieldThunk,
   ObjectParam,
   ObjectRef,
   OutputShape,
@@ -23,6 +24,7 @@ import {
   ConnectionEdgeObjectOptions,
   ConnectionFieldOptions,
   ConnectionObjectOptions,
+  ConnectionShape,
   ConnectionShapeForType,
   ConnectionShapeFromResolve,
   DefaultConnectionArguments,
@@ -49,6 +51,16 @@ declare global {
       relayOptions: RelayPluginOptions<Types>;
     }
 
+    export interface UserSchemaTypes {
+      Connection: {};
+    }
+
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+      Connection: undefined extends PartialTypes['Connection']
+        ? {}
+        : PartialTypes['Connection'] & {};
+    }
+
     export interface SchemaBuilder<Types extends SchemaTypes> {
       pageInfoRef: () => ObjectRef<PageInfoShape>;
       nodeInterfaceRef: () => InterfaceRef<unknown>;
@@ -58,6 +70,15 @@ declare global {
         options: NodeObjectOptions<Types, Param, Interfaces>,
         fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
       ) => ObjectRef<OutputShape<Types, Param>>;
+
+      globalConnectionFields: (
+        fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>,
+      ) => void;
+
+      globalConnectionField: (
+        name: string,
+        field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>,
+      ) => void;
     }
 
     export interface InputFieldBuilder<

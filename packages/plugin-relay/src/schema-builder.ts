@@ -2,12 +2,14 @@ import SchemaBuilder, {
   FieldRef,
   InterfaceParam,
   InterfaceRef,
+  ObjectFieldsShape,
+  ObjectFieldThunk,
   ObjectParam,
   ObjectRef,
   OutputRef,
   SchemaTypes,
 } from '@giraphql/core';
-import { GlobalIDShape, PageInfoShape } from './types';
+import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { resolveNodes } from './utils';
 
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -20,6 +22,16 @@ const pageInfoRefMap = new WeakMap<
 const nodeInterfaceRefMap = new WeakMap<
   GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
   InterfaceRef<ObjectParam<SchemaTypes>>
+>();
+
+export const connectionRefs = new WeakMap<
+  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>[]
+>();
+
+export const globalConnectionFieldsMap = new WeakMap<
+  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  ((ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]
 >();
 
 schemaBuilderProto.pageInfoRef = function pageInfoRef() {
@@ -178,4 +190,39 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
 
   // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return ref;
+};
+
+schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
+  const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
+    this.objectField(
+      ref,
+      name,
+      field as ObjectFieldThunk<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
+    );
+  };
+
+  connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
+
+  if (!globalConnectionFieldsMap.has(this)) {
+    globalConnectionFieldsMap.set(this, []);
+  }
+
+  globalConnectionFieldsMap.get(this)!.push(onRef);
+};
+
+schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fields) {
+  const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
+    this.objectFields(
+      ref,
+      fields as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
+    );
+  };
+
+  connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
+
+  if (!globalConnectionFieldsMap.has(this)) {
+    globalConnectionFieldsMap.set(this, []);
+  }
+
+  globalConnectionFieldsMap.get(this)!.push(onRef);
 };

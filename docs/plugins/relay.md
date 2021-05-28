@@ -307,3 +307,81 @@ const builder = new SchemaBuilder({
   },
 });
 ```
+
+### Extending all connections
+
+There are 2 builder methods for adding fields to all connection objects: `t.globalConnectionField`
+and `t.globalConnectionFields`. These methods work like many of the other methods on the builder for
+adding fields to objects or interfaces.
+
+```typescript
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) => 123,
+  }),
+);
+// Or
+builder.globalConnectionFields((t) => ({
+  totalCount: t.int({
+    nullable: false,
+    resolve: (parent) => 123,
+  }),
+}));
+```
+
+In the above example, we are just returning a static numer for our `totalCount` field. To make this
+more useful, we need to have our resolvers for each connection actually return an object that
+contains a totalCount for us. To guarantee that resolvers correclty implement this behavior, we can
+define custom properties that must be returned from connection resolvers when we set up our builder:
+
+```typescript
+import '@giraphql/plugin-relay';
+const builder = new SchemaBuilder<{
+  Connection: {
+    totalCount: number;
+  };
+}>({
+  plugins: ['GiraphQLRelay'],
+  relayOptions: {
+    nodeQueryOptions: {},
+    nodesQueryOptions: {},
+    nodeTypeOptions: {},
+    pageInfoTypeOptions: {},
+  },
+});
+```
+
+Now typescript will ensure that objects returned from each connection resolver include a totalCount
+property, which we can use in our connection fields:
+
+```typescript
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) => parent.totalCount,
+  }),
+);
+```
+
+Note that adding additional required properties will make it harder to use the provided connection
+helpers since they will not automatically return your custom properties. You will need to manually
+add in any custom props after gettig the result from the helpers:
+
+```typescript
+builder.queryFields((t) => ({
+  posts: t.connection(
+    {
+      type: Post,
+      resolve: (parent, args, context) => {
+        const postsArray = context.Posts.getAll();
+        const result = resolveArrayConnection({ args }, postsArray);
+
+        return result && { totalCount: postsArray.length, ...result };
+      },
+    },
+    {},
+    {},
+  ),
+}));
+```
