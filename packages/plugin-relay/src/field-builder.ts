@@ -17,7 +17,7 @@ import {
   GlobalIDListFieldOptions,
   GlobalIDShape,
 } from './types';
-import { resolveNodes } from './utils';
+import { capitalize, resolveNodes } from './utils';
 import { internalEncodeGlobalID } from './utils/internal';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
@@ -25,10 +25,6 @@ const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.Root
   unknown,
   FieldKind
 >;
-
-function capitalize(s: string) {
-  return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
-}
 
 fieldBuilderProto.globalIDList = function globalIDList<
   Args extends InputFieldMap,

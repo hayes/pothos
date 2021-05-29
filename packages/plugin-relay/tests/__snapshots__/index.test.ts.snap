@@ -12,6 +12,16 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+input ExampleMutationInput {
+  clientMutationId: ID!
+  id: ID!
+}
+
+type ExampleMutationPayload {
+  clientMutationId: ID!
+  itWorked: Boolean!
+}
+
 input GlobalIDInput {
   circular: GlobalIDInput
   circularWithoutGlobalIds: NoGlobalIDInput
@@ -22,6 +32,7 @@ input GlobalIDInput {
 type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
+  exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
 }
 
 input NoGlobalIDInput {
@@ -145,6 +156,16 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+input ExampleMutationInput {
+  clientMutationId: ID!
+  id: ID!
+}
+
+type ExampleMutationPayload {
+  clientMutationId: ID!
+  itWorked: Boolean!
+}
+
 input GlobalIDInput {
   circular: GlobalIDInput
   circularWithoutGlobalIds: NoGlobalIDInput
@@ -155,6 +176,7 @@ input GlobalIDInput {
 type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
+  exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
 }
 
 input NoGlobalIDInput {
