@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.4.0-alpha.1 - 2021-05-29
+
+#### 🐞 Fixes
+
+- rename resultFuelds to outputFields ([e00be1b](https://github.com/hayes/giraphql/commit/e00be1b))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ## 2.4.0-alpha.0 - 2021-05-29
 
 #### 🚀 Updates
