@@ -27,6 +27,9 @@ const builder = new SchemaBuilder({
     nodesQueryOptions: {},
     nodeTypeOptions: {},
     pageInfoTypeOptions: {},
+    clientMutationIdFieldOptions: {},
+    clientMutationIdInputOptions: {},
+    mutationInputArgOptions: {},
   },
 });
 ```
@@ -35,6 +38,11 @@ The options objects here are required, but will often be empty. Like many other 
 GiraphQL API, options objects are required because other plugins may contribute required options.
 These options objects will enable things like defining auth policies for your node query fields if
 you are using the auth plugin.
+
+`clientMutationIdFieldOptions`, `clientMutationIdInputOptions`, and `mutationInputArgOptions` are
+currently typed as optional because they were added in a non-major version. If they are omitted, a
+runtime error will be raised when using the `relayMutationField` method. These options will become
+required in the next major version.
 
 ### Global ids
 
@@ -236,6 +244,83 @@ builder.queryFields((t) => ({
 ```
 
 I am planning to add more helpers in the future.
+
+### Relay Mutations
+
+You can use the `relayMutationField` method to define relay compliant mutation fields. This method
+will generate a mutation field, an input object with a `clientMutationId` field, and an output
+object with the corresponding `clientMutationId`.
+
+Example ussage:
+
+```typescript
+builder.relayMutationField(
+  'deleteItem',
+  {
+    inputFields: (t) => ({
+      id: t.id({
+        required: true,
+      }),
+    }),
+  },
+  {
+    resolve: async (root, args, ctx) => {
+      if (ctx.items.has(args.input.id)) {
+        ctx.items.delete(args.input.id)
+
+        return { success: true }
+      }
+
+      return { sucess: false }
+    },
+  },
+  {
+    outputFields: (t) => ({
+      sucess: t.boolean({
+        resolve: (result) => result.success,
+      }),
+    }),
+  },
+);
+```
+
+Which produces the following graphql types:
+
+```graphql
+input DeleteItemInput {
+  clientMutationId: ID!
+  id: ID!
+}
+
+type DeleteItemPayload {
+  clientMutationId: ID!
+  itWorked: Boolean!
+}
+
+type Mutation {
+  deleteItem(input: DeleteItemInput!): DeleteItemPayload!
+}
+```
+
+The `relayMutationField` has 4 arguments:
+
+* `name`: Name of the mutation field
+* `inputOptions`: Options for the `input` object
+* `fieldOptions`: Options for the mutation field
+* `payloadOptions`: Options for the Payload object
+
+The `inputOptions` has a couple of non-standard options:
+
+* `name` which can be used to set the name of the input object
+* `argName` which can be used to overwrite the default arguments name (`input`).
+
+The `payloadOptions` object also accepts a `name` property for setting the name of the payload object.
+
+In addition the options provided in the function call, options from the builder setup are used when creating relay mutations:
+
+- `clientMutationIdFieldOptions`: Applied to the `clientMutationId` field of the Payload object
+- `clientMutationIdInputOptions`: Applied to the `clientMutationId` field of the Input object
+- `mutationInputArgOptions`: Applied to the `input` argument of the mutation field
 
 ### Expose nodes
 
