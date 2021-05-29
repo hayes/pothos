@@ -12,12 +12,28 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+\\"\\"\\"input type\\"\\"\\"
+input CustomInputName {
+  \\"\\"\\"client id input\\"\\"\\"
+  clientMutationId: ID!
+  id: ID!
+}
+
+\\"\\"\\"output type\\"\\"\\"
+type CustomOutputName {
+  \\"\\"\\"client id output\\"\\"\\"
+  clientMutationId: ID!
+  itWorked: Boolean!
+}
+
 input ExampleMutationInput {
+  \\"\\"\\"client id input\\"\\"\\"
   clientMutationId: ID!
   id: ID!
 }
 
 type ExampleMutationPayload {
+  \\"\\"\\"client id output\\"\\"\\"
   clientMutationId: ID!
   itWorked: Boolean!
 }
@@ -32,7 +48,16 @@ input GlobalIDInput {
 type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
-  exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
+  exampleMutation(
+    \\"\\"\\"mutation input arg\\"\\"\\"
+    input: ExampleMutationInput!
+  ): ExampleMutationPayload!
+
+  \\"\\"\\"mutation field\\"\\"\\"
+  exampleWithDescriptions(
+    \\"\\"\\"mutation input arg\\"\\"\\"
+    customInput: CustomInputName!
+  ): CustomOutputName!
 }
 
 input NoGlobalIDInput {
@@ -40,6 +65,7 @@ input NoGlobalIDInput {
   id: ID
 }
 
+\\"\\"\\"node type\\"\\"\\"
 interface Node {
   id: ID!
 }
@@ -49,6 +75,7 @@ type Number implements Node {
   number: Int!
 }
 
+\\"\\"\\"page info type\\"\\"\\"
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -101,7 +128,11 @@ type Query {
   extraNode: Node
   inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
+
+  \\"\\"\\"node query\\"\\"\\"
   node(id: ID!): Node
+
+  \\"\\"\\"nodes query\\"\\"\\"
   nodes(ids: [ID!]!): [Node]!
   numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
   poll(id: Int!): Poll
@@ -156,12 +187,28 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+\\"\\"\\"input type\\"\\"\\"
+input CustomInputName {
+  \\"\\"\\"client id input\\"\\"\\"
+  clientMutationId: ID!
+  id: ID!
+}
+
+\\"\\"\\"output type\\"\\"\\"
+type CustomOutputName {
+  \\"\\"\\"client id output\\"\\"\\"
+  clientMutationId: ID!
+  itWorked: Boolean!
+}
+
 input ExampleMutationInput {
+  \\"\\"\\"client id input\\"\\"\\"
   clientMutationId: ID!
   id: ID!
 }
 
 type ExampleMutationPayload {
+  \\"\\"\\"client id output\\"\\"\\"
   clientMutationId: ID!
   itWorked: Boolean!
 }
@@ -176,7 +223,16 @@ input GlobalIDInput {
 type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
-  exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
+  exampleMutation(
+    \\"\\"\\"mutation input arg\\"\\"\\"
+    input: ExampleMutationInput!
+  ): ExampleMutationPayload!
+
+  \\"\\"\\"mutation field\\"\\"\\"
+  exampleWithDescriptions(
+    \\"\\"\\"mutation input arg\\"\\"\\"
+    customInput: CustomInputName!
+  ): CustomOutputName!
 }
 
 input NoGlobalIDInput {
@@ -184,6 +240,7 @@ input NoGlobalIDInput {
   id: ID
 }
 
+\\"\\"\\"node type\\"\\"\\"
 interface Node {
   id: ID!
 }
@@ -193,6 +250,7 @@ type Number implements Node {
   number: Int!
 }
 
+\\"\\"\\"page info type\\"\\"\\"
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -251,7 +309,11 @@ type Query {
   extraNode: Node
   inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
+
+  \\"\\"\\"node query\\"\\"\\"
   node(id: ID!): Node
+
+  \\"\\"\\"nodes query\\"\\"\\"
   nodes(ids: [ID!]!): [Node]!
   numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
   poll(id: Int!): Poll

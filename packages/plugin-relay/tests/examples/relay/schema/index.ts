@@ -124,4 +124,37 @@ builder.relayMutationField(
   },
 );
 
+builder.relayMutationField(
+  'exampleWithDescriptions',
+  {
+    name: 'CustomInputName',
+    argName: 'customInput',
+    description: 'input type',
+    inputFields: (t) => ({
+      id: t.id({
+        required: true,
+      }),
+    }),
+  },
+  {
+    description: 'mutation field',
+    resolve: async (root, args) => {
+      if (!args.customInput.clientMutationId) {
+        throw new Error('clientMutationId is missing');
+      }
+
+      return Promise.resolve({ status: args.customInput.id === '123' ? 200 : 500 });
+    },
+  },
+  {
+    name: 'CustomOutputName',
+    description: 'output type',
+    outputFields: (t) => ({
+      itWorked: t.boolean({
+        resolve: (parent) => parent.status === 200,
+      }),
+    }),
+  },
+);
+
 export default builder.toSchema({});

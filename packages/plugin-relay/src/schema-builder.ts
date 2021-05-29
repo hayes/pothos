@@ -304,7 +304,8 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       resolve: (root, args, context, info) => {
         mutationIdCache(context).set(
           String(info.path.key),
-          ((args as unknown) as { input: { clientMutationId: string } }).input.clientMutationId,
+          ((args as unknown) as Record<string, { clientMutationId: string }>)[argName]
+            .clientMutationId,
         );
 
         return resolve(root, args as never, context, info);

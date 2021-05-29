@@ -370,6 +370,10 @@ describe('relay example schema', () => {
             clientMutationId
             itWorked
           }
+          exampleWithDescriptions(customInput: { clientMutationId: "c", id: "123" }) {
+            clientMutationId
+            itWorked
+          }
         }
       `;
 
@@ -389,6 +393,10 @@ describe('relay example schema', () => {
             "b": Object {
               "clientMutationId": "b",
               "itWorked": false,
+            },
+            "exampleWithDescriptions": Object {
+              "clientMutationId": "c",
+              "itWorked": true,
             },
           },
         }
