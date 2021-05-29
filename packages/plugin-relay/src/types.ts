@@ -7,6 +7,7 @@ import {
   InputFieldMap,
   InputFieldRef,
   InputFieldsFromShape,
+  InputRef,
   InputShape,
   InputShapeFromFields,
   inputShapeKey,
@@ -46,6 +47,29 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
       true,
       { ids: InputFieldRef<InputShape<Types, 'ID'>[]> },
       Promise<unknown>[]
+    >,
+    'args' | 'nullable' | 'resolve' | 'type'
+  >;
+  mutationInputArgOptions?: Omit<
+    GiraphQLSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
+    'fields' | 'required' | 'type'
+  >;
+  clientMutationIdInputOptions?: Omit<
+    GiraphQLSchemaTypes.InputObjectFieldOptions<
+      Types,
+      InputRef<Types['Scalars']['ID']['Input']>,
+      true
+    >,
+    'args' | 'nullable' | 'resolve' | 'type'
+  >;
+  clientMutationIdFieldOptions?: Omit<
+    GiraphQLSchemaTypes.ObjectFieldOptions<
+      Types,
+      {},
+      OutputRef<Types['Scalars']['ID']['Output']>,
+      false,
+      {},
+      Types['Scalars']['ID']['Output']
     >,
     'args' | 'nullable' | 'resolve' | 'type'
   >;

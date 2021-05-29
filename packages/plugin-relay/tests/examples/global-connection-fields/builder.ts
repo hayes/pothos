@@ -21,5 +21,8 @@ export default new SchemaBuilder<UserSchemaTypes>({
     nodesQueryOptions: {},
     nodeTypeOptions: {},
     pageInfoTypeOptions: {},
+    clientMutationIdFieldOptions: {},
+    clientMutationIdInputOptions: {},
+    mutationInputArgOptions: {},
   },
 });
