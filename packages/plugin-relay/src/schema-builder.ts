@@ -246,11 +246,37 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     ...paylaodOptions
   },
 ) {
+  const {
+    relayOptions: {
+      clientMutationIdInputOptions,
+      clientMutationIdFieldOptions,
+      mutationInputArgOptions,
+    },
+  } = this.options;
+
+  if (!mutationInputArgOptions) {
+    throw new Error(
+      'relayOptions.mutationInputArgOptions must be set in builder options to use `relayMutationField`',
+    );
+  }
+
+  if (!clientMutationIdInputOptions) {
+    throw new Error(
+      'relayOptions.clientMutationIdInputOptions must be set in builder options to use `relayMutationField`',
+    );
+  }
+
+  if (!clientMutationIdFieldOptions) {
+    throw new Error(
+      'relayOptions.clientMutationIdFieldOptions must be set in builder options to use `relayMutationField`',
+    );
+  }
+
   const inputRef = this.inputType(inputName, {
     ...inputOptions,
     fields: (t) => ({
       ...inputFields(t),
-      clientMutationId: t.id({ required: true }),
+      clientMutationId: t.id({ ...clientMutationIdInputOptions, required: true }),
     }),
   });
 
@@ -260,6 +286,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     fields: (t) => ({
       ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
       clientMutationId: t.id({
+        ...clientMutationIdFieldOptions,
         nullable: false,
         resolve: (parent, args, context, info) =>
           mutationIdCache(context).get(String(info.path.prev!.key))!,
@@ -269,9 +296,10 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 
   this.mutationField(fieldName, (t) =>
     t.field({
+      ...(fieldOptions as {}),
       type: payloadRef,
       args: {
-        [argName]: t.arg({ type: inputRef, required: true }),
+        [argName]: t.arg({ ...(mutationInputArgOptions as {}), type: inputRef, required: true }),
       },
       resolve: (root, args, context, info) => {
         mutationIdCache(context).set(
