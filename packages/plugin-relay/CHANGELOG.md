@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.4.0-alpha.2 - 2021-05-29
+
+#### 🐞 Fixes
+
+- add builder options for generated fields and args ([52a218a](https://github.com/hayes/giraphql/commit/52a218a))
+
+#### 🛠 Internals
+
+- add tests for relayMutation options ([656b1c0](https://github.com/hayes/giraphql/commit/656b1c0))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.4.0-alpha.1 - 2021-05-29
 
 #### 🐞 Fixes
