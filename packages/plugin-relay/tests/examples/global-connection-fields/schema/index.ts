@@ -97,6 +97,33 @@ builder.queryType({
 
 builder.mutationType({ fields: (t) => ({}) });
 
+builder.relayMutationField(
+  'exampleMutation',
+  {
+    inputFields: (t) => ({
+      id: t.id({
+        required: true,
+      }),
+    }),
+  },
+  {
+    resolve: async (root, args) => {
+      if (!args.input.clientMutationId) {
+        throw new Error('clientMutationId is missing');
+      }
+
+      return Promise.resolve({ status: args.input.id === '123' ? 200 : 500 });
+    },
+  },
+  {
+    resultFields: (t) => ({
+      itWorked: t.boolean({
+        resolve: (parent) => parent.status === 200,
+      }),
+    }),
+  },
+);
+
 builder.globalConnectionField('totalCount', (t) =>
   t.int({
     nullable: false,

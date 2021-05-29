@@ -37,6 +37,9 @@ import {
   NodeListFieldOptions,
   NodeObjectOptions,
   PageInfoShape,
+  RelayMutationFieldOptions,
+  RelayMutationInputOptions,
+  RelayMutationPayloadOptions,
   RelayPluginOptions,
 } from './types';
 import { GiraphQLRelayPlugin } from '.';
@@ -78,6 +81,27 @@ declare global {
       globalConnectionField: (
         name: string,
         field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>,
+      ) => void;
+
+      relayMutationField: <
+        Fields extends InputFieldMap,
+        Nullable extends boolean,
+        ResolveShape,
+        ResolveReturnShape,
+        Interfaces extends InterfaceParam<Types>[],
+        InputName extends string = 'input'
+      >(
+        name: string,
+        inputOptions: RelayMutationInputOptions<Types, Fields, InputName>,
+        fieldOptions: RelayMutationFieldOptions<
+          Types,
+          Fields,
+          Nullable,
+          InputName,
+          ResolveShape,
+          ResolveReturnShape
+        >,
+        payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>,
       ) => void;
     }
 

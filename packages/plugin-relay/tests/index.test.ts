@@ -357,4 +357,42 @@ describe('relay example schema', () => {
       `);
     });
   });
+
+  describe('mutations', () => {
+    it('returns correct clientMutationId', async () => {
+      const query = gql`
+        mutation {
+          a: exampleMutation(input: { clientMutationId: "a", id: "123" }) {
+            clientMutationId
+            itWorked
+          }
+          b: exampleMutation(input: { clientMutationId: "b", id: "345" }) {
+            clientMutationId
+            itWorked
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        Object {
+          "data": Object {
+            "a": Object {
+              "clientMutationId": "a",
+              "itWorked": true,
+            },
+            "b": Object {
+              "clientMutationId": "b",
+              "itWorked": false,
+            },
+          },
+        }
+      `);
+    });
+  });
 });

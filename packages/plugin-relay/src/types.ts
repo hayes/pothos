@@ -12,9 +12,11 @@ import {
   inputShapeKey,
   InterfaceParam,
   MaybePromise,
+  ObjectFieldsShape,
   ObjectParam,
   ObjectRef,
   ObjectTypeOptions,
+  OutputRef,
   OutputRefShape,
   OutputShape,
   OutputType,
@@ -22,6 +24,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@giraphql/core';
+import InputFieldBuilder from '@giraphql/core/src/fieldUtils/input';
 
 export interface RelayPluginOptions<Types extends SchemaTypes> {
   nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
@@ -372,3 +375,53 @@ export interface GlobalIDInputShape {
     id: string;
   };
 }
+
+export type RelayMutationInputOptions<
+  Types extends SchemaTypes,
+  Fields extends InputFieldMap,
+  InputName extends string
+> = Omit<GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>, 'fields'> & {
+  name?: string;
+  argName?: InputName;
+  inputFields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, 'InputObject'>) => Fields;
+};
+
+export type RelayMutationFieldOptions<
+  Types extends SchemaTypes,
+  Fields extends InputFieldMap,
+  Nullable extends boolean,
+  InputName extends string,
+  ResolveShape,
+  ResolveReturnShape
+> = Omit<
+  FieldOptionsFromKind<
+    Types,
+    Types['Root'],
+    OutputRef<ResolveShape>,
+    Nullable,
+    {
+      [K in InputName]: InputFieldRef<
+        InputShapeFromFields<
+          Fields & { clientMutationId: InputFieldRef<Types['Scalars']['ID']['Input']> }
+        >
+      >;
+    },
+    'Mutation',
+    ResolveShape,
+    ResolveReturnShape
+  >,
+  'args' | 'type'
+>;
+
+export type RelayMutationPayloadOptions<
+  Types extends SchemaTypes,
+  Shape,
+  Interfaces extends InterfaceParam<Types>[]
+> = Omit<
+  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+  'fields'
+> & {
+  name?: string;
+  resultFields: ObjectFieldsShape<Types, Shape>;
+};

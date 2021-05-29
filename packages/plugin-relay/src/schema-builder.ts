@@ -1,4 +1,5 @@
 import SchemaBuilder, {
+  createContextCache,
   FieldRef,
   InterfaceParam,
   InterfaceRef,
@@ -10,7 +11,7 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@giraphql/core';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
-import { resolveNodes } from './utils';
+import { capitalize, resolveNodes } from './utils';
 
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -225,4 +226,61 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
   }
 
   globalConnectionFieldsMap.get(this)!.push(onRef);
+};
+
+const mutationIdCache = createContextCache(() => new Map<string, string>());
+
+schemaBuilderProto.relayMutationField = function relayMutationField(
+  fieldName,
+  {
+    name: inputName = `${capitalize(fieldName)}Input`,
+    argName = 'input',
+    inputFields,
+    ...inputOptions
+  },
+  { resolve, ...fieldOptions },
+  {
+    name: payloadName = `${capitalize(fieldName)}Payload`,
+    resultFields,
+    interfaces,
+    ...paylaodOptions
+  },
+) {
+  const inputRef = this.inputType(inputName, {
+    ...inputOptions,
+    fields: (t) => ({
+      ...inputFields(t),
+      clientMutationId: t.id({ required: true }),
+    }),
+  });
+
+  const payloadRef = this.objectRef<unknown>(payloadName).implement({
+    ...paylaodOptions,
+    interfaces: interfaces as never,
+    fields: (t) => ({
+      ...(resultFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
+      clientMutationId: t.id({
+        nullable: false,
+        resolve: (parent, args, context, info) =>
+          mutationIdCache(context).get(String(info.path.prev!.key))!,
+      }),
+    }),
+  });
+
+  this.mutationField(fieldName, (t) =>
+    t.field({
+      type: payloadRef,
+      args: {
+        [argName]: t.arg({ type: inputRef, required: true }),
+      },
+      resolve: (root, args, context, info) => {
+        mutationIdCache(context).set(
+          String(info.path.key),
+          ((args as unknown) as { input: { clientMutationId: string } }).input.clientMutationId,
+        );
+
+        return resolve(root, args as never, context, info);
+      },
+    }),
+  );
 };
