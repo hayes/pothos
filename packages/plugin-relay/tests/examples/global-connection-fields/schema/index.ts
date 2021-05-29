@@ -116,7 +116,7 @@ builder.relayMutationField(
     },
   },
   {
-    resultFields: (t) => ({
+    outputFields: (t) => ({
       itWorked: t.boolean({
         resolve: (parent) => parent.status === 200,
       }),
