@@ -423,5 +423,5 @@ export type RelayMutationPayloadOptions<
   'fields'
 > & {
   name?: string;
-  resultFields: ObjectFieldsShape<Types, Shape>;
+  outputFields: ObjectFieldsShape<Types, Shape>;
 };

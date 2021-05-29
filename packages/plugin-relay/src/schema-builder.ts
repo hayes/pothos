@@ -241,7 +241,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
   { resolve, ...fieldOptions },
   {
     name: payloadName = `${capitalize(fieldName)}Payload`,
-    resultFields,
+    outputFields,
     interfaces,
     ...paylaodOptions
   },
@@ -258,7 +258,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     ...paylaodOptions,
     interfaces: interfaces as never,
     fields: (t) => ({
-      ...(resultFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
+      ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
       clientMutationId: t.id({
         nullable: false,
         resolve: (parent, args, context, info) =>
