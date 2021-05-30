@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.2.0 - 2021-05-30
+
+#### 🚀 Updates
+
+- allow building schema from multiple subgraphs ([830ffad](https://github.com/hayes/giraphql/commit/830ffad))
+
+**Note:** Version bump only for package @giraphql/plugin-sub-graph
+
+
+
+
+
 ### 2.1.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-sub-graph
