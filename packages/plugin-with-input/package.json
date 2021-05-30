@@ -1,0 +1,45 @@
+{
+  "name": "@pothos/plugin-with-input",
+  "version": "3.0.0-alpha.0",
+  "description": "A Pothos plugin for defining fields with input objects",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": "./esm/index.js",
+    "require": "./lib/index.js"
+  },
+  "scripts": {
+    "type": "tsc --noEmit && tsc --project tests/tsconfig.json",
+    "build": "pnpm build:cjs && pnpm build:esm",
+    "build:cjs": "tsc --module commonjs --outDir lib",
+    "build:esm": "tsc --module es2020 --outDir esm && pnpm esm:extensions",
+    "esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ../../.config/esm-transformer.ts",
+    "test": "pnpm jest --runInBand"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "plugin",
+    "input"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "graphql-tag": "^2.12.6"
+  }
+}

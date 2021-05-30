@@ -1,0 +1,131 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`example schema generates expected schema 1`] = `
+"input ExampleInterfaceFieldInput {
+  id: ID!
+}
+
+input ExampleMutationInput {
+  id: ID!
+}
+
+input ExampleObjectFieldInput {
+  id: ID!
+}
+
+input ExampleQueryInput {
+  id: ID!
+}
+
+input ExampleSubscriptionInput {
+  id: ID!
+}
+
+type Mutation {
+  exampleMutation(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: ExampleMutationInput!
+  ): ID!
+
+  \\"\\"\\"mutation field\\"\\"\\"
+  withOptions(
+    \\"\\"\\"input arg\\"\\"\\"
+    custom: TestMutationInput!
+  ): ID!
+}
+
+type ObjWithInterface implements TestInterface {
+  exampleInterfaceField(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: ExampleInterfaceFieldInput!
+  ): ID!
+  id: ID!
+
+  \\"\\"\\"interface field\\"\\"\\"
+  withOptions(
+    \\"\\"\\"input arg\\"\\"\\"
+    custom: TestInterfaceInput!
+  ): ID!
+}
+
+type Query {
+  exampleQuery(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: ExampleQueryInput!
+  ): ID!
+  iface: TestInterface!
+  obj: TestObj!
+
+  \\"\\"\\"query field\\"\\"\\"
+  withOptions(
+    \\"\\"\\"input arg\\"\\"\\"
+    custom: TestQueryInput!
+  ): ID!
+}
+
+type Subscription {
+  exampleSubscription(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: ExampleSubscriptionInput!
+  ): ID!
+
+  \\"\\"\\"subscription field\\"\\"\\"
+  withOptions(
+    \\"\\"\\"input arg\\"\\"\\"
+    custom: TestSubscriptionInput!
+  ): ID!
+}
+
+interface TestInterface {
+  exampleInterfaceField(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: ExampleInterfaceFieldInput!
+  ): ID!
+  id: ID!
+
+  \\"\\"\\"interface field\\"\\"\\"
+  withOptions(
+    \\"\\"\\"input arg\\"\\"\\"
+    custom: TestInterfaceInput!
+  ): ID!
+}
+
+\\"\\"\\"input field\\"\\"\\"
+input TestInterfaceInput {
+  id: ID!
+}
+
+\\"\\"\\"input field\\"\\"\\"
+input TestMutationInput {
+  id: ID!
+}
+
+type TestObj {
+  exampleObjectField(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: ExampleObjectFieldInput!
+  ): ID!
+  id: ID!
+
+  \\"\\"\\"object field\\"\\"\\"
+  withOptions(
+    \\"\\"\\"input arg\\"\\"\\"
+    custom: TestObjectInput!
+  ): ID!
+}
+
+\\"\\"\\"input field\\"\\"\\"
+input TestObjectInput {
+  id: ID!
+}
+
+\\"\\"\\"input field\\"\\"\\"
+input TestQueryInput {
+  id: ID!
+}
+
+\\"\\"\\"input field\\"\\"\\"
+input TestSubscriptionInput {
+  id: ID!
+}"
+`;
