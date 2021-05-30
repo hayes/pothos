@@ -38,6 +38,9 @@ const builder = new SchemaBuilder<{
 const schema = builder.toSchema({});
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
+
+// You can also build a graph using multiple subgraphs:
+const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 ```
 
 ### Options on Types

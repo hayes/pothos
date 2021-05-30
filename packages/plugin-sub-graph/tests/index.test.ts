@@ -20,4 +20,10 @@ describe('subGraphs', () => {
 
     expect(printSchema(lexicographicSortSchema(publicSchema))).toMatchSnapshot();
   });
+
+  it('multiple', () => {
+    const publicSchema = builder.toSchema({ subGraph: ['Public', 'Private'] });
+
+    expect(printSchema(lexicographicSortSchema(publicSchema))).toMatchSnapshot();
+  });
 });

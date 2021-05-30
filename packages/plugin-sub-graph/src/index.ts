@@ -25,10 +25,22 @@ const pluginName = 'subGraph' as const;
 
 export default pluginName;
 
+function intersect(left: string[], right: string[]) {
+  for (const entry of left) {
+    if (right.includes(entry)) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  static createSubGraph(schema: GraphQLSchema, subGraph: string) {
+  static createSubGraph(schema: GraphQLSchema, subGraph: string[] | string) {
+    const subGraphs = Array.isArray(subGraph) ? subGraph : [subGraph];
+
     const config = schema.toConfig();
-    const newTypes = this.filterTypes(config.types, subGraph);
+    const newTypes = this.filterTypes(config.types, subGraphs);
 
     return new GraphQLSchema({
       types: [...newTypes.values()],
@@ -42,7 +54,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     });
   }
 
-  static filterTypes(types: GraphQLNamedType[], subGraph: string) {
+  static filterTypes(types: GraphQLNamedType[], subGraphs: string[]) {
     const newTypes = new Map<string, GraphQLNamedType>();
 
     types.forEach((type) => {
@@ -60,7 +72,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
         newTypes.set(type.name, type);
       }
 
-      if (!(type.extensions?.subGraphs as string[])?.includes(subGraph)) {
+      if (!intersect((type.extensions?.subGraphs as string[]) || [], subGraphs)) {
         return;
       }
 
@@ -74,9 +86,9 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             ...typeConfig,
             interfaces: () =>
               typeConfig.interfaces.map((iface) =>
-                replaceType(iface, newTypes, typeConfig.name, subGraph),
+                replaceType(iface, newTypes, typeConfig.name, subGraphs),
               ),
-            fields: this.filterFields(type, newTypes, subGraph),
+            fields: this.filterFields(type, newTypes, subGraphs),
           }),
         );
       } else if (type instanceof GraphQLInterfaceType) {
@@ -87,9 +99,9 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             ...typeConfig,
             interfaces: () =>
               typeConfig.interfaces.map((iface) =>
-                replaceType(iface, newTypes, typeConfig.name, subGraph),
+                replaceType(iface, newTypes, typeConfig.name, subGraphs),
               ),
-            fields: this.filterFields(type, newTypes, subGraph),
+            fields: this.filterFields(type, newTypes, subGraphs),
           }),
         );
       } else if (type instanceof GraphQLUnionType) {
@@ -100,7 +112,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             ...typeConfig,
             types: () =>
               typeConfig.types.map((member) =>
-                replaceType(member, newTypes, typeConfig.name, subGraph),
+                replaceType(member, newTypes, typeConfig.name, subGraphs),
               ),
           }),
         );
@@ -110,7 +122,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
           type.name,
           new GraphQLInputObjectType({
             ...typeConfig,
-            fields: this.mapInputFields(type, newTypes, subGraph),
+            fields: this.mapInputFields(type, newTypes, subGraphs),
           }),
         );
       }
@@ -122,7 +134,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
   static filterFields(
     type: GraphQLInterfaceType | GraphQLObjectType,
     newTypes: Map<string, GraphQLNamedType>,
-    subGraph: string,
+    subGraphs: string[],
   ) {
     const oldFields = type.getFields();
 
@@ -134,7 +146,9 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
 
         const newArguments: GraphQLFieldConfigArgumentMap = {};
 
-        if (!(fieldConfig.extensions?.subGraphs as string[] | undefined)?.includes(subGraph)) {
+        if (
+          !intersect((fieldConfig.extensions?.subGraphs as string[] | undefined) || [], subGraphs)
+        ) {
           return;
         }
 
@@ -148,7 +162,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
               argConfig.type,
               newTypes,
               `${argConfig.name} argument of ${type.name}.${fieldConfig.name}`,
-              subGraph,
+              subGraphs,
             ),
           };
         });
@@ -164,7 +178,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             fieldConfig.type,
             newTypes,
             `${type.name}.${fieldConfig.name}`,
-            subGraph,
+            subGraphs,
           ),
           args: newArguments,
         };
@@ -177,7 +191,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
   static mapInputFields(
     type: GraphQLInputObjectType,
     newTypes: Map<string, GraphQLNamedType>,
-    subGraph: string,
+    subGraphs: string[],
   ) {
     const oldFields = type.getFields();
 
@@ -196,7 +210,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             fieldConfig.type,
             newTypes,
             `${type.name}.${fieldConfig.name}`,
-            subGraph,
+            subGraphs,
           ),
         };
       });

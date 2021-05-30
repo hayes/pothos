@@ -4,17 +4,17 @@ export function replaceType<T extends GraphQLType>(
   type: T,
   newTypes: Map<string, GraphQLNamedType>,
   referencedBy: string,
-  subGraph: string,
+  subGraphs: string[],
 ): T {
   if (type instanceof GraphQLNonNull) {
     return new GraphQLNonNull(
-      replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraph),
+      replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraphs),
     ) as T;
   }
 
   if (type instanceof GraphQLList) {
     return new GraphQLList(
-      replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraph),
+      replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraphs),
     ) as T;
   }
 
@@ -24,7 +24,7 @@ export function replaceType<T extends GraphQLType>(
     throw new Error(
       `${
         (type as GraphQLNamedType).name
-      } (referenced by ${referencedBy}) does not exist in subGraph ${subGraph}`,
+      } (referenced by ${referencedBy}) does not exist in subGraph (${subGraphs})`,
     );
   }
 
