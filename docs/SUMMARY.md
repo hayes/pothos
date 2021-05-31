@@ -18,6 +18,7 @@
   * [Changing Default Nullability](guide/changing-default-nullability.md)
   * [Writing Plugins](guide/writing-plugins.md)
   * [Deno](guide/deno.md)
+  * [Troubleshooting](guide/troubleshooting.md)
 * [Plugins](plugins/README.md)
   * [Auth](plugins/scope-auth.md)
   * [Dataloader](plugins/dataloader.md)

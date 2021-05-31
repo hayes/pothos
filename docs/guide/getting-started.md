@@ -11,6 +11,19 @@ menu: Guide
 yarn add @giraphql/core apollo-server
 ```
 
+## Set up typescript
+
+GiraphQL is designed to be as type-safe as possible, to ensure everything works correctly, make sure
+that your `tsconfig.json` has `strict` mode set to true:
+
+```json
+{
+  "compilerOptions": {
+    "strict": true
+  }
+}
+```
+
 ## Create a simple schema
 
 ```typescript
