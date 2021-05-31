@@ -133,6 +133,7 @@ describe('relay example schema', () => {
       const query = gql`
         {
           batchNumbers(first: 3) {
+            connectionField
             pageInfo {
               hasNextPage
               hasPreviousPage
@@ -140,6 +141,7 @@ describe('relay example schema', () => {
               endCursor
             }
             edges {
+              edgeField
               cursor
               node {
                 number

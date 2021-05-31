@@ -73,7 +73,14 @@ builder.queryFields((t) => ({
         return resolveArrayConnection({ args }, numbers);
       },
     },
-    {},
+    {
+      fields: (u) => ({
+        connectionField: u.int({
+          nullable: true,
+          resolve: (parent) => parent.edges.length,
+        }),
+      }),
+    },
     {
       fields: (u) => ({
         edgeField: u.int({

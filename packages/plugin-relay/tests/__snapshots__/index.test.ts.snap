@@ -142,12 +142,14 @@ type Query {
 }
 
 type QueryBatchNumbersConnection {
+  connectionField: Int
   edges: [QueryBatchNumbersConnectionEdge]!
   pageInfo: PageInfo!
 }
 
 type QueryBatchNumbersConnectionEdge {
   cursor: String!
+  edgeField: Int
   node: BatchNumber!
 }
 
@@ -366,21 +368,25 @@ exports[`relay example schema queries query array based connections 1`] = `
 Object {
   "data": Object {
     "batchNumbers": Object {
+      "connectionField": 3,
       "edges": Array [
         Object {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "edgeField": 0,
           "node": Object {
             "number": 0,
           },
         },
         Object {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "edgeField": 1,
           "node": Object {
             "number": 1,
           },
         },
         Object {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "edgeField": 2,
           "node": Object {
             "number": 2,
           },
