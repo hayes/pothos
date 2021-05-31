@@ -6,7 +6,10 @@ import {
   FieldOptionsFromKind,
   InputFieldMap,
   InputShapeFromFields,
+  InterfaceParam,
   MaybePromise,
+  ObjectRef,
+  ObjectTypeOptions,
   OutputShape,
   Resolver,
   SchemaTypes,
@@ -46,8 +49,9 @@ export type DataloaderObjectTypeOptions<
   Types extends SchemaTypes,
   Shape,
   Key extends bigint | number | string,
+  Interfaces extends InterfaceParam<Types>[],
   CacheKey
-> = Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>, 'isTypeOf'> & {
+> = ObjectTypeOptions<Types, ObjectRef<Shape>, Shape, Interfaces> & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 };
@@ -68,8 +72,9 @@ export type LoadableNodeOptions<
   Types extends SchemaTypes,
   Shape extends object,
   Key extends bigint | number | string,
+  Interfaces extends InterfaceParam<Types>[],
   CacheKey
-> = DataloaderObjectTypeOptions<Types, Shape, Key, CacheKey> & {
+> = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>, 'isTypeOf'> & {
   id: Omit<
     FieldOptionsFromKind<
       Types,
@@ -84,7 +89,7 @@ export type LoadableNodeOptions<
     'args' | 'nullable' | 'type'
   >;
   isTypeOf: (
-    obj: OutputShape<Types, unknown>,
+    obj: OutputShape<Types, Interfaces[number]>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => boolean;

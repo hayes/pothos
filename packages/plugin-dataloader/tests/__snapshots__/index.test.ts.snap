@@ -35,8 +35,13 @@ type Query {
   users(ids: [String!]): [User]
 }
 
-type User {
+interface TestInterface {
+  idFromInterface: ID!
+}
+
+type User implements TestInterface {
   id: ID!
+  idFromInterface: ID!
   self: User!
 }
 

@@ -16,7 +16,15 @@ function countCall(context: ContextType, getCounts: typeof usersCounts, loaded: 
   return group;
 }
 
+const TestInterface = builder.interfaceRef<{ id: number }>('TestInterface').implement({
+  fields: (t) => ({
+    idFromInterface: t.exposeID('id', {}),
+  }),
+});
+
 export const User = builder.loadableObject('User', {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
     countCall(context, usersCounts, keys.length);
@@ -30,6 +38,7 @@ export const User = builder.loadableObject('User', {
 });
 
 const UserNode = builder.loadableNode('UserNode', {
+  interfaces: [TestInterface],
   id: {
     resolve: (user) => user.id,
   },

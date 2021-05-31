@@ -3,6 +3,7 @@ import {
   FieldNullability,
   FieldRef,
   InputFieldMap,
+  InterfaceParam,
   PluginName,
   SchemaTypes,
   TypeParam,
@@ -18,15 +19,25 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
-      loadableObject: <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
+      loadableObject: <
+        Shape extends object,
+        Key extends bigint | number | string,
+        Interfaces extends InterfaceParam<Types>[],
+        CacheKey = Key
+      >(
         name: string,
-        options: DataloaderObjectTypeOptions<Types, Shape, Key, CacheKey>,
+        options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>,
       ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>;
 
       loadableNode: 'relay' extends PluginName
-        ? <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
+        ? <
+            Shape extends object,
+            Key extends bigint | number | string,
+            Interfaces extends InterfaceParam<Types>[],
+            CacheKey = Key
+          >(
             name: string,
-            options: LoadableNodeOptions<Types, Shape, Key, CacheKey>,
+            options: LoadableNodeOptions<Types, Shape, Key, Interfaces, CacheKey>,
           ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>
         : '@giraphql/plugin-relay is required to use this method';
     }

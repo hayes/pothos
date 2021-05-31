@@ -3,6 +3,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   createContextCache,
   FieldRef,
+  InterfaceParam,
   InterfaceRef,
   SchemaTypes,
 } from '@giraphql/core';
@@ -14,6 +15,7 @@ const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.Schema
 schemaBuilderProto.loadableObject = function loadableObject<
   Shape extends object,
   Key extends bigint | number | string,
+  Interfaces extends InterfaceParam<SchemaTypes>[],
   CacheKey = Key
 >(
   name: string,
@@ -21,7 +23,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
     load,
     loaderOptions,
     ...options
-  }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, CacheKey>,
+  }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, CacheKey>,
 ) {
   const getDataloader = createContextCache(
     (context: SchemaTypes['Context']) =>
@@ -46,7 +48,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
     extensions: {
       getDataloader,
     },
-  });
+  } as never);
 
   return ref;
 };
@@ -56,11 +58,16 @@ const TloadableNode = schemaBuilderProto.loadableNode;
 schemaBuilderProto.loadableNode = (function loadableNode<
   Shape extends object,
   Key extends bigint | number | string,
+  Interfaces extends InterfaceParam<SchemaTypes>[],
   CacheKey = Key
 >(
   this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
   name: string,
-  { load, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, CacheKey>,
+  {
+    load,
+    loaderOptions,
+    ...options
+  }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, CacheKey>,
 ) {
   if (
     typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
@@ -93,14 +100,14 @@ schemaBuilderProto.loadableNode = (function loadableNode<
       (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
         nodeInterfaceRef: () => InterfaceRef<unknown>;
       }).nodeInterfaceRef(),
-    ] as never[],
+    ],
     loadMany: (ids: Key[], context: SchemaTypes['Context']) => getDataloader(context).loadMany(ids),
     extensions: {
       getDataloader,
     },
   };
 
-  ref.implement(extendedOptions);
+  ref.implement(extendedOptions as never);
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(ref, 'id', (t) =>

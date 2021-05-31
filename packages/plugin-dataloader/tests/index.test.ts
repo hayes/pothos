@@ -22,12 +22,14 @@ describe('dataloader', () => {
           }
           user {
             id
+            idFromInterface
           }
           userNodes {
             id
           }
           userNode {
             id
+            idFromInterface
           }
           userNodes2: userNodes {
             id
@@ -160,12 +162,14 @@ describe('dataloader', () => {
             ],
             "user": Object {
               "id": "1",
+              "idFromInterface": "1",
             },
             "user2": Object {
               "id": "2",
             },
             "userNode": Object {
               "id": "1",
+              "idFromInterface": "1",
             },
             "userNode2": Object {
               "id": "1",
