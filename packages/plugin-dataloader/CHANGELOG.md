@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.2.4 - 2021-05-31
+
+#### 🐞 Fixes
+
+- support interfaces on loadableObject and loadableNode ([1dd672c](https://github.com/hayes/giraphql/commit/1dd672c))
+
+**Note:** Version bump only for package @giraphql/plugin-dataloader
+
+
+
+
+
 ### 2.2.4-alpha.2 - 2021-05-29
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader

@@ -3,6 +3,27 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.4.0 - 2021-05-31
+
+#### 🚀 Updates
+
+- add relayMutation method ([a058430](https://github.com/hayes/giraphql/commit/a058430))
+
+#### 🐞 Fixes
+
+- add builder options for generated fields and args ([b3edb2c](https://github.com/hayes/giraphql/commit/b3edb2c))
+- rename resultFuelds to outputFields ([b5e101d](https://github.com/hayes/giraphql/commit/b5e101d))
+
+#### 🛠 Internals
+
+- add tests for relayMutation options ([1295347](https://github.com/hayes/giraphql/commit/1295347))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.4.0-alpha.2 - 2021-05-29
 
 #### 🐞 Fixes
