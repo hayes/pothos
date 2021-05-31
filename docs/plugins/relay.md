@@ -44,7 +44,7 @@ currently typed as optional because they were added in a non-major version. If t
 runtime error will be raised when using the `relayMutationField` method. These options will become
 required in the next major version.
 
-### Global ids
+### Global IDs
 
 To make it easier to create globally unique ids the relay plugin adds new methods for creating
 globalID fields.
@@ -415,7 +415,7 @@ builder.globalConnectionFields((t) => ({
 }));
 ```
 
-In the above example, we are just returning a static numer for our `totalCount` field. To make this
+In the above example, we are just returning a static nubmer for our `totalCount` field. To make this
 more useful, we need to have our resolvers for each connection actually return an object that
 contains a totalCount for us. To guarantee that resolvers correclty implement this behavior, we can
 define custom properties that must be returned from connection resolvers when we set up our builder:
