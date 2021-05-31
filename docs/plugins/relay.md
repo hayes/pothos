@@ -172,16 +172,18 @@ builder.queryFields((t) => ({
     },
     {
       name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
-      fields: () => ({
-        /* define extra fields on Connection */
+      fields: (tc) => ({
+        // define extra fields on Connection
+        // We need to use a new variable for the connection field builder (eg tc) to get the correct types
       }),
       // Other options for connection object can be added here
     },
     {
       // Same as above, but for the Edge Object
       name: 'NameOfEdgeType', // optional, will use Connection name + "Edge" as the default
-      fields: () => ({
-        /* define extra fields on Edge */
+      fields: (te) => ({
+        // define extra fields on Edge
+        // We need to use a new variable for the connection field builder (eg te) to get the correct types
       }),
     },
   ),

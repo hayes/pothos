@@ -74,7 +74,14 @@ builder.queryFields((t) => ({
       },
     },
     {},
-    {},
+    {
+      fields: (u) => ({
+        edgeField: u.int({
+          nullable: true,
+          resolve: (parent) => parent?.node.id,
+        }),
+      }),
+    },
   ),
   extraNode: t.node({
     id: () => 'TnVtYmVyOjI=',
