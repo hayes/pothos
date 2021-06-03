@@ -13,5 +13,41 @@ enum TestEnum {
 input TestInput {
   notRemoved: Boolean
 }
+
+interface TestInterface {
+  boolean: Boolean!
+  booleanList: [Boolean!]!
+  booleanListWithOptions: [Boolean!]!
+  booleanWithOptions: Boolean!
+  float: Float!
+  floatList: [Float!]!
+  floatListWithOptions: [Float!]!
+  floatWithOptions: Float!
+  id: ID!
+  idList: [ID!]!
+  idListWithOptions: [ID!]!
+  idWithOptions: ID!
+  int: Int!
+  intList: [Int!]!
+  intListWithOptions: [Int!]!
+  intWithOptions: Int!
+  string: String!
+  stringList: [String!]!
+  stringListWithOptions: [String!]!
+  stringWithOptions: String!
+}
+
+type TestObject {
+  boolean: Boolean!
+  booleanList: [Boolean!]!
+  float: Float!
+  floatList: [Float!]!
+  id: ID!
+  idList: [ID!]!
+  int: Int!
+  intList: [Int!]!
+  string: String!
+  stringList: [String!]!
+}
 "
 `;

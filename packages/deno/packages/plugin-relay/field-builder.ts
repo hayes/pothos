@@ -82,7 +82,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
         },
     });
 };
-fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { name: connectionNameFromOptions, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions }) {
+fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { name: connectionNameFromOptions, ...connectionOptions } = {} as never, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
     const placeholderRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>("Unnamed connection");
     const fieldRef = this.field({
         ...fieldOptions,

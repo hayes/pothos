@@ -117,7 +117,7 @@ builder.queryFields((t) => ({
     type: User,
     nullable: true,
     args: {
-      id: t.arg.string({}),
+      id: t.arg.string(),
     },
     resolve: (root, args) => args.id ?? '1',
   }),
@@ -128,7 +128,7 @@ builder.queryFields((t) => ({
       items: true,
     },
     args: {
-      ids: t.arg.stringList({}),
+      ids: t.arg.stringList(),
     },
     resolve: (_root, args) => args.ids ?? ['123', '456', '789'],
   }),
@@ -136,7 +136,7 @@ builder.queryFields((t) => ({
     type: User,
     nullable: true,
     args: {
-      id: t.arg.string({}),
+      id: t.arg.string(),
     },
     resolve: (root, args) => args.id ?? '1',
   }),
@@ -147,7 +147,7 @@ builder.queryFields((t) => ({
       items: true,
     },
     args: {
-      ids: t.arg.stringList({}),
+      ids: t.arg.stringList(),
     },
     resolve: (_root, args) => args.ids ?? ['123', '456', '789'],
   }),

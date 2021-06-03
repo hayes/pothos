@@ -1,7 +1,13 @@
 import { InputType, SchemaTypes } from '../types';
 import { inputTypeFromParam } from '../utils';
 
-import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam } from '..';
+import {
+  ArgBuilder,
+  FieldRequiredness,
+  InputFieldRef,
+  InputShapeFromTypeParam,
+  NormalizeArgs,
+} from '..';
 
 export default class InputFieldBuilder<
   Types extends SchemaTypes,
@@ -40,7 +46,7 @@ export default class InputFieldBuilder<
   }
 
   argBuilder(): ArgBuilder<Types> {
-    const builder: InputFieldBuilder<Types, 'Arg'>['field'] = this.field.bind(this);
+    const builder = this.field.bind(this as never) as InputFieldBuilder<Types, 'Arg'>['field'];
 
     const protoKeys = Object.keys(Object.getPrototypeOf(this) as object).filter(
       (key) =>
@@ -89,11 +95,21 @@ export default class InputFieldBuilder<
 
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
-      options: Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind], 'type'>,
-    ) =>
-      this.field({
+      ...args: NormalizeArgs<
+        [
+          options?: Omit<
+            GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
+            'type'
+          >,
+        ]
+      >
+    ) => {
+      const [options = {} as never] = args;
+
+      return this.field({
         ...options,
         type,
       } as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind]);
+    };
   }
 }

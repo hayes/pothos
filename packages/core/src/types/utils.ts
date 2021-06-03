@@ -64,3 +64,7 @@ export interface Path {
   key: number | string;
   typename: string | undefined;
 }
+
+export type LastIndex<T extends unknown[]> = T extends [unknown, ...infer U] ? U['length'] : 0
+export type NormalizeArgs<T extends unknown[]> = undefined extends T[LastIndex<T>] ?
+    {} extends T[LastIndex<T>] ? T : { [K in keyof T]-?: NonNullable<T[K]> } : T

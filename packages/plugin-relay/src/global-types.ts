@@ -11,6 +11,7 @@ import {
   inputShapeKey,
   InterfaceParam,
   InterfaceRef,
+  NormalizeArgs,
   ObjectFieldsShape,
   ObjectFieldThunk,
   ObjectParam,
@@ -111,11 +112,11 @@ declare global {
       Kind extends 'Arg' | 'InputObject'
     > {
       globalID: <Req extends boolean>(
-        options: GlobalIDInputFieldOptions<Types, Req, Kind>,
+        ...args: NormalizeArgs<[options?: GlobalIDInputFieldOptions<Types, Req, Kind>]>
       ) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>>;
 
       globalIDList: <Req extends FieldRequiredness<['ID']>>(
-        options: GlobalIDListInputFieldOptions<Types, Req, Kind>,
+        ...args: NormalizeArgs<[options?: GlobalIDListInputFieldOptions<Types, Req, Kind>]>
       ) => InputFieldRef<
         InputShapeFromTypeParam<
           Types,
@@ -170,35 +171,39 @@ declare global {
         Nullable extends boolean,
         ResolveReturnShape
       >(
-        options: ConnectionFieldOptions<
-          Types,
-          ParentShape,
-          Type,
-          Nullable,
-          Args,
-          ResolveReturnShape
-        > &
-          Omit<
-            FieldOptionsFromKind<
+        ...args: NormalizeArgs<
+          [
+            options: ConnectionFieldOptions<
               Types,
               ParentShape,
               Type,
               Nullable,
-              Args & InputFieldsFromShape<DefaultConnectionArguments>,
-              Kind,
-              ParentShape,
+              Args,
               ResolveReturnShape
+            > &
+              Omit<
+                FieldOptionsFromKind<
+                  Types,
+                  ParentShape,
+                  Type,
+                  Nullable,
+                  Args & InputFieldsFromShape<DefaultConnectionArguments>,
+                  Kind,
+                  ParentShape,
+                  ResolveReturnShape
+                >,
+                'args' | 'resolve' | 'type'
+              >,
+            connectionOptions?: ConnectionObjectOptions<
+              Types,
+              ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>
             >,
-            'args' | 'resolve' | 'type'
-          >,
-        connectionOptions: ConnectionObjectOptions<
-          Types,
-          ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>
-        >,
-        edgeOptions: ConnectionEdgeObjectOptions<
-          Types,
-          ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>['edges'][number]
-        >,
+            edgeOptions?: ConnectionEdgeObjectOptions<
+              Types,
+              ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>['edges'][number]
+            >,
+          ]
+        >
       ) => FieldRef<ConnectionShapeForType<Types, Type, Nullable>>;
     }
   }

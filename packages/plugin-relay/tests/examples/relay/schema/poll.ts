@@ -39,19 +39,15 @@ builder.node('Poll', {
       {},
       {},
     ),
-    answersUsingOffset: t.connection(
-      {
-        type: 'Answer',
-        resolve: (parent, args) =>
-          // This would be the API for limit/offset based APIs
-          resolveOffsetConnection({ args }, ({ limit, offset }) =>
-            // replace with call to limit/offset based service
-            parent.answers.slice(offset, offset + limit),
-          ),
-      },
-      {},
-      {},
-    ),
+    answersUsingOffset: t.connection({
+      type: 'Answer',
+      resolve: (parent, args) =>
+        // This would be the API for limit/offset based APIs
+        resolveOffsetConnection({ args }, ({ limit, offset }) =>
+          // replace with call to limit/offset based service
+          parent.answers.slice(offset, offset + limit),
+        ),
+    }),
     answersWithoutHelpers: t.connection(
       {
         type: 'Answer',

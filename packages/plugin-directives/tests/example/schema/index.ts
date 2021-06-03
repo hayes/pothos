@@ -49,7 +49,7 @@ builder.interfaceRef<{}>('IF').implement({
     i: { foo: 123 },
   },
   fields: (t) => ({
-    field: t.string({}),
+    field: t.string(),
   }),
 });
 

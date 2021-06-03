@@ -5,7 +5,7 @@ type DefaultSchemaTypes = GiraphQLSchemaTypes.ExtendDefaultTypes<{}>;
 const inputFieldBuilder = InputFieldBuilder.prototype as GiraphQLSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
 inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequiredness<[
     "ID"
-]>>(options: GlobalIDListInputFieldOptions<DefaultSchemaTypes, Req, "Arg" | "InputObject">): InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [
+]>>(options: GlobalIDListInputFieldOptions<DefaultSchemaTypes, Req, "Arg" | "InputObject"> = {} as never): InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [
     GlobalIDInputShape
 ], Req>> {
     return this.idList({
@@ -18,7 +18,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
         GlobalIDInputShape
     ], Req>>;
 };
-inputFieldBuilder.globalID = function globalID<Req extends boolean>(options: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, "Arg" | "InputObject">) {
+inputFieldBuilder.globalID = function globalID<Req extends boolean>(options: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, "Arg" | "InputObject"> = {} as never) {
     return (this.id({
         ...options,
         extensions: {

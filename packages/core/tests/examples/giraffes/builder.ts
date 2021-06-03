@@ -1,3 +1,4 @@
+import '../test-plugin/global-types';
 import SchemaBuilder from '../../../src';
 
 export enum Diet {

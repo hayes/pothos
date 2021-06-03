@@ -80,7 +80,7 @@ builder.queryType({
         id: t.arg.globalID({
           required: true,
         }),
-        idList: t.arg.globalIDList({}),
+        idList: t.arg.globalIDList(),
       },
       resolve(parent, args) {
         console.log(`Get request for type ${args.id.type} with id ${args.id.typename}`);
@@ -208,8 +208,6 @@ builder.queryFields((t) => ({
         });
       },
     },
-    {},
-    {},
   ),
 }));
 ```
@@ -239,8 +237,6 @@ builder.queryFields((t) => ({
         return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
       },
     },
-    {},
-    {},
   ),
 }));
 ```
@@ -467,8 +463,6 @@ builder.queryFields((t) => ({
         return result && { totalCount: postsArray.length, ...result };
       },
     },
-    {},
-    {},
   ),
 }));
 ```

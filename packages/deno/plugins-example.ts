@@ -68,7 +68,7 @@ builder.queryType({
 
 builder.simpleObject('Simple', {
   fields: (t) => ({
-    test: t.boolean({}),
+    test: t.boolean(),
   }),
 });
 
@@ -79,11 +79,11 @@ builder.loadableObject('User', {
     );
   },
   fields: (t) => ({
-    id: t.exposeID('id', {}),
+    id: t.exposeID('id'),
   }),
 });
 
-builder.subscriptionType({});
+builder.subscriptionType();
 
 const schema = builder.toSchema({ mocks: {}, subGraph: 'test' });
 

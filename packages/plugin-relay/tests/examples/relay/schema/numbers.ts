@@ -40,23 +40,19 @@ builder.node(BatchLoadableNumberThing, {
 });
 
 builder.queryFields((t) => ({
-  numbers: t.connection(
-    {
-      type: NumberThing,
-      resolve: (parent, args) =>
-        resolveOffsetConnection({ args }, ({ limit, offset }) => {
-          const items = [];
+  numbers: t.connection({
+    type: NumberThing,
+    resolve: (parent, args) =>
+      resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        const items = [];
 
-          for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
-            items.push(new NumberThing(i));
-          }
+        for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+          items.push(new NumberThing(i));
+        }
 
-          return items;
-        }),
-    },
-    {},
-    {},
-  ),
+        return items;
+      }),
+  }),
 }));
 
 builder.queryFields((t) => ({
