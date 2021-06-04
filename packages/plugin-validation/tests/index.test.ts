@@ -66,41 +66,169 @@ describe('validation', () => {
       Object {
         "data": null,
         "errors": Array [
-          [GraphQLError: 11 validation issue(s)
-
-        Issue #0: custom_error at enum1
-        Invalid value.
-
-        Issue #1: custom_error at recursive.float
-        Invalid value.
-
-        Issue #2: too_big at recursive.recurse.number
-        Value should be less than or equal to 5
-
-        Issue #3: custom_error at recursive.recurse.float
-        Invalid value.
-
-        Issue #4: custom_error at recursive.recurse.recurse
-        number must not be 3
-
-        Issue #5: custom_error at odd
-        number must be odd
-
-        Issue #6: custom_error at contactInfo.name
-        Name should be capitalized
-
-        Issue #7: custom_error at contactInfo.aliases
-        Aliases should be capitalized
-
-        Issue #8: custom_error at contactInfo.email
-        no example.com email addresses
-
-        Issue #9: invalid_union at contactInfo.phone
-        Invalid input
-
-        Issue #10: custom_error at contactInfo.aliases
-        contactInfo should include at least 2 aliases
-      ],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "enum1"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "recursive",
+            "float"
+          ]
+        },
+        {
+          "code": "too_big",
+          "maximum": 5,
+          "type": "number",
+          "inclusive": true,
+          "message": "Value should be less than or equal to 5",
+          "path": [
+            "recursive",
+            "recurse",
+            "number"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "recursive",
+            "recurse",
+            "float"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "number must not be 3",
+          "path": [
+            "recursive",
+            "recurse",
+            "recurse"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "number must be odd",
+          "path": [
+            "odd"
+          ]
+        },
+        {
+          "code": "invalid_union",
+          "unionErrors": [
+            {
+              "issues": [
+                {
+                  "code": "custom",
+                  "message": "Name should be capitalized",
+                  "path": [
+                    "contactInfo",
+                    "name"
+                  ]
+                }
+              ]
+            },
+            {
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "expected": "array",
+                  "received": "string",
+                  "path": [
+                    "contactInfo",
+                    "name"
+                  ],
+                  "message": "Expected array, received string"
+                }
+              ]
+            }
+          ],
+          "path": [
+            "contactInfo",
+            "name"
+          ],
+          "message": "Invalid input"
+        },
+        {
+          "code": "custom",
+          "message": "Aliases should be capitalized",
+          "path": [
+            "contactInfo",
+            "aliases"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "no example.com email addresses",
+          "path": [
+            "contactInfo",
+            "email"
+          ]
+        },
+        {
+          "code": "invalid_union",
+          "unionErrors": [
+            {
+              "issues": [
+                {
+                  "validation": "regex",
+                  "code": "invalid_string",
+                  "message": "Invalid",
+                  "path": [
+                    "contactInfo",
+                    "phone"
+                  ]
+                },
+                {
+                  "code": "too_small",
+                  "minimum": 12,
+                  "type": "string",
+                  "inclusive": true,
+                  "message": "Should be at least 12 characters",
+                  "path": [
+                    "contactInfo",
+                    "phone"
+                  ]
+                }
+              ]
+            },
+            {
+              "issues": [
+                {
+                  "validation": "regex",
+                  "code": "invalid_string",
+                  "message": "Invalid",
+                  "path": [
+                    "contactInfo",
+                    "phone"
+                  ]
+                },
+                {
+                  "code": "invalid_type",
+                  "expected": "array",
+                  "received": "string",
+                  "path": [
+                    "contactInfo",
+                    "phone"
+                  ],
+                  "message": "Expected array, received string"
+                }
+              ]
+            }
+          ],
+          "path": [
+            "contactInfo",
+            "phone"
+          ],
+          "message": "Invalid input"
+        }
+      ]],
         ],
       }
     `);
@@ -141,36 +269,93 @@ describe('validation', () => {
           "simpleValid": true,
         },
         "errors": Array [
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: invalid_string at email
-        Invalid email
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: custom_error at [[root]]
-        Invalid value.
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: invalid_string at email
-        invalid email address
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: custom_error at [[root]]
-        Must provide either phone number or email address
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: too_big at list.0
-        Should be at most 3 characters long
-      ],
-          [GraphQLError: 1 validation issue(s)
-
-        Issue #0: too_big at list
-        Should have at most 3 items
-      ],
+          [GraphQLError: [
+        {
+          "validation": "email",
+          "code": "invalid_string",
+          "message": "Invalid email",
+          "path": [
+            "email"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": []
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "validation": "email",
+          "code": "invalid_string",
+          "message": "invalid email address",
+          "path": [
+            "email"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Must provide either phone number or email address",
+          "path": []
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "invalid_union",
+          "unionErrors": [
+            {
+              "issues": [
+                {
+                  "code": "too_big",
+                  "maximum": 3,
+                  "type": "string",
+                  "inclusive": true,
+                  "message": "Should be at most 3 characters long",
+                  "path": [
+                    "list",
+                    0
+                  ]
+                }
+              ]
+            },
+            {
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "expected": "array",
+                  "received": "string",
+                  "path": [
+                    "list",
+                    0
+                  ],
+                  "message": "Expected array, received string"
+                }
+              ]
+            }
+          ],
+          "path": [
+            "list",
+            0
+          ],
+          "message": "Invalid input"
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "too_big",
+          "maximum": 3,
+          "type": "array",
+          "inclusive": true,
+          "message": "Should have at most 3 items",
+          "path": [
+            "list"
+          ]
+        }
+      ]],
         ],
       }
     `);

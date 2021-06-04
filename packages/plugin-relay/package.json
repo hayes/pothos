@@ -33,7 +33,7 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.7.0",
-    "apollo-server": "^2.22.2",
+    "apollo-server": "^2.25.0",
     "graphql": ">=15.1.0",
     "graphql-tag": "^2.11.0"
   }
