@@ -1,11 +1,5 @@
 import DataLoader from 'dataloader';
-import {
-  ImplementableObjectRef,
-  isThenable,
-  MaybePromise,
-  parentShapeKey,
-  SchemaTypes,
-} from '@giraphql/core';
+import { ImplementableObjectRef, isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 
 export class LoadableObjectRef<
   Types extends SchemaTypes,
@@ -13,10 +7,8 @@ export class LoadableObjectRef<
   Shape,
   Key,
   CacheKey
-> extends ImplementableObjectRef<Types, RefShape> {
+> extends ImplementableObjectRef<Types, RefShape, Shape> {
   getDataloader;
-
-  [parentShapeKey]!: Shape;
 
   constructor(
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,

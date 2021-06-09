@@ -1,5 +1,5 @@
 import { User } from './data';
 
-export type ContextType = {
+export interface ContextType {
   User: typeof User;
-};
+}

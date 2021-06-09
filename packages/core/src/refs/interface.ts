@@ -3,12 +3,13 @@
 import { OutputRef, outputShapeKey } from '../types';
 import BaseTypeRef from './base';
 
-import { InterfaceParam, InterfaceTypeOptions, SchemaTypes } from '..';
+import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '..';
 
-export default class InterfaceRef<T> extends BaseTypeRef implements OutputRef {
+export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef {
   kind = 'Interface' as const;
 
   [outputShapeKey]: T;
+  [parentShapeKey]: P;
 
   constructor(name: string) {
     super('Interface', name);
@@ -17,8 +18,9 @@ export default class InterfaceRef<T> extends BaseTypeRef implements OutputRef {
 
 export class ImplementableInterfaceRef<
   Types extends SchemaTypes,
-  Shape
-> extends InterfaceRef<Shape> {
+  Shape,
+  Parent = Shape
+> extends InterfaceRef<Shape, Parent> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
@@ -30,8 +32,8 @@ export class ImplementableInterfaceRef<
   implement<Interfaces extends InterfaceParam<Types>[]>(
     options: InterfaceTypeOptions<
       Types,
-      ImplementableInterfaceRef<Types, Shape>,
-      Shape,
+      ImplementableInterfaceRef<Types, Shape, Parent>,
+      Parent,
       Interfaces
     >,
   ) {

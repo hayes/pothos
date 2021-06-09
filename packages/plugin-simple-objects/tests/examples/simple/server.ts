@@ -1,6 +1,6 @@
 import { ApolloServer } from 'apollo-server';
-import schema from './schema';
 import { User } from './data';
+import schema from './schema';
 
 const server = new ApolloServer({
   schema,
@@ -9,4 +9,4 @@ const server = new ApolloServer({
   }),
 });
 
-server.listen(3000);
+void server.listen(3000);

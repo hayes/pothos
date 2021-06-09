@@ -15,7 +15,7 @@ import {
   NormalizeNullableFields,
   ObjectParam,
   ObjectRef,
-  OutputShape,
+  ParentShape,
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
@@ -186,7 +186,7 @@ export type ValidateInterfaces<
   Types extends SchemaTypes,
   Interfaces extends InterfaceParam<Types>
 > = Interfaces extends InterfaceParam<Types>
-  ? Shape extends OutputShape<Types, Interfaces>
+  ? Shape extends ParentShape<Types, Interfaces>
     ? Interfaces
     : 'Object shape must extends interface shape'
   : never;

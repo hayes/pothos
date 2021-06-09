@@ -17,6 +17,7 @@ import {
   ObjectRef,
   OutputShape,
   OutputType,
+  ParentShape,
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@giraphql/core';
@@ -71,8 +72,8 @@ declare global {
       node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
         param: Param,
         options: NodeObjectOptions<Types, Param, Interfaces>,
-        fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
-      ) => ObjectRef<OutputShape<Types, Param>>;
+        fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>,
+      ) => ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>;
 
       globalConnectionFields: (
         fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>,
