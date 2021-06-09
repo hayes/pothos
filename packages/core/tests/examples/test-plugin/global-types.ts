@@ -13,7 +13,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > {
       exampleRequiredOptionFromPlugin: boolean;
     }

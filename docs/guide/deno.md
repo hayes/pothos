@@ -1,12 +1,15 @@
 # Deno
 
-GiraphQL now supports deno, but the server implmementations available for deno are relativly new and take a bit more effort to set up than on node
+GiraphQL now supports deno, but the server implmementations available for deno are relativly new and
+take a bit more effort to set up than on node
 
 ### Setup
 
 #### Imports
 
-Most of the setup for deno works exactly the same way as it does for node. The main difference is where things are imported from. GiraphQL and all its plugins are published as a single package on deno.land. Each of the node packages available on npm are available in the `packages` directory:
+Most of the setup for deno works exactly the same way as it does for node. The main difference is
+where things are imported from. GiraphQL and all its plugins are published as a single package on
+deno.land. Each of the node packages available on npm are available in the `packages` directory:
 
 ```typescript
 // Core
@@ -19,7 +22,8 @@ import ScopeAuthPlugin from 'https://deno.land/x/giraphql/packages/plugin-scope-
 
 #### Server
 
-Most of the docs and examples currently use apollo-server, because it is the simplest to set up for node. Unfortunately apollo-server does not work in deno. Instead we can use GraphQL Helix:
+Most of the docs and examples currently use apollo-server, because it is the simplest to set up for
+node. Unfortunately apollo-server does not work in deno. Instead we can use GraphQL Helix:
 
 ```typescript
 import { Application, Router } from 'https://deno.land/x/oak@v7.3.0/mod.ts';
@@ -99,9 +103,14 @@ await app.listen({ port: 8080 });
 
 #### GraphQL versions
 
-The `graphql` library is written in a way that make tools that import different copies of graphql incompatible. This means that we need a way to ensure that our graphql library versions are the same across our dependencies. There isn't a perfect solution right now, but `import-maps` give us something that works.
+The `graphql` library is written in a way that make tools that import different copies of graphql
+incompatible. This means that we need a way to ensure that our graphql library versions are the same
+across our dependencies. There isn't a perfect solution right now, but `import-maps` give us
+something that works.
 
-GiraphQL uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map. GraphQL Helix currently uses `https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts`
+GiraphQL uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map.
+GraphQL Helix currently uses
+`https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts`
 
 To get these 2 libraries to work together, we can define an import map like:
 
@@ -114,11 +123,12 @@ To get these 2 libraries to work together, we can define an import map like:
 }
 ```
 
-This will let us run our app with both libraries using `https://cdn.skypack.dev/graphql@v15.5.0?dts` \(or any other version you want to use\). It will be important to keep the versions in sync if you update your dependencies.
+This will let us run our app with both libraries using `https://cdn.skypack.dev/graphql@v15.5.0?dts`
+\(or any other version you want to use\). It will be important to keep the versions in sync if you
+update your dependencies.
 
 ### Running the app:
 
 ```bash
 deno run --allow-net --import-map=import-map.json server-example.ts
 ```
-

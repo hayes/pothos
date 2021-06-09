@@ -13,12 +13,12 @@ import RootFieldBuilder from './root';
 export default class FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>
+  Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
 > extends RootFieldBuilder<Types, ParentShape, Kind> {
   exposeBoolean<
     Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -47,7 +47,7 @@ export default class FieldBuilder<
   exposeFloat<
     Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Float'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'Float'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -76,7 +76,7 @@ export default class FieldBuilder<
   exposeID<
     Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'ID'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'ID'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -105,7 +105,7 @@ export default class FieldBuilder<
   exposeInt<
     Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Int'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'Int'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -134,7 +134,7 @@ export default class FieldBuilder<
   exposeString<
     Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -163,7 +163,7 @@ export default class FieldBuilder<
   exposeBooleanList<
     Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -192,7 +192,7 @@ export default class FieldBuilder<
   exposeFloatList<
     Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -221,7 +221,7 @@ export default class FieldBuilder<
   exposeIDList<
     Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['ID']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['ID']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -250,7 +250,7 @@ export default class FieldBuilder<
   exposeIntList<
     Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -279,7 +279,7 @@ export default class FieldBuilder<
   exposeStringList<
     Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -309,7 +309,7 @@ export default class FieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>,
   >(
     ...args: NormalizeArgs<
       [

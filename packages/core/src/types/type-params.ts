@@ -111,7 +111,7 @@ export type EnumParam = BaseEnum | string;
 export type ShapeFromTypeParam<
   Types extends SchemaTypes,
   Param extends TypeParam<Types>,
-  Nullable extends FieldNullability<Param>
+  Nullable extends FieldNullability<Param>,
 > = Param extends [OutputType<Types>]
   ? ShapeFromListTypeParam<Types, Param, Nullable>
   : FieldNullability<Param> extends Nullable
@@ -125,7 +125,7 @@ export type ShapeFromTypeParam<
 export type ShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [OutputType<Types>],
-  Nullable extends FieldNullability<Param>
+  Nullable extends FieldNullability<Param>,
 > = FieldNullability<Param> extends Nullable
   ? Types['DefaultFieldNullability'] extends true
     ? OutputShape<Types, Param[0]>[] | null | undefined
@@ -156,7 +156,7 @@ export type FieldNullability<Param> =
 export type InputShapeFromTypeParam<
   Types extends SchemaTypes,
   Param extends InputTypeParam<Types>,
-  Required extends FieldRequiredness<Param>
+  Required extends FieldRequiredness<Param>,
 > = Param extends [InputType<Types>]
   ? InputShapeFromListTypeParam<Types, Param, Required>
   : FieldRequiredness<Param> extends Required
@@ -170,7 +170,7 @@ export type InputShapeFromTypeParam<
 export type InputShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [InputType<Types>],
-  Required extends FieldRequiredness<Param>
+  Required extends FieldRequiredness<Param>,
 > = FieldRequiredness<Param> extends Required
   ? Types['DefaultInputFieldRequiredness'] extends false
     ? InputShape<Types, Param[0]>[] | null | undefined

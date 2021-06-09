@@ -22,7 +22,7 @@ declare global {
       Nullable extends FieldNullability<Type> = FieldNullability<Type>,
       Args extends InputFieldMap = InputFieldMap,
       ResolveShape = unknown,
-      ResolveReturnShape = unknown
+      ResolveReturnShape = unknown,
     > {
       type: Type;
       args?: Args;
@@ -45,7 +45,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         ParentShape,
@@ -69,7 +69,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         Types['Root'],
@@ -93,7 +93,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         Types['Root'],
@@ -118,7 +118,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         ParentShape,
@@ -143,7 +143,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         Types['Root'],
@@ -175,7 +175,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape
+      ResolveReturnShape,
     > {
       Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
       Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
@@ -201,7 +201,7 @@ declare global {
     export interface InputFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
       type: Type;
       description?: string;
@@ -214,19 +214,19 @@ declare global {
     export interface ArgFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > extends InputFieldOptions<Types, Type, Req> {}
 
     export interface InputObjectFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > extends InputFieldOptions<Types, Type, Req> {}
 
     export interface InputFieldOptionsByKind<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
       Arg: ArgFieldOptions<Types, Type, Req>;
       InputObject: InputObjectFieldOptions<Types, Type, Req>;

@@ -91,7 +91,7 @@ declare global {
         ResolveShape,
         ResolveReturnShape,
         Interfaces extends InterfaceParam<Types>[],
-        InputName extends string = 'input'
+        InputName extends string = 'input',
       >(
         name: string,
         inputOptions: RelayMutationInputOptions<Types, Fields, InputName>,
@@ -109,7 +109,7 @@ declare global {
 
     export interface InputFieldBuilder<
       Types extends SchemaTypes,
-      Kind extends 'Arg' | 'InputObject'
+      Kind extends 'Arg' | 'InputObject',
     > {
       globalID: <Req extends boolean>(
         ...args: NormalizeArgs<[options?: GlobalIDInputFieldOptions<Types, Req, Kind>]>
@@ -136,19 +136,19 @@ declare global {
     export interface RootFieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
-      Kind extends FieldKind = FieldKind
+      Kind extends FieldKind = FieldKind,
     > {
       globalID: <
         Args extends InputFieldMap,
         Nullable extends FieldNullability<'ID'>,
-        ResolveReturnShape
+        ResolveReturnShape,
       >(
         options: GlobalIDFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>,
       ) => FieldRef<ShapeFromTypeParam<Types, 'ID', Nullable>>;
       globalIDList: <
         Args extends InputFieldMap,
         Nullable extends FieldNullability<['ID']>,
-        ResolveReturnShape
+        ResolveReturnShape,
       >(
         options: GlobalIDListFieldOptions<
           Types,
@@ -169,7 +169,7 @@ declare global {
         Type extends OutputType<Types>,
         Args extends InputFieldMap,
         Nullable extends boolean,
-        ResolveReturnShape
+        ResolveReturnShape,
       >(
         ...args: NormalizeArgs<
           [

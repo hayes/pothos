@@ -72,7 +72,7 @@ const Count = builder
     }),
   });
 
-User.getDataloader(({} as unknown) as ContextType);
+User.getDataloader({} as unknown as ContextType);
 // @ts-expect-error not valid context
 User.getDataloader({});
 

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { unknown } from 'zod';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -26,14 +25,14 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape
+      ResolveReturnShape,
     > {
       validate?: RefineConstraint<InputShapeFromFields<Args>>;
     }
 
     export interface InputObjectTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Fields extends InputFieldMap = InputFieldMap
+      Fields extends InputFieldMap = InputFieldMap,
     > {
       validate?: RefineConstraint<InputShapeFromFields<Fields>>;
     }
@@ -41,7 +40,7 @@ declare global {
     export interface InputFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
       validate?: ValidationOptions<InputShapeFromTypeParam<Types, Type, true>>;
     }

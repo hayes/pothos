@@ -23,7 +23,7 @@ declare global {
         Shape extends object,
         Key extends bigint | number | string,
         Interfaces extends InterfaceParam<Types>[],
-        CacheKey = Key
+        CacheKey = Key,
       >(
         name: string,
         options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>,
@@ -34,7 +34,7 @@ declare global {
             Shape extends object,
             Key extends bigint | number | string,
             Interfaces extends InterfaceParam<Types>[],
-            CacheKey = Key
+            CacheKey = Key,
           >(
             name: string,
             options: LoadableNodeOptions<Types, Shape, Key, Interfaces, CacheKey>,
@@ -45,7 +45,7 @@ declare global {
     export interface RootFieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
-      Kind extends FieldKind = FieldKind
+      Kind extends FieldKind = FieldKind,
     > {
       loadable: <
         Args extends InputFieldMap,
@@ -53,7 +53,7 @@ declare global {
         Key,
         CacheKey,
         ResolveReturnShape,
-        Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability']
+        Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
       >(
         options: LoadableFieldOptions<
           Types,

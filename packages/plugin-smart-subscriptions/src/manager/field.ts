@@ -6,7 +6,7 @@ import BaseSubscriptionManager from './base';
 import { SubscriptionManager } from '..';
 
 export default class FieldSubscriptionManager<
-  Types extends SchemaTypes
+  Types extends SchemaTypes,
 > extends BaseSubscriptionManager {
   cacheNode: CacheNode<Types>;
 

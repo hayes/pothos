@@ -1,11 +1,7 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-<<<<<<< HEAD
 import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, MaybePromise, ObjectRef, ObjectTypeOptions, OutputShape, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-=======
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, MaybePromise, ObjectRef, ObjectTypeOptions, OutputShape, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
->>>>>>> feature: make field options args optional when empty
 export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
@@ -23,9 +19,5 @@ export interface LoadableRef<K, V, C> {
 }
 export type LoadableNodeOptions<Types extends SchemaTypes, Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], CacheKey> = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>, "isTypeOf"> & {
     id: Omit<FieldOptionsFromKind<Types, Shape, "ID", false, {}, "Object", Shape, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type">;
-<<<<<<< HEAD
     isTypeOf: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
-=======
-    isTypeOf: (obj: OutputShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
->>>>>>> feature: make field options args optional when empty
 };

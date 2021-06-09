@@ -29,7 +29,7 @@ const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.Root
 fieldBuilderProto.globalIDList = function globalIDList<
   Args extends InputFieldMap,
   Nullable extends FieldNullability<['ID']>,
-  ResolveReturnShape
+  ResolveReturnShape,
 >({
   resolve,
   ...options
@@ -49,16 +49,15 @@ fieldBuilderProto.globalIDList = function globalIDList<
     assertArray(result);
 
     if (Array.isArray(result)) {
-      return (
-        await Promise.all(result)
-      ).map((item: GlobalIDShape<SchemaTypes> | null | undefined) =>
-        item == null || typeof item === 'string'
-          ? item
-          : internalEncodeGlobalID(
-              this.builder,
-              this.builder.configStore.getTypeConfig(item.type).name,
-              String(item.id),
-            ),
+      return (await Promise.all(result)).map(
+        (item: GlobalIDShape<SchemaTypes> | null | undefined) =>
+          item == null || typeof item === 'string'
+            ? item
+            : internalEncodeGlobalID(
+                this.builder,
+                this.builder.configStore.getTypeConfig(item.type).name,
+                String(item.id),
+              ),
       );
     }
 
@@ -75,7 +74,7 @@ fieldBuilderProto.globalIDList = function globalIDList<
 fieldBuilderProto.globalID = function globalID<
   Args extends InputFieldMap,
   Nullable extends FieldNullability<'ID'>,
-  ResolveReturnShape
+  ResolveReturnShape,
 >({
   resolve,
   ...options
@@ -92,7 +91,7 @@ fieldBuilderProto.globalID = function globalID<
       return result;
     }
 
-    const item = (result as unknown) as GlobalIDShape<SchemaTypes>;
+    const item = result as unknown as GlobalIDShape<SchemaTypes>;
 
     return internalEncodeGlobalID(
       this.builder,
@@ -114,7 +113,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-      const rawID = ((await id(parent, args as never, context, info)) as unknown) as
+      const rawID = (await id(parent, args as never, context, info)) as unknown as
         | GlobalIDShape<SchemaTypes>
         | string
         | null
@@ -182,9 +181,8 @@ fieldBuilderProto.connection = function connection(
   { name: connectionNameFromOptions, ...connectionOptions } = {} as never,
   { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
 ) {
-  const placeholderRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>(
-    'Unnamed connection',
-  );
+  const placeholderRef =
+    this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>('Unnamed connection');
 
   const fieldRef = this.field({
     ...fieldOptions,
@@ -205,17 +203,17 @@ fieldBuilderProto.connection = function connection(
       `${this.typename}${capitalize(fieldConfig.name)}${
         fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
       }`;
-    const connectionRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(
-      connectionName,
-    );
+    const connectionRef =
+      this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
 
     const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
-    const edgeRef = this.builder.objectRef<{
-      cursor: string;
-      node: unknown;
-    }>(edgeName);
+    const edgeRef =
+      this.builder.objectRef<{
+        cursor: string;
+        node: unknown;
+      }>(edgeName);
 
-    const connectionFields = (connectionOptions.fields as unknown) as
+    const connectionFields = connectionOptions.fields as unknown as
       | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>
       | undefined;
 

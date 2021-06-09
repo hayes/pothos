@@ -19,11 +19,11 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
     ], Req>>;
 };
 inputFieldBuilder.globalID = function globalID<Req extends boolean>(options: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, "Arg" | "InputObject"> = {} as never) {
-    return (this.id({
+    return this.id({
         ...options,
         extensions: {
             ...options.extensions,
             isRelayGlobalID: true,
         },
-    }) as unknown) as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>>;
+    }) as unknown as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>>;
 };

@@ -4,16 +4,19 @@ export type MaybePromise<T> = Promise<T> | T;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
 export type RequiredKeys<T extends object> = {
-    [K in keyof T]: undefined extends T[K] ? never : null extends T[K] ? never : K;
+    [K in keyof T]: T[K] extends NonNullable<T[K]> ? K : never;
 }[keyof T];
-export type NullableToOptional<T extends object> = {
+export type OptionalKeys<T extends object> = {
+    [K in keyof T]: T[K] extends NonNullable<T[K]> ? never : K;
+}[keyof T];
+export type Normalize<T> = T extends object ? {
+    [K in keyof T]: T[K];
+} : T;
+export type NullableToOptional<T> = T extends object ? Normalize<{
     [K in OptionalKeys<T>]?: T[K];
 } & {
     [K in RequiredKeys<T>]: T[K];
-};
-export type OptionalKeys<T> = {
-    [K in keyof T]: undefined extends T[K] ? K : null extends T[K] ? K : never;
-}[keyof T];
+}> : T;
 export type NormalizeNullable<T> = undefined extends T ? T | null | undefined : null extends T ? T | null | undefined : T;
 export type NormalizeNullableFields<T extends object> = {
     [K in RequiredKeys<T>]: T[K];

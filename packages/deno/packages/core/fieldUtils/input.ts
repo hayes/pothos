@@ -24,9 +24,9 @@ export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends k
     argBuilder(): ArgBuilder<Types> {
         const builder = this.field.bind(this as never) as InputFieldBuilder<Types, "Arg">["field"];
         const protoKeys = Object.keys(Object.getPrototypeOf(this) as object).filter((key) => typeof (this as Record<string, unknown>)[key] === "function" &&
-            ((Function.prototype as unknown) as Record<string, unknown>)[key] === undefined);
+            (Function.prototype as unknown as Record<string, unknown>)[key] === undefined);
         ([...Object.keys(this), ...protoKeys] as (keyof InputFieldBuilder<Types, "Arg">)[]).forEach((key) => {
-            ((builder as unknown) as Record<string, unknown>)[key] =
+            (builder as unknown as Record<string, unknown>)[key] =
                 typeof this[key] === "function" ? (this[key] as Function).bind(this) : this[key];
         });
         return builder as ArgBuilder<Types>;
@@ -42,7 +42,7 @@ export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends k
             graphqlKind: this.kind,
             parentType: this.typename,
             type: inputTypeFromParam<Types>(options.type, this.builder.configStore, options.required ?? this.builder.defaultInputFieldRequiredness),
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
             description: options.description,
             deprecationReason: options.deprecationReason,
             defaultValue: options.defaultValue,

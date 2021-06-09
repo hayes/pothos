@@ -279,7 +279,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
       }, this.debounceDelay);
 
       if (typeof this.debounceRef === 'object' && 'unref' in this.debounceRef) {
-        ((this.debounceRef as unknown) as { unref: () => unknown }).unref();
+        (this.debounceRef as unknown as { unref: () => unknown }).unref();
       }
     }
   }

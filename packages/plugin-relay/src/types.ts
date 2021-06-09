@@ -74,9 +74,7 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
-  decodeGlobalID?: (
-    globalID: string,
-  ) => {
+  decodeGlobalID?: (globalID: string) => {
     typename: string;
     id: string;
   };
@@ -111,14 +109,14 @@ export type ConnectionShape<Types extends SchemaTypes, T, Nullable> =
 export type ConnectionShapeForType<
   Types extends SchemaTypes,
   Type extends OutputType<Types>,
-  Nullable extends boolean
+  Nullable extends boolean,
 > = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, true>, Nullable>;
 
 export type ConnectionShapeFromResolve<
   Types extends SchemaTypes,
   Type extends OutputType<Types>,
   Nullable extends boolean,
-  Resolved
+  Resolved,
 > = Resolved extends Promise<infer T>
   ? T extends ConnectionShapeForType<Types, Type, Nullable>
     ? T
@@ -140,7 +138,7 @@ export interface ConnectionFieldOptions<
   Type extends OutputType<Types>,
   Nullable extends boolean,
   Args extends InputFieldMap,
-  ResolveReturnShape
+  ResolveReturnShape,
 > {
   args?: Args;
   type: Type;
@@ -166,7 +164,7 @@ export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, ParentSh
 export type NodeBaseObjectOptionsForParam<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
-  Interfaces extends InterfaceParam<Types>[]
+  Interfaces extends InterfaceParam<Types>[],
 > = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, 'isTypeOf'> &
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (Param extends new (...args: any[]) => any
@@ -196,7 +194,7 @@ export type NodeBaseObjectOptionsForParam<
 export type NodeObjectOptions<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
-  Interfaces extends InterfaceParam<Types>[]
+  Interfaces extends InterfaceParam<Types>[],
 > = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
   id: Omit<
     FieldOptionsFromKind<
@@ -227,7 +225,7 @@ export type GlobalIDFieldOptions<
   Args extends InputFieldMap,
   Nullable extends boolean,
   ResolveReturnShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -253,13 +251,13 @@ export type GlobalIDFieldOptions<
 export type GlobalIDInputFieldOptions<
   Types extends SchemaTypes,
   Req extends boolean,
-  Kind extends 'Arg' | 'InputObject'
+  Kind extends 'Arg' | 'InputObject',
 > = Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'>;
 
 export type GlobalIDListInputFieldOptions<
   Types extends SchemaTypes,
   Req extends FieldRequiredness<['ID']>,
-  Kind extends 'Arg' | 'InputObject'
+  Kind extends 'Arg' | 'InputObject',
 > = Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'>;
 
 export type NodeIDFieldOptions<
@@ -268,7 +266,7 @@ export type NodeIDFieldOptions<
   Args extends InputFieldMap,
   Nullable extends boolean,
   ResolveReturnShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -297,7 +295,7 @@ export type GlobalIDListFieldOptions<
   Args extends InputFieldMap,
   Nullable extends FieldNullability<[unknown]>,
   ResolveReturnShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -332,7 +330,7 @@ export type NodeFieldOptions<
   ParentShape,
   Args extends InputFieldMap,
   ResolveReturnShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -360,7 +358,7 @@ export type NodeListFieldOptions<
   ParentShape,
   Args extends InputFieldMap,
   ResolveReturnShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -403,7 +401,7 @@ export interface GlobalIDInputShape {
 export type RelayMutationInputOptions<
   Types extends SchemaTypes,
   Fields extends InputFieldMap,
-  InputName extends string
+  InputName extends string,
 > = Omit<GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>, 'fields'> & {
   name?: string;
   argName?: InputName;
@@ -416,7 +414,7 @@ export type RelayMutationFieldOptions<
   Nullable extends boolean,
   InputName extends string,
   ResolveShape,
-  ResolveReturnShape
+  ResolveReturnShape,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -440,7 +438,7 @@ export type RelayMutationFieldOptions<
 export type RelayMutationPayloadOptions<
   Types extends SchemaTypes,
   Shape,
-  Interfaces extends InterfaceParam<Types>[]
+  Interfaces extends InterfaceParam<Types>[],
 > = Omit<
   | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
   | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,

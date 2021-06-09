@@ -5,7 +5,7 @@ import BaseSubscriptionManager from './base';
 import { SubscriptionManager } from '..';
 
 export default class TypeSubscriptionManager<
-  ParentShape = unknown
+  ParentShape = unknown,
 > extends BaseSubscriptionManager {
   replace: (value: unknown) => void;
 

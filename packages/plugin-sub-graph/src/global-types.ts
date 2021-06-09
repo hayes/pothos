@@ -35,7 +35,7 @@ declare global {
     export interface InterfaceTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
-      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends BaseTypeOptions<Types> {
       defaultSubGraphsForFields?: Types['SubGraphs'][];
     }
@@ -47,7 +47,7 @@ declare global {
       Nullable extends FieldNullability<Type> = FieldNullability<Type>,
       Args extends InputFieldMap = InputFieldMap,
       ResolveShape = unknown,
-      ResolveReturnShape = unknown
+      ResolveReturnShape = unknown,
     > {
       subGraphs?: Types['SubGraphs'][];
     }

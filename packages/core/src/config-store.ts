@@ -349,7 +349,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
     fns.forEach((fn) => void fn());
 
-    if (this.pendingRefResolutions.size !== 0) {
+    if (this.pendingRefResolutions.size > 0) {
       throw new Error(
         `Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
           .map((ref) => this.describeRef(ref))

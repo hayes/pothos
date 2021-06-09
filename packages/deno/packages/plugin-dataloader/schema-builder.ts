@@ -17,7 +17,7 @@ schemaBuilderProto.loadableObject = function loadableObject<Shape extends object
     return ref;
 };
 const TloadableNode = schemaBuilderProto.loadableNode;
-schemaBuilderProto.loadableNode = (function loadableNode<Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<SchemaTypes>[], CacheKey = Key>(this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, name: string, { load, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, CacheKey>) {
+schemaBuilderProto.loadableNode = function loadableNode<Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<SchemaTypes>[], CacheKey = Key>(this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, name: string, { load, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, CacheKey>) {
     if (typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
         .nodeInterfaceRef !== "function") {
         throw new TypeError("builder.loadableNode requires @giraphql/plugin-relay to be installed");
@@ -38,7 +38,7 @@ schemaBuilderProto.loadableNode = (function loadableNode<Shape extends object, K
     };
     ref.implement(extendedOptions as never);
     this.configStore.onTypeConfig(ref, (nodeConfig) => {
-        this.objectField(ref, "id", (t) => ((t as unknown) as {
+        this.objectField(ref, "id", (t) => (t as unknown as {
             globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
         }).globalID({
             ...options.id,
@@ -51,4 +51,4 @@ schemaBuilderProto.loadableNode = (function loadableNode<Shape extends object, K
         }));
     });
     return ref;
-} as unknown) as typeof TloadableNode;
+} as unknown as typeof TloadableNode;

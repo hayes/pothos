@@ -57,7 +57,9 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         });
         let validator: zod.ZodTypeAny = zod.object(args).nonstrict();
         if (fieldConfig.giraphqlOptions.validate) {
-            validator = refine(validator, { refine: fieldConfig.giraphqlOptions.validate });
+            validator = refine(validator, {
+                refine: fieldConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+            });
         }
         return (parent, rawArgs, context, info) => resolver(parent, validator.parse(rawArgs) as object, context, info) as unknown;
     }
@@ -69,7 +71,9 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
             const typeConfig = this.buildCache.getTypeConfig(type.ref, "InputObject");
             let fieldValidator = refine(zod.lazy(() => zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).nonstrict()), options);
             if (typeConfig.giraphqlOptions.validate) {
-                fieldValidator = refine(fieldValidator, { refine: typeConfig.giraphqlOptions.validate });
+                fieldValidator = refine(fieldValidator, {
+                    refine: typeConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+                });
             }
             return combine([fieldValidator], type.required);
         }

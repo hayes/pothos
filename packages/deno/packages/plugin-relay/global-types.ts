@@ -1,9 +1,5 @@
 // @ts-nocheck
-<<<<<<< HEAD
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, ParentShape, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-=======
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
->>>>>>> feature: make field options args optional when empty
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, ParentShape, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 import { ConnectionEdgeObjectOptions, ConnectionFieldOptions, ConnectionObjectOptions, ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, DefaultConnectionArguments, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
 import { GiraphQLRelayPlugin } from './index.ts';
 declare global {

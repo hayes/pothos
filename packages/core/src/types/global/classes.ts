@@ -11,13 +11,13 @@ declare global {
     export interface RootFieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
-      Kind extends FieldKind = FieldKind
+      Kind extends FieldKind = FieldKind,
     > extends InternalRootFieldBuilder<Types, ParentShape, Kind> {}
 
     export interface FieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
-      Kind extends 'Interface' | 'Object' = 'Interface' | 'Object'
+      Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
     > extends RootFieldBuilder<Types, ParentShape, Kind>,
         InternalFieldBuilder<Types, ParentShape, Kind> {}
 
@@ -38,7 +38,7 @@ declare global {
 
     export interface InputFieldBuilder<
       Types extends SchemaTypes,
-      Kind extends 'Arg' | 'InputObject'
+      Kind extends 'Arg' | 'InputObject',
     > extends InternalInputFieldBuilder<Types, Kind> {}
   }
 }

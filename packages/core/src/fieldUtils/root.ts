@@ -13,7 +13,7 @@ import { ArgBuilder, InputFieldMap, NormalizeArgs } from '..';
 export default class RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > extends BaseFieldUtil<Types, ParentShape, Kind> {
   arg: ArgBuilder<Types> = new InputFieldBuilder<Types, 'Arg'>(
     this.builder,
@@ -25,7 +25,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -57,7 +57,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'Float'>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
     ...args: NormalizeArgs<
       [
@@ -89,7 +89,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'ID'>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
     ...args: NormalizeArgs<
       [
@@ -118,7 +118,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'Int'>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
     ...args: NormalizeArgs<
       [
@@ -147,7 +147,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -179,7 +179,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -208,7 +208,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -237,7 +237,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<['ID']>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
     ...args: NormalizeArgs<
       [
@@ -266,7 +266,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -295,7 +295,7 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability'],
   >(
     ...args: NormalizeArgs<
       [
@@ -325,7 +325,7 @@ export default class RootFieldBuilder<
     Type extends TypeParam<Types>,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
   >(
     options: FieldOptionsFromKind<
       Types,

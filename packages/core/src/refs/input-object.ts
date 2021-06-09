@@ -16,7 +16,7 @@ export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
 
 export class ImplementableInputObjectRef<
   Types extends SchemaTypes,
-  T extends object
+  T extends object,
 > extends InputObjectRef<RecursivelyNormalizeNullableFields<T>> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 

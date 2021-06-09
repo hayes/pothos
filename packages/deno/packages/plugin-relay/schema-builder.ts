@@ -70,7 +70,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     ];
     let nodeName!: string;
     const ref = this.objectType<[
-    ], ObjectParam<SchemaTypes>>(param as ObjectParam<SchemaTypes>, {
+    ], ObjectParam<SchemaTypes>>(param, {
         ...options,
         isTypeOf: (maybeNode, context, info) => {
             if (options.isTypeOf) {
@@ -184,7 +184,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
             [argName]: t.arg({ ...(mutationInputArgOptions as {}), type: inputRef, required: true }),
         },
         resolve: (root, args, context, info) => {
-            mutationIdCache(context).set(String(info.path.key), ((args as unknown) as Record<string, {
+            mutationIdCache(context).set(String(info.path.key), (args as unknown as Record<string, {
                 clientMutationId: string;
             }>)[argName]
                 .clientMutationId);

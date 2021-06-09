@@ -5,7 +5,7 @@ const ContactInfo = builder.simpleObject('ContactInfo', {
     email: t.string({
       nullable: false,
     }),
-    phoneNUmber: t.string({
+    phoneNumber: t.string({
       nullable: true,
     }),
   }),

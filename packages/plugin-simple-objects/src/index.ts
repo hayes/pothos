@@ -5,7 +5,9 @@ import SchemaBuilder, {
   InterfaceParam,
   InterfaceRef,
   InterfaceTypeOptions,
+  Normalize,
   ObjectRef,
+  ParentShape,
   SchemaTypes,
 } from '@giraphql/core';
 import { OutputShapeFromFields } from './types';
@@ -18,12 +20,15 @@ export class GiraphQLSimpleObjectsPlugin<Types extends SchemaTypes> extends Base
 
 SchemaBuilder.registerPlugin(pluginName, GiraphQLSimpleObjectsPlugin);
 
-const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> =
+  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 proto.simpleObject = function simpleObject<
   Interfaces extends InterfaceParam<SchemaTypes>[],
   Fields extends FieldMap,
-  Shape extends OutputShapeFromFields<Fields>
+  Shape extends Normalize<
+    OutputShapeFromFields<Fields> & ParentShape<SchemaTypes, Interfaces[number]>
+  >,
 >(
   name: string,
   options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
@@ -59,7 +64,7 @@ proto.simpleObject = function simpleObject<
 proto.simpleInterface = function simpleInterface<
   Fields extends FieldMap,
   Shape extends OutputShapeFromFields<Fields>,
-  Interfaces extends InterfaceParam<SchemaTypes>[]
+  Interfaces extends InterfaceParam<SchemaTypes>[],
 >(
   name: string,
   options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,

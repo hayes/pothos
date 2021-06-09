@@ -6,7 +6,7 @@ export class LoadableObjectRef<
   RefShape,
   Shape,
   Key,
-  CacheKey
+  CacheKey,
 > extends ImplementableObjectRef<Types, RefShape, Shape> {
   getDataloader;
 
