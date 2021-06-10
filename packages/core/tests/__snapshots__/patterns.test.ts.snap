@@ -9,8 +9,33 @@ type B {
   a: A!
 }
 
+input InputWithCommonFields1 {
+  id: ID
+  reason: String
+}
+
+input InputWithCommonFields2 {
+  id: ID
+  reason: String
+}
+
+type Mutation {
+  mutation1(id: ID, reason: String): Boolean!
+  mutation2(id: ID, reason: String): Boolean!
+}
+
 type Query {
   circular: A!
+}
+
+type WithCommonFields1 {
+  id: ID!
+  idLength: Int!
+}
+
+type WithCommonFields2 {
+  id: ID!
+  idLength: Int!
 }
 "
 `;
