@@ -8,7 +8,7 @@
   "scripts": {
     "prepare": "husky install && beemo create-config && yarn refs",
     "build": "yarn refs && beemo typescript --build --reference-workspaces && yarn build-esm",
-    "build-esm": "ESM_BUILD=true yarn prepare && ESM_BUILD=true beemo typescript --build --reference-workspaces && yarn prepare",
+    "build-esm": "ESM_BUILD=true yarn prepare && ESM_BUILD=true beemo typescript --build --reference-workspaces --transpile-only && yarn prepare",
     "build-deno": "yarn ts-node packages/deno/scripts/build.ts",
     "clean:all": "yarn clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && yarn",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm}",

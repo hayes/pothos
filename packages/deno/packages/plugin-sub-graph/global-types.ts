@@ -9,7 +9,7 @@ declare global {
             subGraphs?: Types["SubGraphs"][];
         }
         export interface BuildSchemaOptions<Types extends SchemaTypes> {
-            subGraph?: Types["SubGraphs"];
+            subGraph?: Types["SubGraphs"] | Types["SubGraphs"][];
         }
         export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown> extends BaseTypeOptions<Types> {
             defaultSubGraphsForFields?: Types["SubGraphs"][];

@@ -35,7 +35,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }
         this.plugins[name] = plugin;
     }
-    objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(param: Param, options: ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>) {
+    objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(param: Param, options: ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) {
         const name = typeof param === "string"
             ? param
             : (options as {
@@ -46,7 +46,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         if (name === "Query" || name === "Mutation" || name === "Subscription") {
             throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
         }
-        const ref: ObjectRef<OutputShape<Types, Param>> = param instanceof ObjectRef ? param : new ObjectRef<OutputShape<Types, Param>>(name);
+        const ref: ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>> = param instanceof ObjectRef
+            ? param
+            : new ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
         const config: GiraphQLObjectTypeConfig = {
             kind: "Object",
             graphqlKind: "Object",
@@ -61,7 +63,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             this.configStore.associateRefWithName(param, name);
         }
         if (fields) {
-            this.configStore.addFields(ref, () => fields(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)));
+            this.configStore.addFields(ref, () => fields(new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(name, this)));
         }
         if (options.fields) {
             this.configStore.addFields(ref, () => options.fields!(new ObjectFieldBuilder(name, this)));
@@ -153,7 +155,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     args<Shape extends InputFieldMap>(fields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, "Arg">) => Shape): Shape {
         return fields(new InputFieldBuilder<Types, "Arg">(this, "Arg", "[unknown]"));
     }
-    interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(param: Param, options: InterfaceTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, fields?: InterfaceFieldsShape<Types, OutputShape<Types, Param>>) {
+    interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(param: Param, options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>) {
         const name = typeof param === "string"
             ? param
             : (options as {
@@ -161,7 +163,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             }).name ?? (param as {
                 name: string;
             }).name;
-        const ref: InterfaceRef<OutputShape<Types, Param>> = param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Types, Param>>(name);
+        const ref: InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>> = param instanceof InterfaceRef
+            ? param
+            : new InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
         const typename = ref.name;
         const config: GiraphQLInterfaceTypeConfig = {
             kind: "Interface",
@@ -196,7 +200,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         });
     }
     unionType<Member extends ObjectParam<Types>>(name: string, options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>) {
-        const ref = new UnionRef<OutputShape<Types, Member>>(name);
+        const ref = new UnionRef<OutputShape<Types, Member>, ParentShape<Types, Member>>(name);
         const config: GiraphQLUnionTypeConfig = {
             kind: "Union",
             graphqlKind: "Union",
@@ -233,8 +237,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }
         return ref;
     }
-    scalarType<Name extends ScalarName<Types>>(name: Name, options: GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>) {
-        const ref = new ScalarRef<InputShape<Types, Name>, OutputShape<Types, Name>>(name);
+    scalarType<Name extends ScalarName<Types>>(name: Name, options: GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>) {
+        const ref = new ScalarRef<InputShape<Types, Name>, ParentShape<Types, Name>>(name);
         const config: GiraphQLScalarTypeConfig = {
             kind: "Scalar",
             graphqlKind: "Scalar",
@@ -248,12 +252,12 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         this.configStore.addTypeConfig(config, ref);
         return ref;
     }
-    addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType, options: Omit<GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>, "description" | "parseLiteral" | "parseValue" | "serialize">) {
+    addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType, options: Omit<GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>, "description" | "parseLiteral" | "parseValue" | "serialize">) {
         const config = scalar.toConfig();
         return this.scalarType<Name>(name, {
             ...config,
             ...options,
-        } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>);
+        } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
     }
     inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param> & {}> : InputFieldMap>(param: Param, options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>): InputObjectRef<InputShapeFromFields<Fields>> {
         const name = typeof param === "string" ? param : (param as {

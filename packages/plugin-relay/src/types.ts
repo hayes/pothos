@@ -26,7 +26,6 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@giraphql/core';
-import InputFieldBuilder from '@giraphql/core/src/fieldUtils/input';
 
 export interface RelayPluginOptions<Types extends SchemaTypes> {
   nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;

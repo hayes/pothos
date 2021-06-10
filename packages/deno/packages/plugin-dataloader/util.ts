@@ -1,9 +1,8 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { ImplementableObjectRef, isThenable, MaybePromise, parentShapeKey, SchemaTypes, } from '../core/index.ts';
-export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends ImplementableObjectRef<Types, RefShape> {
+import { ImplementableObjectRef, isThenable, MaybePromise, SchemaTypes } from '../core/index.ts';
+export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends ImplementableObjectRef<Types, RefShape, Shape> {
     getDataloader;
-    [parentShapeKey]!: Shape;
     constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string, getDataloader: (context: Types["Context"]) => DataLoader<Key, Shape, CacheKey>) {
         super(builder, name);
         this.getDataloader = getDataloader;

@@ -11,3 +11,6 @@ export function decodeGlobalID(globalID: string) {
     }
     return { typename, id };
 }
+export function capitalize(s: string) {
+    return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
+}

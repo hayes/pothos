@@ -1,4 +1,4 @@
-# Relay Plugin for GiraphQL
+# Relay Plugin
 
 The Relay plugin adds a number of builder methods a helper functions to simplify building a relay
 compatible schema.
@@ -22,6 +22,9 @@ const builder = new SchemaBuilder({
     nodesQueryOptions: {},
     nodeTypeOptions: {},
     pageInfoTypeOptions: {},
+    clientMutationIdFieldOptions: {},
+    clientMutationIdInputOptions: {},
+    mutationInputArgOptions: {},
   },
 });
 ```
@@ -31,7 +34,12 @@ GiraphQL API, options objects are required because other plugins may contribute 
 These options objects will enable things like defining auth policies for your node query fields if
 you are using the auth plugin.
 
-### Global ids
+`clientMutationIdFieldOptions`, `clientMutationIdInputOptions`, and `mutationInputArgOptions` are
+currently typed as optional because they were added in a non-major version. If they are omitted, a
+runtime error will be raised when using the `relayMutationField` method. These options will become
+required in the next major version.
+
+### Global IDs
 
 To make it easier to create globally unique ids the relay plugin adds new methods for creating
 globalID fields.
@@ -159,16 +167,18 @@ builder.queryFields((t) => ({
     },
     {
       name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
-      fields: () => ({
-        /* define extra fields on Connection */
+      fields: (tc) => ({
+        // define extra fields on Connection
+        // We need to use a new variable for the connection field builder (eg tc) to get the correct types
       }),
       // Other options for connection object can be added here
     },
     {
       // Same as above, but for the Edge Object
       name: 'NameOfEdgeType', // optional, will use Connection name + "Edge" as the default
-      fields: () => ({
-        /* define extra fields on Edge */
+      fields: (te) => ({
+        // define extra fields on Edge
+        // We need to use a new variable for the connection field builder (eg te) to get the correct types
       }),
     },
   ),
@@ -231,6 +241,83 @@ builder.queryFields((t) => ({
 ```
 
 I am planning to add more helpers in the future.
+
+### Relay Mutations
+
+You can use the `relayMutationField` method to define relay compliant mutation fields. This method
+will generate a mutation field, an input object with a `clientMutationId` field, and an output
+object with the corresponding `clientMutationId`.
+
+Example ussage:
+
+```typescript
+builder.relayMutationField(
+  'deleteItem',
+  {
+    inputFields: (t) => ({
+      id: t.id({
+        required: true,
+      }),
+    }),
+  },
+  {
+    resolve: async (root, args, ctx) => {
+      if (ctx.items.has(args.input.id)) {
+        ctx.items.delete(args.input.id)
+
+        return { success: true }
+      }
+
+      return { sucess: false }
+    },
+  },
+  {
+    outputFields: (t) => ({
+      sucess: t.boolean({
+        resolve: (result) => result.success,
+      }),
+    }),
+  },
+);
+```
+
+Which produces the following graphql types:
+
+```graphql
+input DeleteItemInput {
+  clientMutationId: ID!
+  id: ID!
+}
+
+type DeleteItemPayload {
+  clientMutationId: ID!
+  itWorked: Boolean!
+}
+
+type Mutation {
+  deleteItem(input: DeleteItemInput!): DeleteItemPayload!
+}
+```
+
+The `relayMutationField` has 4 arguments:
+
+* `name`: Name of the mutation field
+* `inputOptions`: Options for the `input` object
+* `fieldOptions`: Options for the mutation field
+* `payloadOptions`: Options for the Payload object
+
+The `inputOptions` has a couple of non-standard options:
+
+* `name` which can be used to set the name of the input object
+* `argName` which can be used to overwrite the default arguments name (`input`).
+
+The `payloadOptions` object also accepts a `name` property for setting the name of the payload object.
+
+In addition the options provided in the function call, options from the builder setup are used when creating relay mutations:
+
+- `clientMutationIdFieldOptions`: Applied to the `clientMutationId` field of the Payload object
+- `clientMutationIdInputOptions`: Applied to the `clientMutationId` field of the Input object
+- `mutationInputArgOptions`: Applied to the `input` argument of the mutation field
 
 ### Expose nodes
 
@@ -301,4 +388,82 @@ const builder = new SchemaBuilder({
     },
   },
 });
+```
+
+### Extending all connections
+
+There are 2 builder methods for adding fields to all connection objects: `t.globalConnectionField`
+and `t.globalConnectionFields`. These methods work like many of the other methods on the builder for
+adding fields to objects or interfaces.
+
+```typescript
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) => 123,
+  }),
+);
+// Or
+builder.globalConnectionFields((t) => ({
+  totalCount: t.int({
+    nullable: false,
+    resolve: (parent) => 123,
+  }),
+}));
+```
+
+In the above example, we are just returning a static nubmer for our `totalCount` field. To make this
+more useful, we need to have our resolvers for each connection actually return an object that
+contains a totalCount for us. To guarantee that resolvers correclty implement this behavior, we can
+define custom properties that must be returned from connection resolvers when we set up our builder:
+
+```typescript
+import '@giraphql/plugin-relay';
+const builder = new SchemaBuilder<{
+  Connection: {
+    totalCount: number;
+  };
+}>({
+  plugins: ['GiraphQLRelay'],
+  relayOptions: {
+    nodeQueryOptions: {},
+    nodesQueryOptions: {},
+    nodeTypeOptions: {},
+    pageInfoTypeOptions: {},
+  },
+});
+```
+
+Now typescript will ensure that objects returned from each connection resolver include a totalCount
+property, which we can use in our connection fields:
+
+```typescript
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) => parent.totalCount,
+  }),
+);
+```
+
+Note that adding additional required properties will make it harder to use the provided connection
+helpers since they will not automatically return your custom properties. You will need to manually
+add in any custom props after gettig the result from the helpers:
+
+```typescript
+builder.queryFields((t) => ({
+  posts: t.connection(
+    {
+      type: Post,
+      resolve: (parent, args, context) => {
+        const postsArray = context.Posts.getAll();
+        const result = resolveArrayConnection({ args }, postsArray);
+
+        return result && { totalCount: postsArray.length, ...result };
+      },
+    },
+    {},
+    {},
+  ),
+}));
 ```
