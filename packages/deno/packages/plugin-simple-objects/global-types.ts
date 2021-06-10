@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, InterfaceRef, ObjectRef, OutputShape, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, InterfaceRef, ObjectRef, OutputShape, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
 import { GiraphQLSimpleObjectsPlugin } from './index.ts';
 declare global {
@@ -9,7 +9,7 @@ declare global {
             simpleObjects: GiraphQLSimpleObjectsPlugin<Types>;
         }
         export interface SchemaBuilder<Types extends SchemaTypes> {
-            simpleObject: <Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends OutputShape<Types, Interfaces[number]> & OutputShapeFromFields<Fields>>(name: string, options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>) => ObjectRef<Shape>;
+            simpleObject: <Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>>(name: string, options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>) => ObjectRef<Shape>;
             simpleInterface: <Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>, Interfaces extends InterfaceParam<SchemaTypes>[]>(name: string, options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>) => InterfaceRef<Shape>;
         }
         export interface GiraphQLKindToGraphQLType {

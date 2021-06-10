@@ -7,6 +7,7 @@ import {
   InterfaceRef,
   ObjectRef,
   OutputShape,
+  ParentShape,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
@@ -22,7 +23,7 @@ declare global {
       simpleObject: <
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
-        Shape extends OutputShape<Types, Interfaces[number]> & OutputShapeFromFields<Fields>
+        Shape extends OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>
       >(
         name: string,
         options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,

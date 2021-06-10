@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { Merge, RemoveNeverKeys } from './utils.ts';
-import { BaseEnum, EnumParam, FieldNullability, FieldRef, InputFieldRef, inputFieldShapeKey, InputRef, InterfaceParam, InterfaceRef, MaybePromise, NormalizeNullableFields, ObjectParam, ObjectRef, OutputShape, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../index.ts';
+import { BaseEnum, EnumParam, FieldNullability, FieldRef, InputFieldRef, inputFieldShapeKey, InputRef, InterfaceParam, InterfaceRef, MaybePromise, NormalizeNullableFields, ObjectParam, ObjectRef, ParentShape, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../index.ts';
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<GiraphQLSchemaTypes.SchemaBuilderOptions<Types>>;
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (parent: Parent, args: Args, context: Context, info: GraphQLResolveInfo) => [
     Type
@@ -43,7 +43,7 @@ export type EnumTypeOptions<Types extends SchemaTypes, Param extends EnumParam, 
     name: string;
 }> : GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>;
 export type ArgBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.InputFieldBuilder<Types, "Arg">["field"] & Omit<GiraphQLSchemaTypes.InputFieldBuilder<Types, "Arg">, "field">;
-export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends OutputShape<Types, Interfaces> ? Interfaces : "Object shape must extends interface shape" : never;
+export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends ParentShape<Types, Interfaces> ? Interfaces : "Object shape must extends interface shape" : never;
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
     [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;

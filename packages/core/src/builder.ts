@@ -115,8 +115,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
     param: Param,
-    options: ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>,
-    fields?: ObjectFieldsShape<Types, OutputShape<Types, Param>>,
+    options: ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>,
+    fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
     const name =
       typeof param === 'string'
@@ -127,8 +127,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
     }
 
-    const ref: ObjectRef<OutputShape<Types, Param>> =
-      param instanceof ObjectRef ? param : new ObjectRef<OutputShape<Types, Param>>(name);
+    const ref: ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>> =
+      param instanceof ObjectRef
+        ? param
+        : new ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
 
     const config: GiraphQLObjectTypeConfig = {
       kind: 'Object',
@@ -148,7 +150,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     if (fields) {
       this.configStore.addFields(ref, () =>
-        fields(new ObjectFieldBuilder<Types, OutputShape<Types, Param>>(name, this)),
+        fields(new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(name, this)),
       );
     }
 
@@ -287,16 +289,18 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(
     param: Param,
-    options: InterfaceTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>,
-    fields?: InterfaceFieldsShape<Types, OutputShape<Types, Param>>,
+    options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>,
+    fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
     const name =
       typeof param === 'string'
         ? param
         : (options as { name?: string }).name ?? (param as { name: string }).name;
 
-    const ref: InterfaceRef<OutputShape<Types, Param>> =
-      param instanceof InterfaceRef ? param : new InterfaceRef<OutputShape<Types, Param>>(name);
+    const ref: InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>> =
+      param instanceof InterfaceRef
+        ? param
+        : new InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
 
     const typename = ref.name;
 
@@ -353,7 +357,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     name: string,
     options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>,
   ) {
-    const ref = new UnionRef<OutputShape<Types, Member>>(name);
+    const ref = new UnionRef<OutputShape<Types, Member>, ParentShape<Types, Member>>(name);
 
     const config: GiraphQLUnionTypeConfig = {
       kind: 'Union',
@@ -407,10 +411,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     options: GiraphQLSchemaTypes.ScalarTypeOptions<
       Types,
       InputShape<Types, Name>,
-      OutputShape<Types, Name>
+      ParentShape<Types, Name>
     >,
   ) {
-    const ref = new ScalarRef<InputShape<Types, Name>, OutputShape<Types, Name>>(name);
+    const ref = new ScalarRef<InputShape<Types, Name>, ParentShape<Types, Name>>(name);
 
     const config: GiraphQLScalarTypeConfig = {
       kind: 'Scalar',
@@ -435,7 +439,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       GiraphQLSchemaTypes.ScalarTypeOptions<
         Types,
         InputShape<Types, Name>,
-        OutputShape<Types, Name>
+        ParentShape<Types, Name>
       >,
       'description' | 'parseLiteral' | 'parseValue' | 'serialize'
     >,
@@ -445,7 +449,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return this.scalarType<Name>(name, {
       ...config,
       ...options,
-    } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>);
+    } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
   }
 
   inputType<

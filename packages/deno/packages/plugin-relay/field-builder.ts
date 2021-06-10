@@ -3,12 +3,9 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { assertArray, FieldKind, FieldNullability, InputFieldMap, InputShapeFromFields, InterfaceRef, ObjectFieldsShape, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
 import { connectionRefs, globalConnectionFieldsMap } from './schema-builder.ts';
 import { ConnectionShape, GlobalIDFieldOptions, GlobalIDListFieldOptions, GlobalIDShape, } from './types.ts';
-import { resolveNodes } from './utils/index.ts';
+import { capitalize, resolveNodes } from './utils/index.ts';
 import { internalEncodeGlobalID } from './utils/internal.ts';
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
-function capitalize(s: string) {
-    return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
-}
 fieldBuilderProto.globalIDList = function globalIDList<Args extends InputFieldMap, Nullable extends FieldNullability<[
     "ID"
 ]>, ResolveReturnShape>({ resolve, ...options }: GlobalIDListFieldOptions<SchemaTypes, unknown, Args, Nullable, ResolveReturnShape, FieldKind>) {

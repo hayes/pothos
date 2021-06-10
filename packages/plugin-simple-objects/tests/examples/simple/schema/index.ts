@@ -39,7 +39,7 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (parent, args, { User }) => {
-        const user = User.map.get(parseInt(args.id, 10));
+        const user = User.map.get(Number.parseInt(args.id, 10));
 
         if (!user) {
           throw new Error(`User with id ${args.id} was not found`);

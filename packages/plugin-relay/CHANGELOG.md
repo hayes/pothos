@@ -3,6 +3,28 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.5.0-alpha.0 - 2021-06-09
+
+#### 🚀 Updates
+
+- plum parentShape through all ussage of output refs ([2dac2ca](https://github.com/hayes/giraphql/commit/2dac2ca))
+
+#### 📘 Docs
+
+- fix a couple typos ([e2d41f7](https://github.com/hayes/giraphql/commit/e2d41f7))
+- update docs on edge and connection fields ([63b4b52](https://github.com/hayes/giraphql/commit/63b4b52))
+- update relay readme and add troubleshooting guide ([56350e8](https://github.com/hayes/giraphql/commit/56350e8))
+
+#### 🛠 Internals
+
+- fix tests ([7137675](https://github.com/hayes/giraphql/commit/7137675))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ## 2.4.0 - 2021-05-31
 
 #### 🚀 Updates

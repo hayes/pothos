@@ -1,4 +1,3 @@
-/* eslint-disable max-classes-per-file */
 export class User {
   static map = new Map<number, User>();
 
@@ -12,7 +11,7 @@ export class User {
 
   id: number;
 
-  role: 'Admin' | 'User' | 'Guest';
+  role: 'Admin' | 'Guest' | 'User';
 
   constructor(firstName: string, lastName: string, role: 'Admin' | 'User') {
     this.firstName = firstName;

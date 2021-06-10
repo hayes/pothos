@@ -1,10 +1,11 @@
-import { outputShapeKey } from '../types';
+import { outputShapeKey, parentShapeKey } from '../types';
 import BaseTypeRef from './base';
 
-export default class OutputTypeRef<T> extends BaseTypeRef {
+export default class OutputTypeRef<T, P = T> extends BaseTypeRef {
   kind;
 
   [outputShapeKey]: T;
+  [parentShapeKey]: P;
 
   constructor(kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union', name: string) {
     super(kind, name);

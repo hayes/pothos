@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarSerializer, GraphQLScalarValueParser, } from 'https://cdn.skypack.dev/graphql?dts';
-import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, OutputShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
+import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, OutputShape, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
 import { MaybePromise } from '../utils.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
@@ -19,7 +19,7 @@ declare global {
         }
         export interface ObjectTypeWithInterfaceOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends Omit<ObjectTypeOptions<Types, Shape>, "interfaces" | "isTypeOf"> {
             interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
-            isTypeOf: (obj: OutputShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
+            isTypeOf: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
         }
         export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> extends BaseTypeOptions<Types> {
         }
@@ -41,7 +41,7 @@ declare global {
         }
         export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>> extends BaseTypeOptions<Types> {
             types: Member[];
-            resolveType: (parent: OutputShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<Member | null | undefined>;
+            resolveType: (parent: ParentShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<Member | null | undefined>;
         }
         export interface ScalarTypeOptions<Types extends SchemaTypes = SchemaTypes, ScalarInputShape = unknown, ScalarOutputShape = unknown> extends BaseTypeOptions<Types> {
             // Serializes an internal value to include in a response.

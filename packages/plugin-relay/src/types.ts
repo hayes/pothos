@@ -21,11 +21,11 @@ import {
   OutputRefShape,
   OutputShape,
   OutputType,
+  ParentShape,
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@giraphql/core';
-import InputFieldBuilder from '@giraphql/core/src/fieldUtils/input';
 
 export interface RelayPluginOptions<Types extends SchemaTypes> {
   nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
@@ -167,12 +167,12 @@ export type NodeBaseObjectOptionsForParam<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[]
-> = Omit<ObjectTypeOptions<Types, Param, OutputShape<Types, Param>, Interfaces>, 'isTypeOf'> &
+> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, 'isTypeOf'> &
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   (Param extends new (...args: any[]) => any
     ? {
         isTypeOf?: (
-          obj: OutputShape<Types, Interfaces[number]>,
+          obj: ParentShape<Types, Interfaces[number]>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
         ) => boolean;
@@ -180,14 +180,14 @@ export type NodeBaseObjectOptionsForParam<
     : OutputShape<Types, Param> extends { __type: string }
     ? {
         isTypeOf?: (
-          obj: OutputShape<Types, Interfaces[number]>,
+          obj: ParentShape<Types, Interfaces[number]>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
         ) => boolean;
       }
     : {
         isTypeOf: (
-          obj: OutputShape<Types, Interfaces[number]>,
+          obj: ParentShape<Types, Interfaces[number]>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
         ) => boolean;
@@ -201,12 +201,12 @@ export type NodeObjectOptions<
   id: Omit<
     FieldOptionsFromKind<
       Types,
-      OutputShape<Types, Param>,
+      ParentShape<Types, Param>,
       'ID',
       false,
       {},
       'Object',
-      OutputShape<Types, Param>,
+      OutputShape<Types, 'ID'>,
       MaybePromise<OutputShape<Types, 'ID'>>
     >,
     'args' | 'nullable' | 'type'

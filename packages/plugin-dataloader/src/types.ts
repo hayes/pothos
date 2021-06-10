@@ -11,6 +11,7 @@ import {
   ObjectRef,
   ObjectTypeOptions,
   OutputShape,
+  ParentShape,
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -89,7 +90,7 @@ export type LoadableNodeOptions<
     'args' | 'nullable' | 'type'
   >;
   isTypeOf: (
-    obj: OutputShape<Types, Interfaces[number]>,
+    obj: ParentShape<Types, Interfaces[number]>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => boolean;

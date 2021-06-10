@@ -14,6 +14,7 @@ import {
   ObjectFieldsShape,
   ObjectParam,
   OutputShape,
+  ParentShape,
   QueryFieldsShape,
   RootName,
   SchemaTypes,
@@ -49,7 +50,7 @@ declare global {
     > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isTypeOf'> {
       interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
       isTypeOf: (
-        obj: OutputShape<Types, Interfaces[number]>,
+        obj: ParentShape<Types, Interfaces[number]>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => boolean;
@@ -94,7 +95,7 @@ declare global {
     > extends BaseTypeOptions<Types> {
       types: Member[];
       resolveType: (
-        parent: OutputShape<Types, Member>,
+        parent: ParentShape<Types, Member>,
         context: Types['Context'],
         info: GraphQLResolveInfo,
       ) => MaybePromise<Member | null | undefined>;

@@ -1,15 +1,15 @@
-import { printSchema, lexicographicSortSchema, execute } from 'graphql';
 import { gql } from 'apollo-server';
-import exampleSchema from './examples/simple/schema';
+import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import { User } from './examples/simple/data';
+import exampleSchema from './examples/simple/schema';
 
 describe('simple objects example schema', () => {
-  test('generates expected schema', () => {
+  it('generates expected schema', () => {
     expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
   });
 
   describe('queries', () => {
-    test('query some stuff', async () => {
+    it('query some stuff', async () => {
       const query = gql`
         query {
           user(id: 1) {

@@ -1,7 +1,7 @@
 // @ts-nocheck
-import SchemaBuilder, { FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
-import { resolveNodes } from './utils/index.ts';
+import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 const pageInfoRefMap = new WeakMap<GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<PageInfoShape>>();
 const nodeInterfaceRefMap = new WeakMap<GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, InterfaceRef<ObjectParam<SchemaTypes>>>();
@@ -145,4 +145,50 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
         globalConnectionFieldsMap.set(this, []);
     }
     globalConnectionFieldsMap.get(this)!.push(onRef);
+};
+const mutationIdCache = createContextCache(() => new Map<string, string>());
+schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, { name: inputName = `${capitalize(fieldName)}Input`, argName = "input", inputFields, ...inputOptions }, { resolve, ...fieldOptions }, { name: payloadName = `${capitalize(fieldName)}Payload`, outputFields, interfaces, ...paylaodOptions }) {
+    const { relayOptions: { clientMutationIdInputOptions, clientMutationIdFieldOptions, mutationInputArgOptions, }, } = this.options;
+    if (!mutationInputArgOptions) {
+        throw new Error("relayOptions.mutationInputArgOptions must be set in builder options to use `relayMutationField`");
+    }
+    if (!clientMutationIdInputOptions) {
+        throw new Error("relayOptions.clientMutationIdInputOptions must be set in builder options to use `relayMutationField`");
+    }
+    if (!clientMutationIdFieldOptions) {
+        throw new Error("relayOptions.clientMutationIdFieldOptions must be set in builder options to use `relayMutationField`");
+    }
+    const inputRef = this.inputType(inputName, {
+        ...inputOptions,
+        fields: (t) => ({
+            ...inputFields(t),
+            clientMutationId: t.id({ ...clientMutationIdInputOptions, required: true }),
+        }),
+    });
+    const payloadRef = this.objectRef<unknown>(payloadName).implement({
+        ...paylaodOptions,
+        interfaces: interfaces as never,
+        fields: (t) => ({
+            ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
+            clientMutationId: t.id({
+                ...clientMutationIdFieldOptions,
+                nullable: false,
+                resolve: (parent, args, context, info) => mutationIdCache(context).get(String(info.path.prev!.key))!,
+            }),
+        }),
+    });
+    this.mutationField(fieldName, (t) => t.field({
+        ...(fieldOptions as {}),
+        type: payloadRef,
+        args: {
+            [argName]: t.arg({ ...(mutationInputArgOptions as {}), type: inputRef, required: true }),
+        },
+        resolve: (root, args, context, info) => {
+            mutationIdCache(context).set(String(info.path.key), ((args as unknown) as Record<string, {
+                clientMutationId: string;
+            }>)[argName]
+                .clientMutationId);
+            return resolve(root, args as never, context, info);
+        },
+    }));
 };

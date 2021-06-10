@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.2.0-alpha.0 - 2021-06-09
+
+#### 🚀 Updates
+
+- plum parentShape through all ussage of output refs ([2dac2ca](https://github.com/hayes/giraphql/commit/2dac2ca))
+
+**Note:** Version bump only for package @giraphql/plugin-simple-objects
+
+
+
+
+
 ### 2.1.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-simple-objects
