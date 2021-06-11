@@ -3,6 +3,26 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.6.0 - 2021-06-11
+
+#### 🚀 Updates
+
+- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+
+#### 🐞 Fixes
+
+- fix a couple type errors ([453bf7b](https://github.com/hayes/giraphql/commit/453bf7b))
+
+#### 📦 Dependencies
+
+- update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ## 2.5.0 - 2021-06-10
 
 #### 🚀 Updates

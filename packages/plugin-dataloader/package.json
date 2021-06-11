@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-dataloader",
-  "version": "2.3.0",
+  "version": "2.4.0",
   "description": "A GiraphQL plugin for attaching dataloader to object types",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
@@ -24,8 +24,8 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.7.0",
-    "@giraphql/plugin-relay": "^2.5.0",
+    "@giraphql/core": "^2.8.0",
+    "@giraphql/plugin-relay": "^2.6.0",
     "apollo-server": "^2.25.0",
     "dataloader": "^2.0.0",
     "graphql-tag": "^2.11.0"

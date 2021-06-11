@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.4.0 - 2021-06-11
+
+#### 🚀 Updates
+
+- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+
+#### 📦 Dependencies
+
+- update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
+
+**Note:** Version bump only for package @giraphql/plugin-validation
+
+
+
+
+
 ### 2.3.4 - 2021-05-13
 
 #### 📘 Docs

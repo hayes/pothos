@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.5.0 - 2021-06-11
+
+#### 🚀 Updates
+
+- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- update deno ([61f4b5a](https://github.com/hayes/giraphql/commit/61f4b5a))
+
+#### 📦 Dependencies
+
+- update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
+
+**Note:** Version bump only for package @giraphql/deno
+
+
+
+
+
 ## 2.4.0 - 2021-06-10
 
 #### 🚀 Updates

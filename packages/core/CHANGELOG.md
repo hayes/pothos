@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.8.0 - 2021-06-11
+
+#### 🚀 Updates
+
+- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+
+#### 🐞 Fixes
+
+- fix a couple type errors ([453bf7b](https://github.com/hayes/giraphql/commit/453bf7b))
+
+#### 📦 Dependencies
+
+- update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
+
+#### 📘 Docs
+
+- add some js docs for field options ([656aa2d](https://github.com/hayes/giraphql/commit/656aa2d))
+
+#### 🛠 Internals
+
+- fix a couple tests ([36e6146](https://github.com/hayes/giraphql/commit/36e6146))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.7.0 - 2021-06-10
 
 #### 📘 Docs

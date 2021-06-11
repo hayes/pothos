@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.6 - 2021-06-11
+
+#### 📦 Dependencies
+
+- update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
+
+**Note:** Version bump only for package @giraphql/plugin-mocks
+
+
+
+
+
 ### 2.1.5 - 2021-06-10
 
 **Note:** Version bump only for package @giraphql/plugin-mocks

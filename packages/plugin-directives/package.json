@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-directives",
-  "version": "2.1.6",
+  "version": "2.2.0",
   "description": "Directive plugin for GiraphQL, enables using graphql-tools based directives with GiraphQL",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
@@ -30,7 +30,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.7.0",
+    "@giraphql/core": "^2.8.0",
     "apollo-server": "^2.25.0",
     "graphql": ">=15.1.0",
     "graphql-rate-limit-directive": "^1.3.0",
