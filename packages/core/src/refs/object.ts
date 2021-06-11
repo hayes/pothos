@@ -29,7 +29,12 @@ export class ImplementableObjectRef<
   }
 
   implement<Interfaces extends InterfaceParam<Types>[]>(
-    options: ObjectTypeOptions<Types, ObjectRef<Types>, Parent, Interfaces>,
+    options: ObjectTypeOptions<
+      Types,
+      ImplementableObjectRef<Types, Shape, Parent>,
+      Parent,
+      Interfaces
+    >,
   ) {
     return this.builder.objectType(this, options);
   }

@@ -193,7 +193,7 @@ fieldBuilderProto.connection = function connection(
       after: this.arg.id({ required: false }),
       first: this.arg.int({ required: false }),
       last: this.arg.int({ required: false }),
-    },
+    } as unknown as {},
     resolve: fieldOptions.resolve as never,
   });
 
