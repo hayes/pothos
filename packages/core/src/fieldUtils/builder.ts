@@ -15,6 +15,11 @@ export default class FieldBuilder<
   ParentShape,
   Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
 > extends RootFieldBuilder<Types, ParentShape, Kind> {
+  /**
+   * Create a Boolean field from a boolean property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeBoolean<
     Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>,
     ResolveReturnShape,
@@ -44,6 +49,11 @@ export default class FieldBuilder<
     return this.exposeField<'Boolean', Nullable, Name>(name, { ...options, type: 'Boolean' });
   }
 
+  /**
+   * Create a Float field from a numeric property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeFloat<
     Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>,
     ResolveReturnShape,
@@ -73,6 +83,11 @@ export default class FieldBuilder<
     return this.exposeField<'Float', Nullable, Name>(name, { ...options, type: 'Float' });
   }
 
+  /**
+   * Create an ID field from a property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeID<
     Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>,
     ResolveReturnShape,
@@ -102,6 +117,11 @@ export default class FieldBuilder<
     return this.exposeField<'ID', Nullable, Name>(name, { ...options, type: 'ID' });
   }
 
+  /**
+   * Create an Int field from a numeric property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeInt<
     Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>,
     ResolveReturnShape,
@@ -131,6 +151,11 @@ export default class FieldBuilder<
     return this.exposeField<'Int', Nullable, Name>(name, { ...options, type: 'Int' });
   }
 
+  /**
+   * Create a String field from a string property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeString<
     Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>,
     ResolveReturnShape,
@@ -160,6 +185,11 @@ export default class FieldBuilder<
     return this.exposeField<'String', Nullable, Name>(name, { ...options, type: 'String' });
   }
 
+  /**
+   * Create a Boolean list field from a boolean[] property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeBooleanList<
     Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>,
     ResolveReturnShape,
@@ -189,6 +219,11 @@ export default class FieldBuilder<
     return this.exposeField<['Boolean'], Nullable, Name>(name, { ...options, type: ['Boolean'] });
   }
 
+  /**
+   * Create a Float list field from a number[] property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeFloatList<
     Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>,
     ResolveReturnShape,
@@ -218,6 +253,11 @@ export default class FieldBuilder<
     return this.exposeField<['Float'], Nullable, Name>(name, { ...options, type: ['Float'] });
   }
 
+  /**
+   * Create an ID list field from an id[] property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeIDList<
     Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>,
     ResolveReturnShape,
@@ -247,6 +287,11 @@ export default class FieldBuilder<
     return this.exposeField<['ID'], Nullable, Name>(name, { ...options, type: ['ID'] });
   }
 
+  /**
+   * Create a Int list field from a number[] property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeIntList<
     Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>,
     ResolveReturnShape,
@@ -276,6 +321,11 @@ export default class FieldBuilder<
     return this.exposeField<['Int'], Nullable, Name>(name, { ...options, type: ['Int'] });
   }
 
+  /**
+   * Create a String list field from a string[] property on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   exposeStringList<
     Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>,
     ResolveReturnShape,
@@ -305,6 +355,11 @@ export default class FieldBuilder<
     return this.exposeField<['String'], Nullable, Name>(name, { ...options, type: ['String'] });
   }
 
+  /**
+   * Create a field that resolves to a property of the corresponding type on the parent object
+   * @param {string} name - the name of the property on the source object (does not need to match the field name).
+   * @param {object} [options={}] - Options for this field
+   */
   expose<
     Type extends TypeParam<Types>,
     Nullable extends boolean,

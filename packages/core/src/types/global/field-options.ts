@@ -41,12 +41,13 @@ declare global {
         Types['Context'],
         InputShapeFromFields<Args>
       >;
-      /** Resolver function for this field
-       @param parent - The parent object for the current type
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param parent - The parent object for the current type
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       resolve?: Resolver<
         ResolveShape,
         InputShapeFromFields<Args>,
@@ -72,12 +73,13 @@ declare global {
         ParentShape,
         ResolveReturnShape
       > {
-      /** Resolver function for this field
-       @param parent - The parent object for the current type
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param parent - The parent object for the current type
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Args>,
@@ -102,12 +104,13 @@ declare global {
         Types['Root'],
         ResolveReturnShape
       > {
-      /** Resolver function for this field
-       @param root - The root object for this request
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param root - The root object for this request
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       resolve: Resolver<
         Types['Root'],
         InputShapeFromFields<Args>,
@@ -132,12 +135,13 @@ declare global {
         Types['Root'],
         ResolveReturnShape
       > {
-      /** Resolver function for this field
-       @param root - The root object for this request
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param root - The root object for this request
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       resolve: Resolver<
         Types['Root'],
         InputShapeFromFields<Args>,
@@ -163,12 +167,13 @@ declare global {
         ParentShape,
         ResolveReturnShape
       > {
-      /** Resolver function for this field
-       @param root - The root object for this request
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param root - The root object for this request
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       resolve?: Resolver<
         ParentShape,
         InputShapeFromFields<Args>,
@@ -194,12 +199,13 @@ declare global {
         ResolveShape,
         ResolveReturnShape
       > {
-      /** Resolver function for this field
-       @param parent - The parent object for this subscription (yielded by subscribe)
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param parent - The parent object for this subscription (yielded by subscribe)
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       resolve: Resolver<
         ResolveShape,
         InputShapeFromFields<Args>,
@@ -207,12 +213,13 @@ declare global {
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
-      /** Resolver function for this field
-       @param root - The root object for this request
-       @param {object} args - args object based on the args defined for this field
-       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
-       @param {GraphQLResolveInfo} info - info about how this field was queried
-      */
+      /**
+       * Resolver function for this field
+       * @param root - The root object for this request
+       * @param {object} args - args object based on the args defined for this field
+       * @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       * @param {GraphQLResolveInfo} info - info about how this field was queried
+       */
       subscribe: Subscriber<
         Types['Root'],
         InputShapeFromFields<Args>,
@@ -262,7 +269,7 @@ declare global {
       description?: string;
       /** When present marks this field as deprecated */
       deprecationReason?: string;
-      /** determins if this field can be omitted (or set as null) */
+      /** etermins if this field can be omitted (or set as null) */
       required?: Req;
       /** default value if this field is not included in the query */
       defaultValue?: NonNullable<InputShapeFromTypeParam<Types, Type, Req>>;

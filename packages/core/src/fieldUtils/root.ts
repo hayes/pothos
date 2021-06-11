@@ -21,6 +21,10 @@ export default class RootFieldBuilder<
     this.typename,
   ).argBuilder();
 
+  /**
+   * Create a Boolean field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   boolean<
     Args extends InputFieldMap,
     ResolveShape,
@@ -53,6 +57,10 @@ export default class RootFieldBuilder<
     });
   }
 
+  /**
+   * Create a Float field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   float<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'Float'>,
@@ -85,6 +93,10 @@ export default class RootFieldBuilder<
     });
   }
 
+  /**
+   * Create a ID field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   id<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'ID'>,
@@ -114,6 +126,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, 'ID', Nullable>({ ...options, type: 'ID' });
   }
 
+  /**
+   * Create a Int field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   int<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'Int'>,
@@ -143,6 +159,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, 'Int', Nullable>({ ...options, type: 'Int' });
   }
 
+  /**
+   * Create a String field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   string<
     Args extends InputFieldMap,
     ResolveShape,
@@ -175,6 +195,10 @@ export default class RootFieldBuilder<
     });
   }
 
+  /**
+   * Create a Boolean list field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   booleanList<
     Args extends InputFieldMap,
     ResolveShape,
@@ -204,6 +228,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, ['Boolean'], Nullable>({ ...options, type: ['Boolean'] });
   }
 
+  /**
+   * Create a Float list field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   floatList<
     Args extends InputFieldMap,
     ResolveShape,
@@ -233,6 +261,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, ['Float'], Nullable>({ ...options, type: ['Float'] });
   }
 
+  /**
+   * Create a ID list field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   idList<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<['ID']>,
@@ -262,6 +294,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, ['ID'], Nullable>({ ...options, type: ['ID'] });
   }
 
+  /**
+   * Create a Int list field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   intList<
     Args extends InputFieldMap,
     ResolveShape,
@@ -291,6 +327,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, ['Int'], Nullable>({ ...options, type: ['Int'] });
   }
 
+  /**
+   * Create a String list field
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   */
   stringList<
     Args extends InputFieldMap,
     ResolveShape,
@@ -320,9 +360,10 @@ export default class RootFieldBuilder<
     return this.createField<Args, ['String'], Nullable>({ ...options, type: ['String'] });
   }
 
-  /** create a new field for the current type
-   @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
-  */
+  /**
+   * create a new field for the current type
+   * @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+   */
   field<
     Args extends InputFieldMap,
     Type extends TypeParam<Types>,
