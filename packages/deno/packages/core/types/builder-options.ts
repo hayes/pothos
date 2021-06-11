@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { Merge, RemoveNeverKeys } from './utils.ts';
-import { BaseEnum, EnumParam, FieldNullability, FieldRef, InputFieldRef, inputFieldShapeKey, InputRef, InterfaceParam, InterfaceRef, MaybePromise, NormalizeNullableFields, ObjectParam, ObjectRef, ParentShape, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../index.ts';
+import { BaseEnum, EnumParam, FieldNullability, FieldRef, InputFieldRef, inputFieldShapeKey, InputRef, InterfaceParam, InterfaceRef, MaybePromise, Normalize, NormalizeNullableFields, ObjectParam, ObjectRef, ParentShape, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../index.ts';
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<GiraphQLSchemaTypes.SchemaBuilderOptions<Types>>;
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (parent: Parent, args: Args, context: Context, info: GraphQLResolveInfo) => [
     Type
@@ -29,11 +29,11 @@ export type SubscriptionFieldThunk<Types extends SchemaTypes> = (t: GiraphQLSche
 export type FieldMap = Record<string, FieldRef>;
 export type InputFieldMap = Record<string, InputFieldRef>;
 export type FieldOptionsFromKind<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, Kind extends FieldKind, ResolveShape, ResolveReturnShape> = GiraphQLSchemaTypes.FieldOptionsByKind<Types, ParentShape, Type, Nullable, Args, ResolveShape, ResolveReturnShape>[Kind];
-export type ObjectTypeOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Shape, Interfaces extends InterfaceParam<Types>[]> = (Param extends string ? {} : Param extends ObjectRef<unknown> ? {
+export type ObjectTypeOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Shape, Interfaces extends InterfaceParam<Types>[]> = Normalize<(Param extends string ? {} : Param extends ObjectRef<unknown> ? {
     name?: string;
 } : {
     name: string;
-}) & (GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape> | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>);
+}) & (GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape> | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>)>;
 export type InterfaceTypeOptions<Types extends SchemaTypes, Param extends InterfaceParam<Types>, Shape, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> = GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> & (Param extends string ? {} : Param extends InterfaceRef<unknown> ? {
     name?: string;
 } : {
@@ -48,7 +48,7 @@ export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullab
     [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;
 export type InputFieldsFromShape<Shape extends object> = {
-    [K in keyof Shape]: InputFieldRef<Shape[K]>;
+    [K in keyof Shape]: InputFieldRef<Shape[K], "InputObject">;
 };
 export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
     [inputFieldShapeKey]: infer T;

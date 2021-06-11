@@ -93,7 +93,7 @@ fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { 
             after: this.arg.id({ required: false }),
             first: this.arg.int({ required: false }),
             last: this.arg.int({ required: false }),
-        },
+        } as unknown as {},
         resolve: fieldOptions.resolve as never,
     });
     this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {

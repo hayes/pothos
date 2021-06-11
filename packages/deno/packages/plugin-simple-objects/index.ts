@@ -1,6 +1,6 @@
 // @ts-nocheck
 import './global-types.ts';
-import SchemaBuilder, { BasePlugin, FieldMap, InterfaceParam, InterfaceRef, InterfaceTypeOptions, ObjectRef, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, FieldMap, InterfaceParam, InterfaceRef, InterfaceTypeOptions, Normalize, ObjectRef, ParentShape, SchemaTypes, } from '../core/index.ts';
 import { OutputShapeFromFields } from './types.ts';
 const pluginName = "simpleObjects" as const;
 export default pluginName;
@@ -8,7 +8,7 @@ export class GiraphQLSimpleObjectsPlugin<Types extends SchemaTypes> extends Base
 }
 SchemaBuilder.registerPlugin(pluginName, GiraphQLSimpleObjectsPlugin);
 const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
-proto.simpleObject = function simpleObject<Interfaces extends InterfaceParam<SchemaTypes>[], Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>>(name: string, options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>) {
+proto.simpleObject = function simpleObject<Interfaces extends InterfaceParam<SchemaTypes>[], Fields extends FieldMap, Shape extends Normalize<OutputShapeFromFields<Fields> & ParentShape<SchemaTypes, Interfaces[number]>>>(name: string, options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>) {
     const ref = new ObjectRef<Shape>(name);
     if (options.fields) {
         const originalFields = options.fields;

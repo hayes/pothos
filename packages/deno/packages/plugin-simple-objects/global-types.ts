@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, InterfaceRef, ObjectRef, OutputShape, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, InterfaceRef, Merge, Normalize, ObjectRef, OutputShape, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
 import { GiraphQLSimpleObjectsPlugin } from './index.ts';
 declare global {
@@ -9,7 +9,7 @@ declare global {
             simpleObjects: GiraphQLSimpleObjectsPlugin<Types>;
         }
         export interface SchemaBuilder<Types extends SchemaTypes> {
-            simpleObject: <Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>>(name: string, options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>) => ObjectRef<Shape>;
+            simpleObject: <Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends Normalize<OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>>>(name: string, options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>) => ObjectRef<Shape>;
             simpleInterface: <Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>, Interfaces extends InterfaceParam<SchemaTypes>[]>(name: string, options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>) => InterfaceRef<Shape>;
         }
         export interface GiraphQLKindToGraphQLType {
@@ -20,7 +20,7 @@ declare global {
             SimpleObject: Omit<ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>, "resolve">;
             SimpleInterface: Omit<InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>, "resolve">;
         }
-        export type SimpleObjectTypeOptions<Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>> = Omit<ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>, "fields"> & {
+        export type SimpleObjectTypeOptions<Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape> = Omit<ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>, "fields"> & {
             fields?: SimpleObjectFieldsShape<Types, Fields>;
         };
         export interface SimpleInterfaceTypeOptions<Types extends SchemaTypes, Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>, Interfaces extends InterfaceParam<SchemaTypes>[]> extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, "args" | "fields"> {

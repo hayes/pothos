@@ -17,7 +17,7 @@ export class ImplementableObjectRef<Types extends SchemaTypes, Shape, Parent = S
         super(name);
         this.builder = builder;
     }
-    implement<Interfaces extends InterfaceParam<Types>[]>(options: ObjectTypeOptions<Types, ObjectRef<Types>, Parent, Interfaces>) {
+    implement<Interfaces extends InterfaceParam<Types>[]>(options: ObjectTypeOptions<Types, ImplementableObjectRef<Types, Shape, Parent>, Parent, Interfaces>) {
         return this.builder.objectType(this, options);
     }
 }

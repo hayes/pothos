@@ -104,6 +104,9 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             "String"
         ], Nullable>({ ...options, type: ["String"] });
     }
+    /** create a new field for the current type
+     @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+    */
     field<Args extends InputFieldMap, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>) {
         return this.createField<Args, Type, Nullable>(options);
     }
