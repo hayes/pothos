@@ -13,7 +13,8 @@ import SchemaBuilder, {
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto =
+  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 const pageInfoRefMap = new WeakMap<
   GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
@@ -124,7 +125,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
   let nodeName!: string;
 
   const ref = this.objectType<[], ObjectParam<SchemaTypes>>(
-    param as ObjectParam<SchemaTypes>,
+    param,
     {
       ...options,
       isTypeOf: (maybeNode, context, info) => {
@@ -304,7 +305,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       resolve: (root, args, context, info) => {
         mutationIdCache(context).set(
           String(info.path.key),
-          ((args as unknown) as Record<string, { clientMutationId: string }>)[argName]
+          (args as unknown as Record<string, { clientMutationId: string }>)[argName]
             .clientMutationId,
         );
 

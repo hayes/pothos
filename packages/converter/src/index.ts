@@ -166,14 +166,25 @@ export default class GirphQLConverter {
       }
 
       if (type instanceof GraphQLObjectType) {
-        if (type.name === 'Query') {
-          this.queryType(type);
-        } else if (type.name === 'Mutation') {
-          this.mutationType(type);
-        } else if (type.name === 'Subscription') {
-          this.subscriptionType(type);
-        } else {
-          this.objectType(type);
+        switch (type.name) {
+          case 'Query': {
+            this.queryType(type);
+
+            break;
+          }
+          case 'Mutation': {
+            this.mutationType(type);
+
+            break;
+          }
+          case 'Subscription': {
+            this.subscriptionType(type);
+
+            break;
+          }
+          default: {
+            this.objectType(type);
+          }
         }
       }
     });
@@ -698,7 +709,7 @@ export default class GirphQLConverter {
       writer.writeLine('Scalars: {');
       writer.indent(() => {
         scalars.forEach((type) => {
-          writer.writeLine(`${type.name}: { Input: never, Output: never },`);
+          writer.writeLine(`${type.name}: { Input: unknown, Output: unknown },`);
         });
       });
       writer.writeLine('},');

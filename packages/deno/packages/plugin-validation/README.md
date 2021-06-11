@@ -38,7 +38,7 @@ builder.queryType({
             email: true,
           },
         }),
-        phone: t.arg.string({}),
+        phone: t.arg.string(),
       },
       // Validate all args together
       validate: (args) => !!args.phone || !!args.email,
@@ -63,7 +63,7 @@ builder.queryType({
             email: [true, { message: 'invalid email address' }],
           },
         }),
-        phone: t.arg.string({}),
+        phone: t.arg.string(),
       },
       validate: [
         (args) => !!args.phone || !!args.email,

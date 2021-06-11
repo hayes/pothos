@@ -303,7 +303,7 @@ export interface MutationFieldOptions<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
-  ResolveReturnShape
+  ResolveReturnShape,
 > {
   customMutationFieldOption?: boolean;
 }
@@ -348,7 +348,8 @@ and returns a reference to a new custom object type. Defining this type will not
 and we still need to define the actual implementation of this method. This might look like:
 
 ```typescript
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto =
+  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.buildCustomObject = function buildCustomObject() {
   return this.objectRef<{ custom: 'shape' }>('CustomObject').implement({

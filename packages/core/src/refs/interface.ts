@@ -19,7 +19,7 @@ export default class InterfaceRef<T, P = T> extends BaseTypeRef implements Outpu
 export class ImplementableInterfaceRef<
   Types extends SchemaTypes,
   Shape,
-  Parent = Shape
+  Parent = Shape,
 > extends InterfaceRef<Shape, Parent> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 

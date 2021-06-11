@@ -3,7 +3,7 @@
 exports[`simple objects example schema generates expected schema 1`] = `
 "type ContactInfo {
   email: String!
-  phoneNUmber: String
+  phoneNumber: String
 }
 
 interface Node {
@@ -29,6 +29,7 @@ Object {
     "user": Object {
       "contactInfo": Object {
         "email": "michael.hayes@example.com",
+        "phoneNumber": null,
       },
       "firstName": "Michael",
       "id": "1",

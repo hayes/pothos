@@ -1,6 +1,5 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { unknown } from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
 import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { RefineConstraint, ValidationOptions } from './types.ts';
 import { GiraphQLValidationPlugin } from './index.ts';

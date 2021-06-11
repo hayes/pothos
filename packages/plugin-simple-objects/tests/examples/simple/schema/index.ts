@@ -5,7 +5,7 @@ const ContactInfo = builder.simpleObject('ContactInfo', {
     email: t.string({
       nullable: false,
     }),
-    phoneNUmber: t.string({
+    phoneNumber: t.string({
       nullable: true,
     }),
   }),
@@ -22,8 +22,8 @@ const Node = builder.simpleInterface('Node', {
 const UserType = builder.simpleObject('User', {
   interfaces: [Node],
   fields: (t) => ({
-    firstName: t.string({}),
-    lastName: t.string({}),
+    firstName: t.string(),
+    lastName: t.string(),
     contactInfo: t.field({
       type: ContactInfo,
       nullable: false,

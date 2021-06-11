@@ -10,13 +10,14 @@ import SchemaBuilder, {
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { LoadableObjectRef } from './util';
 
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto =
+  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.loadableObject = function loadableObject<
   Shape extends object,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<SchemaTypes>[],
-  CacheKey = Key
+  CacheKey = Key,
 >(
   name: string,
   {
@@ -55,11 +56,11 @@ schemaBuilderProto.loadableObject = function loadableObject<
 
 const TloadableNode = schemaBuilderProto.loadableNode;
 
-schemaBuilderProto.loadableNode = (function loadableNode<
+schemaBuilderProto.loadableNode = function loadableNode<
   Shape extends object,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<SchemaTypes>[],
-  CacheKey = Key
+  CacheKey = Key,
 >(
   this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
   name: string,
@@ -97,9 +98,11 @@ schemaBuilderProto.loadableNode = (function loadableNode<
   const extendedOptions = {
     ...options,
     interfaces: [
-      (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
-        nodeInterfaceRef: () => InterfaceRef<unknown>;
-      }).nodeInterfaceRef(),
+      (
+        this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
+          nodeInterfaceRef: () => InterfaceRef<unknown>;
+        }
+      ).nodeInterfaceRef(),
     ],
     loadMany: (ids: Key[], context: SchemaTypes['Context']) => getDataloader(context).loadMany(ids),
     extensions: {
@@ -111,9 +114,11 @@ schemaBuilderProto.loadableNode = (function loadableNode<
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(ref, 'id', (t) =>
-      ((t as unknown) as {
-        globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-      }).globalID({
+      (
+        t as unknown as {
+          globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
+        }
+      ).globalID({
         ...options.id,
         nullable: false,
         args: {},
@@ -131,4 +136,4 @@ schemaBuilderProto.loadableNode = (function loadableNode<
   });
 
   return ref;
-} as unknown) as typeof TloadableNode;
+} as unknown as typeof TloadableNode;

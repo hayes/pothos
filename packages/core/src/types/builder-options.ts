@@ -12,6 +12,7 @@ import {
   InterfaceParam,
   InterfaceRef,
   MaybePromise,
+  Normalize,
   NormalizeNullableFields,
   ObjectParam,
   ObjectRef,
@@ -62,16 +63,14 @@ export type EnumValueConfigMap<Types extends SchemaTypes> = Record<
   GiraphQLSchemaTypes.EnumValueConfig<Types>
 >;
 
-export type ShapeFromEnumValues<
-  Types extends SchemaTypes,
-  Values extends EnumValues<Types>
-> = Values extends readonly string[]
-  ? Values[number]
-  : Values extends EnumValueConfigMap<Types>
-  ? {
-      [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
-    }[keyof Values]
-  : never;
+export type ShapeFromEnumValues<Types extends SchemaTypes, Values extends EnumValues<Types>> =
+  Values extends readonly string[]
+    ? Values[number]
+    : Values extends EnumValueConfigMap<Types>
+    ? {
+        [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
+      }[keyof Values]
+    : never;
 
 export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
@@ -125,7 +124,7 @@ export type FieldOptionsFromKind<
   Args extends InputFieldMap,
   Kind extends FieldKind,
   ResolveShape,
-  ResolveReturnShape
+  ResolveReturnShape,
 > = GiraphQLSchemaTypes.FieldOptionsByKind<
   Types,
   ParentShape,
@@ -140,22 +139,24 @@ export type ObjectTypeOptions<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Shape,
-  Interfaces extends InterfaceParam<Types>[]
-> = (Param extends string
-  ? {}
-  : Param extends ObjectRef<unknown>
-  ? { name?: string }
-  : { name: string }) &
-  (
-    | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-    | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
-  );
+  Interfaces extends InterfaceParam<Types>[],
+> = Normalize<
+  (Param extends string
+    ? {}
+    : Param extends ObjectRef<unknown>
+    ? { name?: string }
+    : { name: string }) &
+    (
+      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
+    )
+>;
 
 export type InterfaceTypeOptions<
   Types extends SchemaTypes,
   Param extends InterfaceParam<Types>,
   Shape,
-  Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+  Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
 > = GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> &
   (Param extends string
     ? {}
@@ -166,7 +167,7 @@ export type InterfaceTypeOptions<
 export type EnumTypeOptions<
   Types extends SchemaTypes,
   Param extends EnumParam,
-  Values extends EnumValues<Types>
+  Values extends EnumValues<Types>,
 > = Param extends BaseEnum
   ? Merge<
       Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
@@ -184,7 +185,7 @@ export type ArgBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.InputFie
 export type ValidateInterfaces<
   Shape,
   Types extends SchemaTypes,
-  Interfaces extends InterfaceParam<Types>
+  Interfaces extends InterfaceParam<Types>,
 > = Interfaces extends InterfaceParam<Types>
   ? Shape extends ParentShape<Types, Interfaces>
     ? Interfaces
@@ -198,7 +199,7 @@ export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullab
 >;
 
 export type InputFieldsFromShape<Shape extends object> = {
-  [K in keyof Shape]: InputFieldRef<Shape[K]>;
+  [K in keyof Shape]: InputFieldRef<Shape[K], 'InputObject'>;
 };
 
 export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
@@ -228,7 +229,7 @@ export type CompatibleTypes<
   Types extends SchemaTypes,
   ParentShape,
   Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>
+  Nullable extends FieldNullability<Type>,
 > = {
   [K in keyof ParentShape]-?: ParentShape[K] extends ShapeFromTypeParam<Types, Type, Nullable>
     ? K

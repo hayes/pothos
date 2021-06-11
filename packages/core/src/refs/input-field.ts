@@ -4,7 +4,7 @@ import { FieldRef } from '..';
 
 export default class InputFieldRef<
   T = unknown,
-  Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject'
+  Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject',
 > {
   kind: 'Arg' | 'InputObject';
 

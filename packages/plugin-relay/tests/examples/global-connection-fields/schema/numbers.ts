@@ -40,54 +40,46 @@ builder.node(BatchLoadableNumberThing, {
 });
 
 builder.queryFields((t) => ({
-  numbers: t.connection(
-    {
-      type: NumberThing,
-      resolve: async (parent, args) => {
-        const result = await resolveOffsetConnection({ args }, ({ limit, offset }) => {
-          const items = [];
+  numbers: t.connection({
+    type: NumberThing,
+    resolve: async (parent, args) => {
+      const result = await resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        const items = [];
 
-          for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
-            items.push(new NumberThing(i));
-          }
-
-          return items;
-        });
-
-        if (!result) {
-          return null;
+        for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+          items.push(new NumberThing(i));
         }
 
-        return {
-          totalCount: 500,
-          ...result,
-        };
-      },
+        return items;
+      });
+
+      if (!result) {
+        return null;
+      }
+
+      return {
+        totalCount: 500,
+        ...result,
+      };
     },
-    {},
-    {},
-  ),
+  }),
 }));
 
 builder.queryFields((t) => ({
-  batchNumbers: t.connection(
-    {
-      type: BatchLoadableNumberThing,
-      resolve: (parent, args) => {
-        const numbers: BatchLoadableNumberThing[] = [];
+  batchNumbers: t.connection({
+    type: BatchLoadableNumberThing,
+    resolve: (parent, args) => {
+      const numbers: BatchLoadableNumberThing[] = [];
 
-        for (let i = 0; i < 200; i += 1) {
-          numbers.push(new BatchLoadableNumberThing(i));
-        }
+      for (let i = 0; i < 200; i += 1) {
+        numbers.push(new BatchLoadableNumberThing(i));
+      }
 
-        const result = resolveArrayConnection({ args }, numbers);
+      const result = resolveArrayConnection({ args }, numbers);
 
-        return result && { totalCount: 500, ...result };
-      },
+      return result && { totalCount: 500, ...result };
     },
-    {},
-    {},
-  ),
+  }),
   extraNode: t.node({
     id: () => 'TnVtYmVyOjI=',
   }),

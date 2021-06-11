@@ -17,8 +17,8 @@ const builder = new SchemaBuilder<{
     };
     Scalars: {
         Date: {
-            Input: never;
-            Output: never;
+            Input: unknown;
+            Output: unknown;
         };
     };
 }>({});

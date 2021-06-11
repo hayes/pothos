@@ -1,3 +1,4 @@
+import './test-plugin/global-types';
 import SchemaBuilder from '../../src';
 
 // Define backing models/types
@@ -45,7 +46,7 @@ builder.scalarType('Date', {
 builder.interfaceType(Animal, {
   name: 'Animal',
   fields: (t) => ({
-    species: t.exposeString('species', { nullable: true }),
+    species: t.exposeString('species', { nullable: true, exampleRequiredOptionFromPlugin: true }),
   }),
 });
 
@@ -58,6 +59,10 @@ builder.objectType(Giraffe, {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.exposeInt('age', {}),
+    a: t.field({
+      type: 'Boolean',
+      resolve: (parent) => false,
+    }),
   }),
 });
 
@@ -150,7 +155,7 @@ builder.objectType('User', {
     recursiveArgs: t.id({
       args: {
         example2: t.arg({ type: Example2, required: true }),
-        firstN: t.arg.id({}),
+        firstN: t.arg.id(),
       },
       resolve: (parent, args) =>
         Number.parseInt(String(args.example2.more.more.more.example.id), 10),
@@ -237,6 +242,7 @@ builder.objectFields('User', (t) => ({
 builder.interfaceType('Countable', {
   fields: (t) => ({
     count: t.int({
+      exampleRequiredOptionFromPlugin: true,
       args: {
         max: t.arg.int({ required: true }),
       },
@@ -248,10 +254,15 @@ builder.interfaceType('Countable', {
 const Shaveable = builder.interfaceType('Shaveable', {
   fields: (t) => ({
     id: t.id({
+      exampleRequiredOptionFromPlugin: true,
       resolve: () => 5,
     }),
-    shaved: t.exposeBoolean('shaved', {}),
-    extendMePlease: t.string({}),
+    shaved: t.exposeBoolean('shaved', {
+      exampleRequiredOptionFromPlugin: true,
+    }),
+    extendMePlease: t.string({
+      exampleRequiredOptionFromPlugin: true,
+    }),
   }),
 });
 
@@ -268,7 +279,7 @@ builder.objectType('Sheep', {
   fields: (t) => ({
     color: t.string({
       args: {
-        id: t.arg.id({}),
+        id: t.arg.id(),
       },
       resolve: (p, { id }) => (id === '1' ? 'black' : 'white'),
     }),

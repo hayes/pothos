@@ -580,7 +580,7 @@ builder.queryType({
       type: ObjForSyncPermFn,
       nullable: true,
       args: {
-        permission: t.arg.string({}),
+        permission: t.arg.string(),
       },
       resolve: (parent, args) => ({ permission: args.permission ?? 'a' }),
     }),
@@ -588,7 +588,7 @@ builder.queryType({
       type: ObjForAsyncPermFn,
       nullable: true,
       args: {
-        permission: t.arg.string({}),
+        permission: t.arg.string(),
       },
       resolve: (parent, args) => ({ permission: args.permission ?? 'b' }),
     }),

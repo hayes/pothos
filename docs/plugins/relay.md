@@ -80,7 +80,7 @@ builder.queryType({
         id: t.arg.globalID({
           required: true,
         }),
-        idList: t.arg.globalIDList({}),
+        idList: t.arg.globalIDList(),
       },
       resolve(parent, args) {
         console.log(`Get request for type ${args.id.type} with id ${args.id.typename}`);
@@ -199,18 +199,14 @@ For limit/offset based apis:
 import { resolveOffsetConnection } from '@giraphql/plugin-relay';
 
 builder.queryFields((t) => ({
-  numbers: t.connection(
-    {
-      type: SomeThings,
-      resolve: (parent, args) => {
-        return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-          return getThings(offset, limit);
-        });
-      },
+  numbers: t.connection({
+    type: SomeThings,
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        return getThings(offset, limit);
+      });
     },
-    {},
-    {},
-  ),
+  }),
 }));
 ```
 
@@ -232,16 +228,12 @@ just like `resolveOffsetConnection` and accepts the same options.
 import { resolveArrayConnection } from '@giraphql/plugin-relay';
 
 builder.queryFields((t) => ({
-  numbers: t.connection(
-    {
-      type: SomeThings,
-      resolve: (parent, args) => {
-        return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
-      },
+  numbers: t.connection({
+    type: SomeThings,
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
     },
-    {},
-    {},
-  ),
+  }),
 }));
 ```
 
@@ -268,12 +260,12 @@ builder.relayMutationField(
   {
     resolve: async (root, args, ctx) => {
       if (ctx.items.has(args.input.id)) {
-        ctx.items.delete(args.input.id)
+        ctx.items.delete(args.input.id);
 
-        return { success: true }
+        return { success: true };
       }
 
-      return { sucess: false }
+      return { sucess: false };
     },
   },
   {
@@ -306,19 +298,21 @@ type Mutation {
 
 The `relayMutationField` has 4 arguments:
 
-* `name`: Name of the mutation field
-* `inputOptions`: Options for the `input` object
-* `fieldOptions`: Options for the mutation field
-* `payloadOptions`: Options for the Payload object
+- `name`: Name of the mutation field
+- `inputOptions`: Options for the `input` object
+- `fieldOptions`: Options for the mutation field
+- `payloadOptions`: Options for the Payload object
 
 The `inputOptions` has a couple of non-standard options:
 
-* `name` which can be used to set the name of the input object
-* `argName` which can be used to overwrite the default arguments name (`input`).
+- `name` which can be used to set the name of the input object
+- `argName` which can be used to overwrite the default arguments name (`input`).
 
-The `payloadOptions` object also accepts a `name` property for setting the name of the payload object.
+The `payloadOptions` object also accepts a `name` property for setting the name of the payload
+object.
 
-In addition the options provided in the function call, options from the builder setup are used when creating relay mutations:
+In addition the options provided in the function call, options from the builder setup are used when
+creating relay mutations:
 
 - `clientMutationIdFieldOptions`: Applied to the `clientMutationId` field of the Payload object
 - `clientMutationIdInputOptions`: Applied to the `clientMutationId` field of the Input object
@@ -457,18 +451,14 @@ add in any custom props after gettig the result from the helpers:
 
 ```typescript
 builder.queryFields((t) => ({
-  posts: t.connection(
-    {
-      type: Post,
-      resolve: (parent, args, context) => {
-        const postsArray = context.Posts.getAll();
-        const result = resolveArrayConnection({ args }, postsArray);
+  posts: t.connection({
+    type: Post,
+    resolve: (parent, args, context) => {
+      const postsArray = context.Posts.getAll();
+      const result = resolveArrayConnection({ args }, postsArray);
 
-        return result && { totalCount: postsArray.length, ...result };
-      },
+      return result && { totalCount: postsArray.length, ...result };
     },
-    {},
-    {},
-  ),
+  }),
 }));
 ```

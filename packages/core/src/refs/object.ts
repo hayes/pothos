@@ -18,7 +18,7 @@ export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRe
 export class ImplementableObjectRef<
   Types extends SchemaTypes,
   Shape,
-  Parent = Shape
+  Parent = Shape,
 > extends ObjectRef<Shape, Parent> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
@@ -29,7 +29,12 @@ export class ImplementableObjectRef<
   }
 
   implement<Interfaces extends InterfaceParam<Types>[]>(
-    options: ObjectTypeOptions<Types, ObjectRef<Types>, Parent, Interfaces>,
+    options: ObjectTypeOptions<
+      Types,
+      ImplementableObjectRef<Types, Shape, Parent>,
+      Parent,
+      Interfaces
+    >,
   ) {
     return this.builder.objectType(this, options);
   }

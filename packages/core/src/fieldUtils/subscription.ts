@@ -3,7 +3,7 @@ import RootFieldBuilder from './root';
 
 export default class SubscriptionFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape
+  ParentShape,
 > extends RootFieldBuilder<Types, ParentShape, 'Subscription'> {
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
     super('Subscription', builder, 'Subscription', 'Object');

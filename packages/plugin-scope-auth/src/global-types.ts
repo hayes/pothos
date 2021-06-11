@@ -64,7 +64,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape
+      ResolveReturnShape,
     > {
       authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
@@ -77,7 +77,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         ParentShape,
@@ -96,7 +96,7 @@ declare global {
       Type extends TypeParam<Types>,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
-      ResolveReturnShape
+      ResolveReturnShape,
     > extends FieldOptions<
         Types,
         ParentShape,

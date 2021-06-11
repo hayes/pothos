@@ -5,6 +5,8 @@ import {
   InputFieldMap,
   InterfaceParam,
   InterfaceRef,
+  Merge,
+  Normalize,
   ObjectRef,
   OutputShape,
   ParentShape,
@@ -23,7 +25,9 @@ declare global {
       simpleObject: <
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
-        Shape extends OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>
+        Shape extends Normalize<
+          OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>
+        >,
       >(
         name: string,
         options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
@@ -32,7 +36,7 @@ declare global {
       simpleInterface: <
         Fields extends FieldMap,
         Shape extends OutputShapeFromFields<Fields>,
-        Interfaces extends InterfaceParam<SchemaTypes>[]
+        Interfaces extends InterfaceParam<SchemaTypes>[],
       >(
         name: string,
         options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
@@ -51,7 +55,7 @@ declare global {
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
-      ResolveReturnShape
+      ResolveReturnShape,
     > {
       SimpleObject: Omit<
         ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
@@ -67,7 +71,7 @@ declare global {
       Types extends SchemaTypes,
       Interfaces extends InterfaceParam<Types>[],
       Fields extends FieldMap,
-      Shape extends OutputShapeFromFields<Fields>
+      Shape,
     > = Omit<
       ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
       'fields'
@@ -79,7 +83,7 @@ declare global {
       Types extends SchemaTypes,
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>,
-      Interfaces extends InterfaceParam<SchemaTypes>[]
+      Interfaces extends InterfaceParam<SchemaTypes>[],
     > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'args' | 'fields'> {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }

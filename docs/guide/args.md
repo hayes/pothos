@@ -38,16 +38,16 @@ const Query = builder.queryType({
   fields: (t) => ({
     withArgs: t.stringList({
       args: {
-        id: t.arg.id({}),
-        int: t.arg.int({}),
-        float: t.arg.float({}),
-        boolean: t.arg.boolean({}),
-        string: t.arg.string({}),
-        idList: t.arg.idList({}),
-        intList: t.arg.intList({}),
-        floatList: t.arg.floatList({}),
-        booleanList: t.arg.booleanList({}),
-        stringList: t.arg.stringList({}),
+        id: t.arg.id(),
+        int: t.arg.int(),
+        float: t.arg.float(),
+        boolean: t.arg.boolean(),
+        string: t.arg.string(),
+        idList: t.arg.idList(),
+        intList: t.arg.intList(),
+        floatList: t.arg.floatList(),
+        booleanList: t.arg.booleanList(),
+        stringList: t.arg.stringList(),
       },
       resolve: (root, args) => Object.keys(args),
     }),
@@ -92,7 +92,7 @@ const Query = builder.queryType({
   fields: (t) => ({
     nullableArgs: t.stringList({
       args: {
-        optional: t.arg.string({}),
+        optional: t.arg.string(),
         required: t.arg.string({ required: true }),
         requiredList: t.arg.stringList({ required: true }),
         sparseList: t.stringList({

@@ -220,38 +220,34 @@ function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode
 }
 
 function argumentNodes(args: GraphQLArgument[]): InputValueDefinitionNode[] {
-  return args.map(
-    (arg): InputValueDefinitionNode => {
-      arg.astNode = {
-        kind: 'InputValueDefinition',
-        description: arg.description ? { kind: 'StringValue', value: arg.description } : undefined,
-        name: { kind: 'Name', value: arg.name },
-        type: typeNode(arg.type),
-        directives: arg.extensions?.directives
-          ? directiveNodes(arg.extensions.directives as DirectiveList)
-          : [],
-      };
+  return args.map((arg): InputValueDefinitionNode => {
+    arg.astNode = {
+      kind: 'InputValueDefinition',
+      description: arg.description ? { kind: 'StringValue', value: arg.description } : undefined,
+      name: { kind: 'Name', value: arg.name },
+      type: typeNode(arg.type),
+      directives: arg.extensions?.directives
+        ? directiveNodes(arg.extensions.directives as DirectiveList)
+        : [],
+    };
 
-      return arg.astNode;
-    },
-  );
+    return arg.astNode;
+  });
 }
 
 function enumValueNodes(values: GraphQLEnumValue[]): EnumValueDefinitionNode[] {
-  return values.map(
-    (value): EnumValueDefinitionNode => {
-      value.astNode = {
-        kind: 'EnumValueDefinition',
-        description: value.description
-          ? { kind: 'StringValue', value: value.description }
-          : undefined,
-        name: { kind: 'Name', value: value.name },
-        directives: value.extensions?.directives
-          ? directiveNodes(value.extensions.directives as DirectiveList)
-          : [],
-      };
+  return values.map((value): EnumValueDefinitionNode => {
+    value.astNode = {
+      kind: 'EnumValueDefinition',
+      description: value.description
+        ? { kind: 'StringValue', value: value.description }
+        : undefined,
+      name: { kind: 'Name', value: value.name },
+      directives: value.extensions?.directives
+        ? directiveNodes(value.extensions.directives as DirectiveList)
+        : [],
+    };
 
-      return value.astNode;
-    },
-  );
+    return value.astNode;
+  });
 }

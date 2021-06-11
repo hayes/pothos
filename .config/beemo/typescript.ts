@@ -6,7 +6,7 @@ const config: TypeScriptConfig = {
     sourceMap: true,
     emitDeclarationOnly: false,
     module: process.env.ESM_BUILD === 'true' ? 'es2020' : 'commonjs',
-    target: 'es2019'
+    target: 'es2019',
   },
 };
 

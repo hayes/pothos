@@ -33,8 +33,7 @@ builder.queryField('giraffeFacts', (t) =>
     resolve: () => {
       const fact1 = {
         factKind: 'string',
-        fact:
-          'A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern',
+        fact: 'A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern',
       } as const;
 
       const fact2 = {

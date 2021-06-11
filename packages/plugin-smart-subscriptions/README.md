@@ -29,7 +29,7 @@ schema are accessible via the subscribe query, since any type or field can regis
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-auth
+yarn add @giraphql/plugin-smart-subscriptions
 ```
 
 ### Setup

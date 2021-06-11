@@ -88,7 +88,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             graphqlKind: "Object",
             name: "Query",
             description: options.description,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.QueryTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.QueryTypeOptions,
         };
         this.configStore.addTypeConfig(config);
         if (fields) {
@@ -110,7 +110,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             graphqlKind: "Object",
             name: "Mutation",
             description: options.description,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.MutationTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.MutationTypeOptions,
         };
         this.configStore.addTypeConfig(config);
         if (fields) {
@@ -134,7 +134,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             graphqlKind: "Object",
             name: "Subscription",
             description: options.description,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.SubscriptionTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.SubscriptionTypeOptions,
         };
         this.configStore.addTypeConfig(config);
         if (fields) {
@@ -173,7 +173,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             name: typename,
             interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
             description: options.description,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InterfaceTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.InterfaceTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);
         if (typeof param === "function") {
@@ -208,7 +208,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             types: (options.types || []) as ObjectParam<SchemaTypes>[],
             description: options.description,
             resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.UnionTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.UnionTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);
         return ref;
@@ -229,7 +229,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             name,
             values,
             description: options.description,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.EnumTypeOptions<Types>,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.EnumTypeOptions<Types>,
         };
         this.configStore.addTypeConfig(config, ref);
         if (typeof param !== "string") {
@@ -247,7 +247,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             parseLiteral: options.parseLiteral,
             parseValue: options.parseValue,
             serialize: options.serialize,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.ScalarTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.ScalarTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);
         return ref;
@@ -263,15 +263,15 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         const name = typeof param === "string" ? param : (param as {
             name: string;
         }).name;
-        const ref: InputObjectRef<InputShapeFromFields<Fields>> = param instanceof InputObjectRef
+        const ref = (param instanceof InputObjectRef
             ? param
-            : new InputObjectRef<InputShapeFromFields<Fields>>(name);
+            : new InputObjectRef<InputShapeFromFields<Fields>>(name)) as InputObjectRef<InputShapeFromFields<Fields>>;
         const config: GiraphQLInputObjectTypeConfig = {
             kind: "InputObject",
             graphqlKind: "InputObject",
             name,
             description: options.description,
-            giraphqlOptions: (options as unknown) as GiraphQLSchemaTypes.InputObjectTypeOptions,
+            giraphqlOptions: options as unknown as GiraphQLSchemaTypes.InputObjectTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);
         this.configStore.addFields(ref, () => options.fields(new InputFieldBuilder(this, "InputObject", name)));

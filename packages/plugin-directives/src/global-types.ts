@@ -42,7 +42,7 @@ declare global {
 
     export interface EnumTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Values extends EnumValues<Types> = EnumValues<Types>
+      Values extends EnumValues<Types> = EnumValues<Types>,
     > extends BaseTypeOptions<Types> {
       directives?: Directives<Types, 'ENUM'>;
     }
@@ -59,7 +59,7 @@ declare global {
 
     export interface InputObjectTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Fields extends InputFieldMap = InputFieldMap
+      Fields extends InputFieldMap = InputFieldMap,
     > extends BaseTypeOptions<Types> {
       directives?: Directives<Types, 'INPUT_OBJECT'>;
     }
@@ -67,14 +67,14 @@ declare global {
     export interface InterfaceTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
-      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends BaseTypeOptions<Types> {
       directives?: Directives<Types, 'INTERFACE'>;
     }
 
     export interface UnionTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Member extends ObjectParam<Types> = ObjectParam<Types>
+      Member extends ObjectParam<Types> = ObjectParam<Types>,
     > extends BaseTypeOptions<Types> {
       directives?: Directives<Types, 'UNION'>;
     }
@@ -82,7 +82,7 @@ declare global {
     export interface ScalarTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       ScalarInputShape = unknown,
-      ScalarOutputShape = unknown
+      ScalarOutputShape = unknown,
     > extends BaseTypeOptions<Types> {
       directives?: Directives<Types, 'SCALAR'>;
     }
@@ -94,7 +94,7 @@ declare global {
       Nullable extends FieldNullability<Type> = FieldNullability<Type>,
       Args extends InputFieldMap = InputFieldMap,
       ResolveShape = unknown,
-      ResolveReturnShape = unknown
+      ResolveReturnShape = unknown,
     > {
       directives?: Directives<Types, 'FIELD_DEFINITION'>;
     }
@@ -102,7 +102,7 @@ declare global {
     export interface InputObjectFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
       directives?: Directives<Types, 'INPUT_FIELD_DEFINITION'>;
     }
@@ -110,7 +110,7 @@ declare global {
     export interface ArgFieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
-      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
       directives?: Directives<Types, 'ARGUMENT_DEFINITION'>;
     }

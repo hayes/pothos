@@ -8,12 +8,12 @@ import {
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
 
-import { ArgBuilder, InputFieldMap } from '..';
+import { ArgBuilder, InputFieldMap, NormalizeArgs } from '..';
 
 export default class RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > extends BaseFieldUtil<Types, ParentShape, Kind> {
   arg: ArgBuilder<Types> = new InputFieldBuilder<Types, 'Arg'>(
     this.builder,
@@ -25,22 +25,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability'],
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'Boolean',
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            'Boolean',
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, 'Boolean', Nullable>({
       ...options,
       type: 'Boolean',
@@ -51,22 +57,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'Float'>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'Float',
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            'Float',
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, 'Float', Nullable>({
       ...options,
       type: 'Float',
@@ -77,22 +89,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'ID'>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'ID',
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            'ID',
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, 'ID', Nullable>({ ...options, type: 'ID' });
   }
 
@@ -100,22 +118,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<'Int'>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'Int',
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            'Int',
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, 'Int', Nullable>({ ...options, type: 'Int' });
   }
 
@@ -123,22 +147,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability'],
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        'String',
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            'String',
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, 'String', Nullable>({
       ...options,
       type: 'String',
@@ -149,22 +179,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability'],
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['Boolean'],
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            ['Boolean'],
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, ['Boolean'], Nullable>({ ...options, type: ['Boolean'] });
   }
 
@@ -172,22 +208,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability'],
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['Float'],
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            ['Float'],
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, ['Float'], Nullable>({ ...options, type: ['Float'] });
   }
 
@@ -195,22 +237,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     Nullable extends FieldNullability<['ID']>,
     ResolveShape,
-    ResolveReturnShape
+    ResolveReturnShape,
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['ID'],
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            ['ID'],
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, ['ID'], Nullable>({ ...options, type: ['ID'] });
   }
 
@@ -218,22 +266,28 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability'],
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['Int'],
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            ['Int'],
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, ['Int'], Nullable>({ ...options, type: ['Int'] });
   }
 
@@ -241,31 +295,40 @@ export default class RootFieldBuilder<
     Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability'],
   >(
-    options: Omit<
-      FieldOptionsFromKind<
-        Types,
-        ParentShape,
-        ['String'],
-        Nullable,
-        Args,
-        Kind,
-        ResolveShape,
-        ResolveReturnShape
-      >,
-      'type'
-    >,
+    ...args: NormalizeArgs<
+      [
+        options?: Omit<
+          FieldOptionsFromKind<
+            Types,
+            ParentShape,
+            ['String'],
+            Nullable,
+            Args,
+            Kind,
+            ResolveShape,
+            ResolveReturnShape
+          >,
+          'type'
+        >,
+      ]
+    >
   ) {
+    const [options = {} as never] = args;
+
     return this.createField<Args, ['String'], Nullable>({ ...options, type: ['String'] });
   }
 
+  /** create a new field for the current type
+   @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+  */
   field<
     Args extends InputFieldMap,
     Type extends TypeParam<Types>,
     ResolveShape,
     ResolveReturnShape,
-    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability']
+    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
   >(
     options: FieldOptionsFromKind<
       Types,

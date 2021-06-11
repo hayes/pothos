@@ -207,7 +207,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
                 this.pushValue();
             }, this.debounceDelay);
             if (typeof this.debounceRef === "object" && "unref" in this.debounceRef) {
-                ((this.debounceRef as unknown) as {
+                (this.debounceRef as unknown as {
                     unref: () => unknown;
                 }).unref();
             }

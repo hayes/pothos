@@ -31,7 +31,7 @@ declare global {
     }
     export interface EnumTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Values extends EnumValues<Types> = EnumValues<Types>
+      Values extends EnumValues<Types> = EnumValues<Types>,
     > extends BaseTypeOptions<Types> {
       values: Values;
     }
@@ -46,7 +46,7 @@ declare global {
     export interface ObjectTypeWithInterfaceOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
-      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isTypeOf'> {
       interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
       isTypeOf: (
@@ -75,7 +75,7 @@ declare global {
 
     export interface InputObjectTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Fields extends InputFieldMap = InputFieldMap
+      Fields extends InputFieldMap = InputFieldMap,
     > extends BaseTypeOptions<Types> {
       fields: (t: InputFieldBuilder<Types, 'InputObject'>) => Fields;
     }
@@ -83,7 +83,7 @@ declare global {
     export interface InterfaceTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
-      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]
+      Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
       interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
@@ -91,7 +91,7 @@ declare global {
 
     export interface UnionTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
-      Member extends ObjectParam<Types> = ObjectParam<Types>
+      Member extends ObjectParam<Types> = ObjectParam<Types>,
     > extends BaseTypeOptions<Types> {
       types: Member[];
       resolveType: (
@@ -104,7 +104,7 @@ declare global {
     export interface ScalarTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       ScalarInputShape = unknown,
-      ScalarOutputShape = unknown
+      ScalarOutputShape = unknown,
     > extends BaseTypeOptions<Types> {
       // Serializes an internal value to include in a response.
       serialize: GraphQLScalarSerializer<ScalarOutputShape>;

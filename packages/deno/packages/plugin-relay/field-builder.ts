@@ -34,7 +34,7 @@ fieldBuilderProto.globalID = function globalID<Args extends InputFieldMap, Nulla
         if (!result || typeof result === "string") {
             return result;
         }
-        const item = (result as unknown) as GlobalIDShape<SchemaTypes>;
+        const item = result as unknown as GlobalIDShape<SchemaTypes>;
         return internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(item.type).name, String(item.id));
     };
     return this.field({
@@ -49,7 +49,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
         type: this.builder.nodeInterfaceRef(),
         nullable: true,
         resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
-            const rawID = ((await id(parent, args as never, context, info)) as unknown) as GlobalIDShape<SchemaTypes> | string | null | undefined;
+            const rawID = (await id(parent, args as never, context, info)) as unknown as GlobalIDShape<SchemaTypes> | string | null | undefined;
             if (rawID == null) {
                 return null;
             }
@@ -82,7 +82,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
         },
     });
 };
-fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { name: connectionNameFromOptions, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions }) {
+fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { name: connectionNameFromOptions, ...connectionOptions } = {} as never, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
     const placeholderRef = this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>("Unnamed connection");
     const fieldRef = this.field({
         ...fieldOptions,
@@ -105,7 +105,7 @@ fieldBuilderProto.connection = function connection({ type, ...fieldOptions }, { 
             cursor: string;
             node: unknown;
         }>(edgeName);
-        const connectionFields = (connectionOptions.fields as unknown) as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>> | undefined;
+        const connectionFields = connectionOptions.fields as unknown as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>> | undefined;
         const edgeFields = edgeOptions.fields as ObjectFieldsShape<SchemaTypes, {
             cursor: string;
             node: unknown;

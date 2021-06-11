@@ -27,7 +27,7 @@ export type LoadableFieldOptions<
   ResolveReturnShape,
   Key,
   CacheKey,
-  Kind extends FieldKind = FieldKind
+  Kind extends FieldKind = FieldKind,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve'
@@ -51,7 +51,7 @@ export type DataloaderObjectTypeOptions<
   Shape,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
-  CacheKey
+  CacheKey,
 > = ObjectTypeOptions<Types, ObjectRef<Shape>, Shape, Interfaces> & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
@@ -60,7 +60,7 @@ export type DataloaderObjectTypeOptions<
 export type LoaderShapeFromType<
   Types extends SchemaTypes,
   Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>
+  Nullable extends FieldNullability<Type>,
 > = Type extends [TypeParam<Types>]
   ? ShapeFromTypeParam<Types, Type[0], Nullable>
   : ShapeFromTypeParam<Types, Type, Nullable>;
@@ -74,7 +74,7 @@ export type LoadableNodeOptions<
   Shape extends object,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
-  CacheKey
+  CacheKey,
 > = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>, 'isTypeOf'> & {
   id: Omit<
     FieldOptionsFromKind<

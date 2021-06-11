@@ -33,7 +33,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   protected createField<
     Args extends InputFieldMap,
     Type extends TypeParam<Types>,
-    Nullable extends FieldNullability<Type>
+    Nullable extends FieldNullability<Type>,
   >(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
@@ -84,7 +84,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   protected exposeField<
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
-    Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>
+    Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>,
   >(
     name: Name,
     options: Omit<

@@ -36,6 +36,7 @@ input Example2 {
 }
 
 type Giraffe implements Animal {
+  a: Boolean!
   age: Int!
   name: String!
   species: String

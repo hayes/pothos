@@ -96,11 +96,11 @@ nullableFieldBuilder.queryType({
     inputFields: t.boolean({
       nullable: false,
       args: {
-        nullable: t.arg.boolean({}),
+        nullable: t.arg.boolean(),
         nonNullable: t.arg.boolean({
           required: true,
         }),
-        nullableList: t.arg.booleanList({}),
+        nullableList: t.arg.booleanList(),
         nonNullableList: t.arg.booleanList({
           required: true,
         }),
@@ -221,18 +221,18 @@ nonNullableFieldBuilder.queryType({
         nullable: t.arg.boolean({
           required: false,
         }),
-        nonNullable: t.arg.boolean({}),
+        nonNullable: t.arg.boolean(),
         nullableList: t.arg.booleanList({
           required: false,
         }),
-        nonNullableList: t.arg.booleanList({}),
+        nonNullableList: t.arg.booleanList(),
         nullableListItems: t.arg.booleanList({
           required: {
             list: true,
             items: false,
           },
         }),
-        nonNullableListItems: t.arg.booleanList({}),
+        nonNullableListItems: t.arg.booleanList(),
         bothNullable: t.arg.booleanList({
           required: {
             list: false,

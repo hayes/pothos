@@ -6,6 +6,7 @@ builder.interfaceType(Animal, {
   name: 'AnimalFromClass',
   fields: (t) => ({
     diet: t.expose('diet', {
+      exampleRequiredOptionFromPlugin: true,
       type: Diet,
     }),
   }),
@@ -14,6 +15,7 @@ builder.interfaceType(Animal, {
 builder.interfaceType('Animal', {
   fields: (t) => ({
     diet: t.expose('diet', {
+      exampleRequiredOptionFromPlugin: true,
       type: Diet,
     }),
   }),
@@ -23,6 +25,7 @@ builder.interfaceType(AnimalRef, {
   name: 'AnimalFromRef',
   fields: (t) => ({
     diet: t.expose('diet', {
+      exampleRequiredOptionFromPlugin: true,
       type: Diet,
     }),
   }),

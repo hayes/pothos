@@ -26,7 +26,7 @@ fieldBuilderProto.loadable = function loadable<
   Key,
   CacheKey,
   ResolveReturnShape,
-  Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability']
+  Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability'],
 >({
   load,
   loaderOptions,
@@ -48,10 +48,12 @@ fieldBuilderProto.loadable = function loadable<
     (context) =>
       new DataLoader(
         (keys: readonly Key[]) =>
-          (load as (
-            keys: Key[],
-            context: object,
-          ) => Promise<LoaderShapeFromType<SchemaTypes, Type, Nullable>[]>)(keys as Key[], context),
+          (
+            load as (
+              keys: Key[],
+              context: object,
+            ) => Promise<LoaderShapeFromType<SchemaTypes, Type, Nullable>[]>
+          )(keys as Key[], context),
         loaderOptions,
       ),
   );

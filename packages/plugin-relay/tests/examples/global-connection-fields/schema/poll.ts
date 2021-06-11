@@ -23,34 +23,26 @@ builder.node('Poll', {
     answers: t.expose('answers', {
       type: ['Answer'],
     }),
-    answersConnection: t.connection(
-      {
-        type: 'Answer',
-        // args automatically gets default cursor pagination args, but you can add more args like any other field
-        resolve: async (parent, args) => ({
-          totalCount: parent.answers.length,
-          // This would be for simple cases where you already have all the data
-          ...(await resolveArrayConnection({ args }, parent.answers))!,
-        }),
-      },
-      {},
-      {},
-    ),
-    answersUsingOffset: t.connection(
-      {
-        type: 'Answer',
-        resolve: async (parent, args) => ({
-          totalCount: parent.answers.length,
-          // This would be the API for limit/offset based APIs
-          ...(await resolveOffsetConnection({ args }, ({ limit, offset }) =>
-            // replace with call to limit/offset based service
-            parent.answers.slice(offset, offset + limit),
-          ))!,
-        }),
-      },
-      {},
-      {},
-    ),
+    answersConnection: t.connection({
+      type: 'Answer',
+      // args automatically gets default cursor pagination args, but you can add more args like any other field
+      resolve: async (parent, args) => ({
+        totalCount: parent.answers.length,
+        // This would be for simple cases where you already have all the data
+        ...(await resolveArrayConnection({ args }, parent.answers))!,
+      }),
+    }),
+    answersUsingOffset: t.connection({
+      type: 'Answer',
+      resolve: async (parent, args) => ({
+        totalCount: parent.answers.length,
+        // This would be the API for limit/offset based APIs
+        ...(await resolveOffsetConnection({ args }, ({ limit, offset }) =>
+          // replace with call to limit/offset based service
+          parent.answers.slice(offset, offset + limit),
+        ))!,
+      }),
+    }),
     answersWithoutHelpers: t.connection(
       {
         type: 'Answer',

@@ -28,18 +28,17 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
   Context: object;
 }
 
-export type MergedScalars<
-  PartialTypes extends Partial<GiraphQLSchemaTypes.UserSchemaTypes>
-> = SchemaTypes['Scalars'] &
-  {
-    [K in
-      | keyof DefaultScalars
-      | keyof PartialTypes['Scalars']]: K extends keyof PartialTypes['Scalars']
-      ? PartialTypes['Scalars'][K]
-      : K extends keyof DefaultScalars
-      ? DefaultScalars[K]
-      : never;
-  };
+export type MergedScalars<PartialTypes extends Partial<GiraphQLSchemaTypes.UserSchemaTypes>> =
+  SchemaTypes['Scalars'] &
+    {
+      [K in
+        | keyof DefaultScalars
+        | keyof PartialTypes['Scalars']]: K extends keyof PartialTypes['Scalars']
+        ? PartialTypes['Scalars'][K]
+        : K extends keyof DefaultScalars
+        ? DefaultScalars[K]
+        : never;
+    };
 
 export interface DefaultScalars {
   String: { Input: string; Output: string };

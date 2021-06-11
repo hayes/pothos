@@ -103,7 +103,9 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
     let validator: zod.ZodTypeAny = zod.object(args).nonstrict();
 
     if (fieldConfig.giraphqlOptions.validate) {
-      validator = refine(validator, { refine: fieldConfig.giraphqlOptions.validate });
+      validator = refine(validator, {
+        refine: fieldConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+      });
     }
 
     return (parent, rawArgs, context, info) =>
@@ -131,7 +133,9 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
       );
 
       if (typeConfig.giraphqlOptions.validate) {
-        fieldValidator = refine(fieldValidator, { refine: typeConfig.giraphqlOptions.validate });
+        fieldValidator = refine(fieldValidator, {
+          refine: typeConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+        });
       }
 
       return combine([fieldValidator], type.required);
