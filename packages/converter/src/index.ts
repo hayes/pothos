@@ -709,7 +709,7 @@ export default class GirphQLConverter {
       writer.writeLine('Scalars: {');
       writer.indent(() => {
         scalars.forEach((type) => {
-          writer.writeLine(`${type.name}: { Input: never, Output: never },`);
+          writer.writeLine(`${type.name}: { Input: unknown, Output: unknown },`);
         });
       });
       writer.writeLine('},');
