@@ -33,22 +33,22 @@ export type NormalizeNullableFields<T extends object> = {
 };
 
 export type RecursivelyNormalizeNullableFields<T> = T extends object[]
-  ? ({
+  ? Normalize<{
         [K in OptionalKeys<T[number]>]?:
           | RecursivelyNormalizeNullableFields<T[number][K]>
           | null
           | undefined;
       } & {
       [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
-    })[]
+    }>[]
   : T extends unknown[]
   ? NormalizeNullable<T[number]>[]
   : T extends object
-  ? {
+  ? Normalize<{
         [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
       } & {
       [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
-    }
+    }>
   : NormalizeNullable<T>;
 
 export type RemoveNeverKeys<T extends {}> = {

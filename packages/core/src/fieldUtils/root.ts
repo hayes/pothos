@@ -320,6 +320,9 @@ export default class RootFieldBuilder<
     return this.createField<Args, ['String'], Nullable>({ ...options, type: ['String'] });
   }
 
+  /** create a new field for the current type
+   @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+  */
   field<
     Args extends InputFieldMap,
     Type extends TypeParam<Types>,

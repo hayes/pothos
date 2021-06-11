@@ -12,6 +12,7 @@ import {
   InterfaceParam,
   InterfaceRef,
   MaybePromise,
+  Normalize,
   NormalizeNullableFields,
   ObjectParam,
   ObjectRef,
@@ -139,15 +140,17 @@ export type ObjectTypeOptions<
   Param extends ObjectParam<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[],
-> = (Param extends string
-  ? {}
-  : Param extends ObjectRef<unknown>
-  ? { name?: string }
-  : { name: string }) &
-  (
-    | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-    | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
-  );
+> = Normalize<
+  (Param extends string
+    ? {}
+    : Param extends ObjectRef<unknown>
+    ? { name?: string }
+    : { name: string }) &
+    (
+      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
+    )
+>;
 
 export type InterfaceTypeOptions<
   Types extends SchemaTypes,
@@ -196,7 +199,7 @@ export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullab
 >;
 
 export type InputFieldsFromShape<Shape extends object> = {
-  [K in keyof Shape]: InputFieldRef<Shape[K]>;
+  [K in keyof Shape]: InputFieldRef<Shape[K], 'InputObject'>;
 };
 
 export type InputShapeFromField<Field extends InputFieldRef> = Field extends {

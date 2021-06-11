@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLFieldExtensions, GraphQLResolveInfo } from 'graphql';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -24,12 +25,28 @@ declare global {
       ResolveShape = unknown,
       ResolveReturnShape = unknown,
     > {
+      /** The type for this field */
       type: Type;
+      /** arguments for this field (created via `t.args`) */
       args?: Args;
+      /** determins if this field can return null */
       nullable?: Nullable;
+      /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
       description?: string;
+      /** When present marks this field as deprecated */
       deprecationReason?: string;
-      extensions?: Readonly<Record<string, unknown>>;
+      /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
+      extensions?: GraphQLFieldExtensions<
+        ParentShape,
+        Types['Context'],
+        InputShapeFromFields<Args>
+      >;
+      /** Resolver function for this field
+       @param parent - The parent object for the current type
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       resolve?: Resolver<
         ResolveShape,
         InputShapeFromFields<Args>,
@@ -55,6 +72,12 @@ declare global {
         ParentShape,
         ResolveReturnShape
       > {
+      /** Resolver function for this field
+       @param parent - The parent object for the current type
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Args>,
@@ -79,6 +102,12 @@ declare global {
         Types['Root'],
         ResolveReturnShape
       > {
+      /** Resolver function for this field
+       @param root - The root object for this request
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       resolve: Resolver<
         Types['Root'],
         InputShapeFromFields<Args>,
@@ -103,6 +132,12 @@ declare global {
         Types['Root'],
         ResolveReturnShape
       > {
+      /** Resolver function for this field
+       @param root - The root object for this request
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       resolve: Resolver<
         Types['Root'],
         InputShapeFromFields<Args>,
@@ -128,6 +163,12 @@ declare global {
         ParentShape,
         ResolveReturnShape
       > {
+      /** Resolver function for this field
+       @param root - The root object for this request
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       resolve?: Resolver<
         ParentShape,
         InputShapeFromFields<Args>,
@@ -153,6 +194,12 @@ declare global {
         ResolveShape,
         ResolveReturnShape
       > {
+      /** Resolver function for this field
+       @param parent - The parent object for this subscription (yielded by subscribe)
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       resolve: Resolver<
         ResolveShape,
         InputShapeFromFields<Args>,
@@ -160,6 +207,12 @@ declare global {
         ShapeFromTypeParam<Types, Type, Nullable>,
         ResolveReturnShape
       >;
+      /** Resolver function for this field
+       @param root - The root object for this request
+       @param {object} args - args object based on the args defined for this field
+       @param {object} context - the context object for the current query, based on `Context` type provided to the SchemaBuilder
+       @param {GraphQLResolveInfo} info - info about how this field was queried
+      */
       subscribe: Subscriber<
         Types['Root'],
         InputShapeFromFields<Args>,
@@ -203,11 +256,17 @@ declare global {
       Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
       Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
+      /** The type for this field */
       type: Type;
+      /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
       description?: string;
+      /** When present marks this field as deprecated */
       deprecationReason?: string;
+      /** determins if this field can be omitted (or set as null) */
       required?: Req;
+      /** default value if this field is not included in the query */
       defaultValue?: NonNullable<InputShapeFromTypeParam<Types, Type, Req>>;
+      /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
       extensions?: Readonly<Record<string, unknown>>;
     }
 
