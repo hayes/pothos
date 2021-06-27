@@ -274,10 +274,11 @@ export default class BuildCache<Types extends SchemaTypes> {
         if (ref instanceof BuiltinScalarRef) {
             return ref.type;
         }
-        const { name } = this.configStore.getTypeConfig(ref);
-        const type = this.types.get(name);
+        const typeConfig = this.configStore.getTypeConfig(ref);
+        const type = this.types.get(typeConfig.name);
         if (!type) {
-            throw new TypeError(`Missing implementation of for type ${name}`);
+            this.buildTypeFromConfig(typeConfig);
+            return this.types.get(typeConfig.name)!;
         }
         return type;
     }

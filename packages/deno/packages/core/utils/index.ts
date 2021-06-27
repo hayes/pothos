@@ -3,6 +3,7 @@ export * from './context-cache.ts';
 export * from './enums.ts';
 export * from './input.ts';
 export * from './params.ts';
+export * from './sort-classes.ts';
 export function assertNever(value: never): never {
     throw new TypeError(`Unexpected value: ${value}`);
 }

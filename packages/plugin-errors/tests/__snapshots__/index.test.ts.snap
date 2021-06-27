@@ -1,0 +1,65 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mocked generates expected schema 1`] = `
+"type BaseError implements Error {
+  message: String!
+}
+
+interface Error {
+  message: String!
+}
+
+type Extended2Error implements Error {
+  code: Int!
+  message: String!
+}
+
+type ExtendedError implements Error {
+  code: Int!
+  message: String!
+}
+
+type LengthError implements Error {
+  message: String!
+  minLength: Int!
+}
+
+type Query {
+  extendedError(throw: String): QueryExtendedErrorResult
+  extendedErrorList(throw: String): QueryExtendedErrorListResult
+  hello(name: String!): QueryHelloResult!
+  helloWithMinLength(name: String!): QueryHelloWithMinLengthResult!
+  simpleError(throw: Boolean): QuerySimpleErrorResult!
+}
+
+union QueryExtendedErrorListResult = BaseError | Extended2Error | ExtendedError | QueryExtendedErrorListSuccess
+
+type QueryExtendedErrorListSuccess {
+  data: [String]!
+}
+
+union QueryExtendedErrorResult = BaseError | Extended2Error | ExtendedError | QueryExtendedErrorSuccess
+
+type QueryExtendedErrorSuccess {
+  data: String!
+}
+
+union QueryHelloResult = BaseError | QueryHelloSuccess
+
+type QueryHelloSuccess {
+  data: String!
+}
+
+union QueryHelloWithMinLengthResult = BaseError | LengthError | QueryHelloWithMinLengthSuccess
+
+type QueryHelloWithMinLengthSuccess {
+  data: String!
+}
+
+union QuerySimpleErrorResult = BaseError | QuerySimpleErrorSuccess
+
+type QuerySimpleErrorSuccess {
+  data: String!
+}
+"
+`;

@@ -24,7 +24,7 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "^15.5.0",
+    "graphql": "^15.5.1",
     "ts-morph": "^11.0.0",
     "yargs": "^17.0.1"
   },
