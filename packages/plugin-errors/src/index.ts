@@ -48,12 +48,12 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         name: resultName = `${parentTypeName}${capitalize(fieldConfig.name)}Success`,
         fields: resultFieldOptions,
         ...resultObjectOptions
-      } = {},
+      } = {} as never,
       union: {
         name: unionName = `${parentTypeName}${capitalize(fieldConfig.name)}Result`,
         ...unionOptions
-      } = {},
-      dataField: { name: dataFieldName = 'data', ...dataField } = {},
+      } = {} as never,
+      dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
     } = fieldConfig.giraphqlOptions.errors;
 
     const resultObjectRef = this.builder.objectRef<unknown>(resultName);
