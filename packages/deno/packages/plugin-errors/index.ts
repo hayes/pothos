@@ -26,7 +26,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
             return fieldConfig;
         }
         const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
-        const { types = [], result: { name: resultName = `${parentTypeName}${capitalize(fieldConfig.name)}Success`, fields: resultFieldOptions, ...resultObjectOptions } = {}, union: { name: unionName = `${parentTypeName}${capitalize(fieldConfig.name)}Result`, ...unionOptions } = {}, dataField: { name: dataFieldName = "data", ...dataField } = {}, } = fieldConfig.giraphqlOptions.errors;
+        const { types = [], result: { name: resultName = `${parentTypeName}${capitalize(fieldConfig.name)}Success`, fields: resultFieldOptions, ...resultObjectOptions } = {} as never, union: { name: unionName = `${parentTypeName}${capitalize(fieldConfig.name)}Result`, ...unionOptions } = {} as never, dataField: { name: dataFieldName = "data", ...dataField } = {} as never, } = fieldConfig.giraphqlOptions.errors;
         const resultObjectRef = this.builder.objectRef<unknown>(resultName);
         resultObjectRef.implement({
             ...resultObjectOptions,

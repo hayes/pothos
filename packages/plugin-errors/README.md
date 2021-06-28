@@ -1,6 +1,6 @@
 # Errors Plugin
 
-A plugin for easily including errors in your GraphQL schema.
+A plugin for easily including error types in your GraphQL schema and hooking up error types to resolvers
 
 ## Usage
 

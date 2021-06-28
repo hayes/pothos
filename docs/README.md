@@ -61,3 +61,5 @@ new ApolloServer({
   Integrate with existing schema graphql directives in a type-safe way.
 - ## [Smart Subscriptions](plugins/smart-subscriptions.md)
   Make any part of your graph subscribable to get live updates as your data changes.
+- ## [Errors](plugins/errors.md)
+  A plugin for easily including error types in your GraphQL schema and hooking up error types to resolvers.
