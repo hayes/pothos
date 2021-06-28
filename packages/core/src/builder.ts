@@ -131,9 +131,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
     }
 
-    const ref: ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>> =
+    const ref =
       param instanceof ObjectRef
-        ? param
+        ? (param as ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>)
         : new ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
 
     const config: GiraphQLObjectTypeConfig = {
@@ -159,7 +159,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (options.fields) {
-      this.configStore.addFields(ref, () => options.fields!(new ObjectFieldBuilder(name, this)));
+      this.configStore.addFields(ref, () => {
+        const t = new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(name, this);
+
+        return options.fields!(t);
+      });
     }
 
     return ref;

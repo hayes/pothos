@@ -5,6 +5,10 @@ import InputFieldBuilder from './input.ts';
 import { ArgBuilder, InputFieldMap, NormalizeArgs } from '../index.ts';
 export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends BaseFieldUtil<Types, ParentShape, Kind> {
     arg: ArgBuilder<Types> = new InputFieldBuilder<Types, "Arg">(this.builder, "Arg", this.typename).argBuilder();
+    /**
+     * Create a Boolean field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     boolean<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<"Boolean"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Boolean", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -14,6 +18,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             type: "Boolean",
         });
     }
+    /**
+     * Create a Float field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     float<Args extends InputFieldMap, Nullable extends FieldNullability<"Float">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Float", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -23,18 +31,30 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             type: "Float",
         });
     }
+    /**
+     * Create a ID field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     id<Args extends InputFieldMap, Nullable extends FieldNullability<"ID">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "ID", Nullable>({ ...options, type: "ID" });
     }
+    /**
+     * Create a Int field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     int<Args extends InputFieldMap, Nullable extends FieldNullability<"Int">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "Int", Nullable>({ ...options, type: "Int" });
     }
+    /**
+     * Create a String field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     string<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<"String"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "String", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -44,6 +64,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             type: "String",
         });
     }
+    /**
+     * Create a Boolean list field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     booleanList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Boolean"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
@@ -56,6 +80,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             "Boolean"
         ], Nullable>({ ...options, type: ["Boolean"] });
     }
+    /**
+     * Create a Float list field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     floatList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Float"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
@@ -68,6 +96,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             "Float"
         ], Nullable>({ ...options, type: ["Float"] });
     }
+    /**
+     * Create a ID list field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     idList<Args extends InputFieldMap, Nullable extends FieldNullability<[
         "ID"
     ]>, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
@@ -80,6 +112,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             "ID"
         ], Nullable>({ ...options, type: ["ID"] });
     }
+    /**
+     * Create a Int list field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     intList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Int"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
@@ -92,6 +128,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             "Int"
         ], Nullable>({ ...options, type: ["Int"] });
     }
+    /**
+     * Create a String list field
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     */
     stringList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "String"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
@@ -104,9 +144,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
             "String"
         ], Nullable>({ ...options, type: ["String"] });
     }
-    /** create a new field for the current type
-     @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
-    */
+    /**
+     * create a new field for the current type
+     * @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+     */
     field<Args extends InputFieldMap, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>) {
         return this.createField<Args, Type, Nullable>(options);
     }

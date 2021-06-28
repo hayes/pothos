@@ -1,0 +1,89 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`mocked generates expected schema 1`] = `
+"type BaseError implements Error {
+  message: String!
+}
+
+interface Error {
+  message: String!
+}
+
+type Extended2Error implements Error {
+  code: Int!
+  message: String!
+}
+
+type ExtendedError implements Error {
+  code: Int!
+  message: String!
+}
+
+type LengthError implements Error {
+  message: String!
+  minLength: Int!
+}
+
+type Query {
+  extendedError(throw: String): QueryExtendedErrorResult
+  extendedErrorList(throw: String): QueryExtendedErrorListResult
+  fieldWIthValidation(string: String): QueryFieldWIthValidationResult!
+  hello(name: String!): QueryHelloResult!
+  helloWithMinLength(name: String!): QueryHelloWithMinLengthResult!
+  simpleError(throw: Boolean): QuerySimpleErrorResult!
+  validation2(stringList: [String!]): QueryValidation2Result!
+}
+
+union QueryExtendedErrorListResult = BaseError | Extended2Error | ExtendedError | QueryExtendedErrorListSuccess
+
+type QueryExtendedErrorListSuccess {
+  data: [String]!
+}
+
+union QueryExtendedErrorResult = BaseError | Extended2Error | ExtendedError | QueryExtendedErrorSuccess
+
+type QueryExtendedErrorSuccess {
+  data: String!
+}
+
+union QueryFieldWIthValidationResult = BaseError | QueryFieldWIthValidationSuccess | ZodError
+
+type QueryFieldWIthValidationSuccess {
+  result: Boolean!
+}
+
+union QueryHelloResult = BaseError | QueryHelloSuccess
+
+type QueryHelloSuccess {
+  data: String!
+}
+
+union QueryHelloWithMinLengthResult = BaseError | LengthError | QueryHelloWithMinLengthSuccess
+
+type QueryHelloWithMinLengthSuccess {
+  data: String!
+}
+
+union QuerySimpleErrorResult = BaseError | QuerySimpleErrorSuccess
+
+type QuerySimpleErrorSuccess {
+  data: String!
+}
+
+union QueryValidation2Result = BaseError | QueryValidation2Success | ZodError
+
+type QueryValidation2Success {
+  result: Boolean!
+}
+
+type ZodError implements Error {
+  fieldErrors: [ZodFieldError!]!
+  message: String!
+}
+
+type ZodFieldError {
+  message: String!
+  path: [String!]!
+}
+"
+`;
