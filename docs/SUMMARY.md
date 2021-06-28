@@ -24,6 +24,7 @@
   - [Auth](plugins/scope-auth.md)
   - [Dataloader](plugins/dataloader.md)
   - [Directives](plugins/directives.md)
+  - [Errors](plugins/errors.md)
   - [Mocks](plugins/mocks.md)
   - [Relay](plugins/relay.md)
   - [Simple Objects](plugins/simple-objects.md)
