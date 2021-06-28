@@ -37,7 +37,7 @@ builder.queryType({
   fields: (t) => ({
     hello: t.string({
       errors: {
-        type: [Error],
+        types: [Error],
       },
       args: {
         name: t.arg.string({ required: false }),
