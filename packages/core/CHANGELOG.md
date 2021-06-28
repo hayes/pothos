@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.9.0-alpha.1 - 2021-06-28
+
+#### 🚀 Updates
+
+- make error options optional only when options can be empty objects ([6791bcb](https://github.com/hayes/giraphql/commit/6791bcb))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ## 2.9.0-alpha.0 - 2021-06-28
 
 #### 🚀 Updates
