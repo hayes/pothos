@@ -14,10 +14,23 @@ export type RequiredKeys<T extends object> = {
 export type OptionalKeys<T extends object> = {
   [K in keyof T]: T[K] extends NonNullable<T[K]> ? never : K;
 }[keyof T];
+
+export type NonEmptyKeys<T extends object> = {
+  [K in keyof T]: {} extends T[K] ? never : T[K] extends NonNullable<T[K]> ? K : never;
+}[keyof T];
+
+export type EmptyKeys<T extends object> = {
+  [K in keyof T]: {} extends T[K] ? K : T[K] extends NonNullable<T[K]> ? never : K;
+}[keyof T];
+
 export type Normalize<T> = T extends object ? { [K in keyof T]: T[K] } : T;
 
 export type NullableToOptional<T> = T extends object
   ? Normalize<{ [K in OptionalKeys<T>]?: T[K] } & { [K in RequiredKeys<T>]: T[K] }>
+  : T;
+
+export type EmptyToOptional<T> = T extends object
+  ? Normalize<{ [K in EmptyKeys<T> | OptionalKeys<T>]?: T[K] } & { [K in NonEmptyKeys<T>]: T[K] }>
   : T;
 
 export type NormalizeNullable<T> = undefined extends T

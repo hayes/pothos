@@ -1,3 +1,4 @@
+import { ZodError, ZodFormattedError } from 'zod';
 import builder from './builder';
 
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
@@ -191,6 +192,93 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+
+function flattenErrors(
+  error: ZodFormattedError<unknown>,
+  path: string[],
+): { path: string[]; message: string }[] {
+  // eslint-disable-next-line no-underscore-dangle
+  const errors = error._errors.map((message) => ({
+    path,
+    message,
+  }));
+
+  Object.keys(error).forEach((key) => {
+    if (key !== '_errors') {
+      errors.push(
+        ...flattenErrors((error as Record<string, unknown>)[key] as ZodFormattedError<unknown>, [
+          ...path,
+          key,
+        ]),
+      );
+    }
+  });
+
+  return errors;
+}
+
+const ZodFieldError = builder
+  .objectRef<{
+    message: string;
+    path: string[];
+  }>('ZodFieldError')
+  .implement({
+    fields: (t) => ({
+      message: t.exposeString('message'),
+      path: t.exposeStringList('path'),
+    }),
+  });
+
+builder.objectType(ZodError, {
+  name: 'ZodError',
+  interfaces: [ErrorInterface],
+  isTypeOf: (obj) => obj instanceof ZodError,
+  fields: (t) => ({
+    fieldErrors: t.field({
+      type: [ZodFieldError],
+      resolve: (err) => flattenErrors(err.format(), []),
+    }),
+  }),
+});
+
+builder.queryField('fieldWIthValidation', (t) =>
+  t.boolean({
+    errors: {
+      types: [ZodError],
+      dataField: { name: 'result' },
+    },
+    args: {
+      string: t.arg.string({
+        validate: {
+          type: 'string',
+          minLength: 3,
+        },
+      }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('validation2', (t) =>
+  t.boolean({
+    errors: {
+      types: [ZodError],
+      dataField: { name: 'result' },
+    },
+    args: {
+      stringList: t.arg.stringList({
+        validate: {
+          items: {
+            type: 'string',
+            minLength: 3,
+          },
+        },
+      }),
+    },
+    validate: (err) => false,
+    resolve: () => true,
+  }),
+);
 
 const schema = builder.toSchema({});
 

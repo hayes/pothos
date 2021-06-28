@@ -27,9 +27,11 @@ type LengthError implements Error {
 type Query {
   extendedError(throw: String): QueryExtendedErrorResult
   extendedErrorList(throw: String): QueryExtendedErrorListResult
+  fieldWIthValidation(string: String): QueryFieldWIthValidationResult!
   hello(name: String!): QueryHelloResult!
   helloWithMinLength(name: String!): QueryHelloWithMinLengthResult!
   simpleError(throw: Boolean): QuerySimpleErrorResult!
+  validation2(stringList: [String!]): QueryValidation2Result!
 }
 
 union QueryExtendedErrorListResult = BaseError | Extended2Error | ExtendedError | QueryExtendedErrorListSuccess
@@ -42,6 +44,12 @@ union QueryExtendedErrorResult = BaseError | Extended2Error | ExtendedError | Qu
 
 type QueryExtendedErrorSuccess {
   data: String!
+}
+
+union QueryFieldWIthValidationResult = BaseError | QueryFieldWIthValidationSuccess | ZodError
+
+type QueryFieldWIthValidationSuccess {
+  result: Boolean!
 }
 
 union QueryHelloResult = BaseError | QueryHelloSuccess
@@ -60,6 +68,22 @@ union QuerySimpleErrorResult = BaseError | QuerySimpleErrorSuccess
 
 type QuerySimpleErrorSuccess {
   data: String!
+}
+
+union QueryValidation2Result = BaseError | QueryValidation2Success | ZodError
+
+type QueryValidation2Success {
+  result: Boolean!
+}
+
+type ZodError implements Error {
+  fieldErrors: [ZodFieldError!]!
+  message: String!
+}
+
+type ZodFieldError {
+  message: String!
+  path: [String!]!
 }
 "
 `;

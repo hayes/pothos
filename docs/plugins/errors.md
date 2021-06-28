@@ -199,3 +199,102 @@ builder.queryType({
   }),
 });
 ```
+
+### With validation plugin
+
+To use this in combination with the validation plugin, ensure that that errors plugin is listed
+BEFORE the validation plugin in your plugin list.
+
+Once your plugins are set up, you can define types for a ZodError, the same way you would for any
+other error type. Below is a simple example of how this can be done, but the specifics of how you
+structure your error types are left up to you.
+
+
+```typescript
+// Util for flattening zod errors into something easier to represent in your Schema.
+function flattenErrors(
+  error: ZodFormattedError<unknown>,
+  path: string[],
+): { path: string[]; message: string }[] {
+  // eslint-disable-next-line no-underscore-dangle
+  const errors = error._errors.map((message) => ({
+    path,
+    message,
+  }));
+
+  Object.keys(error).forEach((key) => {
+    if (key !== '_errors') {
+      errors.push(
+        ...flattenErrors((error as Record<string, unknown>)[key] as ZodFormattedError<unknown>, [
+          ...path,
+          key,
+        ]),
+      );
+    }
+  });
+
+  return errors;
+}
+
+// A type for the individual validation issues
+const ZodFieldError = builder
+  .objectRef<{
+    message: string;
+    path: string[];
+  }>('ZodFieldError')
+  .implement({
+    fields: (t) => ({
+      message: t.exposeString('message'),
+      path: t.exposeStringList('path'),
+    }),
+  });
+
+// The actual error type
+builder.objectType(ZodError, {
+  name: 'ZodError',
+  interfaces: [ErrorInterface],
+  isTypeOf: (obj) => obj instanceof ZodError,
+  fields: (t) => ({
+    fieldErrors: t.field({
+      type: [ZodFieldError],
+      resolve: (err) => flattenErrors(err.format(), []),
+    }),
+  }),
+});
+
+builder.queryField('fieldWIthValidation', (t) =>
+  t.boolean({
+    errors: {
+      types: [ZodError],
+    },
+    args: {
+      string: t.arg.string({
+        validate: {
+          type: 'string',
+          minLength: 3,
+        },
+      }),
+    },
+    resolve: () => true,
+  }),
+);
+```
+
+Example query:
+
+```graphql
+query {
+  validation(string: "a") {
+    __typename
+    ... on QueryValidationSuccess {
+      data
+    }
+    ... on ZodError {
+      fieldErrors {
+        message
+        path
+      }
+    }
+  }
+}
+```
