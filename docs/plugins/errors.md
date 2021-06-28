@@ -65,7 +65,7 @@ type Query {
   hello(name: String!): QueryHelloResult
 }
 
-union QueryExtendedErrorListOrError = Error | QueryHelloSuccess
+union QueryHelloResult = Error | QueryHelloSuccess
 
 type QueryHelloSuccess {
   data: String!
