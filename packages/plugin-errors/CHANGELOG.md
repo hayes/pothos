@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.1.0 - 2021-06-28
+
+#### 🐞 Fixes
+
+- type default empty objects as never to ensure compatibility with plugins that add required options ([e457c02](https://github.com/hayes/giraphql/commit/e457c02))
+
+**Note:** Version bump only for package @giraphql/plugin-errors
+
+
+
+
+
 ## 2.1.0-alpha.1 - 2021-06-28
 
 #### 🚀 Updates
