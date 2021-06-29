@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.6.1 - 2021-06-29
+
+#### 📘 Docs
+
+- update docs to include links to error plugin ([46db92d](https://github.com/hayes/giraphql/commit/46db92d))
+
+**Note:** Version bump only for package @giraphql/deno
+
+
+
+
+
 ### 2.6.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/deno
