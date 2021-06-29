@@ -103,6 +103,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
           nodeInterfaceRef: () => InterfaceRef<unknown>;
         }
       ).nodeInterfaceRef(),
+      ...(options.interfaces ?? []),
     ],
     loadMany: (ids: Key[], context: SchemaTypes['Context']) => getDataloader(context).loadMany(ids),
     extensions: {

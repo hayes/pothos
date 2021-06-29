@@ -45,8 +45,9 @@ type User implements TestInterface {
   self: User!
 }
 
-type UserNode implements Node {
+type UserNode implements Node & TestInterface {
   id: ID!
+  idFromInterface: ID!
 }
 "
 `;
