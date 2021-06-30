@@ -30,6 +30,7 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends object, Ke
             (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
                 nodeInterfaceRef: () => InterfaceRef<unknown>;
             }).nodeInterfaceRef(),
+            ...(options.interfaces ?? []),
         ],
         loadMany: (ids: Key[], context: SchemaTypes["Context"]) => getDataloader(context).loadMany(ids),
         extensions: {

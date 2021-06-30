@@ -47,7 +47,7 @@ const ContactInfo = builder.inputType('ContactInfo', {
       validate: {
         maxLength: 30,
         refine: [
-          (name) => name[0].toUpperCase() === name[0],
+          async (name) => Promise.resolve(name[0].toUpperCase() === name[0]),
           { message: 'Name should be capitalized' },
         ],
       },
@@ -94,7 +94,7 @@ builder.queryType({
         }),
         phone: t.arg.string(),
       },
-      validate: (args) => !!args.phone || !!args.email,
+      validate: async (args) => Promise.resolve(!!args.phone || !!args.email),
       resolve: () => true,
     }),
     withMessage: t.boolean({

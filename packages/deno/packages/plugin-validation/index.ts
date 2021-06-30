@@ -61,7 +61,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
                 refine: fieldConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
             });
         }
-        return (parent, rawArgs, context, info) => resolver(parent, validator.parse(rawArgs) as object, context, info) as unknown;
+        return async (parent, rawArgs, context, info) => resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info) as unknown;
     }
     createValidator(optionsOrConstraint: RefineConstraint | ValidationOptionUnion | undefined, type: GiraphQLInputFieldType<Types> | null, fieldName: string): zod.ZodTypeAny {
         const options: ValidationOptionUnion | undefined = Array.isArray(optionsOrConstraint) || typeof optionsOrConstraint === "function"

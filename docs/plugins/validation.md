@@ -15,13 +15,8 @@ options map closely to the validations available in zod.
 
 To use the validation plugin you will need to install both `zod` package and the validation plugin:
 
-zod version 3 is still in beta, but is compatible. Zod version 2 was deprecated, so installing zod@1
-or zod@3 is recommended.
-
 ```bash
-yarn add zod@1 @giraphql/plugin-validation
-# or
-yarn add zod@3 @giraphql/plugin-validation
+yarn add zod @giraphql/plugin-validation
 ```
 
 ### Setup
@@ -143,7 +138,7 @@ builder.queryType({
 
 A `Refinement` is a function that will be passed to the `zod` `refine` method. It receives the args
 object, input object, or value of the specific field the refinement is defined on. It should return
-a `boolean`.
+a `boolean` or `Promise<boolean>`.
 
 `Refinement`s can either be just a function: `(val) => isValid(val)`, or an array with the function,
 and an options object like: `[(val) => isValid(val), { message: 'field should be valid' }]`.

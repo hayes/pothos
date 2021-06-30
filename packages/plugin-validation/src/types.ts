@@ -1,4 +1,5 @@
 import { ZodSchema } from 'zod';
+import { MaybePromise } from '@giraphql/core';
 
 export type Constraint<T> =
   | T
@@ -7,8 +8,8 @@ export type Constraint<T> =
       : [value: T, options: { message?: string }]);
 
 export type RefineConstraint<T = unknown> =
-  | Constraint<(value: T) => boolean>
-  | Constraint<(value: T) => boolean>[];
+  | Constraint<(value: T) => MaybePromise<boolean>>
+  | Constraint<(value: T) => MaybePromise<boolean>>[];
 export interface BaseValidationOptions<T = unknown> {
   refine?: RefineConstraint<T>;
   schema?: ZodSchema<T>;

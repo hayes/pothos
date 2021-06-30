@@ -69,98 +69,16 @@ describe('validation', () => {
           [GraphQLError: [
         {
           "code": "custom",
-          "message": "Invalid input",
-          "path": [
-            "enum1"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": [
-            "recursive",
-            "float"
-          ]
-        },
-        {
-          "code": "too_big",
-          "maximum": 5,
-          "type": "number",
-          "inclusive": true,
-          "message": "Value should be less than or equal to 5",
-          "path": [
-            "recursive",
-            "recurse",
-            "number"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": [
-            "recursive",
-            "recurse",
-            "float"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "number must not be 3",
-          "path": [
-            "recursive",
-            "recurse",
-            "recurse"
-          ]
-        },
-        {
-          "code": "custom",
           "message": "number must be odd",
           "path": [
             "odd"
           ]
         },
         {
-          "code": "invalid_union",
-          "unionErrors": [
-            {
-              "issues": [
-                {
-                  "code": "custom",
-                  "message": "Name should be capitalized",
-                  "path": [
-                    "contactInfo",
-                    "name"
-                  ]
-                }
-              ]
-            },
-            {
-              "issues": [
-                {
-                  "code": "invalid_type",
-                  "expected": "array",
-                  "received": "string",
-                  "path": [
-                    "contactInfo",
-                    "name"
-                  ],
-                  "message": "Expected array, received string"
-                }
-              ]
-            }
-          ],
-          "path": [
-            "contactInfo",
-            "name"
-          ],
-          "message": "Invalid input"
-        },
-        {
           "code": "custom",
-          "message": "Aliases should be capitalized",
+          "message": "Invalid input",
           "path": [
-            "contactInfo",
-            "aliases"
+            "enum1"
           ]
         },
         {
@@ -227,6 +145,88 @@ describe('validation', () => {
             "phone"
           ],
           "message": "Invalid input"
+        },
+        {
+          "code": "invalid_union",
+          "unionErrors": [
+            {
+              "issues": [
+                {
+                  "code": "custom",
+                  "message": "Name should be capitalized",
+                  "path": [
+                    "contactInfo",
+                    "name"
+                  ]
+                }
+              ]
+            },
+            {
+              "issues": [
+                {
+                  "code": "invalid_type",
+                  "expected": "array",
+                  "received": "string",
+                  "path": [
+                    "contactInfo",
+                    "name"
+                  ],
+                  "message": "Expected array, received string"
+                }
+              ]
+            }
+          ],
+          "path": [
+            "contactInfo",
+            "name"
+          ],
+          "message": "Invalid input"
+        },
+        {
+          "code": "custom",
+          "message": "Aliases should be capitalized",
+          "path": [
+            "contactInfo",
+            "aliases"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "recursive",
+            "float"
+          ]
+        },
+        {
+          "code": "too_big",
+          "maximum": 5,
+          "type": "number",
+          "inclusive": true,
+          "message": "Value should be less than or equal to 5",
+          "path": [
+            "recursive",
+            "recurse",
+            "number"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "recursive",
+            "recurse",
+            "float"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "number must not be 3",
+          "path": [
+            "recursive",
+            "recurse",
+            "recurse"
+          ]
         }
       ]],
         ],
@@ -281,13 +281,6 @@ describe('validation', () => {
       ]],
           [GraphQLError: [
         {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": []
-        }
-      ]],
-          [GraphQLError: [
-        {
           "validation": "email",
           "code": "invalid_string",
           "message": "invalid email address",
@@ -300,6 +293,13 @@ describe('validation', () => {
         {
           "code": "custom",
           "message": "Must provide either phone number or email address",
+          "path": []
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Invalid input",
           "path": []
         }
       ]],

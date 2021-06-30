@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { ZodSchema } from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
+import { MaybePromise } from '../core/index.ts';
 export type Constraint<T> = T | (T extends object ? [
     value: T,
     options: {
@@ -12,7 +13,7 @@ export type Constraint<T> = T | (T extends object ? [
         message?: string;
     }
 ]);
-export type RefineConstraint<T = unknown> = Constraint<(value: T) => boolean> | Constraint<(value: T) => boolean>[];
+export type RefineConstraint<T = unknown> = Constraint<(value: T) => MaybePromise<boolean>> | Constraint<(value: T) => MaybePromise<boolean>>[];
 export interface BaseValidationOptions<T = unknown> {
     refine?: RefineConstraint<T>;
     schema?: ZodSchema<T>;
