@@ -12,7 +12,7 @@ This plugin makes it easy to add fields and types that are loaded through a data
 ### Install
 
 To use the dataloader plugin you will need to install both the `dataloader` package and the
-validation plugin:
+giraphql dataloader plugin:
 
 ```bash
 yarn add dataloader @giraphql/plugin-dataloader
