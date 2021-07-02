@@ -11,7 +11,7 @@ import {
 
 import { BuildCache } from '..';
 
-const runCache = new WeakMap<{}, Set<unknown>>();
+const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
   name;
 
@@ -125,16 +125,20 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     return resolveType;
   }
 
-  protected runUnique(key: unknown, cb: () => void) {
+  protected runUnique<R>(key: unknown, cb: () => R): R {
     if (!runCache.has(this.builder)) {
-      runCache.set(this.beforeBuild, new Set());
+      runCache.set(this.builder, new Map<unknown, unknown>());
     }
 
     if (!runCache.get(this.builder)!.has(key)) {
-      cb();
+      const result = cb();
 
-      runCache.get(this.builder)!.add(key);
+      runCache.get(this.builder)!.set(key, result);
+
+      return result;
     }
+
+    return runCache.get(this.builder)!.get(key) as R;
   }
 
   /**

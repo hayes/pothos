@@ -56,32 +56,35 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
     } = fieldConfig.giraphqlOptions.errors;
 
-    const resultObjectRef = this.builder.objectRef<unknown>(resultName);
-
-    resultObjectRef.implement({
-      ...resultObjectOptions,
-      fields: (t) => ({
-        ...resultFieldOptions?.(t),
-        [dataFieldName]: t.field({
-          ...dataField,
-          type: fieldConfig.giraphqlOptions.type,
-          nullable:
-            fieldConfig.type.kind === 'List'
-              ? { items: fieldConfig.type.type.nullable, list: false }
-              : false,
-          resolve: (data) => data as never,
-        }),
-      }),
-    });
-
     const errorTypes = sortClasses([
       ...new Set([...types, ...(this.builder.options.errorOptions?.defaultTypes ?? [])]),
     ]);
 
-    const unionType = this.builder.unionType(unionName, {
-      types: [...errorTypes, resultObjectRef],
-      resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultObjectRef,
-      ...unionOptions,
+    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
+    const unionType = this.runUnique(resultName, () => {
+      const resultObjectRef = this.builder.objectRef<unknown>(resultName);
+
+      resultObjectRef.implement({
+        ...resultObjectOptions,
+        fields: (t) => ({
+          ...resultFieldOptions?.(t),
+          [dataFieldName]: t.field({
+            ...dataField,
+            type: fieldConfig.giraphqlOptions.type,
+            nullable:
+              fieldConfig.type.kind === 'List'
+                ? { items: fieldConfig.type.type.nullable, list: false }
+                : false,
+            resolve: (data) => data as never,
+          }),
+        }),
+      });
+
+      return this.builder.unionType(unionName, {
+        types: [...errorTypes, resultObjectRef],
+        resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultObjectRef,
+        ...unionOptions,
+      });
     });
 
     return {

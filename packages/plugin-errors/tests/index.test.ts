@@ -1,10 +1,15 @@
 import { gql } from 'apollo-server-core';
 import { execute, printSchema } from 'graphql';
+import builder from './example/builder';
 import schema from './example/schema';
 
 describe('mocked', () => {
   it('generates expected schema', () => {
     expect(printSchema(schema)).toMatchSnapshot();
+
+    expect(() => {
+      builder.toSchema({});
+    }).not.toThrow();
   });
 
   it('query some stuff', async () => {
