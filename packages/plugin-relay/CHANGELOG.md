@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.8.0 - 2021-07-02
+
+#### 🚀 Updates
+
+- add option to make clientMutationField optional, or omit it entirly ([95a74bb](https://github.com/hayes/giraphql/commit/95a74bb))
+- update deno ([382775e](https://github.com/hayes/giraphql/commit/382775e))
+
+#### 🛠 Internals
+
+- update relay tests to account for new options ([ea363b9](https://github.com/hayes/giraphql/commit/ea363b9))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.7.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-relay
