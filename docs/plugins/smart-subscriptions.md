@@ -69,7 +69,7 @@ const builder = new SchemaBuilder({
 });
 ```
 
-### Creaating a smart subscription
+### Creating a smart subscription
 
 ```typescript
 builder.queryFields((t) => ({
