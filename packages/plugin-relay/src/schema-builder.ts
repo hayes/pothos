@@ -249,35 +249,26 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 ) {
   const {
     relayOptions: {
-      clientMutationIdInputOptions,
-      clientMutationIdFieldOptions,
-      mutationInputArgOptions,
+      clientMutationIdInputOptions = {} as never,
+      clientMutationIdFieldOptions = {} as never,
+      mutationInputArgOptions = {} as never,
     },
   } = this.options;
 
-  if (!mutationInputArgOptions) {
-    throw new Error(
-      'relayOptions.mutationInputArgOptions must be set in builder options to use `relayMutationField`',
-    );
-  }
-
-  if (!clientMutationIdInputOptions) {
-    throw new Error(
-      'relayOptions.clientMutationIdInputOptions must be set in builder options to use `relayMutationField`',
-    );
-  }
-
-  if (!clientMutationIdFieldOptions) {
-    throw new Error(
-      'relayOptions.clientMutationIdFieldOptions must be set in builder options to use `relayMutationField`',
-    );
-  }
+  const includeClientMutationId = this.options.relayOptions.clientMutationId !== 'omit';
 
   const inputRef = this.inputType(inputName, {
     ...inputOptions,
     fields: (t) => ({
       ...inputFields(t),
-      clientMutationId: t.id({ ...clientMutationIdInputOptions, required: true }),
+      ...(includeClientMutationId
+        ? {
+            clientMutationId: t.id({
+              ...clientMutationIdInputOptions,
+              required: this.options.relayOptions.clientMutationId !== 'optional',
+            }),
+          }
+        : {}),
     }),
   });
 
@@ -286,12 +277,16 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     interfaces: interfaces as never,
     fields: (t) => ({
       ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
-      clientMutationId: t.id({
-        ...clientMutationIdFieldOptions,
-        nullable: false,
-        resolve: (parent, args, context, info) =>
-          mutationIdCache(context).get(String(info.path.prev!.key))!,
-      }),
+      ...(includeClientMutationId
+        ? {
+            clientMutationId: t.id({
+              ...clientMutationIdFieldOptions,
+              nullable: this.options.relayOptions.clientMutationId === 'optional',
+              resolve: (parent, args, context, info) =>
+                mutationIdCache(context).get(String(info.path.prev!.key))!,
+            }),
+          }
+        : {}),
     }),
   });
 

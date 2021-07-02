@@ -14,26 +14,6 @@ interface UserSchemaTypes {
 export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [RelayPlugin],
   relayOptions: {
-    nodeQueryOptions: {
-      description: 'node query',
-    },
-    nodesQueryOptions: {
-      description: 'nodes query',
-    },
-    nodeTypeOptions: {
-      description: 'node type',
-    },
-    pageInfoTypeOptions: {
-      description: 'page info type',
-    },
-    clientMutationIdFieldOptions: {
-      description: 'client id output',
-    },
-    clientMutationIdInputOptions: {
-      description: 'client id input',
-    },
-    mutationInputArgOptions: {
-      description: 'mutation input arg',
-    },
+    clientMutationId: 'omit',
   },
 });

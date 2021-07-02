@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import {
+  EmptyToOptional,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -27,7 +28,8 @@ import {
   ShapeFromTypeParam,
 } from '@giraphql/core';
 
-export interface RelayPluginOptions<Types extends SchemaTypes> {
+export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
+  clientMutationId?: 'omit' | 'optional' | 'required';
   nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
   pageInfoTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
   nodeQueryOptions: Omit<
@@ -50,11 +52,11 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
     >,
     'args' | 'nullable' | 'resolve' | 'type'
   >;
-  mutationInputArgOptions?: Omit<
+  mutationInputArgOptions: Omit<
     GiraphQLSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
     'fields' | 'required' | 'type'
   >;
-  clientMutationIdInputOptions?: Omit<
+  clientMutationIdInputOptions: Omit<
     GiraphQLSchemaTypes.InputObjectFieldOptions<
       Types,
       InputRef<Types['Scalars']['ID']['Input']>,
@@ -62,7 +64,7 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
     >,
     'args' | 'nullable' | 'resolve' | 'type'
   >;
-  clientMutationIdFieldOptions?: Omit<
+  clientMutationIdFieldOptions: Omit<
     GiraphQLSchemaTypes.ObjectFieldOptions<
       Types,
       {},
@@ -78,7 +80,7 @@ export interface RelayPluginOptions<Types extends SchemaTypes> {
     typename: string;
     id: string;
   };
-}
+}>;
 
 export interface PageInfoShape {
   hasNextPage: boolean;

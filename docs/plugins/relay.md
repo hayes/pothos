@@ -23,13 +23,7 @@ import RelayPlugin from '@giraphql/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relayOptions: {
-    nodeQueryOptions: {},
-    nodesQueryOptions: {},
-    nodeTypeOptions: {},
-    pageInfoTypeOptions: {},
-    clientMutationIdFieldOptions: {},
-    clientMutationIdInputOptions: {},
-    mutationInputArgOptions: {},
+    clientMutationId: 'omit',
   },
 });
 ```
@@ -39,10 +33,20 @@ GiraphQL API, options objects are required because other plugins may contribute 
 These options objects will enable things like defining auth policies for your node query fields if
 you are using the auth plugin.
 
-`clientMutationIdFieldOptions`, `clientMutationIdInputOptions`, and `mutationInputArgOptions` are
-currently typed as optional because they were added in a non-major version. If they are omitted, a
-runtime error will be raised when using the `relayMutationField` method. These options will become
-required in the next major version.
+### Options
+
+The `relayOptions` object passed to builder can contain the following properties:
+
+- `clientMutationId`: `required` (default) | `omit` | | `optional`. Determins if clientMutationId
+  fields are created on connections, and if they are required.
+- `nodeQueryOptions`: Options for the `node` field on the query object
+- `nodesQueryOptions`: Options for the `nodes` field on the query object
+- `nodeTypeOptions`: Options for the `Node` interface type
+- `pageInfoTypeOptions`: Options for the `TypeInfo` object type
+- `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects
+- `clientMutationIdInputOptions`: Options for the `clientMutationId` input field on connections
+  fields
+- `mutationInputArgOptions`: Options for the Input object created for each connection field
 
 ### Global IDs
 
@@ -375,10 +379,6 @@ import '@giraphql/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: ['GiraphQLRelay'],
   relayOptions: {
-    nodeQueryOptions: {},
-    nodesQueryOptions: {},
-    nodeTypeOptions: {},
-    pageInfoTypeOptions: {},
     encodeGlobalID: (typename: string, id: string | number | bigint) => `${typename}:${id}`,
     decodeGlobalID: (globalID: string) => {
       const [typename, id] = globalID.split(':');
@@ -424,12 +424,7 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: ['GiraphQLRelay'],
-  relayOptions: {
-    nodeQueryOptions: {},
-    nodesQueryOptions: {},
-    nodeTypeOptions: {},
-    pageInfoTypeOptions: {},
-  },
+  relayOptions: {},
 });
 ```
 
