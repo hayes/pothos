@@ -37,7 +37,7 @@ you are using the auth plugin.
 
 The `relayOptions` object passed to builder can contain the following properties:
 
-- `clientMutationId`: `required` (default) | `omit` | | `optional`. Determins if clientMutationId
+- `clientMutationId`: `required` (default) | `omit` | `optional`. Determins if clientMutationId
   fields are created on connections, and if they are required.
 - `nodeQueryOptions`: Options for the `node` field on the query object
 - `nodesQueryOptions`: Options for the `nodes` field on the query object

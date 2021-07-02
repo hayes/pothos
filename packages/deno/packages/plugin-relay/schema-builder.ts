@@ -148,21 +148,20 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
 };
 const mutationIdCache = createContextCache(() => new Map<string, string>());
 schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, { name: inputName = `${capitalize(fieldName)}Input`, argName = "input", inputFields, ...inputOptions }, { resolve, ...fieldOptions }, { name: payloadName = `${capitalize(fieldName)}Payload`, outputFields, interfaces, ...paylaodOptions }) {
-    const { relayOptions: { clientMutationIdInputOptions, clientMutationIdFieldOptions, mutationInputArgOptions, }, } = this.options;
-    if (!mutationInputArgOptions) {
-        throw new Error("relayOptions.mutationInputArgOptions must be set in builder options to use `relayMutationField`");
-    }
-    if (!clientMutationIdInputOptions) {
-        throw new Error("relayOptions.clientMutationIdInputOptions must be set in builder options to use `relayMutationField`");
-    }
-    if (!clientMutationIdFieldOptions) {
-        throw new Error("relayOptions.clientMutationIdFieldOptions must be set in builder options to use `relayMutationField`");
-    }
+    const { relayOptions: { clientMutationIdInputOptions = {} as never, clientMutationIdFieldOptions = {} as never, mutationInputArgOptions = {} as never, }, } = this.options;
+    const includeClientMutationId = this.options.relayOptions.clientMutationId !== "omit";
     const inputRef = this.inputType(inputName, {
         ...inputOptions,
         fields: (t) => ({
             ...inputFields(t),
-            clientMutationId: t.id({ ...clientMutationIdInputOptions, required: true }),
+            ...(includeClientMutationId
+                ? {
+                    clientMutationId: t.id({
+                        ...clientMutationIdInputOptions,
+                        required: this.options.relayOptions.clientMutationId !== "optional",
+                    }),
+                }
+                : {}),
         }),
     });
     const payloadRef = this.objectRef<unknown>(payloadName).implement({
@@ -170,11 +169,15 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
         interfaces: interfaces as never,
         fields: (t) => ({
             ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
-            clientMutationId: t.id({
-                ...clientMutationIdFieldOptions,
-                nullable: false,
-                resolve: (parent, args, context, info) => mutationIdCache(context).get(String(info.path.prev!.key))!,
-            }),
+            ...(includeClientMutationId
+                ? {
+                    clientMutationId: t.id({
+                        ...clientMutationIdFieldOptions,
+                        nullable: this.options.relayOptions.clientMutationId === "optional",
+                        resolve: (parent, args, context, info) => mutationIdCache(context).get(String(info.path.prev!.key))!,
+                    }),
+                }
+                : {}),
         }),
     });
     this.mutationField(fieldName, (t) => t.field({
