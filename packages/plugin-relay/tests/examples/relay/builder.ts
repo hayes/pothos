@@ -13,7 +13,5 @@ interface UserSchemaTypes {
 
 export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [RelayPlugin],
-  relayOptions: {
-    clientMutationId: 'omit',
-  },
+  relayOptions: {},
 });
