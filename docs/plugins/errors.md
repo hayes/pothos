@@ -15,6 +15,10 @@ A plugin for easily including error types in your GraphQL schema and hooking up 
 yarn add @giraphql/plugin-errors
 ```
 
+### Setup
+
+Ensure that the target in your `tsconfig.json` is set to `es6` or higher (default is `es3`).
+
 ### Example Ussage
 
 ```typescript
