@@ -35,7 +35,7 @@ addCommonFields([WithCommonFields1, WithCommonFields2]);
 ```
 
 This will apply the `id` and `idLength` fields to both of the object types. The `ObjectRef` type is
-what is returned when createing an object (or when calling `builder.objectRef`). It takes 2 generic
+what is returned when creating an object (or when calling `builder.objectRef`). It takes 2 generic
 parameters: The first is the shape a resolver is expected to resolve to for that type, and the
 second is the shape of the parent arg when defining a field on that type. These 2 are generally the
 same, but can differ for some special cases (like with `loadableObject` from the dataloader plugin,
