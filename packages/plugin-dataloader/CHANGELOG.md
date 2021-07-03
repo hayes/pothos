@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.5.4-alpha.0 - 2021-07-03
+
+**Note:** Version bump only for package @giraphql/plugin-dataloader
+
+
+
+
+
 ### 2.5.3 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
