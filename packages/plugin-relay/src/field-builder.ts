@@ -6,11 +6,9 @@ import {
   InputFieldMap,
   InputShapeFromFields,
   InterfaceRef,
-  ObjectFieldsShape,
   RootFieldBuilder,
   SchemaTypes,
 } from '@giraphql/core';
-import { connectionRefs, globalConnectionFieldsMap } from './schema-builder';
 import {
   ConnectionShape,
   GlobalIDFieldOptions,
@@ -189,10 +187,7 @@ fieldBuilderProto.connection = function connection(
     type: placeholderRef,
     args: {
       ...fieldOptions.args,
-      before: this.arg.id({ required: false }),
-      after: this.arg.id({ required: false }),
-      first: this.arg.int({ required: false }),
-      last: this.arg.int({ required: false }),
+      ...this.arg.connectionArgs(),
     } as unknown as {},
     resolve: fieldOptions.resolve as never,
   });
@@ -203,70 +198,21 @@ fieldBuilderProto.connection = function connection(
       `${this.typename}${capitalize(fieldConfig.name)}${
         fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
       }`;
-    const connectionRef =
-      this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
-
     const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
-    const edgeRef =
-      this.builder.objectRef<{
-        cursor: string;
-        node: unknown;
-      }>(edgeName);
 
-    const connectionFields = connectionOptions.fields as unknown as
-      | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>
-      | undefined;
-
-    const edgeFields = edgeOptions.fields as
-      | ObjectFieldsShape<
-          SchemaTypes,
-          {
-            cursor: string;
-            node: unknown;
-          }
-        >
-      | undefined;
-
-    this.builder.objectType(connectionRef, {
-      ...connectionOptions,
-      fields: (t) => ({
-        pageInfo: t.field({
-          type: this.builder.pageInfoRef(),
-          resolve: (parent) => parent.pageInfo,
-        }),
-        edges: t.field({
-          type: [edgeRef],
-          nullable: {
-            list: false,
-            items: true,
-          },
-          resolve: (parent) => parent.edges,
-        }),
-        ...connectionFields?.(t),
-      }),
-    });
+    this.builder.connectionObject(
+      {
+        type,
+        name: connectionName,
+        ...connectionOptions,
+      },
+      {
+        name: edgeName,
+        ...edgeOptions,
+      },
+    );
 
     this.builder.configStore.associateRefWithName(placeholderRef, connectionName);
-
-    this.builder.objectType(edgeRef, {
-      ...edgeOptions,
-      fields: (t) => ({
-        node: t.field({
-          type,
-          resolve: (parent) => parent.node as never,
-        }),
-        cursor: t.exposeString('cursor', {}),
-        ...edgeFields?.(t),
-      }),
-    });
-
-    if (!connectionRefs.has(this.builder)) {
-      connectionRefs.set(this.builder, []);
-    }
-
-    connectionRefs.get(this.builder)!.push(placeholderRef);
-
-    globalConnectionFieldsMap.get(this.builder)?.forEach((fieldFn) => void fieldFn(placeholderRef));
   });
 
   return fieldRef as never;

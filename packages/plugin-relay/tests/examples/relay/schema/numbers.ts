@@ -93,3 +93,28 @@ builder.queryFields((t) => ({
     ids: () => ['TnVtYmVyOjI=', { id: 10, type: NumberThing }],
   }),
 }));
+
+const SharedConnection = builder.connectionObject({
+  name: 'SharedConnection',
+  type: NumberThing,
+});
+
+builder.queryField('sharedConnection', (t) =>
+  t.field({
+    type: SharedConnection,
+    nullable: true,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    resolve: (root, args) =>
+      resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        const items = [];
+
+        for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+          items.push(new NumberThing(i));
+        }
+
+        return items;
+      }),
+  }),
+);

@@ -123,6 +123,7 @@ type Query {
   pollIds: [ID!]!
   polls: [Poll!]!
   pollsConnection(after: ID, before: ID, first: Int, last: Int): QueryPollsConnection!
+  sharedConnection(after: ID, before: ID, first: Int, last: Int): SharedConnection
 }
 
 type QueryBatchNumbersConnection {
@@ -157,6 +158,16 @@ type QueryPollsConnectionEdge {
   cursor: String!
   extraEdgeField: Int!
   node: Poll!
+}
+
+type SharedConnection {
+  edges: [SharedEdge]!
+  pageInfo: PageInfo!
+}
+
+type SharedEdge {
+  cursor: String!
+  node: Number!
 }
 "
 `;
@@ -238,9 +249,9 @@ type PageInfo {
 
 type Poll implements Node {
   answers: [Answer!]!
-  answersConnection(after: ID, before: ID, first: Int, last: Int): PollAnswersConnection!
-  answersUsingOffset(after: ID, before: ID, first: Int, last: Int): PollAnswersUsingOffsetConnection!
-  answersWithoutHelpers(after: ID, before: ID, first: Int, last: Int): PollAnswersCon!
+  answersConnection(after: String, before: String, first: Int, last: Int): PollAnswersConnection!
+  answersUsingOffset(after: String, before: String, first: Int, last: Int): PollAnswersUsingOffsetConnection!
+  answersWithoutHelpers(after: String, before: String, first: Int, last: Int): PollAnswersCon!
   id: ID!
   question: String!
   updatedAt: String!
@@ -283,7 +294,7 @@ type PollAnswersUsingOffsetConnectionEdge {
 }
 
 type Query {
-  batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  batchNumbers(after: String, before: String, first: Int, last: Int): QueryBatchNumbersConnection!
   extraNode: Node
   inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
@@ -293,11 +304,12 @@ type Query {
 
   \\"\\"\\"nodes query\\"\\"\\"
   nodes(ids: [ID!]!): [Node]!
-  numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
+  numbers(after: String, before: String, first: Int, last: Int): QueryNumbersConnection!
   poll(id: Int!): Poll
   pollIds: [ID!]!
   polls: [Poll!]!
-  pollsConnection(after: ID, before: ID, first: Int, last: Int): QueryPollsConnection!
+  pollsConnection(after: String, before: String, first: Int, last: Int): QueryPollsConnection!
+  sharedConnection(after: String, before: String, first: Int, last: Int): SharedConnection
 }
 
 type QueryBatchNumbersConnection {
@@ -336,6 +348,18 @@ type QueryPollsConnectionEdge {
   cursor: String!
   extraEdgeField: Int!
   node: Poll!
+}
+
+type SharedConnection {
+  edges: [SharedEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type SharedEdge {
+  cursor: String!
+  node: Number!
 }
 "
 `;
@@ -730,6 +754,130 @@ Object {
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
+    },
+    "sharedConnection": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+          "node": Object {
+            "id": "TnVtYmVyOjA=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": Object {
+            "id": "TnVtYmVyOjE=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
+          "node": Object {
+            "id": "TnVtYmVyOjI=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "id": "TnVtYmVyOjM=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo0",
+          "node": Object {
+            "id": "TnVtYmVyOjQ=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo1",
+          "node": Object {
+            "id": "TnVtYmVyOjU=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo2",
+          "node": Object {
+            "id": "TnVtYmVyOjY=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
+          "node": Object {
+            "id": "TnVtYmVyOjc=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo4",
+          "node": Object {
+            "id": "TnVtYmVyOjg=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
+          "node": Object {
+            "id": "TnVtYmVyOjk=",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMA==",
+          "node": Object {
+            "id": "TnVtYmVyOjEw",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMQ==",
+          "node": Object {
+            "id": "TnVtYmVyOjEx",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMg==",
+          "node": Object {
+            "id": "TnVtYmVyOjEy",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxMw==",
+          "node": Object {
+            "id": "TnVtYmVyOjEz",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNA==",
+          "node": Object {
+            "id": "TnVtYmVyOjE0",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNQ==",
+          "node": Object {
+            "id": "TnVtYmVyOjE1",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNg==",
+          "node": Object {
+            "id": "TnVtYmVyOjE2",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxNw==",
+          "node": Object {
+            "id": "TnVtYmVyOjE3",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOA==",
+          "node": Object {
+            "id": "TnVtYmVyOjE4",
+          },
+        },
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoxOQ==",
+          "node": Object {
+            "id": "TnVtYmVyOjE5",
+          },
+        },
+      ],
     },
   },
 }
