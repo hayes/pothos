@@ -1,5 +1,5 @@
 // @ts-nocheck
-import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -13,13 +13,28 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
     }
     const ref = this.objectRef<PageInfoShape>("PageInfo");
     pageInfoRefMap.set(this, ref);
+    const { cursorType = "String", hasNextPageFieldOptions = {} as never, hasPreviousPageFieldOptions = {} as never, startCursorFieldOptions = {} as never, endCursorFieldOptions = {} as never, } = this.options.relayOptions;
     ref.implement({
         ...this.options.relayOptions.pageInfoTypeOptions,
         fields: (t) => ({
-            hasNextPage: t.exposeBoolean("hasNextPage", {}),
-            hasPreviousPage: t.exposeBoolean("hasPreviousPage", {}),
-            startCursor: t.exposeString("startCursor", { nullable: true }),
-            endCursor: t.exposeString("endCursor", { nullable: true }),
+            hasNextPage: t.exposeBoolean("hasNextPage", {
+                ...hasNextPageFieldOptions,
+                nullable: false,
+            }),
+            hasPreviousPage: t.exposeBoolean("hasPreviousPage", {
+                ...hasPreviousPageFieldOptions,
+                nullable: false,
+            }),
+            startCursor: t.expose("startCursor", {
+                ...startCursorFieldOptions,
+                type: cursorType,
+                nullable: true,
+            }),
+            endCursor: t.expose("endCursor", {
+                ...endCursorFieldOptions,
+                type: cursorType,
+                nullable: true,
+            }),
         }),
     });
     return ref;
@@ -64,6 +79,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     return ref;
 };
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
+    verifyRef(param);
     const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
         this.nodeInterfaceRef(),
         ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
@@ -194,4 +210,60 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
             return resolve(root, args as never, context, info);
         },
     }));
+};
+schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
+    verifyRef(type);
+    const { cursorType = "String", edgesFieldOptions = {} as never, cursorFieldOptions = {} as never, nodeFieldOptions = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
+    const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
+    const edgeName = edgeNameFromOptions ?? `${connectionName.replace(/Connection$/, "")}Edge`;
+    const edgeRef = this.objectRef<{
+        cursor: string;
+        node: unknown;
+    }>(edgeName);
+    const connectionFields = connectionOptions.fields as unknown as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>> | undefined;
+    const edgeFields = edgeOptions.fields as ObjectFieldsShape<SchemaTypes, {
+        cursor: string;
+        node: unknown;
+    }> | undefined;
+    this.objectType(connectionRef, {
+        ...connectionOptions,
+        fields: (t) => ({
+            pageInfo: t.field({
+                ...pageInfoFieldOptions,
+                type: this.pageInfoRef(),
+                resolve: (parent) => parent.pageInfo,
+            }),
+            edges: t.field({
+                ...edgesFieldOptions,
+                type: [edgeRef],
+                nullable: {
+                    list: false,
+                    items: true,
+                },
+                resolve: (parent) => parent.edges,
+            }),
+            ...connectionFields?.(t),
+        }),
+    });
+    this.objectType(edgeRef, {
+        ...edgeOptions,
+        fields: (t) => ({
+            node: t.field({
+                ...nodeFieldOptions,
+                type,
+                resolve: (parent) => parent.node as never,
+            }),
+            cursor: t.expose("cursor", {
+                type: cursorType,
+                ...cursorFieldOptions,
+            }),
+            ...edgeFields?.(t),
+        }),
+    });
+    if (!connectionRefs.has(this)) {
+        connectionRefs.set(this, []);
+    }
+    connectionRefs.get(this)!.push(connectionRef);
+    globalConnectionFieldsMap.get(this)?.forEach((fieldFn) => void fieldFn(connectionRef));
+    return connectionRef as never;
 };

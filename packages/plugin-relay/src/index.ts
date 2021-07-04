@@ -20,7 +20,7 @@ const pluginName = 'relay';
 export default pluginName;
 
 export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
@@ -44,7 +44,7 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
       resolver(parent, argMapper(args), context, info) as unknown;
   }
 
-  wrapSubscribe(
+  override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {

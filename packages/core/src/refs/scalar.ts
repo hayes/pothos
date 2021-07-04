@@ -2,7 +2,7 @@ import { InputRef, inputShapeKey, OutputRef, outputShapeKey, parentShapeKey } fr
 import BaseTypeRef from './base';
 
 export default class ScalarRef<T, U, P = T> extends BaseTypeRef implements OutputRef, InputRef {
-  kind = 'Scalar' as const;
+  override kind = 'Scalar' as const;
 
   [outputShapeKey]: T;
   [parentShapeKey]: P;

@@ -6,7 +6,7 @@ export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): b
     return false;
   }
 
-  return (map.$all ? canCache(map.$all!) : true) && (map.$any ? canCache(map.$any!) : true);
+  return (map.$all ? canCache(map.$all) : true) && (map.$any ? canCache(map.$any) : true);
 }
 
 export function cacheKey(path: Path | undefined) {

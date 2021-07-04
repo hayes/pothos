@@ -5,7 +5,8 @@ menu: Plugins
 
 # Errors Plugin
 
-A plugin for easily including error types in your GraphQL schema and hooking up error types to resolvers
+A plugin for easily including error types in your GraphQL schema and hooking up error types to
+resolvers
 
 ## Usage
 
@@ -212,7 +213,6 @@ BEFORE the validation plugin in your plugin list.
 Once your plugins are set up, you can define types for a ZodError, the same way you would for any
 other error type. Below is a simple example of how this can be done, but the specifics of how you
 structure your error types are left up to you.
-
 
 ```typescript
 // Util for flattening zod errors into something easier to represent in your Schema.

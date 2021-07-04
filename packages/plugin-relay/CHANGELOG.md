@@ -3,6 +3,34 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.9.0-alpha.1 - 2021-07-04
+
+#### 🚀 Updates
+
+- add early warning for undefined refs to simplify debugging of circular import issues ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
+
+#### 📦 Dependencies
+
+- upgrade typescript ([675f6a2](https://github.com/hayes/giraphql/commit/675f6a2))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
+## 2.9.0-alpha.0 - 2021-07-03
+
+#### 🚀 Updates
+
+- **[relay]** add connectionObject helper, cursorType option, and more field options ([466b61f](https://github.com/hayes/giraphql/commit/466b61f))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.8.1 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-relay

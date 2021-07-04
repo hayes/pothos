@@ -5,7 +5,7 @@ import BaseTypeRef from './base';
 import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '..';
 
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
-  kind = 'InputObject' as const;
+  override kind = 'InputObject' as const;
 
   [inputShapeKey]: T;
 

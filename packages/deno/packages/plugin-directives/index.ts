@@ -9,7 +9,7 @@ export * from './types.ts';
 const pluginName = "directives" as const;
 export default pluginName;
 export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
         const options = fieldConfig.giraphqlOptions;
         if (!options.directives) {
             return fieldConfig;
@@ -22,7 +22,7 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
             },
         };
     }
-    onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+    override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
         const options = fieldConfig.giraphqlOptions;
         if (!options.directives) {
             return fieldConfig;
@@ -35,7 +35,7 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
             },
         };
     }
-    onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+    override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
         const options = valueConfig.giraphqlOptions;
         if (!options.directives) {
             return valueConfig;
@@ -48,7 +48,7 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
             },
         };
     }
-    onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+    override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
         const options = typeConfig.giraphqlOptions;
         if (!options.directives) {
             return typeConfig;
@@ -61,7 +61,7 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
             },
         };
     }
-    afterBuild(schema: GraphQLSchema) {
+    override afterBuild(schema: GraphQLSchema) {
         mockAst(schema);
         return schema;
     }

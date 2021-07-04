@@ -9,33 +9,33 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
         super(buildCache, "GiraphQLMergedPlugin" as never);
         this.plugins = plugins;
     }
-    onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+    override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
         return this.plugins.reduceRight((config, plugin) => (config === null ? config : plugin.onTypeConfig(config)), typeConfig);
     }
-    onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+    override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
         return this.plugins.reduceRight<GiraphQLInputFieldConfig<Types> | null>((config, plugin) => (config === null ? config : plugin.onInputFieldConfig(config)), fieldConfig);
     }
-    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
         return this.plugins.reduceRight<GiraphQLOutputFieldConfig<Types> | null>((config, plugin) => (config === null ? config : plugin.onOutputFieldConfig(config)), fieldConfig);
     }
-    onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+    override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
         return this.plugins.reduceRight<GiraphQLEnumValueConfig<Types> | null>((config, plugin) => (config === null ? config : plugin.onEnumValueConfig(config)), valueConfig);
     }
-    beforeBuild() {
+    override beforeBuild() {
         for (const plugin of this.plugins) {
             plugin.beforeBuild();
         }
     }
-    afterBuild(schema: GraphQLSchema) {
+    override afterBuild(schema: GraphQLSchema) {
         return this.plugins.reduceRight((nextSchema, plugin) => plugin.afterBuild(nextSchema), schema);
     }
-    wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>) {
         return this.plugins.reduceRight((nextResolve, plugin) => plugin.wrapResolve(nextResolve, fieldConfig), resolve);
     }
-    wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: GiraphQLOutputFieldConfig<Types>) {
         return this.plugins.reduceRight((nextSubscribe, plugin) => plugin.wrapSubscribe(nextSubscribe, fieldConfig), subscribe);
     }
-    wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig) {
+    override wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig) {
         return this.plugins.reduceRight((nextResolveType, plugin) => plugin.wrapResolveType(nextResolveType, typeConfig), resolveType);
     }
 }

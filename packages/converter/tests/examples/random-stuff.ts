@@ -22,7 +22,7 @@ class Animal {
 }
 
 class Giraffe extends Animal {
-  species: 'Giraffe' = 'Giraffe';
+  override species: 'Giraffe' = 'Giraffe';
 
   name: string;
 
@@ -144,7 +144,7 @@ builder.objectType('User', {
         example: t.arg({ type: Example, required: true }),
         firstN: t.arg.int({ required: true }),
       },
-      resolve: (parent, args) => parent.firstName.slice(0, args.firstN) + String(args.example.id),
+      resolve: (parent, args) => `${parent.firstName.slice(0, args.firstN)}${args.example.id}`,
     }),
     // creating a resolver with args that use recursive types
     recursiveArgs: t.id({

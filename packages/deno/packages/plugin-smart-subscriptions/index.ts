@@ -32,7 +32,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
         this.debounceDelay =
             this.builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
     }
-    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
         if (fieldConfig.kind === "Query" && fieldConfig.giraphqlOptions.smartSubscription) {
             this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
             this.builder.subscriptionField(fieldConfig.name, (t) => t.field({
@@ -72,10 +72,10 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
         }
         return fieldConfig;
     }
-    createRequestData(context: Types["Context"]) {
+    override createRequestData(context: Types["Context"]) {
         return {};
     }
-    wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"]>, field: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"]> {
+    override wrapResolve(resolve: GraphQLFieldResolver<unknown, Types["Context"]>, field: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"]> {
         let canRefetch = false;
         if (field.graphqlKind === "Object" &&
             field.kind !== "Query" &&
@@ -92,7 +92,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
             return resolveWithCache(cache, subscribe, resolve, canRefetch, parent, args, context, info);
         };
     }
-    wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>) {
+    override wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>) {
         return resolveType;
     }
 }

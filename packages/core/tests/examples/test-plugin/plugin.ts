@@ -16,11 +16,11 @@ const pluginName = 'test' as const;
 export default pluginName;
 
 export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
     return typeConfig;
   }
 
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     if (fieldConfig.name === 'removeMe') {
       return null;
     }
@@ -28,7 +28,7 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return fieldConfig;
   }
 
-  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
     if (fieldConfig.name === 'removeMe') {
       return null;
     }
@@ -36,7 +36,7 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return fieldConfig;
   }
 
-  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
     if (valueConfig.value === 'removeMe') {
       return null;
     }
@@ -44,27 +44,27 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return valueConfig;
   }
 
-  beforeBuild() {}
+  override beforeBuild() {}
 
-  afterBuild(schema: GraphQLSchema): GraphQLSchema {
+  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
     return schema;
   }
 
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => resolver(parent, args, context, info) as unknown;
   }
 
-  wrapSubscribe(
+  override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ) {
     return subscribe;
   }
 
-  wrapResolveType(
+  override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
     typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
   ) {

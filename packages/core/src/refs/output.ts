@@ -2,7 +2,7 @@ import { outputShapeKey, parentShapeKey } from '../types';
 import BaseTypeRef from './base';
 
 export default class OutputTypeRef<T, P = T> extends BaseTypeRef {
-  kind;
+  override kind;
 
   [outputShapeKey]: T;
   [parentShapeKey]: P;

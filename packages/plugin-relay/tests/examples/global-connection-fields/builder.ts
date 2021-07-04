@@ -18,6 +18,7 @@ export default new SchemaBuilder<UserSchemaTypes>({
   plugins: [RelayPlugin],
   relayOptions: {
     clientMutationId: 'omit',
+    cursorType: 'String',
     nodeQueryOptions: {
       description: 'node query',
     },

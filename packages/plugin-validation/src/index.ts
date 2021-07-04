@@ -29,7 +29,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 
   inputTypeValidators = new Map<string, zod.ZodType<unknown>>();
 
-  onInputFieldConfig(
+  override onInputFieldConfig(
     fieldConfig: GiraphQLInputFieldConfig<Types>,
   ): GiraphQLInputFieldConfig<Types> {
     const fieldType = resolveInputTypeConfig(fieldConfig.type, this.buildCache);
@@ -73,7 +73,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
     return fieldConfig;
   }
 
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {

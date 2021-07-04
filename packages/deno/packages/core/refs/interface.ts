@@ -4,7 +4,7 @@ import { OutputRef, outputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
 import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
 export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef {
-    kind = "Interface" as const;
+    override kind = "Interface" as const;
     [outputShapeKey]: T;
     [parentShapeKey]: P;
     constructor(name: string) {

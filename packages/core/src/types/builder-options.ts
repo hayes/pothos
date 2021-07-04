@@ -63,14 +63,16 @@ export type EnumValueConfigMap<Types extends SchemaTypes> = Record<
   GiraphQLSchemaTypes.EnumValueConfig<Types>
 >;
 
-export type ShapeFromEnumValues<Types extends SchemaTypes, Values extends EnumValues<Types>> =
-  Values extends readonly string[]
-    ? Values[number]
-    : Values extends EnumValueConfigMap<Types>
-    ? {
-        [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
-      }[keyof Values]
-    : never;
+export type ShapeFromEnumValues<
+  Types extends SchemaTypes,
+  Values extends EnumValues<Types>,
+> = Values extends readonly string[]
+  ? Values[number]
+  : Values extends EnumValueConfigMap<Types>
+  ? {
+      [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
+    }[keyof Values]
+  : never;
 
 export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,

@@ -117,6 +117,14 @@ describe('relay example schema', () => {
               }
             }
           }
+          sharedConnection {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
         }
       `;
 

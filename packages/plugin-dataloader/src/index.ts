@@ -16,7 +16,7 @@ export * from './util';
 
 const pluginName = 'dataloader' as const;
 export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
