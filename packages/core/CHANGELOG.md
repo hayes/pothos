@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.10.0 - 2021-07-04
+
+#### 🐞 Fixes
+
+- format error message for better readability ([94f58d4](https://github.com/hayes/giraphql/commit/94f58d4))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ## 2.10.0-alpha.0 - 2021-07-04
 
 #### 🚀 Updates

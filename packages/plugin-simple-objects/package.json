@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-simple-objects",
-  "version": "2.4.2-alpha.0",
+  "version": "2.4.2",
   "description": "A GiraphQL plugin for defining objects and interfaces without ts definitions for those types",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
@@ -30,7 +30,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.10.0-alpha.0",
+    "@giraphql/core": "^2.10.0",
     "apollo-server": "^2.25.2",
     "graphql": ">=15.5.1",
     "graphql-tag": "^2.12.5"
