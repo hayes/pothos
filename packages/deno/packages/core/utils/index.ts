@@ -18,3 +18,8 @@ export function isThenable(value: unknown): value is Promise<unknown> {
         (typeof value === "object" || typeof value === "function") &&
         typeof (value as Record<string, unknown>).then === "function");
 }
+export function verifyRef(ref: unknown) {
+    if (ref === undefined) {
+        throw new Error(`Received undefined as a type ref.  This is often caused by circular import.  In some cases this can be fixed by importing the type ref directly from the file that defines it rather than an index file`);
+    }
+}

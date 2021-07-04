@@ -9,6 +9,7 @@ import SchemaBuilder, {
   ObjectRef,
   OutputRef,
   SchemaTypes,
+  verifyRef,
 } from '@giraphql/core';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
@@ -139,6 +140,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 };
 
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
+  verifyRef(param);
   const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
     this.nodeInterfaceRef(),
     ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
@@ -336,6 +338,8 @@ schemaBuilderProto.connectionObject = function connectionObject(
   { type, name: connectionName, ...connectionOptions },
   { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
 ) {
+  verifyRef(type);
+
   const {
     cursorType = 'String',
     edgesFieldOptions = {} as never,
@@ -349,11 +353,10 @@ schemaBuilderProto.connectionObject = function connectionObject(
 
   const edgeName = edgeNameFromOptions ?? `${connectionName.replace(/Connection$/, '')}Edge`;
 
-  const edgeRef =
-    this.objectRef<{
-      cursor: string;
-      node: unknown;
-    }>(edgeName);
+  const edgeRef = this.objectRef<{
+    cursor: string;
+    node: unknown;
+  }>(edgeName);
 
   const connectionFields = connectionOptions.fields as unknown as
     | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>

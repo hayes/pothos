@@ -41,7 +41,7 @@ import {
   SubscriptionFieldsShape,
   SubscriptionFieldThunk,
 } from './types';
-import { normalizeEnumValues, valuesFromEnum } from './utils';
+import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils';
 import {
   BaseEnum,
   EnumParam,
@@ -122,6 +122,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     options: ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>,
     fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
+    verifyRef(param);
     const name =
       typeof param === 'string'
         ? param
@@ -173,6 +174,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     ref: Type,
     fields: ObjectFieldsShape<Types, ParentShape<Types, Type>>,
   ) {
+    verifyRef(ref);
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, () => fields(new ObjectFieldBuilder(name, this)));
     });
@@ -183,6 +185,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fieldName: string,
     field: ObjectFieldThunk<Types, ParentShape<Types, Type>>,
   ) {
+    verifyRef(ref);
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, () => ({
         [fieldName]: field(new ObjectFieldBuilder(name, this)),
@@ -302,6 +305,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>,
     fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
+    verifyRef(param);
     const name =
       typeof param === 'string'
         ? param
@@ -346,6 +350,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     ref: Type,
     fields: InterfaceFieldsShape<Types, ParentShape<Types, Type>>,
   ) {
+    verifyRef(ref);
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, () => fields(new InterfaceFieldBuilder(name, this)));
     });
@@ -356,6 +361,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fieldName: string,
     field: InterfaceFieldThunk<Types, ParentShape<Types, Type>>,
   ) {
+    verifyRef(ref);
     this.configStore.onTypeConfig(ref, ({ name }) => {
       this.configStore.addFields(ref, () => ({
         [fieldName]: field(new InterfaceFieldBuilder(name, this)),
@@ -368,6 +374,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     options: GiraphQLSchemaTypes.UnionTypeOptions<Types, Member>,
   ) {
     const ref = new UnionRef<OutputShape<Types, Member>, ParentShape<Types, Member>>(name);
+
+    options.types.forEach((type) => {
+      verifyRef(type);
+    });
 
     const config: GiraphQLUnionTypeConfig = {
       kind: 'Union',
@@ -388,6 +398,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     param: Param,
     options: EnumTypeOptions<Types, Param, Values>,
   ) {
+    verifyRef(param);
     const name = typeof param === 'string' ? param : (options as { name: string }).name;
     const ref = new EnumRef<
       Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>
@@ -473,6 +484,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     param: Param,
     options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>,
   ): InputObjectRef<InputShapeFromFields<Fields>> {
+    verifyRef(param);
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
 
     const ref = (

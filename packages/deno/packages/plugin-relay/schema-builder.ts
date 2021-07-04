@@ -1,5 +1,5 @@
 // @ts-nocheck
-import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -79,6 +79,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     return ref;
 };
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
+    verifyRef(param);
     const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
         this.nodeInterfaceRef(),
         ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
@@ -211,6 +212,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
     }));
 };
 schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
+    verifyRef(type);
     const { cursorType = "String", edgesFieldOptions = {} as never, cursorFieldOptions = {} as never, nodeFieldOptions = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
     const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
     const edgeName = edgeNameFromOptions ?? `${connectionName.replace(/Connection$/, "")}Edge`;

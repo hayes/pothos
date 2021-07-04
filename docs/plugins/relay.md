@@ -346,9 +346,9 @@ const ThingsConnection = builder.connectionObject(
     type: SomeThing,
     name: 'ThingsConnection',
   },
-  { 
+  {
     // Edge options (optional)
-    name: 'ThingsEdge' // defaults to Appending `Edge` to the Connection name
+    name: 'ThingsEdge', // defaults to Appending `Edge` to the Connection name
   },
 );
 
