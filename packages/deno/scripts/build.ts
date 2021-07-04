@@ -163,7 +163,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
 };
 
 async function build() {
-  await fs.rmdir(targetDir, { recursive: true });
+  await fs.rm(targetDir, { recursive: true, force: true });
 
   const files = await getAllFiles();
   const results = files.map(async (file) => {

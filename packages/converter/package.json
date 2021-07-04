@@ -30,6 +30,6 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.9.1",
-    "@types/yargs": "^17.0.0"
+    "@types/yargs": "^17.0.1"
   }
 }

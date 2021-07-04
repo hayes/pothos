@@ -2,7 +2,7 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInterfaceTypeConfig, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, GiraphQLUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { BuildCache } from '../index.ts';
-const runCache = new WeakMap<{}, Set<unknown>>();
+const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     name;
     builder;
@@ -86,14 +86,16 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
         return resolveType;
     }
-    protected runUnique(key: unknown, cb: () => void) {
+    protected runUnique<R>(key: unknown, cb: () => R): R {
         if (!runCache.has(this.builder)) {
-            runCache.set(this.beforeBuild, new Set());
+            runCache.set(this.builder, new Map<unknown, unknown>());
         }
         if (!runCache.get(this.builder)!.has(key)) {
-            cb();
-            runCache.get(this.builder)!.add(key);
+            const result = cb();
+            runCache.get(this.builder)!.set(key, result);
+            return result;
         }
+        return runCache.get(this.builder)!.get(key) as R;
     }
     /**
      * Creates a data object unique to the current request for use by this plugin

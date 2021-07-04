@@ -105,7 +105,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         this.configStore.addFields("Query", () => fields(new QueryFieldBuilder(this)));
     }
     queryField(name: string, field: QueryFieldThunk<Types>) {
-        this.configStore.addFields("Query", () => ({ [name]: field(new QueryFieldBuilder(this)) }));
+        this.configStore.addFields("Query", () => ({
+            [name]: field(new QueryFieldBuilder(this)),
+        }));
     }
     mutationType(options: GiraphQLSchemaTypes.MutationTypeOptions<Types>, fields?: MutationFieldsShape<Types>) {
         const config: GiraphQLMutationTypeConfig = {
@@ -166,8 +168,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             }).name ?? (param as {
                 name: string;
             }).name;
-        const ref: InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>> = param instanceof InterfaceRef
-            ? param
+        const ref = param instanceof InterfaceRef
+            ? (param as InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>>)
             : new InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
         const typename = ref.name;
         const config: GiraphQLInterfaceTypeConfig = {
@@ -222,7 +224,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }).name;
         const ref = new EnumRef<Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>>(name);
         const values = typeof param === "object"
-            ? valuesFromEnum<Types>(param as BaseEnum)
+            ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
+                valuesFromEnum<Types>(param as BaseEnum)
             : normalizeEnumValues<Types>((options as {
                 values: EnumValues<Types>;
             }).values);
@@ -236,6 +239,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         };
         this.configStore.addTypeConfig(config, ref);
         if (typeof param !== "string") {
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
             this.configStore.associateRefWithName(param as BaseEnum, name);
         }
         return ref;

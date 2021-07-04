@@ -7,7 +7,7 @@ const pluginName = 'mocks' as const;
 
 export default pluginName;
 export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
@@ -22,7 +22,7 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     return resolveMock ?? resolver;
   }
 
-  wrapSubscribe(
+  override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {

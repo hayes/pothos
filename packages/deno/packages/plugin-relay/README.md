@@ -19,6 +19,7 @@ const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relayOptions: {
     clientMutationId: 'omit',
+    cursorType: 'String',
   },
 });
 ```
@@ -34,6 +35,9 @@ The `relayOptions` object passed to builder can contain the following properties
 
 - `clientMutationId`: `required` (default) | `omit` | `optional`. Determins if clientMutationId
   fields are created on connections, and if they are required.
+- `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults behavior due to
+  legacy reasons is `String` for everything except for connection arguments which use `ID`.
+  Overwritting this default is hightly encouraged.
 - `nodeQueryOptions`: Options for the `node` field on the query object
 - `nodesQueryOptions`: Options for the `nodes` field on the query object
 - `nodeTypeOptions`: Options for the `Node` interface type
@@ -42,6 +46,18 @@ The `relayOptions` object passed to builder can contain the following properties
 - `clientMutationIdInputOptions`: Options for the `clientMutationId` input field on connections
   fields
 - `mutationInputArgOptions`: Options for the Input object created for each connection field
+- `cursorFieldOptions`: Options for the `cursor` field on an edge object.
+- `nodeFieldOptions`: Options for the `node` field on an edge object.
+- `edgesFieldOptions`: Options for the `edges` field on a connection object.
+- `pageInfoFieldOptions`: Options for the `pageInfo` field on a connection object.
+- `hasNextPageFieldOptions`: Options for the `hasNextPage` field on the `PageInfo` object.
+- `hasPreviousPageFieldOptions`: Options for the `hasPreviousPage` field on the `PageInfo` object.
+- `startCursorFieldOptions`: Options for the `startCursor` field on the `PageInfo` object.
+- `endCursorFieldOptions`: Options for the `endCursor` field on the `PageInfo` object.
+- `beforeArgOptions`: Options for the `before` arg on a connection field.
+- `afterArgOptions`: Options for the `after` arg on a connection field.
+- `firstArgOptions`: Options for the `first` arg on a connection field.
+- `lastArgOptions`: Options for the `last` arg on a connection field.
 
 ### Global IDs
 
@@ -310,12 +326,44 @@ The `inputOptions` has a couple of non-standard options:
 The `payloadOptions` object also accepts a `name` property for setting the name of the payload
 object.
 
-In addition the options provided in the function call, options from the builder setup are used when
-creating relay mutations:
+### Reusing connection objects
 
-- `clientMutationIdFieldOptions`: Applied to the `clientMutationId` field of the Payload object
-- `clientMutationIdInputOptions`: Applied to the `clientMutationId` field of the Input object
-- `mutationInputArgOptions`: Applied to the `input` argument of the mutation field
+In some cases you may want to create a connection object type that is shared by multiple fields. To
+do this, you will need to create the connection object separately and then create a fields using a
+ref to your connection object:
+
+```typescript
+import { resolveOffsetConnection } from '@giraphql/plugin-relay';
+
+const ThingsConnection = builder.connectionObject(
+  {
+    // connection optionss
+    type: SomeThing,
+    name: 'ThingsConnection',
+  },
+  { 
+    // Edge options (optional)
+    name: 'ThingsEdge' // defaults to Appending `Edge` to the Connection name
+  },
+);
+
+builder.queryFields((t) => ({
+  things: t.connection({
+    type: ThingsConnection,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        return getThings(offset, limit);
+      });
+    },
+  }),
+}));
+```
+
+`builder.connectionObject` creates the connect object type and the associated Edge type.
+`t.arg.connectionArgs()` will create the default connection args.
 
 ### Expose nodes
 

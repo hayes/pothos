@@ -1,19 +1,38 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     clientMutationId?: "omit" | "optional" | "required";
+    cursorType?: "ID" | "String";
     nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, "fields">;
     pageInfoTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
-    nodeQueryOptions: Omit<GiraphQLSchemaTypes.QueryFieldOptions<Types, ObjectRef<PageInfoShape>, true, {
+    nodeQueryOptions: Omit<GiraphQLSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, true, {
         id: InputFieldRef<InputShape<Types, "ID">>;
     }, Promise<unknown>>, "args" | "nullable" | "resolve" | "type">;
-    nodesQueryOptions: Omit<GiraphQLSchemaTypes.QueryFieldOptions<Types, ObjectRef<PageInfoShape>, true, {
+    nodesQueryOptions: Omit<GiraphQLSchemaTypes.QueryFieldOptions<Types, [
+        OutputRefShape<GlobalIDShape<Types> | string>
+    ], true, {
         ids: InputFieldRef<InputShape<Types, "ID">[]>;
     }, Promise<unknown>[]>, "args" | "nullable" | "resolve" | "type">;
     mutationInputArgOptions: Omit<GiraphQLSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>, "fields" | "required" | "type">;
-    clientMutationIdInputOptions: Omit<GiraphQLSchemaTypes.InputObjectFieldOptions<Types, InputRef<Types["Scalars"]["ID"]["Input"]>, true>, "args" | "nullable" | "resolve" | "type">;
-    clientMutationIdFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<Types["Scalars"]["ID"]["Output"]>, false, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "nullable" | "resolve" | "type">;
+    clientMutationIdInputOptions: Omit<GiraphQLSchemaTypes.InputObjectFieldOptions<Types, "ID", true>, "required" | "type">;
+    clientMutationIdFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, "ID", false, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "nullable" | "resolve" | "type">;
+    cursorFieldOptions: Normalize<Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, "ID" | "String", false, {}, Types["Scalars"]["ID" | "String"]["Output"]>, "args" | "nullable" | "resolve" | "type"> & {
+        type?: "ID" | "String";
+    }>;
+    nodeFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<{}>, false, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
+    edgesFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, [
+        ObjectRef<{}>
+    ], false, {}, unknown[]>, "args" | "nullable" | "resolve" | "type">;
+    pageInfoFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, false, {}, PageInfoShape>, "args" | "nullable" | "resolve" | "type">;
+    hasNextPageFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", false, {}, boolean>, "args" | "nullable" | "resolve" | "type">;
+    hasPreviousPageFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", false, {}, boolean>, "args" | "nullable" | "resolve" | "type">;
+    startCursorFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", false, {}, string | null>, "args" | "nullable" | "resolve" | "type">;
+    endCursorFieldOptions: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", false, {}, string | null>, "args" | "nullable" | "resolve" | "type">;
+    beforeArgOptions: Omit<GiraphQLSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", false>, "required" | "type">;
+    afterArgOptions: Omit<GiraphQLSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", false>, "required" | "type">;
+    firstArgOptions: Omit<GiraphQLSchemaTypes.InputObjectFieldOptions<Types, "Int", false>, "required" | "type">;
+    lastArgOptions: Omit<GiraphQLSchemaTypes.InputObjectFieldOptions<Types, "Int", false>, "required" | "type">;
     encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
     decodeGlobalID?: (globalID: string) => {
         typename: string;

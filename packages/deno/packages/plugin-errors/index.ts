@@ -21,34 +21,36 @@ function createErrorProxy(target: {}): {} {
 }
 const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
 export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> | null {
+    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> | null {
         if (!fieldConfig.giraphqlOptions.errors) {
             return fieldConfig;
         }
         const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
         const { types = [], result: { name: resultName = `${parentTypeName}${capitalize(fieldConfig.name)}Success`, fields: resultFieldOptions, ...resultObjectOptions } = {} as never, union: { name: unionName = `${parentTypeName}${capitalize(fieldConfig.name)}Result`, ...unionOptions } = {} as never, dataField: { name: dataFieldName = "data", ...dataField } = {} as never, } = fieldConfig.giraphqlOptions.errors;
-        const resultObjectRef = this.builder.objectRef<unknown>(resultName);
-        resultObjectRef.implement({
-            ...resultObjectOptions,
-            fields: (t) => ({
-                ...resultFieldOptions?.(t),
-                [dataFieldName]: t.field({
-                    ...dataField,
-                    type: fieldConfig.giraphqlOptions.type,
-                    nullable: fieldConfig.type.kind === "List"
-                        ? { items: fieldConfig.type.type.nullable, list: false }
-                        : false,
-                    resolve: (data) => data as never,
-                }),
-            }),
-        });
         const errorTypes = sortClasses([
             ...new Set([...types, ...(this.builder.options.errorOptions?.defaultTypes ?? [])]),
         ]);
-        const unionType = this.builder.unionType(unionName, {
-            types: [...errorTypes, resultObjectRef],
-            resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultObjectRef,
-            ...unionOptions,
+        const unionType = this.runUnique(resultName, () => {
+            const resultObjectRef = this.builder.objectRef<unknown>(resultName);
+            resultObjectRef.implement({
+                ...resultObjectOptions,
+                fields: (t) => ({
+                    ...resultFieldOptions?.(t),
+                    [dataFieldName]: t.field({
+                        ...dataField,
+                        type: fieldConfig.giraphqlOptions.type,
+                        nullable: fieldConfig.type.kind === "List"
+                            ? { items: fieldConfig.type.type.nullable, list: false }
+                            : false,
+                        resolve: (data) => data as never,
+                    }),
+                }),
+            });
+            return this.builder.unionType(unionName, {
+                types: [...errorTypes, resultObjectRef],
+                resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultObjectRef,
+                ...unionOptions,
+            });
         });
         return {
             ...fieldConfig,
@@ -63,7 +65,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
             },
         };
     }
-    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const giraphqlErrors = fieldConfig.extensions?.giraphqlErrors as typeof Error[] | undefined;
         if (!giraphqlErrors) {
             return resolver;

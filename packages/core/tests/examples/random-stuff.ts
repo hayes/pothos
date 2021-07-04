@@ -23,7 +23,7 @@ class Animal {
 }
 
 class Giraffe extends Animal {
-  species: 'Giraffe' = 'Giraffe';
+  override species: 'Giraffe' = 'Giraffe';
 
   name: string;
 

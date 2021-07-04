@@ -5,7 +5,7 @@ import BaseTypeRef from './base';
 import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '..';
 
 export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef {
-  kind = 'Object' as const;
+  override kind = 'Object' as const;
 
   [outputShapeKey]: T;
   [parentShapeKey]: P;

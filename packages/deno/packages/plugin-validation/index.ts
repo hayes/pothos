@@ -11,7 +11,7 @@ const pluginName = "validation" as const;
 export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
     inputTypeValidators = new Map<string, zod.ZodType<unknown>>();
-    onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>): GiraphQLInputFieldConfig<Types> {
+    override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>): GiraphQLInputFieldConfig<Types> {
         const fieldType = resolveInputTypeConfig(fieldConfig.type, this.buildCache);
         const validationOptions = fieldConfig.giraphqlOptions.validate as ValidationOptionUnion | undefined;
         if (!validationOptions && fieldType.kind !== "InputObject") {
@@ -42,7 +42,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         });
         return fieldConfig;
     }
-    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         // Only used to check if validation is required
         const argMap = mapInputFields(fieldConfig.args, this.buildCache, (field) => field.giraphqlOptions.validate ?? null);
         if (!argMap && !fieldConfig.giraphqlOptions.validate) {

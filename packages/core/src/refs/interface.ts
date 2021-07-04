@@ -6,7 +6,7 @@ import BaseTypeRef from './base';
 import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '..';
 
 export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef {
-  kind = 'Interface' as const;
+  override kind = 'Interface' as const;
 
   [outputShapeKey]: T;
   [parentShapeKey]: P;

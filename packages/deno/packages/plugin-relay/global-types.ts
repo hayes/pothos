@@ -23,8 +23,20 @@ declare global {
             globalConnectionFields: (fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>) => void;
             globalConnectionField: (name: string, field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>) => void;
             relayMutationField: <Fields extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, Interfaces extends InterfaceParam<Types>[], InputName extends string = "input">(name: string, inputOptions: RelayMutationInputOptions<Types, Fields, InputName>, fieldOptions: RelayMutationFieldOptions<Types, Fields, Nullable, InputName, ResolveShape, ResolveReturnShape>, payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>) => void;
+            connectionObject: <Type extends OutputType<Types>, ResolveReturnShape>(...args: NormalizeArgs<[
+                connectionOptions: ConnectionObjectOptions<Types, ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>> & {
+                    name: string;
+                    type: Type;
+                },
+                edgeOptions?: ConnectionEdgeObjectOptions<Types, ConnectionShapeForType<Types, Type, false>["edges"][number]> & {
+                    name?: string;
+                }
+            ]>) => ObjectRef<ConnectionShapeForType<Types, Type, false>>;
         }
         export interface InputFieldBuilder<Types extends SchemaTypes, Kind extends "Arg" | "InputObject"> {
+            connectionArgs: () => {
+                [K in keyof DefaultConnectionArguments]-?: InputFieldRef<DefaultConnectionArguments[K], Kind>;
+            };
             globalID: <Req extends boolean>(...args: NormalizeArgs<[
                 options?: GlobalIDInputFieldOptions<Types, Req, Kind>
             ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>>;

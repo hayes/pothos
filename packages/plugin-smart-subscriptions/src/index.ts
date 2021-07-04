@@ -63,7 +63,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
       this.builder.options.smartSubscriptions.debounceDelay ?? DEFAULT_DEBOUNCE_DELAY;
   }
 
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     if (fieldConfig.kind === 'Query' && fieldConfig.giraphqlOptions.smartSubscription) {
       this.smartSubscriptionsToQueryField.set(fieldConfig.name, fieldConfig);
 
@@ -114,11 +114,11 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
     return fieldConfig;
   }
 
-  createRequestData(context: Types['Context']) {
+  override createRequestData(context: Types['Context']) {
     return {};
   }
 
-  wrapResolve(
+  override wrapResolve(
     resolve: GraphQLFieldResolver<unknown, Types['Context']>,
     field: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context']> {
@@ -145,7 +145,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
     };
   }
 
-  wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types['Context']>) {
+  override wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types['Context']>) {
     return resolveType;
   }
 }

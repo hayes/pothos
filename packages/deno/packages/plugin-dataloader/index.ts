@@ -9,7 +9,7 @@ export * from './types.ts';
 export * from './util.ts';
 const pluginName = "dataloader" as const;
 export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";
         const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
         if (type.kind !== "Object") {

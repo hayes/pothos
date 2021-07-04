@@ -132,13 +132,13 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             return newFields;
         };
     }
-    afterBuild(schema: GraphQLSchema) {
+    override afterBuild(schema: GraphQLSchema) {
         if (this.options.subGraph) {
             return GiraphQLSubGraphPlugin.createSubGraph(schema, this.options.subGraph);
         }
         return schema;
     }
-    onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+    override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
         return {
             ...typeConfig,
             extensions: {
@@ -149,7 +149,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
             },
         };
     }
-    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
         const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
         if (typeConfig.graphqlKind !== "Interface" && typeConfig.graphqlKind !== "Object") {
             return fieldConfig;

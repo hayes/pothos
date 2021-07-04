@@ -19,7 +19,7 @@ const pluginName = 'example' as const;
 export default pluginName;
 
 export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
     console.log(this.builder.options.nestedOptionsObject?.exampleOption);
     console.log(this.options.customBuildTimeOptions);
 
@@ -30,7 +30,7 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
     return typeConfig;
   }
 
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     if (fieldConfig.kind === 'Mutation') {
       console.log(fieldConfig.giraphqlOptions.customMutationFieldOption);
     }
@@ -38,21 +38,21 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
     return fieldConfig;
   }
 
-  onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
     return fieldConfig;
   }
 
-  onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
     return valueConfig;
   }
 
-  beforeBuild() {}
+  override beforeBuild() {}
 
-  afterBuild(schema: GraphQLSchema): GraphQLSchema {
+  override afterBuild(schema: GraphQLSchema): GraphQLSchema {
     return schema;
   }
 
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
@@ -63,14 +63,14 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
     };
   }
 
-  wrapSubscribe(
+  override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ) {
     return subscribe;
   }
 
-  wrapResolveType(
+  override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
     typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
   ) {

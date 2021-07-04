@@ -26,7 +26,7 @@ const pluginName = 'scopeAuth' as const;
 
 export default pluginName;
 export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {

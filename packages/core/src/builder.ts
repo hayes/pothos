@@ -218,7 +218,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   queryField(name: string, field: QueryFieldThunk<Types>) {
-    this.configStore.addFields('Query', () => ({ [name]: field(new QueryFieldBuilder(this)) }));
+    this.configStore.addFields('Query', () => ({
+      [name]: field(new QueryFieldBuilder(this)),
+    }));
   }
 
   mutationType(
@@ -305,9 +307,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         ? param
         : (options as { name?: string }).name ?? (param as { name: string }).name;
 
-    const ref: InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>> =
+    const ref =
       param instanceof InterfaceRef
-        ? param
+        ? (param as InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>>)
         : new InterfaceRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
 
     const typename = ref.name;
@@ -393,7 +395,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const values =
       typeof param === 'object'
-        ? valuesFromEnum<Types>(param as BaseEnum)
+        ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
+          valuesFromEnum<Types>(param as BaseEnum)
         : normalizeEnumValues<Types>((options as { values: EnumValues<Types> }).values);
 
     const config: GiraphQLEnumTypeConfig = {
@@ -408,6 +411,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config, ref);
 
     if (typeof param !== 'string') {
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
       this.configStore.associateRefWithName(param as BaseEnum, name);
     }
 

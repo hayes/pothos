@@ -34,7 +34,7 @@ function createErrorProxy(target: {}): {} {
 const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
 
 export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onOutputFieldConfig(
+  override onOutputFieldConfig(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GiraphQLOutputFieldConfig<Types> | null {
     if (!fieldConfig.giraphqlOptions.errors) {
@@ -60,7 +60,6 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
       ...new Set([...types, ...(this.builder.options.errorOptions?.defaultTypes ?? [])]),
     ]);
 
-    // eslint-disable-next-line @typescript-eslint/no-confusing-void-expression
     const unionType = this.runUnique(resultName, () => {
       const resultObjectRef = this.builder.objectRef<unknown>(resultName);
 
@@ -101,7 +100,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
     };
   }
 
-  wrapResolve(
+  override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {

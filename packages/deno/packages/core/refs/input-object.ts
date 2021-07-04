@@ -4,7 +4,7 @@ import { InputRef, inputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
 import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '../index.ts';
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
-    kind = "InputObject" as const;
+    override kind = "InputObject" as const;
     [inputShapeKey]: T;
     constructor(name: string) {
         super("InputObject", name);
