@@ -31,5 +31,6 @@
   "devDependencies": {
     "@giraphql/core": "^2.10.0",
     "@types/yargs": "^17.0.1"
-  }
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

@@ -34,5 +34,6 @@
     "apollo-server": "^2.25.2",
     "graphql": ">=15.5.1",
     "graphql-tag": "^2.12.5"
-  }
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }
