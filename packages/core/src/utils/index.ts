@@ -26,8 +26,11 @@ export function isThenable(value: unknown): value is Promise<unknown> {
 
 export function verifyRef(ref: unknown) {
   if (ref === undefined) {
-    throw new Error(
-      `Received undefined as a type ref.  This is often caused by circular import.  In some cases this can be fixed by importing the type ref directly from the file that defines it rather than an index file`,
-    );
+    throw new Error(`Received undefined as a type ref.
+        
+This is often caused by a circular import
+If this ref is imported from a file that re-exports it (like index.ts)
+you may be able to resolve this by importing it directly fron the file that defines it.
+`);
   }
 }
