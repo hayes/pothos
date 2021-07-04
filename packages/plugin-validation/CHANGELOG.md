@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.6.1-alpha.0 - 2021-07-04
+
+#### 📦 Dependencies
+
+- upgrade typescript ([675f6a2](https://github.com/hayes/giraphql/commit/675f6a2))
+
+#### 🛠 Internals
+
+- update validation snapshots after zod upgrage ([29d60ba](https://github.com/hayes/giraphql/commit/29d60ba))
+
+**Note:** Version bump only for package @giraphql/plugin-validation
+
+
+
+
+
 ## 2.6.0 - 2021-06-30
 
 #### 🚀 Updates

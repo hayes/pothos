@@ -3,6 +3,14 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.4.2-alpha.0 - 2021-07-04
+
+**Note:** Version bump only for package @giraphql/plugin-simple-objects
+
+
+
+
+
 ### 2.4.1 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-simple-objects
