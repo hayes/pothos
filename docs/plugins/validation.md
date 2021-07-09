@@ -256,7 +256,7 @@ validate: {
 zod.union([zod.null(), zod.undefined(), zod.string().maxLength(5)]);
 ```
 
-There are a few exceptions the the above:
+There are a few exceptions the above:
 
 1: args and input fields that are `InputObject`s always use `zod.object()` rather than creating a
 union of potential types.
