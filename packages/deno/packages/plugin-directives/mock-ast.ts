@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable no-param-reassign */
 import './global-types.ts';
-import { DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
+import { ArgumentNode, DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import { DirectiveList } from './types.ts';
 export default function mockAst(schema: GraphQLSchema) {
     const types = schema.getTypeMap();
@@ -116,23 +116,28 @@ function valueNode(value: unknown): ValueNode {
             return parseValue(JSON.stringify(value));
     }
 }
-function directiveNodes(directives: DirectiveList | Record<string, {}>) {
+function directiveNodes(directives: DirectiveList | Record<string, {}>): readonly DirectiveNode[] {
     const directiveList = Array.isArray(directives)
         ? directives
-        : Object.keys(directives).map((name) => ({
-            name,
-            args: directives[name],
-        }));
+        : Object.keys(directives).flatMap((name) => Array.isArray(directives[name])
+            ? (directives[name] as {}[]).map((args) => ({
+                name,
+                args,
+            }))
+            : {
+                name,
+                args: directives[name],
+            });
     return directiveList.map((directive): DirectiveNode => ({
         kind: Kind.DIRECTIVE,
         name: { kind: Kind.NAME, value: directive.name },
         arguments: directive.args &&
-            Object.keys(directive.args).map((argName) => ({
+            Object.keys(directive.args).map((argName): ArgumentNode => ({
                 kind: Kind.ARGUMENT,
                 name: { kind: Kind.NAME, value: argName },
                 value: valueNode((directive.args as Record<string, unknown>)[argName]),
             })),
-    }));
+    })) as readonly DirectiveNode[];
 }
 function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionNode[] {
     return Object.keys(fields).map((fieldName) => {

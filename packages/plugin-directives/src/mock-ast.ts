@@ -3,6 +3,7 @@
 /* eslint-disable no-param-reassign */
 import './global-types';
 import {
+  ArgumentNode,
   DirectiveNode,
   EnumValueDefinitionNode,
   FieldDefinitionNode,
@@ -142,13 +143,20 @@ function valueNode(value: unknown): ValueNode {
   }
 }
 
-function directiveNodes(directives: DirectiveList | Record<string, {}>) {
+function directiveNodes(directives: DirectiveList | Record<string, {}>): readonly DirectiveNode[] {
   const directiveList = Array.isArray(directives)
     ? directives
-    : Object.keys(directives).map((name) => ({
-        name,
-        args: directives[name],
-      }));
+    : Object.keys(directives).flatMap((name) =>
+        Array.isArray(directives[name])
+          ? (directives[name] as {}[]).map((args) => ({
+              name,
+              args,
+            }))
+          : {
+              name,
+              args: directives[name],
+            },
+      );
 
   return directiveList.map(
     (directive): DirectiveNode => ({
@@ -156,13 +164,15 @@ function directiveNodes(directives: DirectiveList | Record<string, {}>) {
       name: { kind: Kind.NAME, value: directive.name },
       arguments:
         directive.args &&
-        Object.keys(directive.args).map((argName) => ({
-          kind: Kind.ARGUMENT,
-          name: { kind: Kind.NAME, value: argName },
-          value: valueNode((directive.args as Record<string, unknown>)[argName]),
-        })),
+        Object.keys(directive.args).map(
+          (argName): ArgumentNode => ({
+            kind: Kind.ARGUMENT,
+            name: { kind: Kind.NAME, value: argName },
+            value: valueNode((directive.args as Record<string, unknown>)[argName]),
+          }),
+        ),
     }),
-  );
+  ) as readonly DirectiveNode[];
 }
 
 function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionNode[] {

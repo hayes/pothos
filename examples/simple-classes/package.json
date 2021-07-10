@@ -12,7 +12,8 @@
     "@faker-js/faker": "^6.0.0-alpha.4",
     "@pothos/core": "^3.0.0",
     "apollo-server": "^3.6.2",
-    "ts-node": "^10.4.0"
+    "ts-node": "^10.4.0",
+    "graphql": "^16.1.0"
   },
   "publishConfig": {
     "access": "public"

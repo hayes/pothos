@@ -1,7 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-continue */
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import {
   FieldNode,
   getNamedType,

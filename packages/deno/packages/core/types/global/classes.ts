@@ -17,7 +17,7 @@ declare global {
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends InternalRootFieldBuilder<Types, ParentShape, Kind> {
         }
-        export interface FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends "Interface" | "Object" = "Interface" | "Object"> extends RootFieldBuilder<Types, ParentShape, Kind>, InternalFieldBuilder<Types, ParentShape, Kind> {
+        export interface FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends InternalFieldBuilder<Types, ParentShape, Kind>, RootFieldBuilder<Types, ParentShape, Kind> {
         }
         export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape> extends RootFieldBuilder<Types, ParentShape, "Query"> {
         }

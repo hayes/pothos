@@ -5,7 +5,7 @@ import * as ts from 'typescript';
 
 const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
-const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma', 'test-utils'];
+const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma', 'test-utils', 'plugin-federation'];
 const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
 const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore', 'babel.config.js'];
 
@@ -14,6 +14,7 @@ const moduleMap: Record<string, string> = {
   zod: 'https://cdn.skypack.dev/zod@v1.11.17?dts',
   dataloader: 'https://cdn.skypack.dev/dataloader?dts',
   '@pothos/core': './core/index.ts',
+  "@pothos/plugin-directives": "./plugin-directives/index.ts",
   'graphql/execution/values': 'https://cdn.skypack.dev/graphql/execution/values?dts'
 };
 

@@ -1,7 +1,7 @@
 import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
 
-import { FieldKind, FieldRef, PothosInputFieldConfig, InputFieldMap, ShapeFromTypeParam } from '..';
+import { FieldKind, FieldRef, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam } from '..';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   typename: string;

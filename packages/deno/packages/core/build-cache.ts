@@ -56,8 +56,8 @@ export default class BuildCache<Types extends SchemaTypes> {
         const fields = builtType.getFields();
         const fieldConfigs: Record<string, PothosInputFieldConfig<Types>> = {};
         Object.keys(fields).forEach((fieldName) => {
-            fieldConfigs[fieldName] = fields[fieldName].extensions
-                ?.pothosConfig as PothosInputFieldConfig<Types>;
+            fieldConfigs[fieldName] = (fields[fieldName].extensions ?? {})
+                .pothosConfig as PothosInputFieldConfig<Types>;
         });
         return fieldConfigs;
     }
