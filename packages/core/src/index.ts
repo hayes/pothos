@@ -22,7 +22,7 @@ import InternalObjectRef, { ImplementableObjectRef } from './refs/object';
 import OutputTypeRef from './refs/output';
 import InternalScalarRef from './refs/scalar';
 import InternalUnionRef from './refs/union';
-import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types';
+import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
 
 export * from './plugins';
 export * from './types';
@@ -51,17 +51,15 @@ const SchemaBuilder = SchemaBuilderClass as unknown as {
 
 export default SchemaBuilder;
 
-export type FieldBuilder<
-  Types extends SchemaTypes,
-  ParentShape,
-  Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
-> = GiraphQLSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 export const FieldBuilder = InternalFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
+  Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
 >(
   name: string,
+  builder: SchemaBuilderClass<Types>,
+  kind: FieldKind,
+  graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
 ) => GiraphQLSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 
 export type RootFieldBuilder<

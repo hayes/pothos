@@ -21,7 +21,7 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
   override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
     const options = fieldConfig.giraphqlOptions;
 
-    if (!options.directives) {
+    if (!options.directives && !fieldConfig.extensions?.directives) {
       return fieldConfig;
     }
 
@@ -29,7 +29,12 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...fieldConfig,
       extensions: {
         ...fieldConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            fieldConfig.extensions?.directives as Record<string, {}>,
+            options.directives as unknown as Record<string, {}>,
+          ),
+        ),
       },
     };
   }
@@ -45,7 +50,12 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...fieldConfig,
       extensions: {
         ...fieldConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            fieldConfig.extensions?.directives as Record<string, {}>,
+            options.directives as unknown as Record<string, {}>,
+          ),
+        ),
       },
     };
   }
@@ -61,7 +71,12 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...valueConfig,
       extensions: {
         ...valueConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            valueConfig.extensions?.directives as Record<string, {}>,
+            options.directives as unknown as Record<string, {}>,
+          ),
+        ),
       },
     };
   }
@@ -77,7 +92,12 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
-        directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+        directives: this.normalizeDirectives(
+          this.mergeDirectives(
+            typeConfig.extensions?.directives as Record<string, {}>,
+            options.directives as unknown as Record<string, {}>,
+          ),
+        ),
       },
     };
   }
@@ -86,6 +106,24 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
     mockAst(schema);
 
     return schema;
+  }
+
+  mergeDirectives(
+    left: DirectiveList | Record<string, {}>,
+    right: DirectiveList | Record<string, {}>,
+  ) {
+    if (!(left && right)) {
+      return left || right;
+    }
+
+    return [
+      ...(Array.isArray(left)
+        ? left
+        : Object.keys(left).map((name) => ({ name, args: left[name] }))),
+      ...(Array.isArray(right)
+        ? right
+        : Object.keys(right).map((name) => ({ name, args: right[name] }))),
+    ];
   }
 
   normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
