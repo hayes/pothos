@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.10.1 - 2021-07-10
+
+#### 🐞 Fixes
+
+- re-export from index file rather than folder to fix auto-discovery issue ([b1ba588](https://github.com/hayes/giraphql/commit/b1ba588))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.10.0 - 2021-07-04
 
 #### 🐞 Fixes
