@@ -1,3 +1,4 @@
+/* eslint-disable import/no-useless-path-segments */
 import './types/global';
 import BuildCache from './build-cache';
 import SchemaBuilderClass from './builder';
@@ -23,9 +24,9 @@ import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
 import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types';
 
-export * from './plugins';
-export * from './types';
-export * from './utils';
+export * from './plugins/index';
+export * from './types/index';
+export * from './utils/index';
 
 export {
   BaseTypeRef,
