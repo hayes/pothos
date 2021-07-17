@@ -140,6 +140,7 @@ type Query {
   ObjForSyncPermFn(permission: String): ObjForSyncPermFn
   ObjWithIfaceSkipFields: ObjWithIfaceSkipFields
   ObjWithSkipFields: ObjWithSkipFields
+  currentId: ID!
   emptyAll: String!
   emptyAllFn: String!
   emptyAny: String!

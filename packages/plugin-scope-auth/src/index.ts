@@ -2,12 +2,14 @@ import './global-types';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
+  FieldKind,
   GiraphQLInterfaceTypeConfig,
   GiraphQLMutationTypeConfig,
   GiraphQLObjectTypeConfig,
   GiraphQLOutputFieldConfig,
   GiraphQLQueryTypeConfig,
   GiraphQLSubscriptionTypeConfig,
+  RootFieldBuilder,
   SchemaTypes,
 } from '@giraphql/core';
 import { resolveHelper } from './resolve-helper';
@@ -133,5 +135,15 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     return steps;
   }
 }
+
+const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+  SchemaTypes,
+  unknown,
+  FieldKind
+>;
+
+fieldBuilderProto.authField = function authField(options) {
+  return this.field(options as never);
+};
 
 SchemaBuilder.registerPlugin(pluginName, GiraphQLScopeAuthPlugin);

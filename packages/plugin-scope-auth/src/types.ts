@@ -74,3 +74,8 @@ export interface ResolveStep<Types extends SchemaTypes> {
         info: GraphQLResolveInfo,
       ) => string);
 }
+
+export type ContextForAuth<Types extends SchemaTypes, Scopes extends {}> = keyof Scopes &
+  keyof Types['AuthContexts'] extends string
+  ? Types['AuthContexts'][keyof Scopes & keyof Types['AuthContexts']]
+  : Types['Context'];
