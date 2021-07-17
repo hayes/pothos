@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.10.2-alpha.0 - 2021-07-17
+
+#### 🐞 Fixes
+
+- don't use index file import for global types in core ([9ee13a9](https://github.com/hayes/giraphql/commit/9ee13a9))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.10.1 - 2021-07-10
 
 #### 🐞 Fixes
