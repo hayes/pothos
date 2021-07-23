@@ -3,16 +3,21 @@ import SchemaBuilder from '@giraphql/core';
 import ScopeAuthPlugin from '../../src';
 import User from './user';
 
+interface Context {
+  User: User | null;
+  count?: (name: string) => void;
+}
+
 const builder = new SchemaBuilder<{
-  Context: {
-    User: User | null;
-    count?: (name: string) => void;
-  };
+  Context: Context;
   AuthScopes: {
     loggedIn: boolean;
     admin: boolean;
     syncPermission: string;
     asyncPermission: string;
+  };
+  AuthContexts: {
+    loggedIn: Context & { User: User };
   };
 }>({
   plugins: [ScopeAuthPlugin],

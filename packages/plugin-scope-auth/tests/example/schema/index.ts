@@ -1,6 +1,16 @@
 /* eslint-disable @typescript-eslint/require-await */
 import builder from '../builder';
 
+builder.queryField('currentId', (t) =>
+  t.authField({
+    type: 'ID',
+    authScopes: {
+      loggedIn: true,
+    },
+    resolve: (parent, args, context) => context.User.id,
+  }),
+);
+
 const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
   authScopes: {
     admin: true,

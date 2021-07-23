@@ -1,10 +1,16 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
+  FieldKind,
   FieldNullability,
+  FieldOptionsFromKind,
+  FieldRef,
   InputFieldMap,
   InputShapeFromFields,
+  Normalize,
+  Resolver,
   RootName,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
 import {
@@ -15,7 +21,7 @@ import {
   TypeAuthScopes,
   TypeGrantScopes,
 } from './types';
-import { GiraphQLScopeAuthPlugin } from '.';
+import { ContextForAuth, GiraphQLScopeAuthPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -34,12 +40,16 @@ declare global {
 
     export interface UserSchemaTypes {
       AuthScopes: {};
+      AuthContexts: {};
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       AuthScopes: undefined extends PartialTypes['AuthScopes']
         ? {}
         : PartialTypes['AuthScopes'] & {};
+      AuthContexts: undefined extends PartialTypes['AuthContexts']
+        ? {}
+        : PartialTypes['AuthContexts'] & {};
     }
 
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
@@ -107,6 +117,46 @@ declare global {
         ResolveReturnShape
       > {
       skipInterfaceScopes?: boolean;
+    }
+
+    export interface RootFieldBuilder<
+      Types extends SchemaTypes,
+      ParentShape,
+      Kind extends FieldKind = FieldKind,
+    > {
+      authField: <
+        Args extends InputFieldMap,
+        Type extends TypeParam<Types>,
+        Scopes extends FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>,
+        ResolveShape,
+        ResolveReturnShape,
+        Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+      >(
+        options: Normalize<
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              Type,
+              Nullable,
+              Args,
+              Kind,
+              ResolveShape,
+              ResolveReturnShape
+            >,
+            'resolve'
+          > & {
+            authScopes: Scopes;
+            resolve: Resolver<
+              Types['Root'],
+              InputShapeFromFields<Args>,
+              ContextForAuth<Types, Scopes>,
+              ShapeFromTypeParam<Types, Type, Nullable>,
+              ResolveReturnShape
+            >;
+          }
+        >,
+      ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
     }
   }
 }
