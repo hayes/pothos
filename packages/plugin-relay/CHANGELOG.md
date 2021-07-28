@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.10.0-alpha.0 - 2021-07-28
+
+#### 🚀 Updates
+
+- expose input and object ref from relayMutationField ([af5a061](https://github.com/hayes/giraphql/commit/af5a061))
+
+#### 🐞 Fixes
+
+- improve handling of null edges in resolveConnection helpers ([6577a00](https://github.com/hayes/giraphql/commit/6577a00))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ### 2.9.2 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-relay
