@@ -332,6 +332,12 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       },
     }),
   );
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return {
+    inputType: inputRef,
+    payloadType: payloadRef,
+  } as never;
 };
 
 schemaBuilderProto.connectionObject = function connectionObject(

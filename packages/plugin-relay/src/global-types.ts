@@ -7,6 +7,7 @@ import {
   InputFieldMap,
   InputFieldRef,
   InputFieldsFromShape,
+  InputObjectRef,
   InputShapeFromTypeParam,
   inputShapeKey,
   InterfaceParam,
@@ -35,6 +36,7 @@ import {
   GlobalIDInputShape,
   GlobalIDListFieldOptions,
   GlobalIDListInputFieldOptions,
+  InputShapeWithClientMutationId,
   NodeFieldOptions,
   NodeListFieldOptions,
   NodeObjectOptions,
@@ -104,7 +106,10 @@ declare global {
           ResolveReturnShape
         >,
         payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>,
-      ) => void;
+      ) => {
+        inputType: InputObjectRef<InputShapeWithClientMutationId<Types, Fields>>;
+        payloadType: ObjectRef<ResolveShape>;
+      };
 
       connectionObject: <Type extends OutputType<Types>, ResolveReturnShape>(
         ...args: NormalizeArgs<

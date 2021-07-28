@@ -97,7 +97,7 @@ builder.queryType({
 
 builder.mutationType({ fields: (t) => ({}) });
 
-builder.relayMutationField(
+const { inputType, payloadType } = builder.relayMutationField(
   'exampleMutation',
   {
     inputFields: (t) => ({
@@ -122,6 +122,25 @@ builder.relayMutationField(
       }),
     }),
   },
+);
+
+builder.mutationField('exampleMutationReUse', (t) =>
+  t.field({
+    type: payloadType,
+    args: {
+      input: t.arg({
+        required: true,
+        type: inputType,
+      }),
+    },
+    resolve: (root, args) => {
+      if (!args.input.clientMutationId) {
+        throw new Error('clientMutationId is missing');
+      }
+
+      return Promise.resolve({ status: args.input.id === '123' ? 200 : 500 });
+    },
+  }),
 );
 
 builder.relayMutationField(

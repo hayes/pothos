@@ -45,6 +45,7 @@ type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
   exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
+  exampleMutationReUse(input: ExampleMutationInput!): ExampleMutationPayload!
 
   \\"\\"\\"mutation field\\"\\"\\"
   exampleWithDescriptions(customInput: CustomInputName!): CustomOutputName!

@@ -54,6 +54,21 @@ const UserNode = builder.loadableNode('UserNode', {
   fields: (t) => ({}),
 });
 
+const NullableUser = builder.loadableObject('NullableUser', {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) => true,
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, usersCounts, keys.length);
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : (null as never))),
+    );
+  },
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+
 const Post = builder.objectRef<IPost>('Post').implement({
   fields: (t) => ({
     id: t.exposeID('id', {}),
@@ -131,6 +146,25 @@ builder.queryFields((t) => ({
       ids: t.arg.stringList(),
     },
     resolve: (_root, args) => args.ids ?? ['123', '456', '789'],
+  }),
+  nullableUser: t.field({
+    type: NullableUser,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (root, args) => args.id ?? '-1',
+  }),
+  nullableUsers: t.field({
+    type: [NullableUser],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.stringList(),
+    },
+    resolve: (_root, args) => args.ids ?? ['123', '-456', '789'],
   }),
   userNode: t.field({
     type: User,
