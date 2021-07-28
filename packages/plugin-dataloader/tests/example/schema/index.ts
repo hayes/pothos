@@ -5,6 +5,7 @@ import { ContextType, IPost } from '../types';
 
 const usersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const userNodeCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+const nullableUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postsCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 
@@ -59,7 +60,7 @@ const NullableUser = builder.loadableObject('NullableUser', {
   isTypeOf: (obj) => true,
   loaderOptions: { maxBatchSize: 20 },
   load: (keys: string[], context: ContextType) => {
-    countCall(context, usersCounts, keys.length);
+    countCall(context, nullableUsersCounts, keys.length);
     return Promise.resolve(
       keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : (null as never))),
     );
@@ -123,6 +124,7 @@ builder.queryFields((t) => ({
       return [
         { name: 'users', ...usersCounts(context) },
         { name: 'userNodes', ...userNodeCounts(context) },
+        { name: 'nullableUsers', ...nullableUsersCounts(context) },
         { name: 'posts', ...postsCounts(context) },
         { name: 'post', ...postCounts(context) },
       ];

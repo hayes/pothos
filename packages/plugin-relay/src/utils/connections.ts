@@ -80,10 +80,14 @@ export async function resolveOffsetConnection<T>(
 
   const nodes = await resolve({ offset, limit });
 
-  const edges = nodes.map((value, index) => ({
-    cursor: offsetToCursor(offset + index),
-    node: value,
-  }));
+  const edges = nodes.map((value, index) =>
+    value == null
+      ? null
+      : {
+          cursor: offsetToCursor(offset + index),
+          node: value,
+        },
+  );
 
   const trimmed = edges.slice(0, expectedSize);
 
@@ -120,10 +124,14 @@ export function resolveArrayConnection<T>(
 
   const nodes = array.slice(offset, offset + limit);
 
-  const edges = nodes.map((value, index) => ({
-    cursor: offsetToCursor(offset + index),
-    node: value,
-  }));
+  const edges = nodes.map((value, index) =>
+    value == null
+      ? null
+      : {
+          cursor: offsetToCursor(offset + index),
+          node: value,
+        },
+  );
 
   const trimmed = edges.slice(0, expectedSize);
 

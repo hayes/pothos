@@ -120,6 +120,7 @@ type Query {
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
+  oddNumbers(after: ID, before: ID, first: Int, last: Int): QueryOddNumbersConnection!
   poll(id: Int!): Poll
   pollIds: [ID!]!
   polls: [Poll!]!
@@ -145,6 +146,16 @@ type QueryNumbersConnection {
 }
 
 type QueryNumbersConnectionEdge {
+  cursor: String!
+  node: Number!
+}
+
+type QueryOddNumbersConnection {
+  edges: [QueryOddNumbersConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryOddNumbersConnectionEdge {
   cursor: String!
   node: Number!
 }
@@ -754,6 +765,29 @@ Object {
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
+      },
+    },
+    "oddNumbers": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": Object {
+            "number": 1,
+          },
+        },
+        null,
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "number": 3,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
       },
     },
     "sharedConnection": Object {

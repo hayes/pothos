@@ -390,6 +390,8 @@ schemaBuilderProto.connectionObject = function connectionObject(
         ...edgesFieldOptions,
         type: [edgeRef],
         nullable: {
+          // TODO(breaking) according to the spec, this should be nullable
+          // Should be configuratble and default to true
           list: false,
           items: true,
         },
