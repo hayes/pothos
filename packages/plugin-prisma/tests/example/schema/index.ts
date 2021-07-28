@@ -1,0 +1,92 @@
+import { Post, PrismaClient, User } from '@prisma/client';
+import builder, { prisma } from '../builder';
+
+builder.prismaObject('User', {
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    name: t.exposeString('name', { nullable: true }),
+    profile: t.relation('profile'),
+    posts: t.relation('posts', {
+      args: {
+        oldestFirst: t.arg.boolean(),
+      },
+      query: (args) => ({
+        orderBy: {
+          createdAt: args.oldestFirst ? 'asc' : 'desc',
+        },
+      }),
+      resolve: (query, user) =>
+        prisma.post.findMany({
+          ...query,
+          where: { authorId: user.id },
+        }),
+    }),
+    profileThroughManualLookup: t.field({
+      // eslint-disable-next-line @typescript-eslint/no-use-before-define
+      type: Profile,
+      resolve: (user) => prisma.user.findUnique({ where: { id: user.id } }).profile(),
+    }),
+  }),
+});
+
+const Profile = builder.prismaObject('Profile', {
+  findUnique: null,
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    bio: t.exposeString('bio', {
+      nullable: true,
+    }),
+    user: t.relation('user', {
+      nullable: true,
+      resolve: (query, profile, args, ctx, info) =>
+        prisma.user.findUnique({
+          where: {
+            id: profile.userId,
+          },
+          ...query,
+        }),
+    }),
+  }),
+});
+
+builder.prismaObject('Post', {
+  findUnique: (post) => ({ id: post.id }),
+  fields: (t) => ({
+    id: t.id({
+      resolve: (parent) => parent.id,
+    }),
+    title: t.exposeString('title'),
+    content: t.exposeString('content', {
+      nullable: true,
+    }),
+    createdAt: t.string({
+      resolve: (post) => post.createdAt.toISOString(),
+    }),
+    author: t.relation('author'),
+  }),
+});
+
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findUnique({
+          ...query,
+          rejectOnNotFound: true,
+          where: { id: ctx.user.id },
+        }),
+    }),
+    users: t.prismaField({
+      type: ['User'],
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findMany({
+          ...query,
+        }),
+    }),
+  }),
+});
+
+export default builder.toSchema({});

@@ -19,7 +19,7 @@ export function cacheKey(path: Path | undefined) {
   let current = path.prev;
 
   while (current) {
-    key = `${current.key}.${String(current)}`;
+    key = `${current.key}.${key}`;
     current = current.prev;
   }
 

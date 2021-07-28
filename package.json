@@ -25,7 +25,7 @@
     "preview": "yarn prerelease && lerna version --conventional-commits --conventional-prerelease --changelog-preset conventional-changelog-beemo --push && lerna publish from-git --pre-dist-tag preview"
   },
   "workspaces": [
-    "./packages/*"
+    "packages/*"
   ],
   "private": true,
   "devDependencies": {
