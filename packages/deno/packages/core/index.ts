@@ -1,4 +1,5 @@
 // @ts-nocheck
+/* eslint-disable import/no-useless-path-segments */
 import './types/global/index.ts';
 import BuildCache from './build-cache.ts';
 import SchemaBuilderClass from './builder.ts';
