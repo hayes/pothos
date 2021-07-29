@@ -739,6 +739,29 @@ Object {
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
       },
     },
+    "moreOddNumbers": Object {
+      "edges": Array [
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+          "node": Object {
+            "number": 1,
+          },
+        },
+        null,
+        Object {
+          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+          "node": Object {
+            "number": 3,
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+      },
+    },
     "numbers": Object {
       "edges": Array [
         Object {
@@ -769,6 +792,7 @@ Object {
     },
     "oddNumbers": Object {
       "edges": Array [
+        null,
         Object {
           "cursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
           "node": Object {
@@ -776,18 +800,12 @@ Object {
           },
         },
         null,
-        Object {
-          "cursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
-          "node": Object {
-            "number": 3,
-          },
-        },
       ],
       "pageInfo": Object {
-        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoz",
+        "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjoy",
         "hasNextPage": true,
-        "hasPreviousPage": true,
-        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjox",
+        "hasPreviousPage": false,
+        "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjow",
       },
     },
     "sharedConnection": Object {
