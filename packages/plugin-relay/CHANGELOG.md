@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 2.10.0 - 2021-07-29
+
+#### 🐞 Fixes
+
+- create start and end cursors even if edges are null ([64b9d2f](https://github.com/hayes/giraphql/commit/64b9d2f))
+
+#### 📘 Docs
+
+- update relay docs with info on re-using types created for relayMutationField ([2000f90](https://github.com/hayes/giraphql/commit/2000f90))
+
+**Note:** Version bump only for package @giraphql/plugin-relay
+
+
+
+
+
 ## 2.10.0-alpha.0 - 2021-07-28
 
 #### 🚀 Updates

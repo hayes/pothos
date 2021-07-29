@@ -3,6 +3,22 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.10.0 - 2021-07-29
+
+#### 🚀 Updates
+
+- update deno ([a38003b](https://github.com/hayes/giraphql/commit/a38003b))
+
+#### 🐞 Fixes
+
+- create start and end cursors even if edges are null ([64b9d2f](https://github.com/hayes/giraphql/commit/64b9d2f))
+
+**Note:** Version bump only for package @giraphql/deno
+
+
+
+
+
 ### 2.9.1 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/deno
