@@ -24,3 +24,4 @@ export interface ResolveStep<Types extends SchemaTypes> {
     run: (state: ResolveState<Types>, parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo) => MaybePromise<boolean>;
     errorMessage: string | ((parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo) => string);
 }
+export type ContextForAuth<Types extends SchemaTypes, Scopes extends {}> = keyof Scopes & keyof Types["AuthContexts"] extends string ? Types["AuthContexts"][keyof Scopes & keyof Types["AuthContexts"]] : Types["Context"];

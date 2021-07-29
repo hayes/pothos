@@ -11,6 +11,11 @@ interface Node {
   id: ID!
 }
 
+type NullableUser implements TestInterface {
+  id: ID!
+  idFromInterface: ID!
+}
+
 type Post {
   content: String!
   id: ID!
@@ -27,6 +32,8 @@ type Query {
   fromContext5: [User!]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  nullableUser(id: String): NullableUser
+  nullableUsers(ids: [String!]): [NullableUser]
   post(id: Int!): Post
   posts(ids: [Int!]!): [Post]
   user(id: String): User

@@ -53,6 +53,19 @@ builder.queryFields((t) => ({
         return items;
       }),
   }),
+  oddNumbers: t.connection({
+    type: NumberThing,
+    resolve: (parent, args) =>
+      resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        const items = [];
+
+        for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+          items.push(i % 2 ? new NumberThing(i) : null);
+        }
+
+        return items;
+      }),
+  }),
 }));
 
 builder.queryFields((t) => ({

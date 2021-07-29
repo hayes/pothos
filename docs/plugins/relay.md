@@ -331,6 +331,16 @@ The `inputOptions` has a couple of non-standard options:
 The `payloadOptions` object also accepts a `name` property for setting the name of the payload
 object.
 
+You can also access refs for the created input and payload objects so you can re-use them in other fields:
+
+```typescript
+// Using aliases when destructuring lets you name your refs rather than using the generic `inputType` and `payloadType`
+const { inputType: DeleteItemInput, payloadType: DeleteItemPayload } = builder.relayMutationField(
+  'deleteItem',
+  ...
+);
+```
+
 ### Reusing connection objects
 
 In some cases you may want to create a connection object type that is shared by multiple fields. To

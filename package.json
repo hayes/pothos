@@ -20,9 +20,9 @@
     "test": "beemo jest",
     "type": "yarn refs && beemo typescript --build --reference-workspaces",
     "prerelease": "yarn clean && yarn run ci",
-    "release": "lerna version --conventional-commits --conventional-graduate --changelog-preset conventional-changelog-beemo --create-release github --push && lerna publish from-git",
+    "release": "lerna version --conventional-commits --conventional-graduate --changelog-preset conventional-changelog-beemo --create-release github --push && lerna publish from-git --pre-dist-tag preview",
     "refs": "beemo typescript:sync-project-refs",
-    "preview": "yarn prerelease && lerna version --conventional-commits --conventional-prerelease --changelog-preset conventional-changelog-beemo --push && lerna publish from-git"
+    "preview": "yarn prerelease && lerna version --conventional-commits --conventional-prerelease --changelog-preset conventional-changelog-beemo --push && lerna publish from-git --pre-dist-tag preview"
   },
   "workspaces": [
     "./packages/*"

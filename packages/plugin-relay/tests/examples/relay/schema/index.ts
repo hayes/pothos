@@ -97,31 +97,51 @@ builder.queryType({
 
 builder.mutationType({ fields: (t) => ({}) });
 
-builder.relayMutationField(
-  'exampleMutation',
-  {
-    inputFields: (t) => ({
-      id: t.id({
-        required: true,
+const { inputType: ExampleMutationInput, payloadType: ExampleMutationPayload } =
+  builder.relayMutationField(
+    'exampleMutation',
+    {
+      inputFields: (t) => ({
+        id: t.id({
+          required: true,
+        }),
       }),
-    }),
-  },
-  {
-    resolve: async (root, args) => {
+    },
+    {
+      resolve: async (root, args) => {
+        if (!args.input.clientMutationId) {
+          throw new Error('clientMutationId is missing');
+        }
+
+        return Promise.resolve({ status: args.input.id === '123' ? 200 : 500 });
+      },
+    },
+    {
+      outputFields: (t) => ({
+        itWorked: t.boolean({
+          resolve: (parent) => parent.status === 200,
+        }),
+      }),
+    },
+  );
+
+builder.mutationField('exampleMutationReUse', (t) =>
+  t.field({
+    type: ExampleMutationPayload,
+    args: {
+      input: t.arg({
+        required: true,
+        type: ExampleMutationInput,
+      }),
+    },
+    resolve: (root, args) => {
       if (!args.input.clientMutationId) {
         throw new Error('clientMutationId is missing');
       }
 
       return Promise.resolve({ status: args.input.id === '123' ? 200 : 500 });
     },
-  },
-  {
-    outputFields: (t) => ({
-      itWorked: t.boolean({
-        resolve: (parent) => parent.status === 200,
-      }),
-    }),
-  },
+  }),
 );
 
 builder.relayMutationField(

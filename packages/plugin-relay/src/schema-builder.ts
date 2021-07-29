@@ -332,6 +332,12 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       },
     }),
   );
+
+  // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+  return {
+    inputType: inputRef,
+    payloadType: payloadRef,
+  } as never;
 };
 
 schemaBuilderProto.connectionObject = function connectionObject(
@@ -384,6 +390,8 @@ schemaBuilderProto.connectionObject = function connectionObject(
         ...edgesFieldOptions,
         type: [edgeRef],
         nullable: {
+          // TODO(breaking) according to the spec, this should be nullable
+          // Should be configuratble and default to true
           list: false,
           items: true,
         },

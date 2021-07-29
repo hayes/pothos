@@ -62,16 +62,18 @@ export async function resolveOffsetConnection<T>(options: ResolveOffsetConnectio
 }) => Promise<T[]> | T[]): Promise<ConnectionShape<SchemaTypes, T, boolean>> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = await resolve({ offset, limit });
-    const edges = nodes.map((value, index) => ({
-        cursor: offsetToCursor(offset + index),
-        node: value,
-    }));
+    const edges = nodes.map((value, index) => value == null
+        ? null
+        : {
+            cursor: offsetToCursor(offset + index),
+            node: value,
+        });
     const trimmed = edges.slice(0, expectedSize);
     return {
         edges: trimmed,
         pageInfo: {
-            startCursor: trimmed[0]?.cursor ?? null,
-            endCursor: trimmed[trimmed.length - 1]?.cursor ?? null,
+            startCursor: offsetToCursor(offset),
+            endCursor: offsetToCursor(offset + trimmed.length - 1),
             hasPreviousPage,
             hasNextPage: hasNextPage(nodes.length),
         },
@@ -90,16 +92,18 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, T, boolean> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = array.slice(offset, offset + limit);
-    const edges = nodes.map((value, index) => ({
-        cursor: offsetToCursor(offset + index),
-        node: value,
-    }));
+    const edges = nodes.map((value, index) => value == null
+        ? null
+        : {
+            cursor: offsetToCursor(offset + index),
+            node: value,
+        });
     const trimmed = edges.slice(0, expectedSize);
     return {
         edges: trimmed,
         pageInfo: {
-            startCursor: trimmed[0]?.cursor ?? null,
-            endCursor: trimmed[trimmed.length - 1]?.cursor ?? null,
+            startCursor: offsetToCursor(offset),
+            endCursor: offsetToCursor(offset + trimmed.length - 1),
             hasPreviousPage,
             hasNextPage: hasNextPage(nodes.length),
         },

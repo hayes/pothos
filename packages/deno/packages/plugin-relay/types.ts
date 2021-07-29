@@ -143,11 +143,12 @@ export type RelayMutationInputOptions<Types extends SchemaTypes, Fields extends 
     inputFields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Fields;
 };
 export type RelayMutationFieldOptions<Types extends SchemaTypes, Fields extends InputFieldMap, Nullable extends boolean, InputName extends string, ResolveShape, ResolveReturnShape> = Omit<FieldOptionsFromKind<Types, Types["Root"], OutputRef<ResolveShape>, Nullable, {
-    [K in InputName]: InputFieldRef<InputShapeFromFields<Fields & {
-        clientMutationId: InputFieldRef<Types["Scalars"]["ID"]["Input"]>;
-    }>>;
+    [K in InputName]: InputFieldRef<InputShapeWithClientMutationId<Types, Fields>>;
 }, "Mutation", ResolveShape, ResolveReturnShape>, "args" | "type">;
 export type RelayMutationPayloadOptions<Types extends SchemaTypes, Shape, Interfaces extends InterfaceParam<Types>[]> = Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape> | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>, "fields"> & {
     name?: string;
     outputFields: ObjectFieldsShape<Types, Shape>;
 };
+export type InputShapeWithClientMutationId<Types extends SchemaTypes, Fields extends InputFieldMap> = InputShapeFromFields<Fields & {
+    clientMutationId: InputFieldRef<Types["Scalars"]["ID"]["Input"]>;
+}>;

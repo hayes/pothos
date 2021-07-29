@@ -30,6 +30,34 @@ describe('relay example schema', () => {
               }
             }
           }
+          oddNumbers(first: 3) {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              startCursor
+              endCursor
+            }
+            edges {
+              cursor
+              node {
+                number
+              }
+            }
+          }
+          moreOddNumbers: oddNumbers(first: 3, after: "T2Zmc2V0Q29ubmVjdGlvbjow") {
+            pageInfo {
+              hasNextPage
+              hasPreviousPage
+              startCursor
+              endCursor
+            }
+            edges {
+              cursor
+              node {
+                number
+              }
+            }
+          }
           firstAfterAtEnd: numbers(first: 3, after: "T2Zmc2V0Q29ubmVjdGlvbjoxOTc=") {
             pageInfo {
               hasNextPage

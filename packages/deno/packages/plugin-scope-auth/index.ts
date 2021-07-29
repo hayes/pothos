@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLInterfaceTypeConfig, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLOutputFieldConfig, GiraphQLQueryTypeConfig, GiraphQLSubscriptionTypeConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, FieldKind, GiraphQLInterfaceTypeConfig, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLOutputFieldConfig, GiraphQLQueryTypeConfig, GiraphQLSubscriptionTypeConfig, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
 import { resolveHelper } from './resolve-helper.ts';
 import { createFieldAuthScopesStep, createFieldGrantScopesStep, createResolveStep, createTypeAuthScopesStep, createTypeGrantScopesStep, } from './steps.ts';
 import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.ts';
@@ -61,4 +61,8 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
         return steps;
     }
 }
+const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
+fieldBuilderProto.authField = function authField(options) {
+    return this.field(options as never);
+};
 SchemaBuilder.registerPlugin(pluginName, GiraphQLScopeAuthPlugin);
