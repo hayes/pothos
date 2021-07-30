@@ -17,7 +17,7 @@ This plugin will make it very easy to have common queries be resolved through a 
 
 The way this plugin resolves queries is designed to be efficient, while still being predictable and easy to understand. Tools that try to automatically generate queries are often hard to understand and reason about, so this plugin tries to make things as clear as possible, by limiting generated queries to an absolute minimum.
 
-## Compatability
+## Compatibility
 
 Most plugins should work as expected with this plugin with a couple of exceptions:
 
