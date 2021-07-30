@@ -1,0 +1,44 @@
+{
+  "name": "@giraphql/plugin-prisma",
+  "version": "0.1.0-alpha.0",
+  "description": "A GiraphQL plugin for more efficient integration with prisma",
+  "main": "./lib/index.js",
+  "module": "./esm/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "prisma",
+    "db",
+    "postgres",
+    "mysql",
+    "sql",
+    "sqlite",
+    "mongo"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@prisma/client": "*",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@giraphql/core": "^2.10.2",
+    "@prisma/client": "^2.27.0",
+    "apollo-server": "^2.25.2",
+    "graphql": ">=15.5.1",
+    "graphql-tag": "^2.12.5",
+    "prisma": "^2.27.0"
+  }
+}
