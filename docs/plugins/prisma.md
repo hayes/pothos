@@ -3,46 +3,43 @@ name: Prisma
 menu: Plugins
 ---
 
-# Prisma Plugin for GiraphQL
+# Prisma
 
-This plugin provides tighter integration with prisma, making it easier to define prisma based object
-types, and helps solve n+1 queries for relations.
+Using prisma without a plugin is relatively straight forward using the This plugin provides tighter integration with prisma, making it easier to define prisma based object types, and helps solve n+1 queries for relations.
 
 ## Disclaimers
 
 This plugin is experimental, and may have some breaking changes in the future.
 
-This plugin is NOT required to build graphs backed by prisma models, and I would not recomend using
-it unless you have a solid understanding of how it will construct queries.
+This plugin is NOT required to build graphs backed by prisma models, and I would not recommend using it unless you have a solid understanding of how it will construct queries.
 
-This plugin will make it very easy to have common queries be resolved through a single prisma query
-(prisma may still turn this into multiple SQL queries), and provides reasonable, predictable and
-safe fallbacks for more complex queries and edge cases.
+This plugin will make it very easy to have common queries be resolved through a single prisma query \(prisma may still turn this into multiple SQL queries\), and provides reasonable, predictable and safe fallbacks for more complex queries and edge cases.
 
-The way this plugin resolves queries is designed to be efficient, while still being predictable and
-easy to understand. Tools that try to automatically generate queries are often hard to understand
-and reason about, so this plugin tries to make things as clear as possible, by limiting generated
-queries to an absolute minimum.
+The way this plugin resolves queries is designed to be efficient, while still being predictable and easy to understand. Tools that try to automatically generate queries are often hard to understand and reason about, so this plugin tries to make things as clear as possible, by limiting generated queries to an absolute minimum.
 
 ## Compatability
 
 Most plugins should work as expected with this plugin with a couple of exceptions:
 
-- Dataloader: The ideas behind dataloader and the prisma plugin are not very compatible. The prisma
+* Dataloader: The ideas behind dataloader and the prisma plugin are not very compatible. The prisma
+
   plugin works by pulling in as much data as possible through a single query. This makes it very
+
   challenging to find ways to take advantage of a dataloader cache, and attempts to do so would
+
   likely result in hard to predict behavior, or weird edge cases.
-- Relay: The relay plugin will work with this plugin, but will not be able to take advantage of
+
+* Relay: The relay plugin will work with this plugin, but will not be able to take advantage of
+
   pre-loaded queries in all cases. There will be some additional integration added in the near
+
   future to improve this experience.
 
 ### GiraphQL + Prisma without a plugin
 
-If you just want learn about the plugin, feel free to skip this section, but understanding how to
-use prisma without a plugin may be useful for evaluating if this plugin is a good fit for your
-usecase.
+If you just want learn about the plugin, feel free to skip this section, but understanding how to use prisma without a plugin may be useful for evaluating if this plugin is a good fit for your use case.
 
-Using prisma without a plugin is relativly straight forward using the `builder.objectRef` method.
+`builder.objectRef` method.
 
 The easiest way to create types backed by prisma looks something like:
 
@@ -90,25 +87,29 @@ builder.queryType({
 });
 ```
 
-This sets up User, and Post objects with a few fields, and a `me` query that returns the current
-user. There are a few things to note in this setup:
+This sets up User, and Post objects with a few fields, and a `me` query that returns the current user. There are a few things to note in this setup:
 
 1. We split up the `builder.objectRef` and the `implement` calls, rather than calling
+
    `builder.objectRef(...).implement(...)`. This prevents typescript from getting tripped up by the
-   cicular references between posts and users.
+
+   circular references between posts and users.
+
 2. We use rejectOnNotFound with our `findUnique` calls because those fields are not nullable.
+
    Without this option, prisma will return a null if the object is not found. An alternative is to
+
    mark these fields as nullable.
+
 3. The refs to our object types are called `UserObject` and `PostObject`, this is because `User` and
+
    `Post` are the names of the types imported from prisma. We could instead alias the types when we
+
    import them so we can name the refs to our GraphQL types after the models.
 
-This setup is fairly simple, but it is easy to see the n+1 issues we might run into. Prisma helps
-with this by batching queries together, but there are also things we can do in our implementation to
-improve things.
+This setup is fairly simple, but it is easy to see the n+1 issues we might run into. Prisma helps with this by batching queries together, but there are also things we can do in our implementation to improve things.
 
-One thing we could do if we know we will ussually be loading the author any time we load a post is
-to make the author part of shape required for a post:
+One thing we could do if we know we will usually be loading the author any time we load a post is to make the author part of shape required for a post:
 
 ```typescript
 const UserObject = builder.objectRef<User>('User');
@@ -146,8 +147,7 @@ PostObject.implement({
 });
 ```
 
-We may not always want to query for the author though, so we could make the author optional and fall
-back to using a query if it was not provided by the parent resolver:
+We may not always want to query for the author though, so we could make the author optional and fall back to using a query if it was not provided by the parent resolver:
 
 ```typescript
 const PostObject = builder.objectRef<Post & { author?: User }>('Post');
@@ -165,11 +165,9 @@ PostObject.implement({
 });
 ```
 
-With this setup, a parent resolver has the option to include the author, but we have a fallback
-incase it does not.
+With this setup, a parent resolver has the option to include the author, but we have a fallback incase it does not.
 
-There are other patterns like dataloaders than can be used to reduce n+1 issues, and make your graph
-more efficient, but they are too complex to describe here.
+There are other patterns like dataloaders than can be used to reduce n+1 issues, and make your graph more efficient, but they are too complex to describe here.
 
 ## Usage
 
@@ -200,8 +198,7 @@ const builder = new SchemaBuilder<
 
 ### Full Example
 
-There is a more thorough step by step breakdown of how to use this plugin bellow, but here is a
-quick example of what ussuage might looklike:
+There is a more thorough step by step breakdown of how to use this plugin bellow, but here is a quick example of what ussage might look like:
 
 ```typescript
 builder.prismaObject('User', {
@@ -246,8 +243,7 @@ builder.queryType({
 });
 ```
 
-Given this schema, you would be able to resolve a query like the following with a single prisma
-query (which will still result in a few optimized SQL queries).
+Given this schema, you would be able to resolve a query like the following with a single prisma query \(which will still result in a few optimized SQL queries\).
 
 ```graphql
 query {
@@ -285,10 +281,7 @@ query {
 }
 ```
 
-Will result in 2 calls to primsa, one to resolve everything except `oldPosts`, and a second to
-resolve everything insive `oldPosts`. Prisma can only resolve each relation once in a single query,
-so we need a separate to handle the second `posts` relation. This may seem slightly magical, but
-should be predictable and hopefully understandable after reading the documentation below.
+Will result in 2 calls to primsa, one to resolve everything except `oldPosts`, and a second to resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query, so we need a separate to handle the second `posts` relation. This may seem slightly magical, but should be predictable and hopefully understandable after reading the documentation below.
 
 ### Creating some types with `builder.prismaObject`
 
@@ -296,6 +289,7 @@ should be predictable and hopefully understandable after reading the documentati
 
 1. `model`: The name of the model you are creating a type for
 2. `options`: options for the type being created, this is very similar to the options for any other
+
    object type
 
 ```typescript
@@ -316,16 +310,13 @@ builder.prismaObject('Post', {
 });
 ```
 
-So far, this is just creating some simple object types. They work just like any other object type in
-GiraphQL. They main advantage of this is that we get the type information without using object refs,
-or needing imports from primsa client.
+So far, this is just creating some simple object types. They work just like any other object type in GiraphQL. They main advantage of this is that we get the type information without using object refs, or needing imports from primsa client.
 
 The `findUnique` option is described more below.
 
-### Adding prisma fields to non-prisma objects (including Query and Mutation)
+### Adding prisma fields to non-prisma objects \(including Query and Mutation\)
 
-There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma
-types:
+There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma types:
 
 ```typescript
 builder.queryType({
@@ -343,22 +334,21 @@ builder.queryType({
 });
 ```
 
-This method works just like th normal `t.field` method with a couple of differences:
+This method works just like the normal `t.field` method with a couple of differences:
 
 1. The `type` option should be the name of one of your prisma models or `['Model']` for a list
+
    field.
+
 2. The `resolve` function has a new first argument `query` which should be spread into query prisma
+
    query. This will be used to load data for nested relationships.
 
-You do not need to use this method, and the `builder.prismaObject` method returns an object ref than
-can be used like any other object ref (with `t.field`), but using `t.prismaField` will allow you to
-take advantage of more effient queries.
+You do not need to use this method, and the `builder.prismaObject` method returns an object ref than can be used like any other object ref \(with `t.field`\), but using `t.prismaField` will allow you to take advantage of more effient queries.
 
-The `query` object will contain an `include` object to pre-load data needed to resolve nested parts
-of the current query. This is based on fields defined with `t.relation` described below.
+The `query` object will contain an `include` object to pre-load data needed to resolve nested parts of the current query. This is based on fields defined with `t.relation` described below.
 
-If there are no fields using `t.relation` in your query, everything is resolved exactly as it would
-be without this plugin.
+If there are no fields using `t.relation` in your query, everything is resolved exactly as it would be without this plugin.
 
 ### Adding relations
 
@@ -393,31 +383,21 @@ builder.prismaObject('Post', {
 });
 ```
 
-`t.relation` defines a field that can be pre-loaded by a parent resolver, and most of the time, the
-`resolve` function will NOT be called. This is VERY IMPORTANT to understand, because it is the
-biggest place where you can introduce inconsistencies into your API with this plugin. The `resolve`
-function is used to load the relationship if parent resolver did not pre-load the data needed to
-resolve the field. This happens for a number of reasons:
+`t.relation` defines a field that can be pre-loaded by a parent resolver, and most of the time, the `resolve` function will NOT be called. This is VERY IMPORTANT to understand, because it is the biggest place where you can introduce inconsistencies into your API with this plugin. The `resolve` function is used to load the relationship if parent resolver did not pre-load the data needed to resolve the field. This happens for a number of reasons:
 
 1. The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
 2. The `query` object for the parent field was not spread into the query
-3. The graphql query requested multiple fields that depended on the same relationship (described
-   more below)
+3. The graphql query requested multiple fields that depended on the same relationship \(described
 
-These are all okay, and expected situations. Graphql APIs are very flexible, and magically pushing
-everything into a single query is impossible for arbitrary queries. This is why we have a `resolve`
-function than can load the relation IF it was not already loaded by the parent.
+   more below\)
 
-Like `t.prismaField`, the `resolve` function now as a new first argument that is a query that should
-be spread into the query, and is used to load nested relationships.
+These are all okay, and expected situations. Graphql APIs are very flexible, and magically pushing everything into a single query is impossible for arbitrary queries. This is why we have a `resolve` function than can load the relation IF it was not already loaded by the parent.
+
+Like `t.prismaField`, the `resolve` function now as a new first argument that is a query that should be spread into the query, and is used to load nested relationships.
 
 ### Find Unique
 
-Because the `resolve` function is only used as a fallback, it is harder to test, and if done
-incorrectly can introduce inconsistencies. While it shouldn't be too hard to get right, it might be
-better to avoid it entirely. To do this, we can let the Prisma plugin generate these resolve
-functions for you in a consistent and predictable way. We can do this by providing a findUnique
-option for our object type. Defining a `findUnique` that is not null, will make `resolve` optional.
+Because the `resolve` function is only used as a fallback, it is harder to test, and if done incorrectly can introduce inconsistencies. While it shouldn't be too hard to get right, it might be better to avoid it entirely. To do this, we can let the Prisma plugin generate these resolve functions for you in a consistent and predictable way. We can do this by providing a findUnique option for our object type. Defining a `findUnique` that is not null, will make `resolve` optional.
 
 ```typescript
 builder.prismaObject('User', {
@@ -439,14 +419,9 @@ builder.prismaObject('Post', {
 });
 ```
 
-This greatly simplifies our object types. In these cases, the fallback resolve functions will
-re-load the current object using the `findUnique` as the where clause, and then `include` the
-relation for the current field. This can produce a slightly less efficient query than a manual
-implementation because the parent object is re-loaded first, but it will batch multiple
-relationships into one query, and the findUnique queries should be very fast.
+This greatly simplifies our object types. In these cases, the fallback resolve functions will re-load the current object using the `findUnique` as the where clause, and then `include` the relation for the current field. This can produce a slightly less efficient query than a manual implementation because the parent object is re-loaded first, but it will batch multiple relationships into one query, and the findUnique queries should be very fast.
 
-For example, if a `User` was loaded without pre-loading, and both a `posts` and a `profile` relation
-where requested, the generated prisma call would be something like:
+For example, if a `User` was loaded without pre-loading, and both a `posts` and a `profile` relation where requested, the generated prisma call would be something like:
 
 ```typescript
 prisma.user.findUnique({
@@ -461,11 +436,7 @@ prisma.user.findUnique({
 
 ### Filters, Sorting, and arguments
 
-So far we have been describing very simple queries without any arguments, filtering, or sorting. For
-`t.prismaField` definitions, you can add arguments to your field like normal, and pass them into
-your prisma query as needed. For `t.relation` the flow is slightly different because we need to make
-sure we are loading the right data if we are pre-loading data in a parent resolver. We do this by
-adding a `query` option to our field options.
+So far we have been describing very simple queries without any arguments, filtering, or sorting. For `t.prismaField` definitions, you can add arguments to your field like normal, and pass them into your prisma query as needed. For `t.relation` the flow is slightly different because we need to make sure we are loading the right data if we are pre-loading data in a parent resolver. We do this by adding a `query` option to our field options.
 
 ```typescript
 builder.prismaObject('User', {
@@ -489,12 +460,9 @@ builder.prismaObject('User', {
 });
 ```
 
-This query will be part of the `query` that gets passed into the first argument of `resolve`
-function for `t.realtion` and `t.prismaField` based fields, and inlude things like `where`, `skip`,
-`take`, `orderBy`, etc.
+This query will be part of the `query` that gets passed into the first argument of `resolve` function for `t.realtion` and `t.prismaField` based fields, and inlude things like `where`, `skip`, `take`, `orderBy`, etc.
 
-If your field has a `resolve` method the generated `query` will be passed in as part of the first
-arg to your resolve function
+If your field has a `resolve` method the generated `query` will be passed in as part of the first arg to your resolve function
 
 ```typescript
 builder.prismaObject('Post', {
@@ -519,8 +487,5 @@ builder.prismaObject('Post', {
 });
 ```
 
-It is IMPORTANT to put all your filtering and sorting into the query method rather than your
-resovler because the resolver is only used as fallback, and any filtering that does not exist in the
-query method will not be applied correctly. If you have a where in both your query and your
-resolver, you will need to ensure these are merged correctly. It is generally better NOT to use a
-custom resolver.
+It is IMPORTANT to put all your filtering and sorting into the query method rather than your resovler because the resolver is only used as fallback, and any filtering that does not exist in the query method will not be applied correctly. If you have a where in both your query and your resolver, you will need to ensure these are merged correctly. It is generally better NOT to use a custom resolver.
+
