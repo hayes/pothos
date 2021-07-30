@@ -5,7 +5,7 @@ menu: Plugins
 
 # Prisma
 
-Using prisma without a plugin is relatively straight forward using the This plugin provides tighter integration with prisma, making it easier to define prisma based object types, and helps solve n+1 queries for relations.
+This plugin provides tighter integration with prisma, making it easier to define prisma based object types, and helps solve n+1 queries for relations.
 
 ## Disclaimers
 
