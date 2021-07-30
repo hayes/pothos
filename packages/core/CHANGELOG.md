@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.11.0 - 2021-07-30
+
+#### 🚀 Updates
+
+- add prisma plugin ([d427c82](https://github.com/hayes/giraphql/commit/d427c82))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ### 2.10.2 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/core

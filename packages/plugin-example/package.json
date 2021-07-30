@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-example",
-  "version": "2.2.4",
+  "version": "2.3.0",
   "description": "An example plugin for GiraphQL",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
@@ -27,7 +27,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.10.2",
+    "@giraphql/core": "^2.11.0",
     "apollo-server": "^2.25.2",
     "graphql": ">=15.5.1",
     "graphql-tag": "^2.12.5"
