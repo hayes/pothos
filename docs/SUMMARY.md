@@ -26,6 +26,7 @@
   * [Directives](plugins/directives.md)
   * [Errors](plugins/errors.md)
   * [Mocks](plugins/mocks.md)
+  * [Prisma](plugins/prisma.md)
   * [Relay](plugins/relay.md)
   * [Simple Objects](plugins/simple-objects.md)
   * [Smart Subscriptions](plugins/smart-subscriptions.md)

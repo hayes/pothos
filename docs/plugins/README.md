@@ -41,3 +41,7 @@
 
   A plugin for easily including error types in your GraphQL schema and hooking up error types to resolvers.
 
+* [**Prisma**](prisma.md)
+
+  A plugin for more efficient integration with prisma that can help solve n+1 issues and more efficienty resolve queries 
+
