@@ -39,7 +39,7 @@ Most plugins should work as expected with this plugin with a couple of exception
 
 If you just want learn about the plugin, feel free to skip this section, but understanding how to use prisma without a plugin may be useful for evaluating if this plugin is a good fit for your use case.
 
-`builder.objectRef` method.
+Using prisma and GiraphQL together without a plugin is fairy straight forward using the`builder.objectRef` method.
 
 The easiest way to create types backed by prisma looks something like:
 
