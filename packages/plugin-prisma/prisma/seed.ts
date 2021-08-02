@@ -29,7 +29,7 @@ async function main() {
         email,
         profile: {
           create: {
-            bio: faker.name.jobDescriptor(),
+            bio: faker.lorem.sentence(),
           },
         },
         posts: {
