@@ -5,7 +5,7 @@
   "main": "./lib/index.js",
   "module": "./esm/index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+      "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\", \\\"noEmit\\\": false}\""
   },
   "repository": {
     "type": "git",

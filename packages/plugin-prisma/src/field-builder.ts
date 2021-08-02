@@ -15,7 +15,11 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { resolvePrismaCursorConnection } from './cursors';
+import {
+  prismaCursorConnectionQuery,
+  resolvePrismaCursorConnection,
+  wrapConnectionResult,
+} from './cursors';
 import { getLoaderMapping, setLoaderMappings } from './loader-map';
 import { ModelLoader } from './model-loader';
 import { getFindUniqueForRef, getRefFromModel, getRelation } from './refs';
@@ -217,6 +221,16 @@ export class PrismaObjectFieldBuilder<
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
 
+    const getQuery = (args: GiraphQLSchemaTypes.DefaultConnectionArguments) => ({
+      ...((typeof query === 'function' ? query(args) : query) as {}),
+      ...prismaCursorConnectionQuery({
+        column: cursor,
+        maxSize,
+        defaultSize,
+        args,
+      }),
+    });
+
     const fieldRef = (
       this as unknown as typeof fieldBuilderProto & {
         connection: (...args: unknown[]) => FieldRef<unknown>;
@@ -226,58 +240,49 @@ export class PrismaObjectFieldBuilder<
         ...options,
         extensions: {
           ...extensions,
-          giraphQLPrismaQuery: query,
+          giraphQLPrismaQuery: getQuery,
           giraphQLPrismaRelation: name,
         },
         type: ref,
-        resolve: (
+        resolve: async (
           parent: object,
           args: GiraphQLSchemaTypes.DefaultConnectionArguments,
           context: {},
           info: GraphQLResolveInfo,
-        ) =>
-          resolvePrismaCursorConnection(
-            {
-              query: queryFromInfo(context, info),
-              column: cursor,
-              maxSize,
-              defaultSize,
-              args,
-            },
-            (mergedQuery) => {
-              const mapping = getLoaderMapping(context, info.path);
+        ) => {
+          const connectionQuery = getQuery(args);
+          const getResult = () => {
+            const mapping = getLoaderMapping(context, info.path);
+            const loadedValue = (parent as Record<string, unknown>)[name];
 
-              const loadedValue = (parent as Record<string, unknown>)[name];
-
-              if (
-                // if we attempted to load the relation, and its missing it will be null
-                // undefined means that the query was not constructed in a way that requested the relation
-                loadedValue !== undefined &&
-                mapping
-              ) {
-                if (loadedValue !== null && loadedValue !== undefined) {
-                  setLoaderMappings(context, info.path, mapping);
-                }
-
-                return loadedValue as never;
+            if (
+              // if we attempted to load the relation, and its missing it will be null
+              // undefined means that the query was not constructed in a way that requested the relation
+              loadedValue !== undefined &&
+              mapping
+            ) {
+              if (loadedValue !== null && loadedValue !== undefined) {
+                setLoaderMappings(context, info.path, mapping);
               }
 
-              const queryOptions = {
-                ...((typeof query === 'function' ? query(args) : query) as {}),
-                ...queryFromInfo(context, info),
-              };
+              return loadedValue as {}[];
+            }
 
-              if (!resolve && !findUnique) {
-                throw new Error(`Missing findUnique for Prisma type ${this.model}`);
-              }
+            if (!resolve && !findUnique) {
+              throw new Error(`Missing findUnique for Prisma type ${this.model}`);
+            }
 
-              if (resolve) {
-                return resolve(mergedQuery, parent, args, context, info);
-              }
+            const mergedQuery = { ...queryFromInfo(context, info), ...connectionQuery };
 
-              return loaderCache(parent).loadRelation(name, queryOptions, context) as Promise<{}[]>;
-            },
-          ),
+            if (resolve) {
+              return resolve(mergedQuery, parent, args, context, info);
+            }
+
+            return loaderCache(parent).loadRelation(name, mergedQuery, context) as Promise<{}[]>;
+          };
+
+          return wrapConnectionResult(await getResult(), args, connectionQuery.take, cursor);
+        },
       },
       {
         ...connectionOptions,

@@ -96,28 +96,24 @@ export function prismaCursorConnectionQuery({
       };
 }
 
-export async function resolvePrismaCursorConnection<T extends {}>(
-  options: ResolvePrismaCursorConnectionOptions,
-  resolve: (query: { include?: {}; cursor?: {}; take: number; skip: number }) => MaybePromise<T[]>,
+export function wrapConnectionResult<T extends {}>(
+  results: T[],
+  args: GiraphQLSchemaTypes.DefaultConnectionArguments,
+  take: number,
+  column: string,
 ) {
-  const query = prismaCursorConnectionQuery(options);
-  const results = await resolve({
-    ...options.query,
-    ...query,
-  });
-
-  const gotFullResults = results.length === Math.abs(query.take);
-  const hasNextPage = options.args.before ? true : gotFullResults;
-  const hasPreviousPage = options.args.after ? true : gotFullResults;
+  const gotFullResults = results.length === Math.abs(take);
+  const hasNextPage = args.before ? true : gotFullResults;
+  const hasPreviousPage = args.after ? true : gotFullResults;
   const nodes = gotFullResults
-    ? results.slice(query.take < 0 ? 1 : 0, query.take < 0 ? results.length : -1)
+    ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;
 
   const edges = nodes.map((value, index) =>
     value == null
       ? null
       : {
-          cursor: formatCursor((value as Record<string, string>)[options.column]),
+          cursor: formatCursor((value as Record<string, string>)[column]),
           node: value,
         },
   );
@@ -131,4 +127,17 @@ export async function resolvePrismaCursorConnection<T extends {}>(
       hasNextPage,
     },
   };
+}
+
+export async function resolvePrismaCursorConnection<T extends {}>(
+  options: ResolvePrismaCursorConnectionOptions,
+  resolve: (query: { include?: {}; cursor?: {}; take: number; skip: number }) => MaybePromise<T[]>,
+) {
+  const query = prismaCursorConnectionQuery(options);
+  const results = await resolve({
+    ...options.query,
+    ...query,
+  });
+
+  return wrapConnectionResult(results, options.args, query.take, options.column);
 }
