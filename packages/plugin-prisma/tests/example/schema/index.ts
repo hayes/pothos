@@ -17,6 +17,7 @@ builder.prismaNode('User', {
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
+        take: 10,
       }),
       resolve: (query, user) =>
         prisma.post.findMany({
@@ -89,6 +90,7 @@ builder.queryType({
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findMany({
           ...query,
+          take: 2,
         }),
     }),
     userConnection: t.prismaConnection({
