@@ -58,7 +58,7 @@ const RecursiveGiraffeInput = builder
       birthdate: t.string({ required: true }),
       height: t.float({ required: true }),
       friends: t.field({
-        type: [GiraffeInput],
+        type: [RecursiveGiraffeInput],
       }),
     }),
   });
