@@ -1,4 +1,5 @@
 import SchemaBuilder from '@giraphql/core';
+import RelayPlugin from '@giraphql/plugin-relay';
 import { PrismaClient } from '@prisma/client';
 // eslint-disable-next-line import/no-named-as-default
 import PrismaPlugin from '../../src';
@@ -30,7 +31,8 @@ export default new SchemaBuilder<{
   };
   PrismaClient: typeof prisma;
 }>({
-  plugins: [PrismaPlugin],
+  plugins: [PrismaPlugin, RelayPlugin],
+  relayOptions: {},
   prisma: {
     client: prisma,
   },

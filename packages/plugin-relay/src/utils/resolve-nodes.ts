@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
+import { GraphQLResolveInfo } from 'graphql';
 import { MaybePromise, ObjectParam, OutputType, SchemaTypes } from '@giraphql/core';
 import { NodeObjectOptions } from '../types';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal';
@@ -16,36 +17,55 @@ function getRequestCache(context: object) {
 export async function resolveNodes<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
+  info: GraphQLResolveInfo,
   globalIDs: (string | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  const idsByType: Record<string, Set<string>> = {};
+  const idsByType: Record<string, Map<string, string>> = {};
+  const results: Record<string, unknown> = {};
 
-  globalIDs.forEach((globalID) => {
-    if (globalID == null || requestCache.has(globalID)) {
+  globalIDs.forEach((globalID, i) => {
+    if (globalID == null) {
+      return;
+    }
+
+    if (requestCache.has(globalID)) {
+      results[globalID] = requestCache.get(globalID)!;
       return;
     }
 
     const { id, typename } = internalDecodeGlobalID(builder, globalID);
 
-    idsByType[typename] = idsByType[typename] || new Set();
-    idsByType[typename].add(id);
+    idsByType[typename] = idsByType[typename] || new Map();
+    idsByType[typename].set(id, globalID);
   });
 
-  await Promise.all([
-    Object.keys(idsByType).map((typename) =>
-      resolveUncachedNodesForType(builder, context, [...idsByType[typename]], typename),
-    ),
-  ]);
+  await Promise.all(
+    Object.keys(idsByType).map(async (typename) => {
+      const ids = [...idsByType[typename].keys()];
+      const globalIds = [...idsByType[typename].values()];
 
-  return globalIDs.map((globalID) =>
-    globalID == null ? null : requestCache.get(globalID) ?? null,
+      const resultsForType = await resolveUncachedNodesForType(
+        builder,
+        context,
+        info,
+        ids,
+        typename,
+      );
+
+      resultsForType.forEach((val, i) => {
+        results[globalIds[i]] = val;
+      });
+    }),
   );
+
+  return globalIDs.map((globalID) => (globalID == null ? null : results[globalID] ?? null));
 }
 
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   context: object,
+  info: GraphQLResolveInfo,
   ids: string[],
   type: OutputType<Types> | string,
 ): Promise<unknown[]> {
@@ -76,7 +96,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
 
   if (options.loadOne) {
     return Promise.all(
-      ids.map((id, i) => {
+      ids.map((id) => {
         const globalID = internalEncodeGlobalID(builder, config.name, id);
         const entryPromise = Promise.resolve(options.loadOne!(id, context)).then(
           (result: unknown) => {
@@ -90,6 +110,12 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
 
         return entryPromise;
       }),
+    );
+  }
+
+  if (options.loadWithoutCache) {
+    return Promise.all(
+      ids.map((id) => Promise.resolve(options.loadWithoutCache!(id, context, info))),
     );
   }
 

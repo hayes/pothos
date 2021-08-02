@@ -7,7 +7,6 @@ import {
   FieldRequiredness,
   InputFieldMap,
   InputFieldRef,
-  InputFieldsFromShape,
   InputRef,
   InputShape,
   InputShapeFromFields,
@@ -193,11 +192,17 @@ export type ConnectionShape<Types extends SchemaTypes, T, Nullable> =
       )[];
     });
 
+export type ConnectionShapeFromBaseShape<
+  Types extends SchemaTypes,
+  Shape,
+  Nullable extends boolean,
+> = ConnectionShape<Types, Shape, Nullable>;
+
 export type ConnectionShapeForType<
   Types extends SchemaTypes,
   Type extends OutputType<Types>,
   Nullable extends boolean,
-> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, true>, Nullable>;
+> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, false>, Nullable>;
 
 export type ConnectionShapeFromResolve<
   Types extends SchemaTypes,
@@ -207,46 +212,13 @@ export type ConnectionShapeFromResolve<
 > = Resolved extends Promise<infer T>
   ? T extends ConnectionShapeForType<Types, Type, Nullable>
     ? T
-    : never
+    : ConnectionShapeForType<Types, Type, Nullable>
   : Resolved extends ConnectionShapeForType<Types, Type, Nullable>
   ? Resolved
-  : never;
+  : ConnectionShapeForType<Types, Type, Nullable>;
 
-export interface DefaultConnectionArguments {
-  first?: number | null | undefined;
-  last?: number | null | undefined;
-  before?: string | null | undefined;
-  after?: string | null | undefined;
-}
-
-export interface ConnectionFieldOptions<
-  Types extends SchemaTypes,
-  ParentShape,
-  Type extends OutputType<Types>,
-  Nullable extends boolean,
-  Args extends InputFieldMap,
-  ResolveReturnShape,
-> {
-  args?: Args;
-  type: Type;
-  resolve: Resolver<
-    ParentShape,
-    InputShapeFromFields<Args & InputFieldsFromShape<DefaultConnectionArguments>>,
-    Types['Context'],
-    ConnectionShapeForType<Types, Type, Nullable>,
-    ResolveReturnShape
-  >;
-}
-
-export interface ConnectionObjectOptions<Types extends SchemaTypes, ParentShape>
-  extends GiraphQLSchemaTypes.ObjectTypeOptions<Types, ParentShape> {
-  name?: string;
-}
-
-export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, ParentShape>
-  extends GiraphQLSchemaTypes.ObjectTypeOptions<Types, ParentShape> {
-  name?: string;
-}
+export interface DefaultConnectionArguments
+  extends GiraphQLSchemaTypes.DefaultConnectionArguments {}
 
 export type NodeBaseObjectOptionsForParam<
   Types extends SchemaTypes,
@@ -304,6 +276,11 @@ export type NodeObjectOptions<
     ids: string[],
     context: Types['Context'],
   ) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+  loadWithoutCache?: (
+    id: string,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
 };
 
 export type GlobalIDFieldOptions<

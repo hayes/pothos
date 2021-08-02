@@ -5,7 +5,7 @@ import { PrismaDelegate } from './types';
 export const refMap = new WeakMap<object, Map<string, ObjectRef<unknown>>>();
 export const findUniqueMap = new WeakMap<
   object,
-  Map<ObjectRef<unknown>, ((args: unknown) => unknown) | null>
+  Map<ObjectRef<unknown>, ((args: unknown, ctx: {}) => unknown) | null>
 >();
 
 export function getRefFromModel<Types extends SchemaTypes>(
@@ -37,14 +37,14 @@ export function getFindUniqueForRef<Types extends SchemaTypes>(
     return null;
   }
 
-  return cache.get(ref)!;
+  return cache.get(ref)! as (args: unknown, context: Types['Context']) => unknown;
 }
 
 export function setFindUniqueForRef<Types extends SchemaTypes>(
   ref: ObjectRef<unknown>,
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  findUnique: ((args: any) => unknown) | null,
+  findUnique: ((args: any, context: Types['Context']) => unknown) | null,
 ) {
   if (!findUniqueMap.has(builder)) {
     findUniqueMap.set(builder, new Map());

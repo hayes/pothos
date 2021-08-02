@@ -38,18 +38,17 @@ describe('prisma', () => {
       Object {
         "data": Object {
           "me": Object {
-            "id": "1",
+            "id": "VXNlcjox",
           },
         },
       }
-    `);
+      `);
 
     expect(queries).toMatchInlineSnapshot(`
       Array [
         Object {
           "action": "findUnique",
           "args": Object {
-            "include": undefined,
             "where": Object {
               "id": 1,
             },
@@ -82,10 +81,10 @@ describe('prisma', () => {
         "data": Object {
           "users": Array [
             Object {
-              "id": "1",
+              "id": "VXNlcjox",
             },
             Object {
-              "id": "2",
+              "id": "VXNlcjoy",
             },
           ],
         },
@@ -96,9 +95,7 @@ describe('prisma', () => {
       Array [
         Object {
           "action": "findMany",
-          "args": Object {
-            "include": undefined,
-          },
+          "args": Object {},
           "dataPath": Array [],
           "model": "User",
           "runInTransaction": false,
@@ -334,19 +331,19 @@ describe('prisma', () => {
             "oldestPosts": Array [
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "1",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "2",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "3",
               },
@@ -354,19 +351,19 @@ describe('prisma', () => {
             "posts": Array [
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "3",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "2",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "1",
               },
@@ -377,55 +374,55 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "posts": Object {
+                "include": Object {
+                  "author": Object {
+                    "include": Object {
+                      "profile": true,
+                    },
+                  },
+                },
+                "orderBy": Object {
+                  "createdAt": "desc",
+                },
               },
             },
+            "where": Object {
+              "id": 1,
+            },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "author": Object {
-          "include": Object {
-            "profile": true,
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "include": Object {
+              "author": Object {
+                "include": Object {
+                  "profile": true,
+                },
+              },
+            },
+            "orderBy": Object {
+              "createdAt": "asc",
+            },
+            "where": Object {
+              "authorId": 1,
+            },
           },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "orderBy": Object {
-        "createdAt": "asc",
-      },
-      "where": Object {
-        "authorId": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('queries with variables and alieases', async () => {
@@ -467,19 +464,19 @@ Array [
             "oldestPosts": Array [
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "1",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "2",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "3",
               },
@@ -498,19 +495,19 @@ Array [
             "posts": Array [
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "3",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "2",
               },
               Object {
                 "author": Object {
-                  "id": "1",
+                  "id": "VXNlcjox",
                 },
                 "id": "1",
               },
@@ -521,69 +518,69 @@ Array [
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "posts": Object {
+                "include": Object {
+                  "author": Object {
+                    "include": Object {
+                      "profile": true,
+                    },
+                  },
+                },
+                "orderBy": Object {
+                  "createdAt": "desc",
+                },
               },
             },
+            "where": Object {
+              "id": 1,
+            },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "orderBy": Object {
-        "createdAt": "desc",
-      },
-      "where": Object {
-        "authorId": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "author": Object {
-          "include": Object {
-            "profile": true,
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "orderBy": Object {
+              "createdAt": "desc",
+            },
+            "where": Object {
+              "authorId": 1,
+            },
           },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "orderBy": Object {
-        "createdAt": "asc",
-      },
-      "where": Object {
-        "authorId": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "include": Object {
+              "author": Object {
+                "include": Object {
+                  "profile": true,
+                },
+              },
+            },
+            "orderBy": Object {
+              "createdAt": "asc",
+            },
+            "where": Object {
+              "authorId": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('queries through non-prisma fields', async () => {
@@ -631,7 +628,6 @@ Array [
         Object {
           "action": "findUnique",
           "args": Object {
-            "include": undefined,
             "where": Object {
               "id": 1,
             },
