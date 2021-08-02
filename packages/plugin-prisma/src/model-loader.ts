@@ -7,14 +7,18 @@ const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 export class ModelLoader {
   model: object;
   delegate: PrismaDelegate<{}, never>;
-  findUnique: (args: unknown) => unknown;
+  findUnique: (args: unknown, ctx: {}) => unknown;
 
   staged = new Set<{
     promise: Promise<Record<string, unknown>>;
     include: Record<string, unknown>;
   }>();
 
-  constructor(model: object, delegate: PrismaDelegate, findUnique: (args: unknown) => unknown) {
+  constructor(
+    model: object,
+    delegate: PrismaDelegate,
+    findUnique: (args: unknown, ctx: {}) => unknown,
+  ) {
     this.model = model;
     this.delegate = delegate;
     this.findUnique = findUnique;
@@ -39,7 +43,7 @@ export class ModelLoader {
     return loaderCache.get(delegate)!;
   }
 
-  async loadRelation(relation: string, include: unknown) {
+  async loadRelation(relation: string, include: unknown, context: {}) {
     let promise;
     for (const entry of this.staged) {
       if (entry.include[relation] === undefined) {
@@ -52,7 +56,7 @@ export class ModelLoader {
     }
 
     if (!promise) {
-      promise = this.initLoad(relation, include);
+      promise = this.initLoad(relation, include, context);
     }
 
     const result = await promise;
@@ -60,7 +64,7 @@ export class ModelLoader {
     return result[relation];
   }
 
-  async initLoad(relation: string, includeArg: unknown) {
+  async initLoad(relation: string, includeArg: unknown, context: {}) {
     const include: Record<string, unknown> = {
       [relation]: includeArg,
     };
@@ -73,7 +77,7 @@ export class ModelLoader {
         resolve(
           this.delegate.findUnique({
             rejectOnNotFound: true,
-            where: { ...(this.findUnique(this.model) as {}) },
+            where: { ...(this.findUnique(this.model, context) as {}) },
             include,
           } as never) as Promise<Record<string, unknown>>,
         );

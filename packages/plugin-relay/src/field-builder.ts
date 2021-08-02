@@ -130,7 +130,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
               String(rawID.id),
             );
 
-      return (await resolveNodes(this.builder, context, [globalID]))[0];
+      return (await resolveNodes(this.builder, context, info, [globalID]))[0];
     },
   });
 };
@@ -169,7 +169,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
             ),
       );
 
-      return resolveNodes(this.builder, context, globalIds);
+      return resolveNodes(this.builder, context, info, globalIds);
     },
   });
 };

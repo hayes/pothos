@@ -1,16 +1,23 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable @typescript-eslint/no-empty-interface */
 import {
   FieldKind,
   FieldNullability,
   FieldRef,
   InputFieldMap,
   InterfaceParam,
+  NormalizeArgs,
   ObjectRef,
+  OutputType,
+  PluginName,
   SchemaTypes,
 } from '@giraphql/core';
 import {
   DelegateFromName,
   ModelName,
+  PrismaConnectionFieldOptions,
   PrismaFieldOptions,
+  PrismaNodeOptions,
   PrismaObjectTypeOptions,
   ShapeFromPrismaDelegate,
 } from './types';
@@ -46,7 +53,14 @@ declare global {
       >(
         type: Name,
         options: PrismaObjectTypeOptions<Types, Name, Interfaces, FindUnique>,
-      ) => ObjectRef<{}>;
+      ) => ObjectRef<ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>>;
+
+      prismaNode: 'relay' extends PluginName
+        ? <Name extends ModelName<Types>, Interfaces extends InterfaceParam<Types>[]>(
+            name: Name,
+            options: PrismaNodeOptions<Types, Name, Interfaces>,
+          ) => ObjectRef<ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>>
+        : '@giraphql/plugin-relay is required to use this method';
     }
 
     export interface RootFieldBuilder<
@@ -83,6 +97,76 @@ declare global {
           Kind
         >,
       ) => FieldRef<ShapeFromPrismaDelegate<Type>>;
+
+      prismaConnection: 'relay' extends PluginName
+        ? <
+            Name extends ModelName<Types>,
+            Type extends DelegateFromName<Types, Name>,
+            Nullable extends boolean,
+            ResolveReturnShape,
+            Args extends InputFieldMap = {},
+          >(
+            ...args: NormalizeArgs<
+              [
+                options: PrismaConnectionFieldOptions<
+                  Types,
+                  ParentShape,
+                  Name,
+                  DelegateFromName<Types, Name>,
+                  ObjectRef<ShapeFromPrismaDelegate<Type>>,
+                  Nullable,
+                  Args,
+                  ResolveReturnShape,
+                  Kind
+                >,
+                connectionOptions?: ConnectionObjectOptions<
+                  Types,
+                  ObjectRef<ShapeFromPrismaDelegate<Type>>,
+                  ResolveReturnShape
+                >,
+                edgeOptions?: ConnectionEdgeObjectOptions<
+                  Types,
+                  ObjectRef<ShapeFromPrismaDelegate<Type>>,
+                  ResolveReturnShape
+                >,
+              ]
+            >
+          ) => FieldRef<
+            ConnectionShapeHelper<Types, ShapeFromPrismaDelegate<Type>, Nullable>['shape']
+          >
+        : '@giraphql/plugin-relay is required to use this method';
+    }
+
+    export interface ConnectionFieldOptions<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends OutputType<Types>,
+      Nullable extends boolean,
+      Args extends InputFieldMap,
+      ResolveReturnShape,
+    > {}
+
+    export interface ConnectionObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      Resolved,
+    > {}
+
+    export interface ConnectionEdgeObjectOptions<
+      Types extends SchemaTypes,
+      Type extends OutputType<Types>,
+      Resolved,
+    > {}
+
+    export interface DefaultConnectionArguments {
+      first?: number | null | undefined;
+      last?: number | null | undefined;
+      before?: string | null | undefined;
+      after?: string | null | undefined;
+    }
+
+    export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {
+      shape: unknown;
     }
   }
 }

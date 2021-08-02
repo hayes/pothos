@@ -1,10 +1,11 @@
-import { Post, PrismaClient, User } from '@prisma/client';
 import builder, { prisma } from '../builder';
 
-builder.prismaObject('User', {
-  findUnique: (user) => ({ id: user.id }),
+builder.prismaNode('User', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
-    id: t.exposeID('id'),
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile'),
@@ -23,9 +24,13 @@ builder.prismaObject('User', {
           where: { authorId: user.id },
         }),
     }),
+    postsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+    }),
     profileThroughManualLookup: t.field({
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       type: Profile,
+      nullable: true,
       resolve: (user) => prisma.user.findUnique({ where: { id: user.id } }).profile(),
     }),
   }),
@@ -85,6 +90,13 @@ builder.queryType({
         prisma.user.findMany({
           ...query,
         }),
+    }),
+    userConnection: t.prismaConnection({
+      type: 'User',
+      cursor: 'id',
+      defaultSize: 10,
+      maxSize: 15,
+      resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
     }),
   }),
 });
