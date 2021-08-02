@@ -1,11 +1,11 @@
 {
   "name": "@giraphql/plugin-prisma",
-  "version": "0.2.0-alpha.0",
+  "version": "0.2.0-alpha.1",
   "description": "A GiraphQL plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
   "scripts": {
-      "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\", \\\"noEmit\\\": false}\""
+    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\", \\\"noEmit\\\": false}\""
   },
   "repository": {
     "type": "git",
