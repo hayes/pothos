@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     clientMutationId?: "omit" | "optional" | "required";
     cursorType?: "ID" | "String";
@@ -56,24 +56,10 @@ export type ConnectionShape<Types extends SchemaTypes, T, Nullable> = (Nullable 
         node: T;
     } | null | undefined)[];
 });
-export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, true>, Nullable>;
-export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, Resolved> = Resolved extends Promise<infer T> ? T extends ConnectionShapeForType<Types, Type, Nullable> ? T : never : Resolved extends ConnectionShapeForType<Types, Type, Nullable> ? Resolved : never;
-export interface DefaultConnectionArguments {
-    first?: number | null | undefined;
-    last?: number | null | undefined;
-    before?: string | null | undefined;
-    after?: string | null | undefined;
-}
-export interface ConnectionFieldOptions<Types extends SchemaTypes, ParentShape, Type extends OutputType<Types>, Nullable extends boolean, Args extends InputFieldMap, ResolveReturnShape> {
-    args?: Args;
-    type: Type;
-    resolve: Resolver<ParentShape, InputShapeFromFields<Args & InputFieldsFromShape<DefaultConnectionArguments>>, Types["Context"], ConnectionShapeForType<Types, Type, Nullable>, ResolveReturnShape>;
-}
-export interface ConnectionObjectOptions<Types extends SchemaTypes, ParentShape> extends GiraphQLSchemaTypes.ObjectTypeOptions<Types, ParentShape> {
-    name?: string;
-}
-export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, ParentShape> extends GiraphQLSchemaTypes.ObjectTypeOptions<Types, ParentShape> {
-    name?: string;
+export type ConnectionShapeFromBaseShape<Types extends SchemaTypes, Shape, Nullable extends boolean> = ConnectionShape<Types, Shape, Nullable>;
+export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, false>, Nullable>;
+export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, Resolved> = Resolved extends Promise<infer T> ? T extends ConnectionShapeForType<Types, Type, Nullable> ? T : ConnectionShapeForType<Types, Type, Nullable> : Resolved extends ConnectionShapeForType<Types, Type, Nullable> ? Resolved : ConnectionShapeForType<Types, Type, Nullable>;
+export interface DefaultConnectionArguments extends GiraphQLSchemaTypes.DefaultConnectionArguments {
 }
 export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, "isTypeOf"> & 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -90,6 +76,7 @@ export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectPar
     id: Omit<FieldOptionsFromKind<Types, ParentShape<Types, Param>, "ID", false, {}, "Object", OutputShape<Types, "ID">, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type">;
     loadOne?: (id: string, context: Types["Context"]) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
     loadMany?: (ids: string[], context: Types["Context"]) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+    loadWithoutCache?: (id: string, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
 };
 export type GlobalIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type"> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;

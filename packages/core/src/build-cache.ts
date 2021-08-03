@@ -51,6 +51,7 @@ import {
   InputType,
   OutputType,
   SchemaTypes,
+  typeBrandKey,
 } from '.';
 
 export default class BuildCache<Types extends SchemaTypes> {
@@ -563,6 +564,16 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private buildInterface(config: GiraphQLInterfaceTypeConfig) {
     const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (parent, context, info) => {
+      if (typeof parent === 'object' && parent !== null && typeBrandKey in parent) {
+        const typeBrand = (parent as { [typeBrandKey]: OutputType<SchemaTypes> })[typeBrandKey];
+
+        if (typeof typeBrand === 'string') {
+          return typeBrand;
+        }
+
+        return this.getTypeConfig(typeBrand).name;
+      }
+
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
       const implementers = this.getImplementers(type);
 

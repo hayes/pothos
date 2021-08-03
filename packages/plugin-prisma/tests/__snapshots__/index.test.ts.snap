@@ -1,0 +1,639 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`prisma generates schema 1`] = `
+"interface Named {
+  name: String
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Post {
+  author: User!
+  content: String
+  createdAt: String!
+  id: ID!
+  title: String!
+}
+
+type Profile {
+  bio: String
+  id: ID!
+  user: User
+}
+
+type Query {
+  me: User!
+  named: [Named]
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  userConnection(after: ID, before: ID, first: Int, last: Int): QueryUserConnection!
+  userOrProfile: [UserOrProfile]
+  users: [User!]!
+}
+
+type QueryUserConnection {
+  edges: [QueryUserConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryUserConnectionEdge {
+  cursor: String!
+  node: User!
+}
+
+type User implements Named & Node {
+  email: String!
+  id: ID!
+  name: String
+  posts(oldestFirst: Boolean): [Post!]!
+  postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean): UserPostsConnection!
+  profile: Profile!
+  profileThroughManualLookup: Profile
+}
+
+union UserOrProfile = Profile | User
+
+type UserPostsConnection {
+  edges: [UserPostsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+"
+`;
+
+exports[`prisma queries for list with nested relations 1`] = `
+Object {
+  "data": Object {
+    "users": Array [
+      Object {
+        "name": "Maurine Ratke",
+        "posts": Array [
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "250",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "249",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "248",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "247",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "246",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "245",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "244",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "243",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "242",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "1",
+              },
+            },
+            "id": "241",
+          },
+        ],
+        "profile": Object {
+          "bio": "Sequi minus inventore itaque similique et.",
+        },
+      },
+      Object {
+        "name": "Nichole Koss",
+        "posts": Array [
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "500",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "499",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "498",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "497",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "496",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "495",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "494",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "493",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "492",
+          },
+          Object {
+            "author": Object {
+              "profile": Object {
+                "id": "2",
+              },
+            },
+            "id": "491",
+          },
+        ],
+        "profile": Object {
+          "bio": "Ut quo accusantium fuga veritatis.",
+        },
+      },
+    ],
+  },
+}
+`;
+
+exports[`prisma queries for record with nested relations 1`] = `
+Object {
+  "data": Object {
+    "me": Object {
+      "posts": Array [
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+        Object {
+          "author": Object {
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+            },
+          },
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`prisma queries with arguments and aliases 1`] = `
+Object {
+  "data": Object {
+    "me": Object {
+      "oldestPosts": Array [
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "1",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "2",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "3",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "4",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "5",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "6",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "7",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "8",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "9",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "10",
+        },
+      ],
+      "posts": Array [
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "250",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "249",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "248",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "247",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "246",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "245",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "244",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "243",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "242",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "241",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`prisma queries with variables and alieases 1`] = `
+Object {
+  "data": Object {
+    "me": Object {
+      "oldestPosts": Array [
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "1",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "2",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "3",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "4",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "5",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "6",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "7",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "8",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "9",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "10",
+        },
+      ],
+      "postIds": Array [
+        Object {
+          "id": "250",
+        },
+        Object {
+          "id": "249",
+        },
+        Object {
+          "id": "248",
+        },
+        Object {
+          "id": "247",
+        },
+        Object {
+          "id": "246",
+        },
+        Object {
+          "id": "245",
+        },
+        Object {
+          "id": "244",
+        },
+        Object {
+          "id": "243",
+        },
+        Object {
+          "id": "242",
+        },
+        Object {
+          "id": "241",
+        },
+      ],
+      "posts": Array [
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "250",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "249",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "248",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "247",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "246",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "245",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "244",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "243",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "242",
+        },
+        Object {
+          "author": Object {
+            "id": "VXNlcjox",
+          },
+          "id": "241",
+        },
+      ],
+    },
+  },
+}
+`;

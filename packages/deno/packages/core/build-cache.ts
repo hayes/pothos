@@ -6,7 +6,7 @@ import { MergedPlugins } from './plugins/index.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
 import { PluginMap } from './types/index.ts';
 import { isThenable } from './utils/index.ts';
-import { assertNever, BasePlugin, GiraphQLEnumTypeConfig, GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInputFieldType, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLKindToGraphQLTypeClass, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLTypeConfig, GiraphQLTypeKind, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputType, OutputType, SchemaTypes, } from './index.ts';
+import { assertNever, BasePlugin, GiraphQLEnumTypeConfig, GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInputFieldType, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLKindToGraphQLTypeClass, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLTypeConfig, GiraphQLTypeKind, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputType, OutputType, SchemaTypes, typeBrandKey, } from './index.ts';
 export default class BuildCache<Types extends SchemaTypes> {
     types = new Map<string, GraphQLNamedType>();
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
@@ -363,6 +363,15 @@ export default class BuildCache<Types extends SchemaTypes> {
     }
     private buildInterface(config: GiraphQLInterfaceTypeConfig) {
         const resolveType: GraphQLTypeResolver<unknown, Types["Context"]> = (parent, context, info) => {
+            if (typeof parent === "object" && parent !== null && typeBrandKey in parent) {
+                const typeBrand = (parent as {
+                    [typeBrandKey]: OutputType<SchemaTypes>;
+                })[typeBrandKey];
+                if (typeof typeBrand === "string") {
+                    return typeBrand;
+                }
+                return this.getTypeConfig(typeBrand).name;
+            }
             // eslint-disable-next-line @typescript-eslint/no-use-before-define
             const implementers = this.getImplementers(type);
             const promises: Promise<GiraphQLObjectTypeConfig | null>[] = [];

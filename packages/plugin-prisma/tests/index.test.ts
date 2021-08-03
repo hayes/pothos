@@ -1,5 +1,5 @@
 import { gql } from 'apollo-server';
-import { execute } from 'graphql';
+import { execute, printSchema } from 'graphql';
 import { prisma } from './example/builder';
 import schema from './example/schema';
 
@@ -17,6 +17,10 @@ describe('prisma', () => {
 
   afterAll(async () => {
     await prisma.$disconnect();
+  });
+
+  it('generates schema', () => {
+    expect(printSchema(schema)).toMatchSnapshot();
   });
 
   it('queries for single item', async () => {
@@ -38,18 +42,17 @@ describe('prisma', () => {
       Object {
         "data": Object {
           "me": Object {
-            "id": "1",
+            "id": "VXNlcjox",
           },
         },
       }
-    `);
+      `);
 
     expect(queries).toMatchInlineSnapshot(`
       Array [
         Object {
           "action": "findUnique",
           "args": Object {
-            "include": undefined,
             "where": Object {
               "id": 1,
             },
@@ -82,10 +85,10 @@ describe('prisma', () => {
         "data": Object {
           "users": Array [
             Object {
-              "id": "1",
+              "id": "VXNlcjox",
             },
             Object {
-              "id": "2",
+              "id": "VXNlcjoy",
             },
           ],
         },
@@ -93,18 +96,18 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "action": "findMany",
-          "args": Object {
-            "include": undefined,
-          },
-          "dataPath": Array [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-      ]
-    `);
+Array [
+  Object {
+    "action": "findMany",
+    "args": Object {
+      "take": 2,
+    },
+    "dataPath": Array [],
+    "model": "User",
+    "runInTransaction": false,
+  },
+]
+`);
   });
 
   it('queries for record with nested relations', async () => {
@@ -128,80 +131,53 @@ describe('prisma', () => {
       contextValue: { user: { id: 1 } },
     });
 
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "posts": Array [
-              Object {
-                "author": Object {
-                  "profile": Object {
-                    "bio": "This is a bio",
-                  },
-                },
-              },
-              Object {
-                "author": Object {
-                  "profile": Object {
-                    "bio": "This is a bio",
-                  },
-                },
-              },
-              Object {
-                "author": Object {
-                  "profile": Object {
-                    "bio": "This is a bio",
-                  },
-                },
-              },
-            ],
-          },
-        },
-      }
-    `);
+    expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
-                      "profile": true,
-                    },
-                  },
-                },
-                "orderBy": Object {
-                  "createdAt": "desc",
-                },
+Array [
+  Object {
+    "action": "findUnique",
+    "args": Object {
+      "include": Object {
+        "posts": Object {
+          "include": Object {
+            "author": Object {
+              "include": Object {
+                "profile": true,
               },
             },
-            "where": Object {
-              "id": 1,
-            },
           },
-          "dataPath": Array [],
-          "model": "User",
-          "runInTransaction": false,
+          "orderBy": Object {
+            "createdAt": "desc",
+          },
+          "take": 10,
         },
-      ]
-    `);
+      },
+      "where": Object {
+        "id": 1,
+      },
+    },
+    "dataPath": Array [],
+    "model": "User",
+    "runInTransaction": false,
+  },
+]
+`);
   });
 
   it('queries for list with nested relations', async () => {
     const query = gql`
       query {
         users {
+          name
           profile {
             bio
           }
           posts {
+            id
             author {
               profile {
-                bio
+                id
               }
             }
           }
@@ -215,91 +191,37 @@ describe('prisma', () => {
       contextValue: { user: { id: 1 } },
     });
 
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "users": Array [
-            Object {
-              "posts": Array [
-                Object {
-                  "author": Object {
-                    "profile": Object {
-                      "bio": "This is a bio",
-                    },
-                  },
-                },
-                Object {
-                  "author": Object {
-                    "profile": Object {
-                      "bio": "This is a bio",
-                    },
-                  },
-                },
-                Object {
-                  "author": Object {
-                    "profile": Object {
-                      "bio": "This is a bio",
-                    },
-                  },
-                },
-              ],
-              "profile": Object {
-                "bio": "This is a bio",
-              },
-            },
-            Object {
-              "posts": Array [
-                Object {
-                  "author": Object {
-                    "profile": Object {
-                      "bio": "Bio of user 2",
-                    },
-                  },
-                },
-                Object {
-                  "author": Object {
-                    "profile": Object {
-                      "bio": "Bio of user 2",
-                    },
-                  },
-                },
-              ],
-              "profile": Object {
-                "bio": "Bio of user 2",
-              },
-            },
-          ],
-        },
-      }
-    `);
+    expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
-          "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
-                      "profile": true,
-                    },
-                  },
-                },
-                "orderBy": Object {
-                  "createdAt": "desc",
-                },
+Array [
+  Object {
+    "action": "findMany",
+    "args": Object {
+      "include": Object {
+        "posts": Object {
+          "include": Object {
+            "author": Object {
+              "include": Object {
+                "profile": true,
               },
-              "profile": true,
             },
           },
-          "dataPath": Array [],
-          "model": "User",
-          "runInTransaction": false,
+          "orderBy": Object {
+            "createdAt": "desc",
+          },
+          "take": 10,
         },
-      ]
-    `);
+        "profile": true,
+      },
+      "take": 2,
+    },
+    "dataPath": Array [],
+    "model": "User",
+    "runInTransaction": false,
+  },
+]
+`);
   });
   it('queries with arguments and aliases', async () => {
     const query = gql`
@@ -327,54 +249,7 @@ describe('prisma', () => {
       contextValue: { user: { id: 1 } },
     });
 
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "oldestPosts": Array [
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "1",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "2",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "3",
-              },
-            ],
-            "posts": Array [
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "3",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "2",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "1",
-              },
-            ],
-          },
-        },
-      }
-    `);
+    expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
 Array [
@@ -393,6 +268,7 @@ Array [
           "orderBy": Object {
             "createdAt": "desc",
           },
+          "take": 10,
         },
       },
       "where": Object {
@@ -416,6 +292,7 @@ Array [
       "orderBy": Object {
         "createdAt": "asc",
       },
+      "take": 10,
       "where": Object {
         "authorId": 1,
       },
@@ -460,65 +337,7 @@ Array [
       },
     });
 
-    expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "oldestPosts": Array [
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "1",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "2",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "3",
-              },
-            ],
-            "postIds": Array [
-              Object {
-                "id": "3",
-              },
-              Object {
-                "id": "2",
-              },
-              Object {
-                "id": "1",
-              },
-            ],
-            "posts": Array [
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "3",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "2",
-              },
-              Object {
-                "author": Object {
-                  "id": "1",
-                },
-                "id": "1",
-              },
-            ],
-          },
-        },
-      }
-    `);
+    expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
 Array [
@@ -537,6 +356,7 @@ Array [
           "orderBy": Object {
             "createdAt": "desc",
           },
+          "take": 10,
         },
       },
       "where": Object {
@@ -553,6 +373,7 @@ Array [
       "orderBy": Object {
         "createdAt": "desc",
       },
+      "take": 10,
       "where": Object {
         "authorId": 1,
       },
@@ -574,6 +395,7 @@ Array [
       "orderBy": Object {
         "createdAt": "asc",
       },
+      "take": 10,
       "where": Object {
         "authorId": 1,
       },
@@ -611,27 +433,26 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "profileThroughManualLookup": Object {
-              "user": Object {
-                "profile": Object {
-                  "bio": "This is a bio",
-                },
-              },
-            },
+Object {
+  "data": Object {
+    "me": Object {
+      "profileThroughManualLookup": Object {
+        "user": Object {
+          "profile": Object {
+            "bio": "Sequi minus inventore itaque similique et.",
           },
         },
-      }
-    `);
+      },
+    },
+  },
+}
+`);
 
     expect(queries).toMatchInlineSnapshot(`
       Array [
         Object {
           "action": "findUnique",
           "args": Object {
-            "include": undefined,
             "where": Object {
               "id": 1,
             },

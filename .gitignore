@@ -40,7 +40,10 @@ todo.md
 babel.config.js
 jest.config.js
 prettier.config.js
-tsconfig.json
+/tsconfig.json
+packages/*/tsconfig.json
+packages/*/test/tsconfig.json
+packages/*/tests/tsconfig.json
 tsconfig.eslint.json
 tsconfig.options.json
 webpack.config.js

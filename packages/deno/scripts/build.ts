@@ -5,9 +5,9 @@ import * as ts from 'typescript';
 
 const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
-const excludedPackages = ['converter', 'deno', 'plugin-example'];
+const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma'];
 const excludedDirs = ['lib', 'test', 'tests', 'node_modules'];
-const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md'];
+const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore'];
 
 const moduleMap: Record<string, string> = {
   graphql: 'https://cdn.skypack.dev/graphql?dts',
