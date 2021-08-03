@@ -3,6 +3,31 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 0.2.0 - 2021-08-03
+
+#### 🚀 Updates
+
+- add relay integration for prisma plugin ([e714e54](https://github.com/hayes/giraphql/commit/e714e54))
+
+#### 🐞 Fixes
+
+- merge connection args into relatedConnection queries ([762c06f](https://github.com/hayes/giraphql/commit/762c06f))
+- update db seeding to give unique createdAt ([279349d](https://github.com/hayes/giraphql/commit/279349d))
+
+#### 📘 Docs
+
+- add docs for prisma relay integration ([6c6cbd5](https://github.com/hayes/giraphql/commit/6c6cbd5))
+
+#### 🛠 Internals
+
+- update tests with seed data ([f3b053a](https://github.com/hayes/giraphql/commit/f3b053a))
+
+**Note:** Version bump only for package @giraphql/plugin-prisma
+
+
+
+
+
 ### 0.2.0-alpha.1 - 2021-08-02
 
 #### 🐞 Fixes

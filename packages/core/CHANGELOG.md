@@ -3,6 +3,18 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+## 2.12.0 - 2021-08-03
+
+#### 🚀 Updates
+
+- add relay integration for prisma plugin ([e714e54](https://github.com/hayes/giraphql/commit/e714e54))
+
+**Note:** Version bump only for package @giraphql/core
+
+
+
+
+
 ## 2.12.0-alpha.0 - 2021-08-02
 
 #### 🚀 Updates
