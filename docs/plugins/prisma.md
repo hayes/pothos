@@ -16,15 +16,22 @@ This plugin is experimental, and may have some breaking changes in the future.
 This plugin is NOT required to build graphs backed by prisma models, and I would not recommend using
 it unless you have a solid understanding of how it will construct queries.
 
-This plugin will make it very easy to have common queries be resolved through a single prisma query
-(prisma may still turn this into multiple SQL queries), and provides reasonable, predictable and
-safe fallbacks for more complex queries and edge cases. That being said, graphql APIs are complex,
-and it is important to understand the queries your API is capable of executing.
+This plugin will allow common queries to be resolved through a single prisma query (prisma may still
+turn this into multiple SQL queries), and provides reasonable, predictable and safe fallbacks for
+more complex queries and edge cases. That being said, graphql APIs are complex, and it is important
+to understand the queries your API is capable of executing.
 
 The way this plugin resolves queries is designed to be efficient, while still being predictable and
 easy to understand. Tools that try to automatically generate queries are often hard to understand
-and reason about, so this plugin tries to make things as clear as possible, by limiting generated
-queries to an absolute minimum.
+and reason about, so this plugin tries to make things as clear as possible by providing query
+options to resolvers and a loading user code to initiate the actual queries. The options generally
+only contain `include`s for nested relations (connection fields provide more complex query options).
+The exception to this, is that we provide a default resolver for relations that can handle querying
+for a relation if data was not pre-loaded by a parent field. This query used by this resolver is
+simple, and described in detail below.
+
+With this simple approach, we get an API that is easy to understand, but still provides a lot of
+value and functionality.
 
 ### Example
 
@@ -120,7 +127,7 @@ query {
 Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
 resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
 so we need a separate to handle the second `posts` relation. This may seem slightly magical, but
-should be predictable and hopefully understandable after reading the documentation below.
+should be predictable and hopefully easy to understand after reading the documentation below.
 
 ### GiraphQL + Prisma without a plugin
 
