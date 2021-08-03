@@ -16,6 +16,12 @@ prisma.$on('query', (e) => {
   console.log(`Duration: ${e.duration}ms`);
 });
 
+prisma.$use((params, next) => {
+  console.log(JSON.stringify(params, null, 2));
+
+  return next(params);
+});
+
 server
   .listen(3000, () => {
     console.log('🚀 Server started at http://127.0.0.1:3000');

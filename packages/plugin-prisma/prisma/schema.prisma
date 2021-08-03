@@ -11,7 +11,7 @@ generator client {
 
 model Post {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now())
+  createdAt DateTime @default(now()) @unique
   updatedAt DateTime @updatedAt
   title     String
   content   String?

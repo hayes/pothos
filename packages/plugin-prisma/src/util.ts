@@ -38,6 +38,10 @@ function handleField(
   mappings: LoaderMappings,
   indirectMap?: IndirectLoadMap,
 ) {
+  if (selection.name.value.startsWith('__')) {
+    return;
+  }
+
   const field = fields[selection.name.value];
 
   if (!field) {

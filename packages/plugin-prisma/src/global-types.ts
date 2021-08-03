@@ -12,6 +12,7 @@ import {
   PluginName,
   SchemaTypes,
 } from '@giraphql/core';
+import PrismaNodeRef from './node-ref';
 import {
   DelegateFromName,
   ModelName,
@@ -59,7 +60,7 @@ declare global {
         ? <Name extends ModelName<Types>, Interfaces extends InterfaceParam<Types>[]>(
             name: Name,
             options: PrismaNodeOptions<Types, Name, Interfaces>,
-          ) => ObjectRef<ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>>
+          ) => PrismaNodeRef<ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>>
         : '@giraphql/plugin-relay is required to use this method';
     }
 

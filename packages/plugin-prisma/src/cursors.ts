@@ -1,9 +1,14 @@
+/* eslint-disable no-nested-ternary */
 import { MaybePromise } from '@giraphql/core';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
 function formatCursor(value: unknown): string {
+  if (value instanceof Date) {
+    return Buffer.from(`GPC:D:${String(Number(value))}`).toString('base64');
+  }
+
   switch (typeof value) {
     case 'number':
       return Buffer.from(`GPC:N:${value}`).toString('base64');
@@ -28,6 +33,8 @@ function parseCursor(cursor: unknown) {
         return value;
       case 'N':
         return Number.parseInt(value, 10);
+      case 'D':
+        return new Date(Number.parseInt(value, 10));
       default:
         throw new TypeError(`Invalid cursor type ${type}`);
     }
@@ -104,7 +111,7 @@ export function wrapConnectionResult<T extends {}>(
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : gotFullResults;
-  const hasPreviousPage = args.after ? true : gotFullResults;
+  const hasPreviousPage = args.after ? true : args.before ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;

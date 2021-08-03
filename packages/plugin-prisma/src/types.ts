@@ -15,6 +15,7 @@ import {
   OutputType,
   SchemaTypes,
   ShapeFromTypeParam,
+  typeBrandKey,
   TypeParam,
 } from '@giraphql/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
@@ -188,9 +189,18 @@ export type InlcudeFromRelation<
   Field extends keyof SelectFromPrismaDelegate<Type>,
 > = IncludeFromPrismaDelegate<Type>[Field] extends infer Include
   ? Include extends {
-      include?: infer X;
+      include?: infer T;
     }
-    ? NonNullable<X>
+    ? NonNullable<T>
+    : never
+  : never;
+
+export type CursorFromRelation<
+  Type extends PrismaDelegate,
+  Field extends keyof SelectFromPrismaDelegate<Type>,
+> = SelectFromPrismaDelegate<Type>[Field] extends infer Include
+  ? Include extends { cursor?: infer T }
+    ? keyof T
     : never
   : never;
 
@@ -358,7 +368,7 @@ export type RelatedConnectionOptions<
     'resolve' | 'type'
   > & {
     query?: QueryForField<Args, SelectFromPrismaDelegate<Type>[Field]>;
-    cursor: CursorFromPrismaDelegate<Type>;
+    cursor: CursorFromRelation<Type, Field>;
     defaultSize?: number;
     maxSize?: number;
   } & (NeedsResolve extends false
@@ -390,3 +400,5 @@ export type RelatedConnectionOptions<
           info: GraphQLResolveInfo,
         ) => MaybePromise<RelationShape<Type, Field>>;
       });
+
+export type WithBrand<T> = T & { [typeBrandKey]: string };

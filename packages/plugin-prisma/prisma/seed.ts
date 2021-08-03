@@ -12,10 +12,12 @@ async function main() {
     const lastName = faker.name.lastName();
     const email = faker.internet.email(firstName, lastName);
 
-    const posts: { title: string; content: string }[] = [];
+    const now = Date.now();
+    const posts: { title: string; content: string; createdAt: Date }[] = [];
 
     for (let j = 0; j < 250; ++j) {
       posts.push({
+        createdAt: new Date(now + i * 500 + j),
         title: faker.lorem.sentence(),
         content: faker.lorem.paragraph(),
       });

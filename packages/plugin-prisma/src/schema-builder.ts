@@ -10,6 +10,7 @@ import SchemaBuilder, {
   TypeParam,
 } from '@giraphql/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
+import PrismaNodeRef from './node-ref';
 import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
 import { ModelName, PrismaNodeOptions } from './types';
 import { queryFromInfo } from './util';
@@ -55,10 +56,12 @@ schemaBuilderProto.prismaNode = function prismaNode(
   }
 
   const typeName = name ?? model;
+  const nodeRef = new PrismaNodeRef(typeName);
   const delegate = getDelegateFromModel(this.options.prisma.client, model);
   const extendedOptions = {
     ...options,
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
+    isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
     findUnique: (parent: unknown, context: {}) =>
       findUnique(options.id.resolve(parent as never, context) as string, context),
     loadWithoutCache: async (
@@ -104,5 +107,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     );
   });
 
-  return ref;
+  this.configStore.associateRefWithName(nodeRef, typeName);
+
+  return nodeRef;
 } as never;
