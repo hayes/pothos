@@ -704,11 +704,9 @@ Array [
     "args": Object {
       "include": Object {
         "posts": Object {
-          "orderBy": Array [
-            Object {
-              "createdAt": "desc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "desc",
+          },
           "skip": 0,
           "take": 21,
         },
@@ -767,11 +765,9 @@ Invalid \`prisma.user.findMany()\` invocation:
 {
   include: {
     posts: {
-      orderBy: [
-        {
-          createdAt: 'desc'
-        }
-      ],
+      orderBy: {
+        createdAt: 'desc'
+      },
       cursor: {
         createdAt: 5
                    ~
@@ -801,11 +797,9 @@ Array [
           "cursor": Object {
             "createdAt": 5,
           },
-          "orderBy": Array [
-            Object {
-              "createdAt": "desc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "desc",
+          },
           "skip": 1,
           "take": 3,
         },
@@ -896,11 +890,9 @@ Array [
           "cursor": Object {
             "createdAt": 2021-08-03T01:46:09.762Z,
           },
-          "orderBy": Array [
-            Object {
-              "createdAt": "asc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "asc",
+          },
           "skip": 1,
           "take": 3,
         },
@@ -1027,11 +1019,9 @@ Array [
           "cursor": Object {
             "createdAt": 2021-08-03T01:46:09.762Z,
           },
-          "orderBy": Array [
-            Object {
-              "createdAt": "asc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "asc",
+          },
           "skip": 1,
           "take": 3,
         },
@@ -1048,11 +1038,9 @@ Array [
     "args": Object {
       "include": Object {
         "posts": Object {
-          "orderBy": Array [
-            Object {
-              "createdAt": "desc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "desc",
+          },
           "skip": 0,
           "take": 3,
         },
@@ -1212,11 +1200,9 @@ Array [
               },
             },
           },
-          "orderBy": Array [
-            Object {
-              "createdAt": "asc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "asc",
+          },
           "skip": 1,
           "take": 3,
         },
@@ -1240,11 +1226,9 @@ Array [
               },
             },
           },
-          "orderBy": Array [
-            Object {
-              "createdAt": "desc",
-            },
-          ],
+          "orderBy": Object {
+            "createdAt": "desc",
+          },
           "skip": 0,
           "take": 3,
         },
