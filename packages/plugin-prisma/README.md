@@ -26,7 +26,7 @@ queries to an absolute minimum.
 Here is a quick example of what an API using this plugin might look like. There is a more thorough
 breakdown of what the methods and options used in the example below.
 
-If you are looking for an example integrated with the [relay plugin](giraphql.com/plugins/relay),
+If you are looking for an example integrated with the [relay plugin](https://giraphql.com/plugins/relay),
 see the [Relay integration](#relay-integration) section below.
 
 ```typescript
@@ -515,7 +515,7 @@ custom resolver.
 
 ## Relay integration
 
-This plugin has extensive integration with the [relay plugin](giraphql.com/plugins/relay), which
+This plugin has extensive integration with the [relay plugin](https://giraphql.com/plugins/relay), which
 makes creating nodes and connections very easy.
 
 ### Example
