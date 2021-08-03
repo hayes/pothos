@@ -611,7 +611,7 @@ builder.prismaNode('Post', {
 ### `prismaConnection`
 
 The `prismaConnection` method on a field builder can be used to create a relay `connection` field
-that also pre-loads all the date nested inside that connection.
+that also pre-loads all the data nested inside that connection.
 
 ```typescript
 builder.queryType({
