@@ -637,9 +637,16 @@ builder.queryType({
   connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
   selections.
 
-The created connection queries currently support `first` and `last` and `before` alone, or `before`
-with `first` and `after` with `last`. Queries for other combinations are not very useful, and
-resolving them according to spec requires more complex queries with unbounded sizes.
+The created connection queries currently support the following combinations of connection arguments:
+
+- `first`, `last`, or `before`
+- `first` and `before`
+- `last` and `after`
+
+Queries for other combinations are not as useful, and generally requiring loading all records
+between 2 cursors, or between a cursor and the end of the set. Generating query options for these
+cases is more complex and likely very inefficient, so they will currently throw an Error indicating
+the argument combinations are not supported.
 
 ### `relatedConnection`
 
