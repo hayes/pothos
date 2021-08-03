@@ -59,14 +59,14 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 export async function resolveOffsetConnection<T>(options: ResolveOffsetConnectionOptions, resolve: (params: {
     offset: number;
     limit: number;
-}) => Promise<T[]> | T[]): Promise<ConnectionShape<SchemaTypes, T, boolean>> {
+}) => Promise<T[]> | T[]): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, boolean>> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = await resolve({ offset, limit });
     const edges = nodes.map((value, index) => value == null
         ? null
         : {
             cursor: offsetToCursor(offset + index),
-            node: value,
+            node: value as NonNullable<T>,
         });
     const trimmed = edges.slice(0, expectedSize);
     return {

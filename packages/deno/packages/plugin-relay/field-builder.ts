@@ -55,7 +55,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
             const globalID = typeof rawID === "string"
                 ? rawID
                 : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(rawID.type).name, String(rawID.id));
-            return (await resolveNodes(this.builder, context, [globalID]))[0];
+            return (await resolveNodes(this.builder, context, info, [globalID]))[0];
         },
     });
 };
@@ -77,7 +77,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
             const globalIds = rawIds.map((id) => !id || typeof id === "string"
                 ? id
                 : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(id.type).name, String(id.id)));
-            return resolveNodes(this.builder, context, globalIds);
+            return resolveNodes(this.builder, context, info, globalIds);
         },
     });
 };

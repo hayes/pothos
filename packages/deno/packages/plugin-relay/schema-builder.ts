@@ -62,7 +62,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
             id: t.arg.id({ required: true }),
         },
         nullable: true,
-        resolve: async (root, args, context) => (await resolveNodes(this, context, [String(args.id)]))[0],
+        resolve: async (root, args, context, info) => (await resolveNodes(this, context, info, [String(args.id)]))[0],
     }) as FieldRef<unknown>);
     this.queryField("nodes", (t) => t.field({
         ...this.options.relayOptions.nodesQueryOptions,
@@ -74,7 +74,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
             list: false,
             items: true,
         },
-        resolve: async (root, args, context) => (await resolveNodes(this, context, args.ids as string[])) as Promise<ObjectParam<SchemaTypes> | null>[],
+        resolve: async (root, args, context, info) => (await resolveNodes(this, context, info, args.ids as string[])) as Promise<ObjectParam<SchemaTypes> | null>[],
     }));
     return ref;
 };

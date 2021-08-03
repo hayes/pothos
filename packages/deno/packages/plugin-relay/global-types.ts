@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputObjectRef, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, ParentShape, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-import { ConnectionEdgeObjectOptions, ConnectionFieldOptions, ConnectionObjectOptions, ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, DefaultConnectionArguments, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
 import { GiraphQLRelayPlugin } from './index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
@@ -27,11 +27,11 @@ declare global {
                 payloadType: ObjectRef<ResolveShape>;
             };
             connectionObject: <Type extends OutputType<Types>, ResolveReturnShape>(...args: NormalizeArgs<[
-                connectionOptions: ConnectionObjectOptions<Types, ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>> & {
+                connectionOptions: ConnectionObjectOptions<Types, Type, ResolveReturnShape> & {
                     name: string;
                     type: Type;
                 },
-                edgeOptions?: ConnectionEdgeObjectOptions<Types, ConnectionShapeForType<Types, Type, false>["edges"][number]> & {
+                edgeOptions?: ConnectionEdgeObjectOptions<Types, Type, ResolveReturnShape> & {
                     name?: string;
                 }
             ]>) => ObjectRef<ConnectionShapeForType<Types, Type, false>>;
@@ -67,9 +67,29 @@ declare global {
             nodeList: <Args extends InputFieldMap, ResolveShape>(options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<unknown[]>;
             connection: <Type extends OutputType<Types>, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape>(...args: NormalizeArgs<[
                 options: ConnectionFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape> & Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args & InputFieldsFromShape<DefaultConnectionArguments>, Kind, ParentShape, ResolveReturnShape>, "args" | "resolve" | "type">,
-                connectionOptions?: ConnectionObjectOptions<Types, ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>>,
-                edgeOptions?: ConnectionEdgeObjectOptions<Types, ConnectionShapeFromResolve<Types, Type, false, ResolveReturnShape>["edges"][number]>
+                connectionOptions?: ConnectionObjectOptions<Types, Type, ResolveReturnShape>,
+                edgeOptions?: ConnectionEdgeObjectOptions<Types, Type, ResolveReturnShape>
             ]>) => FieldRef<ConnectionShapeForType<Types, Type, Nullable>>;
+        }
+        export interface ConnectionFieldOptions<Types extends SchemaTypes, ParentShape, Type extends OutputType<Types>, Nullable extends boolean, Args extends InputFieldMap, ResolveReturnShape> {
+            type: Type;
+            args?: Args;
+            resolve: Resolver<ParentShape, InputShapeFromFields<Args & InputFieldsFromShape<DefaultConnectionArguments>>, Types["Context"], ConnectionShapeForType<Types, Type, Nullable>, ResolveReturnShape>;
+        }
+        export interface ConnectionObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, Resolved> extends ObjectTypeOptions<Types, ConnectionShapeFromResolve<Types, Type, false, Resolved>> {
+            name?: string;
+        }
+        export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, Resolved> extends ObjectTypeOptions<Types, ConnectionShapeFromResolve<Types, Type, false, Resolved>["edges"][number]> {
+            name?: string;
+        }
+        export interface DefaultConnectionArguments {
+            first?: number | null | undefined;
+            last?: number | null | undefined;
+            before?: string | null | undefined;
+            after?: string | null | undefined;
+        }
+        export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {
+            shape: ConnectionShape<Types, T, Nullable>;
         }
     }
 }

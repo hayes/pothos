@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { OutputType, SchemaTypes, typeBrandKey } from '../index.ts';
 export * from './context-cache.ts';
 export * from './enums.ts';
 export * from './input.ts';
@@ -27,4 +28,13 @@ If this ref is imported from a file that re-exports it (like index.ts)
 you may be able to resolve this by importing it directly fron the file that defines it.
 `);
     }
+}
+export function brandWithType<Types extends SchemaTypes>(val: unknown, type: OutputType<Types>) {
+    if (typeof val !== "object" || val === null) {
+        return;
+    }
+    Object.defineProperty(val, typeBrandKey, {
+        enumerable: false,
+        value: type,
+    });
 }
