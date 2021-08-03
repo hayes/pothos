@@ -535,7 +535,7 @@ Everything in this schema is still queryable via a single prisma query. The rela
 pre-loading like all the other fields.
 
 ```typescript
-builder.prismaNide('User', {
+builder.prismaNode('User', {
   findUnique: (id) => ({ id }),
   id: { resolve: (user) => user.id },
   fields: (t) => ({
@@ -651,7 +651,7 @@ The `relatedConnection` method can be used to create a relay `connection` field 
 of the current model.
 
 ```typescript
-builder.prismaNide('User', {
+builder.prismaNode('User', {
   findUnique: (id) => ({ id }),
   id: { resolve: (user) => user.id },
   fields: (t) => ({
