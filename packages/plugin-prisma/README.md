@@ -26,8 +26,9 @@ queries to an absolute minimum.
 Here is a quick example of what an API using this plugin might look like. There is a more thorough
 breakdown of what the methods and options used in the example below.
 
-If you are looking for an example integrated with the [relay plugin](https://giraphql.com/plugins/relay),
-see the [Relay integration](#relay-integration) section below.
+If you are looking for an example integrated with the
+[relay plugin](https://giraphql.com/plugins/relay), see the [Relay integration](#relay-integration)
+section below.
 
 ```typescript
 builder.prismaObject('User', {
@@ -515,8 +516,8 @@ custom resolver.
 
 ## Relay integration
 
-This plugin has extensive integration with the [relay plugin](https://giraphql.com/plugins/relay), which
-makes creating nodes and connections very easy.
+This plugin has extensive integration with the [relay plugin](https://giraphql.com/plugins/relay),
+which makes creating nodes and connections very easy.
 
 ### Example
 
@@ -526,8 +527,8 @@ The following example is similar to the one above with a few changes:
 - the `posts` field on the `User` type is now a relay connection using cursor based pagination
 - there is a new `users` query that is also a relay connection
 
-Everything in this schema is still queryable via a single prisma query. The relay connections handle
-pre-loading like all the other fields.
+Everything in this schema is still queryable via a single prisma query. The relay connections
+handles pre-loading like all the other fields.
 
 ```typescript
 builder.prismaNode('User', {
