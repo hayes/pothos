@@ -1,4 +1,3 @@
-import { brandWithType } from '@giraphql/core';
 import builder, { prisma } from '../builder';
 
 const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({

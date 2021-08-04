@@ -9,6 +9,7 @@ function execTS(script: string) {
     const chunks: Buffer[] = [];
     const child = spawn('ts-node', {
       stdio: ['pipe', 'pipe', 'inherit'],
+      cwd: __dirname,
     });
 
     child.on('error', (err) => void reject(err));

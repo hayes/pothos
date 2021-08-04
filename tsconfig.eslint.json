@@ -1,0 +1,10 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "display": "Beemo",
+  "extends": "./tsconfig.options.json",
+  "include": [
+    "packages/*/src/**/*.ts",
+    "packages/*/test/**/*.ts",
+    "packages/*/tests/**/*.ts"
+  ]
+}

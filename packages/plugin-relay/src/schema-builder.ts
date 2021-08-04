@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import SchemaBuilder, {
   createContextCache,
   FieldRef,
@@ -69,12 +71,12 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
         ...startCursorFieldOptions,
         type: cursorType,
         nullable: true,
-      }),
+      }) as never,
       endCursor: t.expose('endCursor', {
         ...endCursorFieldOptions,
         type: cursorType,
         nullable: true,
-      }),
+      }) as never,
     }),
   });
 
@@ -215,7 +217,6 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     );
   });
 
-  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return ref;
 };
 
@@ -398,7 +399,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
         },
         resolve: (parent) => parent.edges,
       }),
-      ...connectionFields?.(t),
+      ...connectionFields?.(t as never),
     }),
   });
 
@@ -413,7 +414,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
       cursor: t.expose('cursor', {
         type: cursorType,
         ...cursorFieldOptions,
-      }),
+      }) as never,
       ...edgeFields?.(t),
     }),
   });

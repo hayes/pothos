@@ -1,4 +1,4 @@
-import { gql } from 'apollo-server-core';
+import { gql } from 'apollo-server';
 import { execute, printSchema } from 'graphql';
 import builder from './example/builder';
 import schema from './example/schema';

@@ -86,7 +86,6 @@ export default class InputFieldBuilder<
   }
 
   argBuilder(): ArgBuilder<Types> {
-    // eslint-disable-next-line unicorn/prefer-prototype-methods
     const builder = this.field.bind(this as never) as InputFieldBuilder<Types, 'Arg'>['field'];
 
     const protoKeys = Object.keys(Object.getPrototypeOf(this) as object).filter(

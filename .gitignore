@@ -44,7 +44,6 @@ prettier.config.js
 packages/*/tsconfig.json
 packages/*/test/tsconfig.json
 packages/*/tests/tsconfig.json
-tsconfig.eslint.json
 tsconfig.options.json
 webpack.config.js
 *.tsbuildinfo
