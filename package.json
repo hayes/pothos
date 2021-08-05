@@ -22,7 +22,7 @@
     "test": "beemo jest",
     "type": "pnpm refs && beemo typescript --build --reference-workspaces",
     "prerelease": "pnpm clean && pnpm install && pnpm run ci",
-    "release": "pnpm run prerelease && pnpm publish -r",
+    "release": "pnpm run prerelease && changeset publish && git push --follow-tags && pnpm -r publish",
     "refs": "beemo typescript:sync-project-refs",
     "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && pnpm publish --tag preview -r"
   },
