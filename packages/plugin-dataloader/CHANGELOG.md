@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.9.1
+
+### Patch Changes
+
+- 9ab8fbc: re-release previous version due to build-process issue
+
 ## 2.9.0
 
 ### Minor Changes
