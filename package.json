@@ -15,7 +15,7 @@
     "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm}",
     "ci": "pnpm run build && pnpm run test && pnpm run lint",
-    "ci:version": "changeset version && pnpm install",
+    "ci:version": "changeset version && pnpm install --frozen-lockfile false",
     "coverage": "pnpm run test --coverage",
     "format": "beemo prettier",
     "lint": "beemo eslint",
