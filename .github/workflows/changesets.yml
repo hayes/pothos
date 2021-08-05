@@ -35,7 +35,7 @@ jobs:
           EOF
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
-      - name: Publish to npm
+      - name: Create PR or Publish release
         id: changesets
         uses: changesets/action@master
         with:

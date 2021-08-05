@@ -25,6 +25,7 @@ lib/
 node_modules/
 tmp/
 .docz/
+.pnpm-store
 
 # Custom
 *.min.js
