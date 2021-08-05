@@ -119,7 +119,7 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
   array: T[],
-): ConnectionShape<SchemaTypes, T, boolean> {
+): ConnectionShape<SchemaTypes, NonNullable<T>, boolean> {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
   const nodes = array.slice(offset, offset + limit);
@@ -129,7 +129,7 @@ export function resolveArrayConnection<T>(
       ? null
       : {
           cursor: offsetToCursor(offset + index),
-          node: value,
+          node: value as NonNullable<T>,
         },
   );
 
