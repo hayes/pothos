@@ -3,6 +3,23 @@
 All notable changes to this project will be documented in this file.
 See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
+### 0.2.1 - 2021-08-05
+
+#### 📘 Docs
+
+- fix typo ([ef5cff9](https://github.com/hayes/giraphql/commit/ef5cff9))
+- fix typo ([dbe3e0e](https://github.com/hayes/giraphql/commit/dbe3e0e))
+- fix typo ([eaec7b9](https://github.com/hayes/giraphql/commit/eaec7b9))
+- fix typo ([2c366f0](https://github.com/hayes/giraphql/commit/2c366f0))
+- improve description of supported connection arguments ([e697727](https://github.com/hayes/giraphql/commit/e697727))
+- update disclaimer section of prisma docs ([4c375cd](https://github.com/hayes/giraphql/commit/4c375cd))
+
+**Note:** Version bump only for package @giraphql/plugin-prisma
+
+
+
+
+
 ## 0.2.0 - 2021-08-03
 
 #### 🚀 Updates
