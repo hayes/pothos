@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.3.1
+
+### Patch Changes
+
+- 9ab8fbc: re-release previous version due to build-process issue
+
 ## 0.3.0
 
 ### Minor Changes
