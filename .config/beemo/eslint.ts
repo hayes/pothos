@@ -1,8 +1,14 @@
 import { ESLintConfig } from '@beemo/driver-eslint';
+import { resolve } from 'path';
 
 const config: ESLintConfig = {
   plugins: ['prettier'],
-  ignore: ['deno', 'scripts', 'packages/plugin-prisma/prisma'],
+  ignore: [
+    'deno',
+    'scripts',
+    'packages/plugin-prisma/prisma',
+    'packages/plugin-prisma/src/field-builder.ts',
+  ],
   rules: {
     'import/no-default-export': 'off',
     'prettier/prettier': 'error',

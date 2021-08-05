@@ -152,7 +152,8 @@ Object {
               "phone"
             ]
           }
-        ]
+        ],
+        "name": "ZodError"
       },
       {
         "issues": [
@@ -175,7 +176,8 @@ Object {
             ],
             "message": "Expected array, received string"
           }
-        ]
+        ],
+        "name": "ZodError"
       }
     ],
     "path": [
@@ -270,18 +272,6 @@ Object {
 ]],
     [GraphQLError: [
   {
-    "code": "too_big",
-    "maximum": 3,
-    "type": "array",
-    "inclusive": true,
-    "message": "Should have at most 3 items",
-    "path": [
-      "list"
-    ]
-  }
-]],
-    [GraphQLError: [
-  {
     "code": "custom",
     "message": "Invalid input",
     "path": []
@@ -297,6 +287,18 @@ Object {
     "path": [
       "list",
       0
+    ]
+  }
+]],
+    [GraphQLError: [
+  {
+    "code": "too_big",
+    "maximum": 3,
+    "type": "array",
+    "inclusive": true,
+    "message": "Should have at most 3 items",
+    "path": [
+      "list"
     ]
   }
 ]],

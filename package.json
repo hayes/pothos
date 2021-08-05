@@ -6,61 +6,48 @@
     "lib": "lib"
   },
   "scripts": {
-    "prepare": "husky install && yarn create-config",
-    "create-config": "beemo create-config && yarn refs",
-    "build": "yarn refs && beemo typescript --build --reference-workspaces && yarn build-esm",
-    "build-esm": "ESM_BUILD=true yarn create-config && ESM_BUILD=true beemo typescript --build --reference-workspaces --transpile-only && yarn create-config",
-    "build-deno": "yarn ts-node packages/deno/scripts/build.ts",
-    "clean:all": "yarn clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && yarn",
+    "preinstall": "npx only-allow pnpm",
+    "prepare": "pnpm create-config",
+    "create-config": "beemo create-config && pnpm refs",
+    "build": "pnpm refs && pnpm run -r generate && beemo typescript --build --reference-workspaces && pnpm build-esm",
+    "build-esm": "ESM_BUILD=true pnpm create-config && ESM_BUILD=true beemo typescript --build --reference-workspaces --transpile-only && pnpm create-config",
+    "build-deno": "pnpm ts-node packages/deno/scripts/build.ts",
+    "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm}",
-    "ci": "yarn run build && yarn run test && yarn run lint",
-    "coverage": "yarn run test --coverage",
+    "ci": "pnpm run build && pnpm run test && pnpm run lint",
+    "coverage": "pnpm run test --coverage",
     "format": "beemo prettier",
     "lint": "beemo eslint",
     "test": "beemo jest",
-    "type": "yarn refs && beemo typescript --build --reference-workspaces",
-    "prerelease": "yarn clean && yarn run ci",
-    "release": "lerna version --conventional-commits --conventional-graduate --changelog-preset conventional-changelog-beemo --create-release github --push && lerna publish from-git --pre-dist-tag preview",
+    "type": "pnpm refs && beemo typescript --build --reference-workspaces",
+    "prerelease": "pnpm clean && pnpm run ci",
+    "release": "changeset version && pnpm install && pnpm publish -r",
     "refs": "beemo typescript:sync-project-refs",
-    "preview": "yarn prerelease && lerna version --conventional-commits --conventional-prerelease --changelog-preset conventional-changelog-beemo --push && lerna publish from-git --pre-dist-tag preview"
+    "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && pnpm publish --tag preview -r"
   },
   "workspaces": [
     "packages/*"
   ],
   "private": true,
   "devDependencies": {
-    "@beemo/dev": "^1.0.0",
+    "@beemo/cli": "^2.0.1",
+    "@beemo/dev": "^1.4.0",
+    "@changesets/cli": "^2.16.0",
     "@types/faker": "^5.5.7",
-    "@types/jest": "^26.0.22",
-    "@types/node": "^15.12.5",
-    "@types/node-fetch": "^2.5.10",
-    "conventional-changelog-beemo": "^2.1.0",
+    "@types/jest": "^26.0.24",
+    "@types/node": "^16.4.10",
+    "@types/node-fetch": "^2.5.12",
     "eslint-plugin-prettier": "^3.3.1",
     "faker": "^5.5.3",
     "graphql": "^15.5.1",
-    "husky": "^7.0.0",
-    "lerna": "^4.0.0",
-    "lint-staged": "^11.0.0",
+    "jest": "^27.0.6",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
-    "ts-node": "^10.0.0",
-    "typescript": "4.3.2"
+    "ts-node": "^10.1.0",
+    "typescript": "4.3.5"
   },
   "resolutions": {
     "graphql": "15.5.1"
-  },
-  "lint-staged": {
-    "./src/**/*.{ts,tsx}": [
-      "yarn run prettier"
-    ],
-    "*.md": [
-      "yarn run prettier --tab-width 4"
-    ]
-  },
-  "husky": {
-    "hooks": {
-      "pre-commit": "lint-staged"
-    }
   },
   "repository": {
     "type": "git",
@@ -73,6 +60,6 @@
   },
   "homepage": "https://github.com/hayes/giraphql#readme",
   "dependencies": {
-    "zod": "3.3.1"
+    "zod": "3.7.1"
   }
 }
