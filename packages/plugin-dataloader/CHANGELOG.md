@@ -1,15 +1,17 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.9.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ### 2.8.1 - 2021-08-05
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.8.0 - 2021-08-03
 
@@ -19,17 +21,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.7.1-alpha.0 - 2021-08-02
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.7.0 - 2021-07-30
 
@@ -39,65 +33,39 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.6.0 - 2021-07-29
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.6.0-alpha.0 - 2021-07-28
 
 #### 🚀 Updates
 
-- expose input and object ref from relayMutationField ([af5a061](https://github.com/hayes/giraphql/commit/af5a061))
+- expose input and object ref from relayMutationField
+  ([af5a061](https://github.com/hayes/giraphql/commit/af5a061))
 
 #### 🐞 Fixes
 
-- improve handling of null edges in resolveConnection helpers ([6577a00](https://github.com/hayes/giraphql/commit/6577a00))
+- improve handling of null edges in resolveConnection helpers
+  ([6577a00](https://github.com/hayes/giraphql/commit/6577a00))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.5.6 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.5.6-alpha.0 - 2021-07-17
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.5.5 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.5.4 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.5.4-alpha.1 - 2021-07-04
 
@@ -107,61 +75,34 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.5.4-alpha.0 - 2021-07-03
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.5.3 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.5.2 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.5.1 - 2021-06-29
 
 #### 🐞 Fixes
 
-- loadableNode should correctly include additional interfaces ([f11f7d7](https://github.com/hayes/giraphql/commit/f11f7d7))
+- loadableNode should correctly include additional interfaces
+  ([f11f7d7](https://github.com/hayes/giraphql/commit/f11f7d7))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.5.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.5.0-alpha.1 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.5.0-alpha.0 - 2021-06-28
 
@@ -171,15 +112,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ## 2.4.0 - 2021-06-11
 
 #### 🚀 Updates
 
-- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- make field options args optional when empty
+  ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
 
 #### 📦 Dependencies
 
@@ -187,95 +125,58 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.3.0 - 2021-06-10
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.3.0-alpha.0 - 2021-06-09
 
 #### 🚀 Updates
 
-- plum parentShape through all ussage of output refs ([2dac2ca](https://github.com/hayes/giraphql/commit/2dac2ca))
+- plum parentShape through all ussage of output refs
+  ([2dac2ca](https://github.com/hayes/giraphql/commit/2dac2ca))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.2.4 - 2021-05-31
 
 #### 🐞 Fixes
 
-- support interfaces on loadableObject and loadableNode ([1dd672c](https://github.com/hayes/giraphql/commit/1dd672c))
+- support interfaces on loadableObject and loadableNode
+  ([1dd672c](https://github.com/hayes/giraphql/commit/1dd672c))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.2.4-alpha.2 - 2021-05-29
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.2.4-alpha.1 - 2021-05-29
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.2.4-alpha.0 - 2021-05-29
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.2.3 - 2021-05-28
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.2.2 - 2021-05-26
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.2.1 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.2.0 - 2021-05-13
 
 #### 🚀 Updates
 
-- add loadableNodes method to use relay and dataloader plugin together ([966c06f](https://github.com/hayes/giraphql/commit/966c06f))
+- add loadableNodes method to use relay and dataloader plugin together
+  ([966c06f](https://github.com/hayes/giraphql/commit/966c06f))
 
 #### 📘 Docs
 
@@ -287,22 +188,15 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.1.3 - 2021-05-12
 
 #### 🛠 Internals
 
-- add docs and tests for removing fields ([a3aa90e](https://github.com/hayes/giraphql/commit/a3aa90e))
+- add docs and tests for removing fields
+  ([a3aa90e](https://github.com/hayes/giraphql/commit/a3aa90e))
 - udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.1.2 - 2021-05-10
 
@@ -312,21 +206,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ### 2.1.1 - 2021-05-10
 
 #### 🐞 Fixes
 
-- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+- force new version to fix esm build issue
+  ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.1.0 - 2021-05-10
 
@@ -336,14 +223,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 #### 📘 Docs
 
-- add docs on adding dataloader options ([cdf096a](https://github.com/hayes/giraphql/commit/cdf096a))
-- fix a couple issues in dataloader docs ([10f0a6c](https://github.com/hayes/giraphql/commit/10f0a6c))
+- add docs on adding dataloader options
+  ([cdf096a](https://github.com/hayes/giraphql/commit/cdf096a))
+- fix a couple issues in dataloader docs
+  ([10f0a6c](https://github.com/hayes/giraphql/commit/10f0a6c))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ### 2.0.0 - 2021-05-09
 
@@ -353,32 +238,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
 
-
-
-
-
 ## 2.0.0-alpha.2 - 2021-05-08
 
 #### 🚀 Updates
 
-- add deno support for dataloader plugin ([720ba01](https://github.com/hayes/giraphql/commit/720ba01))
+- add deno support for dataloader plugin
+  ([720ba01](https://github.com/hayes/giraphql/commit/720ba01))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader
-
-
-
-
 
 ## 2.0.0-alpha.1 - 2021-05-08
 
 #### 🚀 Updates
 
 - add dataloader plugin ([2e2403a](https://github.com/hayes/giraphql/commit/2e2403a))
-- support more dataloader flows and add tests ([adf9408](https://github.com/hayes/giraphql/commit/adf9408))
+- support more dataloader flows and add tests
+  ([adf9408](https://github.com/hayes/giraphql/commit/adf9408))
 
 #### 🐞 Fixes
 
 - rename duplicate field in example ([8c55d1f](https://github.com/hayes/giraphql/commit/8c55d1f))
-- update snapshots with new test fields ([a7cc628](https://github.com/hayes/giraphql/commit/a7cc628))
+- update snapshots with new test fields
+  ([a7cc628](https://github.com/hayes/giraphql/commit/a7cc628))
 
 **Note:** Version bump only for package @giraphql/plugin-dataloader

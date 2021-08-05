@@ -1,23 +1,21 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.5.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ### 2.4.1 - 2021-08-03
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.4.1-alpha.0 - 2021-08-02
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ## 2.4.0 - 2021-07-30
 
@@ -27,41 +25,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.3.4 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.3.4-alpha.0 - 2021-07-17
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.3.3 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.3.2 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.3.2-alpha.0 - 2021-07-04
 
@@ -71,33 +49,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.3.1 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.3.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.3.0-alpha.1 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ## 2.3.0-alpha.0 - 2021-06-28
 
@@ -107,15 +69,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ## 2.2.0 - 2021-06-11
 
 #### 🚀 Updates
 
-- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- make field options args optional when empty
+  ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
 
 #### 📦 Dependencies
 
@@ -123,33 +82,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.1.6 - 2021-06-10
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.1.6-alpha.0 - 2021-06-09
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.1.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.1.4 - 2021-05-13
 
@@ -163,10 +106,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.1.3 - 2021-05-12
 
 #### 🛠 Internals
@@ -174,10 +113,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.1.2 - 2021-05-10
 
@@ -187,21 +122,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.1.1 - 2021-05-10
 
 #### 🐞 Fixes
 
-- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+- force new version to fix esm build issue
+  ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ## 2.1.0 - 2021-05-10
 
@@ -211,10 +139,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.0.8 - 2021-05-09
 
 #### 📘 Docs
@@ -223,73 +147,43 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.0.8-alpha.0 - 2021-05-08
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.7 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.0.6 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.6-alpha.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.0.5 - 2021-05-02
 
 #### 🛠 Internals
 
-- force version bumps and update validation to 2.0 range ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
+- force version bumps and update validation to 2.0 range
+  ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.4 - 2021-05-02
 
 #### 🛠 Internals
 
-- migrate to @beemo/dev for dev tool configs ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
+- migrate to @beemo/dev for dev tool configs
+  ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.3 - 2021-04-16
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.3-alpha.0 - 2021-04-12
 
@@ -300,46 +194,33 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 2.0.2 - 2021-03-16
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.1 - 2021-02-19
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 # 2.0.0 - 2021-02-16
 
 #### 💥 Breaking
 
-- update plugin API to avoid modifying args. subGraphs are now build by passing subGraph to toSchema ([66d456e](https://github.com/hayes/giraphql/commit/66d456e))
-- update plugin exports and names to be more consistent ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
+- update plugin API to avoid modifying args. subGraphs are now build by passing subGraph to toSchema
+  ([66d456e](https://github.com/hayes/giraphql/commit/66d456e))
+- update plugin exports and names to be more consistent
+  ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
 
 #### 📦 Dependencies
 
-- update dependencies and add license files ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
+- update dependencies and add license files
+  ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
 
 #### 📘 Docs
 
 - add more docs o writing plugins ([b996fc6](https://github.com/hayes/giraphql/commit/b996fc6))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ### 2.0.0-alpha.1 - 2021-02-10
 
@@ -348,10 +229,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - fix broken dev deps ([7af8a0a](https://github.com/hayes/giraphql/commit/7af8a0a))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 # 2.0.0-alpha.0 - 2021-02-10
 
@@ -365,9 +242,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 #### 🐞 Fixes
 
-- add useGraphQLToolsUnorderedDirectives option to directive plugin ([a9e1ca6](https://github.com/hayes/giraphql/commit/a9e1ca6))
-- move rate limit directive to devDependencies ([1415572](https://github.com/hayes/giraphql/commit/1415572))
-- update peer deps for directives plugin ([bf28486](https://github.com/hayes/giraphql/commit/bf28486))
+- add useGraphQLToolsUnorderedDirectives option to directive plugin
+  ([a9e1ca6](https://github.com/hayes/giraphql/commit/a9e1ca6))
+- move rate limit directive to devDependencies
+  ([1415572](https://github.com/hayes/giraphql/commit/1415572))
+- update peer deps for directives plugin
+  ([bf28486](https://github.com/hayes/giraphql/commit/bf28486))
 
 #### 🛠 Internals
 
@@ -375,21 +255,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-directives
 
-
-
-
-
 ### 1.1.0-alpha.1 - 2021-02-01
 
 #### 🐞 Fixes
 
-- add useGraphQLToolsUnorderedDirectives option to directive plugin ([6517dd4](https://github.com/hayes/giraphql/commit/6517dd4))
+- add useGraphQLToolsUnorderedDirectives option to directive plugin
+  ([6517dd4](https://github.com/hayes/giraphql/commit/6517dd4))
 
 **Note:** Version bump only for package @giraphql/plugin-directives
-
-
-
-
 
 ## 1.1.0-alpha.0 - 2021-02-01
 

@@ -1,23 +1,21 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.4.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ### 2.3.1 - 2021-08-03
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.3.1-alpha.0 - 2021-08-02
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ## 2.3.0 - 2021-07-30
 
@@ -27,41 +25,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.2.4 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.2.4-alpha.0 - 2021-07-17
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.2.3 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.2.2 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.2.2-alpha.0 - 2021-07-04
 
@@ -71,33 +49,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.2.1 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.2.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.2.0-alpha.1 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ## 2.2.0-alpha.0 - 2021-06-28
 
@@ -107,10 +69,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.1.7 - 2021-06-11
 
 #### 📦 Dependencies
@@ -119,33 +77,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.1.6 - 2021-06-10
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.1.6-alpha.0 - 2021-06-09
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.1.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.1.4 - 2021-05-13
 
@@ -159,10 +101,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.1.3 - 2021-05-12
 
 #### 🛠 Internals
@@ -170,10 +108,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.1.2 - 2021-05-10
 
@@ -183,21 +117,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.1.1 - 2021-05-10
 
 #### 🐞 Fixes
 
-- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+- force new version to fix esm build issue
+  ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ## 2.1.0 - 2021-05-10
 
@@ -207,81 +134,47 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.0.8 - 2021-05-09
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.8-alpha.0 - 2021-05-08
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.0.7 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.6 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.0.6-alpha.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.5 - 2021-05-02
 
 #### 🛠 Internals
 
-- force version bumps and update validation to 2.0 range ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
+- force version bumps and update validation to 2.0 range
+  ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.4 - 2021-05-02
 
 #### 🛠 Internals
 
-- migrate to @beemo/dev for dev tool configs ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
+- migrate to @beemo/dev for dev tool configs
+  ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.3 - 2021-04-16
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.3-alpha.0 - 2021-04-12
 
@@ -292,25 +185,13 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.0.2 - 2021-03-16
 
 **Note:** Version bump only for package @giraphql/plugin-example
 
-
-
-
-
 ### 2.0.1 - 2021-02-19
 
 **Note:** Version bump only for package @giraphql/plugin-example
-
-
-
-
 
 ### 2.0.0 - 2021-02-16
 
