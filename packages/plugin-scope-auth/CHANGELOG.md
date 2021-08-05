@@ -1,23 +1,21 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.8.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ### 2.7.1 - 2021-08-03
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.7.1-alpha.0 - 2021-08-02
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ## 2.7.0 - 2021-07-30
 
@@ -27,17 +25,9 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.6.0 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ## 2.6.0-alpha.0 - 2021-07-17
 
@@ -47,31 +37,20 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.5.1 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.5.0 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ## 2.5.0-alpha.0 - 2021-07-04
 
 #### 🚀 Updates
 
-- add early warning for undefined refs to simplify debugging of circular import issues ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
+- add early warning for undefined refs to simplify debugging of circular import issues
+  ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
 
 #### 📦 Dependencies
 
@@ -79,33 +58,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.4.1 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.4.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.4.0-alpha.1 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ## 2.4.0-alpha.0 - 2021-06-28
 
@@ -115,15 +78,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ## 2.3.0 - 2021-06-11
 
 #### 🚀 Updates
 
-- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- make field options args optional when empty
+  ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
 
 #### 📦 Dependencies
 
@@ -131,33 +91,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.2.6 - 2021-06-10
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.2.6-alpha.0 - 2021-06-09
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.2.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.2.4 - 2021-05-13
 
@@ -171,10 +115,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.2.3 - 2021-05-12
 
 #### 🛠 Internals
@@ -182,10 +122,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.2.2 - 2021-05-10
 
@@ -195,21 +131,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.2.1 - 2021-05-10
 
 #### 🐞 Fixes
 
-- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+- force new version to fix esm build issue
+  ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ## 2.2.0 - 2021-05-10
 
@@ -223,61 +152,40 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.1.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ## 2.1.0-alpha.0 - 2021-05-05
 
 #### 🚀 Updates
 
-- add script for generating deno compatible files ([6dc68c1](https://github.com/hayes/giraphql/commit/6dc68c1))
+- add script for generating deno compatible files
+  ([6dc68c1](https://github.com/hayes/giraphql/commit/6dc68c1))
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.0.4 - 2021-05-02
 
 #### 🛠 Internals
 
-- force version bumps and update validation to 2.0 range ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
+- force version bumps and update validation to 2.0 range
+  ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.0.3 - 2021-05-02
 
 #### 🛠 Internals
 
-- migrate to @beemo/dev for dev tool configs ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
+- migrate to @beemo/dev for dev tool configs
+  ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.0.2 - 2021-04-16
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 ### 2.0.2-alpha.0 - 2021-04-12
 
@@ -288,28 +196,23 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 ### 2.0.1 - 2021-02-19
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
-
-
-
-
 
 # 2.0.0 - 2021-02-16
 
 #### 💥 Breaking
 
-- update plugin API to avoid modifying args. subGraphs are now build by passing subGraph to toSchema ([66d456e](https://github.com/hayes/giraphql/commit/66d456e))
-- update plugin exports and names to be more consistent ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
+- update plugin API to avoid modifying args. subGraphs are now build by passing subGraph to toSchema
+  ([66d456e](https://github.com/hayes/giraphql/commit/66d456e))
+- update plugin exports and names to be more consistent
+  ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
 
 #### 📦 Dependencies
 
-- update dependencies and add license files ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
+- update dependencies and add license files
+  ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
 
 #### 📘 Docs
 
@@ -318,22 +221,22 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth
 
-
-
-
-
 # 2.0.0-alpha.0 - 2021-02-10
 
 #### 💥 Breaking
 
-- you can no-longer define args on 'exposed' fields ([240162b](https://github.com/hayes/giraphql/commit/240162b))
+- you can no-longer define args on 'exposed' fields
+  ([240162b](https://github.com/hayes/giraphql/commit/240162b))
 
 #### 🚀 Updates
 
-- add option to disable scope auth during build ([c4f6bee](https://github.com/hayes/giraphql/commit/c4f6bee))
-- add support for  scopes ([0b10ffd](https://github.com/hayes/giraphql/commit/0b10ffd))
-- add support for authScope checks on interfaces ([fa6fe1e](https://github.com/hayes/giraphql/commit/fa6fe1e))
-- add support for skipping type/interface scopes on specific fields ([34c95e3](https://github.com/hayes/giraphql/commit/34c95e3))
+- add option to disable scope auth during build
+  ([c4f6bee](https://github.com/hayes/giraphql/commit/c4f6bee))
+- add support for scopes ([0b10ffd](https://github.com/hayes/giraphql/commit/0b10ffd))
+- add support for authScope checks on interfaces
+  ([fa6fe1e](https://github.com/hayes/giraphql/commit/fa6fe1e))
+- add support for skipping type/interface scopes on specific fields
+  ([34c95e3](https://github.com/hayes/giraphql/commit/34c95e3))
 
 #### 🐞 Fixes
 
@@ -341,14 +244,17 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 #### 📘 Docs
 
-- add initial docs for scope auth plugin ([15b086d](https://github.com/hayes/giraphql/commit/15b086d))
+- add initial docs for scope auth plugin
+  ([15b086d](https://github.com/hayes/giraphql/commit/15b086d))
 
 #### 🛠 Internals
 
 - add some basic scope-auth tests ([7ceb24a](https://github.com/hayes/giraphql/commit/7ceb24a))
 - add some caching tests ([0a08760](https://github.com/hayes/giraphql/commit/0a08760))
-- add tests for authScope functions on fields ([324eb2f](https://github.com/hayes/giraphql/commit/324eb2f))
-- add tests for authScope functions on types ([aed363a](https://github.com/hayes/giraphql/commit/aed363a))
+- add tests for authScope functions on fields
+  ([324eb2f](https://github.com/hayes/giraphql/commit/324eb2f))
+- add tests for authScope functions on types
+  ([aed363a](https://github.com/hayes/giraphql/commit/aed363a))
 - add tests for type authScopes ([951a6cd](https://github.com/hayes/giraphql/commit/951a6cd))
 
 **Note:** Version bump only for package @giraphql/plugin-scope-auth

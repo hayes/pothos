@@ -1,23 +1,21 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.8.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ### 2.7.1 - 2021-08-03
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.7.1-alpha.0 - 2021-08-02
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 2.7.0 - 2021-07-30
 
@@ -27,41 +25,21 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.6.3 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 2.6.3-alpha.0 - 2021-07-17
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.6.2 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.6.1 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 2.6.1-alpha.0 - 2021-07-04
 
@@ -71,33 +49,23 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 #### 🛠 Internals
 
-- update validation snapshots after zod upgrage ([29d60ba](https://github.com/hayes/giraphql/commit/29d60ba))
+- update validation snapshots after zod upgrage
+  ([29d60ba](https://github.com/hayes/giraphql/commit/29d60ba))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 2.6.0 - 2021-06-30
 
 #### 🚀 Updates
 
-- support async refinements in validation plugin ([276876d](https://github.com/hayes/giraphql/commit/276876d))
+- support async refinements in validation plugin
+  ([276876d](https://github.com/hayes/giraphql/commit/276876d))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 2.5.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 2.5.0-alpha.0 - 2021-06-28
 
@@ -107,25 +75,18 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ## 2.4.0 - 2021-06-11
 
 #### 🚀 Updates
 
-- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- make field options args optional when empty
+  ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
 
 #### 📦 Dependencies
 
 - update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 2.3.4 - 2021-05-13
 
@@ -140,10 +101,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.3.3 - 2021-05-12
 
 #### 🛠 Internals
@@ -151,10 +108,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 2.3.2 - 2021-05-10
 
@@ -164,21 +117,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.3.1 - 2021-05-10
 
 #### 🐞 Fixes
 
-- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+- force new version to fix esm build issue
+  ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 2.3.0 - 2021-05-10
 
@@ -188,10 +134,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.2.0 - 2021-05-09
 
 #### 📘 Docs
@@ -199,10 +141,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - update readmes ([07c727b](https://github.com/hayes/giraphql/commit/07c727b))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 2.2.0-alpha.0 - 2021-05-08
 
@@ -212,89 +150,63 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-validation
 
-
-
-
-
 ### 2.1.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 2.1.0-alpha.0 - 2021-05-05
 
 #### 🚀 Updates
 
-- add script for generating deno compatible files ([6dc68c1](https://github.com/hayes/giraphql/commit/6dc68c1))
+- add script for generating deno compatible files
+  ([6dc68c1](https://github.com/hayes/giraphql/commit/6dc68c1))
 
 #### 🐞 Fixes
 
-- cleanup a couple issues that made plugins not work with deno ([92497d1](https://github.com/hayes/giraphql/commit/92497d1))
+- cleanup a couple issues that made plugins not work with deno
+  ([92497d1](https://github.com/hayes/giraphql/commit/92497d1))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 2.0.0 - 2021-05-02
 
 #### 🛠 Internals
 
-- force version bumps and update validation to 2.0 range ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
+- force version bumps and update validation to 2.0 range
+  ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 1.3.1 - 2021-05-02
 
 #### 🛠 Internals
 
-- migrate to @beemo/dev for dev tool configs ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
+- migrate to @beemo/dev for dev tool configs
+  ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 1.3.0 - 2021-05-02
 
 #### 🚀 Updates
 
-- add ability to pass existing zod validators for the validation plugin ([55ebe2f](https://github.com/hayes/giraphql/commit/55ebe2f))
+- add ability to pass existing zod validators for the validation plugin
+  ([55ebe2f](https://github.com/hayes/giraphql/commit/55ebe2f))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 1.2.0 - 2021-04-27
 
 #### 🚀 Updates
 
-- add createZodSchema function for manually creating zod schemas from validation options ([818e4f3](https://github.com/hayes/giraphql/commit/818e4f3))
+- add createZodSchema function for manually creating zod schemas from validation options
+  ([818e4f3](https://github.com/hayes/giraphql/commit/818e4f3))
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ### 1.1.0 - 2021-04-16
 
 **Note:** Version bump only for package @giraphql/plugin-validation
-
-
-
-
 
 ## 1.1.0-alpha.0 - 2021-04-12
 

@@ -1,7 +1,13 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.13.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ## 2.12.0 - 2021-08-03
 
@@ -11,10 +17,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ## 2.11.0 - 2021-07-30
 
 #### 🚀 Updates
@@ -22,10 +24,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - add prisma plugin ([d427c82](https://github.com/hayes/giraphql/commit/d427c82))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 2.10.0 - 2021-07-29
 
@@ -35,45 +33,31 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 #### 🐞 Fixes
 
-- create start and end cursors even if edges are null ([64b9d2f](https://github.com/hayes/giraphql/commit/64b9d2f))
+- create start and end cursors even if edges are null
+  ([64b9d2f](https://github.com/hayes/giraphql/commit/64b9d2f))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ### 2.9.1 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ### 2.9.0 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 2.9.0-alpha.0 - 2021-07-04
 
 #### 🚀 Updates
 
-- add early warning for undefined refs to simplify debugging of circular import issues ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
+- add early warning for undefined refs to simplify debugging of circular import issues
+  ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
 
 #### 📦 Dependencies
 
 - upgrade typescript ([675f6a2](https://github.com/hayes/giraphql/commit/675f6a2))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 2.8.0 - 2021-07-02
 
@@ -83,41 +67,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ## 2.7.0 - 2021-06-30
 
 #### 🚀 Updates
 
-- support async refinements in validation plugin ([276876d](https://github.com/hayes/giraphql/commit/276876d))
+- support async refinements in validation plugin
+  ([276876d](https://github.com/hayes/giraphql/commit/276876d))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ### 2.6.1 - 2021-06-29
 
 #### 📘 Docs
 
-- update docs to include links to error plugin ([46db92d](https://github.com/hayes/giraphql/commit/46db92d))
+- update docs to include links to error plugin
+  ([46db92d](https://github.com/hayes/giraphql/commit/46db92d))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ### 2.6.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 2.6.0-alpha.1 - 2021-06-28
 
@@ -127,10 +97,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ## 2.6.0-alpha.0 - 2021-06-28
 
 #### 🚀 Updates
@@ -139,15 +105,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ## 2.5.0 - 2021-06-11
 
 #### 🚀 Updates
 
-- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- make field options args optional when empty
+  ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
 - update deno ([61f4b5a](https://github.com/hayes/giraphql/commit/61f4b5a))
 
 #### 📦 Dependencies
@@ -155,10 +118,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - update dev deps ([813d9d0](https://github.com/hayes/giraphql/commit/813d9d0))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 2.4.0 - 2021-06-10
 
@@ -168,10 +127,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ## 2.3.0 - 2021-05-28
 
 #### 🚀 Updates
@@ -179,10 +134,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - update deno ([d6365c4](https://github.com/hayes/giraphql/commit/d6365c4))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ### 2.2.1 - 2021-05-13
 
@@ -193,10 +144,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ## 2.2.0 - 2021-05-12
 
 #### 🚀 Updates
@@ -205,10 +152,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - update deno ([ab02c25](https://github.com/hayes/giraphql/commit/ab02c25))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 2.1.0 - 2021-05-10
 
@@ -222,10 +165,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ### 2.0.0 - 2021-05-09
 
 #### 🐞 Fixes
@@ -238,37 +177,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/deno
 
-
-
-
-
 ### 2.0.0-alpha.1 - 2021-05-08
 
 #### 🐞 Fixes
 
-- set deno version to 2.0 and remove auto-release ([cd91f6d](https://github.com/hayes/giraphql/commit/cd91f6d))
+- set deno version to 2.0 and remove auto-release
+  ([cd91f6d](https://github.com/hayes/giraphql/commit/cd91f6d))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ## 0.1.0-alpha.0 - 2021-05-08
 
 #### 🚀 Updates
 
-- add deno support for dataloader plugin ([720ba01](https://github.com/hayes/giraphql/commit/720ba01))
+- add deno support for dataloader plugin
+  ([720ba01](https://github.com/hayes/giraphql/commit/720ba01))
 
 #### 🐞 Fixes
 
 - add deno files after deno-build ([3f4f94b](https://github.com/hayes/giraphql/commit/3f4f94b))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ### 0.0.1 - 2021-05-05
 
@@ -277,10 +206,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - use deno.land url in readme ([4db29fa](https://github.com/hayes/giraphql/commit/4db29fa))
 
 **Note:** Version bump only for package @giraphql/deno
-
-
-
-
 
 ### 0.0.1-alpha.0 - 2021-05-05
 

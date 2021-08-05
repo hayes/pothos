@@ -1,43 +1,40 @@
 # Change Log
 
-All notable changes to this project will be documented in this file.
-See [Conventional Commits](https://conventionalcommits.org) for commit guidelines.
+## 2.13.0
+
+### Minor Changes
+
+- 3dd3ff14: Updated dev dependencies, switched to pnpm, and added changesets for releases
+
+All notable changes to this project will be documented in this file. See
+[Conventional Commits](https://conventionalcommits.org) for commit guidelines.
 
 ### 2.12.1 - 2021-08-05
 
 #### 🐞 Fixes
 
-- make nodes non-nullable in resolveConnection helpers ([83449b8](https://github.com/hayes/giraphql/commit/83449b8))
+- make nodes non-nullable in resolveConnection helpers
+  ([83449b8](https://github.com/hayes/giraphql/commit/83449b8))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.12.0 - 2021-08-03
 
 #### 🚀 Updates
 
-- add relay integration for prisma plugin ([e714e54](https://github.com/hayes/giraphql/commit/e714e54))
+- add relay integration for prisma plugin
+  ([e714e54](https://github.com/hayes/giraphql/commit/e714e54))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.12.0-alpha.0 - 2021-08-02
 
 #### 🚀 Updates
 
-- add relay integration for prisma plugin ([0b1d378](https://github.com/hayes/giraphql/commit/0b1d378))
+- add relay integration for prisma plugin
+  ([0b1d378](https://github.com/hayes/giraphql/commit/0b1d378))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.11.0 - 2021-07-30
 
@@ -47,79 +44,56 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.10.0 - 2021-07-29
 
 #### 🐞 Fixes
 
-- create start and end cursors even if edges are null ([64b9d2f](https://github.com/hayes/giraphql/commit/64b9d2f))
+- create start and end cursors even if edges are null
+  ([64b9d2f](https://github.com/hayes/giraphql/commit/64b9d2f))
 
 #### 📘 Docs
 
-- update relay docs with info on re-using types created for relayMutationField ([2000f90](https://github.com/hayes/giraphql/commit/2000f90))
+- update relay docs with info on re-using types created for relayMutationField
+  ([2000f90](https://github.com/hayes/giraphql/commit/2000f90))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.10.0-alpha.0 - 2021-07-28
 
 #### 🚀 Updates
 
-- expose input and object ref from relayMutationField ([af5a061](https://github.com/hayes/giraphql/commit/af5a061))
+- expose input and object ref from relayMutationField
+  ([af5a061](https://github.com/hayes/giraphql/commit/af5a061))
 
 #### 🐞 Fixes
 
-- improve handling of null edges in resolveConnection helpers ([6577a00](https://github.com/hayes/giraphql/commit/6577a00))
+- improve handling of null edges in resolveConnection helpers
+  ([6577a00](https://github.com/hayes/giraphql/commit/6577a00))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.9.2 - 2021-07-23
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.9.2-alpha.0 - 2021-07-17
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.9.1 - 2021-07-10
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.9.0 - 2021-07-04
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.9.0-alpha.1 - 2021-07-04
 
 #### 🚀 Updates
 
-- add early warning for undefined refs to simplify debugging of circular import issues ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
+- add early warning for undefined refs to simplify debugging of circular import issues
+  ([095b68b](https://github.com/hayes/giraphql/commit/095b68b))
 
 #### 📦 Dependencies
 
@@ -127,62 +101,41 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.9.0-alpha.0 - 2021-07-03
 
 #### 🚀 Updates
 
-- **[relay]** add connectionObject helper, cursorType option, and more field options ([466b61f](https://github.com/hayes/giraphql/commit/466b61f))
+- **[relay]** add connectionObject helper, cursorType option, and more field options
+  ([466b61f](https://github.com/hayes/giraphql/commit/466b61f))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.8.1 - 2021-07-02
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.8.0 - 2021-07-02
 
 #### 🚀 Updates
 
-- add option to make clientMutationField optional, or omit it entirly ([95a74bb](https://github.com/hayes/giraphql/commit/95a74bb))
+- add option to make clientMutationField optional, or omit it entirly
+  ([95a74bb](https://github.com/hayes/giraphql/commit/95a74bb))
 - update deno ([382775e](https://github.com/hayes/giraphql/commit/382775e))
 
 #### 🛠 Internals
 
-- update relay tests to account for new options ([ea363b9](https://github.com/hayes/giraphql/commit/ea363b9))
+- update relay tests to account for new options
+  ([ea363b9](https://github.com/hayes/giraphql/commit/ea363b9))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.7.0 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.7.0-alpha.1 - 2021-06-28
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.7.0-alpha.0 - 2021-06-28
 
@@ -192,15 +145,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.6.0 - 2021-06-11
 
 #### 🚀 Updates
 
-- make field options args optional when empty ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
+- make field options args optional when empty
+  ([ae71648](https://github.com/hayes/giraphql/commit/ae71648))
 
 #### 🐞 Fixes
 
@@ -212,10 +162,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.5.0 - 2021-06-10
 
 #### 🚀 Updates
@@ -224,31 +170,26 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.5.0-alpha.0 - 2021-06-09
 
 #### 🚀 Updates
 
-- plum parentShape through all ussage of output refs ([2dac2ca](https://github.com/hayes/giraphql/commit/2dac2ca))
+- plum parentShape through all ussage of output refs
+  ([2dac2ca](https://github.com/hayes/giraphql/commit/2dac2ca))
 
 #### 📘 Docs
 
 - fix a couple typos ([e2d41f7](https://github.com/hayes/giraphql/commit/e2d41f7))
-- update docs on edge and connection fields ([63b4b52](https://github.com/hayes/giraphql/commit/63b4b52))
-- update relay readme and add troubleshooting guide ([56350e8](https://github.com/hayes/giraphql/commit/56350e8))
+- update docs on edge and connection fields
+  ([63b4b52](https://github.com/hayes/giraphql/commit/63b4b52))
+- update relay readme and add troubleshooting guide
+  ([56350e8](https://github.com/hayes/giraphql/commit/56350e8))
 
 #### 🛠 Internals
 
 - fix tests ([7137675](https://github.com/hayes/giraphql/commit/7137675))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.4.0 - 2021-05-31
 
@@ -258,7 +199,8 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 #### 🐞 Fixes
 
-- add builder options for generated fields and args ([b3edb2c](https://github.com/hayes/giraphql/commit/b3edb2c))
+- add builder options for generated fields and args
+  ([b3edb2c](https://github.com/hayes/giraphql/commit/b3edb2c))
 - rename resultFuelds to outputFields ([b5e101d](https://github.com/hayes/giraphql/commit/b5e101d))
 
 #### 🛠 Internals
@@ -267,25 +209,18 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.4.0-alpha.2 - 2021-05-29
 
 #### 🐞 Fixes
 
-- add builder options for generated fields and args ([52a218a](https://github.com/hayes/giraphql/commit/52a218a))
+- add builder options for generated fields and args
+  ([52a218a](https://github.com/hayes/giraphql/commit/52a218a))
 
 #### 🛠 Internals
 
 - add tests for relayMutation options ([656b1c0](https://github.com/hayes/giraphql/commit/656b1c0))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.4.0-alpha.1 - 2021-05-29
 
@@ -295,10 +230,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.4.0-alpha.0 - 2021-05-29
 
 #### 🚀 Updates
@@ -307,41 +238,27 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.3.0 - 2021-05-28
 
 #### 🚀 Updates
 
-- add globalConnectionField methods for extending connection objects ([a22e7e3](https://github.com/hayes/giraphql/commit/a22e7e3))
+- add globalConnectionField methods for extending connection objects
+  ([a22e7e3](https://github.com/hayes/giraphql/commit/a22e7e3))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.2.6 - 2021-05-26
 
 #### 🐞 Fixes
 
-- Make relay connection args optional explicitly ([5eb1390](https://github.com/hayes/giraphql/commit/5eb1390))
+- Make relay connection args optional explicitly
+  ([5eb1390](https://github.com/hayes/giraphql/commit/5eb1390))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.2.5 - 2021-05-18
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.2.4 - 2021-05-13
 
@@ -355,10 +272,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.2.3 - 2021-05-12
 
 #### 🛠 Internals
@@ -366,10 +279,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - udate dev deps ([3251227](https://github.com/hayes/giraphql/commit/3251227))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.2.2 - 2021-05-10
 
@@ -379,21 +288,14 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.2.1 - 2021-05-10
 
 #### 🐞 Fixes
 
-- force new version to fix esm build issue ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
+- force new version to fix esm build issue
+  ([25f1fd2](https://github.com/hayes/giraphql/commit/25f1fd2))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ## 2.2.0 - 2021-05-10
 
@@ -403,10 +305,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.1.5 - 2021-05-09
 
 #### 📘 Docs
@@ -415,69 +313,44 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.1.5-alpha.0 - 2021-05-08
 
 #### 🛠 Internals
 
-- fix up a couple issues in internal types of relay field builder methods ([1131f42](https://github.com/hayes/giraphql/commit/1131f42))
+- fix up a couple issues in internal types of relay field builder methods
+  ([1131f42](https://github.com/hayes/giraphql/commit/1131f42))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.1.4 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.1.3 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.1.3-alpha.0 - 2021-05-05
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.1.2 - 2021-05-02
 
 #### 🛠 Internals
 
-- force version bumps and update validation to 2.0 range ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
+- force version bumps and update validation to 2.0 range
+  ([07730b3](https://github.com/hayes/giraphql/commit/07730b3))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.1.1 - 2021-05-02
 
 #### 🛠 Internals
 
-- migrate to @beemo/dev for dev tool configs ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
+- migrate to @beemo/dev for dev tool configs
+  ([1da1283](https://github.com/hayes/giraphql/commit/1da1283))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.1.0 - 2021-04-16
 
@@ -487,15 +360,12 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ## 2.1.0-alpha.0 - 2021-04-12
 
 #### 🚀 Updates
 
-- add globalID and globalIDList methods to InputFieldBuilder ([1048354](https://github.com/hayes/giraphql/commit/1048354))
+- add globalID and globalIDList methods to InputFieldBuilder
+  ([1048354](https://github.com/hayes/giraphql/commit/1048354))
 
 #### 📦 Dependencies
 
@@ -504,63 +374,48 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.0.4 - 2021-03-28
 
 #### 🐞 Fixes
 
-- **[relay]** include extra fields defined for connections and edges ([2b29e3a](https://github.com/hayes/giraphql/commit/2b29e3a))
+- **[relay]** include extra fields defined for connections and edges
+  ([2b29e3a](https://github.com/hayes/giraphql/commit/2b29e3a))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.0.3 - 2021-03-16
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 2.0.2 - 2021-02-21
 
 #### 🐞 Fixes
 
-- restore missing exports in relay plugin ([2630250](https://github.com/hayes/giraphql/commit/2630250))
+- restore missing exports in relay plugin
+  ([2630250](https://github.com/hayes/giraphql/commit/2630250))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 ### 2.0.1 - 2021-02-19
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 # 2.0.0 - 2021-02-16
 
 #### 💥 Breaking
 
-- update plugin exports and names to be more consistent ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
+- update plugin exports and names to be more consistent
+  ([ee07b35](https://github.com/hayes/giraphql/commit/ee07b35))
 
 #### 🐞 Fixes
 
-- restore globalId helper function exports in relay plugin ([16d8a0c](https://github.com/hayes/giraphql/commit/16d8a0c))
+- restore globalId helper function exports in relay plugin
+  ([16d8a0c](https://github.com/hayes/giraphql/commit/16d8a0c))
 
 #### 📦 Dependencies
 
-- update dependencies and add license files ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
+- update dependencies and add license files
+  ([cb0d102](https://github.com/hayes/giraphql/commit/cb0d102))
 
 #### 📘 Docs
 
@@ -568,11 +423,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 - wip - plugin guide ([cf9c6ec](https://github.com/hayes/giraphql/commit/cf9c6ec))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
-
 
 ### 2.0.0-alpha.1 - 2021-02-10
 
@@ -582,10 +432,6 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 # 2.0.0-alpha.0 - 2021-02-10
 
 #### 💥 Breaking
@@ -594,35 +440,25 @@ See [Conventional Commits](https://conventionalcommits.org) for commit guideline
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 ### 1.4.1 - 2021-02-07
 
 #### 🐞 Fixes
 
-- specify @giraphql/core as peer and dev dep so it is updated correctly ([f096393](https://github.com/hayes/giraphql/commit/f096393))
+- specify @giraphql/core as peer and dev dep so it is updated correctly
+  ([f096393](https://github.com/hayes/giraphql/commit/f096393))
 
 **Note:** Version bump only for package @giraphql/plugin-relay
-
-
-
-
 
 # [1.3.0](https://github.com/hayes/giraphql/compare/@giraphql/plugin-relay@1.3.0-alpha.0...@giraphql/plugin-relay@1.3.0) (2020-10-21)
 
 **Note:** Version bump only for package @giraphql/plugin-relay
 
-
-
-
-
 # Changelog
 
 ### 1.2.0
 
-Add options objects for auto generated `node` and `nodes` queries, as well as the `Node` and `PageInfo` types.
+Add options objects for auto generated `node` and `nodes` queries, as well as the `Node` and
+`PageInfo` types.
 
 ### 1.1.0
 
