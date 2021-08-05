@@ -42,7 +42,7 @@ jobs:
           version: pnpm ci:version
           commit: 'chore: update versions'
           title: 'chore: update versions'
-          publish: yarn release
+          publish: pnpm release
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
