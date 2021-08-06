@@ -174,8 +174,8 @@ export type ModelName<Types extends SchemaTypes> = {
 export type DelegateFromName<
   Types extends SchemaTypes,
   Name extends ModelName<Types>,
-> = Lowercase<Name> extends keyof Types['PrismaClient']
-  ? Extract<Types['PrismaClient'][Lowercase<Name>], PrismaDelegate>
+> = Uncapitalize<Name> extends keyof Types['PrismaClient']
+  ? Extract<Types['PrismaClient'][Uncapitalize<Name>], PrismaDelegate>
   : never;
 
 export type QueryForField<Args extends InputFieldMap, Include> = Include extends { where?: unknown }
