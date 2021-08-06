@@ -25,6 +25,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@giraphql/core';
+import { GiraphQLRelayPlugin } from './index.js';
 import {
   ConnectionShape,
   ConnectionShapeForType,
@@ -43,8 +44,7 @@ import {
   RelayMutationInputOptions,
   RelayMutationPayloadOptions,
   RelayPluginOptions,
-} from './types';
-import { GiraphQLRelayPlugin } from '.';
+} from './types.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

@@ -13,7 +13,7 @@
     "build-esm": "ESM_BUILD=true pnpm create-config && ESM_BUILD=true beemo typescript --build --reference-workspaces --transpile-only && pnpm create-config",
     "build-deno": "pnpm ts-node packages/deno/scripts/build.ts",
     "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm",
-    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm}",
+    "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm} && git checkout -- 'packages/*/esm/*'",
     "ci": "pnpm run build && pnpm run test && pnpm run lint",
     "ci:version": "changeset version && pnpm install --frozen-lockfile false",
     "coverage": "pnpm run test --coverage",
@@ -24,7 +24,7 @@
     "prerelease": "pnpm clean && pnpm install && pnpm run ci",
     "release": "pnpm run prerelease && changeset publish && git push --follow-tags && pnpm -r publish",
     "refs": "beemo typescript:sync-project-refs",
-    "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && pnpm publish --tag preview -r"
+    "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && changeset publish --tag preview"
   },
   "workspaces": [
     "packages/*"

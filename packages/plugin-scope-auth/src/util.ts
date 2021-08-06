@@ -1,5 +1,5 @@
 import { Path, SchemaTypes } from '@giraphql/core';
-import { AuthScopeMap } from '.';
+import { AuthScopeMap } from './index.js';
 
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {
   if (map.$granted) {

@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 /* eslint-disable no-param-reassign */
-import './global-types';
+import './global-types.js';
 import {
   ArgumentNode,
   DirectiveNode,
@@ -29,7 +29,7 @@ import {
   TypeNode,
   ValueNode,
 } from 'graphql';
-import { DirectiveList } from './types';
+import { DirectiveList } from './types.js';
 
 export default function mockAst(schema: GraphQLSchema) {
   const types = schema.getTypeMap();

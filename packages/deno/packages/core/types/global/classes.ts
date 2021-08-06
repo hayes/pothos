@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { FieldKind, SchemaTypes } from '../../index.ts';
 import Builder from '../../builder.ts';
 import InternalFieldBuilder from '../../fieldUtils/builder.ts';
 import InternalInputFieldBuilder from '../../fieldUtils/input.ts';
 import InternalRootFieldBuilder from '../../fieldUtils/root.ts';
+import { FieldKind, SchemaTypes } from '../../index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface SchemaBuilder<Types extends SchemaTypes> extends Builder<Types> {

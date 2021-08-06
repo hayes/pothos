@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import { defaultFieldResolver, GraphQLFieldResolver, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -7,14 +7,14 @@ import SchemaBuilder, {
   GiraphQLOutputFieldConfig,
   SchemaTypes,
 } from '@giraphql/core';
-import SubscriptionCache from './cache';
-import CacheNode from './cache-node';
-import { getFieldSubscribe } from './create-field-data';
-import SubscriptionManager from './manager';
-import BaseSubscriptionManager from './manager/base';
-import FieldSubscriptionManager from './manager/field';
-import TypeSubscriptionManager from './manager/type';
-import resolveWithCache from './resolve-with-cache';
+import SubscriptionCache from './cache.js';
+import CacheNode from './cache-node.js';
+import { getFieldSubscribe } from './create-field-data.js';
+import BaseSubscriptionManager from './manager/base.js';
+import FieldSubscriptionManager from './manager/field.js';
+import SubscriptionManager from './manager/index.js';
+import TypeSubscriptionManager from './manager/type.js';
+import resolveWithCache from './resolve-with-cache.js';
 
 const DEFAULT_DEBOUNCE_DELAY = 10;
 
@@ -27,8 +27,8 @@ export {
   TypeSubscriptionManager,
 };
 
-export * from './types';
-export * from './utils';
+export * from './types.js';
+export * from './utils.js';
 
 const pluginName = 'smartSubscriptions' as const;
 

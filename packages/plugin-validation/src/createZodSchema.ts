@@ -6,7 +6,7 @@ import {
   RefineConstraint,
   StringValidationOptions,
   ValidationOptionUnion,
-} from './types';
+} from './types.js';
 
 const baseValidations = ['refine', 'schema'] as const;
 const numberValidations = [

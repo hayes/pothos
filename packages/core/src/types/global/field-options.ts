@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLFieldExtensions, GraphQLResolveInfo } from 'graphql';
+import { GraphQLFieldExtensions } from 'graphql';
 import {
   FieldNullability,
   FieldRequiredness,
@@ -12,7 +11,7 @@ import {
   ShapeFromTypeParam,
   Subscriber,
   TypeParam,
-} from '../..';
+} from '../../index.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

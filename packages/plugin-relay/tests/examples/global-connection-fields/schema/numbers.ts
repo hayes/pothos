@@ -1,4 +1,4 @@
-import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
+import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src/index.js';
 import builder from '../builder';
 
 class NumberThing {

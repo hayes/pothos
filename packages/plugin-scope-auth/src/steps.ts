@@ -7,7 +7,7 @@ import {
   ResolveStep,
   TypeAuthScopes,
   TypeGrantScopes,
-} from './types';
+} from './types.js';
 
 // TODO generate useful error messages
 

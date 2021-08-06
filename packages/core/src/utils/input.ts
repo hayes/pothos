@@ -5,7 +5,7 @@ import {
   GiraphQLInputFieldType,
   GiraphQLTypeConfig,
   SchemaTypes,
-} from '..';
+} from '../index.js';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
   configs: Record<string, GiraphQLInputFieldConfig<Types>>;

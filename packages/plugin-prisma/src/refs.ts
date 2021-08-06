@@ -1,6 +1,6 @@
 import { ObjectRef, SchemaTypes } from '@giraphql/core';
-import { DMMFClass } from '@prisma/client/runtime';
-import { PrismaDelegate } from './types';
+import { Prisma } from '@prisma/client';
+import { PrismaDelegate } from './types.js';
 
 export const refMap = new WeakMap<object, Map<string, ObjectRef<unknown>>>();
 export const findUniqueMap = new WeakMap<
@@ -56,7 +56,7 @@ export function setFindUniqueForRef<Types extends SchemaTypes>(
 
 export function getRelation(client: unknown, model: string, relation: string) {
   // eslint-disable-next-line no-underscore-dangle
-  const dmmf = (client as { _dmmf: DMMFClass })._dmmf;
+  const dmmf = (client as { _dmmf: { modelMap: Record<string, Prisma.DMMF.Model> } })._dmmf;
   const modelData = dmmf.modelMap[model];
 
   if (!modelData) {

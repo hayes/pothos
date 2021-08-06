@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarSerializer, GraphQLScalarValueParser, } from 'https://cdn.skypack.dev/graphql?dts';
-import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, OutputShape, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
+import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
 import { MaybePromise } from '../utils.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {

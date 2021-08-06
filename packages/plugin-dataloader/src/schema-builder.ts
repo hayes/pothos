@@ -7,8 +7,8 @@ import SchemaBuilder, {
   InterfaceRef,
   SchemaTypes,
 } from '@giraphql/core';
-import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
-import { LoadableObjectRef } from './util';
+import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.js';
+import { LoadableObjectRef } from './util.js';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;

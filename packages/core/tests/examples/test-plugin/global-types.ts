@@ -1,4 +1,4 @@
-import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src';
+import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src/index.js';
 import { GiraphQLTestPlugin } from './plugin';
 
 declare global {

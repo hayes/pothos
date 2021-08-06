@@ -5,9 +5,9 @@ import SchemaBuilder, { BasePlugin, BuildCache, FieldRef, GiraphQLOutputFieldCon
 import SubscriptionCache from './cache.ts';
 import CacheNode from './cache-node.ts';
 import { getFieldSubscribe } from './create-field-data.ts';
-import SubscriptionManager from './manager/index.ts';
 import BaseSubscriptionManager from './manager/base.ts';
 import FieldSubscriptionManager from './manager/field.ts';
+import SubscriptionManager from './manager/index.ts';
 import TypeSubscriptionManager from './manager/type.ts';
 import resolveWithCache from './resolve-with-cache.ts';
 const DEFAULT_DEBOUNCE_DELAY = 10;

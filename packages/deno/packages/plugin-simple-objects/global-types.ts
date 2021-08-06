@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, InterfaceRef, Merge, Normalize, ObjectRef, OutputShape, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
+import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, InterfaceRef, Normalize, ObjectRef, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { GiraphQLSimpleObjectsPlugin } from './index.ts';
+import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

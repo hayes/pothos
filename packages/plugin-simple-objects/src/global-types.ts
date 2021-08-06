@@ -5,16 +5,14 @@ import {
   InputFieldMap,
   InterfaceParam,
   InterfaceRef,
-  Merge,
   Normalize,
   ObjectRef,
-  OutputShape,
   ParentShape,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
-import { GiraphQLSimpleObjectsPlugin } from '.';
+import { GiraphQLSimpleObjectsPlugin } from './index.js';
+import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

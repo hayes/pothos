@@ -1,4 +1,4 @@
-import { FieldKind, outputFieldShapeKey } from '../types';
+import { FieldKind, outputFieldShapeKey } from '../types/index.js';
 
 export default class FieldRef<T = unknown, Kind extends FieldKind = FieldKind> {
   kind: FieldKind;

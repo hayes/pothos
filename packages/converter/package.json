@@ -4,6 +4,10 @@
   "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
+  "exports": {
+    "import": "./esm/index.js",
+    "require": "./lib/index.js"
+  },
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
