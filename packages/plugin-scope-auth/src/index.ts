@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -12,17 +12,17 @@ import SchemaBuilder, {
   RootFieldBuilder,
   SchemaTypes,
 } from '@giraphql/core';
-import { resolveHelper } from './resolve-helper';
+import { resolveHelper } from './resolve-helper.js';
 import {
   createFieldAuthScopesStep,
   createFieldGrantScopesStep,
   createResolveStep,
   createTypeAuthScopesStep,
   createTypeGrantScopesStep,
-} from './steps';
-import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
+} from './steps.js';
+import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.js';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'scopeAuth' as const;
 

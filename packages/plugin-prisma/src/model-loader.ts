@@ -1,6 +1,6 @@
 import { createContextCache, SchemaTypes } from '@giraphql/core';
-import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs';
-import { PrismaDelegate } from './types';
+import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs.js';
+import { PrismaDelegate } from './types.js';
 
 const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 

@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { RefineConstraint, ValidationOptions } from './types.ts';
 import { GiraphQLValidationPlugin } from './index.ts';
+import { RefineConstraint, ValidationOptions } from './types.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

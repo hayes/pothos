@@ -7,11 +7,6 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import BaseTypeRef from './refs/base';
-import BuiltinScalarRef from './refs/builtin-scalar';
-import InputTypeRef from './refs/input';
-import OutputTypeRef from './refs/output';
-import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types';
 import {
   ConfigurableRef,
   FieldRef,
@@ -25,7 +20,12 @@ import {
   InputTypeParam,
   OutputType,
   TypeParam,
-} from '.';
+} from './index.js';
+import BaseTypeRef from './refs/base.js';
+import BuiltinScalarRef from './refs/builtin-scalar.js';
+import InputTypeRef from './refs/input.js';
+import OutputTypeRef from './refs/output.js';
+import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types/index.js';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   typeConfigs = new Map<string, GiraphQLTypeConfig>();

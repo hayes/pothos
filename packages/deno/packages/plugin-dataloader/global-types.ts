@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InterfaceParam, PluginName, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { GiraphQLDataloaderPlugin } from './index.ts';
 import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types.ts';
 import { LoadableObjectRef } from './util.ts';
-import { GiraphQLDataloaderPlugin } from './index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

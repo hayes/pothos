@@ -1,5 +1,5 @@
 import SchemaBuilder from '@giraphql/core';
-import SmartSubscriptionsPlugin, { subscribeOptionsFromIterator } from '../../src';
+import SmartSubscriptionsPlugin, { subscribeOptionsFromIterator } from '../../src/index.js';
 import { Poll } from './data';
 import { ContextType } from './types';
 

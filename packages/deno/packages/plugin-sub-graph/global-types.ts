@@ -1,7 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLSchema } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldNullability, FieldRequiredness, InputFieldMap, InputType, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { FieldNullability, InputFieldMap, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { GiraphQLSubGraphPlugin } from './index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {

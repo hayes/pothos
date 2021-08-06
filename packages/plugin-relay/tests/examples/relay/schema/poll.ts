@@ -5,7 +5,7 @@ import {
   PageInfoShape,
   resolveArrayConnection,
   resolveOffsetConnection,
-} from '../../../../src';
+} from '../../../../src/index.js';
 import builder from '../builder';
 
 builder.queryField('pollIds', (t) =>

@@ -14,9 +14,9 @@ import {
   GlobalIDFieldOptions,
   GlobalIDListFieldOptions,
   GlobalIDShape,
-} from './types';
-import { capitalize, resolveNodes } from './utils';
-import { internalEncodeGlobalID } from './utils/internal';
+} from './types.js';
+import { capitalize, resolveNodes } from './utils/index.js';
+import { internalEncodeGlobalID } from './utils/internal.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,

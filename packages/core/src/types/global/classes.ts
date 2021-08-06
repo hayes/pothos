@@ -1,8 +1,8 @@
-import { FieldKind, SchemaTypes } from '../..';
-import Builder from '../../builder';
-import InternalFieldBuilder from '../../fieldUtils/builder';
-import InternalInputFieldBuilder from '../../fieldUtils/input';
-import InternalRootFieldBuilder from '../../fieldUtils/root';
+import Builder from '../../builder.js';
+import InternalFieldBuilder from '../../fieldUtils/builder.js';
+import InternalInputFieldBuilder from '../../fieldUtils/input.js';
+import InternalRootFieldBuilder from '../../fieldUtils/root.js';
+import { FieldKind, SchemaTypes } from '../../index.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

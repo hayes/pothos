@@ -1,5 +1,5 @@
 import { abstractReturnShapeKey, brandWithType, ObjectRef, typeBrandKey } from '@giraphql/core';
-import { WithBrand } from './types';
+import { WithBrand } from './types.js';
 
 export default class PrismaNodeRef<T> extends ObjectRef<T, T> {
   [abstractReturnShapeKey]: WithBrand<T>;

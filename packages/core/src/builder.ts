@@ -12,36 +12,8 @@ import {
   GraphQLTypeResolver,
   lexicographicSortSchema,
 } from 'graphql';
-import BuildCache from './build-cache';
-import ConfigStore from './config-store';
-import EnumRef from './refs/enum';
-import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
-import ObjectRef, { ImplementableObjectRef } from './refs/object';
-import ScalarRef from './refs/scalar';
-import UnionRef from './refs/union';
-import {
-  EnumValues,
-  InputShape,
-  InterfaceFieldsShape,
-  InterfaceFieldThunk,
-  InterfaceParam,
-  MutationFieldsShape,
-  MutationFieldThunk,
-  NormalizeSchemeBuilderOptions,
-  ObjectFieldsShape,
-  ObjectFieldThunk,
-  ObjectParam,
-  OutputShape,
-  OutputType,
-  QueryFieldsShape,
-  QueryFieldThunk,
-  ScalarName,
-  SchemaTypes,
-  ShapeFromEnumValues,
-  SubscriptionFieldsShape,
-  SubscriptionFieldThunk,
-} from './types';
-import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils';
+import BuildCache from './build-cache.js';
+import ConfigStore from './config-store.js';
 import {
   AbstractReturnShape,
   BaseEnum,
@@ -72,7 +44,35 @@ import {
   QueryFieldBuilder,
   SubscriptionFieldBuilder,
   ValuesFromEnum,
-} from '.';
+} from './index.js';
+import EnumRef from './refs/enum.js';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.js';
+import ObjectRef, { ImplementableObjectRef } from './refs/object.js';
+import ScalarRef from './refs/scalar.js';
+import UnionRef from './refs/union.js';
+import {
+  EnumValues,
+  InputShape,
+  InterfaceFieldsShape,
+  InterfaceFieldThunk,
+  InterfaceParam,
+  MutationFieldsShape,
+  MutationFieldThunk,
+  NormalizeSchemeBuilderOptions,
+  ObjectFieldsShape,
+  ObjectFieldThunk,
+  ObjectParam,
+  OutputShape,
+  OutputType,
+  QueryFieldsShape,
+  QueryFieldThunk,
+  ScalarName,
+  SchemaTypes,
+  ShapeFromEnumValues,
+  SubscriptionFieldsShape,
+  SubscriptionFieldThunk,
+} from './types/index.js';
+import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils/index.js';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};

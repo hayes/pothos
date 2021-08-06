@@ -1,8 +1,8 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GiraphQLOutputFieldConfig, SchemaTypes } from '../core/index.ts';
-import { FieldSubscriber } from './types.ts';
 import { GiraphQLSmartSubscriptionsPlugin } from './index.ts';
+import { FieldSubscriber } from './types.ts';
 export function getFieldSubscribe<Types extends SchemaTypes>(field: GiraphQLOutputFieldConfig<Types>, plugin: GiraphQLSmartSubscriptionsPlugin<Types>) {
     if (field.graphqlKind === "Object" &&
         field.kind !== "Mutation" &&

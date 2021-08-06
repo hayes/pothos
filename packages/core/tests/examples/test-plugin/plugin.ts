@@ -9,7 +9,7 @@ import SchemaBuilder, {
   GiraphQLTypeConfig,
   GiraphQLUnionTypeConfig,
   SchemaTypes,
-} from '../../../src';
+} from '../../../src/index.js';
 
 const pluginName = 'test' as const;
 

@@ -13,8 +13,8 @@ import SchemaBuilder, {
   SchemaTypes,
   verifyRef,
 } from '@giraphql/core';
-import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
-import { capitalize, resolveNodes } from './utils';
+import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.js';
+import { capitalize, resolveNodes } from './utils/index.js';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;

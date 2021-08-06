@@ -1,5 +1,5 @@
-export * from './connections';
-export * from './resolve-nodes';
+export * from './connections.js';
+export * from './resolve-nodes.js';
 
 export function encodeGlobalID(typename: string, id: bigint | number | string) {
   return Buffer.from(`${typename}:${id}`).toString('base64');

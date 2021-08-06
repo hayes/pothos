@@ -13,6 +13,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
+import { ContextForAuth, GiraphQLScopeAuthPlugin } from './index.js';
 import {
   FieldAuthScopes,
   FieldGrantScopes,
@@ -20,8 +21,7 @@ import {
   ScopeAuthPluginOptions,
   TypeAuthScopes,
   TypeGrantScopes,
-} from './types';
-import { ContextForAuth, GiraphQLScopeAuthPlugin } from '.';
+} from './types.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

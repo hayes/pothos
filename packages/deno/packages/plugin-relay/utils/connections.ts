@@ -89,14 +89,14 @@ export function cursorToOffset(cursor: string): number {
 export function offsetToCursor(offset: number): string {
     return Buffer.from(`${OFFSET_CURSOR_PREFIX}${offset}`).toString("base64");
 }
-export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, T, boolean> {
+export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, NonNullable<T>, boolean> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = array.slice(offset, offset + limit);
     const edges = nodes.map((value, index) => value == null
         ? null
         : {
             cursor: offsetToCursor(offset + index),
-            node: value,
+            node: value as NonNullable<T>,
         });
     const trimmed = edges.slice(0, expectedSize);
     return {

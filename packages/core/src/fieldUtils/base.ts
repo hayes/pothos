@@ -1,13 +1,12 @@
-import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types';
-import { typeFromParam } from '../utils';
-
 import {
   FieldKind,
   FieldRef,
   GiraphQLInputFieldConfig,
   InputFieldMap,
   ShapeFromTypeParam,
-} from '..';
+} from '../index.js';
+import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types/index.js';
+import { typeFromParam } from '../utils/index.js';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   typename: string;
