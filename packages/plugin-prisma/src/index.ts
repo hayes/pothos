@@ -1,9 +1,9 @@
-import './global-types';
-import './field-builder';
-import './schema-builder';
+import './global-types.js';
+import './field-builder.js';
+import './schema-builder.js';
 import SchemaBuilder, { BasePlugin, BuildCache, SchemaTypes } from '@giraphql/core';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'prisma' as const;
 

@@ -1,4 +1,4 @@
-import './global-types';
+import './global-types.js';
 import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   brandWithType,
@@ -9,11 +9,11 @@ import SchemaBuilder, {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { PrismaObjectFieldBuilder } from './field-builder';
-import PrismaNodeRef from './node-ref';
-import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
-import { ModelName, PrismaNodeOptions } from './types';
-import { queryFromInfo } from './util';
+import { PrismaObjectFieldBuilder } from './field-builder.js';
+import PrismaNodeRef from './node-ref.js';
+import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs.js';
+import { ModelName, PrismaNodeOptions } from './types.js';
+import { queryFromInfo } from './util.js';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;

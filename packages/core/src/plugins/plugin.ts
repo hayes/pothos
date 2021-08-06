@@ -1,4 +1,5 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
+import { BuildCache } from '../index.js';
 import {
   GiraphQLEnumValueConfig,
   GiraphQLInputFieldConfig,
@@ -7,9 +8,7 @@ import {
   GiraphQLTypeConfig,
   GiraphQLUnionTypeConfig,
   SchemaTypes,
-} from '../types';
-
-import { BuildCache } from '..';
+} from '../types/index.js';
 
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {

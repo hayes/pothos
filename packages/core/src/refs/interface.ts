@@ -1,9 +1,8 @@
 /* eslint-disable max-classes-per-file */
 
-import { OutputRef, outputShapeKey } from '../types';
-import BaseTypeRef from './base';
-
-import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '..';
+import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '../index.js';
+import { OutputRef, outputShapeKey } from '../types/index.js';
+import BaseTypeRef from './base.js';
 
 export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef {
   override kind = 'Interface' as const;

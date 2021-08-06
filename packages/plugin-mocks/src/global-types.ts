@@ -1,6 +1,6 @@
 import { SchemaTypes } from '@giraphql/core';
-import { ResolverMap } from './types';
-import { MocksPlugin } from '.';
+import { MocksPlugin } from './index.js';
+import { ResolverMap } from './types.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

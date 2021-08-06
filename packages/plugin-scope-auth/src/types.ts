@@ -1,6 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { MaybePromise, Merge, SchemaTypes } from '@giraphql/core';
-import ResolveState from './resolve-state';
+import ResolveState from './resolve-state.js';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
 export interface ScopeAuthPluginOptions {}

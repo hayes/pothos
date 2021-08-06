@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { EnumValues, FieldNullability, FieldRequiredness, InputFieldMap, InputType, InterfaceParam, ObjectParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { DirectiveLocation, Directives } from './types.ts';
 import { GiraphQLDirectivesPlugin } from './index.ts';
+import { DirectiveLocation, Directives } from './types.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

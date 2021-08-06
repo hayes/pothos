@@ -1,7 +1,6 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { BasePlugin } from '../plugins';
-
-import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '..';
+import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '../index.js';
+import { BasePlugin } from '../plugins/index.js';
 
 /**
  * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType

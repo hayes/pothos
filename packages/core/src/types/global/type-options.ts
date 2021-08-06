@@ -13,15 +13,14 @@ import {
   MutationFieldsShape,
   ObjectFieldsShape,
   ObjectParam,
-  OutputShape,
   ParentShape,
   QueryFieldsShape,
   RootName,
   SchemaTypes,
   SubscriptionFieldsShape,
   ValidateInterfaces,
-} from '../..';
-import { MaybePromise } from '../utils';
+} from '../../index.js';
+import { MaybePromise } from '../utils.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

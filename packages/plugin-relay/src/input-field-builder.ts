@@ -8,7 +8,7 @@ import {
   GlobalIDInputFieldOptions,
   GlobalIDInputShape,
   GlobalIDListInputFieldOptions,
-} from './types';
+} from './types.js';
 
 type DefaultSchemaTypes = GiraphQLSchemaTypes.ExtendDefaultTypes<{}>;
 

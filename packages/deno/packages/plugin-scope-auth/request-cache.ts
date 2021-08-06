@@ -1,9 +1,9 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '../core/index.ts';
+import { GiraphQLScopeAuthPlugin } from './index.ts';
 import { ScopeLoaderMap } from './types.ts';
 import { cacheKey } from './util.ts';
-import { GiraphQLScopeAuthPlugin } from './index.ts';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();
 export default class RequestCache<Types extends SchemaTypes> {

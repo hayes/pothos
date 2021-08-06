@@ -11,8 +11,8 @@ import {
   InlineFragmentNode,
   SelectionSetNode,
 } from 'graphql';
-import { getArgumentValues } from 'graphql/execution/values';
-import { setLoaderMappings } from './loader-map';
+import { getArgumentValues } from 'graphql/execution/values.js';
+import { setLoaderMappings } from './loader-map.js';
 
 export type IncludeMap = Record<string, unknown>;
 export type LoaderMappings = Record<

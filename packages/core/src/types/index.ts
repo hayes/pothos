@@ -1,9 +1,8 @@
-/* eslint-disable import/no-useless-path-segments */
-import './global/index';
+import './global/index.js';
 
-export * from './builder-options';
-export * from './configs';
-export * from './plugins';
-export * from './schema-types';
-export * from './type-params';
-export * from './utils';
+export * from './builder-options.js';
+export * from './configs.js';
+export * from './plugins.js';
+export * from './schema-types.js';
+export * from './type-params.js';
+export * from './utils.js';

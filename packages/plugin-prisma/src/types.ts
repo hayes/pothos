@@ -18,7 +18,7 @@ import {
   typeBrandKey,
   TypeParam,
 } from '@giraphql/core';
-import { PrismaObjectFieldBuilder } from './field-builder';
+import { PrismaObjectFieldBuilder } from './field-builder.js';
 
 export interface PrismaDelegate<
   Shape extends {} = {},

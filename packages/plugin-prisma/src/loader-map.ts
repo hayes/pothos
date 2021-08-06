@@ -1,6 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { createContextCache } from '@giraphql/core';
-import { LoaderMappings } from './util';
+import { LoaderMappings } from './util.js';
 
 const cache = createContextCache((ctx) => new Map<string, LoaderMappings>());
 

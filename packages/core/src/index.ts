@@ -1,32 +1,31 @@
-/* eslint-disable import/no-useless-path-segments */
-import './types/global';
-import BuildCache from './build-cache';
-import SchemaBuilderClass from './builder';
-import InternalFieldBuilder from './fieldUtils/builder';
-import InternalInputFieldBuilder from './fieldUtils/input';
-import InternalInterfaceFieldBuilder from './fieldUtils/interface';
-import InternalMutationFieldBuilder from './fieldUtils/mutation';
-import InternalObjectFieldBuilder from './fieldUtils/object';
-import InternalQueryFieldBuilder from './fieldUtils/query';
-import InternalRootFieldBuilder from './fieldUtils/root';
-import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
-import BaseTypeRef from './refs/base';
-import BuiltinScalarRef from './refs/builtin-scalar';
-import EnumRef from './refs/enum';
-import FieldRef from './refs/field';
-import InputTypeRef from './refs/input';
-import InputFieldRef from './refs/input-field';
-import InputObjectRef, { ImplementableInputObjectRef } from './refs/input-object';
-import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
-import ObjectRef, { ImplementableObjectRef } from './refs/object';
-import OutputTypeRef from './refs/output';
-import ScalarRef from './refs/scalar';
-import UnionRef from './refs/union';
-import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types';
+import './types/global/index.js';
+import BuildCache from './build-cache.js';
+import SchemaBuilderClass from './builder.js';
+import InternalFieldBuilder from './fieldUtils/builder.js';
+import InternalInputFieldBuilder from './fieldUtils/input.js';
+import InternalInterfaceFieldBuilder from './fieldUtils/interface.js';
+import InternalMutationFieldBuilder from './fieldUtils/mutation.js';
+import InternalObjectFieldBuilder from './fieldUtils/object.js';
+import InternalQueryFieldBuilder from './fieldUtils/query.js';
+import InternalRootFieldBuilder from './fieldUtils/root.js';
+import InternalSubscriptionFieldBuilder from './fieldUtils/subscription.js';
+import BaseTypeRef from './refs/base.js';
+import BuiltinScalarRef from './refs/builtin-scalar.js';
+import EnumRef from './refs/enum.js';
+import FieldRef from './refs/field.js';
+import InputTypeRef from './refs/input.js';
+import InputFieldRef from './refs/input-field.js';
+import InputObjectRef, { ImplementableInputObjectRef } from './refs/input-object.js';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.js';
+import ObjectRef, { ImplementableObjectRef } from './refs/object.js';
+import OutputTypeRef from './refs/output.js';
+import ScalarRef from './refs/scalar.js';
+import UnionRef from './refs/union.js';
+import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types/index.js';
 
-export * from './plugins/index';
-export * from './types/index';
-export * from './utils/index';
+export * from './plugins/index.js';
+export * from './types/index.js';
+export * from './utils/index.js';
 
 export {
   BaseTypeRef,

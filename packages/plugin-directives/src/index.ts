@@ -1,5 +1,5 @@
 /* eslint-disable no-param-reassign */
-import './global-types';
+import './global-types.js';
 import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -9,10 +9,10 @@ import SchemaBuilder, {
   GiraphQLTypeConfig,
   SchemaTypes,
 } from '@giraphql/core';
-import mockAst from './mock-ast';
-import { DirectiveList } from './types';
+import mockAst from './mock-ast.js';
+import { DirectiveList } from './types.js';
 
-export * from './types';
+export * from './types.js';
 
 const pluginName = 'directives' as const;
 

@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '@giraphql/core';
-import { ExamplePluginOptions } from './types';
-import { GiraphQLExamplePlugin } from '.';
+import { GiraphQLExamplePlugin } from './index.js';
+import { ExamplePluginOptions } from './types.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

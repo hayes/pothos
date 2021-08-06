@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable max-classes-per-file */
+import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
 import { OutputRef, outputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
-import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
 export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef {
     override kind = "Object" as const;
     [outputShapeKey]: T;

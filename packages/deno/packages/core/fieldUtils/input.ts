@@ -1,7 +1,7 @@
 // @ts-nocheck
+import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam, NormalizeArgs, } from '../index.ts';
 import { InputType, SchemaTypes } from '../types/index.ts';
 import { inputTypeFromParam } from '../utils/index.ts';
-import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam, NormalizeArgs, } from '../index.ts';
 export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends keyof GiraphQLSchemaTypes.InputFieldOptionsByKind> {
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
     kind: Kind;
@@ -62,7 +62,6 @@ export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends k
         this.typename = typename;
     }
     argBuilder(): ArgBuilder<Types> {
-        // eslint-disable-next-line unicorn/prefer-prototype-methods
         const builder = this.field.bind(this as never) as InputFieldBuilder<Types, "Arg">["field"];
         const protoKeys = Object.keys(Object.getPrototypeOf(this) as object).filter((key) => typeof (this as Record<string, unknown>)[key] === "function" &&
             (Function.prototype as unknown as Record<string, unknown>)[key] === undefined);

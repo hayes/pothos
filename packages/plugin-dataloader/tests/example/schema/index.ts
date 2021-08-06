@@ -1,5 +1,5 @@
 import { createContextCache } from '@giraphql/core';
-import { rejectErrors } from '../../../src';
+import { rejectErrors } from '../../../src/index.js';
 import builder from '../builder';
 import { ContextType, IPost } from '../types';
 

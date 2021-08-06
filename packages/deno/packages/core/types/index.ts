@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable import/no-useless-path-segments */
 import './global/index.ts';
 export * from './builder-options.ts';
 export * from './configs.ts';
