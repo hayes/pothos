@@ -1,4 +1,6 @@
 // @ts-nocheck
+/* eslint-disable @typescript-eslint/no-unsafe-return */
+/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
@@ -29,12 +31,12 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
                 ...startCursorFieldOptions,
                 type: cursorType,
                 nullable: true,
-            }),
+            }) as never,
             endCursor: t.expose("endCursor", {
                 ...endCursorFieldOptions,
                 type: cursorType,
                 nullable: true,
-            }),
+            }) as never,
         }),
     });
     return ref;
@@ -139,7 +141,6 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
             }),
         }));
     });
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return ref;
 };
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
@@ -249,7 +250,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                 },
                 resolve: (parent) => parent.edges,
             }),
-            ...connectionFields?.(t),
+            ...connectionFields?.(t as never),
         }),
     });
     this.objectType(edgeRef, {
@@ -263,7 +264,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
             cursor: t.expose("cursor", {
                 type: cursorType,
                 ...cursorFieldOptions,
-            }),
+            }) as never,
             ...edgeFields?.(t),
         }),
     });
