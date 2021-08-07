@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/deno",
-  "version": "2.13.1",
+  "version": "2.13.2",
   "description": "Deno compatible versions of GiraphQL packages",
   "repository": {
     "type": "git",

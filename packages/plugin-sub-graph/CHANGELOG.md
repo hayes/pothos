@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.5.2
+
+### Patch Changes
+
+- f13208c: bump to fix latest tag
+
 ## 2.5.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # Change Log
 
+## 0.3.2
+
+### Patch Changes
+
+- ee16577: Fix prisma plugin for multi-word model names.
+- f13208c: bump to fix latest tag
+
 ## 0.3.1
 
 ### Patch Changes
