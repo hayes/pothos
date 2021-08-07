@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.4.0
+
+### Minor Changes
+
+- 06e11f9: Pass context to query option of relation and relatedConnection fields
+
+### Patch Changes
+
+- 0d51dcf: Fix nullability of prismaField
+
 ## 0.3.2
 
 ### Patch Changes

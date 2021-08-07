@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.14.0
+
+### Minor Changes
+
+- 06e11f9: Pass context to query option of relation and relatedConnection fields
+
 ## 2.13.2
 
 ### Patch Changes
