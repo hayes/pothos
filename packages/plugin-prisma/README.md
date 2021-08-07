@@ -47,7 +47,7 @@ builder.prismaObject('User', {
       args: {
         oldestFirst: t.arg.boolean(),
       },
-      query: (args) => ({
+      query: (args, context) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
@@ -122,7 +122,7 @@ query {
 Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
 resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
 so we need a separate to handle the second `posts` relation. This may seem slightly magical, but
-should be predictable and hopefully understandable after reading the documentation below.
+should be predictable and hopefully easy to understand after reading the documentation below.
 
 ### GiraphQL + Prisma without a plugin
 
@@ -475,7 +475,7 @@ builder.prismaObject('User', {
         oldestFirst: t.arg.boolean(),
       },
       // Then we can generate our query conditions based on the arguments
-      query: (args) => ({
+      query: (args, context) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
@@ -487,7 +487,9 @@ builder.prismaObject('User', {
 
 This query will be part of the `query` that gets passed into the first argument of `resolve`
 function for `t.relation` and `t.prismaField` based fields, and include things like `where`, `skip`,
-`take`, `orderBy`, etc.
+`take`, `orderBy`, etc. The `query` function will be passed the arguments for the field, and the
+context for the current request. Because it is used for pre-loading data, and solving n+1 issues, it
+can not be passed the `parent` object because it may not be loaded yet.
 
 If your field has a `resolve` method the generated `query` will be passed in as part of the first
 arg to your resolve function
@@ -502,7 +504,7 @@ builder.prismaObject('Post', {
       args: {
         oldestFirst: t.arg.boolean(),
       },
-      query: (args) => ({
+      query: (args, context) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
@@ -548,7 +550,7 @@ builder.prismaNode('User', {
       args: {
         oldestFirst: t.arg.boolean(),
       },
-      query: (args) => ({
+      query: (args, context) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
@@ -677,7 +679,7 @@ builder.prismaNode('User', {
         args: {
           oldestFirst: t.arg.boolean(),
         },
-        query: (args) => ({
+        query: (args, context) => ({
           orderBy: {
             createdAt: args.oldestFirst ? 'asc' : 'desc',
           },

@@ -178,10 +178,17 @@ export type DelegateFromName<
   ? Extract<Types['PrismaClient'][Uncapitalize<Name>], PrismaDelegate>
   : never;
 
-export type QueryForField<Args extends InputFieldMap, Include> = Include extends { where?: unknown }
+export type QueryForField<
+  Types extends SchemaTypes,
+  Args extends InputFieldMap,
+  Include,
+> = Include extends { where?: unknown }
   ?
       | Omit<Include, 'include' | 'select'>
-      | ((args: InputShapeFromFields<Args>) => Omit<Include, 'include' | 'select'>)
+      | ((
+          args: InputShapeFromFields<Args>,
+          ctx: Types['Context'],
+        ) => Omit<Include, 'include' | 'select'>)
   : never;
 
 export type InlcudeFromRelation<
@@ -242,7 +249,7 @@ export type RelatedFieldOptions<
           info: GraphQLResolveInfo,
         ) => MaybePromise<RelationShape<Type, Field>>;
       }) & {
-    query?: QueryForField<Args, SelectFromPrismaDelegate<Type>[Field]>;
+    query?: QueryForField<Types, Args, SelectFromPrismaDelegate<Type>[Field]>;
   };
 
 export type PrismaFieldOptions<
@@ -367,7 +374,7 @@ export type RelatedConnectionOptions<
     >,
     'resolve' | 'type'
   > & {
-    query?: QueryForField<Args, SelectFromPrismaDelegate<Type>[Field]>;
+    query?: QueryForField<Types, Args, SelectFromPrismaDelegate<Type>[Field]>;
     cursor: CursorFromRelation<Type, Field>;
     defaultSize?: number;
     maxSize?: number;
