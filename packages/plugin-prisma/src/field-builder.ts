@@ -302,6 +302,7 @@ export class PrismaObjectFieldBuilder<
 
     this.model = model;
   }
+
   relation<
     Field extends string & keyof IncludeFromPrismaDelegate<Type>,
     Nullable extends FieldNullability<Type>,

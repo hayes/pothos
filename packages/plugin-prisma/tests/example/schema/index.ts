@@ -108,10 +108,10 @@ builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
       type: 'User',
+      nullable: true,
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
-          rejectOnNotFound: true,
           where: { id: ctx.user.id },
         }),
     }),

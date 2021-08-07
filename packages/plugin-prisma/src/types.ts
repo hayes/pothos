@@ -284,7 +284,7 @@ export type PrismaFieldOptions<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => ShapeFromTypeParam<Types, Param, Nullable> extends infer Shape
-    ? Shape extends [readonly (infer Item)[] | null | undefined]
+    ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
       ? ListResolveValue<Shape, Item, ResolveReturnShape>
       : MaybePromise<Shape>
     : never;

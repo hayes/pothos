@@ -31,7 +31,7 @@ type Profile {
 }
 
 type Query {
-  me: User!
+  me: User
   named: [Named]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
