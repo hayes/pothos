@@ -17,6 +17,11 @@ function countCall(context: ContextType, getCounts: typeof usersCounts, loaded: 
   return group;
 }
 
+class ClassThing {
+  id: number = 123;
+  name: string = 'some name';
+}
+
 const TestInterface = builder.interfaceRef<{ id: number }>('TestInterface').implement({
   fields: (t) => ({
     idFromInterface: t.exposeID('id', {}),
@@ -52,6 +57,18 @@ const UserNode = builder.loadableNode('UserNode', {
       keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
     );
   },
+  fields: (t) => ({}),
+});
+
+const ClassThingRef = builder.loadableNode(ClassThing, {
+  name: 'ClassLoadableThing',
+  interfaces: [TestInterface],
+  id: {
+    resolve: (user) => user.id,
+  },
+  loaderOptions: { maxBatchSize: 20 },
+  // eslint-disable-next-line @typescript-eslint/require-await
+  load: async (keys: string[], context: ContextType) => [new ClassThing()],
   fields: (t) => ({}),
 });
 
@@ -252,6 +269,14 @@ builder.queryFields((t) => ({
       );
     },
     resolve: (_root, args) => Promise.resolve(args.ids),
+  }),
+  classThing: t.field({
+    type: ClassThing,
+    resolve: () => new ClassThing(),
+  }),
+  classThingRef: t.field({
+    type: ClassThingRef,
+    resolve: () => '1',
   }),
 }));
 

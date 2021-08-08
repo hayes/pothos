@@ -5,7 +5,9 @@ import SchemaBuilder, {
   FieldRef,
   InterfaceParam,
   InterfaceRef,
+  ObjectParam,
   SchemaTypes,
+  ShapeFromTypeParam,
 } from '@giraphql/core';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.js';
 import { LoadableObjectRef } from './util.js';
@@ -14,18 +16,26 @@ const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.loadableObject = function loadableObject<
-  Shape extends object,
+  Shape extends NameOrRef extends ObjectParam<SchemaTypes>
+    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
+    : object,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<SchemaTypes>[],
+  NameOrRef extends ObjectParam<SchemaTypes> | string,
   CacheKey = Key,
 >(
-  name: string,
+  nameOrRef: NameOrRef,
   {
     load,
     loaderOptions,
     ...options
-  }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, CacheKey>,
+  }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
 ) {
+  const name =
+    typeof nameOrRef === 'string'
+      ? nameOrRef
+      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+
   const getDataloader = createContextCache(
     (context: SchemaTypes['Context']) =>
       new DataLoader<Key, Shape, CacheKey>(
@@ -51,24 +61,31 @@ schemaBuilderProto.loadableObject = function loadableObject<
     },
   } as never);
 
+  if (typeof nameOrRef !== 'string') {
+    this.configStore.associateRefWithName(nameOrRef, name);
+  }
+
   return ref;
 };
 
 const TloadableNode = schemaBuilderProto.loadableNode;
 
 schemaBuilderProto.loadableNode = function loadableNode<
-  Shape extends object,
+  Shape extends NameOrRef extends ObjectParam<SchemaTypes>
+    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
+    : object,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<SchemaTypes>[],
+  NameOrRef extends ObjectParam<SchemaTypes> | string,
   CacheKey = Key,
 >(
   this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
-  name: string,
+  nameOrRef: NameOrRef,
   {
     load,
     loaderOptions,
     ...options
-  }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, CacheKey>,
+  }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
 ) {
   if (
     typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
@@ -77,14 +94,21 @@ schemaBuilderProto.loadableNode = function loadableNode<
     throw new TypeError('builder.loadableNode requires @giraphql/plugin-relay to be installed');
   }
 
+  const name =
+    typeof nameOrRef === 'string'
+      ? nameOrRef
+      : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
+
   const getDataloader = createContextCache(
     (context: SchemaTypes['Context']) =>
       new DataLoader<Key, Shape, CacheKey>(
         (keys: readonly Key[]) =>
-          (load as (keys: readonly Key[], context: SchemaTypes['Context']) => Promise<Shape[]>)(
-            keys,
-            context,
-          ),
+          (
+            load as unknown as (
+              keys: readonly Key[],
+              context: SchemaTypes['Context'],
+            ) => Promise<Shape[]>
+          )(keys, context),
         loaderOptions,
       ),
   );
@@ -112,6 +136,10 @@ schemaBuilderProto.loadableNode = function loadableNode<
   };
 
   ref.implement(extendedOptions as never);
+
+  if (typeof nameOrRef !== 'string') {
+    this.configStore.associateRefWithName(nameOrRef, name);
+  }
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(ref, 'id', (t) =>

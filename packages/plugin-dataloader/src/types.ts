@@ -8,6 +8,7 @@ import {
   InputShapeFromFields,
   InterfaceParam,
   MaybePromise,
+  ObjectParam,
   ObjectRef,
   ObjectTypeOptions,
   OutputShape,
@@ -51,8 +52,14 @@ export type DataloaderObjectTypeOptions<
   Shape,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
+  NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-> = ObjectTypeOptions<Types, ObjectRef<Shape>, Shape, Interfaces> & {
+> = ObjectTypeOptions<
+  Types,
+  NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
+  Shape,
+  Interfaces
+> & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 };
@@ -74,24 +81,39 @@ export type LoadableNodeOptions<
   Shape extends object,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
+  NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-> = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>, 'isTypeOf'> & {
-  id: Omit<
-    FieldOptionsFromKind<
-      Types,
-      Shape,
-      'ID',
-      false,
-      {},
-      'Object',
-      Shape,
-      MaybePromise<OutputShape<Types, 'ID'>>
-    >,
-    'args' | 'nullable' | 'type'
-  >;
-  isTypeOf: (
-    obj: ParentShape<Types, Interfaces[number]>,
-    context: Types['Context'],
-    info: GraphQLResolveInfo,
-  ) => boolean;
-};
+> = Omit<
+  DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  'isTypeOf'
+> &
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  (NameOrRef extends new (...args: any[]) => any
+    ? {
+        isTypeOf?: (
+          obj: ParentShape<Types, Interfaces[number]>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => boolean;
+      }
+    : {
+        isTypeOf: (
+          obj: ParentShape<Types, Interfaces[number]>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => boolean;
+      }) & {
+    id: Omit<
+      FieldOptionsFromKind<
+        Types,
+        Shape,
+        'ID',
+        false,
+        {},
+        'Object',
+        Shape,
+        MaybePromise<OutputShape<Types, 'ID'>>
+      >,
+      'args' | 'nullable' | 'type'
+    >;
+  };

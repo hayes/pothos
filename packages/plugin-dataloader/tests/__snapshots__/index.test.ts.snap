@@ -7,6 +7,11 @@ exports[`dataloader generates expected schema 1`] = `
   name: String!
 }
 
+type ClassLoadableThing implements Node & TestInterface {
+  id: ID!
+  idFromInterface: ID!
+}
+
 interface Node {
   id: ID!
 }
@@ -24,6 +29,8 @@ type Post {
 
 type Query {
   addOnUser: User!
+  classThing: ClassLoadableThing!
+  classThingRef: ClassLoadableThing!
   counts: [CallCount!]!
   fromContext1: User!
   fromContext2: User!
