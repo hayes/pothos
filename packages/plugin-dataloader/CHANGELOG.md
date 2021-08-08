@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.11.0
+
+### Minor Changes
+
+- f70501b: Add support for classes and object refs with dataloader objects
+
 ## 2.10.0
 
 ### Minor Changes
