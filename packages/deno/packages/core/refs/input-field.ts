@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { inputFieldShapeKey } from '../types/index.ts';
 import { FieldRef } from '../index.ts';
+import { inputFieldShapeKey } from '../types/index.ts';
 export default class InputFieldRef<T = unknown, Kind extends "Arg" | "InputObject" = "Arg" | "InputObject"> {
     kind: "Arg" | "InputObject";
     parentTypename: string;

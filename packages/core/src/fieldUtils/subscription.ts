@@ -1,5 +1,5 @@
-import { SchemaTypes } from '../types';
-import RootFieldBuilder from './root';
+import { SchemaTypes } from '../types/index.js';
+import RootFieldBuilder from './root.js';
 
 export default class SubscriptionFieldBuilder<
   Types extends SchemaTypes,

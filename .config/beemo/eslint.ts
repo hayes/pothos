@@ -3,13 +3,17 @@ import { resolve } from 'path';
 
 const config: ESLintConfig = {
   plugins: ['prettier'],
-  ignore: [
-    'deno',
-    'scripts',
-    'packages/plugin-prisma/prisma',
-    'packages/plugin-prisma/src/field-builder.ts',
-  ],
+  ignore: ['deno', 'scripts', 'packages/plugin-prisma/prisma'],
   rules: {
+    'import/extensions': [
+      'error',
+      {
+        js: 'always',
+        ts: 'always',
+      },
+    ],
+    'import/no-useless-path-segments': 'off',
+    'import/no-unresolved': 'off',
     'import/no-default-export': 'off',
     'prettier/prettier': 'error',
     'sort-keys': 'off',
@@ -26,6 +30,7 @@ const config: ESLintConfig = {
       rules: {
         'no-magic-numbers': 'off',
         '@typescript-eslint/no-unsafe-assignment': 'off',
+        'import/extensions': 'off',
       },
     },
     {

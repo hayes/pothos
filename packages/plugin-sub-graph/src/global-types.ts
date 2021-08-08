@@ -1,16 +1,13 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
-  FieldRequiredness,
   InputFieldMap,
-  InputType,
   InterfaceParam,
   RootName,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLSubGraphPlugin } from '.';
+import { GiraphQLSubGraphPlugin } from './index.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

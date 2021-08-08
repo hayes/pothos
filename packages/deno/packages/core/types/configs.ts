@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfig, GraphQLFieldConfig, GraphQLInputFieldConfig, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLUnionType, GraphQLUnionTypeConfig, } from 'https://cdn.skypack.dev/graphql?dts';
-import { Merge } from './utils.ts';
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputType, InputTypeParam, ObjectParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
+import { Merge } from './utils.ts';
 export interface GiraphQLQueryTypeConfig extends Omit<GraphQLObjectTypeConfig<unknown, object>, "fields" | "interfaces"> {
     kind: "Query";
     graphqlKind: "Object";

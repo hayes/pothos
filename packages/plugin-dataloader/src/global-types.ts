@@ -8,9 +8,9 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
-import { LoadableObjectRef } from './util';
-import { GiraphQLDataloaderPlugin } from '.';
+import { GiraphQLDataloaderPlugin } from './index.js';
+import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types.js';
+import { LoadableObjectRef } from './util.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

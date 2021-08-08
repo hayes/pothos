@@ -12,7 +12,8 @@ import {
   PluginName,
   SchemaTypes,
 } from '@giraphql/core';
-import PrismaNodeRef from './node-ref';
+import { PrismaPlugin } from './index.js';
+import PrismaNodeRef from './node-ref.js';
 import {
   DelegateFromName,
   ModelName,
@@ -21,8 +22,7 @@ import {
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
   ShapeFromPrismaDelegate,
-} from './types';
-import { PrismaPlugin } from '.';
+} from './types.js';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

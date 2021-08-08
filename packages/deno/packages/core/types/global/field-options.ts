@@ -1,6 +1,5 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLFieldExtensions, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { GraphQLFieldExtensions } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, Resolver, SchemaTypes, ShapeFromTypeParam, Subscriber, TypeParam, } from '../../index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {

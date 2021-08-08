@@ -1,7 +1,7 @@
 // @ts-nocheck
+import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam, NormalizeArgs, } from '../index.ts';
 import { InputType, SchemaTypes } from '../types/index.ts';
 import { inputTypeFromParam } from '../utils/index.ts';
-import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam, NormalizeArgs, } from '../index.ts';
 export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends keyof GiraphQLSchemaTypes.InputFieldOptionsByKind> {
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
     kind: Kind;

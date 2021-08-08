@@ -1,5 +1,5 @@
 import { GraphQLScalarType } from 'graphql';
-import ScalarRef from './scalar';
+import ScalarRef from './scalar.js';
 
 export default class BuiltinScalarRef<T, U> extends ScalarRef<T, U> {
   type;

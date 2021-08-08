@@ -1,7 +1,7 @@
 // @ts-nocheck
 import ConfigStore from '../config-store.ts';
-import BaseTypeRef from '../refs/base.ts';
 import { FieldNullability, FieldRequiredness, GiraphQLInputFieldType, GiraphQLNameInputFieldType, GiraphQLNameOutputFieldType, GiraphQLOutputFieldType, InputType, InputTypeParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
+import BaseTypeRef from '../refs/base.ts';
 export function typeFromNonListParam<Types extends SchemaTypes>(type: OutputType<Types>, configStore: ConfigStore<Types>, nullable: boolean): GiraphQLNameOutputFieldType<Types> {
     const ref = configStore.getOutputTypeRef(type);
     const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;

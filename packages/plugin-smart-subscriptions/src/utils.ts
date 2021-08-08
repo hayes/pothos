@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { SmartSubscriptionOptions } from './types';
+import { SmartSubscriptionOptions } from './types.js';
 
 export function rootName(path: GraphQLResolveInfo['path']): string {
   if (path.prev) {

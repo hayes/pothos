@@ -1,5 +1,5 @@
-import { inputShapeKey } from '../types';
-import BaseTypeRef from './base';
+import { inputShapeKey } from '../types/index.js';
+import BaseTypeRef from './base.js';
 
 export default class InputTypeRef<T> extends BaseTypeRef {
   override kind;

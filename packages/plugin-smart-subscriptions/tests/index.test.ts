@@ -8,7 +8,7 @@ import {
 } from 'graphql';
 import { PubSub } from 'graphql-subscriptions';
 import gql from 'graphql-tag';
-import { stringPath } from '../src';
+import { stringPath } from '../src/index.js';
 import { Poll } from './example/data';
 import schema from './example/schema';
 

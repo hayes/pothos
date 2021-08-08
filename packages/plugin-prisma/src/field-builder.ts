@@ -2,10 +2,8 @@ import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldNullability,
-  FieldOptionsFromKind,
   FieldRef,
   InputFieldMap,
-  InputFieldsFromShape,
   MaybePromise,
   NormalizeArgs,
   ObjectFieldBuilder,
@@ -19,10 +17,10 @@ import {
   prismaCursorConnectionQuery,
   resolvePrismaCursorConnection,
   wrapConnectionResult,
-} from './cursors';
-import { getLoaderMapping, setLoaderMappings } from './loader-map';
-import { ModelLoader } from './model-loader';
-import { getFindUniqueForRef, getRefFromModel, getRelation } from './refs';
+} from './cursors.js';
+import { getLoaderMapping, setLoaderMappings } from './loader-map.js';
+import { ModelLoader } from './model-loader.js';
+import { getFindUniqueForRef, getRefFromModel, getRelation } from './refs.js';
 import {
   DelegateFromName,
   IncludeFromPrismaDelegate,
@@ -34,8 +32,8 @@ import {
   RelatedFieldOptions,
   RelationShape,
   ShapeFromPrismaDelegate,
-} from './types';
-import { queryFromInfo } from './util';
+} from './types.js';
+import { queryFromInfo } from './util.js';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -74,40 +72,19 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
     defaultSize,
     resolve,
     ...options
-  }: Omit<
-    FieldOptionsFromKind<
-      SchemaTypes,
-      unknown,
-      Type,
-      Nullable,
-      Args & InputFieldsFromShape<GiraphQLSchemaTypes.DefaultConnectionArguments>,
-      FieldKind,
-      unknown,
-      ResolveReturnShape
-    >,
-    'args' | 'resolve' | 'type'
-  > &
-    PrismaConnectionFieldOptions<
-      SchemaTypes,
-      unknown,
-      Name,
-      DelegateFromName<SchemaTypes, Name>,
-      ObjectRef<ShapeFromPrismaDelegate<Type>>,
-      Nullable,
-      Args,
-      ResolveReturnShape,
-      FieldKind
-    >,
-  connectionOptions: GiraphQLSchemaTypes.ConnectionObjectOptions<
+  }: PrismaConnectionFieldOptions<
     SchemaTypes,
-    Type,
-    ResolveReturnShape
+    unknown,
+    Name,
+    DelegateFromName<SchemaTypes, Name>,
+    ObjectRef<ShapeFromPrismaDelegate<Type>>,
+    Nullable,
+    Args,
+    ResolveReturnShape,
+    FieldKind
   >,
-  edgeOptions: GiraphQLSchemaTypes.ConnectionEdgeObjectOptions<
-    SchemaTypes,
-    Type,
-    ResolveReturnShape
-  >,
+  connectionOptions: {},
+  edgeOptions: {},
 ) {
   const ref = getRefFromModel(type, this.builder);
 

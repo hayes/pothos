@@ -1,8 +1,8 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '@giraphql/core';
-import { ScopeLoaderMap } from './types';
-import { cacheKey } from './util';
-import { GiraphQLScopeAuthPlugin } from '.';
+import { GiraphQLScopeAuthPlugin } from './index.js';
+import { ScopeLoaderMap } from './types.js';
+import { cacheKey } from './util.js';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();

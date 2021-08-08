@@ -6,7 +6,7 @@ import * as ts from 'typescript';
 const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
 const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma'];
-const excludedDirs = ['lib', 'test', 'tests', 'node_modules'];
+const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
 const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore'];
 
 const moduleMap: Record<string, string> = {
@@ -105,10 +105,10 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           const dirName = path.dirname(sourceFile.fileName);
           let mod = moduleSpecifier.text;
 
-          if (mod.startsWith('.')) {
+          if (mod.endsWith('.js')) {
             const modulePath = path.resolve(dirName, mod);
-            const tsPath = modulePath + '.ts';
-            const dtsPath = modulePath + '.d.ts';
+            const tsPath = modulePath.replace(/\.js$/,'.ts');
+            const dtsPath = modulePath.replace(/\.js$/, '.d.ts');
 
             const stat = existsSync(modulePath) && statSync(modulePath);
             if (stat && stat.isDirectory()) {
@@ -131,7 +131,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
               mod = moduleMap[mod];
             }
           } else {
-            throw new Error(`Unknown module ${mod}`);
+            throw new Error(`Unknown module ${mod} in ${sourceFile.fileName}`);
           }
 
           if (ts.isImportDeclaration(node)) {

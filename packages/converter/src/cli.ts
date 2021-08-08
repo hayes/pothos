@@ -2,7 +2,7 @@ import fs from 'fs';
 import path from 'path';
 import { buildSchema } from 'graphql';
 import yargs from 'yargs';
-import GiraphQLConverter from '.';
+import GiraphQLConverter from './index.js';
 
 export default yargs.command(
   'convert <path>',
