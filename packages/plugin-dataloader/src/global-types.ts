@@ -4,8 +4,10 @@ import {
   FieldRef,
   InputFieldMap,
   InterfaceParam,
+  ObjectParam,
   PluginName,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
 import { GiraphQLDataloaderPlugin } from './index.js';
@@ -20,24 +22,30 @@ declare global {
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       loadableObject: <
-        Shape extends object,
+        Shape extends NameOrRef extends ObjectParam<Types>
+          ? ShapeFromTypeParam<Types, NameOrRef, false>
+          : object,
         Key extends bigint | number | string,
         Interfaces extends InterfaceParam<Types>[],
+        NameOrRef extends ObjectParam<Types> | string,
         CacheKey = Key,
       >(
-        name: string,
-        options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, CacheKey>,
+        nameOrRef: NameOrRef,
+        options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
       ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>;
 
       loadableNode: 'relay' extends PluginName
         ? <
-            Shape extends object,
+            Shape extends NameOrRef extends ObjectParam<Types>
+              ? ShapeFromTypeParam<Types, NameOrRef, false>
+              : object,
             Key extends bigint | number | string,
             Interfaces extends InterfaceParam<Types>[],
+            NameOrRef extends ObjectParam<Types> | string,
             CacheKey = Key,
           >(
-            name: string,
-            options: LoadableNodeOptions<Types, Shape, Key, Interfaces, CacheKey>,
+            nameOrRef: NameOrRef,
+            options: LoadableNodeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
           ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>
         : '@giraphql/plugin-relay is required to use this method';
     }

@@ -77,6 +77,12 @@ describe('dataloader', () => {
           fromContext4 {
             id
           }
+          classThing {
+            id
+          }
+          classThingRef {
+            id
+          }
         }
       `;
 
@@ -89,6 +95,12 @@ describe('dataloader', () => {
       expect(result).toMatchInlineSnapshot(`
 Object {
   "data": Object {
+    "classThing": Object {
+      "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjEyMw==",
+    },
+    "classThingRef": Object {
+      "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjEyMw==",
+    },
     "counts": Array [
       Object {
         "calls": 1,
