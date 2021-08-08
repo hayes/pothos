@@ -277,12 +277,12 @@ yarn add @giraphql/plugin-prisma
 ```typescript
 import SchemaBuilder from '@giraphql/core';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin from '@giraphql/plugin-prisma';
+import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
 
 const prisma = new PrismaClient({});
 
 const builder = new SchemaBuilder<
-    PrismaClient: typeof prisma;
+    PrismaTypes: PrismaTypes<typeof prisma>;
 >({
   plugins: [PrismaPlugin],
   prisma: {

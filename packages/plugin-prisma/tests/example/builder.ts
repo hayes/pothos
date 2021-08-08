@@ -1,8 +1,7 @@
 import SchemaBuilder from '@giraphql/core';
 import RelayPlugin from '@giraphql/plugin-relay';
 import { PrismaClient } from '@prisma/client';
-// eslint-disable-next-line import/no-named-as-default
-import PrismaPlugin from '../../src';
+import PrismaPlugin, { PrismaTypes } from '../../src/index.js';
 
 export const prisma = new PrismaClient({
   log: [
@@ -29,7 +28,7 @@ export default new SchemaBuilder<{
   Context: {
     user: { id: number };
   };
-  PrismaClient: typeof prisma;
+  PrismaTypes: PrismaTypes<typeof prisma>;
 }>({
   plugins: [PrismaPlugin, RelayPlugin],
   relayOptions: {},

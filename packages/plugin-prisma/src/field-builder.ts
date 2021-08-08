@@ -1,7 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
-  FieldNullability,
   FieldRef,
   InputFieldMap,
   MaybePromise,
@@ -22,16 +21,11 @@ import { getLoaderMapping, setLoaderMappings } from './loader-map.js';
 import { ModelLoader } from './model-loader.js';
 import { getFindUniqueForRef, getRefFromModel, getRelation } from './refs.js';
 import {
-  DelegateFromName,
-  IncludeFromPrismaDelegate,
-  ListRelationField,
   ModelName,
   PrismaConnectionFieldOptions,
-  PrismaDelegate,
+  PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
-  RelationShape,
-  ShapeFromPrismaDelegate,
 } from './types.js';
 import { queryFromInfo } from './util.js';
 
@@ -59,10 +53,9 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
 
 fieldBuilderProto.prismaConnection = function prismaConnection<
   Name extends ModelName<SchemaTypes>,
-  Type extends DelegateFromName<SchemaTypes, Name>,
   Nullable extends boolean,
   ResolveReturnShape,
-  Args extends InputFieldMap,
+  Args extends InputFieldMap = {},
 >(
   this: typeof fieldBuilderProto,
   {
@@ -76,8 +69,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
     SchemaTypes,
     unknown,
     Name,
-    DelegateFromName<SchemaTypes, Name>,
-    ObjectRef<ShapeFromPrismaDelegate<Type>>,
+    ObjectRef<{}>,
     Nullable,
     Args,
     ResolveReturnShape,
@@ -126,14 +118,14 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
-  Type extends PrismaDelegate,
+  Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
-> extends ObjectFieldBuilder<Types, ShapeFromPrismaDelegate<Type>> {
+> extends ObjectFieldBuilder<Types, Model['Shape']> {
   model: string;
 
   relatedConnection: 'relay' extends PluginName
     ? <
-        Field extends ListRelationField<Type>,
+        Field extends Model['ListRelation'],
         Nullable extends boolean,
         Args extends InputFieldMap,
         ResolveReturnShape,
@@ -141,36 +133,24 @@ export class PrismaObjectFieldBuilder<
         ...args: NormalizeArgs<
           [
             field: Field,
-            options: RelatedConnectionOptions<
-              Types,
-              ShapeFromPrismaDelegate<Type>,
-              Type,
-              Field,
-              Nullable,
-              Args,
-              NeedsResolve
-            >,
+            options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
             connectionOptions?: GiraphQLSchemaTypes.ConnectionObjectOptions<
               Types,
-              ObjectRef<ShapeFromPrismaDelegate<Type>>,
+              ObjectRef<Model['Shape']>,
               ResolveReturnShape
             >,
             edgeOptions?: GiraphQLSchemaTypes.ConnectionEdgeObjectOptions<
               Types,
-              ObjectRef<ShapeFromPrismaDelegate<Type>>,
+              ObjectRef<Model['Shape']>,
               ResolveReturnShape
             >,
           ]
         >
       ) => FieldRef<
-        GiraphQLSchemaTypes.ConnectionShapeHelper<
-          Types,
-          ShapeFromPrismaDelegate<Type>,
-          Nullable
-        >['shape']
+        GiraphQLSchemaTypes.ConnectionShapeHelper<Types, Model['Shape'], Nullable>['shape']
       >
     : '@giraphql/plugin-relay is required to use this method' = function relatedConnection(
-    this: PrismaObjectFieldBuilder<SchemaTypes, PrismaDelegate, boolean>,
+    this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
     name: string,
     {
       maxSize,
@@ -281,8 +261,8 @@ export class PrismaObjectFieldBuilder<
   }
 
   relation<
-    Field extends string & keyof IncludeFromPrismaDelegate<Type>,
-    Nullable extends FieldNullability<Type>,
+    Field extends string & keyof Model['Relations'],
+    Nullable extends boolean,
     Args extends InputFieldMap,
     ResolveReturnShape,
   >(
@@ -291,7 +271,7 @@ export class PrismaObjectFieldBuilder<
         name: Field,
         options?: RelatedFieldOptions<
           Types,
-          Type,
+          Model,
           Field,
           Nullable,
           Args,
@@ -300,7 +280,7 @@ export class PrismaObjectFieldBuilder<
         >,
       ]
     >
-  ): FieldRef<RelationShape<Type, Field>, 'Object'> {
+  ): FieldRef<Model['Relations'][Field], 'Object'> {
     const [name, options = {} as never] = allArgs;
     const { client } = this.builder.options.prisma;
     const relationField = getRelation(client, this.model, name);
@@ -343,7 +323,7 @@ export class PrismaObjectFieldBuilder<
         };
 
         if (resolve) {
-          return resolve(queryOptions, parent, args as never, context, info);
+          return resolve(queryOptions, parent, args as never, context, info) as never;
         }
 
         if (!findUnique) {
@@ -352,6 +332,6 @@ export class PrismaObjectFieldBuilder<
 
         return loaderCache(parent).loadRelation(name, queryOptions, context) as never;
       },
-    }) as FieldRef<RelationShape<Type, Field>, 'Object'>;
+    }) as FieldRef<Model['Relations'][Field], 'Object'>;
   }
 }
