@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.15.0
+
+### Minor Changes
+
+- a4c87cf: Use ".js" extensions everywhere and add module and exports to package.json to better
+  support ems in node
+
 ## 2.14.0
 
 ### Minor Changes

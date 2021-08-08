@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-validation",
-  "version": "2.8.2",
+  "version": "2.9.0",
   "description": "A GiraphQL plugin for adding argument validation",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
@@ -30,7 +30,7 @@
     "zod": "*"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.13.2",
+    "@giraphql/core": "^2.14.0",
     "apollo-server": "^2.25.2",
     "graphql-tag": "^2.12.5",
     "zod": "^3.7.1"

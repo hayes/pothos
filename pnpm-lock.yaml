@@ -44,7 +44,7 @@ importers:
 
   packages/converter:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       '@types/yargs': ^17.0.2
       apollo-server: ^2.25.2
       graphql: 15.5.1
@@ -59,6 +59,9 @@ importers:
       '@types/yargs': 17.0.2
       apollo-server: 2.25.2_graphql@15.5.1
 
+  packages/converter/esm:
+    specifiers: {}
+
   packages/core:
     specifiers:
       apollo-server: ^2.25.2
@@ -71,6 +74,9 @@ importers:
       graphql-scalars: 1.10.0_graphql@15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/core/esm:
+    specifiers: {}
+
   packages/deno:
     specifiers:
       ts-node: ^10.1.0
@@ -79,8 +85,8 @@ importers:
 
   packages/plugin-dataloader:
     specifiers:
-      '@giraphql/core': ^2.13.2
-      '@giraphql/plugin-relay': ^2.13.2
+      '@giraphql/core': ^2.14.0
+      '@giraphql/plugin-relay': ^2.14.0
       apollo-server: ^2.25.2
       dataloader: ^2.0.0
       graphql-tag: ^2.12.5
@@ -91,9 +97,12 @@ importers:
       dataloader: 2.0.0
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-dataloader/esm:
+    specifiers: {}
+
   packages/plugin-directives:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-rate-limit-directive: ^1.3.0
@@ -105,10 +114,13 @@ importers:
       graphql-rate-limit-directive: 1.3.0
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-directives/esm:
+    specifiers: {}
+
   packages/plugin-errors:
     specifiers:
-      '@giraphql/core': ^2.13.2
-      '@giraphql/plugin-validation': ^2.8.2
+      '@giraphql/core': ^2.14.0
+      '@giraphql/plugin-validation': ^2.9.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-tag: ^2.12.5
@@ -119,9 +131,12 @@ importers:
       graphql: 15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-errors/esm:
+    specifiers: {}
+
   packages/plugin-example:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-tag: ^2.12.5
@@ -130,10 +145,13 @@ importers:
       apollo-server: 2.25.2_graphql@15.5.1
       graphql: 15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
+
+  packages/plugin-example/esm:
+    specifiers: {}
 
   packages/plugin-mocks:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-tag: ^2.12.5
@@ -143,10 +161,13 @@ importers:
       graphql: 15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-mocks/esm:
+    specifiers: {}
+
   packages/plugin-prisma:
     specifiers:
-      '@giraphql/core': ^2.13.2
-      '@giraphql/plugin-relay': ^2.13.2
+      '@giraphql/core': ^2.14.0
+      '@giraphql/plugin-relay': ^2.14.0
       '@prisma/client': ^2.28.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
@@ -161,9 +182,12 @@ importers:
       graphql-tag: 2.12.5_graphql@15.5.1
       prisma: 2.28.0
 
+  packages/plugin-prisma/esm:
+    specifiers: {}
+
   packages/plugin-relay:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-subscriptions: ^1.2.1
@@ -174,10 +198,13 @@ importers:
       graphql: 15.5.1
       graphql-subscriptions: 1.2.1_graphql@15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
+
+  packages/plugin-relay/esm:
+    specifiers: {}
 
   packages/plugin-scope-auth:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-tag: ^2.12.5
@@ -186,10 +213,13 @@ importers:
       apollo-server: 2.25.2_graphql@15.5.1
       graphql: 15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
+
+  packages/plugin-scope-auth/esm:
+    specifiers: {}
 
   packages/plugin-simple-objects:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-tag: ^2.12.5
@@ -199,9 +229,12 @@ importers:
       graphql: 15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-simple-objects/esm:
+    specifiers: {}
+
   packages/plugin-smart-subscriptions:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-subscriptions: ^1.2.1
@@ -213,9 +246,12 @@ importers:
       graphql-subscriptions: 1.2.1_graphql@15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-smart-subscriptions/esm:
+    specifiers: {}
+
   packages/plugin-sub-graph:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql: 15.5.1
       graphql-tag: ^2.12.5
@@ -225,9 +261,12 @@ importers:
       graphql: 15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
 
+  packages/plugin-sub-graph/esm:
+    specifiers: {}
+
   packages/plugin-validation:
     specifiers:
-      '@giraphql/core': ^2.13.2
+      '@giraphql/core': ^2.14.0
       apollo-server: ^2.25.2
       graphql-tag: ^2.12.5
       zod: ^3.7.1
@@ -236,6 +275,9 @@ importers:
       apollo-server: 2.25.2_graphql@15.5.1
       graphql-tag: 2.12.5_graphql@15.5.1
       zod: 3.7.1
+
+  packages/plugin-validation/esm:
+    specifiers: {}
 
 packages:
 
