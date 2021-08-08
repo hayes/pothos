@@ -15,13 +15,13 @@ import {
 import { PrismaPlugin } from './index.js';
 import PrismaNodeRef from './node-ref.js';
 import {
-  DelegateFromName,
   ModelName,
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
+  PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
-  ShapeFromPrismaDelegate,
+  ShapeFromName,
 } from './types.js';
 
 declare global {
@@ -32,18 +32,21 @@ declare global {
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       prisma: {
-        client: Types['PrismaClient'];
+        client: {
+          $connect: () => Promise<void>;
+        };
       };
     }
 
     export interface UserSchemaTypes {
-      PrismaClient: {};
+      PrismaClient?: 'This type has been replaced with `PrismaTypes` see docs for more details.';
+      PrismaTypes: Record<string, PrismaModelTypes>;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      PrismaClient: undefined extends PartialTypes['PrismaClient']
+      PrismaTypes: undefined extends PartialTypes['PrismaTypes']
         ? {}
-        : PartialTypes['PrismaClient'] & {};
+        : PartialTypes['PrismaTypes'] & {};
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
@@ -54,13 +57,13 @@ declare global {
       >(
         type: Name,
         options: PrismaObjectTypeOptions<Types, Name, Interfaces, FindUnique>,
-      ) => ObjectRef<ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>>;
+      ) => ObjectRef<ShapeFromName<Types, Name>>;
 
       prismaNode: 'relay' extends PluginName
         ? <Name extends ModelName<Types>, Interfaces extends InterfaceParam<Types>[]>(
             name: Name,
             options: PrismaNodeOptions<Types, Name, Interfaces>,
-          ) => PrismaNodeRef<ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>>
+          ) => PrismaNodeRef<ShapeFromName<Types, Name>>
         : '@giraphql/plugin-relay is required to use this method';
     }
 
@@ -77,11 +80,10 @@ declare global {
           : TypeParam extends ModelName<Types>
           ? TypeParam
           : never,
-        Type extends DelegateFromName<Types, Name>,
         Nullable extends FieldNullability<
           TypeParam extends [Name]
-            ? [ObjectRef<ShapeFromPrismaDelegate<Type>>]
-            : ObjectRef<ShapeFromPrismaDelegate<Type>>
+            ? [ObjectRef<ShapeFromName<Types, Name>>]
+            : ObjectRef<ShapeFromName<Types, Name>>
         >,
         ResolveReturnShape,
       >(
@@ -89,20 +91,20 @@ declare global {
           Types,
           ParentShape,
           TypeParam,
+          Types['PrismaTypes'][Name],
           TypeParam extends [Name]
-            ? [ObjectRef<ShapeFromPrismaDelegate<Type>>]
-            : ObjectRef<ShapeFromPrismaDelegate<Type>>,
+            ? [ObjectRef<ShapeFromName<Types, Name>>]
+            : ObjectRef<ShapeFromName<Types, Name>>,
           Args,
           Nullable,
           ResolveReturnShape,
           Kind
         >,
-      ) => FieldRef<ShapeFromPrismaDelegate<Type>>;
+      ) => FieldRef<ShapeFromName<Types, Name>>;
 
       prismaConnection: 'relay' extends PluginName
         ? <
             Name extends ModelName<Types>,
-            Type extends DelegateFromName<Types, Name>,
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
@@ -113,8 +115,7 @@ declare global {
                   Types,
                   ParentShape,
                   Name,
-                  DelegateFromName<Types, Name>,
-                  ObjectRef<ShapeFromPrismaDelegate<Type>>,
+                  ObjectRef<ShapeFromName<Types, Name>>,
                   Nullable,
                   Args,
                   ResolveReturnShape,
@@ -122,19 +123,17 @@ declare global {
                 >,
                 connectionOptions?: ConnectionObjectOptions<
                   Types,
-                  ObjectRef<ShapeFromPrismaDelegate<Type>>,
+                  ObjectRef<ShapeFromName<Types, Name>>,
                   ResolveReturnShape
                 >,
                 edgeOptions?: ConnectionEdgeObjectOptions<
                   Types,
-                  ObjectRef<ShapeFromPrismaDelegate<Type>>,
+                  ObjectRef<ShapeFromName<Types, Name>>,
                   ResolveReturnShape
                 >,
               ]
             >
-          ) => FieldRef<
-            ConnectionShapeHelper<Types, ShapeFromPrismaDelegate<Type>, Nullable>['shape']
-          >
+          ) => FieldRef<ConnectionShapeHelper<Types, ShapeFromName<Types, Name>, Nullable>['shape']>
         : '@giraphql/plugin-relay is required to use this method';
     }
 

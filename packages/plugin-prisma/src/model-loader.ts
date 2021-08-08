@@ -6,7 +6,7 @@ const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 
 export class ModelLoader {
   model: object;
-  delegate: PrismaDelegate<{}, never>;
+  delegate: PrismaDelegate;
   findUnique: (args: unknown, ctx: {}) => unknown;
 
   staged = new Set<{
