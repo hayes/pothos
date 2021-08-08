@@ -1,12 +1,12 @@
 import { createContextCache, SchemaTypes } from '@giraphql/core';
-import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs.js';
+import { getFindUniqueForRef, getRefFromDelegate } from './refs.js';
 import { PrismaDelegate } from './types.js';
 
 const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 
 export class ModelLoader {
   model: object;
-  delegate: PrismaDelegate<{}, never>;
+  delegate: PrismaDelegate;
   findUnique: (args: unknown, ctx: {}) => unknown;
 
   staged = new Set<{
@@ -24,15 +24,12 @@ export class ModelLoader {
     this.findUnique = findUnique;
   }
 
-  static forModel<Types extends SchemaTypes>(
-    name: string,
+  static forDelegate<Types extends SchemaTypes>(
+    delegate: PrismaDelegate,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   ) {
-    const { client } = builder.options.prisma;
-    const delegate = getDelegateFromModel(client, name);
-
     if (!loaderCache.has(delegate)) {
-      const ref = getRefFromModel(name, builder);
+      const ref = getRefFromDelegate(delegate, builder);
       const findUnique = getFindUniqueForRef(ref, builder);
       loaderCache.set(
         delegate,

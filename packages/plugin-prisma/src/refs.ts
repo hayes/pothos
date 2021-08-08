@@ -2,26 +2,54 @@ import { ObjectRef, SchemaTypes } from '@giraphql/core';
 import { Prisma } from '@prisma/client';
 import { PrismaDelegate } from './types.js';
 
-export const refMap = new WeakMap<object, Map<string, ObjectRef<unknown>>>();
+export const clients = new WeakSet<object>();
+export const nameMap = new WeakMap<object, string>();
+export const refMap = new WeakMap<object, Map<PrismaDelegate, ObjectRef<unknown>>>();
 export const findUniqueMap = new WeakMap<
   object,
   Map<ObjectRef<unknown>, ((args: unknown, ctx: {}) => unknown) | null>
 >();
 
-export function getRefFromModel<Types extends SchemaTypes>(
-  model: string,
+export function getNameFromDelegate<Types extends SchemaTypes>(
+  delegate: PrismaDelegate,
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+): string {
+  const { client } = builder.options.prisma;
+
+  if (!clients.has(client)) {
+    Object.keys(client).forEach((key) => {
+      const val = client[key as keyof typeof client];
+
+      if (typeof val === 'object' && val !== null) {
+        nameMap.set(val, `${key[0].toUpperCase()}${key.slice(1)}`);
+      }
+    });
+  }
+
+  if (!nameMap.has(delegate)) {
+    throw new Error(
+      'Unknown delegate, ensure you are using the same instance of PrismaClient that was passed in the SchemaBuilder constructor',
+    );
+  }
+
+  return nameMap.get(delegate)!;
+}
+
+export function getRefFromDelegate<Types extends SchemaTypes>(
+  delegate: PrismaDelegate,
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
 ): ObjectRef<unknown> {
   if (!refMap.has(builder)) {
     refMap.set(builder, new Map());
   }
   const cache = refMap.get(builder)!;
+  const name = getNameFromDelegate(delegate, builder);
 
-  if (!cache.has(model)) {
-    cache.set(model, builder.objectRef(model));
+  if (!cache.has(delegate)) {
+    cache.set(delegate, builder.objectRef(name));
   }
 
-  return cache.get(model)!;
+  return cache.get(delegate)!;
 }
 
 export function getFindUniqueForRef<Types extends SchemaTypes>(
@@ -54,30 +82,41 @@ export function setFindUniqueForRef<Types extends SchemaTypes>(
   cache.set(ref, findUnique);
 }
 
-export function getRelation(client: unknown, model: string, relation: string) {
+export function getRelation<Types extends SchemaTypes>(
+  delegate: PrismaDelegate,
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  relation: string,
+) {
+  const { client } = builder.options.prisma;
+  const name = getNameFromDelegate(delegate, builder);
   // eslint-disable-next-line no-underscore-dangle
-  const dmmf = (client as { _dmmf: { modelMap: Record<string, Prisma.DMMF.Model> } })._dmmf;
-  const modelData = dmmf.modelMap[model];
+  const dmmf = (client as unknown as { _dmmf: { modelMap: Record<string, Prisma.DMMF.Model> } })
+    ._dmmf;
+  const modelData = dmmf.modelMap[name];
 
   if (!modelData) {
-    throw new Error(`Model '${model}' not found in DMMF`);
+    throw new Error(`Model '${name}' not found in DMMF`);
   }
 
   const fieldData = modelData.fields.find((field) => field.name === relation);
 
   if (!fieldData) {
-    throw new Error(`Field '${relation}' not found in model '${model}'`);
+    throw new Error(`Field '${relation}' not found in model '${name}'`);
   }
 
   if (fieldData.kind !== 'object') {
-    throw new Error(`Field ${relation} of model '${model}' is not a relation (${fieldData.kind})`);
+    throw new Error(`Field ${relation} of model '${name}' is not a relation (${fieldData.kind})`);
   }
 
   return fieldData;
 }
 
-export function getRelatedModel(client: unknown, model: string, relation: string) {
-  const fieldData = getRelation(client, model, relation);
+export function getRelatedDelegate<Types extends SchemaTypes>(
+  delegate: PrismaDelegate,
+  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  relation: string,
+) {
+  const fieldData = getRelation(delegate, builder, relation);
 
   return fieldData.type;
 }

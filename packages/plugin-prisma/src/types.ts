@@ -20,119 +20,97 @@ import {
 } from '@giraphql/core';
 import { PrismaObjectFieldBuilder } from './field-builder.js';
 
-export interface PrismaDelegate<
-  Shape extends {} = {},
-  Options extends FindUniqueArgs = never,
-  ManyOptions extends FindManyArgs = never,
-> {
-  findUnique: (args: Options) => UniqueReturn<Shape>;
-  findMany: (args?: ManyOptions) => unknown;
+export interface PrismaDelegate {
+  findUnique: (...args: any[]) => Promise<unknown>;
 }
 
-export interface UniqueReturn<Shape extends {}> {
-  then: (cb: (result: Shape | null) => unknown) => unknown;
+type RelationKeys<T> = {
+  [K in keyof T]: T[K] extends (args: {}) => {
+    then: (cb: (result: unknown) => unknown) => unknown;
+  }
+    ? K
+    : never;
+}[keyof T];
+
+export type ModelTypes<Model extends {}> = Model extends {
+  findUnique: (
+    options: infer UniqueOptions & {
+      include?: infer Include | null | undefined;
+      where?: infer Where | null | undefined;
+      select?: infer Select | null | undefined;
+    },
+  ) => infer Chain & {
+    then: (cb: (result: infer Shape | null) => unknown) => unknown;
+  };
 }
-
-export interface FindUniqueArgs {
-  select?: unknown;
-  include?: unknown;
-  where?: unknown;
-}
-
-export interface FindManyArgs {
-  cursor?: {};
-}
-
-export type ShapeFromPrismaDelegate<T> = T extends PrismaDelegate<infer Shape, never>
-  ? Shape
-  : never;
-
-export type IncludeFromPrismaDelegate<T> = T extends PrismaDelegate<{}, infer Options>
-  ? NonNullable<Options['include']>
-  : never;
-
-export type CursorFromPrismaDelegate<T> = T extends PrismaDelegate<{}, never, infer Options>
-  ? string & keyof NonNullable<Options['cursor']>
-  : never;
-
-export type SelectFromPrismaDelegate<T> = T extends PrismaDelegate<{}, infer Options>
-  ? NonNullable<Options['select']>
-  : never;
-
-export type WhereFromPrismaDelegate<T> = T extends PrismaDelegate<{}, infer Options>
-  ? NonNullable<Options['where']>
-  : never;
-
-export type ListRelationField<T> = IncludeFromPrismaDelegate<T> extends infer Include
-  ? NonNullable<
-      {
-        [K in keyof Include]: Include[K] extends infer Option
-          ? Option extends { orderBy?: unknown }
-            ? K
-            : never
+  ? PrismaModelTypes & {
+      Shape: Shape;
+      Include: Include;
+      Where: Where;
+      Fields: keyof Select;
+      ListRelation: ListRelationFields<Include> & string;
+      Relations: {
+        [RelationName in RelationKeys<Chain>]: Chain[RelationName] extends (args: {}) => {
+          then: (cb: (result: infer Relation) => unknown) => unknown;
+        }
+          ? Relation
           : never;
-      }[keyof Include]
-    >
+      };
+    }
   : never;
 
-export type RelationShape<
-  T extends PrismaDelegate,
-  Relation extends keyof IncludeFromPrismaDelegate<T>,
-> = ReturnType<T['findUnique']> extends infer Return
-  ? {
-      [K in Relation]: K extends keyof Return
-        ? Return[K] extends (args: {}) => {
-            then: (cb: (result: infer Shape) => unknown) => unknown;
-          }
-          ? Shape
-          : never
-        : never;
-    }[Relation]
-  : never;
+export interface PrismaModelTypes {
+  Shape: {};
+  Include: {};
+  Where: {};
+  Fields: string;
+  ListRelation: string;
+  Relations: {};
+}
+
+export type ListRelationFields<T> = {
+  [K in keyof T]: T[K] extends infer Option
+    ? Option extends { orderBy?: unknown }
+      ? K
+      : never
+    : never;
+}[keyof T];
 
 export type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
-  Type extends PrismaDelegate,
+  Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
-> = (t: PrismaObjectFieldBuilder<Types, Type, NeedsResolve>) => FieldMap;
+> = (t: PrismaObjectFieldBuilder<Types, Model, NeedsResolve>) => FieldMap;
 
 export type PrismaObjectTypeOptions<
   Types extends SchemaTypes,
-  Name extends ModelName<Types>,
+  Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
   FindUnique,
-  Type extends DelegateFromName<Types, Name> & PrismaDelegate = DelegateFromName<Types, Name>,
 > = Omit<
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<ShapeFromPrismaDelegate<Type>>>
+  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<Model['Shape']>>
   | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
       Types,
-      ObjectRef<ShapeFromPrismaDelegate<Type>>,
+      ObjectRef<Model['Shape']>,
       Interfaces
     >,
   'fields'
 > & {
   name?: string;
-  fields?: PrismaObjectFieldsShape<Types, Type, FindUnique extends null ? true : false>;
+  fields?: PrismaObjectFieldsShape<Types, Model, FindUnique extends null ? true : false>;
   findUnique: FindUnique &
-    (
-      | ((
-          parent: ShapeFromPrismaDelegate<DelegateFromName<Types, Name>>,
-          context: Types['Context'],
-        ) => WhereFromPrismaDelegate<DelegateFromName<Types, Name>>)
-      | null
-    );
+    (((parent: Model['Shape'], context: Types['Context']) => Model['Where']) | null);
 };
 
 export type PrismaNodeOptions<
   Types extends SchemaTypes,
-  Name extends ModelName<Types>,
+  Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  Type extends DelegateFromName<Types, Name> & PrismaDelegate = DelegateFromName<Types, Name>,
 > = Omit<
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<ShapeFromPrismaDelegate<Type>>>
+  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<Model['Shape']>>
   | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
       Types,
-      ObjectRef<ShapeFromPrismaDelegate<Type>>,
+      ObjectRef<Model['Shape']>,
       Interfaces
     >,
   'fields' | 'isTypeOf'
@@ -141,7 +119,7 @@ export type PrismaNodeOptions<
   id: Omit<
     FieldOptionsFromKind<
       Types,
-      ShapeFromPrismaDelegate<Type>,
+      Model['Shape'],
       'ID',
       false,
       {},
@@ -152,31 +130,13 @@ export type PrismaNodeOptions<
     'args' | 'nullable' | 'resolve' | 'type'
   > & {
     resolve: (
-      parent: ShapeFromPrismaDelegate<Type>,
+      parent: Model['Shape'],
       context: Types['Context'],
     ) => MaybePromise<OutputShape<Types, 'ID'>>;
   };
-  fields?: PrismaObjectFieldsShape<Types, Type, false>;
-  findUnique: (
-    id: string,
-    context: Types['Context'],
-  ) => WhereFromPrismaDelegate<DelegateFromName<Types, Name>>;
+  fields?: PrismaObjectFieldsShape<Types, Model, false>;
+  findUnique: (id: string, context: Types['Context']) => Model['Where'];
 };
-
-export type ModelName<Types extends SchemaTypes> = {
-  [K in keyof Types['PrismaClient']]: Types['PrismaClient'][K] extends PrismaDelegate
-    ? K extends string
-      ? Capitalize<K>
-      : never
-    : never;
-}[keyof Types['PrismaClient']];
-
-export type DelegateFromName<
-  Types extends SchemaTypes,
-  Name extends ModelName<Types>,
-> = Uncapitalize<Name> extends keyof Types['PrismaClient']
-  ? Extract<Types['PrismaClient'][Uncapitalize<Name>], PrismaDelegate>
-  : never;
 
 export type QueryForField<
   Types extends SchemaTypes,
@@ -191,10 +151,10 @@ export type QueryForField<
         ) => Omit<Include, 'include' | 'select'>)
   : never;
 
-export type InlcudeFromRelation<
-  Type extends PrismaDelegate,
-  Field extends keyof SelectFromPrismaDelegate<Type>,
-> = IncludeFromPrismaDelegate<Type>[Field] extends infer Include
+export type IncludeFromRelation<
+  Model extends PrismaModelTypes,
+  Field extends keyof Model['Include'],
+> = Model['Include'][Field] extends infer Include
   ? Include extends {
       include?: infer T;
     }
@@ -203,27 +163,36 @@ export type InlcudeFromRelation<
   : never;
 
 export type CursorFromRelation<
-  Type extends PrismaDelegate,
-  Field extends keyof SelectFromPrismaDelegate<Type>,
-> = SelectFromPrismaDelegate<Type>[Field] extends infer Include
-  ? Include extends { cursor?: infer T }
-    ? keyof T
+  Model extends PrismaModelTypes,
+  Field extends Model['ListRelation'],
+> = Field extends keyof Model['Include']
+  ? Model['Include'][Field] extends infer Include
+    ? Include extends { cursor?: infer T }
+      ? keyof T
+      : never
     : never
   : never;
 
+export type RefForRelation<
+  Model extends PrismaModelTypes,
+  Field extends keyof Model['Relations'],
+> = Model['Relations'][Field] extends unknown[]
+  ? [ObjectRef<Model['Relations'][Field]>]
+  : ObjectRef<Model['Relations'][Field]>;
+
 export type RelatedFieldOptions<
   Types extends SchemaTypes,
-  Type extends PrismaDelegate,
-  Field extends keyof SelectFromPrismaDelegate<Type>,
-  Nullable extends FieldNullability<Type>,
+  Model extends PrismaModelTypes,
+  Field extends keyof Model['Relations'],
+  Nullable extends boolean,
   Args extends InputFieldMap,
   ResolveReturnShape,
   NeedsResolve extends boolean,
 > = Omit<
   GiraphQLSchemaTypes.ObjectFieldOptions<
     Types,
-    ShapeFromPrismaDelegate<Type>,
-    ObjectRef<unknown>,
+    Model['Shape'],
+    RefForRelation<Model, Field>,
     Nullable,
     Args,
     ResolveReturnShape
@@ -233,29 +202,30 @@ export type RelatedFieldOptions<
   (NeedsResolve extends false
     ? {
         resolve?: (
-          query: { include?: InlcudeFromRelation<Type, Field> },
-          parent: ShapeFromPrismaDelegate<Type>,
+          query: { include?: IncludeFromRelation<Model, Field> },
+          parent: Model['Shape'],
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<RelationShape<Type, Field>>;
+        ) => MaybePromise<Model['Relations'][Field]>;
       }
     : {
         resolve: (
-          query: { include?: InlcudeFromRelation<Type, Field> },
-          parent: ShapeFromPrismaDelegate<Type>,
+          query: { include?: IncludeFromRelation<Model, Field> },
+          parent: Model['Shape'],
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<RelationShape<Type, Field>>;
+        ) => MaybePromise<Model['Relations'][Field]>;
       }) & {
-    query?: QueryForField<Types, Args, SelectFromPrismaDelegate<Type>[Field]>;
+    query?: QueryForField<Types, Args, Model['Include'][Field]>;
   };
 
 export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends ModelName<Types> | [ModelName<Types>],
+  Type extends PrismaDelegate | [PrismaDelegate],
+  Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Args extends InputFieldMap,
   Nullable extends FieldNullability<Param>,
@@ -277,7 +247,7 @@ export type PrismaFieldOptions<
   type: Type;
   resolve: (
     query: {
-      include?: IncludeFromPrismaDelegate<Type extends [infer T] ? T : Type>;
+      include?: Model['Include'];
     },
     parent: ParentShape,
     args: InputShapeFromFields<Args>,
@@ -293,8 +263,8 @@ export type PrismaFieldOptions<
 export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Name extends ModelName<Types>,
   Type extends PrismaDelegate,
+  Model extends PrismaModelTypes,
   Param extends OutputType<Types>,
   Nullable extends boolean,
   Args extends InputFieldMap,
@@ -325,13 +295,13 @@ export type PrismaConnectionFieldOptions<
     >,
     'args' | 'resolve' | 'type'
   > & {
-    type: Name;
-    cursor: CursorFromPrismaDelegate<Type>;
+    type: Type;
+    cursor: string & keyof Model['Where'];
     defaultSize?: number;
     maxSize?: number;
     resolve: (
       query: {
-        include?: IncludeFromPrismaDelegate<Type>;
+        include?: Model['Include'];
         cursor?: {};
         take: number;
         skip: number;
@@ -340,14 +310,13 @@ export type PrismaConnectionFieldOptions<
       args: GiraphQLSchemaTypes.DefaultConnectionArguments & InputShapeFromFields<Args>,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<ShapeFromPrismaDelegate<Type>[]>;
+    ) => MaybePromise<Model['Shape'][]>;
   };
 
 export type RelatedConnectionOptions<
   Types extends SchemaTypes,
-  ParentShape,
-  Type extends PrismaDelegate,
-  Field extends keyof SelectFromPrismaDelegate<Type>,
+  Model extends PrismaModelTypes,
+  Field extends Model['ListRelation'],
   Nullable extends boolean,
   Args extends InputFieldMap,
   NeedsResolve extends boolean,
@@ -355,7 +324,7 @@ export type RelatedConnectionOptions<
 > = Omit<
   GiraphQLSchemaTypes.ObjectFieldOptions<
     Types,
-    ParentShape,
+    Model['Shape'],
     ObjectRef<unknown>,
     Nullable,
     Args,
@@ -366,7 +335,7 @@ export type RelatedConnectionOptions<
   Omit<
     GiraphQLSchemaTypes.ConnectionFieldOptions<
       Types,
-      ParentShape,
+      Model['Shape'],
       ObjectRef<unknown>,
       Nullable,
       Args,
@@ -374,38 +343,38 @@ export type RelatedConnectionOptions<
     >,
     'resolve' | 'type'
   > & {
-    query?: QueryForField<Types, Args, SelectFromPrismaDelegate<Type>[Field]>;
-    cursor: CursorFromRelation<Type, Field>;
+    query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
+    cursor: CursorFromRelation<Model, Field>;
     defaultSize?: number;
     maxSize?: number;
   } & (NeedsResolve extends false
     ? {
         resolve?: (
           query: {
-            include?: IncludeFromPrismaDelegate<Type>;
+            include?: Model['Include'];
             cursor?: {};
             take: number;
             skip: number;
           },
-          parent: ParentShape,
+          parent: Model['Shape'],
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<RelationShape<Type, Field>>;
+        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]>;
       }
     : {
         resolve: (
           query: {
-            include?: IncludeFromPrismaDelegate<Type>;
+            include?: Model['Include'];
             cursor?: {};
             take: number;
             skip: number;
           },
-          parent: ParentShape,
+          parent: Model['Shape'],
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<RelationShape<Type, Field>>;
+        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]>;
       });
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
