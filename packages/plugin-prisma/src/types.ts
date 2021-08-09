@@ -10,7 +10,6 @@ import {
   InterfaceParam,
   ListResolveValue,
   MaybePromise,
-  Normalize,
   ObjectRef,
   OutputShape,
   OutputType,
@@ -22,12 +21,8 @@ import {
 import { PrismaObjectFieldBuilder } from './field-builder.js';
 
 export interface PrismaDelegate {
-  findUnique: (args: {}) => Promise<unknown>;
+  findUnique: (...args: any[]) => Promise<unknown>;
 }
-
-type ModelKeys<Prisma extends {}> = {
-  [K in keyof Prisma]: Prisma[K] extends { findUnique: unknown } ? K & string : never;
-}[keyof Prisma];
 
 type RelationKeys<T> = {
   [K in keyof T]: T[K] extends (args: {}) => {
@@ -37,38 +32,32 @@ type RelationKeys<T> = {
     : never;
 }[keyof T];
 
-export type PrismaTypes<Prisma extends {}> = Normalize<
-  {
-    [K in ModelKeys<Prisma> as Capitalize<K>]: Prisma[K] extends {
-      findUnique: (
-        options: infer UniqueOptions & {
-          include?: infer Include | null | undefined;
-          where?: infer Where | null | undefined;
-          select?: infer Select | null | undefined;
-        },
-      ) => infer Chain & {
-        then: (cb: (result: infer Shape | null) => unknown) => unknown;
+export type ModelTypes<Model extends {}> = Model extends {
+  findUnique: (
+    options: infer UniqueOptions & {
+      include?: infer Include | null | undefined;
+      where?: infer Where | null | undefined;
+      select?: infer Select | null | undefined;
+    },
+  ) => infer Chain & {
+    then: (cb: (result: infer Shape | null) => unknown) => unknown;
+  };
+}
+  ? PrismaModelTypes & {
+      Shape: Shape;
+      Include: Include;
+      Where: Where;
+      Fields: keyof Select;
+      ListRelation: ListRelationFields<Include> & string;
+      Relations: {
+        [RelationName in RelationKeys<Chain>]: Chain[RelationName] extends (args: {}) => {
+          then: (cb: (result: infer Relation) => unknown) => unknown;
+        }
+          ? Relation
+          : never;
       };
     }
-      ? PrismaModelTypes & {
-          Shape: Shape;
-          Include: Include;
-          Where: Where;
-          Fields: keyof Select;
-          ListRelation: ListRelationFields<Include> & string;
-          Relations: Normalize<
-            {
-              [RelationName in RelationKeys<Chain>]: Chain[RelationName] extends (args: {}) => {
-                then: (cb: (result: infer Relation) => unknown) => unknown;
-              }
-                ? Relation
-                : never;
-            }
-          >;
-        }
-      : never;
-  }
->;
+  : never;
 
 export interface PrismaModelTypes {
   Shape: {};
@@ -87,11 +76,6 @@ export type ListRelationFields<T> = {
     : never;
 }[keyof T];
 
-export type ShapeFromName<
-  Types extends SchemaTypes,
-  Name extends ModelName<Types>,
-> = Types['PrismaTypes'][Name]['Shape'];
-
 export type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
@@ -100,10 +84,9 @@ export type PrismaObjectFieldsShape<
 
 export type PrismaObjectTypeOptions<
   Types extends SchemaTypes,
-  Name extends ModelName<Types>,
+  Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
   FindUnique,
-  Model extends Types['PrismaTypes'][Name] = Types['PrismaTypes'][Name],
 > = Omit<
   | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<Model['Shape']>>
   | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
@@ -121,9 +104,8 @@ export type PrismaObjectTypeOptions<
 
 export type PrismaNodeOptions<
   Types extends SchemaTypes,
-  Name extends ModelName<Types>,
+  Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  Model extends Types['PrismaTypes'][Name] = Types['PrismaTypes'][Name],
 > = Omit<
   | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<Model['Shape']>>
   | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<
@@ -155,8 +137,6 @@ export type PrismaNodeOptions<
   fields?: PrismaObjectFieldsShape<Types, Model, false>;
   findUnique: (id: string, context: Types['Context']) => Model['Where'];
 };
-
-export type ModelName<Types extends SchemaTypes> = keyof Types['PrismaTypes'];
 
 export type QueryForField<
   Types extends SchemaTypes,
@@ -244,7 +224,7 @@ export type RelatedFieldOptions<
 export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends ModelName<Types> | [ModelName<Types>],
+  Type extends PrismaDelegate | [PrismaDelegate],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Args extends InputFieldMap,
@@ -283,13 +263,13 @@ export type PrismaFieldOptions<
 export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Name extends ModelName<Types>,
+  Type extends PrismaDelegate,
+  Model extends PrismaModelTypes,
   Param extends OutputType<Types>,
   Nullable extends boolean,
   Args extends InputFieldMap,
   ResolveReturnShape,
   Kind extends FieldKind,
-  Model extends PrismaModelTypes = Types['PrismaTypes'][Name],
   // eslint-disable-next-line @typescript-eslint/sort-type-union-intersection-members
 > = Omit<
   GiraphQLSchemaTypes.ConnectionFieldOptions<
@@ -315,8 +295,8 @@ export type PrismaConnectionFieldOptions<
     >,
     'args' | 'resolve' | 'type'
   > & {
-    type: Name;
-    cursor: keyof Model['Where'];
+    type: Type;
+    cursor: string & keyof Model['Where'];
     defaultSize?: number;
     maxSize?: number;
     resolve: (

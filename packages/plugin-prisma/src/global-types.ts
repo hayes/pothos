@@ -15,13 +15,13 @@ import {
 import { PrismaPlugin } from './index.js';
 import PrismaNodeRef from './node-ref.js';
 import {
-  ModelName,
+  ModelTypes,
   PrismaConnectionFieldOptions,
+  PrismaDelegate,
   PrismaFieldOptions,
   PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
-  ShapeFromName,
 } from './types.js';
 
 declare global {
@@ -40,30 +40,24 @@ declare global {
 
     export interface UserSchemaTypes {
       PrismaClient?: 'This type has been replaced with `PrismaTypes` see docs for more details.';
-      PrismaTypes: Record<string, PrismaModelTypes>;
-    }
-
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      PrismaTypes: undefined extends PartialTypes['PrismaTypes']
-        ? {}
-        : PartialTypes['PrismaTypes'] & {};
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       prismaObject: <
-        Name extends ModelName<Types>,
+        Delegate extends PrismaDelegate,
         Interfaces extends InterfaceParam<Types>[],
         FindUnique,
+        Model extends ModelTypes<Delegate>,
       >(
-        type: Name,
-        options: PrismaObjectTypeOptions<Types, Name, Interfaces, FindUnique>,
-      ) => ObjectRef<ShapeFromName<Types, Name>>;
+        type: Delegate,
+        options: PrismaObjectTypeOptions<Types, Model, Interfaces, FindUnique>,
+      ) => ObjectRef<Model['Shape']>;
 
       prismaNode: 'relay' extends PluginName
-        ? <Name extends ModelName<Types>, Interfaces extends InterfaceParam<Types>[]>(
-            name: Name,
-            options: PrismaNodeOptions<Types, Name, Interfaces>,
-          ) => PrismaNodeRef<ShapeFromName<Types, Name>>
+        ? <Type extends PrismaDelegate, Interfaces extends InterfaceParam<Types>[]>(
+            delegate: Type,
+            options: PrismaNodeOptions<Types, ModelTypes<Type>, Interfaces>,
+          ) => PrismaNodeRef<ModelTypes<Type>['Shape']>
         : '@giraphql/plugin-relay is required to use this method';
     }
 
@@ -74,48 +68,48 @@ declare global {
     > {
       prismaField: <
         Args extends InputFieldMap,
-        TypeParam extends ModelName<Types> | [ModelName<Types>],
-        Name extends TypeParam extends [ModelName<Types>]
-          ? TypeParam[0]
-          : TypeParam extends ModelName<Types>
-          ? TypeParam
-          : never,
+        TypeParam extends PrismaDelegate | [PrismaDelegate],
         Nullable extends FieldNullability<
-          TypeParam extends [Name]
-            ? [ObjectRef<ShapeFromName<Types, Name>>]
-            : ObjectRef<ShapeFromName<Types, Name>>
+          TypeParam extends [PrismaDelegate]
+            ? [ObjectRef<Model['Shape']>]
+            : ObjectRef<Model['Shape']>
         >,
         ResolveReturnShape,
+        Model extends PrismaModelTypes = TypeParam extends [PrismaDelegate]
+          ? ModelTypes<TypeParam[0]>
+          : ModelTypes<TypeParam>,
       >(
         options: PrismaFieldOptions<
           Types,
           ParentShape,
           TypeParam,
-          Types['PrismaTypes'][Name],
-          TypeParam extends [Name]
-            ? [ObjectRef<ShapeFromName<Types, Name>>]
-            : ObjectRef<ShapeFromName<Types, Name>>,
+          Model,
+          TypeParam extends [PrismaDelegate]
+            ? [ObjectRef<Model['Shape']>]
+            : ObjectRef<Model['Shape']>,
           Args,
           Nullable,
           ResolveReturnShape,
           Kind
         >,
-      ) => FieldRef<ShapeFromName<Types, Name>>;
+      ) => FieldRef<Model['Shape']>;
 
       prismaConnection: 'relay' extends PluginName
         ? <
-            Name extends ModelName<Types>,
+            Type extends PrismaDelegate,
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
+            Model extends PrismaModelTypes = ModelTypes<Type>,
           >(
             ...args: NormalizeArgs<
               [
                 options: PrismaConnectionFieldOptions<
                   Types,
                   ParentShape,
-                  Name,
-                  ObjectRef<ShapeFromName<Types, Name>>,
+                  Type,
+                  Model,
+                  ObjectRef<Model['Shape']>,
                   Nullable,
                   Args,
                   ResolveReturnShape,
@@ -123,17 +117,17 @@ declare global {
                 >,
                 connectionOptions?: ConnectionObjectOptions<
                   Types,
-                  ObjectRef<ShapeFromName<Types, Name>>,
+                  ObjectRef<Model['Shape']>,
                   ResolveReturnShape
                 >,
                 edgeOptions?: ConnectionEdgeObjectOptions<
                   Types,
-                  ObjectRef<ShapeFromName<Types, Name>>,
+                  ObjectRef<Model['Shape']>,
                   ResolveReturnShape
                 >,
               ]
             >
-          ) => FieldRef<ConnectionShapeHelper<Types, ShapeFromName<Types, Name>, Nullable>['shape']>
+          ) => FieldRef<ConnectionShapeHelper<Types, Model['Shape'], Nullable>['shape']>
         : '@giraphql/plugin-relay is required to use this method';
     }
 

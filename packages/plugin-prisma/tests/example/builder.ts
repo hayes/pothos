@@ -1,7 +1,7 @@
 import SchemaBuilder from '@giraphql/core';
 import RelayPlugin from '@giraphql/plugin-relay';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin, { PrismaTypes } from '../../src/index.js';
+import PrismaPlugin from '../../src/index.js';
 
 export const prisma = new PrismaClient({
   log: [
@@ -28,7 +28,6 @@ export default new SchemaBuilder<{
   Context: {
     user: { id: number };
   };
-  PrismaTypes: PrismaTypes<typeof prisma>;
 }>({
   plugins: [PrismaPlugin, RelayPlugin],
   relayOptions: {},
