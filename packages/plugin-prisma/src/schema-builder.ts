@@ -11,16 +11,16 @@ import SchemaBuilder, {
 } from '@giraphql/core';
 import { PrismaObjectFieldBuilder } from './field-builder.js';
 import PrismaNodeRef from './node-ref.js';
-import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs.js';
-import { ModelName, PrismaNodeOptions } from './types.js';
+import { getNameFromDelegate, getRefFromDelegate, setFindUniqueForRef } from './refs.js';
+import { ModelTypes, PrismaDelegate, PrismaNodeOptions } from './types.js';
 import { queryFromInfo } from './util.js';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
-  const ref = getRefFromModel(type, this);
-  const name = options.name ?? type;
+  const ref = getRefFromDelegate(type, this);
+  const name = options.name ?? getNameFromDelegate(type, this);
 
   ref.name = name;
 
@@ -46,8 +46,8 @@ schemaBuilderProto.prismaNode = function prismaNode(
   this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
     nodeInterfaceRef?: () => InterfaceRef<unknown>;
   },
-  model: ModelName<SchemaTypes>,
-  { findUnique, name, ...options }: PrismaNodeOptions<SchemaTypes, ModelName<SchemaTypes>, []>,
+  delegate: PrismaDelegate,
+  { findUnique, name, ...options }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, []>,
 ) {
   const interfaceRef = this.nodeInterfaceRef?.();
 
@@ -55,9 +55,8 @@ schemaBuilderProto.prismaNode = function prismaNode(
     throw new TypeError('builder.prismaNode requires @giraphql/plugin-relay to be installed');
   }
 
-  const typeName = name ?? model;
+  const typeName = name ?? getNameFromDelegate(delegate, this);
   const nodeRef = new PrismaNodeRef(typeName);
-  const delegate = getDelegateFromModel(this.options.prisma.client, model);
   const extendedOptions = {
     ...options,
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
@@ -73,7 +72,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       const record = await delegate.findUnique({
         ...query,
         rejectOnNotFound: true,
-        where: findUnique(id, context) as {},
+        where: findUnique(id, context),
       } as never);
 
       brandWithType(record, typeName as OutputType<SchemaTypes>);
@@ -82,7 +81,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     },
   };
 
-  const ref = this.prismaObject(model, extendedOptions as never);
+  const ref = this.prismaObject(delegate, extendedOptions as never);
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(ref, 'id', (t) =>

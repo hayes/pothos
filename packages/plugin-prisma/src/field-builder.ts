@@ -1,7 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
-  FieldNullability,
   FieldRef,
   InputFieldMap,
   MaybePromise,
@@ -20,18 +19,20 @@ import {
 } from './cursors.js';
 import { getLoaderMapping, setLoaderMappings } from './loader-map.js';
 import { ModelLoader } from './model-loader.js';
-import { getFindUniqueForRef, getRefFromModel, getRelation } from './refs.js';
 import {
-  DelegateFromName,
-  IncludeFromPrismaDelegate,
-  ListRelationField,
-  ModelName,
+  getDelegateFromModel,
+  getFindUniqueForRef,
+  getNameFromDelegate,
+  getRefFromDelegate,
+  getRelation,
+} from './refs.js';
+import {
+  ModelTypes,
   PrismaConnectionFieldOptions,
   PrismaDelegate,
+  PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
-  RelationShape,
-  ShapeFromPrismaDelegate,
 } from './types.js';
 import { queryFromInfo } from './util.js';
 
@@ -42,8 +43,8 @@ const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.Root
 >;
 
 fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options }) {
-  const modelName: string = Array.isArray(type) ? type[0] : type;
-  const typeRef = getRefFromModel(modelName, this.builder);
+  const delegate: PrismaDelegate = Array.isArray(type) ? type[0] : type;
+  const typeRef = getRefFromDelegate(delegate, this.builder);
   const typeParam: TypeParam<SchemaTypes> = Array.isArray(type) ? [typeRef] : typeRef;
 
   return this.field({
@@ -58,11 +59,11 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
 };
 
 fieldBuilderProto.prismaConnection = function prismaConnection<
-  Name extends ModelName<SchemaTypes>,
-  Type extends DelegateFromName<SchemaTypes, Name>,
+  Type extends PrismaDelegate,
   Nullable extends boolean,
   ResolveReturnShape,
-  Args extends InputFieldMap,
+  Args extends InputFieldMap = {},
+  Model extends PrismaModelTypes = ModelTypes<Type>,
 >(
   this: typeof fieldBuilderProto,
   {
@@ -75,9 +76,9 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   }: PrismaConnectionFieldOptions<
     SchemaTypes,
     unknown,
-    Name,
-    DelegateFromName<SchemaTypes, Name>,
-    ObjectRef<ShapeFromPrismaDelegate<Type>>,
+    Type,
+    Model,
+    ObjectRef<{}>,
     Nullable,
     Args,
     ResolveReturnShape,
@@ -86,7 +87,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   connectionOptions: {},
   edgeOptions: {},
 ) {
-  const ref = getRefFromModel(type, this.builder);
+  const ref = getRefFromDelegate(type, this.builder);
 
   const fieldRef = (
     this as typeof fieldBuilderProto & { connection: (...args: unknown[]) => FieldRef<unknown> }
@@ -126,14 +127,15 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
-  Type extends PrismaDelegate,
+  Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
-> extends ObjectFieldBuilder<Types, ShapeFromPrismaDelegate<Type>> {
+> extends ObjectFieldBuilder<Types, Model['Shape']> {
+  delegate: PrismaDelegate;
   model: string;
 
   relatedConnection: 'relay' extends PluginName
     ? <
-        Field extends ListRelationField<Type>,
+        Field extends Model['ListRelation'],
         Nullable extends boolean,
         Args extends InputFieldMap,
         ResolveReturnShape,
@@ -141,36 +143,24 @@ export class PrismaObjectFieldBuilder<
         ...args: NormalizeArgs<
           [
             field: Field,
-            options: RelatedConnectionOptions<
-              Types,
-              ShapeFromPrismaDelegate<Type>,
-              Type,
-              Field,
-              Nullable,
-              Args,
-              NeedsResolve
-            >,
+            options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
             connectionOptions?: GiraphQLSchemaTypes.ConnectionObjectOptions<
               Types,
-              ObjectRef<ShapeFromPrismaDelegate<Type>>,
+              ObjectRef<Model['Shape']>,
               ResolveReturnShape
             >,
             edgeOptions?: GiraphQLSchemaTypes.ConnectionEdgeObjectOptions<
               Types,
-              ObjectRef<ShapeFromPrismaDelegate<Type>>,
+              ObjectRef<Model['Shape']>,
               ResolveReturnShape
             >,
           ]
         >
       ) => FieldRef<
-        GiraphQLSchemaTypes.ConnectionShapeHelper<
-          Types,
-          ShapeFromPrismaDelegate<Type>,
-          Nullable
-        >['shape']
+        GiraphQLSchemaTypes.ConnectionShapeHelper<Types, Model['Shape'], Nullable>['shape']
       >
     : '@giraphql/plugin-relay is required to use this method' = function relatedConnection(
-    this: PrismaObjectFieldBuilder<SchemaTypes, PrismaDelegate, boolean>,
+    this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
     name: string,
     {
       maxSize,
@@ -192,11 +182,12 @@ export class PrismaObjectFieldBuilder<
     edgeOptions = {},
   ) {
     const { client } = this.builder.options.prisma;
-    const relationField = getRelation(client, this.model, name);
-    const parentRef = getRefFromModel(this.model, this.builder);
-    const ref = getRefFromModel(relationField.type, this.builder);
+    const relationField = getRelation(this.delegate, this.builder, name);
+    const parentRef = getRefFromDelegate(this.delegate, this.builder);
+    const relatedDelegate = getDelegateFromModel(client, relationField.type);
+    const ref = getRefFromDelegate(relatedDelegate, this.builder);
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
-    const loaderCache = ModelLoader.forModel(this.model, this.builder);
+    const loaderCache = ModelLoader.forDelegate(this.delegate, this.builder);
 
     const getQuery = (args: GiraphQLSchemaTypes.DefaultConnectionArguments) => ({
       ...((typeof query === 'function' ? query(args) : query) as {}),
@@ -274,15 +265,20 @@ export class PrismaObjectFieldBuilder<
     return fieldRef;
   } as never;
 
-  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, model: string) {
+  constructor(
+    name: string,
+    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    delegate: PrismaDelegate,
+  ) {
     super(name, builder);
 
-    this.model = model;
+    this.delegate = delegate;
+    this.model = getNameFromDelegate(delegate, builder);
   }
 
   relation<
-    Field extends string & keyof IncludeFromPrismaDelegate<Type>,
-    Nullable extends FieldNullability<Type>,
+    Field extends string & keyof Model['Relations'],
+    Nullable extends boolean,
     Args extends InputFieldMap,
     ResolveReturnShape,
   >(
@@ -291,7 +287,7 @@ export class PrismaObjectFieldBuilder<
         name: Field,
         options?: RelatedFieldOptions<
           Types,
-          Type,
+          Model,
           Field,
           Nullable,
           Args,
@@ -300,14 +296,15 @@ export class PrismaObjectFieldBuilder<
         >,
       ]
     >
-  ): FieldRef<RelationShape<Type, Field>, 'Object'> {
+  ): FieldRef<Model['Relations'][Field], 'Object'> {
     const [name, options = {} as never] = allArgs;
     const { client } = this.builder.options.prisma;
-    const relationField = getRelation(client, this.model, name);
-    const parentRef = getRefFromModel(this.model, this.builder);
-    const ref = getRefFromModel(relationField.type, this.builder);
+    const relationField = getRelation(this.delegate, this.builder, name);
+    const parentRef = getRefFromDelegate(this.delegate, this.builder);
+    const relatedDelegate = getDelegateFromModel(client, relationField.type);
+    const ref = getRefFromDelegate(relatedDelegate, this.builder);
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
-    const loaderCache = ModelLoader.forModel(this.model, this.builder);
+    const loaderCache = ModelLoader.forDelegate(this.delegate, this.builder);
 
     const { query = {}, resolve, ...rest } = options;
 
@@ -343,7 +340,7 @@ export class PrismaObjectFieldBuilder<
         };
 
         if (resolve) {
-          return resolve(queryOptions, parent, args as never, context, info);
+          return resolve(queryOptions, parent, args as never, context, info) as never;
         }
 
         if (!findUnique) {
@@ -352,6 +349,6 @@ export class PrismaObjectFieldBuilder<
 
         return loaderCache(parent).loadRelation(name, queryOptions, context) as never;
       },
-    }) as FieldRef<RelationShape<Type, Field>, 'Object'>;
+    }) as FieldRef<Model['Relations'][Field], 'Object'>;
   }
 }

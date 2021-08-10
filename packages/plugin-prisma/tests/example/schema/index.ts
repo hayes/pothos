@@ -6,7 +6,7 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   }),
 });
 
-const User = builder.prismaNode('User', {
+const User = builder.prismaNode(prisma.user, {
   interfaces: [Named],
   id: {
     resolve: (user) => user.id,
@@ -52,7 +52,7 @@ const User = builder.prismaNode('User', {
   }),
 });
 
-const Profile = builder.prismaObject('Profile', {
+const Profile = builder.prismaObject(prisma.profile, {
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -87,7 +87,7 @@ const UserOrProfile = builder.unionType('UserOrProfile', {
   },
 });
 
-builder.prismaObject('Post', {
+builder.prismaObject(prisma.post, {
   findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.id({
@@ -107,7 +107,7 @@ builder.prismaObject('Post', {
 builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
-      type: 'User',
+      type: prisma.user,
       nullable: true,
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
@@ -116,7 +116,7 @@ builder.queryType({
         }),
     }),
     users: t.prismaField({
-      type: ['User'],
+      type: [prisma.user],
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findMany({
           ...query,
@@ -124,7 +124,7 @@ builder.queryType({
         }),
     }),
     userConnection: t.prismaConnection({
-      type: 'User',
+      type: prisma.user,
       cursor: 'id',
       defaultSize: 10,
       maxSize: 15,
