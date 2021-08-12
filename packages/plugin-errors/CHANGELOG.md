@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.6.0
+
+### Minor Changes
+
+- 4f9b886: Add integration between error and dataloader plugins to that errors from dataloaders can
+  be handled via errors plugin
+
 ## 2.5.0
 
 ### Minor Changes

@@ -86,7 +86,7 @@ importers:
   packages/plugin-dataloader:
     specifiers:
       '@giraphql/core': ^2.14.0
-      '@giraphql/plugin-errors': ^2.5.0
+      '@giraphql/plugin-errors': ^2.6.0
       '@giraphql/plugin-relay': ^2.14.0
       apollo-server: ^2.25.2
       dataloader: ^2.0.0
