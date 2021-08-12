@@ -37,7 +37,7 @@ builder.queryType({
   fields: (t) => ({
     hello: t.string({
       errors: {
-        type: [Error],
+        types: [Error],
       },
       args: {
         name: t.arg.string({ required: false }),
@@ -65,7 +65,7 @@ type Query {
   hello(name: String!): QueryHelloResult
 }
 
-union QueryExtendedErrorListOrError = Error | QueryHelloSuccess
+union QueryHelloResult = Error | QueryHelloSuccess
 
 type QueryHelloSuccess {
   data: String!
@@ -297,3 +297,17 @@ query {
   }
 }
 ```
+
+### With the dataloader plugin
+
+To use this in combination with the dataloader plugin, ensure that that errors plugin is listed
+BEFORE the validation plugin in your plugin list.
+
+If a field with `errors` returns a `loadableObject`, or `loadableNode` the errors plugin will now
+catch errors thrown when loading ids returned by the `resolve` function.
+
+If the field is a `List` field, errors loading objects from ids will not be handled by the Errors
+plugin. This is because if items are nullable, the items in the list may be set to null rather that
+the list itself failing to resolve. In the future, dataloader plugin may have an option to throw an
+error at the field level if any items can not be loaded, which would allow the error plugin to
+handle these types of errors.

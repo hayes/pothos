@@ -24,6 +24,50 @@ describe('dataloader', () => {
             id
             idFromInterface
           }
+          userWithErrors {
+            __typename
+            ... on BaseError {
+              message
+            }
+            ... on QueryUserWithErrorsSuccess {
+              data {
+                id
+              }
+            }
+          }
+          userWithoutError: userWithErrors(id: "1") {
+            __typename
+            ... on BaseError {
+              message
+            }
+            ... on QueryUserWithErrorsSuccess {
+              data {
+                id
+              }
+            }
+          }
+          usersWithErrors {
+            __typename
+            ... on BaseError {
+              message
+            }
+            ... on QueryUsersWithErrorsSuccess {
+              data {
+                id
+              }
+            }
+          }
+          usersWithoutError: usersWithErrors(ids: ["1", "2"]) {
+            __typename
+            ... on BaseError {
+              message
+            }
+            ... on QueryUsersWithErrorsSuccess {
+              data {
+                id
+              }
+            }
+          }
           userNodes {
             id
           }
@@ -104,7 +148,7 @@ Object {
     "counts": Array [
       Object {
         "calls": 1,
-        "loaded": 5,
+        "loaded": 6,
         "name": "users",
       },
       Object {
@@ -229,6 +273,16 @@ Object {
         "id": "VXNlck5vZGU6Nzg5",
       },
     ],
+    "userWithErrors": Object {
+      "__typename": "BaseError",
+      "message": "Invalid ID -1",
+    },
+    "userWithoutError": Object {
+      "__typename": "QueryUserWithErrorsSuccess",
+      "data": Object {
+        "id": "1",
+      },
+    },
     "users": Array [
       Object {
         "id": "123",
@@ -240,6 +294,21 @@ Object {
         "id": "789",
       },
     ],
+    "usersWithErrors": Object {
+      "__typename": "BaseError",
+      "message": "Ids required",
+    },
+    "usersWithoutError": Object {
+      "__typename": "QueryUsersWithErrorsSuccess",
+      "data": Array [
+        Object {
+          "id": "1",
+        },
+        Object {
+          "id": "2",
+        },
+      ],
+    },
   },
 }
 `);

@@ -9,6 +9,18 @@ const nullableUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postsCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 
+const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
+  fields: (t) => ({
+    message: t.exposeString('message'),
+  }),
+});
+
+builder.objectType(Error, {
+  name: 'BaseError',
+  isTypeOf: (obj) => obj instanceof Error,
+  interfaces: [ErrorInterface],
+});
+
 function countCall(context: ContextType, getCounts: typeof usersCounts, loaded: number) {
   const group = getCounts(context);
   group.calls += 1;
@@ -155,6 +167,15 @@ builder.queryFields((t) => ({
     },
     resolve: (root, args) => args.id ?? '1',
   }),
+  userWithErrors: t.field({
+    errors: {},
+    type: User,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (root, args) => args.id ?? '-1',
+  }),
   users: t.field({
     type: [User],
     nullable: {
@@ -165,6 +186,21 @@ builder.queryFields((t) => ({
       ids: t.arg.stringList(),
     },
     resolve: (_root, args) => args.ids ?? ['123', '456', '789'],
+  }),
+  usersWithErrors: t.field({
+    errors: {},
+    type: [User],
+    nullable: true,
+    args: {
+      ids: t.arg.stringList(),
+    },
+    resolve: (root, args) => {
+      if (!args.ids) {
+        throw new Error('Ids required');
+      }
+
+      return args.ids;
+    },
   }),
   nullableUser: t.field({
     type: NullableUser,

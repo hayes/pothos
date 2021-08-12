@@ -1,7 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`dataloader generates expected schema 1`] = `
-"type CallCount {
+"type BaseError implements Error {
+  message: String!
+}
+
+type CallCount {
   calls: Int!
   loaded: Int!
   name: String!
@@ -10,6 +14,10 @@ exports[`dataloader generates expected schema 1`] = `
 type ClassLoadableThing implements Node & TestInterface {
   id: ID!
   idFromInterface: ID!
+}
+
+interface Error {
+  message: String!
 }
 
 interface Node {
@@ -46,7 +54,21 @@ type Query {
   user(id: String): User
   userNode(id: String): User
   userNodes(ids: [String!]): [UserNode]
+  userWithErrors(id: String): QueryUserWithErrorsResult
   users(ids: [String!]): [User]
+  usersWithErrors(ids: [String!]): QueryUsersWithErrorsResult
+}
+
+union QueryUserWithErrorsResult = BaseError | QueryUserWithErrorsSuccess
+
+type QueryUserWithErrorsSuccess {
+  data: User!
+}
+
+union QueryUsersWithErrorsResult = BaseError | QueryUsersWithErrorsSuccess
+
+type QueryUsersWithErrorsSuccess {
+  data: [User!]!
 }
 
 interface TestInterface {
