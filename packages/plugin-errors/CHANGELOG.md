@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.7.0
+
+### Minor Changes
+
+- ea4d456: Add interoperability between prisma and errors plugins
+
 ## 2.6.0
 
 ### Minor Changes
