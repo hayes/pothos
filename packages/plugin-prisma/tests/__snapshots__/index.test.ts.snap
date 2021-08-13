@@ -1,7 +1,15 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`prisma generates schema 1`] = `
-"interface Named {
+"type BaseError implements Error {
+  message: String!
+}
+
+interface Error {
+  message: String!
+}
+
+interface Named {
   name: String
 }
 
@@ -36,8 +44,10 @@ type Query {
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   userConnection(after: ID, before: ID, first: Int, last: Int): QueryUserConnection!
+  userConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): QueryUserConnectionWithErrorsResult!
   userOrProfile: [UserOrProfile]
   users: [User!]!
+  usersWithError: QueryUsersWithErrorResult!
 }
 
 type QueryUserConnection {
@@ -50,14 +60,38 @@ type QueryUserConnectionEdge {
   node: User!
 }
 
+type QueryUserConnectionWithErrorsConnection {
+  edges: [QueryUserConnectionWithErrorsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryUserConnectionWithErrorsConnectionEdge {
+  cursor: String!
+  node: User!
+}
+
+union QueryUserConnectionWithErrorsResult = BaseError | QueryUserConnectionWithErrorsSuccess
+
+type QueryUserConnectionWithErrorsSuccess {
+  data: QueryUserConnectionWithErrorsConnection!
+}
+
+union QueryUsersWithErrorResult = BaseError | QueryUsersWithErrorSuccess
+
+type QueryUsersWithErrorSuccess {
+  data: [User!]!
+}
+
 type User implements Named & Node {
   email: String!
   id: ID!
   name: String
   posts(oldestFirst: Boolean): [Post!]!
   postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean): UserPostsConnection!
+  postsConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): UserPostsConnectionWithErrorsResult!
   profile: Profile!
   profileThroughManualLookup: Profile
+  profileWithErrors: UserProfileWithErrorsResult!
 }
 
 union UserOrProfile = Profile | User
@@ -70,6 +104,28 @@ type UserPostsConnection {
 type UserPostsConnectionEdge {
   cursor: String!
   node: Post!
+}
+
+type UserPostsConnectionWithErrorsConnection {
+  edges: [UserPostsConnectionWithErrorsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type UserPostsConnectionWithErrorsConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+union UserPostsConnectionWithErrorsResult = BaseError | UserPostsConnectionWithErrorsSuccess
+
+type UserPostsConnectionWithErrorsSuccess {
+  data: UserPostsConnectionWithErrorsConnection!
+}
+
+union UserProfileWithErrorsResult = BaseError | UserProfileWithErrorsSuccess
+
+type UserProfileWithErrorsSuccess {
+  data: Profile!
 }
 "
 `;

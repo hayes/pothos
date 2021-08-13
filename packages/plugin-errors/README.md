@@ -15,7 +15,7 @@ yarn add @giraphql/plugin-errors
 
 Ensure that the target in your `tsconfig.json` is set to `es6` or higher (default is `es3`).
 
-### Example Ussage
+### Example Usage
 
 ```typescript
 import ErrorsPlugin from '@giraphql/plugin-errors';
@@ -309,6 +309,18 @@ catch errors thrown when loading ids returned by the `resolve` function.
 plugin. This is because if items are nullable, the items in the list may be set to null rather that
 If the field is a `List` field, errors that occur when resolving objects from `ids` will not be
 handled by the errors plugin. This is because those errors are associated with each item in the list
-rather than the list field itself. In the future, the dataloader plugin may have an option to throw an
-error at the field level if any items can not be loaded, which would allow the error plugin to
+rather than the list field itself. In the future, the dataloader plugin may have an option to throw
+an error at the field level if any items can not be loaded, which would allow the error plugin to
 handle these types of errors.
+
+### With the prisma plugin
+
+To use this in combination with the prisma plugin, ensure that that errors plugin is listed BEFORE
+the validation plugin in your plugin list. This will enable `errors` option to work work correctly
+with any field builder method from the prisma plugin.
+
+`errors` can be configured for any field, but if there is an error pre-loading a relation the error
+will always surfaced at the field that executed the query. Because there are cases that fall back to
+executing queries for relation fields, these fields may still have errors if the relation was not
+pre-loaded. Detection of nested relations will continue to work if those relations use the `errors`
+plugin

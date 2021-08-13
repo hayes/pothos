@@ -90,6 +90,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         extensions: {
           ...unionOptions.extensions,
           getDataloader,
+          giraphQLPrismaIndirectInclude: [{ type: resultName, name: dataFieldName }],
         },
       });
     });

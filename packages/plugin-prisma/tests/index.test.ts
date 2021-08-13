@@ -495,4 +495,99 @@ Object {
       ]
     `);
   });
+
+  it('queries with errors plugin', async () => {
+    const query = gql`
+      query {
+        usersWithError {
+          __typename
+          ... on Error {
+            message
+          }
+          ... on QueryUsersWithErrorSuccess {
+            data {
+              name
+              profileWithErrors {
+                ... on Error {
+                  message
+                }
+                ... on UserProfileWithErrorsSuccess {
+                  data {
+                    bio
+                    user {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+      variableValues: {
+        oldest: true,
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "data": Object {
+    "usersWithError": Object {
+      "__typename": "QueryUsersWithErrorSuccess",
+      "data": Array [
+        Object {
+          "name": "Maurine Ratke",
+          "profileWithErrors": Object {
+            "data": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+              "user": Object {
+                "id": "VXNlcjox",
+              },
+            },
+          },
+        },
+        Object {
+          "name": "Nichole Koss",
+          "profileWithErrors": Object {
+            "data": Object {
+              "bio": "Ut quo accusantium fuga veritatis.",
+              "user": Object {
+                "id": "VXNlcjoy",
+              },
+            },
+          },
+        },
+      ],
+    },
+  },
+}
+`);
+
+    expect(queries).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "action": "findMany",
+    "args": Object {
+      "include": Object {
+        "profile": Object {
+          "include": Object {
+            "user": true,
+          },
+        },
+      },
+      "take": 2,
+    },
+    "dataPath": Array [],
+    "model": "User",
+    "runInTransaction": false,
+  },
+]
+`);
+  });
 });

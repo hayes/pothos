@@ -116,7 +116,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       ...connectionOptions,
       extensions: {
         ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-        giraphQLPrismaIndirectInclude: ['edges', 'node'],
+        giraphQLPrismaIndirectInclude: [{ name: 'edges' }, { name: 'node' }],
       },
     },
     edgeOptions,
@@ -256,7 +256,7 @@ export class PrismaObjectFieldBuilder<
         ...connectionOptions,
         extensions: {
           ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-          giraphQLPrismaIndirectInclude: ['edges', 'node'],
+          giraphQLPrismaIndirectInclude: [{ name: 'edges' }, { name: 'node' }],
         },
       },
       edgeOptions,

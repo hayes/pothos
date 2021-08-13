@@ -1,5 +1,17 @@
 import builder, { prisma } from '../builder';
 
+const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
+  fields: (t) => ({
+    message: t.exposeString('message'),
+  }),
+});
+
+builder.objectType(Error, {
+  name: 'BaseError',
+  isTypeOf: (obj) => obj instanceof Error,
+  interfaces: [ErrorInterface],
+});
+
 const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   fields: (t) => ({
     name: t.string({ nullable: true }),
@@ -16,6 +28,7 @@ const User = builder.prismaNode(prisma.user, {
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile'),
+    profileWithErrors: t.relation('profile', { errors: {} }),
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
@@ -42,6 +55,10 @@ const User = builder.prismaNode(prisma.user, {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
       }),
+    }),
+    postsConnectionWithErrors: t.relatedConnection('posts', {
+      errors: {},
+      cursor: 'createdAt',
     }),
     profileThroughManualLookup: t.field({
       // eslint-disable-next-line @typescript-eslint/no-use-before-define
@@ -123,11 +140,28 @@ builder.queryType({
           take: 2,
         }),
     }),
+    usersWithError: t.prismaField({
+      errors: {},
+      type: [prisma.user],
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findMany({
+          ...query,
+          take: 2,
+        }),
+    }),
     userConnection: t.prismaConnection({
       type: prisma.user,
       cursor: 'id',
       defaultSize: 10,
       maxSize: 15,
+      resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
+    }),
+    userConnectionWithErrors: t.prismaConnection({
+      type: prisma.user,
+      cursor: 'id',
+      defaultSize: 10,
+      maxSize: 15,
+      errors: {},
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
     }),
     named: t.field({

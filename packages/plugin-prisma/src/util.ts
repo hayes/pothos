@@ -3,12 +3,11 @@
 /* eslint-disable no-continue */
 import {
   FieldNode,
-  FragmentDefinitionNode,
   getNamedType,
   GraphQLFieldMap,
+  GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
-  InlineFragmentNode,
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values.js';
@@ -25,8 +24,12 @@ export type LoaderMappings = Record<
   }
 >;
 
+interface SubFieldInclude {
+  type?: string;
+  name: string;
+}
 interface IndirectLoadMap {
-  subFields: string[];
+  subFields: SubFieldInclude[];
   path: string[];
 }
 
@@ -49,11 +52,13 @@ function handleField(
   }
 
   if (indirectMap?.subFields.length) {
-    if (field.name === indirectMap.subFields[0] && selection.selectionSet) {
+    const subField = indirectMap.subFields[0];
+
+    if (field.name === subField.name && selection.selectionSet) {
       const type = getNamedType(field.type);
 
-      if (!(type instanceof GraphQLObjectType)) {
-        throw new TypeError(`Expected ${type.name} to be a an object type`);
+      if (!(type.name !== subField.type)) {
+        throw new TypeError(`Expected ${field.name} to be ${subField.type} but got ${type.name}`);
       }
 
       includesFromSelectionSet(
@@ -104,10 +109,6 @@ function handleField(
     const type = getNamedType(field.type);
     const nestedIncludes: Record<string, unknown> = {};
 
-    if (!(type instanceof GraphQLObjectType)) {
-      throw new TypeError(`Expected ${type.name} to be a an object type`);
-    }
-
     includesFromSelectionSet(type, info, nestedIncludes, nestedMappings, selection.selectionSet);
 
     if (Object.keys(nestedIncludes).length > 0) {
@@ -118,56 +119,78 @@ function handleField(
   includes[relationName] = Object.keys(query as {}).length > 0 ? query : true;
 }
 
-export function includesFromFragment(
-  type: GraphQLObjectType,
-  info: GraphQLResolveInfo,
-  includes: Record<string, unknown>,
-  mappings: LoaderMappings,
-  fragment: FragmentDefinitionNode | InlineFragmentNode,
-  indirectMap?: IndirectLoadMap,
-) {
-  // Includes currently don't make sense for Interfaces and Unions
-  // so we only need to handle fragments for the parent type
-  if (fragment.typeCondition && fragment.typeCondition.name.value !== type.name) {
-    return;
-  }
-
-  includesFromSelectionSet(type, info, includes, mappings, fragment.selectionSet, indirectMap);
-}
-
 export function includesFromSelectionSet(
-  type: GraphQLObjectType,
+  type: GraphQLNamedType,
   info: GraphQLResolveInfo,
   includes: Record<string, unknown>,
   mappings: LoaderMappings,
   selectionSet: SelectionSetNode,
   prevIndirectMap?: IndirectLoadMap,
 ) {
-  const fields = type.getFields();
-  const indirectInclude = type.extensions?.giraphQLPrismaIndirectInclude as string[] | undefined;
-  const indirectMap =
-    prevIndirectMap ?? (indirectInclude ? { subFields: indirectInclude, path: [] } : undefined);
+  const indirectInclude = type.extensions?.giraphQLPrismaIndirectInclude as
+    | SubFieldInclude[]
+    | undefined;
+
+  const indirectMap = prevIndirectMap
+    ? {
+        path: [...prevIndirectMap.path],
+        subFields:
+          prevIndirectMap.subFields.length > 0 ? prevIndirectMap.subFields : indirectInclude ?? [],
+      }
+    : indirectInclude && { subFields: indirectInclude ?? [], path: [] };
+
+  const firstSubFieldType =
+    indirectMap &&
+    indirectMap?.subFields.length > 0 &&
+    indirectMap.subFields?.length > 0 &&
+    indirectMap.subFields[0].type;
+
+  const expectedType = firstSubFieldType ? info.schema.getType(firstSubFieldType) : type;
+
+  if (!(expectedType instanceof GraphQLObjectType)) {
+    throw new TypeError('Expected returnType to be an object type');
+  }
 
   for (const selection of selectionSet.selections) {
     switch (selection.kind) {
       case 'Field':
-        handleField(info, fields, selection, includes, mappings, indirectMap);
+        if (!(type === expectedType)) {
+          continue;
+        }
+
+        handleField(info, type.getFields(), selection, includes, mappings, indirectMap);
         break;
       case 'FragmentSpread':
         if (!info.fragments[selection.name.value]) {
           throw new Error(`Missing fragment ${selection.name.value}`);
         }
-        includesFromFragment(
-          type,
+
+        if (info.fragments[selection.name.value].typeCondition.name.value !== expectedType.name) {
+          continue;
+        }
+
+        includesFromSelectionSet(
+          expectedType,
           info,
           includes,
           mappings,
-          info.fragments[selection.name.value],
+          info.fragments[selection.name.value].selectionSet,
           indirectMap,
         );
         break;
       case 'InlineFragment':
-        includesFromFragment(type, info, includes, mappings, selection, indirectMap);
+        if (selection.typeCondition && selection.typeCondition.name.value !== expectedType.name) {
+          continue;
+        }
+
+        includesFromSelectionSet(
+          selection.typeCondition ? expectedType : type,
+          info,
+          includes,
+          mappings,
+          selection.selectionSet,
+          indirectMap,
+        );
         break;
       default:
         throw new Error(`Unexpected selection kind ${(selection as { kind: string }).kind}`);
@@ -186,10 +209,6 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
     }
 
     const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
-
-    if (!(type instanceof GraphQLObjectType)) {
-      throw new TypeError('Expected returnType to be an object type');
-    }
 
     includesFromSelectionSet(type, info, includes, mappings, node.selectionSet);
   }

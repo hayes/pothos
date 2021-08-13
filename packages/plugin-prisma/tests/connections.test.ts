@@ -1244,4 +1244,175 @@ Array [
 ]
 `);
   });
+
+  it('connection with errors', async () => {
+    const query = gql`
+      query {
+        userConnectionWithErrors(first: 1) {
+          __typename
+          ... on Error {
+            message
+          }
+          ... on QueryUserConnectionWithErrorsSuccess {
+            data {
+              edges {
+                node {
+                  profile {
+                    bio
+                    user {
+                      id
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "data": Object {
+    "userConnectionWithErrors": Object {
+      "__typename": "QueryUserConnectionWithErrorsSuccess",
+      "data": Object {
+        "edges": Array [
+          Object {
+            "node": Object {
+              "profile": Object {
+                "bio": "Sequi minus inventore itaque similique et.",
+                "user": Object {
+                  "id": "VXNlcjox",
+                },
+              },
+            },
+          },
+        ],
+      },
+    },
+  },
+}
+`);
+
+    expect(queries).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "action": "findMany",
+    "args": Object {
+      "include": Object {
+        "profile": Object {
+          "include": Object {
+            "user": true,
+          },
+        },
+      },
+      "skip": 0,
+      "take": 2,
+    },
+    "dataPath": Array [],
+    "model": "User",
+    "runInTransaction": false,
+  },
+]
+`);
+  });
+
+  it('connected relation with errors', async () => {
+    const query = gql`
+      query {
+        me {
+          postsConnectionWithErrors(first: 1) {
+            __typename
+            ... on Error {
+              message
+            }
+            ... on UserPostsConnectionWithErrorsSuccess {
+              data {
+                edges {
+                  node {
+                    author {
+                      profile {
+                        bio
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "data": Object {
+    "me": Object {
+      "postsConnectionWithErrors": Object {
+        "__typename": "UserPostsConnectionWithErrorsSuccess",
+        "data": Object {
+          "edges": Array [
+            Object {
+              "node": Object {
+                "author": Object {
+                  "profile": Object {
+                    "bio": "Sequi minus inventore itaque similique et.",
+                  },
+                },
+              },
+            },
+          ],
+        },
+      },
+    },
+  },
+}
+`);
+
+    expect(queries).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "action": "findUnique",
+    "args": Object {
+      "include": Object {
+        "posts": Object {
+          "include": Object {
+            "author": Object {
+              "include": Object {
+                "profile": Object {
+                  "include": Object {
+                    "user": true,
+                  },
+                },
+              },
+            },
+          },
+          "skip": 0,
+          "take": 2,
+        },
+      },
+      "where": Object {
+        "id": 1,
+      },
+    },
+    "dataPath": Array [],
+    "model": "User",
+    "runInTransaction": false,
+  },
+]
+`);
+  });
 });

@@ -1,7 +1,8 @@
 import SchemaBuilder from '@giraphql/core';
+import ErrorsPlugin from '@giraphql/plugin-errors';
 import RelayPlugin from '@giraphql/plugin-relay';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin from '../../src/index.js';
+import PrismaPlugin from '../../lib/index.js';
 
 export const prisma = new PrismaClient({
   log: [
@@ -29,9 +30,12 @@ export default new SchemaBuilder<{
     user: { id: number };
   };
 }>({
-  plugins: [PrismaPlugin, RelayPlugin],
+  plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin],
   relayOptions: {},
   prisma: {
     client: prisma,
+  },
+  errorOptions: {
+    defaultTypes: [Error],
   },
 });

@@ -169,6 +169,7 @@ importers:
   packages/plugin-prisma:
     specifiers:
       '@giraphql/core': ^2.14.0
+      '@giraphql/plugin-errors': ^2.6.0
       '@giraphql/plugin-relay': ^2.14.0
       '@prisma/client': ^2.28.0
       apollo-server: ^2.25.2
@@ -177,6 +178,7 @@ importers:
       prisma: ^2.28.0
     devDependencies:
       '@giraphql/core': link:../core
+      '@giraphql/plugin-errors': link:../plugin-errors
       '@giraphql/plugin-relay': link:../plugin-relay
       '@prisma/client': 2.28.0_prisma@2.28.0
       apollo-server: 2.25.2_graphql@15.5.1
