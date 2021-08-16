@@ -113,7 +113,7 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `dataField`: An options object for the data field on the result object. This field will be named
   `data` by default, but can be written by passsing a custom `name` option.
 
-### Recommended Ussage
+### Recommended Usage
 
 1. Set up an Error interface
 2. Create a BaseError object type
