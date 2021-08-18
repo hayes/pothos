@@ -10,13 +10,8 @@ options map closely to the validations available in zod.
 
 To use the validation plugin you will need to install both `zod` package and the validation plugin:
 
-zod version 3 is still in beta, but is compatible. Zod version 2 was deprecated, so installing zod@1
-or zod@3 is recommended.
-
 ```bash
-yarn add zod@1 @giraphql/plugin-validation
-# or
-yarn add zod@3 @giraphql/plugin-validation
+yarn add zod @giraphql/plugin-validation
 ```
 
 ### Setup
