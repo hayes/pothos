@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-prisma",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "A GiraphQL plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "module": "./esm/index.js",

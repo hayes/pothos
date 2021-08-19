@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.7.2
+
+### Patch Changes
+
+- cbb4960: Fix priama-connections without relations
+
 ## 0.7.1
 
 ### Patch Changes
