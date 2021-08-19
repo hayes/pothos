@@ -35,17 +35,21 @@ type RelationKeys<T> = {
 export type ModelTypes<Model extends {}> = Model extends {
   findUnique: (
     options: infer UniqueOptions & {
-      include?: infer Include | null | undefined;
       where?: infer Where | null | undefined;
       select?: infer Select | null | undefined;
-    },
+    } & (
+        | {
+            include?: infer Include | null | undefined;
+          }
+        | {}
+      ),
   ) => infer Chain & {
     then: (cb: (result: infer Shape | null) => unknown) => unknown;
   };
 }
   ? PrismaModelTypes & {
       Shape: Shape;
-      Include: Include;
+      Include: Include & {};
       Where: Where;
       Fields: keyof Select;
       ListRelation: ListRelationFields<Include> & string;

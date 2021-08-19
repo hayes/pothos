@@ -82,6 +82,11 @@ type QueryUsersWithErrorSuccess {
   data: [User!]!
 }
 
+type Unrelated {
+  id: ID!
+  name: String
+}
+
 type User implements Named & Node {
   email: String!
   id: ID!

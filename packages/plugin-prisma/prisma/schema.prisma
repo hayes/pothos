@@ -34,3 +34,8 @@ model User {
   posts   Post[]
   profile Profile?
 }
+
+model Unrelated {
+  id      Int      @id @default(autoincrement())
+  name    String?
+}

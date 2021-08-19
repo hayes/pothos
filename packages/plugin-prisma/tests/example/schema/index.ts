@@ -121,6 +121,16 @@ builder.prismaObject(prisma.post, {
   }),
 });
 
+builder.prismaObject(prisma.unrelated, {
+  findUnique: (post) => ({ id: post.id }),
+  fields: (t) => ({
+    id: t.id({
+      resolve: (parent) => parent.id,
+    }),
+    name: t.exposeString('name', { nullable: true }),
+  }),
+});
+
 builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
