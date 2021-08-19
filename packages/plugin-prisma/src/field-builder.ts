@@ -277,7 +277,7 @@ export class PrismaObjectFieldBuilder<
   }
 
   relation<
-    Field extends string & keyof Model['Relations'],
+    Field extends string & keyof Model['Include'] & keyof Model['Relations'],
     Nullable extends boolean,
     Args extends InputFieldMap,
     ResolveReturnShape,

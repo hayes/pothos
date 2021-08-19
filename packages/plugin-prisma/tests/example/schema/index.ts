@@ -166,6 +166,11 @@ builder.queryType({
       maxSize: 15,
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
     }),
+    unrelatedConnection: t.prismaConnection({
+      type: prisma.unrelated,
+      cursor: 'id',
+      resolve: (query, parent, args) => prisma.unrelated.findMany({ ...query }),
+    }),
     userConnectionWithErrors: t.prismaConnection({
       type: prisma.user,
       cursor: 'id',

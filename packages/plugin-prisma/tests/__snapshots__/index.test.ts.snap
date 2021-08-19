@@ -43,11 +43,22 @@ type Query {
   named: [Named]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  unrelatedConnection(after: ID, before: ID, first: Int, last: Int): QueryUnrelatedConnection!
   userConnection(after: ID, before: ID, first: Int, last: Int): QueryUserConnection!
   userConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): QueryUserConnectionWithErrorsResult!
   userOrProfile: [UserOrProfile]
   users: [User!]!
   usersWithError: QueryUsersWithErrorResult!
+}
+
+type QueryUnrelatedConnection {
+  edges: [QueryUnrelatedConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryUnrelatedConnectionEdge {
+  cursor: String!
+  node: Unrelated!
 }
 
 type QueryUserConnection {

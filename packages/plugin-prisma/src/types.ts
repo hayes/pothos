@@ -49,7 +49,7 @@ export type ModelTypes<Model extends {}> = Model extends {
 }
   ? PrismaModelTypes & {
       Shape: Shape;
-      Include: Include & {};
+      Include: unknown extends Include ? never : Include;
       Where: Where;
       Fields: keyof Select;
       ListRelation: ListRelationFields<Include> & string;
@@ -65,7 +65,7 @@ export type ModelTypes<Model extends {}> = Model extends {
 
 export interface PrismaModelTypes {
   Shape: {};
-  Include: {};
+  Include: unknown;
   Where: {};
   Fields: string;
   ListRelation: string;
@@ -187,7 +187,7 @@ export type RefForRelation<
 export type RelatedFieldOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  Field extends keyof Model['Relations'],
+  Field extends keyof Model['Include'] & keyof Model['Relations'],
   Nullable extends boolean,
   Args extends InputFieldMap,
   ResolveReturnShape,
