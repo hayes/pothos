@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.7.1
+
+### Patch Changes
+
+- 2cf9279: fix for models that do not have any relations
+
 ## 0.7.0
 
 ### Minor Changes
