@@ -34,14 +34,14 @@ builder.interfaceType(AnimalRef, {
 builder.queryFields((t) => ({
   animal: t.field({
     type: 'Animal',
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
   animalClass: t.field({
     type: Animal,
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
   animalRef: t.field({
     type: AnimalRef,
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
 }));

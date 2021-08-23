@@ -17,7 +17,7 @@ builder.scalarType('PositiveInt', {
 builder.queryFields((t) => ({
   date: t.field({
     type: 'Date',
-    resolve: () => new Date(2012, 11, 12),
+    resolve: () => new Date(Date.UTC(2012, 11, 12)),
   }),
 
   positive: t.field({
