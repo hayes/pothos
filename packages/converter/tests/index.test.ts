@@ -1,6 +1,6 @@
 import { spawn } from 'child_process';
 import { lexicographicSortSchema, printSchema } from 'graphql';
-import GirphQLConverter from '../src';
+import GiraphQLConverter from '../src';
 import exampleSchema from './examples/random-stuff';
 import starwarsSchema from './examples/starwars/schema';
 
@@ -21,7 +21,7 @@ function execTS(script: string) {
   });
 }
 
-async function printGeneratedSchema(converter: GirphQLConverter) {
+async function printGeneratedSchema(converter: GiraphQLConverter) {
   const script = `import { printSchema, lexicographicSortSchema } from 'graphql'\n${converter.toString()}\n\nconsole.log(printSchema(lexicographicSortSchema(schema)))`;
 
   const result = await execTS(script);
@@ -31,7 +31,7 @@ async function printGeneratedSchema(converter: GirphQLConverter) {
 
 describe('Code generator', () => {
   it('example schema', async () => {
-    const converter = new GirphQLConverter(exampleSchema);
+    const converter = new GiraphQLConverter(exampleSchema);
 
     expect(converter.toString()).toMatchSnapshot();
 
@@ -42,7 +42,7 @@ describe('Code generator', () => {
   }, 10_000);
 
   it('starwars schema', async () => {
-    const converter = new GirphQLConverter(starwarsSchema);
+    const converter = new GiraphQLConverter(starwarsSchema);
 
     expect(converter.toString()).toMatchSnapshot();
 

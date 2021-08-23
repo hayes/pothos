@@ -65,7 +65,7 @@ function isRecursive(type: GraphQLNamedType, seen: string[] = []): boolean {
   });
 }
 
-export default class GirphQLConverter {
+export default class GiraphQLConverter {
   project = new Project();
 
   schema: GraphQLSchema;
