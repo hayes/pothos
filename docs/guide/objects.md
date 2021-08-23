@@ -89,7 +89,7 @@ builder.queryType({
   fields: (t) => ({
     giraffe: t.field({
       type: Giraffe,
-      resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+      resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
     }),
   }),
 });
@@ -162,7 +162,7 @@ builder.objectType(Giraffe, {
 builder.queryFields((t) => ({
   giraffe: t.field({
     type: Giraffe,
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
 }));
 ```
@@ -183,7 +183,7 @@ builder.objectType('Giraffe', {
 builder.queryFields((t) => ({
   giraffe: t.field({
     type: 'Giraffe',
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
 }));
 ```
@@ -218,7 +218,7 @@ builder.queryFields((t) => ({
     type: Giraffe,
     resolve: () => ({
       name: 'James',
-      birthday: new Date(2012, 11, 12),
+      birthday: new Date(Date.UTC(2012, 11, 12)),
       height: 5.2,
     }),
   }),
@@ -245,7 +245,7 @@ builder.queryFields((t) => ({
     type: Giraffe,
     resolve: () => ({
       name: 'James',
-      birthday: new Date(2012, 11, 12),
+      birthday: new Date(Date.UTC(2012, 11, 12)),
       height: 5.2,
     }),
   }),

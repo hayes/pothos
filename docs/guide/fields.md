@@ -235,7 +235,7 @@ where the type is defined\).
 builder.queryFields((t) => ({
   giraffe: t.field({
     type: Giraffe,
-    resolve: () => new Giraffe('James', new Date(2012, 11, 12), 5.2),
+    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
   }),
 }));
 
