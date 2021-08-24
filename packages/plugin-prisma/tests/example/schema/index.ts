@@ -18,7 +18,7 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   }),
 });
 
-const User = builder.prismaNode(prisma.user, {
+const User = builder.prismaNode('User', {
   interfaces: [Named],
   id: {
     resolve: (user) => user.id,
@@ -29,6 +29,7 @@ const User = builder.prismaNode(prisma.user, {
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile'),
     profileWithErrors: t.relation('profile', { errors: {} }),
+    postCount: t.relationCount('posts'),
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
@@ -46,6 +47,7 @@ const User = builder.prismaNode(prisma.user, {
         }),
     }),
     postsConnection: t.relatedConnection('posts', {
+      totalCount: true,
       cursor: 'createdAt',
       args: {
         oldestFirst: t.arg.boolean(),
@@ -69,7 +71,7 @@ const User = builder.prismaNode(prisma.user, {
   }),
 });
 
-const Profile = builder.prismaObject(prisma.profile, {
+const Profile = builder.prismaObject('Profile', {
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -80,6 +82,8 @@ const Profile = builder.prismaObject(prisma.profile, {
       nullable: true,
       resolve: (query, profile, args, ctx, info) =>
         prisma.user.findUnique({
+          // TODO: fix nullable
+          rejectOnNotFound: true,
           where: {
             id: profile.userId,
           },
@@ -104,8 +108,15 @@ const UserOrProfile = builder.unionType('UserOrProfile', {
   },
 });
 
-builder.prismaObject(prisma.post, {
+builder.prismaObject('Post', {
   findUnique: (post) => ({ id: post.id }),
+  include: {
+    comments: {
+      include: {
+        author: true,
+      },
+    },
+  },
   fields: (t) => ({
     id: t.id({
       resolve: (parent) => parent.id,
@@ -118,10 +129,33 @@ builder.prismaObject(prisma.post, {
       resolve: (post) => post.createdAt.toISOString(),
     }),
     author: t.relation('author'),
+    commentAuthorIds: t.idList({
+      resolve: (post) => [...new Set(post.comments.map((comment) => comment.author.id))],
+    }),
+    comments: t.relation('comments'),
+    commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
   }),
 });
 
-builder.prismaObject(prisma.unrelated, {
+builder.prismaObject('Comment', {
+  findUnique: (comment) => ({ id: comment.id }),
+  include: {
+    author: {
+      include: {
+        profile: true,
+      },
+    },
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    authorBio: t.string({ nullable: true, resolve: (comment) => comment.author.profile?.bio }),
+    author: t.relation('author'),
+    post: t.relation('post'),
+    content: t.exposeString('content'),
+  }),
+});
+
+builder.prismaObject('Unrelated', {
   findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.id({
@@ -134,7 +168,7 @@ builder.prismaObject(prisma.unrelated, {
 builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
-      type: prisma.user,
+      type: 'User',
       nullable: true,
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
@@ -143,7 +177,7 @@ builder.queryType({
         }),
     }),
     users: t.prismaField({
-      type: [prisma.user],
+      type: ['User'],
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findMany({
           ...query,
@@ -152,7 +186,7 @@ builder.queryType({
     }),
     usersWithError: t.prismaField({
       errors: {},
-      type: [prisma.user],
+      type: ['User'],
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findMany({
           ...query,
@@ -160,19 +194,19 @@ builder.queryType({
         }),
     }),
     userConnection: t.prismaConnection({
-      type: prisma.user,
+      type: 'User',
       cursor: 'id',
       defaultSize: 10,
       maxSize: 15,
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
     }),
     unrelatedConnection: t.prismaConnection({
-      type: prisma.unrelated,
+      type: 'Unrelated',
       cursor: 'id',
       resolve: (query, parent, args) => prisma.unrelated.findMany({ ...query }),
     }),
     userConnectionWithErrors: t.prismaConnection({
-      type: prisma.user,
+      type: 'User',
       cursor: 'id',
       defaultSize: 10,
       maxSize: 15,

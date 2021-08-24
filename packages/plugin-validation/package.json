@@ -33,7 +33,7 @@
     "@giraphql/core": "^2.14.0",
     "apollo-server": "^2.25.2",
     "graphql-tag": "^2.12.5",
-    "zod": "^3.7.1"
+    "zod": "^3.8.1"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

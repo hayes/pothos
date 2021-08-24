@@ -11,16 +11,16 @@ import SchemaBuilder, {
 } from '@giraphql/core';
 import { PrismaObjectFieldBuilder } from './field-builder.js';
 import PrismaNodeRef from './node-ref.js';
-import { getNameFromDelegate, getRefFromDelegate, setFindUniqueForRef } from './refs.js';
+import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs.js';
 import { ModelTypes, PrismaDelegate, PrismaNodeOptions } from './types.js';
-import { queryFromInfo } from './util.js';
+import { queryFromInfo } from './util/index.js';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
-  const ref = getRefFromDelegate(type, this);
-  const name = options.name ?? getNameFromDelegate(type, this);
+  const ref = getRefFromModel(type, this);
+  const name = options.name ?? type;
 
   ref.name = name;
 
@@ -35,6 +35,10 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
       {},
       unknown
     >),
+    extensions: {
+      ...options.extensions,
+      giraphqlPrismaInclude: options.include,
+    },
     name,
     fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
   });
@@ -46,8 +50,12 @@ schemaBuilderProto.prismaNode = function prismaNode(
   this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
     nodeInterfaceRef?: () => InterfaceRef<unknown>;
   },
-  delegate: PrismaDelegate,
-  { findUnique, name, ...options }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, []>,
+  type: keyof SchemaTypes['PrismaTypes'],
+  {
+    findUnique,
+    name,
+    ...options
+  }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, [], never, {}>,
 ) {
   const interfaceRef = this.nodeInterfaceRef?.();
 
@@ -55,11 +63,16 @@ schemaBuilderProto.prismaNode = function prismaNode(
     throw new TypeError('builder.prismaNode requires @giraphql/plugin-relay to be installed');
   }
 
-  const typeName = name ?? getNameFromDelegate(delegate, this);
+  const typeName = name ?? type;
+  const delegate = getDelegateFromModel(this.options.prisma.client, type);
   const nodeRef = new PrismaNodeRef(typeName);
   const extendedOptions = {
     ...options,
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
+    extensions: {
+      ...options.extensions,
+      giraphqlPrismaInclude: options.include,
+    },
     isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
     findUnique: (parent: unknown, context: {}) =>
       findUnique(options.id.resolve(parent as never, context) as string, context),
@@ -81,7 +94,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     },
   };
 
-  const ref = this.prismaObject(delegate, extendedOptions as never);
+  const ref = this.prismaObject(type, extendedOptions as never);
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     this.objectField(ref, 'id', (t) =>

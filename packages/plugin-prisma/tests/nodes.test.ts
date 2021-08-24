@@ -273,16 +273,19 @@ Array [
     "args": Object {
       "include": Object {
         "posts": Object {
+          "include": Object {
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
+          },
           "orderBy": Object {
             "createdAt": "desc",
           },
           "take": 10,
         },
-        "profile": Object {
-          "include": Object {
-            "user": true,
-          },
-        },
+        "profile": true,
       },
       "where": Object {
         "id": 1,

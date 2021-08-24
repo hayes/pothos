@@ -7,6 +7,11 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  previewFeatures = ["selectRelationCount"]
+}
+
+generator giraphql {
+  provider = "ts-node ./src/generator.ts"
 }
 
 model Post {
@@ -17,7 +22,18 @@ model Post {
   content   String?
   published Boolean  @default(false)
   author    User     @relation(fields: [authorId], references: [id])
+  comments  Comment[]
   authorId  Int
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now()) @unique
+  content   String
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+  authorId  Int
+  postId    Int
 }
 
 model Profile {
@@ -28,14 +44,16 @@ model Profile {
 }
 
 model User {
-  id      Int      @id @default(autoincrement())
-  email   String   @unique
-  name    String?
-  posts   Post[]
-  profile Profile?
+  id       Int      @id @default(autoincrement())
+  email    String   @unique
+  name     String?
+  posts    Post[]
+  comments Comment[]
+  profile  Profile?
 }
 
 model Unrelated {
   id      Int      @id @default(autoincrement())
   name    String?
 }
+
