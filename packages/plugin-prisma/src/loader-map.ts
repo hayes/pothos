@@ -1,6 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { createContextCache } from '@giraphql/core';
-import { LoaderMappings } from './util.js';
+import { LoaderMappings } from './types.js';
 
 const cache = createContextCache((ctx) => new Map<string, LoaderMappings>());
 
@@ -28,13 +28,15 @@ export function setLoaderMappings(
   value: LoaderMappings,
 ) {
   Object.keys(value).forEach((field) => {
-    const mapping = value[field];
     const map = cache(ctx);
-    const selectionName = mapping.alias ?? mapping.field;
-    const subPath = [...mapping.indirectPath, selectionName];
-    const key = cacheKey(path, subPath);
 
-    map.set(key, mapping.mappings);
+    for (const mapping of value[field]) {
+      const selectionName = mapping.alias ?? mapping.field;
+      const subPath = [...mapping.indirectPath, selectionName];
+      const key = cacheKey(path, subPath);
+
+      map.set(key, mapping.mappings);
+    }
   });
 }
 

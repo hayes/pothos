@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-object-from-entries */
 import {
   defaultFieldResolver,
   GraphQLBoolean,

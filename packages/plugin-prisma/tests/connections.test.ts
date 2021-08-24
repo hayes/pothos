@@ -63,9 +63,7 @@ Object {
         Object {
           "node": Object {
             "id": "VXNlcjoy",
-            "profile": Object {
-              "bio": "Ut quo accusantium fuga veritatis.",
-            },
+            "profile": null,
           },
         },
         Object {
@@ -683,10 +681,10 @@ Object {
                 },
               ],
               "pageInfo": Object {
-                "endCursor": "R1BDOkQ6MTYyNzk1NTE2OTc0NA==",
+                "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDIzMA==",
                 "hasNextPage": true,
                 "hasPreviousPage": false,
-                "startCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
               },
             },
           },
@@ -704,6 +702,13 @@ Array [
     "args": Object {
       "include": Object {
         "posts": Object {
+          "include": Object {
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
+          },
           "orderBy": Object {
             "createdAt": "desc",
           },
@@ -773,7 +778,14 @@ Invalid \`prisma.user.findMany()\` invocation:
                    ~
       },
       take: 3,
-      skip: 1
+      skip: 1,
+      include: {
+        comments: {
+          include: {
+            author: true
+          }
+        }
+      }
     }
   },
   take: 2,
@@ -796,6 +808,13 @@ Array [
         "posts": Object {
           "cursor": Object {
             "createdAt": 5,
+          },
+          "include": Object {
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
           },
           "orderBy": Object {
             "createdAt": "desc",
@@ -822,7 +841,7 @@ Array [
           edges {
             cursor
             node {
-              postsConnection(first: 2, after: "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==", oldestFirst: true) {
+              postsConnection(first: 2, after: "R1BDOkQ6MTM1NTI3MDQwMDI0OA==", oldestFirst: true) {
                 pageInfo {
                   hasNextPage
                   hasPreviousPage
@@ -859,17 +878,17 @@ Object {
             "postsConnection": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                   "node": Object {
                     "id": "250",
                   },
                 },
               ],
               "pageInfo": Object {
-                "endCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                 "hasNextPage": false,
                 "hasPreviousPage": true,
-                "startCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
               },
             },
           },
@@ -888,7 +907,14 @@ Array [
       "include": Object {
         "posts": Object {
           "cursor": Object {
-            "createdAt": 2021-08-03T01:46:09.762Z,
+            "createdAt": 2012-12-12T00:00:00.248Z,
+          },
+          "include": Object {
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
           },
           "orderBy": Object {
             "createdAt": "asc",
@@ -915,7 +941,7 @@ Array [
           edges {
             cursor
             node {
-              postsConnection(first: 2, after: "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==", oldestFirst: true) {
+              postsConnection(first: 2, after: "R1BDOkQ6MTM1NTI3MDQwMDI0OA==", oldestFirst: true) {
                 pageInfo {
                   hasNextPage
                   hasPreviousPage
@@ -966,39 +992,39 @@ Object {
             "newPosts": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                   "node": Object {
                     "id": "250",
                   },
                 },
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
                   "node": Object {
                     "id": "249",
                   },
                 },
               ],
               "pageInfo": Object {
-                "endCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==",
+                "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
                 "hasNextPage": true,
                 "hasPreviousPage": false,
-                "startCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
               },
             },
             "postsConnection": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                   "node": Object {
                     "id": "250",
                   },
                 },
               ],
               "pageInfo": Object {
-                "endCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                 "hasNextPage": false,
                 "hasPreviousPage": true,
-                "startCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
               },
             },
           },
@@ -1017,7 +1043,14 @@ Array [
       "include": Object {
         "posts": Object {
           "cursor": Object {
-            "createdAt": 2021-08-03T01:46:09.762Z,
+            "createdAt": 2012-12-12T00:00:00.248Z,
+          },
+          "include": Object {
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
           },
           "orderBy": Object {
             "createdAt": "asc",
@@ -1038,6 +1071,13 @@ Array [
     "args": Object {
       "include": Object {
         "posts": Object {
+          "include": Object {
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
+          },
           "orderBy": Object {
             "createdAt": "desc",
           },
@@ -1064,7 +1104,7 @@ Array [
           edges {
             cursor
             node {
-              postsConnection(first: 2, after: "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==", oldestFirst: true) {
+              postsConnection(first: 2, after: "R1BDOkQ6MTM1NTI3MDQwMDI0OA==", oldestFirst: true) {
                 pageInfo {
                   hasNextPage
                   hasPreviousPage
@@ -1125,7 +1165,7 @@ Object {
             "newPosts": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                   "node": Object {
                     "author": Object {
                       "profile": Object {
@@ -1136,7 +1176,7 @@ Object {
                   },
                 },
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
                   "node": Object {
                     "author": Object {
                       "profile": Object {
@@ -1148,16 +1188,16 @@ Object {
                 },
               ],
               "pageInfo": Object {
-                "endCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mg==",
+                "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
                 "hasNextPage": true,
                 "hasPreviousPage": false,
-                "startCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
               },
             },
             "postsConnection": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                  "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                   "node": Object {
                     "author": Object {
                       "profile": Object {
@@ -1169,10 +1209,10 @@ Object {
                 },
               ],
               "pageInfo": Object {
-                "endCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                 "hasNextPage": false,
                 "hasPreviousPage": true,
-                "startCursor": "R1BDOkQ6MTYyNzk1NTE2OTc2Mw==",
+                "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
               },
             },
           },
@@ -1191,12 +1231,17 @@ Array [
       "include": Object {
         "posts": Object {
           "cursor": Object {
-            "createdAt": 2021-08-03T01:46:09.762Z,
+            "createdAt": 2012-12-12T00:00:00.248Z,
           },
           "include": Object {
             "author": Object {
               "include": Object {
                 "profile": true,
+              },
+            },
+            "comments": Object {
+              "include": Object {
+                "author": true,
               },
             },
           },
@@ -1223,6 +1268,11 @@ Array [
             "author": Object {
               "include": Object {
                 "profile": true,
+              },
+            },
+            "comments": Object {
+              "include": Object {
+                "author": true,
               },
             },
           },
@@ -1392,11 +1442,12 @@ Array [
           "include": Object {
             "author": Object {
               "include": Object {
-                "profile": Object {
-                  "include": Object {
-                    "user": true,
-                  },
-                },
+                "profile": true,
+              },
+            },
+            "comments": Object {
+              "include": Object {
+                "author": true,
               },
             },
           },

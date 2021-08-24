@@ -60,6 +60,11 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
       ...new Set([...types, ...(this.builder.options.errorOptions?.defaultTypes ?? [])]),
     ]);
 
+    const typeRef =
+      fieldConfig.type.kind === 'List' ? fieldConfig.type.type.ref : fieldConfig.type.ref;
+
+    const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
+
     const unionType = this.runUnique(resultName, () => {
       const resultObjectRef = this.builder.objectRef<unknown>(resultName);
 
@@ -90,7 +95,10 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         extensions: {
           ...unionOptions.extensions,
           getDataloader,
-          giraphQLPrismaIndirectInclude: [{ type: resultName, name: dataFieldName }],
+          giraphQLPrismaIndirectInclude: {
+            getType: () => typeName,
+            path: [{ type: resultName, name: dataFieldName }],
+          },
         },
       });
     });

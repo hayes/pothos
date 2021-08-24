@@ -5,6 +5,14 @@ exports[`prisma generates schema 1`] = `
   message: String!
 }
 
+type Comment {
+  author: User!
+  authorBio: String
+  content: String!
+  id: ID!
+  post: Post!
+}
+
 interface Error {
   message: String!
 }
@@ -26,10 +34,24 @@ type PageInfo {
 
 type Post {
   author: User!
+  commentAuthorIds: [ID!]!
+  comments: [Comment!]!
+  commentsConnection(after: ID, before: ID, first: Int, last: Int): PostCommentsConnection!
   content: String
   createdAt: String!
   id: ID!
+  post: User!
   title: String!
+}
+
+type PostCommentsConnection {
+  edges: [PostCommentsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PostCommentsConnectionEdge {
+  cursor: String!
+  node: Comment!
 }
 
 type Profile {
@@ -43,6 +65,8 @@ type Query {
   named: [Named]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  post(id: ID!): Post
+  posts: [Post!]!
   unrelatedConnection(after: ID, before: ID, first: Int, last: Int): QueryUnrelatedConnection!
   userConnection(after: ID, before: ID, first: Int, last: Int): QueryUserConnection!
   userConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): QueryUserConnectionWithErrorsResult!
@@ -99,15 +123,27 @@ type Unrelated {
 }
 
 type User implements Named & Node {
+  commentsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentsConnection!
   email: String!
   id: ID!
   name: String
+  postCount: Int!
   posts(oldestFirst: Boolean): [Post!]!
   postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean): UserPostsConnection!
   postsConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): UserPostsConnectionWithErrorsResult!
-  profile: Profile!
+  profile: Profile
   profileThroughManualLookup: Profile
-  profileWithErrors: UserProfileWithErrorsResult!
+  profileWithErrors: UserProfileWithErrorsResult
+}
+
+type UserCommentsConnection {
+  edges: [UserCommentsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type UserCommentsConnectionEdge {
+  cursor: String!
+  node: Comment!
 }
 
 union UserOrProfile = Profile | User
@@ -115,6 +151,7 @@ union UserOrProfile = Profile | User
 type UserPostsConnection {
   edges: [UserPostsConnectionEdge]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type UserPostsConnectionEdge {
@@ -243,88 +280,66 @@ Object {
         "posts": Array [
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "500",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "499",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "498",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "497",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "496",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "495",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "494",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "493",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "492",
           },
           Object {
             "author": Object {
-              "profile": Object {
-                "id": "2",
-              },
+              "profile": null,
             },
             "id": "491",
           },
         ],
-        "profile": Object {
-          "bio": "Ut quo accusantium fuga veritatis.",
-        },
+        "profile": null,
       },
     ],
   },
