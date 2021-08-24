@@ -30,6 +30,8 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         const errorTypes = sortClasses([
             ...new Set([...types, ...(this.builder.options.errorOptions?.defaultTypes ?? [])]),
         ]);
+        const typeRef = fieldConfig.type.kind === "List" ? fieldConfig.type.type.ref : fieldConfig.type.ref;
+        const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
         const unionType = this.runUnique(resultName, () => {
             const resultObjectRef = this.builder.objectRef<unknown>(resultName);
             resultObjectRef.implement({
@@ -46,10 +48,21 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
                     }),
                 }),
             });
+            const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
+            const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions
+                ?.getDataloader as unknown;
             return this.builder.unionType(unionName, {
                 types: [...errorTypes, resultObjectRef],
                 resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultObjectRef,
                 ...unionOptions,
+                extensions: {
+                    ...unionOptions.extensions,
+                    getDataloader,
+                    giraphQLPrismaIndirectInclude: {
+                        getType: () => typeName,
+                        path: [{ type: resultName, name: dataFieldName }],
+                    },
+                },
             });
         });
         return {
