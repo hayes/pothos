@@ -52,6 +52,7 @@ interface PrismaCursorConnectionQueryOptions {
 
 interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQueryOptions {
   query: {};
+  totalCount?: number;
 }
 
 export function prismaCursorConnectionQuery({
@@ -108,6 +109,7 @@ export function wrapConnectionResult<T extends {}>(
   args: GiraphQLSchemaTypes.DefaultConnectionArguments,
   take: number,
   column: string,
+  totalCount?: number,
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : gotFullResults;
@@ -126,6 +128,7 @@ export function wrapConnectionResult<T extends {}>(
   );
 
   return {
+    totalCount,
     edges,
     pageInfo: {
       startCursor: edges[0]?.cursor,
@@ -146,5 +149,11 @@ export async function resolvePrismaCursorConnection<T extends {}>(
     ...query,
   });
 
-  return wrapConnectionResult(results, options.args, query.take, options.column);
+  return wrapConnectionResult(
+    results,
+    options.args,
+    query.take,
+    options.column,
+    options.totalCount,
+  );
 }

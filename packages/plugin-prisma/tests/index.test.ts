@@ -146,6 +146,11 @@ Array [
                 "profile": true,
               },
             },
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
           },
           "orderBy": Object {
             "createdAt": "desc",
@@ -206,6 +211,11 @@ Array [
                 "profile": true,
               },
             },
+            "comments": Object {
+              "include": Object {
+                "author": true,
+              },
+            },
           },
           "orderBy": Object {
             "createdAt": "desc",
@@ -259,9 +269,10 @@ Array [
       "include": Object {
         "posts": Object {
           "include": Object {
-            "author": Object {
+            "author": true,
+            "comments": Object {
               "include": Object {
-                "profile": true,
+                "author": true,
               },
             },
           },
@@ -283,9 +294,10 @@ Array [
     "action": "findMany",
     "args": Object {
       "include": Object {
-        "author": Object {
+        "author": true,
+        "comments": Object {
           "include": Object {
-            "profile": true,
+            "author": true,
           },
         },
       },
@@ -347,9 +359,10 @@ Array [
       "include": Object {
         "posts": Object {
           "include": Object {
-            "author": Object {
+            "author": true,
+            "comments": Object {
               "include": Object {
-                "profile": true,
+                "author": true,
               },
             },
           },
@@ -370,25 +383,11 @@ Array [
   Object {
     "action": "findMany",
     "args": Object {
-      "orderBy": Object {
-        "createdAt": "desc",
-      },
-      "take": 10,
-      "where": Object {
-        "authorId": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
       "include": Object {
-        "author": Object {
+        "author": true,
+        "comments": Object {
           "include": Object {
-            "profile": true,
+            "author": true,
           },
         },
       },
@@ -554,14 +553,7 @@ Object {
         },
         Object {
           "name": "Nichole Koss",
-          "profileWithErrors": Object {
-            "data": Object {
-              "bio": "Ut quo accusantium fuga veritatis.",
-              "user": Object {
-                "id": "VXNlcjoy",
-              },
-            },
-          },
+          "profileWithErrors": null,
         },
       ],
     },

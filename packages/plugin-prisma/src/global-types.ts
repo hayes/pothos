@@ -11,17 +11,17 @@ import {
   OutputType,
   PluginName,
   SchemaTypes,
+  ShapeFromTypeParam,
 } from '@giraphql/core';
 import { PrismaPlugin } from './index.js';
 import PrismaNodeRef from './node-ref.js';
 import {
-  ModelTypes,
   PrismaConnectionFieldOptions,
-  PrismaDelegate,
   PrismaFieldOptions,
   PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
+  ShapeWithInclude,
 } from './types.js';
 
 declare global {
@@ -39,25 +39,39 @@ declare global {
     }
 
     export interface UserSchemaTypes {
-      PrismaClient?: 'This type has been replaced with `PrismaTypes` see docs for more details.';
+      PrismaTypes: {};
+    }
+
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+      PrismaTypes: undefined extends PartialTypes['PrismaTypes']
+        ? {}
+        : PartialTypes['PrismaTypes'] & {};
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       prismaObject: <
-        Delegate extends PrismaDelegate,
+        Name extends keyof Types['PrismaTypes'],
         Interfaces extends InterfaceParam<Types>[],
         FindUnique,
-        Model extends ModelTypes<Delegate>,
+        Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
+        Include extends Model['Include'] = {},
+        Shape extends object = ShapeWithInclude<Model, Include>,
       >(
-        type: Delegate,
-        options: PrismaObjectTypeOptions<Types, Model, Interfaces, FindUnique>,
-      ) => ObjectRef<Model['Shape']>;
+        name: Name,
+        options: PrismaObjectTypeOptions<Types, Model, Interfaces, FindUnique, Include, Shape>,
+      ) => ObjectRef<Shape>;
 
       prismaNode: 'relay' extends PluginName
-        ? <Type extends PrismaDelegate, Interfaces extends InterfaceParam<Types>[]>(
-            delegate: Type,
-            options: PrismaNodeOptions<Types, ModelTypes<Type>, Interfaces>,
-          ) => PrismaNodeRef<ModelTypes<Type>['Shape']>
+        ? <
+            Name extends keyof Types['PrismaTypes'],
+            Interfaces extends InterfaceParam<Types>[],
+            Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
+            Include extends Model['Include'] = {},
+            Shape extends object = ShapeWithInclude<Model, Include>,
+          >(
+            name: Name,
+            options: PrismaNodeOptions<Types, Model, Interfaces, Include, Shape>,
+          ) => PrismaNodeRef<Shape>
         : '@giraphql/plugin-relay is required to use this method';
     }
 
@@ -68,39 +82,39 @@ declare global {
     > {
       prismaField: <
         Args extends InputFieldMap,
-        TypeParam extends PrismaDelegate | [PrismaDelegate],
-        Nullable extends FieldNullability<
-          TypeParam extends [PrismaDelegate]
-            ? [ObjectRef<Model['Shape']>]
-            : ObjectRef<Model['Shape']>
-        >,
+        TypeParam extends keyof Types['PrismaTypes'] | [keyof Types['PrismaTypes']],
+        Nullable extends FieldNullability<Type>,
         ResolveReturnShape,
-        Model extends PrismaModelTypes = TypeParam extends [PrismaDelegate]
-          ? ModelTypes<TypeParam[0]>
-          : ModelTypes<TypeParam>,
+        Type extends TypeParam extends [keyof Types['PrismaTypes']]
+          ? [ObjectRef<Model['Shape']>]
+          : ObjectRef<Model['Shape']>,
+        Model extends PrismaModelTypes = PrismaModelTypes &
+          (TypeParam extends [keyof Types['PrismaTypes']]
+            ? Types['PrismaTypes'][TypeParam[0]]
+            : TypeParam extends keyof Types['PrismaTypes']
+            ? Types['PrismaTypes'][TypeParam]
+            : never),
       >(
         options: PrismaFieldOptions<
           Types,
           ParentShape,
           TypeParam,
           Model,
-          TypeParam extends [PrismaDelegate]
-            ? [ObjectRef<Model['Shape']>]
-            : ObjectRef<Model['Shape']>,
+          Type,
           Args,
           Nullable,
           ResolveReturnShape,
           Kind
         >,
-      ) => FieldRef<Model['Shape']>;
+      ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
 
       prismaConnection: 'relay' extends PluginName
         ? <
-            Type extends PrismaDelegate,
+            Type extends keyof Types['PrismaTypes'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
-            Model extends PrismaModelTypes = ModelTypes<Type>,
+            Model extends PrismaModelTypes = PrismaModelTypes & Types['PrismaTypes'][Type],
           >(
             ...args: NormalizeArgs<
               [
