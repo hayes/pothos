@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.9.1
+
+### Patch Changes
+
+- f04be64: Update dependencies
+
 ## 2.9.0
 
 ### Minor Changes
