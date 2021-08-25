@@ -291,6 +291,13 @@ generator giraphql {
 }
 ```
 
+Now the types giraphql uses will be generated whenever you re-generate your prisma client. Run the
+following command to re-generate the client and create the new types:
+
+```bash
+npx prisma generate
+``` 
+
 additional options:
 
 - `clientOutput`: Where the generated code will import the PrismaClient from. The default is the
