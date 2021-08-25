@@ -12,7 +12,7 @@
     "access": "public"
   },
   "devDependencies": {
-    "ts-node": "^10.1.0"
+    "ts-node": "^10.2.1"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

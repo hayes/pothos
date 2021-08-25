@@ -70,6 +70,7 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
             if (!Array.isArray(directives)) {
                 return directives;
             }
+            // eslint-disable-next-line unicorn/prefer-object-from-entries
             return directives.reduce<Record<string, {}[]>>((obj, directive) => {
                 if (obj[directive.name]) {
                     obj[directive.name].push(directive.args ?? {});

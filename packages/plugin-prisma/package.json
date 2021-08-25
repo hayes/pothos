@@ -9,11 +9,15 @@
     "require": "./lib/index.js"
   },
   "scripts": {
-    "generate": "prisma generate"
+    "generate": "prisma generate",
+    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\""
   },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "bin": {
+    "prisma-giraphql-types": "./bin/generator.js"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -33,18 +37,21 @@
   "publishConfig": {
     "access": "public"
   },
+  "dependencies": {
+    "@prisma/generator-helper": "^2.30.0"
+  },
   "peerDependencies": {
     "@prisma/client": "*",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "@giraphql/core": "^2.14.0",
-    "@giraphql/plugin-relay": "^2.14.0",
     "@giraphql/plugin-errors": "^2.7.0",
-    "@prisma/client": "^2.28.0",
+    "@giraphql/plugin-relay": "^2.14.0",
+    "@prisma/client": "^2.30.0",
     "apollo-server": "^2.25.2",
     "graphql": ">=15.5.1",
     "graphql-tag": "^2.12.5",
-    "prisma": "^2.28.0"
+    "prisma": "^2.30.0"
   }
 }

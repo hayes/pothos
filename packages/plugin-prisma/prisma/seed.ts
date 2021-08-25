@@ -1,18 +1,20 @@
 // @ts-ignore
 import faker from 'faker';
 import { PrismaClient } from '@prisma/client';
+import { date } from 'zod';
 
 const prisma = new PrismaClient();
 
 faker.seed(123);
 
+const now = Date.UTC(2012, 11, 12);
+
+console.log('creating users and posts');
 async function main() {
   for (let i = 0; i < 100; ++i) {
     const firstName = faker.name.firstName();
     const lastName = faker.name.lastName();
     const email = faker.internet.email(firstName, lastName);
-
-    const now = Date.now();
     const posts: { title: string; content: string; createdAt: Date }[] = [];
 
     for (let j = 0; j < 250; ++j) {
@@ -40,11 +42,37 @@ async function main() {
       },
     });
   }
+
+  const users = await prisma.user.findMany({});
+
+  const postRows = await prisma.post.findMany({
+    take: 1000,
+  });
+
+  console.log('creating comments');
+
+  for (const user of users) {
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        comments: {
+          create: postRows.map((post, i) => ({
+            postId: post.id,
+            content: faker.lorem.sentence(),
+            createdAt: new Date(now + user.id * postRows.length + i),
+          })),
+        },
+      },
+    });
+  }
+
+  await prisma.profile.delete({ where: { id: 2 } });
 }
 
 main()
   .then(() => console.log('DB seeded with test data'))
   .catch((error) => {
+    console.error(error);
     throw error;
   })
   .finally(() => {

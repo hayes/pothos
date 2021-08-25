@@ -1,6 +1,9 @@
+/* eslint-disable prefer-destructuring */
+/* eslint-disable no-underscore-dangle */
 import { createContextCache, SchemaTypes } from '@giraphql/core';
-import { getFindUniqueForRef, getRefFromDelegate } from './refs.js';
+import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs.js';
 import { PrismaDelegate } from './types.js';
+import { mergeIncludes } from './util/index.js';
 
 const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 
@@ -24,12 +27,15 @@ export class ModelLoader {
     this.findUnique = findUnique;
   }
 
-  static forDelegate<Types extends SchemaTypes>(
-    delegate: PrismaDelegate,
+  static forModel<Types extends SchemaTypes>(
+    modelName: string,
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
   ) {
+    const delegate = getDelegateFromModel(builder.options.prisma.client, modelName);
+
     if (!loaderCache.has(delegate)) {
-      const ref = getRefFromDelegate(delegate, builder);
+      const ref = getRefFromModel(modelName, builder);
+
       const findUnique = getFindUniqueForRef(ref, builder);
       loaderCache.set(
         delegate,
@@ -40,14 +46,43 @@ export class ModelLoader {
     return loaderCache.get(delegate)!;
   }
 
+  async loadCount(relation: string, context: {}): Promise<number> {
+    let promise;
+    const entry = [...this.staged][0];
+
+    if (entry) {
+      if (!entry.include._count) {
+        entry.include._count = { select: {} };
+      }
+
+      (entry.include._count as { select: Record<string, boolean> }).select[relation] = true;
+      promise = entry.promise;
+    } else {
+      promise = this.initLoad(relation, null, context, true);
+    }
+
+    const result = await promise;
+
+    return (result._count as Record<string, number>)[relation];
+  }
+
   async loadRelation(relation: string, include: unknown, context: {}) {
     let promise;
     for (const entry of this.staged) {
       if (entry.include[relation] === undefined) {
-        // eslint-disable-next-line prefer-destructuring
         promise = entry.promise;
         entry.include[relation] = include;
 
+        break;
+      }
+
+      const merged = mergeIncludes(
+        entry.include[relation] as Record<string, unknown>,
+        include as Record<string, unknown>,
+      );
+
+      if (merged) {
+        entry.include[relation] = merged;
         break;
       }
     }
@@ -61,10 +96,18 @@ export class ModelLoader {
     return result[relation];
   }
 
-  async initLoad(relation: string, includeArg: unknown, context: {}) {
-    const include: Record<string, unknown> = {
-      [relation]: includeArg,
-    };
+  async initLoad(relation: string, includeArg: unknown, context: {}, count = false) {
+    const include: Record<string, unknown> = count
+      ? {
+          _count: {
+            select: {
+              [relation]: true,
+            },
+          },
+        }
+      : {
+          [relation]: includeArg,
+        };
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
       setTimeout(() => {

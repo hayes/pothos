@@ -12,11 +12,8 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";
         const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
-        if (type.kind !== "Object") {
-            return resolver;
-        }
-        const getDataloader = this.buildCache.getTypeConfig(type.ref, "Object").giraphqlOptions
-            .extensions?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
+        const getDataloader = this.buildCache.getTypeConfig(type.ref).giraphqlOptions.extensions
+            ?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
         if (!getDataloader) {
             return resolver;
         }

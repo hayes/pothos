@@ -63,6 +63,7 @@ export interface BaseEnum {
 }
 export type ValuesFromEnum<T extends BaseEnum> = T[keyof T];
 export type EnumParam = BaseEnum | string;
+export type ShapeWithNullability<Types extends SchemaTypes, Shape, Nullable extends boolean> = boolean extends Nullable ? Types["DefaultFieldNullability"] extends true ? Shape | null | undefined : Shape : Nullable extends true ? Shape | null | undefined : Shape;
 export type ShapeFromTypeParam<Types extends SchemaTypes, Param extends TypeParam<Types>, Nullable extends FieldNullability<Param>> = Param extends [
     OutputType<Types>
 ] ? ShapeFromListTypeParam<Types, Param, Nullable> : FieldNullability<Param> extends Nullable ? Types["DefaultFieldNullability"] extends true ? OutputShape<Types, Param> | null | undefined : OutputShape<Types, Param> : Nullable extends true ? OutputShape<Types, Param> | null | undefined : OutputShape<Types, Param>;

@@ -5,13 +5,15 @@ menu: Plugins
 
 # Prisma Plugin for GiraphQL
 
-This plugin provides tighter integration with prisma, making it easier to define prisma based object
-types, and helps solve n+1 queries for relations. It also has integrations for the relay plugin to
-make defining nodes and connections easy and efficient.
+This plugin provides tighter integration with prisma, making it easier to define prisma bioased
+object types, and helps solve n+1 queries for relations. It also has integrations for the relay
+plugin to make defining nodes and connections easy and efficient.
 
 ## Disclaimers
 
-This plugin is experimental, and may have some breaking changes in the future.
+This plugin is experimental, and will have some breaking changes in the future. DO NOT USE this
+plugin unless you are willing to deal with breaking changes in upcoming versions. This plugin may
+introduce BREAKING changes in minor versions until it's major version has been increased above 0.
 
 This plugin is NOT required to build graphs backed by prisma models, and I would not recommend using
 it unless you have a solid understanding of how it will construct queries.
@@ -33,7 +35,7 @@ simple, and described in detail below.
 With this simple approach, we get an API that is easy to understand, but still provides a lot of
 value and functionality.
 
-### Example
+## Example
 
 Here is a quick example of what an API using this plugin might look like. There is a more thorough
 breakdown of what the methods and options used in the example below.
@@ -43,11 +45,17 @@ If you are looking for an example integrated with the
 section below.
 
 ```typescript
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
+  include {
+    profile: true,
+  },
   findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
+    bio: t.string({
+      resolve: user => user.profile.bio,
+    }),
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
@@ -61,7 +69,7 @@ builder.prismaObject(prisma.user, {
   }),
 });
 
-builder.prismaObject(prisma.post, {
+builder.prismaObject('Post', {
   findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -73,7 +81,7 @@ builder.prismaObject(prisma.post, {
 builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
-      type: prisma.user,
+      type: 'User',
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
@@ -129,7 +137,7 @@ resolve everything inside `oldPosts`. Prisma can only resolve each relation once
 so we need a separate to handle the second `posts` relation. This may seem slightly magical, but
 should be predictable and hopefully easy to understand after reading the documentation below.
 
-### GiraphQL + Prisma without a plugin
+## GiraphQL + Prisma without a plugin
 
 If you just want learn about the plugin, feel free to skip this section, but understanding how to
 use prisma without a plugin may be useful for evaluating if this plugin is a good fit for your use
@@ -274,23 +282,57 @@ yarn add @giraphql/plugin-prisma
 
 ### Setup
 
+This plugin requires a little more setup than other plugins because it integrates with the prisma to
+generate some types that help the plugin better understand your prisma schema. Previous versions of
+this plugin used to infer all required types from the prisma client itself, but this resulted in a
+poor dev experience because the complex types slowed down editors, and some more advanced use cases
+could not be typed correctly.
+
+#### Add a the giraphql generator to your prisma schema
+
+```
+generator giraphql {
+  provider = "prisma-giraphql-types"
+}
+```
+
+additional options:
+
+- `clientOutput`: Where the generated code will import the PrismaClient from. The default is the
+  full path of wherever the client is generated. If you are checking in the generated file, using
+  `@prisma/client` is a good option.
+- `output`: Where to write the generated types
+
+Example with more options:
+
+```
+generator giraphql {
+  provider = "prisma-giraphql-types"
+  clientOutput = "@prisma/client"
+  output = "./giraphql-types.ts"
+}
+```
+
+#### Set up the builder
+
 ```typescript
 import SchemaBuilder from '@giraphql/core';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
+import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin- prisma';
+// This is the default location for the generator, but this can be customized as described above
+import PrismaTypes from '@giraphql/plugin-prisma/generated';
 
 const prisma = new PrismaClient({});
 
-const builder = new SchemaBuilder({
+const builder = new SchemaBuilder<{
+  PrismaTypes;
+}>({
   plugins: [PrismaPlugin],
   prisma: {
     client: prisma,
   },
 });
 ```
-
-The `client` passed into the builder will need to be the same instance of prisma that is used when
-defining prisma objects, nodes, fields, and connections.
 
 It is strongly recommended NOT to put your prisma client into `Context`. This will result in slower
 type-checking and a laggy developer experience in VSCode. See
@@ -300,12 +342,12 @@ https://github.com/microsoft/TypeScript/issues/45405 for more details.
 
 `builder.prismaObject` takes 2 arguments:
 
-1. `delegate`: The prisma delegate for for the type you are defining (eg `prisma.user`).
+1. `name`: The name of the prisma model this new type represents
 2. `options`: options for the type being created, this is very similar to the options for any other
    object type
 
 ```typescript
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
   // Optional name for the object, defaults to the name of the prisma model
   name: 'PostAuthor',
   findUnique: null,
@@ -315,7 +357,7 @@ builder.prismaObject(prisma.user, {
   }),
 });
 
-builder.prismaObject(prisma.post, {
+builder.prismaObject('Post', {
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -339,7 +381,7 @@ types:
 builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
-      type: prisma.user,
+      type: 'User',
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
@@ -353,8 +395,8 @@ builder.queryType({
 
 This method works just like th normal `t.field` method with a couple of differences:
 
-1. The `type` option should be the delegate used to create a `prismaObject` (eg `prisma.user`) or an
-   array with a single delegate (eg `[prisma.user]`) for a list field.
+1. The `type` option must contain the name of the prisma model (eg. `User` or `[User]` for a list
+   field).
 2. The `resolve` function has a new first argument `query` which should be spread into query prisma
    query. This will be used to load data for nested relationships.
 
@@ -373,7 +415,7 @@ be without this plugin.
 You can add fields for relations using the `t.relation` method:
 
 ```typescript
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -388,7 +430,7 @@ builder.prismaObject(prisma.user, {
   }),
 });
 
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -428,7 +470,7 @@ functions for you in a consistent and predictable way. We can do this by providi
 option for our object type. Defining a `findUnique` that is not null, will make `resolve` optional.
 
 ```typescript
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
   findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -437,7 +479,7 @@ builder.prismaObject(prisma.user, {
   }),
 });
 
-builder.prismaObject(prisma.post, {
+builder.prismaObject('Post', {
   findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -476,7 +518,7 @@ sure we are loading the right data if we are pre-loading data in a parent resolv
 adding a `query` option to our field options.
 
 ```typescript
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
   findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -507,7 +549,7 @@ If your field has a `resolve` method the generated `query` will be passed in as 
 arg to your resolve function
 
 ```typescript
-builder.prismaObject(prisma.user, {
+builder.prismaObject('User', {
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -536,6 +578,53 @@ query method will not be applied correctly. If you have a where in both your que
 resolver, you will need to ensure these are merged correctly. It is generally better NOT to use a
 custom resolver.
 
+### Includes on types
+
+In some cases, you may want to always pre-load certain relations. This can be helpful for defining
+fields directly on type where the underlying data may come from a related table.
+
+```typescript
+builder.prismaObject('User', {
+  // This will always include the profile when a user object is loaded.  Deeply nested relations can
+  // also be included this way.
+  include: {
+    profile: true,
+  },
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    bio: t.string({
+      // The profile relation will always be loaded, and user will now be typed to include the
+      // profile field so you can return the bio from the nested profile relation.
+      resolve: (user) => user.profile.bio,
+    }),
+  }),
+});
+```
+
+### relationCount
+
+Prisma recently introduced
+[Relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
+which allow including counts for relations along side other `includes`. This feature is still behind
+a flag and has some bugs.
+
+Support for defining count fields has been added to this plugin, but is not currently recommend due
+to an outstand prisma bug that causes queries to fail when a count include is nested inside a list
+relation. Until [this bug](https://github.com/prisma/prisma/issues/8861) is fixed this feature
+SHOULD NOT BE USED.
+
+```typescript
+builder.prismaObject('User', {
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    postCount: t.relationCount('posts'),
+  }),
+});
+```
+
 ## Relay integration
 
 This plugin has extensive integration with the [relay plugin](https://giraphql.com/plugins/relay),
@@ -553,7 +642,7 @@ Everything in this schema is still queryable via a single prisma query. The rela
 handles pre-loading like all the other fields.
 
 ```typescript
-builder.prismaNode(prisma.user, {
+builder.prismaNode('User', {
   findUnique: (id) => ({ id }),
   id: { resolve: (user) => user.id },
   fields: (t) => ({
@@ -572,7 +661,7 @@ builder.prismaNode(prisma.user, {
   }),
 });
 
-builder.prismaNode(prisma.post, {
+builder.prismaNode('Post', {
   findUnique: (id) => ({ id }),
   id: { resolve: (post) => post.id },
   fields: (t) => ({
@@ -584,7 +673,7 @@ builder.prismaNode(prisma.post, {
 builder.queryType({
   fields: (t) => ({
     me: t.prismaField({
-      type: prisma.user,
+      type: 'User',
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
@@ -593,7 +682,7 @@ builder.queryType({
         }),
     }),
     posts: t.prismaConnection({
-      type: prisma.post,
+      type: 'Post',
       cursor: 'id',
       resolve: (query) => prisma.post.findMany(query),
     }),
@@ -612,7 +701,7 @@ differences:
   and must contain a resolve function that returns the id from an instance of the node.
 
 ```typescript
-builder.prismaNode(prisma.post, {
+builder.prismaNode('Post', {
   // This is used to load the node by id
   findUnique: (id) => ({ id }),
   // This is used to get the id from a node
@@ -635,7 +724,7 @@ builder.queryType({
   fields: (t) => ({
     posts: t.prismaConnection(
       {
-        type: prisma.post,
+        type: 'Post',
         cursor: 'id',
         resolve: (query, parent, args, context, info) => prisma.post.findMany({ ...query }),
       }),
@@ -676,7 +765,7 @@ The `relatedConnection` method can be used to create a relay `connection` field 
 of the current model.
 
 ```typescript
-builder.prismaNode(prisma.user, {
+builder.prismaNode('User', {
   findUnique: (id) => ({ id }),
   id: { resolve: (user) => user.id },
   fields: (t) => ({
@@ -716,3 +805,5 @@ builder.prismaNode(prisma.user, {
   method of `relation` and `prismaConnection`. The default will use the `findUnique` of the current
   model, with an `include` for the current relation. It is also batched together with other
   relationships to improve query efficiency.
+- `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
+  `relationCount` above for more details.
