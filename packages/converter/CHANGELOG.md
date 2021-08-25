@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.7.1
+
+### Patch Changes
+
+- f04be64: Update dependencies
+
 ## 2.7.0
 
 ### Minor Changes

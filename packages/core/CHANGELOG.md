@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.14.1
+
+### Patch Changes
+
+- f04be64: Update dependencies
+
 ## 2.14.0
 
 ### Minor Changes

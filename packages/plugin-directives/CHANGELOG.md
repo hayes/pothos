@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.6.1
+
+### Patch Changes
+
+- f04be64: Update dependencies
+
 ## 2.6.0
 
 ### Minor Changes
