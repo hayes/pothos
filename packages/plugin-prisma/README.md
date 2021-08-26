@@ -809,3 +809,4 @@ builder.prismaNode('User', {
   relationships to improve query efficiency.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   `relationCount` above for more details.
+ 
