@@ -320,7 +320,7 @@ generator giraphql {
 ```typescript
 import SchemaBuilder from '@giraphql/core';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin- prisma';
+import PrismaPlugin from '@giraphql/plugin-prisma';
 // This is the default location for the generator, but this can be customized as described above
 import PrismaTypes from '@giraphql/plugin-prisma/generated';
 
