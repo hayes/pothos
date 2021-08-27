@@ -197,5 +197,36 @@ describe('dataloader', () => {
         ]
       `);
     });
+
+    it('primes the dataloader', async () => {
+      const query = gql`
+        query {
+          counts {
+            name
+            calls
+            loaded
+          }
+          preloadedUsers(ids: ["123", "456", "789"]) {
+            id
+          }
+          # Is primed
+          user1: preloadedUser(id: "123") {
+            id
+          }
+          # Has to be loaded
+          user2: preloadedUser(id: "999") {
+            id
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result.data).toMatchSnapshot();
+    });
   });
 });

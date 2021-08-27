@@ -35,6 +35,11 @@ type Post {
   title: String!
 }
 
+type PreloadedUser implements TestInterface {
+  id: ID!
+  idFromInterface: ID!
+}
+
 type Query {
   addOnUser: User!
   classThing: ClassLoadableThing!
@@ -51,6 +56,8 @@ type Query {
   nullableUsers(ids: [String!]): [NullableUser]
   post(id: Int!): Post
   posts(ids: [Int!]!): [Post]
+  preloadedUser(id: String): PreloadedUser
+  preloadedUsers(ids: [String!]): [PreloadedUser]
   user(id: String): User
   userNode(id: String): User
   userNodes(ids: [String!]): [UserNode]
@@ -88,6 +95,60 @@ type UserNode implements Node & TestInterface {
 "
 `;
 
+exports[`dataloader queries primes the dataloader 1`] = `
+Object {
+  "counts": Array [
+    Object {
+      "calls": 0,
+      "loaded": 0,
+      "name": "users",
+    },
+    Object {
+      "calls": 1,
+      "loaded": 1,
+      "name": "preloadedUsers",
+    },
+    Object {
+      "calls": 0,
+      "loaded": 0,
+      "name": "userNodes",
+    },
+    Object {
+      "calls": 0,
+      "loaded": 0,
+      "name": "nullableUsers",
+    },
+    Object {
+      "calls": 0,
+      "loaded": 0,
+      "name": "posts",
+    },
+    Object {
+      "calls": 0,
+      "loaded": 0,
+      "name": "post",
+    },
+  ],
+  "preloadedUsers": Array [
+    Object {
+      "id": "123",
+    },
+    Object {
+      "id": "456",
+    },
+    Object {
+      "id": "789",
+    },
+  ],
+  "user1": Object {
+    "id": "123",
+  },
+  "user2": Object {
+    "id": "999",
+  },
+}
+`;
+
 exports[`dataloader queries query with errors 1`] = `
 Object {
   "counts": Array [
@@ -95,6 +156,11 @@ Object {
       "calls": 1,
       "loaded": 4,
       "name": "users",
+    },
+    Object {
+      "calls": 0,
+      "loaded": 0,
+      "name": "preloadedUsers",
     },
     Object {
       "calls": 1,
@@ -166,6 +232,11 @@ Object {
         "calls": 1,
         "loaded": 6,
         "name": "users",
+      },
+      Object {
+        "calls": 0,
+        "loaded": 0,
+        "name": "preloadedUsers",
       },
       Object {
         "calls": 1,
