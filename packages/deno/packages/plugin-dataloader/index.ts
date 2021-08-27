@@ -4,7 +4,8 @@ import './field-builder.ts';
 import './schema-builder.ts';
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, isThenable, MaybePromise, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, isThenable, MaybePromise, ObjectRef, SchemaTypes, } from '../core/index.ts';
+import { DataloaderObjectTypeOptions } from './types.ts';
 export * from './types.ts';
 export * from './util.ts';
 const pluginName = "dataloader" as const;
@@ -12,8 +13,10 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";
         const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
-        const getDataloader = this.buildCache.getTypeConfig(type.ref).giraphqlOptions.extensions
-            ?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
+        const options = this.buildCache.getTypeConfig(type.ref)
+            .giraphqlOptions as DataloaderObjectTypeOptions<Types, unknown, bigint | number | string, [
+        ], ObjectRef<unknown>, unknown>;
+        const getDataloader = options.extensions?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
         if (!getDataloader) {
             return resolver;
         }
@@ -30,6 +33,10 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
                 case "string":
                     return loader.load(idOrResult);
                 default:
+                    if (options.cacheResolved !== undefined) {
+                        const key = options.cacheResolved(idOrResult);
+                        loader.prime(key, idOrResult);
+                    }
                     return idOrResult;
             }
         }

@@ -1,4 +1,4 @@
-# Dataloader Plugin for GiraphQL
+# Dataloader Plugin
 
 This plugin makes it easy to add fields and types that are loaded through a dataloader.
 
@@ -6,8 +6,8 @@ This plugin makes it easy to add fields and types that are loaded through a data
 
 ### Install
 
-To use the dataloader plugin you will need to install both the `dataloader` package and the
-validation plugin:
+To use the dataloader plugin you will need to install both the `dataloader` package and the giraphql
+dataloader plugin:
 
 ```bash
 yarn add dataloader @giraphql/plugin-dataloader
@@ -268,3 +268,42 @@ builder.queryFields((t) => ({
   }),
 }));
 ```
+
+### Using with the Relay plugin
+
+If you are using the Relay plugin, there is an additional method `loadableNode` that gets added to
+the builder. You can use this method to create `node` objects that work like other loadeble objects.
+
+```ts
+const UserNode = builder.loadableNode('UserNode', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  // For loadable objects we always need to include an isTypeOf check
+  isTypeOf: (obj) => obj instanceof User,
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  fields: (t) => ({}),
+});
+```
+
+### Caching resources loaded manually in a resolver
+
+When manually loading a resource in a resolver it is not automatically added to the dataloader
+cache. If you want any resolved value to be stored in the cache in case it is used somewhere else in
+the query you can use the `cacheResolved` option.
+
+The `cacheResolved` option takes a function that converts the loaded object into it's cache Key:
+
+```ts
+const User = builder.loadableObject('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  cacheResolved: user => user.id,
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+    ...
+  }),
+});
+```
+
+Whenever a resolver returns a User or list or Users, those objects will automatically be added the
+dataloaders cache, so they can be re-used in other parts of the query.

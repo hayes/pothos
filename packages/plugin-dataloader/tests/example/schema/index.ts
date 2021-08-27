@@ -69,7 +69,7 @@ const PreloadedUser = builder.loadableObject('PreloadedUser', {
   fields: (t) => ({
     id: t.exposeID('id', {}),
   }),
-  cachePreloaded: ({ id }) => id.toString(),
+  cacheResolved: ({ id }) => id.toString(),
 });
 
 const UserNode = builder.loadableNode('UserNode', {

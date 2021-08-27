@@ -58,8 +58,8 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
         case 'string':
           return loader.load(idOrResult);
         default:
-          if (options.cachePreloaded !== undefined) {
-            const key = options.cachePreloaded(idOrResult);
+          if (options.cacheResolved !== undefined) {
+            const key = options.cacheResolved(idOrResult);
             loader.prime(key, idOrResult);
           }
           return idOrResult;

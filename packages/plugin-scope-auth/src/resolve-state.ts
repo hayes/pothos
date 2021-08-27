@@ -58,7 +58,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     }
 
     if ($any) {
-      const anyResult = this.evaluateScopeMap($any, info);
+      const anyResult = this.evaluateScopeMap($any!, info);
 
       if (typeof anyResult === 'boolean') {
         if (anyResult === !forAll) {
@@ -70,7 +70,7 @@ export default class ResolveState<Types extends SchemaTypes> {
     }
 
     if ($all) {
-      const allResult = this.evaluateScopeMap($all, info, true);
+      const allResult = this.evaluateScopeMap($all!, info, true);
 
       if (typeof allResult === 'boolean') {
         if (allResult === !forAll) {

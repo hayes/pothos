@@ -62,7 +62,7 @@ export type DataloaderObjectTypeOptions<
 > & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-  cachePreloaded?: (parent: Shape) => Key;
+  cacheResolved?: (parent: Shape) => Key;
 };
 
 export type LoaderShapeFromType<

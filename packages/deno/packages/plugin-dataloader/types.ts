@@ -10,6 +10,7 @@ export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type ex
 export type DataloaderObjectTypeOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = ObjectTypeOptions<Types, NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>, Shape, Interfaces> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | Shape)[]>;
     loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
+    cacheResolved?: (parent: Shape) => Key;
 };
 export type LoaderShapeFromType<Types extends SchemaTypes, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>> = Type extends [
     TypeParam<Types>
