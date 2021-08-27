@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.7.2
+
+### Patch Changes
+
+- b4b8381: Updrade deps (typescript 4.4)
+
 ## 2.7.1
 
 ### Patch Changes

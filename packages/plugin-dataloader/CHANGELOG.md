@@ -1,5 +1,15 @@
 # Change Log
 
+## 2.13.0
+
+### Minor Changes
+
+- 8c83898: Adds option to prime dataloaders with objects returned from the resolver.
+
+### Patch Changes
+
+- b4b8381: Updrade deps (typescript 4.4)
+
 ## 2.12.0
 
 ### Minor Changes

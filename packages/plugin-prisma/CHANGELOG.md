@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.8.2
+
+### Patch Changes
+
+- b4b8381: Updrade deps (typescript 4.4)
+
 ## 0.8.1
 
 ### Patch Changes
