@@ -8,8 +8,10 @@ import SchemaBuilder, {
   GiraphQLOutputFieldConfig,
   isThenable,
   MaybePromise,
+  ObjectRef,
   SchemaTypes,
 } from '@giraphql/core';
+import { DataloaderObjectTypeOptions } from './types.js';
 
 export * from './types.js';
 export * from './util.js';
@@ -23,8 +25,19 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
     const isList = fieldConfig.type.kind === 'List';
     const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
 
-    const getDataloader = this.buildCache.getTypeConfig(type.ref).giraphqlOptions.extensions
-      ?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
+    const options = this.buildCache.getTypeConfig(type.ref)
+      .giraphqlOptions as DataloaderObjectTypeOptions<
+      Types,
+      unknown,
+      bigint | number | string,
+      [],
+      ObjectRef<unknown>,
+      unknown
+    >;
+
+    const getDataloader = options.extensions?.getDataloader as (
+      context: object,
+    ) => DataLoader<unknown, unknown>;
 
     if (!getDataloader) {
       return resolver;
@@ -45,6 +58,10 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
         case 'string':
           return loader.load(idOrResult);
         default:
+          if (options.cachePreloaded !== undefined) {
+            const key = options.cachePreloaded(idOrResult);
+            loader.prime(key, idOrResult);
+          }
           return idOrResult;
       }
     }

@@ -4,6 +4,7 @@ import builder from '../builder';
 import { ContextType, IPost } from '../types';
 
 const usersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+const preloadedUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const userNodeCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const nullableUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 const postsCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
@@ -53,6 +54,22 @@ export const User = builder.loadableObject('User', {
   fields: (t) => ({
     id: t.exposeID('id', {}),
   }),
+});
+
+const PreloadedUser = builder.loadableObject('PreloadedUser', {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) => true,
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, preloadedUsersCounts, keys.length);
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+    );
+  },
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+  cachePreloaded: ({ id }) => id.toString(),
 });
 
 const UserNode = builder.loadableNode('UserNode', {
@@ -152,6 +169,7 @@ builder.queryFields((t) => ({
 
       return [
         { name: 'users', ...usersCounts(context) },
+        { name: 'preloadedUsers', ...preloadedUsersCounts(context) },
         { name: 'userNodes', ...userNodeCounts(context) },
         { name: 'nullableUsers', ...nullableUsersCounts(context) },
         { name: 'posts', ...postsCounts(context) },
@@ -201,6 +219,25 @@ builder.queryFields((t) => ({
 
       return args.ids;
     },
+  }),
+  preloadedUser: t.field({
+    type: PreloadedUser,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (root, args) => args.id ?? '1',
+  }),
+  preloadedUsers: t.field({
+    type: [PreloadedUser],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.stringList(),
+    },
+    resolve: (_root, args) => (args.ids ?? []).map((id) => ({ id: Number(id) })),
   }),
   nullableUser: t.field({
     type: NullableUser,
