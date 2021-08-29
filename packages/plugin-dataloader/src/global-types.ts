@@ -10,9 +10,9 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLDataloaderPlugin } from './index.js';
-import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types.js';
-import { LoadableObjectRef } from './util.js';
+import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
+import { LoadableObjectRef } from './util';
+import { GiraphQLDataloaderPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

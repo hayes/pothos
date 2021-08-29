@@ -13,8 +13,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@giraphql/core';
-import { PrismaPlugin } from './index.js';
-import PrismaNodeRef from './node-ref.js';
+import PrismaNodeRef from './node-ref';
 import {
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
@@ -22,7 +21,8 @@ import {
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
   ShapeWithInclude,
-} from './types.js';
+} from './types';
+import { PrismaPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

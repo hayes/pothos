@@ -1,10 +1,10 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
-import { ForbiddenError } from './errors.js';
-import { GiraphQLScopeAuthPlugin } from './index.js';
-import RequestCache from './request-cache.js';
-import ResolveState from './resolve-state.js';
-import { ResolveStep } from './types.js';
+import { ForbiddenError } from './errors';
+import RequestCache from './request-cache';
+import ResolveState from './resolve-state';
+import { ResolveStep } from './types';
+import { GiraphQLScopeAuthPlugin } from '.';
 
 export function resolveHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],

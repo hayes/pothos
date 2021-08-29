@@ -10,18 +10,18 @@ import {
   PluginName,
   SchemaTypes,
 } from '@giraphql/core';
-import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors.js';
-import { getLoaderMapping, setLoaderMappings } from './loader-map.js';
-import { ModelLoader } from './model-loader.js';
-import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel, getRelation } from './refs.js';
+import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
+import { getLoaderMapping, setLoaderMappings } from './loader-map';
+import { ModelLoader } from './model-loader';
+import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel, getRelation } from './refs';
 import {
   PrismaDelegate,
   PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
   RelationCountOptions,
-} from './types.js';
-import { queryFromInfo } from './util/index.js';
+} from './types';
+import { queryFromInfo } from './util';
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,

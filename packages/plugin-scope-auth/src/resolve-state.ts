@@ -1,8 +1,8 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
-import RequestCache from './request-cache.js';
-import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types.js';
-import { canCache } from './util.js';
+import RequestCache from './request-cache';
+import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types';
+import { canCache } from './util';
 
 export default class ResolveState<Types extends SchemaTypes> {
   cache;

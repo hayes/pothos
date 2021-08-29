@@ -1,5 +1,5 @@
 import { SchemaTypes } from '@giraphql/core';
-import { decodeGlobalID, encodeGlobalID } from './index.js';
+import { decodeGlobalID, encodeGlobalID } from '.';
 
 export function internalEncodeGlobalID<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,

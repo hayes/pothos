@@ -1,4 +1,4 @@
-import './global-types.js';
+import './global-types';
 import { GraphQLFieldResolver } from 'graphql';
 import * as zod from 'zod';
 import SchemaBuilder, {
@@ -15,10 +15,10 @@ import createZodSchema, {
   createArrayValidator,
   isArrayValidator,
   refine,
-} from './createZodSchema.js';
-import { RefineConstraint, ValidationOptionUnion } from './types.js';
+} from './createZodSchema';
+import { RefineConstraint, ValidationOptionUnion } from './types';
 
-export * from './types.js';
+export * from './types';
 
 export { createZodSchema };
 

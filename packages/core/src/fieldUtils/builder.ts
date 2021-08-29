@@ -7,8 +7,8 @@ import {
   RootName,
   SchemaTypes,
   TypeParam,
-} from '../types/index.js';
-import RootFieldBuilder from './root.js';
+} from '../types';
+import RootFieldBuilder from './root';
 
 export default class FieldBuilder<
   Types extends SchemaTypes,

@@ -1,5 +1,5 @@
 import SchemaBuilder from '@giraphql/core';
-import RelayPlugin from '../../../src/index.js';
+import RelayPlugin from '../../../src';
 import { Poll } from './data';
 import { ContextType } from './types';
 

@@ -1,13 +1,14 @@
-import { ArgBuilder, InputFieldMap, NormalizeArgs } from '../index.js';
 import {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
   SchemaTypes,
   TypeParam,
-} from '../types/index.js';
-import BaseFieldUtil from './base.js';
-import InputFieldBuilder from './input.js';
+} from '../types';
+import BaseFieldUtil from './base';
+import InputFieldBuilder from './input';
+
+import { ArgBuilder, InputFieldMap, NormalizeArgs } from '..';
 
 export default class RootFieldBuilder<
   Types extends SchemaTypes,

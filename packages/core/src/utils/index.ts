@@ -1,10 +1,10 @@
-import { OutputType, SchemaTypes, typeBrandKey } from '../index.js';
+import { OutputType, SchemaTypes, typeBrandKey } from '..';
 
-export * from './context-cache.js';
-export * from './enums.js';
-export * from './input.js';
-export * from './params.js';
-export * from './sort-classes.js';
+export * from './context-cache';
+export * from './enums';
+export * from './input';
+export * from './params';
+export * from './sort-classes';
 
 export function assertNever(value: never): never {
   throw new TypeError(`Unexpected value: ${value}`);

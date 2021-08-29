@@ -1,7 +1,7 @@
-import './global-types.js';
+import './global-types';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, SchemaTypes } from '@giraphql/core';
-import { ResolverMap } from './types.js';
+import { ResolverMap } from './types';
 
 const pluginName = 'mocks' as const;
 

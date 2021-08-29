@@ -1,7 +1,7 @@
-import './global-types.js';
-import './field-builder.js';
-import './input-field-builder.js';
-import './schema-builder.js';
+import './global-types';
+import './field-builder';
+import './input-field-builder';
+import './schema-builder';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -10,10 +10,10 @@ import SchemaBuilder, {
   mapInputFields,
   SchemaTypes,
 } from '@giraphql/core';
-import { internalDecodeGlobalID } from './utils/internal.js';
+import { internalDecodeGlobalID } from './utils/internal';
 
-export * from './types.js';
-export * from './utils/index.js';
+export * from './types';
+export * from './utils';
 
 const pluginName = 'relay';
 

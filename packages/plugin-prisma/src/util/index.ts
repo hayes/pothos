@@ -1,7 +1,7 @@
 import { GraphQLNamedType, GraphQLResolveInfo } from 'graphql';
 
-export * from './map-includes.js';
-export * from './merge-includes.js';
+export * from './map-includes';
+export * from './merge-includes';
 
 export function resolveIndirectType(
   type: GraphQLNamedType,

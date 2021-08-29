@@ -1,4 +1,4 @@
-import { InterfaceRef, ObjectRef, RootName, SchemaTypes } from '../index.js';
+import { InterfaceRef, ObjectRef, RootName, SchemaTypes } from '..';
 
 export const outputShapeKey = Symbol.for('GiraphQL.outputShapeKey');
 export const parentShapeKey = Symbol.for('GiraphQL.parentShapeKey');

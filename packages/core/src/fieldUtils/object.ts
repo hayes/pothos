@@ -1,5 +1,5 @@
-import { SchemaTypes } from '../types/index.js';
-import FieldBuilder from './builder.js';
+import { SchemaTypes } from '../types';
+import FieldBuilder from './builder';
 
 export default class ObjectFieldBuilder<
   Types extends SchemaTypes,

@@ -1,5 +1,6 @@
-import { FieldRef } from '../index.js';
-import { inputFieldShapeKey } from '../types/index.js';
+import { inputFieldShapeKey } from '../types';
+
+import { FieldRef } from '..';
 
 export default class InputFieldRef<
   T = unknown,

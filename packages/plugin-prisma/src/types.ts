@@ -19,7 +19,7 @@ import {
   typeBrandKey,
   TypeParam,
 } from '@giraphql/core';
-import { PrismaObjectFieldBuilder } from './field-builder.js';
+import { PrismaObjectFieldBuilder } from './field-builder';
 
 export interface PrismaDelegate {
   findUnique: (...args: any[]) => Promise<unknown>;

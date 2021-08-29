@@ -11,8 +11,8 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { LoadableFieldOptions, LoaderShapeFromType } from './types.js';
-import { rejectErrors } from './util.js';
+import { LoadableFieldOptions, LoaderShapeFromType } from './types';
+import { rejectErrors } from './util';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,

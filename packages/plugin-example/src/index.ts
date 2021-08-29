@@ -1,5 +1,5 @@
 /* eslint-disable no-console */
-import './global-types.js';
+import './global-types';
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -12,7 +12,7 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@giraphql/core';
 
-export * from './types.js';
+export * from './types';
 
 const pluginName = 'example' as const;
 

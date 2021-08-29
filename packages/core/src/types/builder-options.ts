@@ -1,4 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
+import { Merge, RemoveNeverKeys } from './utils';
+
 import {
   BaseEnum,
   EnumParam,
@@ -18,8 +20,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '../index.js';
-import { Merge, RemoveNeverKeys } from './utils.js';
+} from '..';
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   GiraphQLSchemaTypes.SchemaBuilderOptions<Types>

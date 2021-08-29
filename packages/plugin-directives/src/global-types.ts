@@ -11,8 +11,8 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLDirectivesPlugin } from './index.js';
-import { DirectiveLocation, Directives } from './types.js';
+import { DirectiveLocation, Directives } from './types';
+import { GiraphQLDirectivesPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

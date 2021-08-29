@@ -1,7 +1,7 @@
-import './global-types.js';
+import './global-types';
 import { GiraphQLOutputFieldConfig, SchemaTypes } from '@giraphql/core';
-import { GiraphQLSmartSubscriptionsPlugin } from './index.js';
-import { FieldSubscriber } from './types.js';
+import { FieldSubscriber } from './types';
+import { GiraphQLSmartSubscriptionsPlugin } from '.';
 
 export function getFieldSubscribe<Types extends SchemaTypes>(
   field: GiraphQLOutputFieldConfig<Types>,

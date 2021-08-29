@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { SchemaTypes } from '@giraphql/core';
-import { ConnectionShape, DefaultConnectionArguments } from '../types.js';
+import { ConnectionShape, DefaultConnectionArguments } from '../types';
 
 interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;

@@ -1,4 +1,4 @@
-import './global-types.js';
+import './global-types';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -7,7 +7,7 @@ import SchemaBuilder, {
   sortClasses,
 } from '@giraphql/core';
 
-export * from './types.js';
+export * from './types';
 
 const pluginName = 'errors';
 

@@ -1,4 +1,6 @@
-import ConfigStore from '../config-store.js';
+import ConfigStore from '../config-store';
+import BaseTypeRef from '../refs/base';
+
 import {
   FieldNullability,
   FieldRequiredness,
@@ -11,8 +13,7 @@ import {
   OutputType,
   SchemaTypes,
   TypeParam,
-} from '../index.js';
-import BaseTypeRef from '../refs/base.js';
+} from '..';
 
 export function typeFromNonListParam<Types extends SchemaTypes>(
   type: OutputType<Types>,

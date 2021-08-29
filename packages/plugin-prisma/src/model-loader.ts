@@ -1,9 +1,9 @@
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-underscore-dangle */
 import { createContextCache, SchemaTypes } from '@giraphql/core';
-import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs.js';
-import { PrismaDelegate } from './types.js';
-import { mergeIncludes } from './util/index.js';
+import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs';
+import { PrismaDelegate } from './types';
+import { mergeIncludes } from './util';
 
 const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 

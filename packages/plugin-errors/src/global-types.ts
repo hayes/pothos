@@ -6,8 +6,8 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLErrorsPlugin } from './index.js';
-import { ErrorFieldOptions, ErrorsPluginOptions } from './types.js';
+import { ErrorFieldOptions, ErrorsPluginOptions } from './types';
+import { GiraphQLErrorsPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

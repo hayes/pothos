@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { GraphQLResolveInfo } from 'graphql';
 import { MaybePromise, ObjectParam, OutputType, SchemaTypes } from '@giraphql/core';
-import { NodeObjectOptions } from '../types.js';
-import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal.js';
+import { NodeObjectOptions } from '../types';
+import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal';
 
 const nodeCache = new WeakMap<object, Map<string, MaybePromise<unknown>>>();
 

@@ -11,7 +11,7 @@ import {
   ShapeFromTypeParam,
   Subscriber,
   TypeParam,
-} from '../../index.js';
+} from '../..';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

@@ -1,5 +1,5 @@
 /* eslint-disable prefer-destructuring */
-import './global-types.js';
+import './global-types';
 import {
   GraphQLEnumType,
   GraphQLFieldConfigArgumentMap,
@@ -19,7 +19,7 @@ import SchemaBuilder, {
   GiraphQLTypeConfig,
   SchemaTypes,
 } from '@giraphql/core';
-import { replaceType } from './util.js';
+import { replaceType } from './util';
 
 const pluginName = 'subGraph' as const;
 

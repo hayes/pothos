@@ -7,7 +7,7 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLSubGraphPlugin } from './index.js';
+import { GiraphQLSubGraphPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

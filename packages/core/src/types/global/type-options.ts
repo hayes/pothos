@@ -19,8 +19,8 @@ import {
   SchemaTypes,
   SubscriptionFieldsShape,
   ValidateInterfaces,
-} from '../../index.js';
-import { MaybePromise } from '../utils.js';
+} from '../..';
+import { MaybePromise } from '../utils';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

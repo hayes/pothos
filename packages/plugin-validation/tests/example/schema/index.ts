@@ -1,5 +1,5 @@
 import * as zod from 'zod';
-import { ValidationOptions } from '../../../src/index.js';
+import { ValidationOptions } from '../../../src';
 import builder from '../builder';
 
 interface RecursiveShape {

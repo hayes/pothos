@@ -1,7 +1,8 @@
 import { MaybePromise } from '@giraphql/core';
-import { SubscriptionManager } from '../index.js';
-import { RegisterTypeSubscriptionOptions } from '../types.js';
-import BaseSubscriptionManager from './base.js';
+import { RegisterTypeSubscriptionOptions } from '../types';
+import BaseSubscriptionManager from './base';
+
+import { SubscriptionManager } from '..';
 
 export default class TypeSubscriptionManager<
   ParentShape = unknown,

@@ -22,8 +22,12 @@ import {
   GraphQLTypeResolver,
   GraphQLUnionType,
 } from 'graphql';
-import SchemaBuilder from './builder.js';
-import ConfigStore from './config-store.js';
+import SchemaBuilder from './builder';
+import ConfigStore from './config-store';
+import { MergedPlugins } from './plugins';
+import BuiltinScalarRef from './refs/builtin-scalar';
+import { PluginMap } from './types';
+import { isThenable } from './utils';
 import {
   assertNever,
   BasePlugin,
@@ -49,11 +53,7 @@ import {
   OutputType,
   SchemaTypes,
   typeBrandKey,
-} from './index.js';
-import { MergedPlugins } from './plugins/index.js';
-import BuiltinScalarRef from './refs/builtin-scalar.js';
-import { PluginMap } from './types/index.js';
-import { isThenable } from './utils/index.js';
+} from '.';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();

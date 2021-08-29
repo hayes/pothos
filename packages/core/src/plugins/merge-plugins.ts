@@ -1,17 +1,18 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import {
+  GiraphQLEnumValueConfig,
+  GiraphQLInterfaceTypeConfig,
+  GiraphQLUnionTypeConfig,
+} from '../types';
+import { BasePlugin } from './plugin';
+
+import {
   BuildCache,
   GiraphQLInputFieldConfig,
   GiraphQLOutputFieldConfig,
   GiraphQLTypeConfig,
   SchemaTypes,
-} from '../index.js';
-import {
-  GiraphQLEnumValueConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLUnionTypeConfig,
-} from '../types/index.js';
-import { BasePlugin } from './plugin.js';
+} from '..';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
   plugins;

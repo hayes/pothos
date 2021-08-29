@@ -1,6 +1,6 @@
-import './global-types.js';
-import './field-builder.js';
-import './schema-builder.js';
+import './global-types';
+import './field-builder';
+import './schema-builder';
 import DataLoader from 'dataloader';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
@@ -11,10 +11,10 @@ import SchemaBuilder, {
   ObjectRef,
   SchemaTypes,
 } from '@giraphql/core';
-import { DataloaderObjectTypeOptions } from './types.js';
+import { DataloaderObjectTypeOptions } from './types';
 
-export * from './types.js';
-export * from './util.js';
+export * from './types';
+export * from './util';
 
 const pluginName = 'dataloader' as const;
 export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

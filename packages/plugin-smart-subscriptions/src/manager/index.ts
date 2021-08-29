@@ -1,5 +1,5 @@
 /* eslint-disable no-await-in-loop */
-import { RegisterOptions } from '../types.js';
+import { RegisterOptions } from '../types';
 
 type Timer = ReturnType<typeof setTimeout>;
 export default class SubscriptionManager implements AsyncIterator<object> {

@@ -1,5 +1,5 @@
 import SchemaBuilder from '@giraphql/core';
-import SubGraphPlugin from '../../../src/index.js';
+import SubGraphPlugin from '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
 interface Types {

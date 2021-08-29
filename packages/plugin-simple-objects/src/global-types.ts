@@ -11,8 +11,8 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLSimpleObjectsPlugin } from './index.js';
-import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.js';
+import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
+import { GiraphQLSimpleObjectsPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

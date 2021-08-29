@@ -3,7 +3,7 @@ import ErrorsPlugin from '@giraphql/plugin-errors';
 import PrismaTypes from '@giraphql/plugin-prisma/generated';
 import RelayPlugin from '@giraphql/plugin-relay';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin from '../../lib/index.js';
+import PrismaPlugin from '../../lib';
 
 export const prisma = new PrismaClient({
   log: [

@@ -1,5 +1,5 @@
 import { initContextCache } from '@giraphql/core';
-import { LoadableRef } from '../../src/index.js';
+import { LoadableRef } from '../../src';
 import { User } from './schema';
 import { ContextType } from './types';
 

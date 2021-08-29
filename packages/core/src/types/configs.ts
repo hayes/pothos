@@ -15,6 +15,8 @@ import {
   GraphQLUnionType,
   GraphQLUnionTypeConfig,
 } from 'graphql';
+import { Merge } from './utils';
+
 import {
   FieldKind,
   FieldNullability,
@@ -27,8 +29,7 @@ import {
   OutputType,
   SchemaTypes,
   TypeParam,
-} from '../index.js';
-import { Merge } from './utils.js';
+} from '..';
 
 export interface GiraphQLQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {

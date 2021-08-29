@@ -1,6 +1,6 @@
 import { MaybePromise, SchemaTypes } from '@giraphql/core';
-import SubscriptionCache from './cache.js';
-import { FieldSubscriptionManager, TypeSubscriptionManager } from './index.js';
+import SubscriptionCache from './cache';
+import { FieldSubscriptionManager, TypeSubscriptionManager } from '.';
 
 export default class CacheNode<Types extends SchemaTypes> {
   path: string;

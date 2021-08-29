@@ -1,4 +1,4 @@
-import './global-types.js';
+import './global-types';
 import SchemaBuilder, {
   BasePlugin,
   FieldMap,
@@ -10,7 +10,7 @@ import SchemaBuilder, {
   ParentShape,
   SchemaTypes,
 } from '@giraphql/core';
-import { OutputShapeFromFields } from './types.js';
+import { OutputShapeFromFields } from './types';
 
 const pluginName = 'simpleObjects' as const;
 

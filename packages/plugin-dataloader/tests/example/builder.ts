@@ -1,7 +1,7 @@
 import SchemaBuilder from '@giraphql/core';
 import ErrorsPlugin from '@giraphql/plugin-errors';
 import RelayPlugin from '@giraphql/plugin-relay';
-import DataloaderPlugin from '../../src/index.js';
+import DataloaderPlugin from '../../src';
 import { ContextType } from './types';
 
 export default new SchemaBuilder<{ Context: ContextType }>({

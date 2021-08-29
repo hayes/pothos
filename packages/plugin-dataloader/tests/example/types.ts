@@ -1,5 +1,5 @@
 import DataLoader from 'dataloader';
-import { LoadableRef } from '../../src/index.js';
+import { LoadableRef } from '../../src';
 
 export interface IPost {
   id: number;

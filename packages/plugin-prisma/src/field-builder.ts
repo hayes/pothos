@@ -8,12 +8,12 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { resolvePrismaCursorConnection } from './cursors.js';
-import { getRefFromModel } from './refs.js';
-import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types.js';
-import { queryFromInfo } from './util/index.js';
+import { resolvePrismaCursorConnection } from './cursors';
+import { getRefFromModel } from './refs';
+import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
+import { queryFromInfo } from './util';
 
-export * from './prisma-field-builder.js';
+export * from './prisma-field-builder';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,

@@ -1,6 +1,6 @@
 import { ApolloServer } from 'apollo-server';
 import { PubSub } from 'graphql-subscriptions';
-import { stringPath } from '../../src/index.js';
+import { stringPath } from '../../src';
 import { Poll } from './data';
 import schema from './schema';
 import { ContextType } from './types';

@@ -1,5 +1,5 @@
+import { ArgBuilder, ObjectRef } from '../../../../src';
 import InputFieldBuilder from '../../../../src/fieldUtils/input';
-import { ArgBuilder, ObjectRef } from '../../../../src/index.js';
 import builder, { TypesWithDefault } from '../builder';
 
 function addCommonFields(refs: ObjectRef<unknown, { id: string }>[]) {

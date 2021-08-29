@@ -1,5 +1,5 @@
 import SchemaBuilder from '@giraphql/core';
-import SimpleObjectsPlugin from '../../../src/index.js';
+import SimpleObjectsPlugin from '../../../src';
 import { ContextType } from './types';
 
 interface Types {

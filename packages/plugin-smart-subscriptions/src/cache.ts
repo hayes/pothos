@@ -1,7 +1,7 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { BuildCache, Path, SchemaTypes } from '@giraphql/core';
-import CacheNode from './cache-node.js';
-import SubscriptionManager from './manager/index.js';
+import CacheNode from './cache-node';
+import SubscriptionManager from './manager';
 
 export { CacheNode };
 

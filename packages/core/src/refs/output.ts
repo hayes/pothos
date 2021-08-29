@@ -1,5 +1,5 @@
-import { outputShapeKey, parentShapeKey } from '../types/index.js';
-import BaseTypeRef from './base.js';
+import { outputShapeKey, parentShapeKey } from '../types';
+import BaseTypeRef from './base';
 
 export default class OutputTypeRef<T, P = T> extends BaseTypeRef {
   override kind;

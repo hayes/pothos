@@ -1,6 +1,6 @@
 import { ObjectRef, SchemaTypes } from '@giraphql/core';
 import { Prisma } from '@prisma/client';
-import { PrismaDelegate } from './types.js';
+import { PrismaDelegate } from './types';
 
 export const clients = new WeakSet<object>();
 export const nameMap = new WeakMap<object, string>();

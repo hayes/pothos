@@ -1,5 +1,5 @@
-import { InputRef, inputShapeKey, OutputRef, outputShapeKey } from '../types/index.js';
-import BaseTypeRef from './base.js';
+import { InputRef, inputShapeKey, OutputRef, outputShapeKey } from '../types';
+import BaseTypeRef from './base';
 
 export default class EnumRef<T, U = T> extends BaseTypeRef implements OutputRef, InputRef {
   override kind = 'Enum' as const;

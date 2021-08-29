@@ -1,8 +1,9 @@
 import { SchemaTypes } from '@giraphql/core';
-import CacheNode from '../cache-node.js';
-import { SubscriptionManager } from '../index.js';
-import { RegisterFieldSubscriptionOptions } from '../types.js';
-import BaseSubscriptionManager from './base.js';
+import CacheNode from '../cache-node';
+import { RegisterFieldSubscriptionOptions } from '../types';
+import BaseSubscriptionManager from './base';
+
+import { SubscriptionManager } from '..';
 
 export default class FieldSubscriptionManager<
   Types extends SchemaTypes,

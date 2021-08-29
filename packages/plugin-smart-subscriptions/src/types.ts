@@ -1,7 +1,7 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import { MaybePromise, SchemaTypes } from '@giraphql/core';
-import { FieldSubscriptionManager } from './index.js';
-import SubscriptionManager from './manager/index.js';
+import SubscriptionManager from './manager';
+import { FieldSubscriptionManager } from '.';
 
 export interface SmartSubscriptionOptions<Context extends object> {
   debounceDelay?: number | null;

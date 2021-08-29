@@ -9,8 +9,8 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { GiraphQLValidationPlugin } from './index.js';
-import { RefineConstraint, ValidationOptions } from './types.js';
+import { RefineConstraint, ValidationOptions } from './types';
+import { GiraphQLValidationPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

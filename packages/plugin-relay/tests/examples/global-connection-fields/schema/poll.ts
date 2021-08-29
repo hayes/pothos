@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-shadow */
 /* eslint-disable @typescript-eslint/require-await */
-import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src/index.js';
+import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
 builder.queryField('pollIds', (t) =>

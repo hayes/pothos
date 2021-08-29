@@ -11,16 +11,16 @@ import {
   GraphQLResolveInfo,
   SelectionSetNode,
 } from 'graphql';
-import { getArgumentValues } from 'graphql/execution/values.js';
-import { setLoaderMappings } from '../loader-map.js';
+import { getArgumentValues } from 'graphql/execution/values';
+import { setLoaderMappings } from '../loader-map';
 import {
   IncludeCounts,
   IncludeMap,
   IndirectLoadMap,
   LoaderMappings,
   SubFieldInclude,
-} from '../types.js';
-import { mergeIncludes, resolveIndirectType } from '../util/index.js';
+} from '../types';
+import { mergeIncludes, resolveIndirectType } from '.';
 
 function handleField(
   info: GraphQLResolveInfo,
