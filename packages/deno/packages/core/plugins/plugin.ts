@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import { BuildCache } from '../index.ts';
 import { GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInterfaceTypeConfig, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, GiraphQLUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { BuildCache } from '../index.ts';
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     name;

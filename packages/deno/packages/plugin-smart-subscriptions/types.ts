@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { MaybePromise, SchemaTypes } from '../core/index.ts';
-import { FieldSubscriptionManager } from './index.ts';
 import SubscriptionManager from './manager/index.ts';
+import { FieldSubscriptionManager } from './index.ts';
 export interface SmartSubscriptionOptions<Context extends object> {
     debounceDelay?: number | null;
     subscribe: (name: string, context: Context, cb: (err: unknown, data?: unknown) => void) => Promise<void> | void;

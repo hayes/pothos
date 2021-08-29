@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, InterfaceRef, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-import { GiraphQLRelayPlugin } from './index.ts';
 import { ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
+import { GiraphQLRelayPlugin } from './index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

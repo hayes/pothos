@@ -2,7 +2,6 @@
 import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLIsTypeOfFn, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
-import { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, GiraphQLEnumTypeConfig, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectTypeOptions, ParentShape, PluginConstructorMap, QueryFieldBuilder, SubscriptionFieldBuilder, ValuesFromEnum, } from './index.ts';
 import EnumRef from './refs/enum.ts';
 import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.ts';
 import ObjectRef, { ImplementableObjectRef } from './refs/object.ts';
@@ -10,6 +9,7 @@ import ScalarRef from './refs/scalar.ts';
 import UnionRef from './refs/union.ts';
 import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils/index.ts';
+import { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, GiraphQLEnumTypeConfig, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectTypeOptions, ParentShape, PluginConstructorMap, QueryFieldBuilder, SubscriptionFieldBuilder, ValuesFromEnum, } from './index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
     static allowPluginReRegistration = false;

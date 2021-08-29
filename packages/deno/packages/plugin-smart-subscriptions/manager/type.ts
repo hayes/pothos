@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { MaybePromise } from '../../core/index.ts';
-import { SubscriptionManager } from '../index.ts';
 import { RegisterTypeSubscriptionOptions } from '../types.ts';
 import BaseSubscriptionManager from './base.ts';
+import { SubscriptionManager } from '../index.ts';
 export default class TypeSubscriptionManager<ParentShape = unknown> extends BaseSubscriptionManager {
     replace: (value: unknown) => void;
     refetchParent: () => MaybePromise<void>;

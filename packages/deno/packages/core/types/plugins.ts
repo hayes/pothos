@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '../index.ts';
 import { BasePlugin } from '../plugins/index.ts';
+import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '../index.ts';
 /**
  * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
  */

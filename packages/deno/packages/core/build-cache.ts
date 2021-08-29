@@ -3,11 +3,11 @@
 import { defaultFieldResolver, GraphQLBoolean, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFloat, GraphQLID, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLScalarType, GraphQLString, GraphQLTypeResolver, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder from './builder.ts';
 import ConfigStore from './config-store.ts';
-import { assertNever, BasePlugin, GiraphQLEnumTypeConfig, GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInputFieldType, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLKindToGraphQLTypeClass, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLTypeConfig, GiraphQLTypeKind, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputType, OutputType, SchemaTypes, typeBrandKey, } from './index.ts';
 import { MergedPlugins } from './plugins/index.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
 import { PluginMap } from './types/index.ts';
 import { isThenable } from './utils/index.ts';
+import { assertNever, BasePlugin, GiraphQLEnumTypeConfig, GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInputFieldType, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLKindToGraphQLTypeClass, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLOutputFieldConfig, GiraphQLOutputFieldType, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLTypeConfig, GiraphQLTypeKind, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputType, OutputType, SchemaTypes, typeBrandKey, } from './index.ts';
 export default class BuildCache<Types extends SchemaTypes> {
     types = new Map<string, GraphQLNamedType>();
     builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;

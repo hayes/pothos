@@ -1,6 +1,6 @@
 // @ts-nocheck
-import { BaseEnum, EnumValues } from '../index.ts';
 import { GiraphQLEnumValueConfig, SchemaTypes } from '../types/index.ts';
+import { BaseEnum, EnumValues } from '../index.ts';
 export function normalizeEnumValues<Types extends SchemaTypes>(values: EnumValues<SchemaTypes>): Record<string, GiraphQLEnumValueConfig<Types>> {
     const result: Record<string, GiraphQLEnumValueConfig<Types>> = {};
     if (Array.isArray(values)) {

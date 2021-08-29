@@ -2,8 +2,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { FieldSubscriptionManager, GiraphQLSmartSubscriptionsPlugin, TypeSubscriptionManager, } from './index.ts';
 import { SmartSubscriptionOptions } from './types.ts';
+import { FieldSubscriptionManager, GiraphQLSmartSubscriptionsPlugin, TypeSubscriptionManager, } from './index.ts';
 declare global {
     export namespace GiraphQLSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

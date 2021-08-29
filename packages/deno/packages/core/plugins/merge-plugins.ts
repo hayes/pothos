@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import { BuildCache, GiraphQLInputFieldConfig, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, SchemaTypes, } from '../index.ts';
 import { GiraphQLEnumValueConfig, GiraphQLInterfaceTypeConfig, GiraphQLUnionTypeConfig, } from '../types/index.ts';
 import { BasePlugin } from './plugin.ts';
+import { BuildCache, GiraphQLInputFieldConfig, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, SchemaTypes, } from '../index.ts';
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
     plugins;
     constructor(buildCache: BuildCache<Types>, plugins: BasePlugin<Types>[]) {

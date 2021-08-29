@@ -1,12 +1,12 @@
 // @ts-nocheck
 /* eslint-disable node/no-callback-literal */
 import { GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLScalarType, GraphQLString, } from 'https://cdn.skypack.dev/graphql?dts';
-import { ConfigurableRef, FieldRef, GiraphQLFieldConfig, GiraphQLObjectTypeConfig, GiraphQLTypeConfig, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, OutputType, TypeParam, } from './index.ts';
 import BaseTypeRef from './refs/base.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
 import InputTypeRef from './refs/input.ts';
 import OutputTypeRef from './refs/output.ts';
 import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types/index.ts';
+import { ConfigurableRef, FieldRef, GiraphQLFieldConfig, GiraphQLObjectTypeConfig, GiraphQLTypeConfig, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, OutputType, TypeParam, } from './index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, GiraphQLTypeConfig>();
     private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>>();
