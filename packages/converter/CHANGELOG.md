@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.8.0
+
+### Minor Changes
+
+- dc87e68: update esm build process so extensions are added during build rather than in source
+
 ## 2.7.2
 
 ### Patch Changes
