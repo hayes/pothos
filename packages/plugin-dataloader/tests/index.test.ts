@@ -1,5 +1,5 @@
-import { gql } from 'apollo-server';
 import { execute, printSchema } from 'graphql';
+import { gql } from 'graphql-tag';
 import { createContext } from './example/context';
 import schema from './example/schema';
 

@@ -5,7 +5,7 @@ import * as ts from 'typescript';
 
 const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
-const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma'];
+const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma', 'test-utils'];
 const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
 const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore'];
 
@@ -105,10 +105,10 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           const dirName = path.dirname(sourceFile.fileName);
           let mod = moduleSpecifier.text;
 
-          if (mod.endsWith('.js')) {
+          if (mod.startsWith('.')) {
             const modulePath = path.resolve(dirName, mod);
-            const tsPath = modulePath.replace(/\.js$/,'.ts');
-            const dtsPath = modulePath.replace(/\.js$/, '.d.ts');
+            const tsPath = modulePath + '.ts';
+            const dtsPath = modulePath + '.d.ts';
 
             const stat = existsSync(modulePath) && statSync(modulePath);
             if (stat && stat.isDirectory()) {

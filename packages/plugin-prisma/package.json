@@ -46,10 +46,10 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.14.2",
+    "@giraphql/test-utils": "^0.1.0",
     "@giraphql/plugin-errors": "^2.7.2",
     "@giraphql/plugin-relay": "^2.14.1",
     "@prisma/client": "^2.30.0",
-    "apollo-server": "^2.25.2",
     "graphql": ">=15.5.1",
     "graphql-tag": "^2.12.5",
     "prisma": "^2.30.0"

@@ -1,9 +1,10 @@
 import SchemaBuilder from '@giraphql/core';
 import ErrorsPlugin from '@giraphql/plugin-errors';
-import PrismaTypes from '@giraphql/plugin-prisma/generated';
 import RelayPlugin from '@giraphql/plugin-relay';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin from '../../lib';
+// eslint-disable-next-line import/no-named-as-default
+import PrismaPlugin from '../../src';
+import PrismaTypes from '../generated';
 
 export const prisma = new PrismaClient({
   log: [

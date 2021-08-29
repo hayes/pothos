@@ -1,5 +1,5 @@
-import { gql } from 'apollo-server';
 import { execute } from 'graphql';
+import { gql } from 'graphql-tag';
 import { prisma } from './example/builder';
 import schema from './example/schema';
 

@@ -1,5 +1,5 @@
-import { ApolloServer } from 'apollo-server';
 import { PubSub } from 'graphql-subscriptions';
+import { createTestServer } from '@giraphql/test-utils';
 import { stringPath } from '../../src';
 import { Poll } from './data';
 import schema from './schema';
@@ -7,11 +7,9 @@ import { ContextType } from './types';
 
 export const pubsub = new PubSub();
 
-const server = new ApolloServer({
+const server = createTestServer({
   schema,
-  debug: true,
-  tracing: true,
-  context: (): ContextType => ({
+  contextFactory: (): ContextType => ({
     Poll,
     pubsub,
     log: (info) =>

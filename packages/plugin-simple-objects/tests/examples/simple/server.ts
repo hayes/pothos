@@ -1,10 +1,10 @@
-import { ApolloServer } from 'apollo-server';
+import { createTestServer } from '@giraphql/test-utils';
 import { User } from './data';
 import schema from './schema';
 
-const server = new ApolloServer({
+const server = createTestServer({
   schema,
-  context: () => ({
+  contextFactory: () => ({
     User,
   }),
 });

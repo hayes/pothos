@@ -1,14 +1,12 @@
-import { ApolloServer } from 'apollo-server';
+import { createTestServer } from '@giraphql/test-utils';
 import { createContext } from './context';
 import schema from './schema';
 
-const server = new ApolloServer({
+const server = createTestServer({
   schema,
-  context: createContext,
+  contextFactory: createContext,
 });
 
-server
-  .listen(3000, () => {
-    console.log('🚀 Server started at http://127.0.0.1:3000');
-  })
-  .catch(console.error);
+server.listen(3000, () => {
+  console.log('🚀 Server started at http://127.0.0.1:3000');
+});

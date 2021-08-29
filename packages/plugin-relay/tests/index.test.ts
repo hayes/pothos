@@ -1,5 +1,5 @@
-import { gql } from 'apollo-server';
 import { execute, printSchema } from 'graphql';
+import { gql } from 'graphql-tag';
 import schemaWithGlobalConnectionFields from './examples/global-connection-fields/schema';
 import schema from './examples/relay/schema';
 

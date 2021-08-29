@@ -29,9 +29,9 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.14.2",
-    "@giraphql/plugin-relay": "^2.14.1",
+    "@giraphql/test-utils": "^0.1.0",
     "@giraphql/plugin-errors": "^2.7.2",
-    "apollo-server": "^2.25.2",
+    "@giraphql/plugin-relay": "^2.14.1",
     "dataloader": "^2.0.0",
     "graphql-tag": "^2.12.5"
   },

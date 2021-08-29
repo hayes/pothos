@@ -13,6 +13,7 @@ generator client {
 generator giraphql {
   provider = "ts-node ./src/generator.ts"
   clientOutput = "@prisma/client"
+  output = "../tests/generated.ts"
 }
 
 model Post {

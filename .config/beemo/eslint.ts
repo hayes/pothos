@@ -2,7 +2,12 @@ import { ESLintConfig } from '@beemo/driver-eslint';
 
 const config: ESLintConfig = {
   plugins: ['prettier'],
-  ignore: ['deno', 'scripts', 'packages/plugin-prisma/prisma'],
+  ignore: [
+    'deno',
+    'scripts',
+    'packages/plugin-prisma/prisma',
+    'packages/plugin-prisma/tests/generated.ts',
+  ],
   rules: {
     'import/no-unresolved': 'off',
     'import/no-default-export': 'off',

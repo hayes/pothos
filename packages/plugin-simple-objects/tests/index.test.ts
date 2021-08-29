@@ -1,5 +1,5 @@
-import { gql } from 'apollo-server';
 import { execute, lexicographicSortSchema, printSchema } from 'graphql';
+import { gql } from 'graphql-tag';
 import { User } from './examples/simple/data';
 import exampleSchema from './examples/simple/schema';
 
