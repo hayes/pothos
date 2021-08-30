@@ -11,8 +11,16 @@ type LoadedFile = {
 };
 
 function resolveImport(mod: string, source: string) {
-  if (!mod.startsWith('.') || mod.endsWith('.js')) {
+  if (mod.endsWith('.js')) {
     return mod;
+  } else if (mod.startsWith('@') && mod.split('/').length < 3) {
+    return mod;
+  } else if (!mod.startsWith('.') && !mod.includes('/')) {
+    return mod;
+  }
+
+  if (!mod.startsWith('.')) {
+    return `${mod}${require.resolve(mod).split(mod)[1]}`;
   }
 
   const potentialPaths = [
