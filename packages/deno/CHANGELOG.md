@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.15.3
+
+### Patch Changes
+
+- 4150f92: Fixed esm transformer for path-imports from dependencies
+
 ## 2.15.2
 
 ### Patch Changes
