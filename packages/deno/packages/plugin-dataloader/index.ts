@@ -6,6 +6,7 @@ import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, isThenable, MaybePromise, ObjectRef, SchemaTypes, } from '../core/index.ts';
 import { DataloaderObjectTypeOptions } from './types.ts';
+export * from './refs/index.ts';
 export * from './types.ts';
 export * from './util.ts';
 const pluginName = "dataloader" as const;

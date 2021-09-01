@@ -1,13 +1,24 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputShape, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputShape, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+export type DataloaderKey = bigint | number | string;
 export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], Type extends unknown[] ? Key[] : Key, ResolveReturnShape>;
 };
 export type DataloaderObjectTypeOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = ObjectTypeOptions<Types, NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>, Shape, Interfaces> & {
+    load: (keys: Key[], context: Types["Context"]) => Promise<(Error | Shape)[]>;
+    loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
+    cacheResolved?: (parent: Shape) => Key;
+};
+export type LoadableInterfaceOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends InterfaceParam<Types> | string, CacheKey> = InterfaceTypeOptions<Types, NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>, Shape, Interfaces> & {
+    load: (keys: Key[], context: Types["Context"]) => Promise<(Error | Shape)[]>;
+    loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
+    cacheResolved?: (parent: Shape) => Key;
+};
+export type LoadableUnionOptions<Types extends SchemaTypes, Key extends bigint | number | string, Member extends ObjectParam<Types>, CacheKey, Shape> = GiraphQLSchemaTypes.UnionTypeOptions<Types, Member> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | Shape)[]>;
     loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
     cacheResolved?: (parent: Shape) => Key;

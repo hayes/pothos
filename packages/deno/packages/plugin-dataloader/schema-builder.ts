@@ -2,10 +2,13 @@
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectParam, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { LoadableInterfaceRef } from './refs/interface.ts';
+import { LoadableObjectRef } from './refs/object.ts';
+import { LoadableUnionRef } from './refs/union.ts';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.ts';
-import { LoadableObjectRef } from './util.ts';
+import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from './index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
-schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends bigint | number | string, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(nameOrRef: NameOrRef, { load, loaderOptions, ...options }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
+schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(nameOrRef: NameOrRef, { load, loaderOptions, ...options }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
     const name = typeof nameOrRef === "string"
         ? nameOrRef
         : (options as {
@@ -13,9 +16,9 @@ schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOr
         }).name ?? (nameOrRef as {
             name: string;
         }).name;
-    const getDataloader = createContextCache((context: SchemaTypes["Context"]) => new DataLoader<Key, Shape, CacheKey>((keys: readonly Key[]) => (load as (keys: readonly Key[], context: SchemaTypes["Context"]) => Promise<Shape[]>)(keys, context), loaderOptions));
-    const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, getDataloader);
-    ref.implement({
+    const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load);
+    const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
+    this.objectType(ref, {
         ...options,
         extensions: {
             getDataloader,
@@ -26,8 +29,41 @@ schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOr
     }
     return ref;
 };
+schemaBuilderProto.loadableInterface = function loadableInterface<Shape extends NameOrRef extends InterfaceParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends InterfaceParam<SchemaTypes> | string, CacheKey = Key>(nameOrRef: NameOrRef, { load, loaderOptions, ...options }: LoadableInterfaceOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
+    const name = typeof nameOrRef === "string"
+        ? nameOrRef
+        : (options as {
+            name?: string;
+        }).name ?? (nameOrRef as {
+            name: string;
+        }).name;
+    const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load);
+    const ref = new LoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
+    this.interfaceType(ref, {
+        ...options,
+        extensions: {
+            getDataloader,
+        },
+    });
+    if (typeof nameOrRef !== "string") {
+        this.configStore.associateRefWithName(nameOrRef, name);
+    }
+    return ref;
+};
+schemaBuilderProto.loadableUnion = function loadableUnion<Key extends DataloaderKey, Member extends ObjectParam<SchemaTypes>, CacheKey = Key, Shape = ShapeFromTypeParam<SchemaTypes, Member, false>>(name: string, { load, loaderOptions, ...options }: LoadableUnionOptions<SchemaTypes, Key, Member, CacheKey, Shape>) {
+    const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load);
+    const ref = new LoadableUnionRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
+    this.unionType(name, {
+        ...options,
+        extensions: {
+            getDataloader,
+        },
+    });
+    this.configStore.associateRefWithName(ref, name);
+    return ref;
+};
 const TloadableNode = schemaBuilderProto.loadableNode;
-schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends bigint | number | string, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, { load, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
+schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, { load, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
     if (typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
         .nodeInterfaceRef !== "function") {
         throw new TypeError("builder.loadableNode requires @giraphql/plugin-relay to be installed");
@@ -40,7 +76,7 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
             name: string;
         }).name;
     const getDataloader = createContextCache((context: SchemaTypes["Context"]) => new DataLoader<Key, Shape, CacheKey>((keys: readonly Key[]) => (load as unknown as (keys: readonly Key[], context: SchemaTypes["Context"]) => Promise<Shape[]>)(keys, context), loaderOptions));
-    const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, getDataloader);
+    const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
     const extendedOptions = {
         ...options,
         interfaces: [
@@ -54,7 +90,7 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
             getDataloader,
         },
     };
-    ref.implement(extendedOptions as never);
+    this.objectType(ref, extendedOptions as never);
     if (typeof nameOrRef !== "string") {
         this.configStore.associateRefWithName(nameOrRef, name);
     }
