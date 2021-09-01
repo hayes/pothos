@@ -1,7 +1,11 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`dataloader generates expected schema 1`] = `
-"type BaseError implements Error {
+"interface Animal {
+  type: String!
+}
+
+type BaseError implements Error {
   message: String!
 }
 
@@ -11,9 +15,19 @@ type CallCount {
   name: String!
 }
 
+type Cat implements Animal {
+  chasingMouse: Boolean!
+  type: String!
+}
+
 type ClassLoadableThing implements Node & TestInterface {
   id: ID!
   idFromInterface: ID!
+}
+
+type Dog implements Animal {
+  chasingTail: Boolean!
+  type: String!
 }
 
 interface Error {
@@ -29,6 +43,8 @@ type NullableUser implements TestInterface {
   idFromInterface: ID!
 }
 
+union Pet = Cat | Dog
+
 type Post {
   content: String!
   id: ID!
@@ -42,6 +58,7 @@ type PreloadedUser implements TestInterface {
 
 type Query {
   addOnUser: User!
+  animals(ids: [ID!]!): [Animal!]!
   classThing: ClassLoadableThing!
   classThingRef: ClassLoadableThing!
   counts: [CallCount!]!
@@ -54,12 +71,13 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   nullableUser(id: String): NullableUser
   nullableUsers(ids: [String!]): [NullableUser]
+  pets(ids: [ID!]!): [Pet!]!
   post(id: Int!): Post
   posts(ids: [Int!]!): [Post]
   preloadedUser(id: String): PreloadedUser
   preloadedUsers(ids: [String!]): [PreloadedUser]
   user(id: String): User
-  userNode(id: String): User
+  userNode(id: String): UserNode
   userNodes(ids: [String!]): [UserNode]
   userWithErrors(id: String): QueryUserWithErrorsResult
   users(ids: [String!]): [User]
@@ -99,34 +117,9 @@ exports[`dataloader queries primes the dataloader 1`] = `
 Object {
   "counts": Array [
     Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "users",
-    },
-    Object {
       "calls": 1,
       "loaded": 1,
       "name": "preloadedUsers",
-    },
-    Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "userNodes",
-    },
-    Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "nullableUsers",
-    },
-    Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "posts",
-    },
-    Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "post",
     },
   ],
   "preloadedUsers": Array [
@@ -158,19 +151,9 @@ Object {
       "name": "users",
     },
     Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "preloadedUsers",
-    },
-    Object {
       "calls": 1,
       "loaded": 3,
       "name": "userNodes",
-    },
-    Object {
-      "calls": 0,
-      "loaded": 0,
-      "name": "nullableUsers",
     },
     Object {
       "calls": 1,
@@ -234,13 +217,8 @@ Object {
         "name": "users",
       },
       Object {
-        "calls": 0,
-        "loaded": 0,
-        "name": "preloadedUsers",
-      },
-      Object {
         "calls": 1,
-        "loaded": 3,
+        "loaded": 4,
         "name": "userNodes",
       },
       Object {
@@ -332,11 +310,11 @@ Object {
       "id": "2",
     },
     "userNode": Object {
-      "id": "1",
+      "id": "VXNlck5vZGU6MQ==",
       "idFromInterface": "1",
     },
     "userNode2": Object {
-      "id": "1",
+      "id": "VXNlck5vZGU6MQ==",
     },
     "userNodes": Array [
       Object {

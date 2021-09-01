@@ -1,25 +1,5 @@
-import DataLoader from 'dataloader';
-import { ImplementableObjectRef, isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
-
-export class LoadableObjectRef<
-  Types extends SchemaTypes,
-  RefShape,
-  Shape,
-  Key,
-  CacheKey,
-> extends ImplementableObjectRef<Types, RefShape, Shape> {
-  getDataloader;
-
-  constructor(
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
-    name: string,
-    getDataloader: (context: Types['Context']) => DataLoader<Key, Shape, CacheKey>,
-  ) {
-    super(builder, name);
-
-    this.getDataloader = getDataloader;
-  }
-}
+import DataLoader, { Options } from 'dataloader';
+import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 
 export function rejectErrors<T>(
   val: MaybePromise<(Error | T)[]>,
@@ -29,4 +9,21 @@ export function rejectErrors<T>(
   }
 
   return val.map((item) => (item instanceof Error ? Promise.reject(item) : item));
+}
+
+export function dataloaderGetter<K, V, C>(
+  loaderOptions: Options<K, V, C> | undefined,
+  load: (keys: K[], context: SchemaTypes['Context']) => Promise<(Error | V)[]>,
+) {
+  return createContextCache(
+    (context: object) =>
+      new DataLoader<K, V, C>(
+        (keys) =>
+          (load as (keys: readonly K[], context: SchemaTypes['Context']) => Promise<V[]>)(
+            keys,
+            context,
+          ),
+        loaderOptions,
+      ),
+  );
 }

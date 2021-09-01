@@ -10,9 +10,11 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
+import { LoadableInterfaceRef } from './refs/interface';
+import { LoadableObjectRef } from './refs/object';
+import { LoadableUnionRef } from './refs/union';
 import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
-import { LoadableObjectRef } from './util';
-import { GiraphQLDataloaderPlugin } from '.';
+import { GiraphQLDataloaderPlugin, LoadableInterfaceOptions, LoadableUnionOptions } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -32,7 +34,30 @@ declare global {
       >(
         nameOrRef: NameOrRef,
         options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
-      ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>;
+      ) => LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
+
+      loadableInterface: <
+        Shape extends NameOrRef extends InterfaceParam<Types>
+          ? ShapeFromTypeParam<Types, NameOrRef, false>
+          : object,
+        Key extends bigint | number | string,
+        Interfaces extends InterfaceParam<Types>[],
+        NameOrRef extends InterfaceParam<Types> | string,
+        CacheKey = Key,
+      >(
+        nameOrRef: NameOrRef,
+        options: LoadableInterfaceOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+      ) => LoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
+
+      loadableUnion: <
+        Key extends bigint | number | string,
+        Member extends ObjectParam<Types>,
+        CacheKey = Key,
+        Shape = ShapeFromTypeParam<Types, Member, false>,
+      >(
+        name: string,
+        options: LoadableUnionOptions<Types, Key, Member, CacheKey, Shape>,
+      ) => LoadableUnionRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableNode: 'relay' extends PluginName
         ? <

@@ -7,6 +7,8 @@ import {
   InputFieldMap,
   InputShapeFromFields,
   InterfaceParam,
+  InterfaceRef,
+  InterfaceTypeOptions,
   MaybePromise,
   ObjectParam,
   ObjectRef,
@@ -18,6 +20,8 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
+
+export type DataloaderKey = bigint | number | string;
 
 export type LoadableFieldOptions<
   Types extends SchemaTypes,
@@ -60,6 +64,36 @@ export type DataloaderObjectTypeOptions<
   Shape,
   Interfaces
 > & {
+  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
+  loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
+  cacheResolved?: (parent: Shape) => Key;
+};
+
+export type LoadableInterfaceOptions<
+  Types extends SchemaTypes,
+  Shape,
+  Key extends bigint | number | string,
+  Interfaces extends InterfaceParam<Types>[],
+  NameOrRef extends InterfaceParam<Types> | string,
+  CacheKey,
+> = InterfaceTypeOptions<
+  Types,
+  NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
+  Shape,
+  Interfaces
+> & {
+  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
+  loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
+  cacheResolved?: (parent: Shape) => Key;
+};
+
+export type LoadableUnionOptions<
+  Types extends SchemaTypes,
+  Key extends bigint | number | string,
+  Member extends ObjectParam<Types>,
+  CacheKey,
+  Shape,
+> = GiraphQLSchemaTypes.UnionTypeOptions<Types, Member> & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
   cacheResolved?: (parent: Shape) => Key;

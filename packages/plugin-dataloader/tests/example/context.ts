@@ -1,6 +1,6 @@
 import { initContextCache } from '@giraphql/core';
 import { LoadableRef } from '../../src';
-import { User } from './schema';
+import { User } from './schema/objects';
 import { ContextType } from './types';
 
 let nextID = 0;

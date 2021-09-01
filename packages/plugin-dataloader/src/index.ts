@@ -13,6 +13,7 @@ import SchemaBuilder, {
 } from '@giraphql/core';
 import { DataloaderObjectTypeOptions } from './types';
 
+export * from './refs';
 export * from './types';
 export * from './util';
 
