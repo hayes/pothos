@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.15.0
+
+### Minor Changes
+
+- 5562695: Add loadableInterface and loadableUnion methods
+
 ## 2.14.1
 
 ### Patch Changes
