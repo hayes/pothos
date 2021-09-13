@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.16.0
+
+### Minor Changes
+
+- 3f104b3: Add new sort and toKey options to allow automatic sorting of loadable objects and fields
+  so load functions can return values in arbirary order
+
 ## 2.15.0
 
 ### Minor Changes
