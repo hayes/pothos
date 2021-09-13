@@ -327,7 +327,7 @@ import PrismaTypes from '@giraphql/plugin-prisma/generated';
 const prisma = new PrismaClient({});
 
 const builder = new SchemaBuilder<{
-  PrismaTypes;
+  PrismaTypes: PrismaTypes;
 }>({
   plugins: [PrismaPlugin],
   prisma: {

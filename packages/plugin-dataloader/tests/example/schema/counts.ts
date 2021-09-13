@@ -3,11 +3,16 @@ import builder from '../builder';
 import { ContextType } from '../types';
 
 export const usersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+export const sortedUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+export const sortedUsersToKeyCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const preloadedUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+export const preloadedUsersToKeyCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const userNodeCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const nullableUsersCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const postsCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const postCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+export const postsSortedCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
+export const postSortedCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const animalCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 export const petCounts = createContextCache(() => ({ calls: 0, loaded: 0 }));
 
@@ -39,11 +44,16 @@ builder.queryFields((t) => ({
 
       return [
         { name: 'users', ...usersCounts(context) },
+        { name: 'sortedUsers', ...sortedUsersCounts(context) },
+        { name: 'sortedUsersToKey', ...sortedUsersToKeyCounts(context) },
         { name: 'preloadedUsers', ...preloadedUsersCounts(context) },
+        { name: 'preloadedUsersToKey', ...preloadedUsersToKeyCounts(context) },
         { name: 'userNodes', ...userNodeCounts(context) },
         { name: 'nullableUsers', ...nullableUsersCounts(context) },
         { name: 'posts', ...postsCounts(context) },
         { name: 'post', ...postCounts(context) },
+        { name: 'postsSorted', ...postsSortedCounts(context) },
+        { name: 'postSorted', ...postSortedCounts(context) },
         { name: 'animals', ...animalCounts(context) },
         { name: 'pets', ...petCounts(context) },
       ].filter((count) => count.calls > 0 || count.loaded > 0);
