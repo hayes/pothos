@@ -56,6 +56,11 @@ type PreloadedUser implements TestInterface {
   idFromInterface: ID!
 }
 
+type PreloadedUserToKey implements TestInterface {
+  id: ID!
+  idFromInterface: ID!
+}
+
 type Query {
   addOnUser: User!
   animals(ids: [ID!]!): [Animal!]!
@@ -73,9 +78,17 @@ type Query {
   nullableUsers(ids: [String!]): [NullableUser]
   pets(ids: [ID!]!): [Pet!]!
   post(id: Int!): Post
+  postSorted(id: Int!): Post
   posts(ids: [Int!]!): [Post]
+  postsSorted(ids: [Int!]!): [Post]
   preloadedUser(id: String): PreloadedUser
+  preloadedUserToKey(id: String): PreloadedUserToKey
   preloadedUsers(ids: [String!]): [PreloadedUser]
+  preloadedUsersToKey(ids: [String!]): [PreloadedUserToKey]
+  sortedUser(id: String): SortedUser
+  sortedUserToKey(id: String): SortedUserToKey
+  sortedUsers(ids: [String!]): [SortedUser]
+  sortedUsersToKey(ids: [String!]): [SortedUserToKey]
   user(id: String): User
   userNode(id: String): UserNode
   userNodes(ids: [String!]): [UserNode]
@@ -94,6 +107,16 @@ union QueryUsersWithErrorsResult = BaseError | QueryUsersWithErrorsSuccess
 
 type QueryUsersWithErrorsSuccess {
   data: [User!]!
+}
+
+type SortedUser implements TestInterface {
+  id: ID!
+  idFromInterface: ID!
+}
+
+type SortedUserToKey implements TestInterface {
+  id: ID!
+  idFromInterface: ID!
 }
 
 interface TestInterface {
@@ -123,6 +146,35 @@ Object {
     },
   ],
   "preloadedUsers": Array [
+    Object {
+      "id": "123",
+    },
+    Object {
+      "id": "456",
+    },
+    Object {
+      "id": "789",
+    },
+  ],
+  "user1": Object {
+    "id": "123",
+  },
+  "user2": Object {
+    "id": "999",
+  },
+}
+`;
+
+exports[`dataloader queries primes the dataloader with toKey 1`] = `
+Object {
+  "counts": Array [
+    Object {
+      "calls": 1,
+      "loaded": 1,
+      "name": "preloadedUsersToKey",
+    },
+  ],
+  "preloadedUsersToKey": Array [
     Object {
       "id": "123",
     },
@@ -201,6 +253,64 @@ Object {
 }
 `;
 
+exports[`dataloader queries sorts loaded results 1`] = `
+Object {
+  "counts": Array [
+    Object {
+      "calls": 1,
+      "loaded": 2,
+      "name": "sortedUsers",
+    },
+  ],
+  "sortedUsers": Array [
+    Object {
+      "id": "123",
+    },
+    Object {
+      "id": "456",
+    },
+    Object {
+      "id": "789",
+    },
+  ],
+  "user1": Object {
+    "id": "123",
+  },
+  "user2": Object {
+    "id": "999",
+  },
+}
+`;
+
+exports[`dataloader queries sorts loaded results with toKey 1`] = `
+Object {
+  "counts": Array [
+    Object {
+      "calls": 1,
+      "loaded": 2,
+      "name": "sortedUsersToKey",
+    },
+  ],
+  "sortedUsersToKey": Array [
+    Object {
+      "id": "123",
+    },
+    Object {
+      "id": "456",
+    },
+    Object {
+      "id": "789",
+    },
+  ],
+  "user1": Object {
+    "id": "123",
+  },
+  "user2": Object {
+    "id": "999",
+  },
+}
+`;
+
 exports[`dataloader queries valid queries 1`] = `
 Object {
   "data": Object {
@@ -235,6 +345,16 @@ Object {
         "calls": 1,
         "loaded": 2,
         "name": "post",
+      },
+      Object {
+        "calls": 1,
+        "loaded": 3,
+        "name": "postsSorted",
+      },
+      Object {
+        "calls": 1,
+        "loaded": 2,
+        "name": "postSorted",
       },
     ],
     "fromContext1": Object {
@@ -278,6 +398,12 @@ Object {
     "post2": Object {
       "id": "2",
     },
+    "postSorted": Object {
+      "id": "1",
+    },
+    "postSorted2": Object {
+      "id": "2",
+    },
     "posts": Array [
       Object {
         "content": "123 title",
@@ -291,6 +417,30 @@ Object {
       },
     ],
     "posts2": Array [
+      Object {
+        "content": "123 title",
+        "id": "123",
+        "title": "123 title",
+      },
+      Object {
+        "content": "789 title",
+        "id": "789",
+        "title": "789 title",
+      },
+    ],
+    "postsSorted": Array [
+      Object {
+        "content": "123 title",
+        "id": "123",
+        "title": "123 title",
+      },
+      Object {
+        "content": "456 title",
+        "id": "456",
+        "title": "456 title",
+      },
+    ],
+    "postsSorted2": Array [
       Object {
         "content": "123 title",
         "id": "123",

@@ -1,7 +1,15 @@
 import { rejectErrors } from '../../../src';
 import builder from '../builder';
 import { ContextType } from '../types';
-import { countCall, nullableUsersCounts, preloadedUsersCounts, usersCounts } from './counts';
+import {
+  countCall,
+  nullableUsersCounts,
+  preloadedUsersCounts,
+  preloadedUsersToKeyCounts,
+  sortedUsersCounts,
+  sortedUsersToKeyCounts,
+  usersCounts,
+} from './counts';
 import { TestInterface } from './interfaces';
 
 export const User = builder.loadableObject('User', {
@@ -34,6 +42,60 @@ const PreloadedUser = builder.loadableObject('PreloadedUser', {
     id: t.exposeID('id', {}),
   }),
   cacheResolved: ({ id }) => id.toString(),
+});
+
+const PreloadedUserToKey = builder.loadableObject('PreloadedUserToKey', {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) => true,
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, preloadedUsersToKeyCounts, keys.length);
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+    );
+  },
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+  toKey: ({ id }) => id.toString(),
+  cacheResolved: true,
+});
+
+const SortedUser = builder.loadableObject('SortedUser', {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) => true,
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, sortedUsersCounts, keys.length);
+    return Promise.resolve(
+      keys
+        .map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`)))
+        .reverse(),
+    );
+  },
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+  sort: ({ id }) => id.toString(),
+});
+
+const SortedUserToKey = builder.loadableObject('SortedUserToKey', {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) => true,
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, sortedUsersToKeyCounts, keys.length);
+    return Promise.resolve(
+      keys
+        .map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`)))
+        .reverse(),
+    );
+  },
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+  toKey: ({ id }) => id.toString(),
+  sort: true,
 });
 
 User.getDataloader({} as unknown as ContextType);
@@ -126,8 +188,65 @@ builder.queryFields((t) => ({
     },
     resolve: (root, args) => args.id ?? '1',
   }),
+  preloadedUserToKey: t.field({
+    type: PreloadedUserToKey,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (root, args) => args.id ?? '1',
+  }),
   preloadedUsers: t.field({
     type: [PreloadedUser],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.stringList(),
+    },
+    resolve: (_root, args) => (args.ids ?? []).map((id) => ({ id: Number(id) })),
+  }),
+  preloadedUsersToKey: t.field({
+    type: [PreloadedUserToKey],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.stringList(),
+    },
+    resolve: (_root, args) => (args.ids ?? []).map((id) => ({ id: Number(id) })),
+  }),
+  sortedUser: t.field({
+    type: SortedUser,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (root, args) => args.id ?? '1',
+  }),
+  sortedUserToKey: t.field({
+    type: SortedUserToKey,
+    nullable: true,
+    args: {
+      id: t.arg.string(),
+    },
+    resolve: (root, args) => args.id ?? '1',
+  }),
+  sortedUsers: t.field({
+    type: [SortedUser],
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      ids: t.arg.stringList(),
+    },
+    resolve: (_root, args) => (args.ids ?? []).map((id) => ({ id: Number(id) })),
+  }),
+  sortedUsersToKey: t.field({
+    type: [SortedUserToKey],
     nullable: {
       list: true,
       items: true,

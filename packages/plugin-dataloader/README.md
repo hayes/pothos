@@ -43,6 +43,13 @@ const User = builder.loadableObject('User', {
 });
 ```
 
+It is **VERY IMPORTANT** to return values from `load` in an order that exactly matches the order of
+the requested IDs. The order is used to map results to their IDs, and if the results are returned in
+a different order, your GraphQL requests will end up with the wrong data. Correctly sorting results
+returned from a database or other data source can be tricky, so there this plugin has a `sort`
+option (described below) to simplify the sorting process. For more details on how the load function
+works, see the [dataloader docs](https://github.com/graphql/dataloader#batch-function).
+
 When defining fields that return `User`s, you will now be able to return either a `string` (based in
 ids param of `load`), or a User object (type based on the return type of `loadUsersById`).
 
@@ -307,3 +314,46 @@ const User = builder.loadableObject('User', {
 
 Whenever a resolver returns a User or list or Users, those objects will automatically be added the
 dataloaders cache, so they can be re-used in other parts of the query.
+
+### Sorting results from your `load` function
+
+As mentioned above, the `load` function must return results in the same order as the provided array
+of IDs. Doing this correctly can be a little complicated, so this plugin includes an alternative.
+For any type or field that creates a dataloader, you can also provide a `sort` option which will
+correctly map your results into the correct order based on their ids. To do this, you will need to
+provide a function that accepts a result object, and returns its id.
+
+```typescript
+const User = builder.loadableObject('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  sort: user => user.id,
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+    ...
+  }),
+});
+```
+
+This will also work with loadable nodes, interfaces, unions, or fields.
+
+When sorting, if the list of results contains an Error the error is thrown because it can not be
+mapped to the correct location. This `sort` option should NOT be used for cases where the result
+list is expected to contain errors.
+
+### Shared `toKey` method.
+
+Defining multiple functions to extract the key from a loaded object can become redundant. In cases
+when you are using both `cacheResolved` and `sort` you can use a `toKey` function instead:
+
+```typescript
+const User = builder.loadableObject('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  toKey: user => user.id,
+  cacheResolved: true,
+  sort: true,
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+    ...
+  }),
+});
+```

@@ -1,7 +1,5 @@
-import DataLoader from 'dataloader';
 import { GraphQLResolveInfo } from 'graphql';
 import {
-  createContextCache,
   FieldKind,
   FieldNullability,
   FieldRef,
@@ -13,6 +11,7 @@ import {
 } from '@giraphql/core';
 import { LoadableFieldOptions, LoaderShapeFromType } from './types';
 import { rejectErrors } from './util';
+import { dataloaderGetter } from '.';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -29,6 +28,7 @@ fieldBuilderProto.loadable = function loadable<
   Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability'],
 >({
   load,
+  sort,
   loaderOptions,
   resolve,
   type,
@@ -44,19 +44,11 @@ fieldBuilderProto.loadable = function loadable<
   CacheKey,
   FieldKind
 >): FieldRef<unknown> {
-  const getLoader = createContextCache(
-    (context) =>
-      new DataLoader(
-        (keys: readonly Key[]) =>
-          (
-            load as (
-              keys: Key[],
-              context: object,
-            ) => Promise<LoaderShapeFromType<SchemaTypes, Type, Nullable>[]>
-          )(keys as Key[], context),
-        loaderOptions,
-      ),
-  );
+  const getLoader = dataloaderGetter<
+    Key,
+    LoaderShapeFromType<SchemaTypes, Type, Nullable>,
+    CacheKey
+  >(loaderOptions, load, undefined, sort);
 
   return this.field({
     ...options,
