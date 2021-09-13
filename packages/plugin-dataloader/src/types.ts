@@ -42,6 +42,7 @@ export type LoadableFieldOptions<
     context: Types['Context'],
   ) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
+  sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
   resolve: Resolver<
     ParentShape,
     InputShapeFromFields<Args>,
@@ -66,8 +67,18 @@ export type DataloaderObjectTypeOptions<
 > & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-  cacheResolved?: (parent: Shape) => Key;
-};
+} & (
+    | {
+        toKey: (value: Shape) => Key;
+        cacheResolved?: boolean;
+        sort?: boolean;
+      }
+    | {
+        toKey?: undefined;
+        cacheResolved?: (value: Shape) => Key;
+        sort?: (value: Shape) => Key;
+      }
+  );
 
 export type LoadableInterfaceOptions<
   Types extends SchemaTypes,
@@ -84,8 +95,18 @@ export type LoadableInterfaceOptions<
 > & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-  cacheResolved?: (parent: Shape) => Key;
-};
+} & (
+    | {
+        toKey: (value: Shape) => Key;
+        cacheResolved?: boolean;
+        sort?: boolean;
+      }
+    | {
+        toKey?: undefined;
+        cacheResolved?: (value: Shape) => Key;
+        sort?: (value: Shape) => Key;
+      }
+  );
 
 export type LoadableUnionOptions<
   Types extends SchemaTypes,
@@ -96,8 +117,18 @@ export type LoadableUnionOptions<
 > = GiraphQLSchemaTypes.UnionTypeOptions<Types, Member> & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-  cacheResolved?: (parent: Shape) => Key;
-};
+} & (
+    | {
+        toKey: (value: Shape) => Key;
+        cacheResolved?: boolean;
+        sort?: boolean;
+      }
+    | {
+        toKey?: undefined;
+        cacheResolved?: (value: Shape) => Key;
+        sort?: (value: Shape) => Key;
+      }
+  );
 
 export type LoaderShapeFromType<
   Types extends SchemaTypes,

@@ -1,7 +1,5 @@
-import DataLoader from 'dataloader';
 import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
-  createContextCache,
   FieldRef,
   InterfaceParam,
   InterfaceRef,
@@ -30,6 +28,9 @@ schemaBuilderProto.loadableObject = function loadableObject<
   nameOrRef: NameOrRef,
   {
     load,
+    toKey,
+    sort,
+    cacheResolved,
     loaderOptions,
     ...options
   }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
@@ -39,7 +40,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load);
+  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
 
   const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
 
@@ -47,6 +48,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
     ...options,
     extensions: {
       getDataloader,
+      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
     },
   } as never);
 
@@ -69,6 +71,9 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
   nameOrRef: NameOrRef,
   {
     load,
+    toKey,
+    sort,
+    cacheResolved,
     loaderOptions,
     ...options
   }: LoadableInterfaceOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
@@ -78,7 +83,7 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load);
+  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
 
   const ref = new LoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
     name,
@@ -89,6 +94,7 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
     ...options,
     extensions: {
       getDataloader,
+      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
     },
   });
 
@@ -108,11 +114,14 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
   name: string,
   {
     load,
+    toKey,
+    sort,
+    cacheResolved,
     loaderOptions,
     ...options
   }: LoadableUnionOptions<SchemaTypes, Key, Member, CacheKey, Shape>,
 ) {
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load);
+  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
 
   const ref = new LoadableUnionRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
 
@@ -120,6 +129,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
     ...options,
     extensions: {
       getDataloader,
+      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
     },
   });
 
@@ -143,6 +153,9 @@ schemaBuilderProto.loadableNode = function loadableNode<
   nameOrRef: NameOrRef,
   {
     load,
+    toKey,
+    sort,
+    cacheResolved,
     loaderOptions,
     ...options
   }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
@@ -159,19 +172,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const getDataloader = createContextCache(
-    (context: SchemaTypes['Context']) =>
-      new DataLoader<Key, Shape, CacheKey>(
-        (keys: readonly Key[]) =>
-          (
-            load as unknown as (
-              keys: readonly Key[],
-              context: SchemaTypes['Context'],
-            ) => Promise<Shape[]>
-          )(keys, context),
-        loaderOptions,
-      ),
-  );
+  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
 
   const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
 
@@ -188,6 +189,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
     loadMany: (ids: Key[], context: SchemaTypes['Context']) => getDataloader(context).loadMany(ids),
     extensions: {
       getDataloader,
+      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
     },
   };
 

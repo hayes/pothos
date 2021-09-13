@@ -103,10 +103,26 @@ describe('dataloader', () => {
             title
             content
           }
+          postsSorted(ids: [123, 456]) {
+            id
+            title
+            content
+          }
+          postsSorted2: postsSorted(ids: [123, 789]) {
+            id
+            title
+            content
+          }
           post(id: 1) {
             id
           }
           post2: post(id: 2) {
+            id
+          }
+          postSorted(id: 1) {
+            id
+          }
+          postSorted2: postSorted(id: 2) {
             id
           }
           fromContext1 {
@@ -215,6 +231,99 @@ describe('dataloader', () => {
           }
           # Has to be loaded
           user2: preloadedUser(id: "999") {
+            id
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result.data).toMatchSnapshot();
+    });
+
+    it('primes the dataloader with toKey', async () => {
+      const query = gql`
+        query {
+          counts {
+            name
+            calls
+            loaded
+          }
+          preloadedUsersToKey(ids: ["123", "456", "789"]) {
+            id
+          }
+          # Is primed
+          user1: preloadedUserToKey(id: "123") {
+            id
+          }
+          # Has to be loaded
+          user2: preloadedUserToKey(id: "999") {
+            id
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result.data).toMatchSnapshot();
+    });
+
+    it('sorts loaded results', async () => {
+      const query = gql`
+        query {
+          counts {
+            name
+            calls
+            loaded
+          }
+          sortedUsers(ids: ["123", "456", "789"]) {
+            id
+          }
+          # Is primed
+          user1: sortedUser(id: "123") {
+            id
+          }
+          # Has to be loaded
+          user2: sortedUser(id: "999") {
+            id
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result.data).toMatchSnapshot();
+    });
+
+    it('sorts loaded results with toKey', async () => {
+      const query = gql`
+        query {
+          counts {
+            name
+            calls
+            loaded
+          }
+          sortedUsersToKey(ids: ["123", "456", "789"]) {
+            id
+          }
+          # Is primed
+          user1: sortedUserToKey(id: "123") {
+            id
+          }
+          # Has to be loaded
+          user2: sortedUserToKey(id: "999") {
             id
           }
         }
