@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.15.2
+
+### Patch Changes
+
+- c976bfe: Update dependencies
+
 ## 2.15.1
 
 ### Patch Changes

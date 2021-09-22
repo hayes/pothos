@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.9.2
+
+### Patch Changes
+
+- c976bfe: Update dependencies
+
 ## 0.9.1
 
 ### Patch Changes
