@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.16.1
+
+### Patch Changes
+
+- c976bfe: Update dependencies
+
 ## 2.16.0
 
 ### Minor Changes

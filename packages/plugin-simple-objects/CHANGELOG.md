@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.8.2
+
+### Patch Changes
+
+- c976bfe: Update dependencies
+
 ## 2.8.1
 
 ### Patch Changes

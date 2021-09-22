@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.7.2
+
+### Patch Changes
+
+- c976bfe: Update dependencies
+
 ## 2.7.1
 
 ### Patch Changes
