@@ -8,8 +8,6 @@ export type SimpleInterfaceFieldsShape<Types extends SchemaTypes, Fields extends
   t: GiraphQLSchemaTypes.RootFieldBuilder<Types, unknown, 'SimpleInterface'>,
 ) => Fields;
 
-export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<
-  {
-    [K in keyof Fields]: Fields[K] extends FieldRef<infer T> ? T : never;
-  }
->;
+export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<{
+  [K in keyof Fields]: Fields[K] extends FieldRef<infer T> ? T : never;
+}>;

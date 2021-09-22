@@ -301,7 +301,7 @@ following command to re-generate the client and create the new types:
 
 ```bash
 npx prisma generate
-``` 
+```
 
 additional options:
 
@@ -612,15 +612,10 @@ builder.prismaObject('User', {
 
 ### relationCount
 
-Prisma recently introduced
-[Relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
-which allow including counts for relations along side other `includes`. This feature is still behind
-a flag and has some bugs.
-
-Support for defining count fields has been added to this plugin, but is not currently recommend due
-to an outstand prisma bug that causes queries to fail when a count include is nested inside a list
-relation. Until [this bug](https://github.com/prisma/prisma/issues/8861) is fixed this feature
-SHOULD NOT BE USED.
+Prisma supports querying for
+[relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
+which allow including counts for relations along side other `includes`. This does not currently
+support any filters on the counts, but can give a total count for a relation.
 
 ```typescript
 builder.prismaObject('User', {

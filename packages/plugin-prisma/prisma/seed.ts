@@ -1,7 +1,6 @@
 // @ts-ignore
 import faker from 'faker';
 import { PrismaClient } from '@prisma/client';
-import { date } from 'zod';
 
 const prisma = new PrismaClient();
 

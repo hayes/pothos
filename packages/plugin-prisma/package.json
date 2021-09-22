@@ -38,7 +38,10 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^2.30.0"
+    "@prisma/generator-helper": "^3.1.1"
+  },
+  "prisma": {
+    "seed": "pnpm ts-node prisma/seed.ts"
   },
   "peerDependencies": {
     "@prisma/client": "*",
@@ -46,12 +49,12 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.15.1",
-    "@giraphql/test-utils": "^0.1.1",
     "@giraphql/plugin-errors": "^2.8.1",
     "@giraphql/plugin-relay": "^2.15.1",
-    "@prisma/client": "^2.30.0",
-    "graphql": ">=15.5.1",
+    "@giraphql/test-utils": "^0.1.1",
+    "@prisma/client": "^3.1.1",
+    "graphql": "15.6.0",
     "graphql-tag": "^2.12.5",
-    "prisma": "^2.30.0"
+    "prisma": "^3.1.1"
   }
 }

@@ -194,11 +194,9 @@ export type ValidateInterfaces<
     : 'Object shape must extends interface shape'
   : never;
 
-export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<
-  {
-    [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
-  }
->;
+export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
+  [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
+}>;
 
 export type InputFieldsFromShape<Shape extends object> = {
   [K in keyof Shape]: InputFieldRef<Shape[K], 'InputObject'>;

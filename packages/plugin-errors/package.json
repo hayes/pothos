@@ -34,10 +34,11 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.15.1",
-    "@giraphql/test-utils": "^0.1.1",
     "@giraphql/plugin-validation": "^2.10.1",
-    "graphql": ">=15.5.1",
-    "graphql-tag": "^2.12.5"
+    "@giraphql/test-utils": "^0.1.1",
+    "graphql": "15.6.0",
+    "graphql-tag": "^2.12.5",
+    "zod": "^3.8.2"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

@@ -28,14 +28,14 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "^15.5.1",
+    "graphql": "15.6.0",
     "ts-morph": "^12.0.0",
     "yargs": "^17.1.1"
   },
   "devDependencies": {
     "@giraphql/core": "^2.15.1",
     "@giraphql/test-utils": "^0.1.1",
-    "@types/yargs": "^17.0.2"
+    "@types/yargs": "^17.0.3"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

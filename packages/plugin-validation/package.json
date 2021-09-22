@@ -33,7 +33,7 @@
     "@giraphql/core": "^2.15.1",
     "@giraphql/test-utils": "^0.1.1",
     "graphql-tag": "^2.12.5",
-    "zod": "^3.8.1"
+    "zod": "^3.8.2"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

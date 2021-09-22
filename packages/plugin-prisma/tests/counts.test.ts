@@ -328,4 +328,144 @@ Array [
 ]
 `);
   });
+
+  it('nested in list of item', async () => {
+    const query = gql`
+      query {
+        posts {
+          author {
+            postCount
+            postsConnection(first: 1) {
+              totalCount
+              edges {
+                node {
+                  author {
+                    postCount
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "data": Object {
+    "posts": Array [
+      Object {
+        "author": Object {
+          "postCount": 250,
+          "postsConnection": Object {
+            "edges": Array [
+              Object {
+                "node": Object {
+                  "author": Object {
+                    "postCount": 250,
+                  },
+                },
+              },
+            ],
+            "totalCount": 250,
+          },
+        },
+      },
+      Object {
+        "author": Object {
+          "postCount": 250,
+          "postsConnection": Object {
+            "edges": Array [
+              Object {
+                "node": Object {
+                  "author": Object {
+                    "postCount": 250,
+                  },
+                },
+              },
+            ],
+            "totalCount": 250,
+          },
+        },
+      },
+      Object {
+        "author": Object {
+          "postCount": 250,
+          "postsConnection": Object {
+            "edges": Array [
+              Object {
+                "node": Object {
+                  "author": Object {
+                    "postCount": 250,
+                  },
+                },
+              },
+            ],
+            "totalCount": 250,
+          },
+        },
+      },
+    ],
+  },
+}
+`);
+    expect(queries).toMatchInlineSnapshot(`
+Array [
+  Object {
+    "action": "findMany",
+    "args": Object {
+      "include": Object {
+        "author": Object {
+          "include": Object {
+            "_count": Object {
+              "select": Object {
+                "posts": true,
+              },
+            },
+            "posts": Object {
+              "include": Object {
+                "author": Object {
+                  "include": Object {
+                    "_count": Object {
+                      "select": Object {
+                        "posts": true,
+                      },
+                    },
+                  },
+                },
+                "comments": Object {
+                  "include": Object {
+                    "author": true,
+                  },
+                },
+              },
+              "orderBy": Object {
+                "createdAt": "desc",
+              },
+              "skip": 0,
+              "take": 2,
+            },
+          },
+        },
+        "comments": Object {
+          "include": Object {
+            "author": true,
+          },
+        },
+      },
+      "take": 3,
+    },
+    "dataPath": Array [],
+    "model": "Post",
+    "runInTransaction": false,
+  },
+]
+`);
+  });
 });
