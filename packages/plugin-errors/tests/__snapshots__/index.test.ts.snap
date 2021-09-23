@@ -5,6 +5,10 @@ exports[`mocked generates expected schema 1`] = `
   message: String!
 }
 
+type DirectResult {
+  id: ID!
+}
+
 interface Error {
   message: String!
 }
@@ -25,6 +29,7 @@ type LengthError implements Error {
 }
 
 type Query {
+  directResult(shouldThrow: Boolean): QueryDirectResultResult!
   extendedError(throw: String): QueryExtendedErrorResult
   extendedErrorList(throw: String): QueryExtendedErrorListResult
   fieldWIthValidation(string: String): QueryFieldWIthValidationResult!
@@ -33,6 +38,8 @@ type Query {
   simpleError(throw: Boolean): QuerySimpleErrorResult!
   validation2(stringList: [String!]): QueryValidation2Result!
 }
+
+union QueryDirectResultResult = BaseError | DirectResult
 
 union QueryExtendedErrorListResult = BaseError | Extended2Error | ExtendedError | QueryExtendedErrorListSuccess
 
