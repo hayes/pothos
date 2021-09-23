@@ -1,20 +1,22 @@
 import {
+  execute,
   GraphQLEnumType,
   GraphQLInputObjectType,
   GraphQLObjectType,
   lexicographicSortSchema,
   printSchema,
 } from 'graphql';
+import gql from 'graphql-tag';
 import SchemaBuilder from '@giraphql/core';
-import exampleSchema from './example/schema';
+import schema from './example/schema';
 
 describe('extends example schema', () => {
   it('generates expected schema', () => {
-    expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
+    expect(printSchema(lexicographicSortSchema(schema))).toMatchSnapshot();
   });
 
   it('has expected directives in extensions', () => {
-    const types = exampleSchema.getTypeMap();
+    const types = schema.getTypeMap();
 
     expect(types.Obj.extensions?.directives).toStrictEqual({ o: { foo: 123 } });
     expect(types.Query.extensions?.directives).toStrictEqual({
@@ -69,5 +71,42 @@ describe('extends example schema', () => {
         args: { limit: 5, duration: 60 },
       },
     ]);
+  });
+
+  it('rate limits', async () => {
+    const query = gql`
+      query {
+        test
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: () => ({}),
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "test": "hi",
+        },
+      }
+    `);
+
+    const result2 = await execute({
+      schema,
+      document: query,
+      contextValue: () => ({}),
+    });
+
+    expect(result2).toMatchInlineSnapshot(`
+      Object {
+        "data": null,
+        "errors": Array [
+          [GraphQLError: Too many requests, please try again in 5 seconds.],
+        ],
+      }
+    `);
   });
 });

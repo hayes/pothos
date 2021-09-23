@@ -97,6 +97,8 @@ builder.scalarType('Date', {
 
 const schema = builder.toSchema({});
 
-createRateLimitDirective().visitSchemaDirectives(schema, {});
+const rateLimitDirective = createRateLimitDirective();
+
+rateLimitDirective.visitSchemaDirectives(schema, { rateLimit: rateLimitDirective });
 
 export default schema;
