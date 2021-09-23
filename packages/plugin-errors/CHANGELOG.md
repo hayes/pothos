@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.9.0
+
+### Minor Changes
+
+- 73e947b: Add directResult option to remove extra result type wrapper in error unions
+
 ## 2.8.2
 
 ### Patch Changes
