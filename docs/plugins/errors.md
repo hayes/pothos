@@ -101,6 +101,8 @@ errors plugin will automatically resolve to the corresponding error object type.
 ### Builder options
 
 - `defaultTypes`: An array of Error classes to include in every field with error handling.
+- `directResult`: Sets the default for `directResult` option on fields (only affects non-list
+  fields)
 
 ### Options on Fields
 
@@ -112,6 +114,9 @@ errors plugin will automatically resolve to the corresponding error object type.
   and `name` option for setting a custom name for the result type.
 - `dataField`: An options object for the data field on the result object. This field will be named
   `data` by default, but can be written by passsing a custom `name` option.
+- `directResult`: Boolean, can only be set to true for non-list fields. This will directly include
+  the fields type in the union rather than creating an intermediate Result object type. This will
+  throw at build time if the type is not an object type.
 
 ### Recommended Usage
 

@@ -8,6 +8,7 @@ import {
 
 export interface ErrorsPluginOptions {
   defaultTypes?: (new (...args: any[]) => Error)[];
+  directResult?: boolean;
 }
 
 export type ErrorFieldOptions<
@@ -17,6 +18,7 @@ export type ErrorFieldOptions<
   Nullable extends FieldNullability<Type>,
 > = EmptyToOptional<{
   types?: (new (...args: any[]) => Error)[];
+  directResult?: Type extends unknown[] ? false : boolean;
   union: Normalize<
     Omit<GiraphQLSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
       name?: string;

@@ -3,6 +3,7 @@ import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   GiraphQLOutputFieldConfig,
+  ImplementableObjectRef,
   SchemaTypes,
   sortClasses,
 } from '@giraphql/core';
@@ -37,7 +38,11 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
   override onOutputFieldConfig(
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GiraphQLOutputFieldConfig<Types> | null {
-    if (!fieldConfig.giraphqlOptions.errors) {
+    const errorOptions = fieldConfig.giraphqlOptions.errors;
+
+    const errorBuilderOptions = this.builder.options.errorOptions;
+
+    if (!errorOptions) {
       return fieldConfig;
     }
 
@@ -54,11 +59,16 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         ...unionOptions
       } = {} as never,
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
-    } = fieldConfig.giraphqlOptions.errors;
+    } = errorOptions;
 
     const errorTypes = sortClasses([
-      ...new Set([...types, ...(this.builder.options.errorOptions?.defaultTypes ?? [])]),
+      ...new Set([...types, ...(errorBuilderOptions?.defaultTypes ?? [])]),
     ]);
+
+    const directResult =
+      (errorOptions as { directResult?: boolean }).directResult ??
+      errorBuilderOptions?.directResult ??
+      false;
 
     const typeRef =
       fieldConfig.type.kind === 'List' ? fieldConfig.type.type.ref : fieldConfig.type.ref;
@@ -66,31 +76,44 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
     const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
 
     const unionType = this.runUnique(resultName, () => {
-      const resultObjectRef = this.builder.objectRef<unknown>(resultName);
+      let resultType: ImplementableObjectRef<Types, unknown>;
+      if (directResult && !Array.isArray(fieldConfig.giraphqlOptions.type)) {
+        resultType = fieldConfig.giraphqlOptions.type as ImplementableObjectRef<Types, unknown>;
 
-      resultObjectRef.implement({
-        ...resultObjectOptions,
-        fields: (t) => ({
-          ...resultFieldOptions?.(t),
-          [dataFieldName]: t.field({
-            ...dataField,
-            type: fieldConfig.giraphqlOptions.type,
-            nullable:
-              fieldConfig.type.kind === 'List'
-                ? { items: fieldConfig.type.type.nullable, list: false }
-                : false,
-            resolve: (data) => data as never,
+        const resultConfig = this.builder.configStore.getTypeConfig(resultType);
+
+        if (resultConfig.graphqlKind !== 'Object') {
+          throw new TypeError(
+            `Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`,
+          );
+        }
+      } else {
+        resultType = this.builder.objectRef<unknown>(resultName);
+
+        resultType.implement({
+          ...resultObjectOptions,
+          fields: (t) => ({
+            ...resultFieldOptions?.(t),
+            [dataFieldName]: t.field({
+              ...dataField,
+              type: fieldConfig.giraphqlOptions.type,
+              nullable:
+                fieldConfig.type.kind === 'List'
+                  ? { items: fieldConfig.type.type.nullable, list: false }
+                  : false,
+              resolve: (data) => data as never,
+            }),
           }),
-        }),
-      });
+        });
+      }
 
       const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
       const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions
         ?.getDataloader as unknown;
 
       return this.builder.unionType(unionName, {
-        types: [...errorTypes, resultObjectRef],
-        resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultObjectRef,
+        types: [...errorTypes, resultType],
+        resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,
         ...unionOptions,
         extensions: {
           ...unionOptions.extensions,

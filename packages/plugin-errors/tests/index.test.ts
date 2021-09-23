@@ -126,4 +126,44 @@ describe('mocked', () => {
       }
     `);
   });
+
+  it('query directResult', async () => {
+    const query = gql`
+      query {
+        directResult {
+          __typename
+          ... on DirectResult {
+            id
+          }
+        }
+        withError: directResult(shouldThrow: true) {
+          __typename
+          ... on Error {
+            message
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "data": Object {
+    "directResult": Object {
+      "__typename": "DirectResult",
+      "id": "123",
+    },
+    "withError": Object {
+      "__typename": "BaseError",
+      "message": "Boom",
+    },
+  },
+}
+`);
+  });
 });

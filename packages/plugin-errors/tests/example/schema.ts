@@ -280,6 +280,31 @@ builder.queryField('validation2', (t) =>
   }),
 );
 
+const DirectResult = builder.objectRef<{}>('DirectResult').implement({
+  fields: (t) => ({
+    id: t.id({ resolve: () => 123 }),
+  }),
+});
+
+builder.queryField('directResult', (t) =>
+  t.field({
+    type: DirectResult,
+    errors: {
+      directResult: true,
+    },
+    args: {
+      shouldThrow: t.arg.boolean(),
+    },
+    resolve: (root, args) => {
+      if (args.shouldThrow) {
+        throw new Error('Boom');
+      }
+
+      return {};
+    },
+  }),
+);
+
 const schema = builder.toSchema({});
 
 export default schema;
