@@ -1,5 +1,4 @@
 import * as zod from 'zod';
-import { array } from 'zod';
 import {
   ArrayValidationOptions,
   BaseValidationOptions,
