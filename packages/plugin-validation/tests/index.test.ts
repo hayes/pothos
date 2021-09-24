@@ -288,9 +288,24 @@ Object {
 Object {
   "data": Object {
     "invalid": null,
+    "invalidList": null,
     "valid": true,
+    "validList": true,
   },
   "errors": Array [
+    [GraphQLError: [
+  {
+    "code": "too_small",
+    "minimum": 2,
+    "type": "string",
+    "inclusive": true,
+    "message": "Should be at least 2 characters",
+    "path": [
+      0,
+      "id"
+    ]
+  }
+]],
     [GraphQLError: [
   {
     "code": "too_small",
