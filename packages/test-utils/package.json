@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/test-utils",
-  "version": "0.1.2",
+  "version": "0.1.3",
   "description": "shared test utils for testing giraphql packages",
   "main": "./lib/index.js",
   "module": "./esm/index.js",
