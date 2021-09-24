@@ -1,4 +1,5 @@
 import * as zod from 'zod';
+import { array } from 'zod';
 import {
   ArrayValidationOptions,
   BaseValidationOptions,
@@ -85,9 +86,15 @@ export function refine(
     return originalValidator.refine(options);
   }
 
-  const validator = options.schema
-    ? zod.intersection(options.schema, originalValidator)
-    : originalValidator;
+  let validator = originalValidator;
+
+  // TODO find a better way to merge array fields
+  // eslint-disable-next-line no-underscore-dangle
+  if (options.schema && (options.schema._def as { typeName: string }).typeName === 'ZodArray') {
+    validator = originalValidator.refine((value) => options.schema?.parse(value));
+  } else if (options.schema) {
+    validator = originalValidator.and(options.schema);
+  }
 
   if (!options.refine) {
     return validator;

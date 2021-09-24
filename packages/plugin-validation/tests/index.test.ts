@@ -128,63 +128,24 @@ Object {
     ]
   },
   {
-    "code": "invalid_union",
-    "unionErrors": [
-      {
-        "issues": [
-          {
-            "validation": "regex",
-            "code": "invalid_string",
-            "message": "Invalid",
-            "path": [
-              "contactInfo",
-              "phone"
-            ]
-          },
-          {
-            "code": "too_small",
-            "minimum": 12,
-            "type": "string",
-            "inclusive": true,
-            "message": "Should be at least 12 characters",
-            "path": [
-              "contactInfo",
-              "phone"
-            ]
-          }
-        ],
-        "name": "ZodError"
-      },
-      {
-        "issues": [
-          {
-            "validation": "regex",
-            "code": "invalid_string",
-            "message": "Invalid",
-            "path": [
-              "contactInfo",
-              "phone"
-            ]
-          },
-          {
-            "code": "invalid_type",
-            "expected": "array",
-            "received": "string",
-            "path": [
-              "contactInfo",
-              "phone"
-            ],
-            "message": "Expected array, received string"
-          }
-        ],
-        "name": "ZodError"
-      }
-    ],
+    "code": "too_small",
+    "minimum": 12,
+    "type": "string",
+    "inclusive": true,
+    "message": "Should be at least 12 characters",
     "path": [
       "contactInfo",
       "phone"
-    ],
-    "message": "Invalid input"
+    ]
+  },
+  {
+    "validation": "regex",
+    "code": "invalid_string",
+    "message": "Invalid",
+    "path": [
+      "contactInfo",
+      "phone"
+    ]
   },
   {
     "code": "custom",
@@ -312,8 +273,8 @@ Object {
       query {
         invalid: soloNested(input: { nested: { id: "1" } })
         valid: soloNested(input: { nested: { id: "12" } })
-        # invalidList: nestedObjectList(input: { nested: [{ id: "1" }] })
-        # validList: nestedObjectList(input: { nested: [{ id: "12" }] })
+        invalidList: nestedObjectList(input: { nested: [{ id: "1" }] })
+        validList: nestedObjectList(input: { nested: [{ id: "12" }] })
       }
     `;
 
