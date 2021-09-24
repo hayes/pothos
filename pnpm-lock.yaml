@@ -302,7 +302,9 @@ importers:
     specifiers:
       '@jsdevtools/rehype-toc': ^3.0.2
       '@mdx-js/loader': ^1.6.22
+      '@mdx-js/react': ^1.6.22
       '@next/mdx': ^11.1.2
+      '@tailwindcss/typography': ^0.4.1
       '@types/react': ^17.0.24
       autoprefixer: ^10.2.6
       next: latest
@@ -314,7 +316,9 @@ importers:
     dependencies:
       '@jsdevtools/rehype-toc': 3.0.2
       '@mdx-js/loader': 1.6.22_react@17.0.2
-      '@next/mdx': 11.1.2_@mdx-js+loader@1.6.22
+      '@mdx-js/react': 1.6.22_react@17.0.2
+      '@next/mdx': 11.1.2_f56c41adb6190c4680be4a1c0222355d
+      '@tailwindcss/typography': 0.4.1_tailwindcss@2.2.15
       next: 11.1.2_bd7797d63db473de6e2318609a63c933
       react: 17.0.2
       react-dom: 17.0.2_react@17.0.2
@@ -2730,13 +2734,14 @@ packages:
     resolution: {integrity: sha512-+fteyVdQ7C/OoulfcF6vd1Yk0FEli4453gr8kSFbU8sKseNSizYq6df5MKz/AjwLptsxrUeIkgBdAzbziyJ3mA==}
     dev: false
 
-  /@next/mdx/11.1.2_@mdx-js+loader@1.6.22:
+  /@next/mdx/11.1.2_f56c41adb6190c4680be4a1c0222355d:
     resolution: {integrity: sha512-uRodX0OGSWMGTzun1QGfpXisKjz4ptWoizYqhXWZubLFJsRG/GKbB9n9hh3l48KlzKMO2S1REAOKJd+x9h/nWw==}
     peerDependencies:
       '@mdx-js/loader': '>=0.15.0'
       '@mdx-js/react': '*'
     dependencies:
       '@mdx-js/loader': 1.6.22_react@17.0.2
+      '@mdx-js/react': 1.6.22_react@17.0.2
     dev: false
 
   /@next/polyfill-module/11.1.2:
@@ -2897,6 +2902,18 @@ packages:
     dependencies:
       '@sinonjs/commons': 1.8.3
     dev: true
+
+  /@tailwindcss/typography/0.4.1_tailwindcss@2.2.15:
+    resolution: {integrity: sha512-ovPPLUhs7zAIJfr0y1dbGlyCuPhpuv/jpBoFgqAc658DWGGrOBWBMpAWLw2KlzbNeVk4YBJMzue1ekvIbdw6XA==}
+    peerDependencies:
+      tailwindcss: '>=2.0.0'
+    dependencies:
+      lodash.castarray: 4.4.0
+      lodash.isplainobject: 4.0.6
+      lodash.merge: 4.6.2
+      lodash.uniq: 4.5.0
+      tailwindcss: 2.2.15_6b046420bcea5255a93f38a941a6a06c
+    dev: false
 
   /@tootallnate/once/1.1.2:
     resolution: {integrity: sha512-RbzJvlNzmRq5c3O09UipeuXno4tA1FE6ikOjxZK0tuxVv3412l64l5t1W5pj4+rJq9vpkm/kwiR07aZXnsKPxw==}
@@ -7067,6 +7084,10 @@ packages:
       p-locate: 5.0.0
     dev: true
 
+  /lodash.castarray/4.4.0:
+    resolution: {integrity: sha1-wCUTUV4wna3dTCTGDP3c9ZdtkRU=}
+    dev: false
+
   /lodash.clonedeep/4.5.0:
     resolution: {integrity: sha1-4j8/nE+Pvd6HJSnBBxhXoIblzO8=}
     dev: true
@@ -7075,13 +7096,16 @@ packages:
     resolution: {integrity: sha1-gteb/zCmfEAF/9XiUVMArZyk168=}
     dev: true
 
+  /lodash.isplainobject/4.0.6:
+    resolution: {integrity: sha1-fFJqUtibRcRcxpC4gWO+BJf1UMs=}
+    dev: false
+
   /lodash.memoize/4.1.2:
     resolution: {integrity: sha1-vMbEmkKihA7Zl/Mj6tpezRguC/4=}
     dev: true
 
   /lodash.merge/4.6.2:
     resolution: {integrity: sha512-0KpjqXRVvrYyCsX1swR/XTK0va6VQkQM6MNo7PqW77ByjAhoARA8EfrP1N4+KlKj8YS0ZUCtRT/YUuhyYDujIQ==}
-    dev: true
 
   /lodash.sortby/4.7.0:
     resolution: {integrity: sha1-7dFMgk4sycHgsKG0K7UhBRakJDg=}
