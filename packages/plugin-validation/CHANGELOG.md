@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.11.0
+
+### Minor Changes
+
+- 2091718: Update how schemas validations are merged. This should resolve some issues with array
+  intersections not being merged correctly
+
 ## 2.10.3
 
 ### Patch Changes
