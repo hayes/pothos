@@ -1,3 +1,5 @@
+![GiraphQL](./website/public/assets/logo-name-auto.svg)
+
 ## GiraphQL - A plugin based GraphQL schema builder for typescript
 
 GiraphQL makes writing graphql schemas in typescript easy, fast and enjoyable. The core of GiraphQL

@@ -3,7 +3,7 @@ name: Overview
 route: /
 ---
 
-# Overview
+![GiraphQL](../website/public/assets/logo-name-light.svg)
 
 ## GiraphQL - A plugin based GraphQL schema builder for typescript
 
