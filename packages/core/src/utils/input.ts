@@ -119,7 +119,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     let result = false;
 
     map.forEach((mapping) => {
-      if (mapping.kind !== 'InputObject') {
+      if (mapping.value !== null || mapping.kind !== 'InputObject') {
         result = true;
       } else if (mapping.fields.map && checkForMappings(mapping.fields.map, hasMappings)) {
         result = true;

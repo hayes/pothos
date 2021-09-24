@@ -100,7 +100,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
       }
     });
 
-    let validator: zod.ZodTypeAny = zod.object(args).nonstrict();
+    let validator: zod.ZodTypeAny = zod.object(args).passthrough();
 
     if (fieldConfig.giraphqlOptions.validate) {
       validator = refine(validator, {
@@ -127,7 +127,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 
       let fieldValidator = refine(
         zod.lazy(() =>
-          zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).nonstrict(),
+          zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).passthrough(),
         ),
         options,
       );

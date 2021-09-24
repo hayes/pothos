@@ -244,7 +244,7 @@ export function createArrayValidator(
 }
 
 export const createObjectValidator = validatorCreator('object', objectValidations, (options) =>
-  refine(zod.object({}).nonstrict(), options),
+  refine(zod.object({}).passthrough(), options),
 );
 
 const validationCreators = [
@@ -291,8 +291,6 @@ export default function createZodSchema(
   }
 
   if (isBaseValidator(options)) {
-    refine(zod.unknown(), options);
-
     return combine([refine(zod.unknown(), options)], required);
   }
 

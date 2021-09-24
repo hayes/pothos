@@ -306,4 +306,46 @@ Object {
 }
 `);
   });
+
+  it('input object with schema', async () => {
+    const query = gql`
+      query {
+        invalid: soloNested(input: { nested: { id: "1" } })
+        valid: soloNested(input: { nested: { id: "12" } })
+        # invalidList: nestedObjectList(input: { nested: [{ id: "1" }] })
+        # validList: nestedObjectList(input: { nested: [{ id: "12" }] })
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+Object {
+  "data": Object {
+    "invalid": null,
+    "valid": true,
+  },
+  "errors": Array [
+    [GraphQLError: [
+  {
+    "code": "too_small",
+    "minimum": 2,
+    "type": "string",
+    "inclusive": true,
+    "message": "Should be at least 2 characters",
+    "path": [
+      "input",
+      "nested",
+      "id"
+    ]
+  }
+]],
+  ],
+}
+`);
+  });
 });

@@ -1,5 +1,6 @@
 import * as zod from 'zod';
-import { ValidationOptions } from '../../../src';
+import { createZodSchema, ValidationOptions } from '../../../src';
+import { combine, refine } from '../../../src/createZodSchema';
 import builder from '../builder';
 
 interface RecursiveShape {
@@ -232,5 +233,53 @@ builder.queryType({
     }),
   }),
 });
+
+const NestedInput = builder.inputType('NestedInput', {
+  fields: (t) => ({ id: t.id() }),
+});
+
+const SoloNestedInput = builder.inputType('SoloNestedInput', {
+  fields: (t) => ({
+    nested: t.field({
+      required: true,
+      type: NestedInput,
+      validate: {
+        schema: zod.object({ id: zod.string().min(2) }),
+      },
+    }),
+  }),
+});
+
+const NestedObjectListInput = builder.inputType('NestedObjectListInput', {
+  fields: (t) => ({
+    nested: t.field({
+      required: true,
+      type: [NestedInput],
+      validate: {
+        schema: zod.array(zod.object({ id: zod.string().min(2) })),
+      },
+    }),
+  }),
+});
+
+builder.queryField('soloNested', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: SoloNestedInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('nestedObjectList', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: NestedObjectListInput }),
+    },
+    resolve: () => true,
+  }),
+);
 
 export default builder.toSchema({});
