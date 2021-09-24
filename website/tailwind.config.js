@@ -1,3 +1,5 @@
+const colors = require('tailwindcss/colors')
+
 // eslint-disable-next-line import/no-commonjs
 module.exports = {
   mode: 'jit',
@@ -7,6 +9,10 @@ module.exports = {
     colors: {
       transparent: 'transparent',
       current: 'currentColor',
+      black: colors.black,
+      white: colors.white,
+      gray: colors.trueGray,
+      coolGray: colors.coolGray,
       blue: {
         950: '#031516',
         900: '#062B2C',

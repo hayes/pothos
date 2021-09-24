@@ -5,6 +5,7 @@ const config: ESLintConfig = {
   ignore: [
     'deno',
     'scripts',
+    'website',
     'packages/plugin-prisma/prisma',
     'packages/plugin-prisma/tests/generated.ts',
   ],
