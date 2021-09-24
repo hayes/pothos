@@ -1,5 +1,12 @@
 # @giraphql/test-utils
 
+## 0.1.3
+
+### Patch Changes
+
+- 045e4ec: Fix a bug in argMapper that caused mappings to be omitted if the only mappings were for
+  fields for input types without nested mappings
+
 ## 0.1.2
 
 ### Patch Changes
