@@ -8,7 +8,16 @@ export interface BaseProps {
   children: ReactNode;
 }
 
-const components = {};
+const components = {
+  a: (props) => <a {...props} className="dark:!text-white" />,
+  p: (props) => <p {...props} className="dark:!text-white" />,
+  h1: (props) => <h1 {...props} className="dark:!text-white" />,
+  h2: (props) => <h2 {...props} className="dark:!text-white" />,
+  h3: (props) => <h3 {...props} className="dark:!text-white" />,
+  h4: (props) => <h4 {...props} className="dark:!text-white" />,
+  strong: (props) => <strong {...props} className="dark:!text-white" />,
+  inlineCode: (props) => <code {...props} className="dark:!text-white" />,
+};
 
 export function DocsPage({ children }: { children?: React.ReactNode }) {
   const items = Children.toArray(children)
@@ -23,7 +32,7 @@ export function DocsPage({ children }: { children?: React.ReactNode }) {
       <Layout toc={tableOfContents}>
         <MDXProvider components={components}>
           <Toc className="fixed top-24 right-0 w-0 md:w-[calc(100%-min(800px,75%))] xl:w-[calc(50%-min(400px,37.5%))]" items={items} />
-          <div className="prose lg:prose-xl w-full">{children}</div>
+          <div className="prose">{children}</div>
         </MDXProvider>
     </Layout>
   );

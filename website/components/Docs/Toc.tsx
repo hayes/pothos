@@ -20,7 +20,7 @@ export function TocEntry({ active, url, depth, text }: { url: string; depth: num
   return (
     <li
       className={`my-1 py-1 pl-${(depth - 2) * 4 + 2} ${
-        active ? 'border-l-4 border-pink-500 font-bold' : 'border-l-4 border-transparent'
+        active ? 'border-l-4 border-pink-500 dark:border-yellow-400 font-bold' : 'border-l-4 border-transparent'
       }`}
     >
       <a href={url} onClick={handleClick}>
@@ -53,12 +53,14 @@ export function Toc({
     });
 
     document.addEventListener('scroll', setClosestHeader, true);
+    window.addEventListener('resize', updatePositions);
 
     updatePositions();
 
     return () => {
       observer.disconnect();
       document.removeEventListener('scroll', setClosestHeader, true);
+      window.removeEventListener('resize', updatePositions);
     };
   }, [ref]);
 
@@ -83,7 +85,7 @@ export function Toc({
     let closest = positions.current[0].id;
 
     for (const next of positions.current) {
-      if (next.offset - offset + rect.y <= 64) {
+      if (next.offset - offset + rect.y <= 50) {
         closest = next.id;
       } else {
         break;
@@ -95,7 +97,7 @@ export function Toc({
 
   return (
     <nav ref={ref} className={`flex items-start px-2 ${className} text-sm`}>
-      <ol className="border-l border-gray-200 flex-shrink">
+      <ol className="border-l border-gray-200 dark:border-yellow-400 flex-shrink">
         {items.map((item, i) => (
           <TocEntry active={item.url.slice(1) === activeId } key={item.url} {...item} />
         ))}
