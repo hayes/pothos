@@ -300,6 +300,7 @@ importers:
 
   website:
     specifiers:
+      '@heroicons/react': ^1.0.4
       '@jsdevtools/rehype-toc': ^3.0.2
       '@mdx-js/loader': ^1.6.22
       '@mdx-js/react': ^1.6.22
@@ -314,6 +315,7 @@ importers:
       rehype-slug: ^4.0.0
       tailwindcss: ^2.2.4
     dependencies:
+      '@heroicons/react': 1.0.4_react@17.0.2
       '@jsdevtools/rehype-toc': 3.0.2
       '@mdx-js/loader': 1.6.22_react@17.0.2
       '@mdx-js/react': 1.6.22_react@17.0.2
@@ -2425,6 +2427,14 @@ packages:
 
   /@hapi/hoek/9.2.0:
     resolution: {integrity: sha512-sqKVVVOe5ivCaXDWivIJYVSaEgdQK9ul7a4Kity5Iw7u9+wBAPbX1RMSnLLmp7O4Vzj0WOWwMAJsTL00xwaNug==}
+    dev: false
+
+  /@heroicons/react/1.0.4_react@17.0.2:
+    resolution: {integrity: sha512-3kOrTmo8+Z8o6AL0rzN82MOf8J5CuxhRLFhpI8mrn+3OqekA6d5eb1GYO3EYYo1Vn6mYQSMNTzCWbEwUInb0cQ==}
+    peerDependencies:
+      react: '>= 16'
+    dependencies:
+      react: 17.0.2
     dev: false
 
   /@humanwhocodes/config-array/0.5.0:
