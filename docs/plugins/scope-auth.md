@@ -264,8 +264,8 @@ builder.queryType({
 });
 ```
 
-In the example above, the authScope map uses the coolPermission scope loader with a parameter of
-`readArticle`. The first time a field requests this scope, the coolPermission loader will be called
+In the example above, the authScope map uses the customPerm scope loader with a parameter of
+`readArticle`. The first time a field requests this scope, the customPerm loader will be called
 with `readArticle` as its argument. This scope will be cached, so that if multiple fields request
 the same scope, the scope loader will still only be called once.
 
