@@ -148,6 +148,21 @@ importers:
   packages/plugin-example/esm:
     specifiers: {}
 
+  packages/plugin-input-objects:
+    specifiers:
+      '@giraphql/core': ^2.15.2
+      '@giraphql/test-utils': ^0.1.2
+      graphql: 15.6.0
+      graphql-tag: ^2.12.5
+    devDependencies:
+      '@giraphql/core': link:../core
+      '@giraphql/test-utils': link:../test-utils
+      graphql: 15.6.0
+      graphql-tag: 2.12.5_graphql@15.6.0
+
+  packages/plugin-input-objects/esm:
+    specifiers: {}
+
   packages/plugin-mocks:
     specifiers:
       '@giraphql/core': ^2.16.0

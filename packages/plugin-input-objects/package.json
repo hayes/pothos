@@ -1,0 +1,41 @@
+{
+  "name": "@giraphql/plugin-input-objects",
+  "version": "2.0.0",
+  "description": "A GiraphQL plugin for defining input objects for arguments",
+  "main": "./lib/index.js",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": "./esm/index.js",
+    "require": "./lib/index.js"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Jonas Holst Damtoft",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "typescript",
+    "input",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@giraphql/core": "^2.15.2",
+    "@giraphql/test-utils": "^0.1.2",
+    "graphql": "15.6.0",
+    "graphql-tag": "^2.12.5"
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+}
