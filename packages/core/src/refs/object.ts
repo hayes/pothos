@@ -4,7 +4,10 @@ import BaseTypeRef from './base';
 
 import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '..';
 
-export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef {
+export default class ObjectRef<T, P = T>
+  extends BaseTypeRef
+  implements OutputRef, GiraphQLSchemaTypes.ObjectRef<T, P>
+{
   override kind = 'Object' as const;
 
   [outputShapeKey]: T;

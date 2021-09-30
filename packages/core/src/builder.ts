@@ -14,11 +14,6 @@ import {
 } from 'graphql';
 import BuildCache from './build-cache';
 import ConfigStore from './config-store';
-import EnumRef from './refs/enum';
-import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
-import ObjectRef, { ImplementableObjectRef } from './refs/object';
-import ScalarRef from './refs/scalar';
-import UnionRef from './refs/union';
 import {
   EnumValues,
   InputShape,
@@ -46,6 +41,7 @@ import {
   AbstractReturnShape,
   BaseEnum,
   EnumParam,
+  EnumRef,
   EnumTypeOptions,
   GiraphQLEnumTypeConfig,
   GiraphQLInputObjectTypeConfig,
@@ -57,20 +53,26 @@ import {
   GiraphQLSubscriptionTypeConfig,
   GiraphQLUnionTypeConfig,
   ImplementableInputObjectRef,
+  ImplementableInterfaceRef,
+  ImplementableObjectRef,
   InputFieldBuilder,
   InputFieldMap,
   InputFieldsFromShape,
   InputObjectRef,
   InputShapeFromFields,
   InterfaceFieldBuilder,
+  InterfaceRef,
   InterfaceTypeOptions,
   MutationFieldBuilder,
   ObjectFieldBuilder,
+  ObjectRef,
   ObjectTypeOptions,
   ParentShape,
   PluginConstructorMap,
   QueryFieldBuilder,
+  ScalarRef,
   SubscriptionFieldBuilder,
+  UnionRef,
   ValuesFromEnum,
 } from '.';
 
@@ -486,21 +488,19 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   inputType<
     Param extends InputObjectRef<unknown> | string,
-    Fields extends Param extends InputObjectRef<unknown>
+    Fields extends Param extends GiraphQLSchemaTypes.InputObjectRef<unknown>
       ? InputFieldsFromShape<InputShape<Types, Param> & {}>
       : InputFieldMap,
   >(
     param: Param,
     options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>,
-  ): InputObjectRef<InputShapeFromFields<Fields>> {
+  ): GiraphQLSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {
     verifyRef(param);
     const name = typeof param === 'string' ? param : (param as { name: string }).name;
 
     const ref = (
-      param instanceof InputObjectRef
-        ? param
-        : new InputObjectRef<InputShapeFromFields<Fields>>(name)
-    ) as InputObjectRef<InputShapeFromFields<Fields>>;
+      typeof param === 'string' ? new InputObjectRef<InputShapeFromFields<Fields>>(name) : param
+    ) as GiraphQLSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>>;
 
     const config: GiraphQLInputObjectTypeConfig = {
       kind: 'InputObject',

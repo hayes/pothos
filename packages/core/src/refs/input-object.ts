@@ -4,7 +4,10 @@ import BaseTypeRef from './base';
 
 import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '..';
 
-export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
+export default class InputObjectRef<T>
+  extends BaseTypeRef
+  implements InputRef, GiraphQLSchemaTypes.InputObjectRef<T>
+{
   override kind = 'InputObject' as const;
 
   [inputShapeKey]: T;

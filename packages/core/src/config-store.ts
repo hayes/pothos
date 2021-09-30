@@ -7,12 +7,10 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import BaseTypeRef from './refs/base';
-import BuiltinScalarRef from './refs/builtin-scalar';
-import InputTypeRef from './refs/input';
-import OutputTypeRef from './refs/output';
 import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types';
 import {
+  BaseTypeRef,
+  BuiltinScalarRef,
   ConfigurableRef,
   FieldRef,
   GiraphQLFieldConfig,
@@ -23,7 +21,9 @@ import {
   InputFieldRef,
   InputType,
   InputTypeParam,
+  InputTypeRef,
   OutputType,
+  OutputTypeRef,
   TypeParam,
 } from '.';
 
