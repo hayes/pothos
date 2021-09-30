@@ -1,7 +1,7 @@
 import ConfigStore from '../config-store';
-import BaseTypeRef from '../refs/base';
 
 import {
+  BaseTypeRef,
   FieldNullability,
   FieldRequiredness,
   GiraphQLInputFieldType,
