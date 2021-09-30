@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.8.0
+
+### Minor Changes
+
+- 17db3bd: Make type refs extendable by plugins
+
 ## 2.7.2
 
 ### Patch Changes

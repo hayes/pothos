@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 0.2.0
+
+### Minor Changes
+
+- 17db3bd: Make type refs extendable by plugins
+
 ## 0.1.3
 
 ### Patch Changes
