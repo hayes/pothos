@@ -3,6 +3,35 @@ import { getDroid, getHero, getHuman } from '../data';
 import { Episode } from './episode';
 
 builder.queryType({});
+builder.mutationType({});
+
+builder
+  .withInput2({
+    fields: (t) => ({
+      id: t.id({
+        required: true,
+        description: 'id of the character',
+      }),
+    }),
+  })
+  .queryField('human2', {
+    type: 'Human',
+    resolve: (_, args) => getHuman(args.input.id),
+  });
+
+builder
+  .withInput2({
+    fields: (t) => ({
+      id: t.id({
+        required: true,
+        description: 'id of the character',
+      }),
+    }),
+  })
+  .mutationField('test', {
+    type: 'Human',
+    resolve: (_, args) => getHuman(args.input.id),
+  });
 
 builder
   .withInput({

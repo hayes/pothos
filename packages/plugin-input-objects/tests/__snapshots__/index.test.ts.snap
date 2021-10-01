@@ -70,15 +70,30 @@ type Human implements Character {
   name: String!
 }
 
+input Human2Input {
+  \\"\\"\\"id of the character\\"\\"\\"
+  id: ID!
+}
+
 input HumanInput {
   \\"\\"\\"id of the character\\"\\"\\"
   id: ID!
 }
 
+type Mutation {
+  test(input: TestInput!): Human!
+}
+
 type Query {
   hero(options: HeroInput!): Character!
   human(input: HumanInput!): Human!
+  human2(input: Human2Input!): Human!
   r2d2: Droid!
+}
+
+input TestInput {
+  \\"\\"\\"id of the character\\"\\"\\"
+  id: ID!
 }
 "
 `;

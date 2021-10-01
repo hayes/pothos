@@ -1,11 +1,39 @@
 import {
   FieldNullability,
+  FieldRef,
   InputFieldMap,
   InputFieldRef,
   InputShapeFromFields,
+  RootFieldBuilder,
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
+
+type SchemaBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.SchemaBuilder<Types>;
+
+type KeysMatching<T, V> = { [K in keyof T]-?: T[K] extends V ? K : never }[keyof T];
+
+export type WithInputBuilders<
+  Types extends SchemaTypes,
+  Args extends InputFieldMap,
+  InputName extends string,
+> = {
+  [K in KeysMatching<
+    Omit<SchemaBuilder<Types>, 'withInput2'>,
+    (name: string, builder: (t: RootFieldBuilder<Types, {}>) => FieldRef) => void
+  >]: <ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>>(
+    name: string,
+    options: GiraphQLSchemaTypes.FieldOptions<
+      Types,
+      ParentShape,
+      Type,
+      Nullable,
+      {
+        [Name in InputName]: InputFieldRef<InputShapeFromFields<Args>>;
+      }
+    >,
+  ) => void;
+};
 
 export type WithInputOptions<
   Types extends SchemaTypes,

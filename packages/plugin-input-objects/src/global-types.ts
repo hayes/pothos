@@ -1,5 +1,5 @@
 import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '@giraphql/core';
-import { QueryFieldWithInputOptions, WithInputOptions } from './types';
+import { QueryFieldWithInputOptions, WithInputBuilders, WithInputOptions } from './types';
 import { GiraphQLInputObjectsPlugin } from '.';
 
 declare global {
@@ -9,6 +9,9 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
+      withInput2: <Args extends InputFieldMap, InputName extends string = 'input'>(
+        options: WithInputOptions<Types, Args, InputName>,
+      ) => WithInputBuilders<Types, Args, InputName>;
       withInput: <Fields extends InputFieldMap, InputName extends string = 'input'>(
         options: WithInputOptions<Types, Fields, InputName>,
       ) => {
