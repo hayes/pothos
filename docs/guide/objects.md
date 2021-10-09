@@ -170,7 +170,7 @@ builder.queryFields((t) => ({
 ### Using SchemaTypes
 
 You can provide a type mappings when you create the [SchemaBuilder](schema-builder.md). This will
-allow you to reference you type by name throughout your schema \(as a string\).
+allow you to reference the type by name throughout your schema \(as a string\).
 
 ```typescript
 const builder = new SchemaBuilder<{ Objects: { Giraffe: Giraffe } }>({});
