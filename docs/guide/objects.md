@@ -31,7 +31,7 @@ export class Giraffe {
 
 ### Define the type
 
-You can use `builder.objectType` to add add new `Object` types to your schema.
+You can use `builder.objectType` to add new `Object` types to your schema.
 
 ```typescript
 const builder = new SchemaBuilder({});
