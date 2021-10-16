@@ -16,6 +16,7 @@
   * [App layout](guide/app-layout.md)
   * [Patterns](guide/patterns.md)
   * [Printing Schema](guide/printing-schemas.md)
+  * [Generating Client Types](guide/generating-client-types.md)
   * [Changing Default Nullability](guide/changing-default-nullability.md)
   * [Writing Plugins](guide/writing-plugins.md)
   * [Deno](guide/deno.md)

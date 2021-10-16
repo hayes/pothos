@@ -31,3 +31,8 @@ const schemaAsString = printSchema(lexicographicSortSchema(schema));
 
 writeFileSync('/path/to/schema.graphql', schemaAsString);
 ```
+
+## Using graphql-code-generator
+
+An alternative to printing your schema directly is to generate your schema file using
+graphql-code-generator. See [Generating Client Types](./generating-client-types.md) for more details
