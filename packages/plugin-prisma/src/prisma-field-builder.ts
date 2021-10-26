@@ -74,7 +74,7 @@ export class PrismaObjectFieldBuilder<
       defaultSize?: number;
       cursor: string;
       extensions: {};
-      query: ((args: {}) => {}) | {};
+      query: ((args: {}, ctx: {}) => {}) | {};
       resolve: (query: {}, parent: unknown, args: {}, ctx: {}, info: {}) => MaybePromise<{}[]>;
     },
     connectionOptions = {},
@@ -87,8 +87,8 @@ export class PrismaObjectFieldBuilder<
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
     let typeName: string | undefined;
 
-    const getQuery = (args: GiraphQLSchemaTypes.DefaultConnectionArguments) => ({
-      ...((typeof query === 'function' ? query(args) : query) as {}),
+    const getQuery = (args: GiraphQLSchemaTypes.DefaultConnectionArguments, ctx: {}) => ({
+      ...((typeof query === 'function' ? query(args, ctx) : query) as {}),
       ...prismaCursorConnectionQuery({
         column: cursor,
         maxSize,
@@ -116,7 +116,7 @@ export class PrismaObjectFieldBuilder<
           context: {},
           info: GraphQLResolveInfo,
         ) => {
-          const connectionQuery = getQuery(args);
+          const connectionQuery = getQuery(args, context);
           const getResult = () => {
             const mapping = getLoaderMapping(context, info.path);
             const loadedValue = (parent as Record<string, unknown>)[name];
@@ -261,7 +261,7 @@ export class PrismaObjectFieldBuilder<
         }
 
         const queryOptions = {
-          ...((typeof query === 'function' ? query(args) : query) as {}),
+          ...((typeof query === 'function' ? query(args, context) : query) as {}),
           ...queryFromInfo(context, info),
         };
 

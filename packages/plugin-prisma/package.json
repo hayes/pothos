@@ -5,8 +5,11 @@
   "main": "./lib/index.js",
   "module": "./esm/index.js",
   "exports": {
-    "import": "./esm/index.js",
-    "require": "./lib/index.js"
+    ".": {
+      "import": "./esm/index.js",
+      "require": "./lib/index.js"
+    },
+    "./generated": "./generated.ts"
   },
   "scripts": {
     "generate": "prisma generate",

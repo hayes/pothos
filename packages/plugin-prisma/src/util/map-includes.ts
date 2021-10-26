@@ -23,6 +23,7 @@ import {
 import { mergeIncludes, resolveIndirectType } from '.';
 
 function handleField(
+  ctx: object,
   info: GraphQLResolveInfo,
   fields: GraphQLFieldMap<unknown, unknown>,
   selection: FieldNode,
@@ -66,6 +67,7 @@ function handleField(
       }
 
       includesFromSelectionSet(
+        ctx,
         type,
         info,
         includes,
@@ -103,7 +105,7 @@ function handleField(
       unknown
     >;
 
-    query = query(args);
+    query = query(args, ctx);
   }
 
   const existingInclude = includes[relationName];
@@ -138,6 +140,7 @@ function handleField(
 
   if (selection.selectionSet) {
     includesFromSelectionSet(
+      ctx,
       type,
       info,
       nestedIncludes,
@@ -160,6 +163,7 @@ function handleField(
 }
 
 export function includesFromSelectionSet(
+  ctx: object,
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
   includes: IncludeMap,
@@ -201,7 +205,16 @@ export function includesFromSelectionSet(
           continue;
         }
 
-        handleField(info, type.getFields(), selection, includes, counts, mappings, indirectMap);
+        handleField(
+          ctx,
+          info,
+          type.getFields(),
+          selection,
+          includes,
+          counts,
+          mappings,
+          indirectMap,
+        );
         break;
       case 'FragmentSpread':
         if (!info.fragments[selection.name.value]) {
@@ -213,6 +226,7 @@ export function includesFromSelectionSet(
         }
 
         includesFromSelectionSet(
+          ctx,
           expectedType,
           info,
           includes,
@@ -228,6 +242,7 @@ export function includesFromSelectionSet(
         }
 
         includesFromSelectionSet(
+          ctx,
           selection.typeCondition ? expectedType : type,
           info,
           includes,
@@ -264,7 +279,7 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
 
     const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
 
-    includesFromSelectionSet(type, info, includes, counts, mappings, node.selectionSet);
+    includesFromSelectionSet(ctx, type, info, includes, counts, mappings, node.selectionSet);
   }
 
   if (Object.keys(counts.current).length > 0) {
