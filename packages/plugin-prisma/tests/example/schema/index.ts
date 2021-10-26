@@ -71,6 +71,30 @@ const User = builder.prismaNode('User', {
       resolve: (user) => prisma.user.findUnique({ where: { id: user.id } }).profile(),
     }),
     commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
+    commentedPosts: t.relation('posts', {
+      query: (args, ctx) => ({
+        take: 3,
+        where: {
+          comments: {
+            some: {
+              authorId: ctx.user.id,
+            },
+          },
+        },
+      }),
+    }),
+    commentedPostsConnection: t.relatedConnection('posts', {
+      cursor: 'id',
+      query: (args, ctx) => ({
+        where: {
+          comments: {
+            some: {
+              authorId: ctx.user.id,
+            },
+          },
+        },
+      }),
+    }),
   }),
 });
 
@@ -136,6 +160,13 @@ builder.prismaObject('Post', {
     }),
     comments: t.relation('comments'),
     commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
+    ownComments: t.relation('comments', {
+      query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
+    }),
+    ownCommentsConnection: t.relatedConnection('comments', {
+      cursor: 'id',
+      query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
+    }),
   }),
 });
 

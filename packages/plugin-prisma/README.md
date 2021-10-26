@@ -41,7 +41,7 @@ section below.
 
 ```typescript
 builder.prismaObject('User', {
-  include {
+  include: {
     profile: true,
   },
   findUnique: (user) => ({ id: user.id }),
@@ -296,7 +296,7 @@ following command to re-generate the client and create the new types:
 
 ```bash
 npx prisma generate
-``` 
+```
 
 additional options:
 
@@ -322,7 +322,8 @@ import SchemaBuilder from '@giraphql/core';
 import { PrismaClient } from '@prisma/client';
 import PrismaPlugin from '@giraphql/plugin-prisma';
 // This is the default location for the generator, but this can be customized as described above
-import PrismaTypes from '@giraphql/plugin-prisma/generated';
+// Using a type only import will help avoid issues with undeclared exports in esm mode
+import type PrismaTypes from '@giraphql/plugin-prisma/generated';
 
 const prisma = new PrismaClient({});
 
@@ -607,15 +608,10 @@ builder.prismaObject('User', {
 
 ### relationCount
 
-Prisma recently introduced
-[Relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
-which allow including counts for relations along side other `includes`. This feature is still behind
-a flag and has some bugs.
-
-Support for defining count fields has been added to this plugin, but is not currently recommend due
-to an outstand prisma bug that causes queries to fail when a count include is nested inside a list
-relation. Until [this bug](https://github.com/prisma/prisma/issues/8861) is fixed this feature
-SHOULD NOT BE USED.
+Prisma supports querying for
+[relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
+which allow including counts for relations along side other `includes`. This does not currently
+support any filters on the counts, but can give a total count for a relation.
 
 ```typescript
 builder.prismaObject('User', {
@@ -809,4 +805,3 @@ builder.prismaNode('User', {
   relationships to improve query efficiency.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   `relationCount` above for more details.
- 
