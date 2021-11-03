@@ -46,7 +46,7 @@ section below.
 
 ```typescript
 builder.prismaObject('User', {
-  include {
+  include: {
     profile: true,
   },
   findUnique: (user) => ({ id: user.id }),

@@ -59,7 +59,7 @@ yarn add --dev @graphql-codegen/cli
 yarn add --dev @graphql-codegen/schema-ast
 yarn add --dev @graphql-codegen/typescript
 yarn add --dev @graphql-codegen/typescript-operations
-yarn add --dev @graphql-codegentypescript-react-apollo
+yarn add --dev @graphql-codegen/typescript-react-apollo
 ```
 
 ```yml
