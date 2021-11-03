@@ -327,7 +327,8 @@ import SchemaBuilder from '@giraphql/core';
 import { PrismaClient } from '@prisma/client';
 import PrismaPlugin from '@giraphql/plugin-prisma';
 // This is the default location for the generator, but this can be customized as described above
-import PrismaTypes from '@giraphql/plugin-prisma/generated';
+// Using a type only import will help avoid issues with undeclared exports in esm mode
+import type PrismaTypes from '@giraphql/plugin-prisma/generated';
 
 const prisma = new PrismaClient({});
 
