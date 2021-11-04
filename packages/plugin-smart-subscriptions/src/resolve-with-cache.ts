@@ -31,7 +31,7 @@ export default function resolveWithCache<Types extends SchemaTypes>(
     }
   }
 
-  const resultOrPromise = resolve(parent, args, context, info) as unknown;
+  const resultOrPromise = resolve(parent, args, context, info);
 
   function cacheResult(result: unknown) {
     const cacheNode = cache.add(info, key, canRefetch, result);

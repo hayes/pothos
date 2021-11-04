@@ -21,9 +21,9 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "15.6.0",
-    "graphql-helix": "^1.8.0",
-    "ts-morph": "^12.0.0",
-    "yargs": "^17.2.0"
+    "graphql": "16.0.1",
+    "graphql-helix": "^1.9.0",
+    "ts-morph": "^12.2.0",
+    "yargs": "^17.2.1"
   }
 }

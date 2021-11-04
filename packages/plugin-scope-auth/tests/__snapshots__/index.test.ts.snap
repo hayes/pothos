@@ -159,6 +159,5 @@ type Query {
   forSyncPermissionFn(permission: String): String
   grantedFromRoot: String!
   notGrantedFromRoot: String!
-}
-"
+}"
 `;

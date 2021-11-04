@@ -180,8 +180,7 @@ type SharedConnection {
 type SharedEdge {
   cursor: String!
   node: Number!
-}
-"
+}"
 `;
 
 exports[`relay example schema generates expected schema with globalConnectionFields 1`] = `
@@ -372,8 +371,7 @@ type SharedConnection {
 type SharedEdge {
   cursor: String!
   node: Number!
-}
-"
+}"
 `;
 
 exports[`relay example schema queries query array based connections 1`] = `

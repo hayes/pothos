@@ -44,7 +44,7 @@ describe('smart subscriptions', () => {
       },
     })) as AsyncIterableIterator<ExecutionResult>;
 
-    expect(await (await iter.next()).value).toMatchInlineSnapshot(`
+    expect((await iter.next()).value).toMatchInlineSnapshot(`
       Object {
         "data": Object {
           "polls": Array [],

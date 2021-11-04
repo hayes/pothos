@@ -36,6 +36,5 @@ type WithCommonFields1 {
 type WithCommonFields2 {
   id: ID!
   idLength: Int!
-}
-"
+}"
 `;

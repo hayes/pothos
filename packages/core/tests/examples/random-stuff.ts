@@ -40,7 +40,7 @@ class Giraffe extends Animal {
 const builder = new SchemaBuilder<Types>({});
 
 builder.scalarType('Date', {
-  serialize: (date) => new Date(date).toISOString(),
+  serialize: (date) => new Date(date as Date).toISOString(),
 });
 
 builder.interfaceType(Animal, {

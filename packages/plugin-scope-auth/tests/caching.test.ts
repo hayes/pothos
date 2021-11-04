@@ -45,7 +45,7 @@ describe('caching', () => {
         },
       });
 
-      expect(counter.counts.get('syncPermission')).toEqual(2);
+      expect(counter.counts.get('syncPermission')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
         Object {
@@ -105,7 +105,7 @@ describe('caching', () => {
         },
       });
 
-      expect(counter.counts.get('asyncPermission')).toEqual(2);
+      expect(counter.counts.get('asyncPermission')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
         Object {
@@ -158,7 +158,7 @@ describe('caching', () => {
         },
       });
 
-      expect(counter.counts.get('ObjForSyncPermFn')).toEqual(2);
+      expect(counter.counts.get('ObjForSyncPermFn')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
         Object {
@@ -208,7 +208,7 @@ describe('caching', () => {
         },
       });
 
-      expect(counter.counts.get('ObjForAdminAsyncFn')).toEqual(2);
+      expect(counter.counts.get('ObjForAdminAsyncFn')).toBe(2);
 
       expect(result).toMatchInlineSnapshot(`
         Object {

@@ -109,7 +109,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
     }
 
     return async (parent, rawArgs, context, info) =>
-      resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info) as unknown;
+      resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info);
   }
 
   createValidator(

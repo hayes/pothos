@@ -144,7 +144,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     const fieldConfigs: Record<string, GiraphQLInputFieldConfig<Types>> = {};
 
     Object.keys(fields).forEach((fieldName) => {
-      fieldConfigs[fieldName] = fields[fieldName].extensions!
+      fieldConfigs[fieldName] = fields[fieldName].extensions
         .giraphqlConfig as GiraphQLInputFieldConfig<Types>;
     });
 
@@ -599,7 +599,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         return Promise.all(promises).then((results) => results.find((result) => !!result)?.name);
       }
 
-      return null;
+      return undefined;
     };
 
     const type: GraphQLInterfaceType = new GraphQLInterfaceType({
@@ -621,15 +621,13 @@ export default class BuildCache<Types extends SchemaTypes> {
     const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (...args) => {
       const resultOrPromise = config.resolveType!(...args);
 
-      const getResult = (
-        result: GraphQLObjectType<unknown, object> | string | null | undefined,
-      ) => {
+      const getResult = (result: GraphQLObjectType<unknown, object> | string | undefined) => {
         if (typeof result === 'string' || !result) {
           return result;
         }
 
         if (result instanceof GraphQLObjectType) {
-          return result;
+          return result.name;
         }
 
         try {

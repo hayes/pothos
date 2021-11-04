@@ -15,6 +15,8 @@ import { queryFromInfo } from './util';
 
 export * from './prisma-field-builder';
 
+Error.stackTraceLimit = Infinity;
+
 const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,

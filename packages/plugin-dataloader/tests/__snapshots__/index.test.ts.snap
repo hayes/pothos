@@ -132,8 +132,7 @@ type User implements TestInterface {
 type UserNode implements Node & TestInterface {
   id: ID!
   idFromInterface: ID!
-}
-"
+}"
 `;
 
 exports[`dataloader queries primes the dataloader 1`] = `

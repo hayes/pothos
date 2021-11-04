@@ -30,7 +30,7 @@ function unwrap(type: GraphQLType): GraphQLNamedType {
   }
 
   if (type instanceof GraphQLList) {
-    return unwrap(type.ofType as GraphQLType);
+    return unwrap(type.ofType);
   }
 
   return type;
@@ -506,7 +506,7 @@ export default class GiraphQLConverter {
 
     if (type instanceof GraphQLList) {
       writer.write('[');
-      this.writeType(writer, type.ofType as GraphQLType);
+      this.writeType(writer, type.ofType);
       writer.write(']');
 
       return;
@@ -536,7 +536,7 @@ export default class GiraphQLConverter {
       this.writeInputFieldShape(writer, wrappedType.ofType.ofType, rootType);
       writer.write('[]');
     } else if (wrappedType instanceof GraphQLList) {
-      this.writeInputFieldShape(writer, wrappedType.ofType as GraphQLType, rootType);
+      this.writeInputFieldShape(writer, wrappedType.ofType, rootType);
       writer.write('[]');
     } else if (type instanceof GraphQLScalarType) {
       switch (type.name) {

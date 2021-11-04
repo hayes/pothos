@@ -79,8 +79,7 @@ type Query {
     id: ID!
   ): Human!
   r2d2: Droid!
-}
-"
+}"
 `;
 
 exports[`starwars example queries query some stuff 1`] = `

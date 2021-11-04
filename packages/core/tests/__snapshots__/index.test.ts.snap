@@ -99,6 +99,5 @@ enum stuff {
   BattlestarGalactica
   Bears
   Beats
-}
-"
+}"
 `;

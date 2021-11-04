@@ -19,8 +19,7 @@ type User implements Node {
   firstName: String!
   id: ID!
   lastName: String!
-}
-"
+}"
 `;
 
 exports[`simple objects example schema queries query some stuff 1`] = `

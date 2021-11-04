@@ -69,8 +69,7 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
-}
-"
+}"
 `;
 
 exports[`subGraphs Public graph 1`] = `
@@ -116,8 +115,7 @@ type Query {
     id: ID!
   ): Human!
   r2d2: Droid!
-}
-"
+}"
 `;
 
 exports[`subGraphs full graph 1`] = `
@@ -199,8 +197,7 @@ type Query {
     id: ID!
   ): Human!
   r2d2: Droid!
-}
-"
+}"
 `;
 
 exports[`subGraphs multiple 1`] = `
@@ -273,6 +270,5 @@ type Query {
     id: ID!
   ): Human!
   r2d2: Droid!
-}
-"
+}"
 `;

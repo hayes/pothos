@@ -6,11 +6,15 @@ builder.addScalarType('Date', DateResolver, {});
 builder.scalarType('PositiveInt', {
   serialize: (n) => n as number,
   parseValue: (n) => {
-    if (n >= 0) {
-      return n as number;
+    if (typeof n !== 'number') {
+      throw new TypeError('Value must be a number');
     }
 
-    throw new Error('Value must be positive');
+    if (n >= 0) {
+      return n;
+    }
+
+    throw new TypeError('Value must be positive');
   },
 });
 

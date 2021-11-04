@@ -455,7 +455,6 @@ enum stuff {
   Bears
   Beats
 }
-
 "
 `;
 
@@ -663,6 +662,5 @@ type Query {
   ): Human!
   r2d2: Droid!
 }
-
 "
 `;

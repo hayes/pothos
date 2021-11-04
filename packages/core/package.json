@@ -36,8 +36,8 @@
   },
   "devDependencies": {
     "@giraphql/test-utils": "^0.2.0",
-    "graphql": "15.6.0",
-    "graphql-scalars": "^1.10.1",
+    "graphql": "16.0.1",
+    "graphql-scalars": "^1.13.1",
     "graphql-tag": "^2.12.5"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

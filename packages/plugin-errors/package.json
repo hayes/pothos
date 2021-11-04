@@ -36,9 +36,9 @@
     "@giraphql/core": "^2.16.0",
     "@giraphql/plugin-validation": "^2.12.0",
     "@giraphql/test-utils": "^0.2.0",
-    "graphql": "15.6.0",
+    "graphql": "16.0.1",
     "graphql-tag": "^2.12.5",
-    "zod": "^3.8.2"
+    "zod": "^3.11.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

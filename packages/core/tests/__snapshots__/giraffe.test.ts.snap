@@ -107,8 +107,7 @@ input RecursiveGiraffeInput {
   friends: [GiraffeInput!]
   height: Float!
   name: String!
-}
-"
+}"
 `;
 
 exports[`giraffe example mutations mutate some stuff 1`] = `

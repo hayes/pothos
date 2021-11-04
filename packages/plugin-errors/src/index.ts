@@ -108,8 +108,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
       }
 
       const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
-      const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions
-        ?.getDataloader as unknown;
+      const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions?.getDataloader;
 
       return this.builder.unionType(unionName, {
         types: [...errorTypes, resultType],

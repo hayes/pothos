@@ -91,6 +91,5 @@ type ZodError implements Error {
 type ZodFieldError {
   message: String!
   path: [String!]!
-}
-"
+}"
 `;

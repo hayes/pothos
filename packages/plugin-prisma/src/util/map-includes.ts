@@ -94,10 +94,10 @@ function handleField(
   const includeType = resolveIndirectType(type, info);
 
   const newIncludes: IncludeMap = {
-    ...((includeType.extensions?.giraphqlPrismaInclude as IncludeMap) ?? {}),
+    ...(includeType.extensions?.giraphqlPrismaInclude as IncludeMap),
   };
 
-  let query = (field.extensions?.giraphQLPrismaQuery as unknown) ?? {};
+  let query = field.extensions?.giraphQLPrismaQuery ?? {};
 
   if (typeof query === 'function') {
     const args = getArgumentValues(field, selection, info.variableValues) as Record<
@@ -263,7 +263,7 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
   const includeType = resolveIndirectType(getNamedType(info.returnType), info);
 
   const includes: IncludeMap = {
-    ...((includeType.extensions?.giraphqlPrismaInclude as IncludeMap) ?? {}),
+    ...(includeType.extensions?.giraphqlPrismaInclude as IncludeMap),
   };
 
   const counts = {

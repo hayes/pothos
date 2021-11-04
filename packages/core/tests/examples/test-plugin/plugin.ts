@@ -54,7 +54,7 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: GiraphQLOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    return (parent, args, context, info) => resolver(parent, args, context, info) as unknown;
+    return (parent, args, context, info) => resolver(parent, args, context, info);
   }
 
   override wrapSubscribe(

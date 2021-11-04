@@ -415,7 +415,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const values =
       typeof param === 'object'
-        ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
+        ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
           valuesFromEnum<Types>(param as BaseEnum)
         : normalizeEnumValues<Types>((options as { values: EnumValues<Types> }).values);
 
@@ -432,7 +432,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config, ref);
 
     if (typeof param !== 'string') {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
+      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       this.configStore.associateRefWithName(param as BaseEnum, name);
     }
 

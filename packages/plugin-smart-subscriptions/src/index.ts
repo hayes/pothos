@@ -73,8 +73,7 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
           t.field({
             ...fieldConfig.giraphqlOptions,
             resolve: (parent, args, context, info) =>
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-              (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info),
+              (fieldConfig.resolve ?? defaultFieldResolver)(parent, args, context, info) as never,
             subscribe: (parent, args, context, info) => {
               const manager = new SubscriptionManager({
                 value: parent,
@@ -138,10 +137,19 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
       const { cache } = this.requestData(context);
 
       if (!cache) {
-        return resolve(parent, args, context, info) as unknown;
+        return resolve(parent, args, context, info);
       }
 
-      return resolveWithCache(cache, subscribe, resolve, canRefetch, parent, args, context, info);
+      return resolveWithCache(
+        cache,
+        subscribe,
+        resolve,
+        canRefetch,
+        parent,
+        args as {},
+        context,
+        info,
+      );
     };
   }
 

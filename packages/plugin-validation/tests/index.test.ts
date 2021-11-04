@@ -63,110 +63,118 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": null,
-  "errors": Array [
-    [GraphQLError: [
-  {
-    "code": "custom",
-    "message": "Invalid input",
-    "path": [
-      "enum1"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "Invalid input",
-    "path": [
-      "recursive",
-      "float"
-    ]
-  },
-  {
-    "code": "too_big",
-    "maximum": 5,
-    "type": "number",
-    "inclusive": true,
-    "message": "Value should be less than or equal to 5",
-    "path": [
-      "recursive",
-      "recurse",
-      "number"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "Invalid input",
-    "path": [
-      "recursive",
-      "recurse",
-      "float"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "number must not be 3",
-    "path": [
-      "recursive",
-      "recurse",
-      "recurse"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "number must be odd",
-    "path": [
-      "odd"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "no example.com email addresses",
-    "path": [
-      "contactInfo",
-      "email"
-    ]
-  },
-  {
-    "code": "too_small",
-    "minimum": 12,
-    "type": "string",
-    "inclusive": true,
-    "message": "Should be at least 12 characters",
-    "path": [
-      "contactInfo",
-      "phone"
-    ]
-  },
-  {
-    "validation": "regex",
-    "code": "invalid_string",
-    "message": "Invalid",
-    "path": [
-      "contactInfo",
-      "phone"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "Aliases should be capitalized",
-    "path": [
-      "contactInfo",
-      "aliases"
-    ]
-  },
-  {
-    "code": "custom",
-    "message": "Name should be capitalized",
-    "path": [
-      "contactInfo",
-      "name"
-    ]
-  }
-]],
-  ],
-}
-`);
+      Object {
+        "data": null,
+        "errors": Array [
+          [GraphQLError: [
+        {
+          "code": "too_big",
+          "maximum": 5,
+          "type": "number",
+          "inclusive": true,
+          "message": "Value should be less than or equal to 5",
+          "path": [
+            "recursive",
+            "recurse",
+            "number"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "recursive",
+            "float"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "recursive",
+            "recurse",
+            "float"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "number must be odd",
+          "path": [
+            "odd"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "no example.com email addresses",
+          "path": [
+            "contactInfo",
+            "email"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": [
+            "enum1"
+          ]
+        },
+        {
+          "code": "too_small",
+          "minimum": 12,
+          "type": "string",
+          "inclusive": true,
+          "message": "Should be at least 12 characters",
+          "path": [
+            "contactInfo",
+            "phone"
+          ]
+        },
+        {
+          "validation": "regex",
+          "code": "invalid_string",
+          "message": "Invalid",
+          "path": [
+            "contactInfo",
+            "phone"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Aliases should be capitalized",
+          "path": [
+            "contactInfo",
+            "aliases"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Name should be capitalized",
+          "path": [
+            "contactInfo",
+            "name"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "number must not be 3",
+          "path": [
+            "recursive",
+            "recurse",
+            "recurse"
+          ]
+        },
+        {
+          "code": "custom",
+          "path": [
+            "contactInfo",
+            "aliases"
+          ],
+          "message": "contactInfo should include at least 2 aliases"
+        }
+      ]],
+        ],
+      }
+    `);
   });
 
   it('example queries', async () => {
@@ -191,81 +199,81 @@ Object {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "listInvalid": null,
-    "listInvalid2": null,
-    "listValid": true,
-    "messageInvalid": null,
-    "messageInvalid2": null,
-    "messageValid": true,
-    "simpleInvalid": null,
-    "simpleInvalid2": null,
-    "simpleValid": true,
-  },
-  "errors": Array [
-    [GraphQLError: [
-  {
-    "validation": "email",
-    "code": "invalid_string",
-    "message": "Invalid email",
-    "path": [
-      "email"
-    ]
-  }
-]],
-    [GraphQLError: [
-  {
-    "validation": "email",
-    "code": "invalid_string",
-    "message": "invalid email address",
-    "path": [
-      "email"
-    ]
-  }
-]],
-    [GraphQLError: [
-  {
-    "code": "custom",
-    "message": "Must provide either phone number or email address",
-    "path": []
-  }
-]],
-    [GraphQLError: [
-  {
-    "code": "custom",
-    "message": "Invalid input",
-    "path": []
-  }
-]],
-    [GraphQLError: [
-  {
-    "code": "too_big",
-    "maximum": 3,
-    "type": "string",
-    "inclusive": true,
-    "message": "Should be at most 3 characters long",
-    "path": [
-      "list",
-      0
-    ]
-  }
-]],
-    [GraphQLError: [
-  {
-    "code": "too_big",
-    "maximum": 3,
-    "type": "array",
-    "inclusive": true,
-    "message": "Should have at most 3 items",
-    "path": [
-      "list"
-    ]
-  }
-]],
-  ],
-}
-`);
+      Object {
+        "data": Object {
+          "listInvalid": null,
+          "listInvalid2": null,
+          "listValid": true,
+          "messageInvalid": null,
+          "messageInvalid2": null,
+          "messageValid": true,
+          "simpleInvalid": null,
+          "simpleInvalid2": null,
+          "simpleValid": true,
+        },
+        "errors": Array [
+          [GraphQLError: [
+        {
+          "validation": "email",
+          "code": "invalid_string",
+          "message": "invalid email address",
+          "path": [
+            "email"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Must provide either phone number or email address",
+          "path": []
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "too_big",
+          "maximum": 3,
+          "type": "string",
+          "inclusive": true,
+          "message": "Should be at most 3 characters long",
+          "path": [
+            "list",
+            0
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "too_big",
+          "maximum": 3,
+          "type": "array",
+          "inclusive": true,
+          "message": "Should have at most 3 items",
+          "path": [
+            "list"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "validation": "email",
+          "code": "invalid_string",
+          "message": "Invalid email",
+          "path": [
+            "email"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Invalid input",
+          "path": []
+        }
+      ]],
+        ],
+      }
+    `);
   });
 
   it('input object with schema', async () => {
@@ -285,43 +293,43 @@ Object {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "invalid": null,
-    "invalidList": null,
-    "valid": true,
-    "validList": true,
-  },
-  "errors": Array [
-    [GraphQLError: [
-  {
-    "code": "too_small",
-    "minimum": 2,
-    "type": "string",
-    "inclusive": true,
-    "message": "Should be at least 2 characters",
-    "path": [
-      0,
-      "id"
-    ]
-  }
-]],
-    [GraphQLError: [
-  {
-    "code": "too_small",
-    "minimum": 2,
-    "type": "string",
-    "inclusive": true,
-    "message": "Should be at least 2 characters",
-    "path": [
-      "input",
-      "nested",
-      "id"
-    ]
-  }
-]],
-  ],
-}
-`);
+      Object {
+        "data": Object {
+          "invalid": null,
+          "invalidList": null,
+          "valid": true,
+          "validList": true,
+        },
+        "errors": Array [
+          [GraphQLError: [
+        {
+          "code": "too_small",
+          "minimum": 2,
+          "type": "string",
+          "inclusive": true,
+          "message": "Should be at least 2 characters",
+          "path": [
+            0,
+            "id"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "too_small",
+          "minimum": 2,
+          "type": "string",
+          "inclusive": true,
+          "message": "Should be at least 2 characters",
+          "path": [
+            "input",
+            "nested",
+            "id"
+          ]
+        }
+      ]],
+        ],
+      }
+    `);
   });
 });

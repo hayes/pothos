@@ -35,6 +35,5 @@ type Subscription {
   poll(id: Int!): Poll
   polls: [Poll!]!
   test: Int!
-}
-"
+}"
 `;

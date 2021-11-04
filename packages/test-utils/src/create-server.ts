@@ -4,11 +4,12 @@
 /* eslint-disable node/no-unsupported-features/es-builtins */
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL, URLSearchParams } from 'url';
-import { GraphQLSchema } from 'graphql';
+import { ExecutionResult, GraphQLError, GraphQLSchema } from 'graphql';
 import {
   getGraphQLParameters,
   processRequest,
   renderGraphiQL,
+  sendResult,
   shouldRenderGraphiQL,
 } from 'graphql-helix';
 
@@ -16,6 +17,36 @@ export interface TestServerOptions {
   schema: GraphQLSchema;
   contextFactory?: (req: IncomingMessage, res: ServerResponse) => object;
 }
+
+const formatResult = (result: ExecutionResult) => {
+  const formattedResult: ExecutionResult = {
+    data: result.data,
+  };
+
+  if (result.errors) {
+    formattedResult.errors = result.errors.map((error) => {
+      // Log the error using the logger of your choice
+      console.log(error);
+
+      // Return a generic error message instead
+      return new GraphQLError(
+        error.message,
+        error.nodes,
+        error.source,
+        error.positions,
+        error.path,
+        error,
+        {
+          // Adding some metadata to the error
+          timestamp: Date.now(),
+          stack: error.stack,
+        },
+      );
+    });
+  }
+
+  return formattedResult;
+};
 
 function handelRequest(
   req: IncomingMessage,
@@ -81,61 +112,7 @@ function handelRequest(
         contextFactory: () => contextFactory(req, res),
       });
 
-      if (result.type === 'RESPONSE') {
-        result.headers.forEach(({ name, value }: { name: string; value: string }) =>
-          res.setHeader(name, value),
-        );
-        res.writeHead(result.status, {
-          'content-type': 'application/json',
-        });
-        res.end(JSON.stringify(result.payload));
-      } else if (result.type === 'MULTIPART_RESPONSE') {
-        res.writeHead(200, {
-          Connection: 'keep-alive',
-          'Content-Type': 'multipart/mixed; boundary="-"',
-          'Transfer-Encoding': 'chunked',
-        });
-
-        req.on('close', () => {
-          result.unsubscribe();
-        });
-
-        res.write('---');
-
-        await result.subscribe((subResult) => {
-          const chunk = Buffer.from(JSON.stringify(subResult), 'utf8');
-          const data = [
-            '',
-            'Content-Type: application/json; charset=utf-8',
-            `Content-Length: ${String(chunk.length)}`,
-            '',
-            chunk,
-          ];
-
-          if (subResult.hasNext) {
-            data.push('---');
-          }
-
-          res.write(data.join('\r\n'));
-        });
-
-        res.write('\r\n-----\r\n');
-        res.end();
-      } else {
-        res.writeHead(200, {
-          'Content-Type': 'text/event-stream',
-          Connection: 'keep-alive',
-          'Cache-Control': 'no-cache',
-        });
-
-        req.on('close', () => {
-          result.unsubscribe();
-        });
-
-        await result.subscribe((subResult) => {
-          res.write(`data: ${JSON.stringify(subResult)}\n\n`);
-        });
-      }
+      await sendResult(result, res, formatResult);
     }
   }
 

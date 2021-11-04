@@ -54,7 +54,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
     });
   }
 
-  static filterTypes(types: GraphQLNamedType[], subGraphs: string[]) {
+  static filterTypes(types: readonly GraphQLNamedType[], subGraphs: string[]) {
     const newTypes = new Map<string, GraphQLNamedType>();
 
     types.forEach((type) => {
@@ -155,7 +155,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
         fieldConfig.args.forEach((argConfig) => {
           newArguments[argConfig.name] = {
             description: argConfig.description,
-            defaultValue: argConfig.defaultValue as unknown,
+            defaultValue: argConfig.defaultValue,
             extensions: argConfig.extensions,
             astNode: argConfig.astNode,
             type: replaceType(
@@ -205,7 +205,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
           description: fieldConfig.description,
           extensions: fieldConfig.extensions,
           astNode: fieldConfig.astNode,
-          defaultValue: fieldConfig.defaultValue as unknown,
+          defaultValue: fieldConfig.defaultValue,
           type: replaceType(
             fieldConfig.type,
             newTypes,

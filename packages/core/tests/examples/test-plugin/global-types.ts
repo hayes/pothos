@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src';
 import { GiraphQLTestPlugin } from './plugin';
 
