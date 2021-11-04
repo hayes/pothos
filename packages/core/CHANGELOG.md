@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.17.0
+
+### Minor Changes
+
+- 9107f29: Update dependencies (includes graphql 16)
+
 ## 2.16.0
 
 ### Minor Changes
