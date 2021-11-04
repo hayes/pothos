@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.11.0
+
+### Minor Changes
+
+- 9107f29: Update dependencies (includes graphql 16)
+
+### Patch Changes
+
+- 53e7905: Correctly pass context to query option of relations and connectedRelations
+
 ## 0.10.0
 
 ### Minor Changes
