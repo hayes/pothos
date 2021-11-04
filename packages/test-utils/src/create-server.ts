@@ -26,6 +26,7 @@ const formatResult = (result: ExecutionResult) => {
   if (result.errors) {
     formattedResult.errors = result.errors.map((error) => {
       // Log the error using the logger of your choice
+      // eslint-disable-next-line no-console
       console.log(error);
 
       // Return a generic error message instead
