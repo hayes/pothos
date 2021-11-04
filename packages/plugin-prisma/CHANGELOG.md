@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.11.1
+
+### Patch Changes
+
+- 8e7cb89: remove some debug code
+
 ## 0.11.0
 
 ### Minor Changes
