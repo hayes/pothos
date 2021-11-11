@@ -19,8 +19,8 @@ export function TocEntry({ active, url, depth, text }: { url: string; depth: num
 
   return (
     <li
-      className={`my-1 py-1 pl-${(depth - 2) * 4 + 2} ${
-        active ? 'border-l-4 border-pink-500 dark:border-yellow-400 font-bold' : 'border-l-4 border-transparent'
+      className={`hover:bg-gray-200 dark:hover:bg-yellow-450 my-1 py-1 pl-${(depth - 2) * 4 + 2} ${
+        active ? 'border-l-2 border-pink-500 dark:border-yellow-450 font-bold' : 'border-l-4 border-transparent'
       }`}
     >
       <a href={url} onClick={handleClick}>
@@ -96,8 +96,8 @@ export function Toc({
   }
 
   return (
-    <nav ref={ref} className={`flex items-start px-2 ${className} text-sm`}>
-      <ol className="border-l border-gray-200 dark:border-yellow-400 flex-shrink">
+    <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
+      <ol className="border-l border-gray-200 dark:border-yellow-450 flex-shrink">
         {items.map((item, i) => (
           <TocEntry active={item.url.slice(1) === activeId } key={item.url} {...item} />
         ))}

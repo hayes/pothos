@@ -3,6 +3,8 @@ import { Children, ReactNode } from 'react';
 import { Layout } from '../Layout';
 import { tableOfContents } from './Nav';
 import { Toc } from './Toc';
+import SyntaxHighlighter from 'react-syntax-highlighter';
+import dracula from 'react-syntax-highlighter/dist/cjs/styles/hljs/dracula';
 
 export interface BaseProps {
   children: ReactNode;
@@ -17,6 +19,8 @@ const components = {
   h4: (props) => <h4 {...props} className="dark:!text-white" />,
   strong: (props) => <strong {...props} className="dark:!text-white" />,
   inlineCode: (props) => <code {...props} className="dark:!text-white" />,
+  pre: (props) => <pre className="!p-0 !pt-0">{props.children}</pre>,
+  code: (props) => <SyntaxHighlighter className="!m-0" language="typescript" style={dracula} >{props.children}</SyntaxHighlighter>
 };
 
 export function DocsPage({ children }: { children?: React.ReactNode }) {
