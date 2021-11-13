@@ -22,7 +22,7 @@ export type EntityObjectOptions<
   key: KeySelection | KeySelection[];
   resolveReference: (
     parent: KeySelection[typeof selectionShapeKey],
-  ) => MaybePromise<ShapeFromTypeParam<Types, Param, false>>;
+  ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
   fields?: EntityObjectFieldsShape<Types, ShapeFromTypeParam<Types, Param, false>, FieldMap>;
 };
 
@@ -34,15 +34,15 @@ export type ShapeFromField<T extends FieldRef<unknown>> = T extends FieldRef<inf
 
 export type ExternalEntityOptions<
   Types extends SchemaTypes,
-  ExternalFields extends FieldMap,
   KeySelection extends Selection<object>,
-> = Omit<
-  GiraphQLSchemaTypes.ObjectTypeOptions<Types, ShapeFromExternalFields<ExternalFields>>,
-  'fields'
-> & {
+  Shape extends object = KeySelection[typeof selectionShapeKey],
+> = Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>, 'fields'> & {
   key: KeySelection | KeySelection[];
   externalFields: ExternalFieldsShape<Types, {}>;
-  fields?: ExtendedEntityFieldsShape<Types, KeySelection[typeof selectionShapeKey]>;
+  fields?: ExtendedEntityFieldsShape<Types, Shape>;
+  resolveReference?: (
+    parent: KeySelection[typeof selectionShapeKey],
+  ) => MaybePromise<Shape | null | undefined>;
 };
 
 export type ExtendedEntityFieldsShape<Types extends SchemaTypes, Shape> = (

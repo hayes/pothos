@@ -26,11 +26,13 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
+    "@apollo/gateway": "2.0.0-alpha.1",
+    "@apollo/subgraph": "2.0.0-alpha.1",
     "@giraphql/core": "^2.10.0",
     "@giraphql/plugin-directives": "^2.9.0",
     "@giraphql/test-utils": "^0.3.0",
     "@graphql-tools/utils": "^8.5.3",
-    "apollo-server": "^2.25.2",
+    "apollo-server": "^3.5.0",
     "graphql": ">=15.5.1",
     "graphql-tag": "^2.12.5"
   },

@@ -1,5 +1,5 @@
+import { GraphQLSchema } from 'graphql';
 import {
-  FieldMap,
   FieldNullability,
   InputFieldMap,
   InterfaceParam,
@@ -11,8 +11,14 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
-import { EntityObjectOptions, selectionShapeKey } from './types';
-import { ExternalEntityOptions, GiraphQLFederationPlugin, Selection, SelectionFromShape } from '.';
+import { EntityObjectOptions } from './types';
+import {
+  ExternalEntityOptions,
+  GiraphQLFederationPlugin,
+  Selection,
+  SelectionFromShape,
+  selectionShapeKey,
+} from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -43,7 +49,7 @@ declare global {
         Args,
         ResolveReturnShape
       > & {
-        requires: Selection<ResolveShape & object>;
+        requires?: Selection<ResolveShape & object>;
       };
       ExternalEntity: Omit<
         ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
@@ -78,14 +84,19 @@ declare global {
 
       externalEntity: <
         Name extends string,
-        Fields extends FieldMap,
         KeySelection extends Selection<object>,
+        Shape extends object = KeySelection[typeof selectionShapeKey],
       >(
         name: Name,
-        options: ExternalEntityOptions<Types, Fields, KeySelection>,
-      ) => ObjectRef<KeySelection[typeof selectionShapeKey] & { __typename: Name }>;
+        options: ExternalEntityOptions<Types, KeySelection, Shape>,
+      ) => ObjectRef<
+        KeySelection[typeof selectionShapeKey] & { __typename: Name },
+        Shape & { __typename: Name }
+      >;
 
       selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
+
+      toSubGraphSchema: (options: BuildSchemaOptions<Types>) => GraphQLSchema;
     }
   }
 }

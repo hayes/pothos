@@ -6,7 +6,6 @@ import SchemaBuilder, {
   TypeParam,
 } from '@giraphql/core';
 import { mergeDirectives } from './schema-builder';
-import { selectionShapeKey } from './types';
 
 export * from './types';
 

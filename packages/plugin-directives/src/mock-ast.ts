@@ -148,10 +148,17 @@ function directiveNodes(
 ): readonly ConstDirectiveNode[] {
   const directiveList = Array.isArray(directives)
     ? directives
-    : Object.keys(directives).map((name) => ({
-        name,
-        args: directives[name],
-      }));
+    : Object.keys(directives).flatMap((name) =>
+        Array.isArray(directives[name])
+          ? (directives[name] as {}[]).map((args) => ({
+              name,
+              args,
+            }))
+          : {
+              name,
+              args: directives[name],
+            },
+      );
 
   return directiveList.map(
     (directive): DirectiveNode => ({
