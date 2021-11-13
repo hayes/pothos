@@ -45,7 +45,10 @@ export class ExternalEntityRef<
     this.builder.objectType(this as ObjectRef<Shape>, {
       ...(options as {} as GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>),
       name: this.name,
-      directives: mergeDirectives(directives as [], keyDirective(this.key)) as [],
+      directives: mergeDirectives(directives as [], [
+        ...keyDirective(this.key),
+        { name: 'extends', args: {} },
+      ]) as [],
       fields: (t) => ({
         ...fields?.(new FieldBuilder(this.name, this.builder, 'ExtendedEntity', 'Object') as never),
         ...externalFields?.(

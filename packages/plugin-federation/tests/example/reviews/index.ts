@@ -71,6 +71,9 @@ const Product = builder
   });
 
 const UserType = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
+  externalFields: (t) => ({
+    // username: t.string(),
+  }),
   fields: (t) => ({
     id: t.exposeID('id'),
     reviews: t.field({
@@ -96,12 +99,11 @@ builder.entity(ReviewType, {
     body: t.exposeString('body'),
     author: t.field({
       type: UserType,
-      provides: builder.selection<{ username: string }>('username'),
+      provides: builder.selection<{ username?: string }>('username'),
       resolve: (review) => ({
         __typename: 'User' as const,
         id: review.authorID,
-        // TODO what to do with provides defined on type not parent field
-        username: '',
+        username: usernames.find((username) => username.id === review.authorID)?.username,
       }),
     }),
     product: t.field({

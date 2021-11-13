@@ -25,7 +25,11 @@ const inventory: Product[] = [
 const ProductRef = builder.externalRef(
   'Product',
   builder.selection<{ upc: string }>('upc'),
-  ({ upc }) => inventory.find((product) => product.upc === upc),
+  (entity) => {
+    const product = inventory.find(({ upc }) => upc === entity.upc);
+
+    return product && { ...entity, ...product };
+  },
 );
 
 ProductRef.implement({
@@ -39,7 +43,6 @@ ProductRef.implement({
     shippingEstimate: t.float({
       requires: builder.selection<{ weight?: number; price?: number }>('price weight'),
       resolve: (data) => {
-        console.log(data);
         // free for expensive items
         if ((data.price ?? 0) > 1000) {
           return 0;
