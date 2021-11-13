@@ -1,10 +1,14 @@
+import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@giraphql/core';
 import DirectivesPlugin from '@giraphql/plugin-directives';
 import FederationPlugin from '../../../src';
 
-const builder = new SchemaBuilder<{}>({
+const builder = new SchemaBuilder<{
+  DefaultFieldNullability: true;
+}>({
   plugins: [DirectivesPlugin, FederationPlugin],
   useGraphQLToolsUnorderedDirectives: true,
+  defaultFieldNullability: true,
 });
 
 interface Review {
@@ -54,24 +58,21 @@ const reviews: Review[] = [
 
 const ReviewType = builder.objectRef<Review>('Review');
 
-builder.externalRef('Product', builder.selection<{ upc: string }>('upc')).implement({
-  externalFields: (t) => ({
-    upc: t.string(),
-  }),
-  fields: (t) => ({
-    reviews: t.field({
-      type: [ReviewType],
-      resolve: ({ upc }) => reviews.filter((review) => review.product.upc === upc),
+const Product = builder
+  .externalRef('Product', builder.selection<{ upc: string }>('upc'))
+  .implement({
+    fields: (t) => ({
+      upc: t.exposeString('upc'),
+      reviews: t.field({
+        type: [ReviewType],
+        resolve: ({ upc }) => reviews.filter((review) => review.product.upc === upc),
+      }),
     }),
-  }),
-});
+  });
 
 const UserType = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
-  externalFields: (t) => ({
-    id: t.id(),
-    username: t.string(),
-  }),
   fields: (t) => ({
+    id: t.exposeID('id'),
     reviews: t.field({
       type: [ReviewType],
       resolve: ({ id }) => reviews.filter((review) => review.authorID === id),
@@ -103,5 +104,20 @@ builder.entity(ReviewType, {
         username: '',
       }),
     }),
+    product: t.field({
+      type: Product,
+      resolve: (review) => ({ __typename: 'Product' as const, upc: review.product.upc }),
+    }),
   }),
 });
+
+const server = new ApolloServer({
+  schema: builder.toSubGraphSchema({}),
+});
+
+server
+  .listen(4004)
+  .then(({ url }) => void console.log(`accounts server started at ${url}`))
+  .catch((error: unknown) => {
+    throw error;
+  });

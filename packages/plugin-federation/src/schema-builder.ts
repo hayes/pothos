@@ -9,6 +9,7 @@ import {
   isObjectType,
   lexicographicSortSchema,
 } from 'graphql';
+import { federationDirectives } from '@apollo/subgraph/dist/directives';
 import { printSubgraphSchema } from '@apollo/subgraph/dist/printSubgraphSchema';
 import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/types';
 import SchemaBuilder, {
@@ -32,11 +33,11 @@ type DirectiveList = { name: string; args?: {} }[];
 type DirectiveOption = DirectiveList | Record<string, {}>;
 
 export function hasDirective(type: GraphQLNamedType, directive: string) {
-  if (Array.isArray(type.extensions.directives)) {
-    return type.extensions.directives.some((d) => (d as { name: string }).name === directive);
+  if (Array.isArray(type.extensions?.directives)) {
+    return type.extensions?.directives.some((d) => (d as { name: string }).name === directive);
   }
 
-  return directive in ((type.extensions.directives ?? {}) as {});
+  return directive in ((type.extensions?.directives ?? {}) as {});
 }
 
 export function keyDirective(key: Selection<object> | Selection<object>[]): {
@@ -180,7 +181,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
     mutation: schema.getType('Mutation') as GraphQLObjectType,
     subscription: schema.getType('Subscription') as GraphQLObjectType,
     extensions: schema.extensions,
-    directives: schema.getDirectives(),
+    directives: [...schema.getDirectives(), ...federationDirectives],
     types: [
       ...Object.values(types).filter((type) => type.name !== 'Query'),
       newQuery,

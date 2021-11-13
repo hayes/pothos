@@ -1,10 +1,14 @@
+import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@giraphql/core';
 import DirectivesPlugin from '@giraphql/plugin-directives';
 import FederationPlugin from '../../../src';
 
-const builder = new SchemaBuilder<{}>({
+const builder = new SchemaBuilder<{
+  DefaultFieldNullability: true;
+}>({
   plugins: [DirectivesPlugin, FederationPlugin],
   useGraphQLToolsUnorderedDirectives: true,
+  defaultFieldNullability: true,
 });
 
 interface Product {
@@ -59,3 +63,14 @@ builder.queryType({
     }),
   }),
 });
+
+const server = new ApolloServer({
+  schema: builder.toSubGraphSchema({}),
+});
+
+server
+  .listen(4003)
+  .then(({ url }) => void console.log(`accounts server started at ${url}`))
+  .catch((error: unknown) => {
+    throw error;
+  });

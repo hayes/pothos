@@ -6,9 +6,12 @@ import DirectivesPlugin from '@giraphql/plugin-directives';
 // import { printSchemaWithDirectives } from '@graphql-tools/utils';
 import FederationPlugin from '../../../src';
 
-const builder = new SchemaBuilder<{}>({
+const builder = new SchemaBuilder<{
+  DefaultFieldNullability: true;
+}>({
   plugins: [DirectivesPlugin, FederationPlugin],
   useGraphQLToolsUnorderedDirectives: true,
+  defaultFieldNullability: true,
 });
 
 interface User {
@@ -67,7 +70,7 @@ const server = new ApolloServer({
 });
 
 server
-  .listen()
+  .listen(4001)
   .then(({ url }) => void console.log(`accounts server started at ${url}`))
   .catch((error: unknown) => {
     throw error;

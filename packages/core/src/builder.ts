@@ -41,6 +41,7 @@ import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils';
 import {
   AbstractReturnShape,
   BaseEnum,
+  BaseTypeRef,
   EnumParam,
   EnumRef,
   EnumTypeOptions,
@@ -137,7 +138,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     const ref =
-      param instanceof ObjectRef
+      param instanceof BaseTypeRef
         ? (param as ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>)
         : new ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
 
@@ -320,7 +321,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         : (options as { name?: string }).name ?? (param as { name: string }).name;
 
     const ref =
-      param instanceof InterfaceRef
+      param instanceof BaseTypeRef
         ? (param as InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>)
         : new InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>(name);
 

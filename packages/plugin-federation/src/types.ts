@@ -41,7 +41,7 @@ export type ExternalEntityOptions<
   | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields'
 > & {
-  externalFields: ExternalFieldsShape<Types, {}>;
+  externalFields?: ExternalFieldsShape<Types, {}>;
   fields?: ExtendedEntityFieldsShape<Types, Shape>;
 };
 
@@ -59,12 +59,15 @@ export type ShapeFromExternalFields<Fields extends FieldMap> = {
     : unknown;
 };
 
-export type SelectionFromShape<Shape extends {}, Space extends string = ''> = {} extends Shape
+export type SelectionFromShape<
+  Shape extends {},
+  Space extends string = '',
+> = {} extends Required<Shape>
   ? ''
   : {
       [K in keyof Shape]: Omit<Shape, K> extends infer R
-        ? Required<Shape[K]> extends object
-          ? `${Space}${K & string} { ${Shape[K] extends infer T
+        ? NonNullable<Shape[K]> extends object
+          ? `${Space}${K & string} { ${NonNullable<Shape[K]> extends infer T
               ? SelectionFromShape<T>
               : never} }${SelectionFromShape<R, ' '>}`
           : `${Space}${K & string}${SelectionFromShape<R, ' '>}`

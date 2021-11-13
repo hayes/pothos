@@ -45,7 +45,7 @@
   },
   "peerDependencies": {
     "@prisma/client": "*",
-    "graphql": ">=15.1.0"
+    "graphql": ">=16.0.1`"
   },
   "devDependencies": {
     "@giraphql/core": "^2.17.0",
@@ -54,7 +54,7 @@
     "@giraphql/test-utils": "^0.3.0",
     "@prisma/client": "^3.4.0",
     "graphql": "16.0.1",
-    "graphql-tag": "^2.12.5",
+    "graphql-tag": "^2.12.6",
     "prisma": "^3.4.0"
   }
 }

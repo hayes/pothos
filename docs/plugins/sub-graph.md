@@ -11,6 +11,9 @@ multiple variants of your API.
 One common use case for this is to share implementations between your public and internal APIs, by
 only exposing a subset of your graph publicly.
 
+This is NOT the same as a sub-graph in apollo federation. To build sub-graphs for federation check
+out the federation plugin.
+
 ## Usage
 
 ### Install

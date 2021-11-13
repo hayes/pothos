@@ -22,7 +22,7 @@
   },
   "dependencies": {
     "graphql": "16.0.1",
-    "graphql-helix": "^1.9.0",
+    "graphql-helix": "^1.9.1",
     "ts-morph": "^12.2.0",
     "yargs": "^17.2.1"
   }
