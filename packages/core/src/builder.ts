@@ -6,6 +6,7 @@ import {
   GraphQLInt,
   GraphQLIsTypeOfFn,
   GraphQLObjectType,
+  GraphQLScalarSerializer,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
@@ -473,16 +474,22 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       GiraphQLSchemaTypes.ScalarTypeOptions<
         Types,
         InputShape<Types, Name>,
-        ParentShape<Types, Name>
+        OutputShape<Types, Name>
       >,
-      'description' | 'parseLiteral' | 'parseValue' | 'serialize'
-    >,
+      'serialize'
+    > & {
+      serialize?: GraphQLScalarSerializer<OutputShape<Types, Name>>;
+    },
   ) {
     const config = scalar.toConfig();
 
     return this.scalarType<Name>(name, {
       ...config,
       ...options,
+      extensions: {
+        ...config.extensions,
+        ...options.extensions,
+      },
     } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
   }
 

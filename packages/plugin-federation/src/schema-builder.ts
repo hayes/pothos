@@ -14,21 +14,16 @@ import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/t
 import SchemaBuilder, {
   FieldBuilder,
   InterfaceParam,
+  MaybePromise,
   ObjectParam,
   ObjectRef,
   ObjectTypeOptions,
   OutputShape,
   ParentShape,
-  RootFieldBuilder,
   SchemaTypes,
 } from '@giraphql/core';
-import {
-  EntityObjectOptions,
-  ExternalEntityOptions,
-  Selection,
-  SelectionFromShape,
-  selectionShapeKey,
-} from '.';
+import { ExternalEntityRef } from './external-ref';
+import { EntityObjectOptions, Selection, SelectionFromShape, selectionShapeKey } from '.';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -98,6 +93,10 @@ schemaBuilderProto.entity = function entity<
 ): ObjectRef<OutputShape<SchemaTypes, Param>, ParentShape<SchemaTypes, Param>> {
   const mergedDirectives: {} = {
     directives: mergeDirectives(directives as [], keyDirective(key)) as [],
+    extensions: {
+      ...options.extensions,
+      resolveReference: options.resolveReference,
+    },
   };
 
   const ref = this.objectType(param, {
@@ -117,37 +116,18 @@ schemaBuilderProto.entity = function entity<
   return ref;
 };
 
-schemaBuilderProto.externalEntity = function externalEntity<
+schemaBuilderProto.externalRef = function externalRef<
   Name extends string,
   KeySelection extends Selection<object>,
-  Shape extends KeySelection[typeof selectionShapeKey],
+  Shape extends object = KeySelection[typeof selectionShapeKey],
 >(
   name: Name,
-  {
-    key,
-    externalFields,
-    fields,
-    directives,
-    ...options
-  }: ExternalEntityOptions<SchemaTypes, KeySelection, Shape>,
-): ObjectRef<Shape & { __typename: Name }> {
-  const ref = this.objectRef<Shape & { __typename: Name }>(name);
-
-  this.objectType<[], ObjectRef<Shape & { __typename: Name }>>(ref, {
-    directives: mergeDirectives(directives as [], keyDirective(key)) as [],
-    ...(options as {} as ObjectTypeOptions<
-      SchemaTypes,
-      ObjectParam<SchemaTypes>,
-      Shape & { __typename: Name },
-      []
-    >),
-    fields: (t) => ({
-      ...fields?.(new FieldBuilder(name, this, 'ExtendedEntity', 'Object') as never),
-      ...externalFields?.(new RootFieldBuilder(name, this, 'ExternalEntity', 'Object') as never),
-    }),
-  });
-
-  return ref;
+  key: KeySelection | KeySelection[],
+  resolveReference?: (
+    parent: KeySelection[typeof selectionShapeKey],
+  ) => MaybePromise<Shape | null | undefined>,
+) {
+  return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, key, resolveReference);
 };
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
@@ -217,9 +197,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
       resolveReference?: unknown;
     };
 
-    newType.resolveReference = (
-      newType.extensions?.giraphqlOptions as { resolveReference: unknown }
-    )?.resolveReference;
+    newType.resolveReference = newType.extensions?.resolveReference;
   });
 
   return sorted;

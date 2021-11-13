@@ -18,9 +18,13 @@ const inventory: Product[] = [
   { upc: '3', inStock: true },
 ];
 
-builder.externalEntity('Product', {
-  key: builder.selection<{ upc: string }>('upc'),
-  resolveReference: ({ upc }: { upc: string }) => inventory.find((product) => product.upc === upc),
+const ProductRef = builder.externalRef(
+  'Product',
+  builder.selection<{ upc: string }>('upc'),
+  ({ upc }) => inventory.find((product) => product.upc === upc),
+);
+
+ProductRef.implement({
   externalFields: (t) => ({
     upc: t.string(),
     price: t.float(),

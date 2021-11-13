@@ -3,6 +3,7 @@ import {
   FieldNullability,
   InputFieldMap,
   InterfaceParam,
+  MaybePromise,
   ObjectParam,
   OutputShape,
   ParentShape,
@@ -11,14 +12,9 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
+import { ExternalEntityRef } from './external-ref';
 import { EntityObjectOptions } from './types';
-import {
-  ExternalEntityOptions,
-  GiraphQLFederationPlugin,
-  Selection,
-  SelectionFromShape,
-  selectionShapeKey,
-} from '.';
+import { GiraphQLFederationPlugin, Selection, SelectionFromShape, selectionShapeKey } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {
@@ -82,17 +78,17 @@ declare global {
         options: EntityObjectOptions<Types, Param, Interfaces, KeySelection>,
       ) => ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>;
 
-      externalEntity: <
+      externalRef: <
         Name extends string,
         KeySelection extends Selection<object>,
-        Shape extends object = KeySelection[typeof selectionShapeKey],
+        Shape extends object = KeySelection[typeof selectionShapeKey] & { __typename: Name },
       >(
         name: Name,
-        options: ExternalEntityOptions<Types, KeySelection, Shape>,
-      ) => ObjectRef<
-        KeySelection[typeof selectionShapeKey] & { __typename: Name },
-        Shape & { __typename: Name }
-      >;
+        key: KeySelection | KeySelection[],
+        resolveReference?: (
+          parent: KeySelection[typeof selectionShapeKey],
+        ) => MaybePromise<Shape | null | undefined>,
+      ) => ExternalEntityRef<Types, Shape, KeySelection>;
 
       selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
 

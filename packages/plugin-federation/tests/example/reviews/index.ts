@@ -54,8 +54,7 @@ const reviews: Review[] = [
 
 const ReviewType = builder.objectRef<Review>('Review');
 
-builder.externalEntity('Product', {
-  key: builder.selection<{ upc: string }>('upc'),
+builder.externalRef('Product', builder.selection<{ upc: string }>('upc')).implement({
   externalFields: (t) => ({
     upc: t.string(),
   }),
@@ -67,8 +66,7 @@ builder.externalEntity('Product', {
   }),
 });
 
-const UserType = builder.externalEntity('User', {
-  key: builder.selection<{ id: string }>('id'),
+const UserType = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
   externalFields: (t) => ({
     id: t.id(),
     username: t.string(),
