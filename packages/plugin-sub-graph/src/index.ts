@@ -155,6 +155,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
         fieldConfig.args.forEach((argConfig) => {
           newArguments[argConfig.name] = {
             description: argConfig.description,
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
             defaultValue: argConfig.defaultValue,
             extensions: argConfig.extensions,
             astNode: argConfig.astNode,
@@ -205,6 +206,7 @@ export class GiraphQLSubGraphPlugin<Types extends SchemaTypes> extends BasePlugi
           description: fieldConfig.description,
           extensions: fieldConfig.extensions,
           astNode: fieldConfig.astNode,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           defaultValue: fieldConfig.defaultValue,
           type: replaceType(
             fieldConfig.type,

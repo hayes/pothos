@@ -40,6 +40,7 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
       internalDecodeGlobalID(this.builder, String(globalID)),
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
   }
 
@@ -63,6 +64,7 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
       internalDecodeGlobalID(this.builder, String(globalID)),
     );
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info);
   }
 }

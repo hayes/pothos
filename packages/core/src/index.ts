@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
 import './types/global';
-import BuildCache from './build-cache';
 import SchemaBuilderClass from './builder';
 import InternalFieldBuilder from './fieldUtils/builder';
 import InternalInputFieldBuilder from './fieldUtils/input';
@@ -11,15 +10,10 @@ import InternalQueryFieldBuilder from './fieldUtils/query';
 import InternalRootFieldBuilder from './fieldUtils/root';
 import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
 import InternalBaseTypeRef from './refs/base';
-import BuiltinScalarRef from './refs/builtin-scalar';
 import InternalEnumRef from './refs/enum';
-import FieldRef from './refs/field';
-import InputTypeRef from './refs/input';
-import InputFieldRef from './refs/input-field';
-import InternalInputObjectRef, { ImplementableInputObjectRef } from './refs/input-object';
-import InternalInterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
-import InternalObjectRef, { ImplementableObjectRef } from './refs/object';
-import OutputTypeRef from './refs/output';
+import InternalInputObjectRef from './refs/input-object';
+import InternalInterfaceRef from './refs/interface';
+import InternalObjectRef from './refs/object';
 import InternalScalarRef from './refs/scalar';
 import InternalUnionRef from './refs/union';
 import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
@@ -27,18 +21,6 @@ import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from 
 export * from './plugins';
 export * from './types';
 export * from './utils';
-
-export {
-  BuildCache,
-  BuiltinScalarRef,
-  FieldRef,
-  ImplementableInputObjectRef,
-  ImplementableInterfaceRef,
-  ImplementableObjectRef,
-  InputFieldRef,
-  InputTypeRef,
-  OutputTypeRef,
-};
 
 const SchemaBuilder = SchemaBuilderClass as unknown as {
   registerPlugin: typeof SchemaBuilderClass.registerPlugin;
@@ -183,3 +165,13 @@ export type UnionRef<T, P = T> = GiraphQLSchemaTypes.UnionRef<T, P>;
 export const UnionRef = InternalUnionRef as new <T, P = T>(
   name: string,
 ) => GiraphQLSchemaTypes.UnionRef<T, P>;
+
+export { default as BuildCache } from './build-cache';
+export { default as BuiltinScalarRef } from './refs/builtin-scalar';
+export { default as FieldRef } from './refs/field';
+export { default as InputTypeRef } from './refs/input';
+export { default as InputFieldRef } from './refs/input-field';
+export { ImplementableInputObjectRef } from './refs/input-object';
+export { ImplementableInterfaceRef } from './refs/interface';
+export { ImplementableObjectRef } from './refs/object';
+export { default as OutputTypeRef } from './refs/output';

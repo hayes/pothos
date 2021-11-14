@@ -108,6 +108,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
       }
 
       const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
       const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions?.getDataloader;
 
       return this.builder.unionType(unionName, {
@@ -116,6 +117,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         ...unionOptions,
         extensions: {
           ...unionOptions.extensions,
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           getDataloader,
           giraphQLPrismaIndirectInclude: {
             getType: () => typeName,

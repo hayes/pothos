@@ -23,5 +23,6 @@ type Query {
   test(arg1: String): String!
 }
 
-union UN = Obj"
+union UN = Obj
+"
 `;

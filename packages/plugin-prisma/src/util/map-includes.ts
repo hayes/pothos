@@ -97,6 +97,7 @@ function handleField(
     ...(includeType.extensions?.giraphqlPrismaInclude as IncludeMap),
   };
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   let query = field.extensions?.giraphQLPrismaQuery ?? {};
 
   if (typeof query === 'function') {
@@ -105,6 +106,7 @@ function handleField(
       unknown
     >;
 
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-call, @typescript-eslint/no-unsafe-assignment
     query = query(args, ctx);
   }
 

@@ -2,9 +2,7 @@
 /* eslint-disable no-param-reassign */
 import './global-types';
 import {
-  ConstArgumentNode,
-  ConstDirectiveNode,
-  ConstValueNode,
+  ArgumentNode,
   DirectiveNode,
   EnumValueDefinitionNode,
   FieldDefinitionNode,
@@ -30,6 +28,7 @@ import {
   NamedTypeNode,
   parseValue,
   TypeNode,
+  ValueNode,
 } from 'graphql';
 import { DirectiveList } from './types';
 
@@ -106,6 +105,7 @@ export default function mockAst(schema: GraphQLSchema) {
 
 function typeNode(type: GraphQLType): TypeNode {
   if (type instanceof GraphQLList) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return { kind: Kind.LIST_TYPE, type: typeNode(type.ofType) };
   }
 
@@ -119,7 +119,7 @@ function typeNode(type: GraphQLType): TypeNode {
   return { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: type.name } };
 }
 
-function valueNode(value: unknown): ConstValueNode {
+function valueNode(value: unknown): ValueNode {
   if (value == null) {
     return { kind: Kind.NULL };
   }
@@ -139,13 +139,11 @@ function valueNode(value: unknown): ConstValueNode {
         })),
       };
     default:
-      return parseValue(JSON.stringify(value)) as ConstValueNode;
+      return parseValue(JSON.stringify(value));
   }
 }
 
-function directiveNodes(
-  directives: DirectiveList | Record<string, {}>,
-): readonly ConstDirectiveNode[] {
+function directiveNodes(directives: DirectiveList | Record<string, {}>): readonly DirectiveNode[] {
   const directiveList = Array.isArray(directives)
     ? directives
     : Object.keys(directives).flatMap((name) =>
@@ -167,14 +165,14 @@ function directiveNodes(
       arguments:
         directive.args &&
         Object.keys(directive.args).map(
-          (argName): ConstArgumentNode => ({
+          (argName): ArgumentNode => ({
             kind: Kind.ARGUMENT,
             name: { kind: Kind.NAME, value: argName },
             value: valueNode((directive.args as Record<string, unknown>)[argName]),
           }),
         ),
     }),
-  ) as readonly ConstDirectiveNode[];
+  ) as readonly DirectiveNode[];
 }
 
 function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionNode[] {

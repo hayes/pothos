@@ -36,7 +36,8 @@ describe('Field Nullability', () => {
         nullableListError: [Boolean!]
         nullableListItems: [Boolean]!
         nullableListItemsError: [Boolean]!
-      }"
+      }
+      "
     `);
     expect(nonNullableFieldSchema).toMatchInlineSnapshot(`
       "type Query {
@@ -54,7 +55,8 @@ describe('Field Nullability', () => {
         nullableListError: [Boolean!]
         nullableListItems: [Boolean]!
         nullableListItemsError: [Boolean]!
-      }"
+      }
+      "
     `);
 
     expect(nullableFieldSchema).toMatch(nonNullableFieldSchema);

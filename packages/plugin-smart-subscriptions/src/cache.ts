@@ -3,8 +3,6 @@ import { BuildCache, Path, SchemaTypes } from '@giraphql/core';
 import CacheNode from './cache-node';
 import SubscriptionManager from './manager';
 
-export { CacheNode };
-
 export default class SubscriptionCache<Types extends SchemaTypes> {
   manager: SubscriptionManager;
 
@@ -123,3 +121,5 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     return key.toString();
   }
 }
+
+export { default as CacheNode } from './cache-node';

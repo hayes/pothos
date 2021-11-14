@@ -31,6 +31,7 @@ export default function resolveWithCache<Types extends SchemaTypes>(
     }
   }
 
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
   const resultOrPromise = resolve(parent, args, context, info);
 
   function cacheResult(result: unknown) {

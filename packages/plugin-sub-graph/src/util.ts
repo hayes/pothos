@@ -13,6 +13,7 @@ export function replaceType<T extends GraphQLType>(
   }
 
   if (type instanceof GraphQLList) {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
     return new GraphQLList(replaceType(type.ofType, newTypes, referencedBy, subGraphs)) as T;
   }
 

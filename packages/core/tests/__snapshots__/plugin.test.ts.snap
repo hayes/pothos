@@ -48,5 +48,6 @@ type TestObject {
   intList: [Int!]!
   string: String!
   stringList: [String!]!
-}"
+}
+"
 `;

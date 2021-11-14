@@ -203,7 +203,8 @@ union UserProfileWithErrorsResult = BaseError | UserProfileWithErrorsSuccess
 
 type UserProfileWithErrorsSuccess {
   data: Profile!
-}"
+}
+"
 `;
 
 exports[`prisma queries for list with nested relations 1`] = `

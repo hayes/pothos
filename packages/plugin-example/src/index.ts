@@ -59,6 +59,7 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
     return (parent, args, context, info) => {
       console.log(`Resolving ${info.parentType}.${info.fieldName}`);
 
+      // eslint-disable-next-line @typescript-eslint/no-unsafe-return
       return resolver(parent, args, context, info);
     };
   }
