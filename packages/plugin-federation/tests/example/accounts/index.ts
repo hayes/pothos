@@ -36,14 +36,17 @@ const users: User[] = [
   },
 ];
 
-const UserType = builder.entity(builder.objectRef<User>('User'), {
-  key: builder.selection<{ id: string }>('id'),
-  resolveReference: (user) => users.find(({ id }) => user.id === id),
+const UserType = builder.objectRef<User>('User').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
     username: t.exposeString('username'),
   }),
+});
+
+builder.asEntity(UserType, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (user) => users.find(({ id }) => user.id === id),
 });
 
 builder.queryType({

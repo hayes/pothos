@@ -1,4 +1,3 @@
-import '@giraphql/plugin-directives';
 import {
   GraphQLList,
   GraphQLNamedType,
@@ -12,19 +11,9 @@ import {
 import { federationDirectives } from '@apollo/subgraph/dist/directives';
 import { printSubgraphSchema } from '@apollo/subgraph/dist/printSubgraphSchema';
 import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/types';
-import SchemaBuilder, {
-  FieldBuilder,
-  InterfaceParam,
-  MaybePromise,
-  ObjectParam,
-  ObjectRef,
-  ObjectTypeOptions,
-  OutputShape,
-  ParentShape,
-  SchemaTypes,
-} from '@giraphql/core';
+import SchemaBuilder, { MaybePromise, SchemaTypes } from '@giraphql/core';
 import { ExternalEntityRef } from './external-ref';
-import { EntityObjectOptions, Selection, SelectionFromShape, selectionShapeKey } from '.';
+import { Selection, SelectionFromShape, selectionShapeKey } from '.';
 
 const schemaBuilderProto =
   SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -78,44 +67,6 @@ schemaBuilderProto.selection = <Shape extends object>(selection: SelectionFromSh
   selection,
   [selectionShapeKey]: {} as unknown as Shape,
 });
-
-schemaBuilderProto.entity = function entity<
-  Interfaces extends InterfaceParam<SchemaTypes>[],
-  Param extends ObjectParam<SchemaTypes>,
-  KeySelection extends Selection<object>,
->(
-  param: Param,
-  {
-    key,
-    directives,
-    fields,
-    ...options
-  }: EntityObjectOptions<SchemaTypes, Param, Interfaces, KeySelection>,
-): ObjectRef<OutputShape<SchemaTypes, Param>, ParentShape<SchemaTypes, Param>> {
-  const mergedDirectives: {} = {
-    directives: mergeDirectives(directives as [], keyDirective(key)) as [],
-    extensions: {
-      ...options.extensions,
-      resolveReference: options.resolveReference,
-    },
-  };
-
-  const ref = this.objectType(param, {
-    ...mergedDirectives,
-    ...(options as {} as ObjectTypeOptions<
-      SchemaTypes,
-      Param,
-      ParentShape<SchemaTypes, Param>,
-      Interfaces
-    >),
-  });
-
-  this.objectFields(ref, (t) => ({
-    ...fields?.(new FieldBuilder(t.typename, this, 'EntityObject', 'Object') as never),
-  }));
-
-  return ref;
-};
 
 schemaBuilderProto.externalRef = function externalRef<
   Name extends string,
@@ -202,4 +153,26 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
   });
 
   return sorted;
+};
+
+export const entityMapping = new WeakMap<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  GiraphQLSchemaTypes.SchemaBuilder<any>,
+  Map<
+    string,
+    {
+      key: Selection<object> | Selection<object>[];
+      resolveReference: (val: object) => unknown;
+    }
+  >
+>();
+
+schemaBuilderProto.asEntity = function asEntity(param, options) {
+  if (!entityMapping.has(this)) {
+    entityMapping.set(this, new Map());
+  }
+
+  this.configStore.onTypeConfig(param, (config) => {
+    entityMapping.get(this)!.set(config.name, options);
+  });
 };

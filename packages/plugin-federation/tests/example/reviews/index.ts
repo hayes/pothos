@@ -91,15 +91,14 @@ const UserType = builder.externalRef('User', builder.selection<{ id: string }>('
   }),
 });
 
-builder.entity(ReviewType, {
-  key: builder.selection<{ id: string }>('id'),
-  resolveReference: ({ id }) => reviews.find((review) => review.id === id),
+ReviewType.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     body: t.exposeString('body'),
     author: t.field({
       type: UserType,
-      provides: builder.selection<{ username?: string }>('username'),
+      // TODO: implement provides logic through external refs
+      // type: UserType.provides(builder.selection<{ username?: string }>('username')),
       resolve: (review) => ({
         __typename: 'User' as const,
         id: review.authorID,
@@ -111,6 +110,11 @@ builder.entity(ReviewType, {
       resolve: (review) => ({ __typename: 'Product' as const, upc: review.product.upc }),
     }),
   }),
+});
+
+builder.asEntity(ReviewType, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: ({ id }) => reviews.find((review) => review.id === id),
 });
 
 const server = new ApolloServer({

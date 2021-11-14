@@ -32,13 +32,20 @@ export class ImplementableObjectRef<
   }
 
   implement<Interfaces extends InterfaceParam<Types>[]>(
-    options: ObjectTypeOptions<
-      Types,
-      ImplementableObjectRef<Types, Shape, Parent>,
-      Parent,
-      Interfaces
+    options: Omit<
+      ObjectTypeOptions<Types, ImplementableObjectRef<Types, Shape, Parent>, Parent, Interfaces>,
+      'name'
     >,
-  ) {
-    return this.builder.objectType(this, options);
+  ): GiraphQLSchemaTypes.ObjectRef<Shape, Parent> {
+    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
+    return this.builder.objectType(
+      this,
+      options as ObjectTypeOptions<
+        Types,
+        ImplementableObjectRef<Types, Shape, Parent>,
+        Parent,
+        Interfaces
+      >,
+    );
   }
 }

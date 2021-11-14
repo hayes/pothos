@@ -42,7 +42,7 @@ export class ExternalEntityRef<
     directives,
     ...options
   }: ExternalEntityOptions<Types, Shape, Interfaces>) {
-    this.builder.objectType(this as ObjectRef<Shape>, {
+    this.builder.objectType(this as unknown as ObjectRef<unknown>, {
       ...(options as {} as GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>),
       name: this.name,
       directives: mergeDirectives(directives as [], [

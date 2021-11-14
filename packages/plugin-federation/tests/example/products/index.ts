@@ -39,15 +39,18 @@ const products: Product[] = [
   },
 ];
 
-const ProductType = builder.entity(builder.objectRef<Product>('Product'), {
-  key: builder.selection<{ upc: string }>('upc'),
-  resolveReference: ({ upc }) => products.find((product) => product.upc === upc),
+const ProductType = builder.objectRef<Product>('Product').implement({
   fields: (t) => ({
     upc: t.exposeString('upc'),
     name: t.exposeString('name'),
     price: t.exposeFloat('price'),
     weight: t.exposeFloat('weight'),
   }),
+});
+
+builder.asEntity(ProductType, {
+  key: builder.selection<{ upc: string }>('upc'),
+  resolveReference: ({ upc }) => products.find((product) => product.upc === upc),
 });
 
 builder.queryType({

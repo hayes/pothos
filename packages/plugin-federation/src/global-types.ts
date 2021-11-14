@@ -1,19 +1,15 @@
+import '@giraphql/plugin-directives';
 import { GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
   InputFieldMap,
-  InterfaceParam,
   MaybePromise,
-  ObjectParam,
-  OutputShape,
-  ParentShape,
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
 import { ExternalEntityRef } from './external-ref';
-import { EntityObjectOptions } from './types';
 import { GiraphQLFederationPlugin, Selection, SelectionFromShape, selectionShapeKey } from '.';
 
 declare global {
@@ -69,15 +65,6 @@ declare global {
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
-      entity: <
-        Interfaces extends InterfaceParam<Types>[],
-        Param extends ObjectParam<Types>,
-        KeySelection extends Selection<object>,
-      >(
-        param: Param,
-        options: EntityObjectOptions<Types, Param, Interfaces, KeySelection>,
-      ) => ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>;
-
       externalRef: <
         Name extends string,
         KeySelection extends Selection<object>,
@@ -93,6 +80,16 @@ declare global {
       selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
 
       toSubGraphSchema: (options: BuildSchemaOptions<Types>) => GraphQLSchema;
+
+      asEntity: <Param extends ObjectRef<unknown>, KeySelection extends Selection<object>>(
+        param: Param,
+        options: {
+          key: KeySelection;
+          resolveReference: (
+            parent: KeySelection[typeof selectionShapeKey],
+          ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
+        },
+      ) => void;
     }
   }
 }

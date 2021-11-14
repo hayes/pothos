@@ -1,30 +1,7 @@
 import './global-types';
-import {
-  FieldMap,
-  FieldRef,
-  InterfaceParam,
-  MaybePromise,
-  ObjectParam,
-  ObjectTypeOptions,
-  ParentShape,
-  SchemaTypes,
-  ShapeFromTypeParam,
-} from '@giraphql/core';
+import { FieldMap, FieldRef, InterfaceParam, SchemaTypes } from '@giraphql/core';
 
 export const selectionShapeKey = Symbol.for('GiraphQL.federationSelectionKey');
-
-export type EntityObjectOptions<
-  Types extends SchemaTypes,
-  Param extends ObjectParam<Types>,
-  Interfaces extends InterfaceParam<Types>[],
-  KeySelection extends Selection<object>,
-> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, 'fields'> & {
-  key: KeySelection | KeySelection[];
-  resolveReference: (
-    parent: KeySelection[typeof selectionShapeKey],
-  ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-  fields?: EntityObjectFieldsShape<Types, ShapeFromTypeParam<Types, Param, false>, FieldMap>;
-};
 
 export type EntityObjectFieldsShape<Types extends SchemaTypes, Shape, Fields extends FieldMap> = (
   t: GiraphQLSchemaTypes.FieldBuilder<Types, Shape, 'EntityObject'>,
