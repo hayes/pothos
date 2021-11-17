@@ -283,8 +283,6 @@ describe('validation', () => {
         valid: soloNested(input: { nested: { id: "12" } })
         invalidList: nestedObjectList(input: { nested: [{ id: "1" }] })
         validList: nestedObjectList(input: { nested: [{ id: "12" }] })
-        validI: getSecret(input: { name: "secret", age: 100 })
-        invalidI: getSecret(input: { name: "not secret", age: 101 })
       }
     `;
 
@@ -331,6 +329,33 @@ describe('validation', () => {
         }
       ]],
         ],
+      }
+    `);
+  });
+  it('input object with input', async () => {
+    const query = gql`
+      query {
+        getSecretNotWorkingValid: getSecretNotWorking(input: { name: "secret", age: 100 })
+        getSecretNotWorkingInvalid: getSecretNotWorking(input: { name: "not secret", age: 101 })
+        getSecretWorkingValid: getSecretWorking(input: { name: "secret", age: 100 })
+        getSecretWorkingInvalid: getSecretWorking(input: { name: "not secret", age: 101 })
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "getSecretNotWorkingValid": true,
+          "getSecretWorkingValid": true,
+          "getSecretNotWorkingInvalid": null,
+          "getSecretWorkingInvalid": null,
+        },
       }
     `);
   });

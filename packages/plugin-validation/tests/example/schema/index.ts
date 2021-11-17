@@ -243,6 +243,17 @@ const WithValidationInput = builder.inputType('WithValidationInput', {
     [(args) => args.age === 100, { message: 'Incorrect age given' }],
   ],
 });
+const WithValidationWorkingInput = builder.inputType('WithValidationWorkingInput', {
+  fields: (t) => ({
+    // When we add validate, it turns on validate for the input type
+    name: t.string({ validate: () => true }),
+    age: t.int(),
+  }),
+  validate: [
+    [(args) => args.name === 'secret', { message: 'Incorrect name given' }],
+    [(args) => args.age === 100, { message: 'Incorrect age given' }],
+  ],
+});
 
 const NestedInput = builder.inputType('NestedInput', {
   fields: (t) => ({ id: t.id() }),
@@ -292,11 +303,21 @@ builder.queryField('nestedObjectList', (t) =>
   }),
 );
 
-builder.queryField('getSecret', (t) =>
+builder.queryField('getSecretNotWorking', (t) =>
   t.boolean({
     nullable: true,
     args: {
       input: t.arg({ type: WithValidationInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('getSecretWorking', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: WithValidationWorkingInput }),
     },
     resolve: () => true,
   }),
