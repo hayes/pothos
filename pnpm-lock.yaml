@@ -40,7 +40,7 @@ importers:
   packages/converter:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       '@types/yargs': ^17.0.6
       graphql: 16.0.1
       ts-morph: ^12.2.0
@@ -59,7 +59,7 @@ importers:
 
   packages/core:
     specifiers:
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-scalars: ^1.13.6
       graphql-tag: ^2.12.6
@@ -76,14 +76,14 @@ importers:
     specifiers:
       ts-node: ^10.4.0
     devDependencies:
-      ts-node: 10.4.0_ee928ac548ac44c173bf0d4654ae2c29
+      ts-node: 10.4.0_822df8cc64711c2db8d43ce90a8558a3
 
   packages/plugin-dataloader:
     specifiers:
       '@giraphql/core': ^2.18.1
       '@giraphql/plugin-errors': ^2.12.1
       '@giraphql/plugin-relay': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       dataloader: ^2.0.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -100,7 +100,7 @@ importers:
   packages/plugin-directives:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-rate-limit-directive: ^2.0.0
       graphql-tag: ^2.12.6
@@ -118,7 +118,7 @@ importers:
     specifiers:
       '@giraphql/core': ^2.18.1
       '@giraphql/plugin-validation': ^2.14.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
       zod: ^3.11.6
@@ -136,7 +136,7 @@ importers:
   packages/plugin-example:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
     devDependencies:
@@ -151,7 +151,7 @@ importers:
   packages/plugin-mocks:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
     devDependencies:
@@ -168,7 +168,7 @@ importers:
       '@giraphql/core': ^2.18.1
       '@giraphql/plugin-errors': ^2.12.1
       '@giraphql/plugin-relay': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       '@prisma/client': ^3.5.0
       '@prisma/generator-helper': ^3.5.0
       graphql: 16.0.1
@@ -192,7 +192,7 @@ importers:
   packages/plugin-relay:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-subscriptions: ^2.0.0
       graphql-tag: ^2.12.6
@@ -209,7 +209,7 @@ importers:
   packages/plugin-scope-auth:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
     devDependencies:
@@ -224,7 +224,7 @@ importers:
   packages/plugin-simple-objects:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
     devDependencies:
@@ -239,7 +239,7 @@ importers:
   packages/plugin-smart-subscriptions:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-subscriptions: ^2.0.0
       graphql-tag: ^2.12.6
@@ -256,7 +256,7 @@ importers:
   packages/plugin-sub-graph:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
     devDependencies:
@@ -271,7 +271,7 @@ importers:
   packages/plugin-validation:
     specifiers:
       '@giraphql/core': ^2.18.1
-      '@giraphql/test-utils': ^0.4.1
+      '@giraphql/test-utils': ^0.5.0
       graphql-tag: ^2.12.6
       zod: ^3.11.6
     devDependencies:
@@ -8257,7 +8257,7 @@ packages:
     dependencies:
       import-cwd: 3.0.0
       lilconfig: 2.0.3
-      ts-node: 10.4.0_ee928ac548ac44c173bf0d4654ae2c29
+      ts-node: 10.4.0_822df8cc64711c2db8d43ce90a8558a3
       yaml: 1.10.2
     dev: true
 
@@ -9545,36 +9545,6 @@ packages:
       diff: 4.0.2
       make-error: 1.3.6
       typescript: 4.5.2
-      yn: 3.1.1
-    dev: true
-
-  /ts-node/10.4.0_ee928ac548ac44c173bf0d4654ae2c29:
-    resolution: {integrity: sha512-g0FlPvvCXSIO1JDF6S232P5jPYqBkRL9qly81ZgAOSU7rwI0stphCgd2kLiCrU9DjQCrJMWEqcNSjQL02s6d8A==}
-    hasBin: true
-    peerDependencies:
-      '@swc/core': '>=1.2.50'
-      '@swc/wasm': '>=1.2.50'
-      '@types/node': '*'
-      typescript: '>=2.7'
-    peerDependenciesMeta:
-      '@swc/core':
-        optional: true
-      '@swc/wasm':
-        optional: true
-    dependencies:
-      '@cspotcode/source-map-support': 0.7.0
-      '@tsconfig/node10': 1.0.8
-      '@tsconfig/node12': 1.0.9
-      '@tsconfig/node14': 1.0.1
-      '@tsconfig/node16': 1.0.2
-      '@types/node': 16.11.7
-      acorn: 8.5.0
-      acorn-walk: 8.2.0
-      arg: 4.1.3
-      create-require: 1.1.1
-      diff: 4.0.2
-      make-error: 1.3.6
-      typescript: 4.4.4
       yn: 3.1.1
     dev: true
 
