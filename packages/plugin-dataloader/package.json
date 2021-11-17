@@ -3,6 +3,7 @@
   "version": "2.19.0",
   "description": "A GiraphQL plugin for attaching dataloader to object types",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

@@ -3,6 +3,7 @@
   "version": "2.10.0",
   "description": "Directive plugin for GiraphQL, enables using graphql-tools based directives with GiraphQL",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

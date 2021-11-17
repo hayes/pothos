@@ -3,6 +3,7 @@
   "version": "2.18.0",
   "description": "A GiraphQL plugin for adding relay style connections, nodes, and cursor based pagination to your GraphQL schema",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

@@ -3,6 +3,7 @@
   "version": "2.12.0",
   "description": "A GiraphQL plugin for adding typed errors into your schema",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

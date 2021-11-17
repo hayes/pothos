@@ -3,6 +3,7 @@
   "version": "0.4.0",
   "description": "shared test utils for testing giraphql packages",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

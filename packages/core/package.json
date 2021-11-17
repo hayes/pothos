@@ -3,6 +3,7 @@
   "version": "2.18.0",
   "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

@@ -3,6 +3,7 @@
   "version": "2.14.0",
   "description": "A GiraphQL plugin for adding argument validation",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",

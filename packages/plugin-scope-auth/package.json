@@ -3,6 +3,7 @@
   "version": "2.13.0",
   "description": "A GiraphQL plugin for adding scope based authorization checks to your GraphQL Schema",
   "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",
