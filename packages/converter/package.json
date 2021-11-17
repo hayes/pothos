@@ -33,8 +33,8 @@
     "yargs": "^17.2.1"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.17.0",
-    "@giraphql/test-utils": "^0.3.0",
+    "@giraphql/core": "^2.18.0",
+    "@giraphql/test-utils": "^0.4.0",
     "@types/yargs": "^17.0.5"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

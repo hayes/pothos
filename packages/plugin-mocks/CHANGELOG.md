@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.9.0
+
+### Minor Changes
+
+- aeef5e5: Update dependencies
+
 ## 2.8.0
 
 ### Minor Changes
