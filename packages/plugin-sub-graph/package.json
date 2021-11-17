@@ -39,7 +39,7 @@
   },
   "devDependencies": {
     "@giraphql/core": "^2.18.1",
-    "@giraphql/test-utils": "^0.4.1",
+    "@giraphql/test-utils": "^0.5.0",
     "graphql": "16.0.1",
     "graphql-tag": "^2.12.6"
   },

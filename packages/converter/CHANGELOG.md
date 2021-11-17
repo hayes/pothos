@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.11.0
+
+### Minor Changes
+
+- 6d2a6d9: Update to support typescript 4.5. typescript@>4.5.2 is now required for code generation
+  in the prisma plugin
+
 ## 2.10.1
 
 ### Patch Changes
