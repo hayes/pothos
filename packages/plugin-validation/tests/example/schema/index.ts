@@ -233,6 +233,13 @@ builder.queryType({
   }),
 });
 
+const WithValidationInput = builder.inputType('WithValidationInput', {
+  fields: (t) => ({
+    name: t.string(),
+  }),
+  validate: [[(args) => args.name === 'secret', { message: 'Incorrect name given' }]],
+});
+
 const NestedInput = builder.inputType('NestedInput', {
   fields: (t) => ({ id: t.id() }),
 });
@@ -276,6 +283,16 @@ builder.queryField('nestedObjectList', (t) =>
     nullable: true,
     args: {
       input: t.arg({ type: NestedObjectListInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('getSecret', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: WithValidationInput }),
     },
     resolve: () => true,
   }),
