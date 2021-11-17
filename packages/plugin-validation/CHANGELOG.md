@@ -1,5 +1,13 @@
 # Change Log
 
+## 2.15.0
+
+### Minor Changes
+
+- 3bad9e7: Fixed a bug with validations on InputObjects that caused them not be applied when no
+  fields had validations
+- 3bad9e7: Fixed a bug that caused some items in validation arrays not to be applied correctly
+
 ## 2.14.1
 
 ### Patch Changes
