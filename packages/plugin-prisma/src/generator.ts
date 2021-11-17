@@ -91,8 +91,10 @@ generatorHandler({
             'Relations',
             undefined,
             ts.factory.createTypeLiteralNode(
-              relations.map((field) =>
-                ts.factory.createPropertySignature(
+              relations.map((field) => {
+                const typeName = typeof field.type === 'string' ? field.type : field.type.name;
+
+                return ts.factory.createPropertySignature(
                   [],
                   field.name,
                   undefined,
@@ -103,12 +105,12 @@ generatorHandler({
                       undefined,
                       field.isList
                         ? ts.factory.createArrayTypeNode(
-                            ts.factory.createTypeReferenceNode(field.type),
+                            ts.factory.createTypeReferenceNode(typeName),
                           )
                         : field.isRequired
-                        ? ts.factory.createTypeReferenceNode(field.type)
+                        ? ts.factory.createTypeReferenceNode(typeName)
                         : ts.factory.createUnionTypeNode([
-                            ts.factory.createTypeReferenceNode(field.type),
+                            ts.factory.createTypeReferenceNode(typeName),
                             ts.factory.createLiteralTypeNode(ts.factory.createNull()),
                           ]),
                     ),
@@ -118,14 +120,12 @@ generatorHandler({
                       undefined,
                       ts.factory.createIndexedAccessTypeNode(
                         ts.factory.createTypeReferenceNode('PrismaTypes'),
-                        ts.factory.createLiteralTypeNode(
-                          ts.factory.createStringLiteral(field.type),
-                        ),
+                        ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
                       ),
                     ),
                   ]),
-                ),
-              ),
+                );
+              }),
             ),
           ),
         ]),

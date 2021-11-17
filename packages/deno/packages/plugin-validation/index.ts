@@ -6,7 +6,6 @@ import SchemaBuilder, { BasePlugin, GiraphQLInputFieldConfig, GiraphQLInputField
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
 import { RefineConstraint, ValidationOptionUnion } from './types.ts';
 export * from './types.ts';
-export { createZodSchema };
 const pluginName = "validation" as const;
 export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
@@ -55,13 +54,13 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
                 args[argName] = validator;
             }
         });
-        let validator: zod.ZodTypeAny = zod.object(args).nonstrict();
+        let validator: zod.ZodTypeAny = zod.object(args).passthrough();
         if (fieldConfig.giraphqlOptions.validate) {
             validator = refine(validator, {
                 refine: fieldConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
             });
         }
-        return async (parent, rawArgs, context, info) => resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info) as unknown;
+        return async (parent, rawArgs, context, info) => resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info);
     }
     createValidator(optionsOrConstraint: RefineConstraint | ValidationOptionUnion | undefined, type: GiraphQLInputFieldType<Types> | null, fieldName: string): zod.ZodTypeAny {
         const options: ValidationOptionUnion | undefined = Array.isArray(optionsOrConstraint) || typeof optionsOrConstraint === "function"
@@ -69,7 +68,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
             : optionsOrConstraint;
         if (type?.kind === "InputObject") {
             const typeConfig = this.buildCache.getTypeConfig(type.ref, "InputObject");
-            let fieldValidator = refine(zod.lazy(() => zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).nonstrict()), options);
+            let fieldValidator = refine(zod.lazy(() => zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).passthrough()), options);
             if (typeConfig.giraphqlOptions.validate) {
                 fieldValidator = refine(fieldValidator, {
                     refine: typeConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
@@ -97,3 +96,4 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 }
 SchemaBuilder.registerPlugin(pluginName, GiraphQLValidationPlugin);
 export default pluginName;
+export { default as createZodSchema } from './createZodSchema.ts';

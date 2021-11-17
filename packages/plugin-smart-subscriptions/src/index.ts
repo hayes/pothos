@@ -8,24 +8,11 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@giraphql/core';
 import SubscriptionCache from './cache';
-import CacheNode from './cache-node';
 import { getFieldSubscribe } from './create-field-data';
 import SubscriptionManager from './manager';
-import BaseSubscriptionManager from './manager/base';
-import FieldSubscriptionManager from './manager/field';
-import TypeSubscriptionManager from './manager/type';
 import resolveWithCache from './resolve-with-cache';
 
 const DEFAULT_DEBOUNCE_DELAY = 10;
-
-export {
-  BaseSubscriptionManager,
-  CacheNode,
-  FieldSubscriptionManager,
-  SubscriptionCache,
-  SubscriptionManager,
-  TypeSubscriptionManager,
-};
 
 export * from './types';
 export * from './utils';
@@ -159,3 +146,10 @@ export class GiraphQLSmartSubscriptionsPlugin<Types extends SchemaTypes> extends
 }
 
 SchemaBuilder.registerPlugin(pluginName, GiraphQLSmartSubscriptionsPlugin);
+
+export { default as SubscriptionCache } from './cache';
+export { default as CacheNode } from './cache-node';
+export { default as SubscriptionManager } from './manager';
+export { default as BaseSubscriptionManager } from './manager/base';
+export { default as FieldSubscriptionManager } from './manager/field';
+export { default as TypeSubscriptionManager } from './manager/type';

@@ -59,9 +59,17 @@ export function refine(originalValidator: zod.ZodTypeAny, options: ValidationOpt
     if (typeof options === "function") {
         return originalValidator.refine(options);
     }
-    const validator = options.schema
-        ? zod.intersection(options.schema, originalValidator)
-        : originalValidator;
+    let validator = originalValidator;
+    // TODO find a better way to merge array fields
+    // eslint-disable-next-line no-underscore-dangle
+    if (options.schema && (options.schema._def as {
+        typeName: string;
+    }).typeName === "ZodArray") {
+        validator = originalValidator.refine((value) => options.schema?.parse(value));
+    }
+    else if (options.schema) {
+        validator = originalValidator.and(options.schema);
+    }
     if (!options.refine) {
         return validator;
     }
@@ -171,7 +179,7 @@ export function createArrayValidator(options: ArrayValidationOptions<unknown[]>,
     }
     return refine(validator, options);
 }
-export const createObjectValidator = validatorCreator("object", objectValidations, (options) => refine(zod.object({}).nonstrict(), options));
+export const createObjectValidator = validatorCreator("object", objectValidations, (options) => refine(zod.object({}).passthrough(), options));
 const validationCreators = [
     createNumberValidator,
     createBigintValidator,
@@ -204,7 +212,6 @@ export default function createZodSchema(optionsOrConstraint: RefineConstraint | 
         return zod.unknown();
     }
     if (isBaseValidator(options)) {
-        refine(zod.unknown(), options);
         return combine([refine(zod.unknown(), options)], required);
     }
     const typeValidators = validationCreators

@@ -3,7 +3,7 @@
 import { OutputRef, outputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
 import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
-export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef {
+export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef, GiraphQLSchemaTypes.InterfaceRef<T, P> {
     override kind = "Interface" as const;
     [outputShapeKey]: T;
     [parentShapeKey]: P;

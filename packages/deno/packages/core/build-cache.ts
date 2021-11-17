@@ -56,7 +56,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         const fields = builtType.getFields();
         const fieldConfigs: Record<string, GiraphQLInputFieldConfig<Types>> = {};
         Object.keys(fields).forEach((fieldName) => {
-            fieldConfigs[fieldName] = fields[fieldName].extensions!
+            fieldConfigs[fieldName] = fields[fieldName].extensions
                 .giraphqlConfig as GiraphQLInputFieldConfig<Types>;
         });
         return fieldConfigs;
@@ -392,7 +392,7 @@ export default class BuildCache<Types extends SchemaTypes> {
             if (promises.length > 0) {
                 return Promise.all(promises).then((results) => results.find((result) => !!result)?.name);
             }
-            return null;
+            return undefined;
         };
         const type: GraphQLInterfaceType = new GraphQLInterfaceType({
             ...config,
@@ -410,12 +410,12 @@ export default class BuildCache<Types extends SchemaTypes> {
     private buildUnion(config: GiraphQLUnionTypeConfig) {
         const resolveType: GraphQLTypeResolver<unknown, Types["Context"]> = (...args) => {
             const resultOrPromise = config.resolveType!(...args);
-            const getResult = (result: GraphQLObjectType<unknown, object> | string | null | undefined) => {
+            const getResult = (result: GraphQLObjectType<unknown, object> | string | undefined) => {
                 if (typeof result === "string" || !result) {
                     return result;
                 }
                 if (result instanceof GraphQLObjectType) {
-                    return result;
+                    return result.name;
                 }
                 try {
                     const typeConfig = this.configStore.getTypeConfig(result);

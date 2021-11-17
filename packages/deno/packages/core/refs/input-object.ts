@@ -3,7 +3,7 @@
 import { InputRef, inputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
 import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '../index.ts';
-export default class InputObjectRef<T> extends BaseTypeRef implements InputRef {
+export default class InputObjectRef<T> extends BaseTypeRef implements InputRef, GiraphQLSchemaTypes.InputObjectRef<T> {
     override kind = "InputObject" as const;
     [inputShapeKey]: T;
     constructor(name: string) {

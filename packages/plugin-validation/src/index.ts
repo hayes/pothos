@@ -20,8 +20,6 @@ import { RefineConstraint, ValidationOptionUnion } from './types';
 
 export * from './types';
 
-export { createZodSchema };
-
 const pluginName = 'validation' as const;
 
 export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -168,3 +166,5 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 SchemaBuilder.registerPlugin(pluginName, GiraphQLValidationPlugin);
 
 export default pluginName;
+
+export { default as createZodSchema } from './createZodSchema';

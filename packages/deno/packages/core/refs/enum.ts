@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { InputRef, inputShapeKey, OutputRef, outputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
-export default class EnumRef<T, U = T> extends BaseTypeRef implements OutputRef, InputRef {
+export default class EnumRef<T, U = T> extends BaseTypeRef implements OutputRef, InputRef, GiraphQLSchemaTypes.EnumRef<T, U> {
     override kind = "Enum" as const;
     [outputShapeKey]: T;
     [inputShapeKey]: U;

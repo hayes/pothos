@@ -22,8 +22,7 @@ yarn add @giraphql/plugin-directives
 
 ```typescript
 import DirectivePlugin from '@giraphql/plugin-directives';
-import { SchemaDirectiveVisitor } from 'apollo-server';
-import { createRateLimitDirective } from 'graphql-rate-limit-directive';
+import { rateLimitDirective } from 'graphql-rate-limit-directive';
 
 const builder = new SchemaBuilder<
   Directives: {
@@ -45,11 +44,8 @@ builder.queryType({
   });
 });
 
-const schema = builder.toSchema();
-
-const rateLimitDirective = createRateLimitDirective();
-
-rateLimitDirective.visitSchemaDirectives(schema, { rateLimit: rateLimitDirective });
+const { rateLimitDirectiveTransformer } = rateLimitDirective();
+const schema = rateLimitDirectiveTransformer(builder.toSchema({}));
 ```
 
 The directives plugin allows you to define types for the directives your schema will use the

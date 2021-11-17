@@ -1,4 +1,4 @@
-import { createRateLimitDirective } from 'graphql-rate-limit-directive';
+import { rateLimitDirective } from 'graphql-rate-limit-directive';
 import builder from '../builder';
 
 builder.queryType({
@@ -95,10 +95,7 @@ builder.scalarType('Date', {
   serialize: () => new Date(),
 });
 
-const schema = builder.toSchema({});
-
-const rateLimitDirective = createRateLimitDirective();
-
-rateLimitDirective.visitSchemaDirectives(schema, { rateLimit: rateLimitDirective });
+const { rateLimitDirectiveTransformer } = rateLimitDirective();
+const schema = rateLimitDirectiveTransformer(builder.toSchema({}));
 
 export default schema;

@@ -10,26 +10,26 @@ generator client {
 }
 
 generator giraphql {
-  provider = "ts-node ./src/generator.ts"
+  provider     = "ts-node ./src/generator.ts"
   clientOutput = "@prisma/client"
-  output = "../tests/generated.ts"
+  output       = "../tests/generated.ts"
 }
 
 model Post {
-  id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @unique
-  updatedAt DateTime @updatedAt
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @unique @default(now())
+  updatedAt DateTime  @updatedAt
   title     String
   content   String?
-  published Boolean  @default(false)
-  author    User     @relation(fields: [authorId], references: [id])
+  published Boolean   @default(false)
+  author    User      @relation(fields: [authorId], references: [id])
   comments  Comment[]
   authorId  Int
 }
 
 model Comment {
   id        Int      @id @default(autoincrement())
-  createdAt DateTime @default(now()) @unique
+  createdAt DateTime @unique @default(now())
   content   String
   author    User     @relation(fields: [authorId], references: [id])
   post      Post     @relation(fields: [postId], references: [id])
@@ -45,8 +45,8 @@ model Profile {
 }
 
 model User {
-  id       Int      @id @default(autoincrement())
-  email    String   @unique
+  id       Int       @id @default(autoincrement())
+  email    String    @unique
   name     String?
   posts    Post[]
   comments Comment[]
@@ -54,7 +54,6 @@ model User {
 }
 
 model Unrelated {
-  id      Int      @id @default(autoincrement())
-  name    String?
+  id   Int     @id @default(autoincrement())
+  name String?
 }
-

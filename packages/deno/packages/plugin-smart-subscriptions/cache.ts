@@ -3,7 +3,6 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { BuildCache, Path, SchemaTypes } from '../core/index.ts';
 import CacheNode from './cache-node.ts';
 import SubscriptionManager from './manager/index.ts';
-export { CacheNode };
 export default class SubscriptionCache<Types extends SchemaTypes> {
     manager: SubscriptionManager;
     buildCache: BuildCache<Types>;
@@ -84,3 +83,4 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
         return key.toString();
     }
 }
+export { default as CacheNode } from './cache-node.ts';

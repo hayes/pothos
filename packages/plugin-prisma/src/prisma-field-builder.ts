@@ -82,7 +82,9 @@ export class PrismaObjectFieldBuilder<
   ) {
     const relationField = getRelation(this.model, this.builder, name);
     const parentRef = getRefFromModel(this.model, this.builder);
-    const ref = getRefFromModel(relationField.type, this.builder);
+    const relationTypeName =
+      typeof relationField.type === 'string' ? relationField.type : relationField.type.name;
+    const ref = getRefFromModel(relationTypeName, this.builder);
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
     let typeName: string | undefined;
@@ -228,7 +230,9 @@ export class PrismaObjectFieldBuilder<
     const [name, options = {} as never] = allArgs;
     const relationField = getRelation(this.model, this.builder, name);
     const parentRef = getRefFromModel(this.model, this.builder);
-    const ref = getRefFromModel(relationField.type, this.builder);
+    const relationTypeName =
+      typeof relationField.type === 'string' ? relationField.type : relationField.type.name;
+    const ref = getRefFromModel(relationTypeName, this.builder);
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
 

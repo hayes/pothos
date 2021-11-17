@@ -5,7 +5,7 @@ export function replaceType<T extends GraphQLType>(type: T, newTypes: Map<string
         return new GraphQLNonNull(replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraphs)) as T;
     }
     if (type instanceof GraphQLList) {
-        return new GraphQLList(replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraphs)) as T;
+        return new GraphQLList(replaceType(type.ofType, newTypes, referencedBy, subGraphs)) as T;
     }
     const newType = newTypes.get((type as GraphQLNamedType).name);
     if (!newType) {

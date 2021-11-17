@@ -32,7 +32,7 @@
   "devDependencies": {
     "@giraphql/core": "^2.17.0",
     "@giraphql/test-utils": "^0.3.0",
-    "graphql-tag": "^2.12.5",
+    "graphql-tag": "^2.12.6",
     "zod": "^3.11.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

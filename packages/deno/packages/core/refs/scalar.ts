@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { InputRef, inputShapeKey, OutputRef, outputShapeKey, parentShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
-export default class ScalarRef<T, U, P = T> extends BaseTypeRef implements OutputRef, InputRef {
+export default class ScalarRef<T, U, P = T> extends BaseTypeRef implements OutputRef, InputRef, GiraphQLSchemaTypes.ScalarRef<T, U, P> {
     override kind = "Scalar" as const;
     [outputShapeKey]: T;
     [parentShapeKey]: P;

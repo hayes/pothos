@@ -52,9 +52,9 @@ declare global {
                     Output: infer T;
                 } ? T : never;
             } & {
-                [K in keyof PartialTypes["Interfaces"]]: PartialTypes["Interfaces"][K];
-            } & {
                 [K in keyof PartialTypes["Objects"]]: PartialTypes["Objects"][K];
+            } & {
+                [K in keyof PartialTypes["Interfaces"]]: PartialTypes["Interfaces"][K];
             };
             inputShapes: {
                 [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {

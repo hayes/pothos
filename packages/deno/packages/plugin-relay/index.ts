@@ -22,7 +22,7 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
             return resolver;
         }
         const argMapper = createInputValueMapper(argMappings, (globalID) => internalDecodeGlobalID(this.builder, String(globalID)));
-        return (parent, args, context, info) => resolver(parent, argMapper(args), context, info) as unknown;
+        return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
     }
     override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
@@ -35,7 +35,7 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
             return subscribe;
         }
         const argMapper = createInputValueMapper(argMappings, (globalID) => internalDecodeGlobalID(this.builder, String(globalID)));
-        return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info) as unknown;
+        return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info);
     }
 }
 SchemaBuilder.registerPlugin(pluginName, GiraphQLRelayPlugin);

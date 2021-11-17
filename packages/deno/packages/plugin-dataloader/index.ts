@@ -21,6 +21,7 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
         if (!getDataloader) {
             return resolver;
         }
+        const cacheResolved = options.extensions?.cacheResolved as ((val: unknown) => string) | undefined;
         function loadIfID(idOrResult: unknown, loader: DataLoader<unknown, unknown>): unknown {
             if (idOrResult == null) {
                 return idOrResult;
@@ -34,8 +35,8 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
                 case "string":
                     return loader.load(idOrResult);
                 default:
-                    if (options.cacheResolved !== undefined) {
-                        const key = options.cacheResolved(idOrResult);
+                    if (cacheResolved) {
+                        const key = cacheResolved(idOrResult);
                         loader.prime(key, idOrResult);
                     }
                     return idOrResult;

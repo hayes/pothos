@@ -2,14 +2,9 @@
 import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLIsTypeOfFn, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
-import EnumRef from './refs/enum.ts';
-import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.ts';
-import ObjectRef, { ImplementableObjectRef } from './refs/object.ts';
-import ScalarRef from './refs/scalar.ts';
-import UnionRef from './refs/union.ts';
 import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils/index.ts';
-import { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, GiraphQLEnumTypeConfig, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectTypeOptions, ParentShape, PluginConstructorMap, QueryFieldBuilder, SubscriptionFieldBuilder, ValuesFromEnum, } from './index.ts';
+import { AbstractReturnShape, BaseEnum, EnumParam, EnumRef, EnumTypeOptions, GiraphQLEnumTypeConfig, GiraphQLInputObjectTypeConfig, GiraphQLInterfaceTypeConfig, GiraphQLMutationTypeConfig, GiraphQLObjectTypeConfig, GiraphQLQueryTypeConfig, GiraphQLScalarTypeConfig, GiraphQLSubscriptionTypeConfig, GiraphQLUnionTypeConfig, ImplementableInputObjectRef, ImplementableInterfaceRef, ImplementableObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceRef, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectRef, ObjectTypeOptions, ParentShape, PluginConstructorMap, QueryFieldBuilder, ScalarRef, SubscriptionFieldBuilder, UnionRef, ValuesFromEnum, } from './index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
     static allowPluginReRegistration = false;
@@ -240,7 +235,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }).name;
         const ref = new EnumRef<Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>>(name);
         const values = typeof param === "object"
-            ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
+            ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
                 valuesFromEnum<Types>(param as BaseEnum)
             : normalizeEnumValues<Types>((options as {
                 values: EnumValues<Types>;
@@ -256,7 +251,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         };
         this.configStore.addTypeConfig(config, ref);
         if (typeof param !== "string") {
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion, @typescript-eslint/non-nullable-type-assertion-style
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
             this.configStore.associateRefWithName(param as BaseEnum, name);
         }
         return ref;
@@ -284,14 +279,12 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             ...options,
         } as GiraphQLSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
     }
-    inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param> & {}> : InputFieldMap>(param: Param, options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>): InputObjectRef<InputShapeFromFields<Fields>> {
+    inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends GiraphQLSchemaTypes.InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param> & {}> : InputFieldMap>(param: Param, options: GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>): GiraphQLSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {
         verifyRef(param);
         const name = typeof param === "string" ? param : (param as {
             name: string;
         }).name;
-        const ref = (param instanceof InputObjectRef
-            ? param
-            : new InputObjectRef<InputShapeFromFields<Fields>>(name)) as InputObjectRef<InputShapeFromFields<Fields>>;
+        const ref = (typeof param === "string" ? new InputObjectRef<InputShapeFromFields<Fields>>(name) : param) as GiraphQLSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>>;
         const config: GiraphQLInputObjectTypeConfig = {
             kind: "InputObject",
             graphqlKind: "InputObject",
