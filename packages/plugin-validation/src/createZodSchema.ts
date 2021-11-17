@@ -109,10 +109,7 @@ export function refine(
 
   const refinements = options.refine as [() => boolean, { message?: string }][];
 
-  return refinements.reduce(
-    (prev, [refineFn, opts]) => validator.refine(refineFn, opts),
-    validator,
-  );
+  return refinements.reduce((prev, [refineFn, opts]) => prev.refine(refineFn, opts), validator);
 }
 
 export const createNumberValidator = validatorCreator(

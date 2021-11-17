@@ -335,10 +335,14 @@ describe('validation', () => {
   it('input object with input', async () => {
     const query = gql`
       query {
-        getSecretNotWorkingValid: getSecretNotWorking(input: { name: "secret", age: 100 })
-        getSecretNotWorkingInvalid: getSecretNotWorking(input: { name: "not secret", age: 101 })
-        getSecretWorkingValid: getSecretWorking(input: { name: "secret", age: 100 })
-        getSecretWorkingInvalid: getSecretWorking(input: { name: "not secret", age: 101 })
+        withValidationInput(input: { name: "secret", age: 100 })
+        withValidationInputInvalid: withValidationInput(input: { name: "not secret", age: 101 })
+        withValidationInputInvalid2: withValidationInput(input: { name: "not secret", age: 100 })
+        withValidationInputInvalid3: withValidationInput(input: { name: "secret", age: 101 })
+        withValidationAndFieldValidator(input: { name: "secret", age: 100 })
+        withValidationAndFieldValidatorInvalid: withValidationAndFieldValidator(
+          input: { name: "not secret", age: 101 }
+        )
       }
     `;
 
@@ -351,11 +355,65 @@ describe('validation', () => {
     expect(result).toMatchInlineSnapshot(`
       Object {
         "data": Object {
-          "getSecretNotWorkingValid": true,
-          "getSecretWorkingValid": true,
-          "getSecretNotWorkingInvalid": null,
-          "getSecretWorkingInvalid": null,
+          "withValidationAndFieldValidator": true,
+          "withValidationAndFieldValidatorInvalid": null,
+          "withValidationInput": true,
+          "withValidationInputInvalid": null,
+          "withValidationInputInvalid2": null,
+          "withValidationInputInvalid3": null,
         },
+        "errors": Array [
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Incorrect name given",
+          "path": [
+            "input"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Incorrect age given",
+          "path": [
+            "input"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Incorrect name given",
+          "path": [
+            "input"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Incorrect age given",
+          "path": [
+            "input"
+          ]
+        }
+      ]],
+          [GraphQLError: [
+        {
+          "code": "custom",
+          "message": "Incorrect name given",
+          "path": [
+            "input"
+          ]
+        },
+        {
+          "code": "custom",
+          "message": "Incorrect age given",
+          "path": [
+            "input"
+          ]
+        }
+      ]],
+        ],
       }
     `);
   });
