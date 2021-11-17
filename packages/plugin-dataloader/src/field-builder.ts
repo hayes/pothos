@@ -48,7 +48,12 @@ fieldBuilderProto.loadable = function loadable<
     Key,
     LoaderShapeFromType<SchemaTypes, Type, Nullable>,
     CacheKey
-  >(loaderOptions, load, undefined, sort);
+  >(
+    loaderOptions,
+    load,
+    undefined,
+    sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key,
+  );
 
   return this.field({
     ...options,

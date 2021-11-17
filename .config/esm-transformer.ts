@@ -58,6 +58,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
               node.modifiers,
               node.importClause,
               ts.factory.createStringLiteral(mod, true),
+              undefined,
             );
           }
 
@@ -68,6 +69,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
             node.isTypeOnly,
             node.exportClause,
             ts.factory.createStringLiteral(mod, true),
+            undefined,
           );
         }
       }

@@ -24,9 +24,13 @@ generatorHandler({
         true,
         undefined,
         ts.factory.createNamedImports([
-          ts.factory.createImportSpecifier(undefined, ts.factory.createIdentifier('Prisma')),
+          ts.factory.createImportSpecifier(false, undefined, ts.factory.createIdentifier('Prisma')),
           ...options.dmmf.datamodel.models.map((model) =>
-            ts.factory.createImportSpecifier(undefined, ts.factory.createIdentifier(model.name)),
+            ts.factory.createImportSpecifier(
+              false,
+              undefined,
+              ts.factory.createIdentifier(model.name),
+            ),
           ),
         ]),
       ),
