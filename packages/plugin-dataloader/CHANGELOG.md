@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.19.1
+
+### Patch Changes
+
+- c85dc33: Add types entry in package.json
+
 ## 2.19.0
 
 ### Minor Changes
