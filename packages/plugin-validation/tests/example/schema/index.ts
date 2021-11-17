@@ -236,8 +236,12 @@ builder.queryType({
 const WithValidationInput = builder.inputType('WithValidationInput', {
   fields: (t) => ({
     name: t.string(),
+    age: t.int(),
   }),
-  validate: [[(args) => args.name === 'secret', { message: 'Incorrect name given' }]],
+  validate: [
+    [(args) => args.name === 'secret', { message: 'Incorrect name given' }],
+    [(args) => args.age === 100, { message: 'Incorrect age given' }],
+  ],
 });
 
 const NestedInput = builder.inputType('NestedInput', {

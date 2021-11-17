@@ -283,8 +283,8 @@ describe('validation', () => {
         valid: soloNested(input: { nested: { id: "12" } })
         invalidList: nestedObjectList(input: { nested: [{ id: "1" }] })
         validList: nestedObjectList(input: { nested: [{ id: "12" }] })
-        validI: getSecret(input: { name: "secret" })
-        invalidI: getSecret(input: { name: "not secret" })
+        validI: getSecret(input: { name: "secret", age: 100 })
+        invalidI: getSecret(input: { name: "not secret", age: 101 })
       }
     `;
 
