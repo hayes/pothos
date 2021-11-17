@@ -79,7 +79,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
     const argMap = mapInputFields(
       fieldConfig.args,
       this.buildCache,
-      (field) => field.giraphqlOptions.validate ?? null,
+      (field) => field.extensions?.validator ?? null,
     );
 
     if (!argMap && !fieldConfig.giraphqlOptions.validate) {

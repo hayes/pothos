@@ -233,6 +233,27 @@ builder.queryType({
   }),
 });
 
+const WithValidationInput = builder.inputType('WithValidationInput', {
+  fields: (t) => ({
+    name: t.string(),
+    age: t.int(),
+  }),
+  validate: [
+    [(args) => args.name === 'secret', { message: 'Incorrect name given' }],
+    [(args) => args.age === 100, { message: 'Incorrect age given' }],
+  ],
+});
+const WithValidationAndFieldValidator = builder.inputType('WithValidationAndFieldValidator', {
+  fields: (t) => ({
+    name: t.string({ validate: () => true }),
+    age: t.int(),
+  }),
+  validate: [
+    [(args) => args.name === 'secret', { message: 'Incorrect name given' }],
+    [(args) => args.age === 100, { message: 'Incorrect age given' }],
+  ],
+});
+
 const NestedInput = builder.inputType('NestedInput', {
   fields: (t) => ({ id: t.id() }),
 });
@@ -276,6 +297,26 @@ builder.queryField('nestedObjectList', (t) =>
     nullable: true,
     args: {
       input: t.arg({ type: NestedObjectListInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withValidationInput', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: WithValidationInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withValidationAndFieldValidator', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: WithValidationAndFieldValidator }),
     },
     resolve: () => true,
   }),
