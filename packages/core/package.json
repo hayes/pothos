@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/core",
-  "version": "2.18.0",
+  "version": "2.18.1",
   "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -36,7 +36,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/test-utils": "^0.4.0",
+    "@giraphql/test-utils": "^0.4.1",
     "graphql": "16.0.1",
     "graphql-scalars": "^1.13.6",
     "graphql-tag": "^2.12.6"

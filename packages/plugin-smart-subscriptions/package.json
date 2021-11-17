@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-smart-subscriptions",
-  "version": "2.10.0",
+  "version": "2.10.1",
   "description": "A GiraphQL plugin for turning queries into subscriptions",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -35,8 +35,8 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.18.0",
-    "@giraphql/test-utils": "^0.4.0",
+    "@giraphql/core": "^2.18.1",
+    "@giraphql/test-utils": "^0.4.1",
     "graphql": "16.0.1",
     "graphql-subscriptions": "^2.0.0",
     "graphql-tag": "^2.12.6"

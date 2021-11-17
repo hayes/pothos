@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.14.1
+
+### Patch Changes
+
+- c85dc33: Add types entry in package.json
+
 ## 2.14.0
 
 ### Minor Changes

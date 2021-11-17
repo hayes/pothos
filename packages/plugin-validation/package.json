@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-validation",
-  "version": "2.14.0",
+  "version": "2.14.1",
   "description": "A GiraphQL plugin for adding argument validation",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -31,8 +31,8 @@
     "zod": "*"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.18.0",
-    "@giraphql/test-utils": "^0.4.0",
+    "@giraphql/core": "^2.18.1",
+    "@giraphql/test-utils": "^0.4.1",
     "graphql-tag": "^2.12.6",
     "zod": "^3.11.6"
   },
