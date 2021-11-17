@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 0.4.0
+
+### Minor Changes
+
+- aeef5e5: Update dependencies
+
 ## 0.3.0
 
 ### Minor Changes

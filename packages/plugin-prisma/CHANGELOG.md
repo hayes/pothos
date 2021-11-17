@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.12.0
+
+### Minor Changes
+
+- aeef5e5: Update dependencies
+
 ## 0.11.1
 
 ### Patch Changes

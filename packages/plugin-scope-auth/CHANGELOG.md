@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.13.0
+
+### Minor Changes
+
+- aeef5e5: Update dependencies
+
 ## 2.12.0
 
 ### Minor Changes
