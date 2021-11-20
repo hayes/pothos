@@ -9,7 +9,7 @@ import {
   SchemaTypes,
 } from '../types';
 
-import { BuildCache } from '..';
+import { BuildCache, createContextCache } from '..';
 
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
@@ -21,7 +21,9 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
 
   options;
 
-  private requestDataMap = new WeakMap<Types['Context'], T>();
+  private requestDataMap = createContextCache<T, Types['Context']>((ctx) =>
+    this.createRequestData(ctx),
+  );
 
   constructor(buildCache: BuildCache<Types>, name: keyof GiraphQLSchemaTypes.Plugins<Types>) {
     this.name = name;
@@ -156,10 +158,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    * @return {object} - The data object for the current request
    */
   protected requestData(context: Types['Context']): T {
-    if (!this.requestDataMap.has(context)) {
-      this.requestDataMap.set(context, this.createRequestData(context))!;
-    }
-
-    return this.requestDataMap.get(context)!;
+    return this.requestDataMap(context)!;
   }
 }

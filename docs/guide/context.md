@@ -70,3 +70,32 @@ const server = new ApolloServer({
 
 server.listen(3000);
 ```
+
+# Initialize context cache
+
+Several GiraphQL plugins use the context object to cache data for the current request. Some examples
+include dataloaders and auth scopes. This caching mechanism works based on the assumption that the
+same context object is passed to every resolver in a request, and each request has a unique context
+object. This works for most applications without any additional configuration.
+
+In some rare edge cases, you may have some additional logic added to your application that clones or
+mutates the context object throughout the execution of a request. To ensure that all plugins work
+correctly even if the context object is cloned, wrapped, or modified in a way that does not preserve
+its identity, you can manually initialize the context cache and attach it to the context object:
+
+```ts
+import { initContextCache } from '@giraphql/core';
+
+const server = new ApolloServer({
+  schema,
+  context: async ({ req }) => ({
+    // Adding this will prevent any issues if you server implementation
+    // copies or extends the context object before passing it to your resolvers
+    ...initContextCache(),
+
+    currentUser: await getUserFromAuthHeader(req.headers.authorization),
+  }),
+});
+
+server.listen(3000);
+```

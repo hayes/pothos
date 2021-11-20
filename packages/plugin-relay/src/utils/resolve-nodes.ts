@@ -1,18 +1,16 @@
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { GraphQLResolveInfo } from 'graphql';
-import { MaybePromise, ObjectParam, OutputType, SchemaTypes } from '@giraphql/core';
+import {
+  createContextCache,
+  MaybePromise,
+  ObjectParam,
+  OutputType,
+  SchemaTypes,
+} from '@giraphql/core';
 import { NodeObjectOptions } from '../types';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal';
 
-const nodeCache = new WeakMap<object, Map<string, MaybePromise<unknown>>>();
-
-function getRequestCache(context: object) {
-  if (!nodeCache.has(context)) {
-    nodeCache.set(context, new Map<string, MaybePromise<unknown>>());
-  }
-
-  return nodeCache.get(context)!;
-}
+const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 
 export async function resolveNodes<Types extends SchemaTypes>(
   builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,

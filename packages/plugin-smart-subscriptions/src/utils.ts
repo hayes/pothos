@@ -1,4 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
+import { createContextCache } from '@giraphql/core';
 import { SmartSubscriptionOptions } from './types';
 
 export function rootName(path: GraphQLResolveInfo['path']): string {
@@ -20,17 +21,13 @@ export function stringPath(path: GraphQLResolveInfo['path']): string {
 export function subscribeOptionsFromIterator<T, Context extends object = object>(
   createIterator: (name: string, context: Context) => AsyncIterator<T>,
 ): Pick<SmartSubscriptionOptions<Context>, 'subscribe' | 'unsubscribe'> {
-  const iterators = new WeakMap<Context, Map<string, AsyncIterator<T>>>();
+  const iterators = createContextCache(() => new Map<string, AsyncIterator<T>>());
 
   return {
     subscribe: async (name, context, cb) => {
       const itr = createIterator(name, context);
 
-      if (!iterators.has(context)) {
-        iterators.set(context, new Map<string, AsyncIterator<T>>());
-      }
-
-      const map = iterators.get(context)!;
+      const map = iterators(context)!;
 
       if (map.has(name)) {
         throw new Error(`Can't create multiple subscriptions for the same event name ${name}`);
@@ -47,7 +44,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
       }
     },
     unsubscribe: async (name, context) => {
-      const map = iterators.get(context)!;
+      const map = iterators(context)!;
 
       if (!map || !map.has(name)) {
         return;
