@@ -165,9 +165,9 @@ importers:
 
   packages/plugin-prisma:
     specifiers:
-      '@giraphql/core': ^2.18.1
+      '@giraphql/core': ^2.18.2
       '@giraphql/plugin-errors': ^2.12.1
-      '@giraphql/plugin-relay': ^2.18.1
+      '@giraphql/plugin-relay': ^2.18.2
       '@giraphql/test-utils': ^0.5.0
       '@prisma/client': ^3.5.0
       '@prisma/generator-helper': ^3.5.0
@@ -191,7 +191,7 @@ importers:
 
   packages/plugin-relay:
     specifiers:
-      '@giraphql/core': ^2.18.1
+      '@giraphql/core': ^2.18.2
       '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-subscriptions: ^2.0.0
@@ -238,7 +238,7 @@ importers:
 
   packages/plugin-smart-subscriptions:
     specifiers:
-      '@giraphql/core': ^2.18.1
+      '@giraphql/core': ^2.18.2
       '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-subscriptions: ^2.0.0
