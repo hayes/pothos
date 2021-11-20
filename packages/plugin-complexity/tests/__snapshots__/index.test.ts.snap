@@ -1,0 +1,384 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`simple objects example schema generates expected schema 1`] = `
+"interface Character {
+  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  appearsIn: [Episode!]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friends(limit: Int): [Character]!
+
+  \\"\\"\\"The id of the character\\"\\"\\"
+  id: ID!
+
+  \\"\\"\\"The name of the character\\"\\"\\"
+  name: String!
+}
+
+\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+type Droid implements Character {
+  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  appearsIn: [Episode!]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friends(limit: Int): [Character]!
+
+  \\"\\"\\"The id of the character\\"\\"\\"
+  id: ID!
+
+  \\"\\"\\"The name of the character\\"\\"\\"
+  name: String!
+
+  \\"\\"\\"The primary function of the droid.\\"\\"\\"
+  primaryFunction: String!
+}
+
+\\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
+enum Episode {
+  \\"\\"\\"Released in 1980.\\"\\"\\"
+  EMPIRE
+
+  \\"\\"\\"Released in 1983\\"\\"\\"
+  JEDI
+
+  \\"\\"\\"Released in 1977.\\"\\"\\"
+  NEWHOPE
+}
+
+\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
+type Human implements Character {
+  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  appearsIn: [Episode!]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friends(limit: Int): [Character]!
+
+  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  homePlanet: String
+
+  \\"\\"\\"The id of the character\\"\\"\\"
+  id: ID!
+
+  \\"\\"\\"The name of the character\\"\\"\\"
+  name: String!
+}
+
+type Query {
+  droid(
+    \\"\\"\\"id of the character\\"\\"\\"
+    id: ID!
+  ): Droid!
+  hero(
+    \\"\\"\\"
+    If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
+    \\"\\"\\"
+    episode: Episode!
+  ): Character!
+  human(
+    \\"\\"\\"id of the character\\"\\"\\"
+    id: ID!
+  ): Human!
+  r2d2: Droid!
+}"
+`;
+
+exports[`simple objects example schema queries complexity based on args 1`] = `
+Object {
+  "data": Object {
+    "hero": Object {
+      "friends": Array [
+        Object {
+          "friends": Array [
+            Object {
+              "friends": Array [
+                Object {
+                  "appearsIn": Array [
+                    "NEWHOPE",
+                    "EMPIRE",
+                    "JEDI",
+                  ],
+                  "name": "Han Solo",
+                },
+              ],
+            },
+          ],
+          "name": "Han Solo",
+        },
+      ],
+    },
+  },
+}
+`;
+
+exports[`simple objects example schema queries complexity based options 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Query exceeds maximum complexity (complexity: 501, max: 200)],
+  ],
+}
+`;
+
+exports[`simple objects example schema queries too complex 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Query exceeds maximum complexity (complexity: 287, max: 200)],
+  ],
+}
+`;
+
+exports[`simple objects example schema queries too deep 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Query exceeds maximum depth (depth: 6, max: 5)],
+  ],
+}
+`;
+
+exports[`simple objects example schema queries too wide 1`] = `
+Object {
+  "data": null,
+  "errors": Array [
+    [GraphQLError: Query exceeds maximum breadth (breadth: 13, max: 10)],
+  ],
+}
+`;
+
+exports[`simple objects example schema queries valid query 1`] = `
+Object {
+  "data": Object {
+    "hero": Object {
+      "friends": Array [
+        Object {
+          "friends": Array [
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+              ],
+            },
+          ],
+          "name": "Han Solo",
+        },
+        Object {
+          "friends": Array [
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+              ],
+            },
+          ],
+          "name": "Leia Organa",
+        },
+        Object {
+          "friends": Array [
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+              ],
+            },
+          ],
+          "name": "C-3PO",
+        },
+        Object {
+          "friends": Array [
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Leia Organa",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+            Object {
+              "friends": Array [
+                Object {
+                  "name": "Luke Skywalker",
+                },
+                Object {
+                  "name": "Han Solo",
+                },
+                Object {
+                  "name": "C-3PO",
+                },
+                Object {
+                  "name": "R2-D2",
+                },
+              ],
+            },
+          ],
+          "name": "R2-D2",
+        },
+      ],
+    },
+  },
+}
+`;

@@ -78,6 +78,21 @@ importers:
     devDependencies:
       ts-node: 10.4.0_822df8cc64711c2db8d43ce90a8558a3
 
+  packages/plugin-complexity:
+    specifiers:
+      '@giraphql/core': ^2.18.2
+      '@giraphql/test-utils': ^0.5.0
+      graphql: 16.0.1
+      graphql-tag: ^2.12.6
+    devDependencies:
+      '@giraphql/core': link:../core
+      '@giraphql/test-utils': link:../test-utils
+      graphql: 16.0.1
+      graphql-tag: 2.12.6_graphql@16.0.1
+
+  packages/plugin-complexity/esm:
+    specifiers: {}
+
   packages/plugin-dataloader:
     specifiers:
       '@giraphql/core': ^2.18.1

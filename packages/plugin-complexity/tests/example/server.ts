@@ -1,11 +1,15 @@
 import { createTestServer } from '@giraphql/test-utils';
-import { User } from './data';
+import { ComplexityResult } from '../../src';
 import schema from './schema';
 
 const server = createTestServer({
   schema,
-  contextFactory: () => ({
-    User,
+  contextFactory: (): { complexity: ComplexityResult } => ({
+    complexity: {
+      depth: 5,
+      breadth: 10,
+      complexity: 200,
+    },
   }),
 });
 
