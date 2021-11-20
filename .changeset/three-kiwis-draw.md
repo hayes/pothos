@@ -5,4 +5,4 @@
 '@giraphql/plugin-smart-subscriptions': patch
 ---
 
-Standarsize context caches so all plugins can take advantage of `initContextCache`
+Standardize context caches across all plugins to correctly take advantage of `initContextCache`
