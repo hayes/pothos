@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.10.2
+
+### Patch Changes
+
+- 5619aca: Standardize context caches across all plugins to correctly take advantage of
+  `initContextCache`
+
 ## 2.10.1
 
 ### Patch Changes
