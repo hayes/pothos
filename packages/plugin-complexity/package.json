@@ -1,0 +1,40 @@
+{
+  "name": "@giraphql/plugin-complexity",
+  "version": "2.0.0",
+  "description": "a GiraphQL plugin for defining and limiting complexity of queries",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "module": "./esm/index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/giraphql.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "graphql",
+    "schema",
+    "plugin",
+    "complexity",
+    "depth",
+    "query",
+    "limit"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@giraphql/core": "^2.18.2",
+    "@giraphql/test-utils": "^0.5.0",
+    "graphql": "16.0.1",
+    "graphql-tag": "^2.12.6"
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+}

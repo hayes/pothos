@@ -64,5 +64,7 @@ new ApolloServer({
   A plugin for easily including error types in your GraphQL schema and hooking up error types to
   resolvers.
 - ## [**Prisma**](https://giraphql.com/plugins/prisma)
-  A plugin for more efficient integration with prisma that can help solve n+1 issues and more efficienty resolve queries 
-
+  A plugin for more efficient integration with prisma that can help solve n+1 issues and more
+  efficiently resolve queries
+- ## [**Complexity**](https://giraphql.com/plugins/complexity)
+  A plugin for defining and limiting complexity of queries
