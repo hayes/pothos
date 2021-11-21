@@ -80,7 +80,7 @@ importers:
 
   packages/plugin-complexity:
     specifiers:
-      '@giraphql/core': ^2.18.2
+      '@giraphql/core': ^2.19.0
       '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6
@@ -238,7 +238,7 @@ importers:
 
   packages/plugin-simple-objects:
     specifiers:
-      '@giraphql/core': ^2.18.1
+      '@giraphql/core': ^2.19.0
       '@giraphql/test-utils': ^0.5.0
       graphql: 16.0.1
       graphql-tag: ^2.12.6

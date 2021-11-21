@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.12.0
+
+### Minor Changes
+
+- 6d6d54e: Add complexity plugin
+
 ## 2.11.1
 
 ### Patch Changes
