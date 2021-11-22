@@ -6,8 +6,9 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@giraphql/core';
-import { ComplexityPluginOptions } from './types';
-import { FieldComplexity, GiraphQLComplexityPlugin } from '.';
+import type { ComplexityPluginOptions, FieldComplexity } from './types';
+
+import type { GiraphQLComplexityPlugin } from '.';
 
 declare global {
   export namespace GiraphQLSchemaTypes {

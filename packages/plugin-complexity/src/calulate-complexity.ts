@@ -17,7 +17,8 @@ import {
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
 import { SchemaTypes } from '@giraphql/core';
-import { ComplexityResult, FieldComplexity, GiraphQLComplexityPlugin } from '.';
+
+import type { ComplexityResult, FieldComplexity, GiraphQLComplexityPlugin } from '.';
 
 function isListType(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLList) {
@@ -132,6 +133,7 @@ function complexityFromFragment<Types extends SchemaTypes>(
 
   return complexityFromSelectionSet(plugin, ctx, info, fragment.selectionSet, fragmentType);
 }
+
 function complexityFromSelectionSet<Types extends SchemaTypes>(
   plugin: GiraphQLComplexityPlugin<Types>,
   ctx: {},

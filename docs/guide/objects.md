@@ -74,11 +74,10 @@ builder.objectType(Giraffe, {
 
 In GiraphQL we never automatically expose properties from the underlying data. Each property we want
 to add in our schema needs to be explicitly defined. The `fields` property in options object should
-be a function that accepts one argument \(a
-[FieldBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/field-builder.md)\)
-and returns an object who's keys are the field names, and who's values are `FieldRefs`created by the
-[FieldBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/field-builder.md).
-Fields are explained in more detail in the [fields guide](fields.md).
+be a function that accepts one argument \(a [FieldBuilder](../api/field-builder.md)\) and returns an
+object who's keys are the field names, and who's values are `FieldRefs`created by the
+[FieldBuilder](../api/field-builder.md). Fields are explained in more detail in the
+[fields guide](fields.md).
 
 ## Add a query
 
@@ -192,11 +191,10 @@ This is ideal when you want to list out all the types for your schema in one pla
 interfaces/types that define your data rather than classes, and means you won't have to import
 anything when referencing the object type in other parts of the schema.
 
-The type signature for
-[SchemaBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/schema-builder.md)
-is described in more detail [later](schema-builder.md), for now, it is enough to know that the
-`Objects` type provided to the schema builder allows you to map the names of object types to type
-definitions that describe the data for those types.
+The type signature for [SchemaBuilder](../api/schema-builder.md) is described in more detail
+[later](../api/schema-builder.md), for now, it is enough to know that the `Objects` type provided to
+the schema builder allows you to map the names of object types to type definitions that describe the
+data for those types.
 
 ### Using Refs
 

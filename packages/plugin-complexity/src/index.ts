@@ -8,7 +8,7 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@giraphql/core';
 import { calculateComplexity } from './calulate-complexity';
-import { ComplexityResult } from './types';
+import type { ComplexityResult } from './types';
 
 export * from './types';
 

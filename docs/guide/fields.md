@@ -6,13 +6,10 @@ menu: Guide
 # Fields
 
 Fields for [Object](objects.md) and [Interface](interfaces.md) types are defined using a shape
-function. This is a function that takes a
-[FieldBuilder](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/field-builder.md)
-as an argument, and returns an object who's keys are field names, and who's values are fields
-created by the
-[FieldBuilder](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/field-builder.md).
-These examples will mostly add fields to the `Query` type, but the topics covered in this guide
-should apply to any object or interface type.
+function. This is a function that takes a [FieldBuilder](../api/field-builder.md) as an argument,
+and returns an object who's keys are field names, and who's values are fields created by the
+[FieldBuilder](../api/field-builder.md). These examples will mostly add fields to the `Query` type,
+but the topics covered in this guide should apply to any object or interface type.
 
 ## Scalars
 

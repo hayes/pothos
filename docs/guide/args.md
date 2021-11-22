@@ -85,7 +85,7 @@ const Giraffe = builder.objectType('Giraffe', {
 
 Arguments are optional by default, but can be made required by passing `required: true` in the
 argument options. This default can be changed in the SchemaBuilder constructor, see
-[Changing Default Nullability](https://github.com/hayes/giraphql/tree/a813922505511a8b5971e4f2dcd9592dd9b98e30/docs/guide/guide/changing-default-nullability.md).
+[Changing Default Nullability](./changing-default-nullability.md).
 
 ```typescript
 const Query = builder.queryType({
