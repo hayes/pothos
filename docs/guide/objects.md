@@ -74,10 +74,9 @@ builder.objectType(Giraffe, {
 
 In GiraphQL we never automatically expose properties from the underlying data. Each property we want
 to add in our schema needs to be explicitly defined. The `fields` property in options object should
-be a function that accepts one argument \(a
-[FieldBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/field-builder.md)\)
+be a function that accepts one argument \(a FieldBuilder)
 and returns an object who's keys are the field names, and who's values are `FieldRefs`created by the
-[FieldBuilder](https://github.com/hayes/giraphql/tree/70c9001213400223167776227d2e35309f619966/docs/field-builder.md).
+FieldBuilder.
 Fields are explained in more detail in the [fields guide](fields.md).
 
 ## Add a query
