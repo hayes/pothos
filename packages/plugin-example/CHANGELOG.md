@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.10.0
+
+### Minor Changes
+
+- 48e9fd8: Add missing exports field to package.json
+
 ## 2.9.1
 
 ### Patch Changes
