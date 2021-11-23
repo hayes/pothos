@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 2.3.0
+
+### Minor Changes
+
+- 48e9fd8: Add missing exports field to package.json
+
 ## 2.2.0
 
 ### Minor Changes
