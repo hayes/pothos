@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 0.5.1
+
+### Patch Changes
+
+- c6aa732: graphql@15 type compatibility fix
+
 ## 0.5.0
 
 ### Minor Changes
