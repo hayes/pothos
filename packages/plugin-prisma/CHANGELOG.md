@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.13.2
+
+### Patch Changes
+
+- c6aa732: graphql@15 type compatibility fix
+
 ## 0.13.1
 
 ### Patch Changes
