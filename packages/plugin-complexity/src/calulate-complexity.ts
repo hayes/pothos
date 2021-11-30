@@ -5,7 +5,7 @@ import {
   getNamedType,
   GraphQLInterfaceType,
   GraphQLList,
-  GraphQLNamedOutputType,
+  GraphQLNamedType,
   GraphQLNonNull,
   GraphQLObjectType,
   GraphQLOutputType,
@@ -37,7 +37,7 @@ function complexityFromField<Types extends SchemaTypes>(
   ctx: {},
   info: GraphQLResolveInfo,
   selection: FieldNode,
-  type: GraphQLNamedOutputType,
+  type: GraphQLNamedType,
 ): ComplexityResult {
   let depth = 1;
   let breadth = 1;
@@ -51,7 +51,7 @@ function complexityFromField<Types extends SchemaTypes>(
     throw new Error(field);
   }
 
-  let complexityOption = field.extensions.complexity as FieldComplexity<{}, {}> | undefined;
+  let complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
 
   if (typeof complexityOption === 'function') {
     const args = getArgumentValues(field, selection, info.variableValues) as Record<
@@ -117,7 +117,7 @@ function complexityFromFragment<Types extends SchemaTypes>(
   ctx: {},
   info: GraphQLResolveInfo,
   fragment: FragmentDefinitionNode | InlineFragmentNode,
-  type: GraphQLNamedOutputType,
+  type: GraphQLNamedType,
 ): ComplexityResult {
   const fragmentType = fragment.typeCondition
     ? info.schema.getType(fragment.typeCondition.name.value)
@@ -139,7 +139,7 @@ function complexityFromSelectionSet<Types extends SchemaTypes>(
   ctx: {},
   info: GraphQLResolveInfo,
   selectionSet: SelectionSetNode,
-  type: GraphQLNamedOutputType,
+  type: GraphQLNamedType,
 ): ComplexityResult {
   const result = {
     depth: 0,

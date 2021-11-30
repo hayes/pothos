@@ -1,4 +1,3 @@
-/* eslint-disable prettier/prettier */
 export type MaybePromise<T> = Promise<T> | T;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -40,20 +39,20 @@ export type NormalizeNullable<T> = undefined extends T
   : T;
 
 export type NormalizeNullableFields<T extends object> = {
-    [K in RequiredKeys<T>]: T[K];
-  } & {
   [K in OptionalKeys<T>]?: T[K] | null | undefined;
+} & {
+  [K in RequiredKeys<T>]: T[K];
 };
 
 export type RecursivelyNormalizeNullableFields<T> = T extends object[]
   ? Normalize<
       {
-          [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
-        } & {
         [K in OptionalKeys<T[number]>]?:
           | RecursivelyNormalizeNullableFields<T[number][K]>
           | null
           | undefined;
+      } & {
+        [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
       }
     >[]
   : T extends unknown[]
@@ -61,9 +60,9 @@ export type RecursivelyNormalizeNullableFields<T> = T extends object[]
   : T extends object
   ? Normalize<
       {
-          [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
-        } & {
         [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
+      } & {
+        [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
       }
     >
   : NormalizeNullable<T>;
