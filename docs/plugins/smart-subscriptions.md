@@ -57,7 +57,7 @@ const builder = new SchemaBuilder({
 });
 ```
 
-#### Helper for ussage with async iterators
+#### Helper for usage with async iterators
 
 ```typescript
 const builder = new SchemaBuilder({
