@@ -31,7 +31,7 @@ const builder = new SchemaBuilder({
 To limit query complexity you can specify a maximum complexity either in the builder setup, or when
 building the schema:
 
-```ts
+```typescript
 const builder = new SchemaBuilder({
   plugins: [ComplexityPlugin],
   defaultComplexity: 1,
@@ -108,7 +108,7 @@ query {
 
 You can set a custom complexity value on any field:
 
-```ts
+```typescript
 builder.queryFields((t) => ({
   posts: t.field({
     type: [Post],
@@ -119,7 +119,7 @@ builder.queryFields((t) => ({
 
 The complexity option can also set the multiplier for a field:
 
-```ts
+```typescript
 builder.queryFields((t) => ({
   posts: t.field({
     type: [Post],
@@ -130,7 +130,7 @@ builder.queryFields((t) => ({
 
 A fields complexity can also be based on the fields arguments, or the context value:
 
-```ts
+```typescript
 builder.queryFields((t) => ({
   posts: t.field({
     type: [Post],
