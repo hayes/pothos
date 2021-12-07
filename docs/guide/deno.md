@@ -1,6 +1,6 @@
 # Deno
 
-GiraphQL now supports deno, but the server implmementations available for deno are relativly new and
+GiraphQL now supports deno, but the server implementations available for deno are relatively new and
 take a bit more effort to set up than on node
 
 ### Setup
