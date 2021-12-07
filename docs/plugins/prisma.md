@@ -5,7 +5,7 @@ menu: Plugins
 
 # Prisma Plugin for GiraphQL
 
-This plugin provides tighter integration with prisma, making it easier to define prisma bioased
+This plugin provides tighter integration with prisma, making it easier to define prisma based
 object types, and helps solve n+1 queries for relations. It also has integrations for the relay
 plugin to make defining nodes and connections easy and efficient.
 
