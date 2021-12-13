@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.21.0
+
+### Minor Changes
+
+- 37841f1b: Revert fix for inputRef unions because of regressions
+
 ## 2.20.0
 
 ### Minor Changes
