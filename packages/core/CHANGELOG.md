@@ -1,5 +1,12 @@
 # Change Log
 
+## 2.20.0
+
+### Minor Changes
+
+- 5b3cd026: Merge ts unions passed to inputRef and correctly use merged normalized type for
+  implemented input ref
+
 ## 2.19.1
 
 ### Patch Changes
