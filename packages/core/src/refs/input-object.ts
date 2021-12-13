@@ -2,12 +2,7 @@
 import { InputRef, inputShapeKey } from '../types';
 import BaseTypeRef from './base';
 
-import {
-  InputFieldsFromShape,
-  MergeUnion,
-  RecursivelyNormalizeNullableFields,
-  SchemaTypes,
-} from '..';
+import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '..';
 
 export default class InputObjectRef<T>
   extends BaseTypeRef
@@ -25,7 +20,7 @@ export default class InputObjectRef<T>
 export class ImplementableInputObjectRef<
   Types extends SchemaTypes,
   T extends object,
-> extends InputObjectRef<RecursivelyNormalizeNullableFields<MergeUnion<T>>> {
+> extends InputObjectRef<RecursivelyNormalizeNullableFields<T>> {
   private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
@@ -37,14 +32,14 @@ export class ImplementableInputObjectRef<
   implement(
     options: GiraphQLSchemaTypes.InputObjectTypeOptions<
       Types,
-      InputFieldsFromShape<RecursivelyNormalizeNullableFields<MergeUnion<T>> & object>
+      InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
     >,
   ) {
     this.builder.inputType<
       ImplementableInputObjectRef<Types, T>,
-      InputFieldsFromShape<RecursivelyNormalizeNullableFields<MergeUnion<T>> & object>
+      InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
     >(this, options);
 
-    return this as InputObjectRef<RecursivelyNormalizeNullableFields<MergeUnion<T>>>;
+    return this as InputObjectRef<T>;
   }
 }

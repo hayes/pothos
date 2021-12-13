@@ -19,18 +19,6 @@ interface Countable {
 
 scalar Date
 
-enum EnumA1 {
-  A1
-  A2
-  A11
-  A22
-}
-
-input EnumUnionInput {
-  a: EnumA1!
-  c: Int!
-}
-
 input Example {
   date: Date
   enum: MyEnum
@@ -85,12 +73,6 @@ type Sheep implements Countable & Shaveable {
 
 type Subscription {
   event: String!
-}
-
-input TsUnionInput {
-  a: Int
-  b: Int
-  c: Int!
 }
 
 type User {
