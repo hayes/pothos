@@ -351,6 +351,37 @@ builder.subscriptionType({
   }),
 });
 
+// eslint-disable-next-line @typescript-eslint/sort-type-union-intersection-members
+type SomeType = ({ a: number; b: number } | { a: null; b: null }) & { c: number };
+
+const EnumA1 = ['A1', 'A11'] as const;
+const EnumA2 = ['A2', 'A22'] as const;
+
+const EnumA = builder.enumType('EnumA1', {
+  values: [...EnumA1, ...EnumA2] as const,
+});
+
+type SomeWithEnumType =
+  | { a: typeof EnumA2[number] }
+  | ({
+      c: number;
+    } & { a: typeof EnumA1[number] });
+
+export const EnumUnionInput = builder.inputRef<SomeWithEnumType>('EnumUnionInput').implement({
+  fields: (t) => ({
+    a: t.field({ type: EnumA, required: true }),
+    c: t.int({ required: true }),
+  }),
+});
+
+export const TsUnionInput = builder.inputRef<SomeType>('TsUnionInput').implement({
+  fields: (t) => ({
+    a: t.int({ required: false }),
+    b: t.int({ required: false }),
+    c: t.int({ required: true }),
+  }),
+});
+
 const schema = builder.toSchema({});
 
 export default schema;
