@@ -73,6 +73,8 @@ export type RemoveNeverKeys<T extends {}> = {
 
 export type Merge<T> = { [K in keyof T]: T[K] };
 
+export type MergeUnion<T> = keyof T extends infer U ? { [K in U & keyof T]: T[K] } : never;
+
 export interface Path {
   prev: Path | undefined;
   key: number | string;
