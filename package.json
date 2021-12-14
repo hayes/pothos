@@ -7,48 +7,53 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "prepare": "pnpm create-config",
-    "create-config": "beemo create-config && pnpm refs",
-    "build": "pnpm refs && pnpm run -r generate && beemo typescript --build --reference-workspaces && pnpm build-esm && pnpm create-config",
-    "build-esm": "ESM_BUILD=true pnpm create-config && ESM_BUILD=true beemo typescript --build --reference-workspaces --transpile-only && pnpm build-esm:extensions",
-    "build-esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ./.config/esm-transformer.ts",
+    "prepare": "pnpm create-config && pnpm run -r generate",
+    "create-config": "beemo create-config",
+    "build": "pnpm turbo run build --scope='@giraphql/*' && pnpm run build-deno",
+    "build:ci": "pnpm turbo run build --scope='@giraphql/*'",
     "build-deno": "pnpm ts-node packages/deno/scripts/build.ts",
     "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm} && git checkout -- 'packages/*/esm/*'",
-    "ci": "pnpm run build && pnpm run test && pnpm run lint",
+    "ci": "pnpm run build:ci && pnpm run test && pnpm run lint",
     "ci:version": "changeset version && pnpm install --frozen-lockfile false",
     "coverage": "pnpm run test --coverage",
     "format": "beemo prettier",
-    "lint": "beemo eslint",
-    "test": "beemo jest",
-    "type": "pnpm refs && beemo typescript --build --reference-workspaces",
+    "lint": "beemo eslint '{packages,examples}/*/{src,test}/**.{ts,js}'",
+    "test": "pnpm turbo run test --scope='@giraphql/*'",
+    "type": "pnpm turbo run type --scope='@giraphql/*'",
     "prerelease": "pnpm clean && pnpm install && pnpm run ci",
     "release": "pnpm run prerelease && changeset publish && git push --follow-tags && git status && pnpm -r publish",
-    "refs": "beemo typescript:sync-project-refs",
     "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && changeset publish --tag preview"
   },
   "workspaces": [
-    "packages/*"
+    "packages/*",
+    "examples/*"
   ],
   "private": true,
   "devDependencies": {
+    "@babel/core": "^7.16.5",
+    "@babel/preset-env": "^7.16.5",
+    "@babel/preset-typescript": "^7.16.5",
     "@beemo/cli": "^2.0.4",
-    "@beemo/dev": "^1.7.3",
-    "@changesets/cli": "^2.18.0",
+    "@beemo/dev": "^1.7.4",
+    "@changesets/cli": "^2.18.1",
     "@types/faker": "^5.5.9",
-    "@types/jest": "^27.0.2",
-    "@types/node": "^16.11.7",
+    "@types/jest": "^27.0.3",
+    "@types/node": "^16.11.13",
     "eslint-plugin-prettier": "^4.0.0",
     "faker": "^5.5.3",
-    "graphql": "16.0.1",
-    "graphql-helix": "^1.10.0",
+    "graphql": "16.1.0",
+    "graphql-helix": "^1.10.3",
     "graphql-tag": "^2.12.6",
-    "jest": "^27.3.1",
+    "jest": "^27.4.5",
+    "prettier": "^2.5.1",
     "ts-node": "^10.4.0",
-    "typescript": "4.5.2"
+    "turbo": "^1.0.10",
+    "typescript": "4.5.4",
+    "typescript-json-schema": "^0.52.0"
   },
   "resolutions": {
-    "graphql": "16.0.1"
+    "graphql": "16.1.0"
   },
   "repository": {
     "type": "git",
@@ -59,5 +64,32 @@
   "bugs": {
     "url": "https://github.com/hayes/giraphql/issues"
   },
-  "homepage": "https://github.com/hayes/giraphql#readme"
+  "homepage": "https://github.com/hayes/giraphql#readme",
+  "turbo": {
+    "baseBranch": "origin/main",
+    "npmClient": "pnpm",
+    "pipeline": {
+      "build": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": [
+          "lib/**",
+          "esm/**"
+        ]
+      },
+      "type": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": []
+      },
+      "test": {
+        "dependsOn": [
+          "^build"
+        ],
+        "outputs": []
+      }
+    }
+  }
 }

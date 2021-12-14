@@ -2,9 +2,6 @@ import * as ts from 'typescript';
 import { dirname, join, resolve } from 'path';
 import * as fs from 'fs';
 
-const packageDir = resolve(__dirname, '../packages');
-const ignoredPackages = ['deno'];
-
 type LoadedFile = {
   path: string;
   content: Buffer;
@@ -111,11 +108,7 @@ function loadFile(file: string): LoadedFile {
 }
 
 function getAllFiles() {
-  const projects = fs.readdirSync(packageDir).filter((pkg) => !ignoredPackages.includes(pkg));
-
-  const results = projects.flatMap((dir) => getFiles(join(packageDir, `${dir}/esm`), true));
-
-  return results.map((entry) => loadFile(entry));
+  return getFiles(join(process.cwd(), `esm`), true).map((entry) => loadFile(entry));
 }
 
 function build() {

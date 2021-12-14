@@ -43,7 +43,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
     }
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         // Only used to check if validation is required
-        const argMap = mapInputFields(fieldConfig.args, this.buildCache, (field) => field.giraphqlOptions.validate ?? null);
+        const argMap = mapInputFields(fieldConfig.args, this.buildCache, (field) => field.extensions?.validator ?? null);
         if (!argMap && !fieldConfig.giraphqlOptions.validate) {
             return resolver;
         }

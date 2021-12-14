@@ -90,7 +90,7 @@ export function refine(originalValidator: zod.ZodTypeAny, options: ValidationOpt
             message?: string;
         }
     ][];
-    return refinements.reduce((prev, [refineFn, opts]) => validator.refine(refineFn, opts), validator);
+    return refinements.reduce((prev, [refineFn, opts]) => prev.refine(refineFn, opts), validator);
 }
 export const createNumberValidator = validatorCreator("number", numberValidations, (options: NumberValidationOptions) => {
     let validator = zod.number();

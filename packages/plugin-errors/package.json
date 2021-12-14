@@ -10,7 +10,12 @@
     "require": "./lib/index.js"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "type": "tsc --noEmit && tsc --project tests/tsconfig.json",
+    "build": "pnpm build:cjs && pnpm build:esm",
+    "build:cjs": "tsc --module commonjs --outDir lib",
+    "build:esm": "tsc --module es2020 --outDir esm && pnpm esm:extensions",
+    "esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ../../.config/esm-transformer.ts",
+    "test": "pnpm jest"
   },
   "repository": {
     "type": "git",
@@ -37,7 +42,7 @@
     "@giraphql/core": "^2.19.1",
     "@giraphql/plugin-validation": "^2.15.2",
     "@giraphql/test-utils": "^0.5.1",
-    "graphql": "16.0.1",
+    "graphql": "16.1.0",
     "graphql-tag": "^2.12.6",
     "zod": "^3.11.6"
   },

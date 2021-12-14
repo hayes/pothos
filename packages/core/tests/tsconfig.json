@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "composite": false,
+    "emitDeclarationOnly": false,
+    "noEmit": true,
+    "rootDir": "."
+  },
+  "extends": "../../../tsconfig.options.json",
+  "include": [
+    "**/*",
+  ],
+  "references": [
+    {
+      "path": ".."
+    }
+  ]
+}

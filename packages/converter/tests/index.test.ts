@@ -39,7 +39,7 @@ describe('Code generator', () => {
 
     expect(result).toMatchSnapshot();
     expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(exampleSchema)).trim());
-  }, 10_000);
+  }, 20_000);
 
   it('starwars schema', async () => {
     const converter = new GiraphQLConverter(starwarsSchema);
@@ -50,5 +50,5 @@ describe('Code generator', () => {
 
     expect(result).toMatchSnapshot();
     expect(result.trim()).toEqual(printSchema(lexicographicSortSchema(starwarsSchema)).trim());
-  }, 10_000);
+  }, 20_000);
 });

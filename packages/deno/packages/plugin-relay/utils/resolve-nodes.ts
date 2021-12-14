@@ -1,16 +1,10 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-use-before-define */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { MaybePromise, ObjectParam, OutputType, SchemaTypes } from '../../core/index.ts';
+import { createContextCache, MaybePromise, ObjectParam, OutputType, SchemaTypes, } from '../../core/index.ts';
 import { NodeObjectOptions } from '../types.ts';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal.ts';
-const nodeCache = new WeakMap<object, Map<string, MaybePromise<unknown>>>();
-function getRequestCache(context: object) {
-    if (!nodeCache.has(context)) {
-        nodeCache.set(context, new Map<string, MaybePromise<unknown>>());
-    }
-    return nodeCache.get(context)!;
-}
+const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 export async function resolveNodes<Types extends SchemaTypes>(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, globalIDs: (string | null | undefined)[]): Promise<MaybePromise<unknown>[]> {
     const requestCache = getRequestCache(context);
     const idsByType: Record<string, Map<string, string>> = {};

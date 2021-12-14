@@ -7,13 +7,14 @@ const packageDir = path.resolve(__dirname, '../../');
 const targetDir = path.resolve(__dirname, '../packages');
 const excludedPackages = ['converter', 'deno', 'plugin-example', 'plugin-prisma', 'test-utils'];
 const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
-const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore'];
+const excludedFiles = ['package.json', 'tsconfig.json', 'tsconfig.tsbuildinfo', 'CHANGELOG.md', '.npmignore', 'babel.config.js'];
 
 const moduleMap: Record<string, string> = {
   graphql: 'https://cdn.skypack.dev/graphql?dts',
   zod: 'https://cdn.skypack.dev/zod@v1.11.17?dts',
   dataloader: 'https://cdn.skypack.dev/dataloader?dts',
   '@giraphql/core': './core/index.ts',
+  'graphql/execution/values': 'https://cdn.skypack.dev/graphql/execution/values?dts'
 };
 
 type LoadedFile = {
@@ -141,6 +142,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
               node.modifiers,
               node.importClause,
               ts.factory.createStringLiteral(mod, true),
+              undefined
             );
           }
 
@@ -151,6 +153,7 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
             node.isTypeOnly,
             node.exportClause,
             ts.factory.createStringLiteral(mod, true),
+            undefined
           );
         }
       }
