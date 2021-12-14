@@ -96,8 +96,8 @@ importers:
   packages/plugin-dataloader:
     specifiers:
       '@giraphql/core': ^2.19.1
-      '@giraphql/plugin-errors': ^2.12.2
-      '@giraphql/plugin-relay': ^2.18.3
+      '@giraphql/plugin-errors': ^2.12.3
+      '@giraphql/plugin-relay': ^2.18.4
       '@giraphql/test-utils': ^0.5.1
       dataloader: ^2.0.0
       graphql-tag: ^2.12.6
@@ -132,7 +132,7 @@ importers:
   packages/plugin-errors:
     specifiers:
       '@giraphql/core': ^2.19.1
-      '@giraphql/plugin-validation': ^2.15.1
+      '@giraphql/plugin-validation': ^2.15.2
       '@giraphql/test-utils': ^0.5.1
       graphql: 16.0.1
       graphql-tag: ^2.12.6
@@ -181,8 +181,8 @@ importers:
   packages/plugin-prisma:
     specifiers:
       '@giraphql/core': ^2.19.1
-      '@giraphql/plugin-errors': ^2.12.2
-      '@giraphql/plugin-relay': ^2.18.3
+      '@giraphql/plugin-errors': ^2.12.3
+      '@giraphql/plugin-relay': ^2.18.4
       '@giraphql/test-utils': ^0.5.1
       '@prisma/client': ^3.5.0
       '@prisma/generator-helper': ^3.5.0
