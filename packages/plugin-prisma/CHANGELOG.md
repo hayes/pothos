@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.13.3
+
+### Patch Changes
+
+- 2b08f852: Fix syntax highlighting in docs and update npm README.md files"
+
 ## 0.13.2
 
 ### Patch Changes
