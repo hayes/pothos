@@ -83,7 +83,7 @@ mutates the context object throughout the execution of a request. To ensure that
 correctly even if the context object is cloned, wrapped, or modified in a way that does not preserve
 its identity, you can manually initialize the context cache and attach it to the context object:
 
-```ts
+```typescript
 import { initContextCache } from '@giraphql/core';
 
 const server = new ApolloServer({

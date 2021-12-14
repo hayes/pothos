@@ -24,11 +24,6 @@ const builder = new SchemaBuilder({
 });
 ```
 
-The options objects here are required, but will often be empty. Like many other places in the
-GiraphQL API, options objects are required because other plugins may contribute required options.
-These options objects will enable things like defining auth policies for your node query fields if
-you are using the auth plugin.
-
 ### Options
 
 The `relayOptions` object passed to builder can contain the following properties:
@@ -326,7 +321,8 @@ The `inputOptions` has a couple of non-standard options:
 The `payloadOptions` object also accepts a `name` property for setting the name of the payload
 object.
 
-You can also access refs for the created input and payload objects so you can re-use them in other fields:
+You can also access refs for the created input and payload objects so you can re-use them in other
+fields:
 
 ```typescript
 // Using aliases when destructuring lets you name your refs rather than using the generic `inputType` and `payloadType`

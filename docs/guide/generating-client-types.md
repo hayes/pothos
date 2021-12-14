@@ -15,7 +15,7 @@ The first thing you will need is a file that exports your built schema. The sche
 exported as `schema` or as the default export. This will be used to generate your client types, but
 can also be the schema you use in your server.
 
-```ts
+```typescript
 // schema.ts
 
 // Import the builder
@@ -116,4 +116,3 @@ edit your code.
 ```bash
 yarn graphql-codegen --watch './src/**/*.ts'
 ```
-

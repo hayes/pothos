@@ -154,7 +154,7 @@ The validation options available depend on the type being validated. Each proper
 and the options passed to the underlying zod method. This options object can be used to set a custom
 error message:
 
-```ts
+```typescript
 {
   validate: {
     max: [10, { message: 'should not be more than 10' }],
@@ -230,13 +230,13 @@ validator. These validators will be a union of all potential types that can appl
 defined for that field. For example, if you define an optional field with a `maxLength` validator,
 it will create a zod schema that looks something like:
 
-```ts
+```typescript
 zod.union([zod.null(), zod.undefined(), zod.array().maxLength(5), zod.string().maxLength(5)]);
 ```
 
 If you set and `email` validation instead the schema might look like:
 
-```ts
+```typescript
 zod.union([zod.null(), zod.undefined(), zod.string().email()]);
 ```
 
@@ -245,7 +245,7 @@ expected js type from the type definition, so the best we can do is limit the va
 what validations they support. The `type` validation allows explicitly validating the `type` of a
 field to be one of the base types supported by zod:
 
-```ts
+```typescript
 // field
 {
 validate: {
@@ -266,7 +266,7 @@ union of potential types.
 1. If you only include a `refine` validation (or just pass a function directly to validate) we will
    just use `zod`s unknown validator instead:
 
-```ts
+```typescript
 // field
 {
   validate: (val) => isValid(val),
@@ -278,7 +278,7 @@ zod.union([zod.null(), zod.undefined(), zod.unknown().refine((val) => isValid(va
 If the validation options include a `schema` that schema will be used as an intersection wit the
 generated validator:
 
-```ts
+```typescript
 // field
 {
   validate: {
@@ -294,7 +294,7 @@ zod.union([zod.null(), zod.undefined(),  zod.intersection(zod.number().max(10), 
 The easiest way to share validators is the use the to define schemas for your fields in an external
 file using the normal zod APIs, and then attaching those to your fields using the `schema` option.
 
-```ts
+```typescript
 // shared
 import { ValidationOptions } from '@giraphql/plugin-validation';
 
@@ -324,7 +324,7 @@ numberValidator.parse('3') // fail
 You can also use the `createZodSchema` helper from the plugin directly to create zod Schemas from an
 options object:
 
-```ts
+```typescript
 // shared
 import { ValidationOptions } from '@giraphql/plugin-validation';
 

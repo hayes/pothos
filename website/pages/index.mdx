@@ -35,7 +35,7 @@ const builder = new SchemaBuilder({
 To create an object type that can be loaded with a dataloader use the new `builder.loadableObject`
 method:
 
-```ts
+```typescript
 const User = builder.loadableObject('User', {
   // load will be called with ids of users that need to be loaded
   // Note that the types for keys (and context if present) are required
@@ -60,7 +60,7 @@ works, see the [dataloader docs](https://github.com/graphql/dataloader#batch-fun
 When defining fields that return `User`s, you will now be able to return either a `string` (based in
 ids param of `load`), or a User object (type based on the return type of `loadUsersById`).
 
-```ts
+```typescript
 builder.queryType({
   fields: (t) => ({
     user: t.field({
@@ -97,7 +97,7 @@ object instead, GiraphQL knows it can skip the dataloader for that object.
 In some cases you may need more granular dataloaders. To handle these cases there is a new
 `t.loadable` method for defining fields with their own dataloaders.
 
-```ts
+```typescript
 // Normal object that the fields below will load
 interface PostShape {
   id: string;
@@ -137,7 +137,7 @@ builder.objectField(User, 'posts', (t) =>
 
 You can provide additional options for your dataloaders using `loaderOptions`.
 
-```ts
+```typescript
 const User = builder.loadableObject('User', {
   loaderOptions: { maxBatchSize: 20 },
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
@@ -162,7 +162,7 @@ Dataloaders for "loadable" objects can be accessed via their ref by passing in t
 for the current request. dataloaders are not shared across requests, so we need the context to get
 the correct dataloader for the current request:
 
-```ts
+```typescript
 // create loadable object
 const User = builder.loadableObject('User', {
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
@@ -196,7 +196,7 @@ allows the normal graphql resolver flow to correctly handle these errors.
 If you are using the `loadMany` method from a dataloader manually, you can apply the same mapping
 using the `rejectErrors` helper:
 
-```ts
+```typescript
 import { rejectErrors } from '@giraphql/plugin-dataloader';
 
 builder.queryField('user', (t) =>
@@ -219,7 +219,7 @@ object. You can determine which of these options works best for you or add you o
 
 First you'll need to update the types for your context type:
 
-```ts
+```typescript
 import { LoadableRef } from '@giraphql/plugin-dataloader';
 
 export interface ContextType {
@@ -234,7 +234,7 @@ export interface ContextType {
 next you'll need to update your context factory function. The exact format of this depends on what
 graphql server implementation you are using.
 
-```ts
+```typescript
 import { initContextCache } from '@giraphql/core';
 import { LoadableRef, rejectErrors } from '@giraphql/plugin-dataloader';
 
@@ -262,7 +262,7 @@ export const createContext = (req, res): ContextType => ({
 
 Now you can use these helpers from your context object:
 
-```ts
+```typescript
 builder.queryFields((t) => ({
   fromContext1: t.field({
     type: User,
@@ -288,7 +288,7 @@ builder.queryFields((t) => ({
 If you are using the Relay plugin, there is an additional method `loadableNode` that gets added to
 the builder. You can use this method to create `node` objects that work like other loadeble objects.
 
-```ts
+```typescript
 const UserNode = builder.loadableNode('UserNode', {
   id: {
     resolve: (user) => user.id,
@@ -308,7 +308,7 @@ the query you can use the `cacheResolved` option.
 
 The `cacheResolved` option takes a function that converts the loaded object into it's cache Key:
 
-```ts
+```typescript
 const User = builder.loadableObject('User', {
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
   cacheResolved: user => user.id,

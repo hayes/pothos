@@ -13,7 +13,7 @@ for you.
 
 ### Objects and Interfaces
 
-```ts
+```typescript
 import { ObjectRef } from '@giraphql/core';
 import builder from './builder';
 
@@ -53,7 +53,7 @@ args for your resolvers, so you can't just add on more args later. Instead, we c
 that returns a set of args to apply to your field. To make this work, we need to get a few extra
 types:
 
-```ts
+```typescript
 import { InputFieldBuilder } from '@giraphql/core';
 
 export interface SchemaTypes {
@@ -108,7 +108,7 @@ into the args object for the current field.
 Input fields are similar to args, and also all need to be present when the type is defined so that
 GiraphQL can infer the correct types.
 
-```ts
+```typescript
 import { InputFieldBuilder } from '@giraphql/core';
 import builder, { TypesWithDefault } from './builder';
 

@@ -1,8 +1,8 @@
 # Prisma Plugin for GiraphQL
 
-This plugin provides tighter integration with prisma, making it easier to define prisma bioased
-object types, and helps solve n+1 queries for relations. It also has integrations for the relay
-plugin to make defining nodes and connections easy and efficient.
+This plugin provides tighter integration with prisma, making it easier to define prisma based object
+types, and helps solve n+1 queries for relations. It also has integrations for the relay plugin to
+make defining nodes and connections easy and efficient.
 
 ## Disclaimers
 
@@ -49,7 +49,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
-      resolve: user => user.profile.bio,
+      resolve: (user) => user.profile.bio,
     }),
     posts: t.relation('posts', {
       args: {

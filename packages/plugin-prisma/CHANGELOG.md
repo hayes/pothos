@@ -144,7 +144,7 @@
 
   You will need to remove PrismaClient from the builder types, so your builder setup now looks like:
 
-  ```ts
+  ```typescript
   import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
 
   export default new SchemaBuilder<{}>({
@@ -157,7 +157,7 @@
   You will also need to replace model names with the prisma delegates from your prisma client like
   the following:
 
-  ```ts
+  ```typescript
   builder.prismaObject(prisma.post, {
     findUnique: (post) => ({ id: post.id }),
     fields: (t) => ({

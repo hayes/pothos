@@ -562,7 +562,7 @@ mapping function did not return null. If the mapping function returned null for 
 Plugins can remove fields from objects, interfaces, and input objects, and remove specific values
 from enums. To do this, simply return null from the corresponding on\*Config plugin hook:
 
-```ts
+```typescript
 onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
   if (fieldConfig.name === 'removeMe') {
     return null;
