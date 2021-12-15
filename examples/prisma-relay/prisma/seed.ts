@@ -1,7 +1,7 @@
 /* eslint-disable no-await-in-loop */
 /* eslint-disable no-magic-numbers */
 import faker from 'faker';
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient } from './client';
 
 const prisma = new PrismaClient();
 

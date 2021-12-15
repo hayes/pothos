@@ -7,11 +7,12 @@ datasource db {
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../tests/client"
 }
 
 generator giraphql {
   provider     = "ts-node ./src/generator.ts"
-  clientOutput = "@prisma/client"
+  clientOutput = "../tests/client"
   output       = "../tests/generated.ts"
 }
 

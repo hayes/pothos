@@ -1,5 +1,5 @@
 import { ObjectRef, SchemaTypes } from '@giraphql/core';
-import { Prisma } from '@prisma/client';
+import { Prisma } from '../tests/client';
 import { PrismaDelegate } from './types';
 
 export const refMap = new WeakMap<object, Map<string, ObjectRef<unknown>>>();
