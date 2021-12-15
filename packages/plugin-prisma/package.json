@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-prisma",
-  "version": "0.13.3",
+  "version": "0.14.0",
   "description": "A GiraphQL plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -56,10 +56,10 @@
     "typescript": ">4.5.2"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.19.1",
-    "@giraphql/plugin-errors": "^2.12.3",
-    "@giraphql/plugin-relay": "^2.18.4",
-    "@giraphql/test-utils": "^0.5.1",
+    "@giraphql/core": "^2.22.0",
+    "@giraphql/plugin-errors": "^2.13.0",
+    "@giraphql/plugin-relay": "^2.19.0",
+    "@giraphql/test-utils": "^0.6.0",
     "@prisma/client": "^3.6.0",
     "graphql": "16.1.0",
     "graphql-tag": "^2.12.6",

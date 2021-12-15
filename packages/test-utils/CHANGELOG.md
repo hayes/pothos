@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 0.6.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 0.5.1
 
 ### Patch Changes

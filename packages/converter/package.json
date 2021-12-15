@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/converter",
-  "version": "2.11.1",
+  "version": "2.12.0",
   "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -39,8 +39,8 @@
     "yargs": "^17.3.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.19.1",
-    "@giraphql/test-utils": "^0.5.1",
+    "@giraphql/core": "^2.22.0",
+    "@giraphql/test-utils": "^0.6.0",
     "@types/yargs": "^17.0.7"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

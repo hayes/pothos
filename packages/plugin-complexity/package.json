@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-complexity",
-  "version": "2.3.2",
+  "version": "2.4.0",
   "description": "a GiraphQL plugin for defining and limiting complexity of queries",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -40,8 +40,8 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.19.1",
-    "@giraphql/test-utils": "^0.5.1",
+    "@giraphql/core": "^2.22.0",
+    "@giraphql/test-utils": "^0.6.0",
     "graphql": "16.1.0",
     "graphql-tag": "^2.12.6"
   },
