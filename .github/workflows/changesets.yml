@@ -37,7 +37,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
       - name: Create PR or Publish release
         id: changesets
-        uses: changesets/action@master
+        uses: changesets/action@v1
         with:
           version: pnpm ci:version
           commit: 'chore: update versions'
