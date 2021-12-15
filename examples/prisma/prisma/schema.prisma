@@ -4,7 +4,8 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
+  // In a real app use `provider = "prisma-client-js"` instead
+  provider = "ts-node ./src/generator.ts"
 }
 
 generator giraphql {
