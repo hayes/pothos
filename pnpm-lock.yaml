@@ -65,7 +65,7 @@ importers:
 
   examples/simple-interfaces:
     specifiers:
-      '@giraphql/core': ^2.21.0
+      '@giraphql/core': ^2.22.0
       '@types/faker': ^5.5.9
       apollo-server: ^3.5.0
       faker: ^5.5.3
@@ -79,8 +79,8 @@ importers:
 
   packages/converter:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       '@types/yargs': ^17.0.7
       graphql: 16.1.0
       ts-morph: ^13.0.2
@@ -99,7 +99,7 @@ importers:
 
   packages/core:
     specifiers:
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-scalars: ^1.14.1
       graphql-tag: ^2.12.6
@@ -120,8 +120,8 @@ importers:
 
   packages/plugin-complexity:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -135,10 +135,10 @@ importers:
 
   packages/plugin-dataloader:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/plugin-errors': ^2.12.3
-      '@giraphql/plugin-relay': ^2.18.4
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/plugin-errors': ^2.13.0
+      '@giraphql/plugin-relay': ^2.19.0
+      '@giraphql/test-utils': ^0.6.0
       dataloader: ^2.0.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -154,8 +154,8 @@ importers:
 
   packages/plugin-directives:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-rate-limit-directive: ^2.0.0
       graphql-tag: ^2.12.6
@@ -171,9 +171,9 @@ importers:
 
   packages/plugin-errors:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/plugin-validation': ^2.15.2
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/plugin-validation': ^2.16.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
       zod: ^3.11.6
@@ -190,8 +190,8 @@ importers:
 
   packages/plugin-example:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -205,8 +205,8 @@ importers:
 
   packages/plugin-mocks:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -220,10 +220,10 @@ importers:
 
   packages/plugin-prisma:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/plugin-errors': ^2.12.3
-      '@giraphql/plugin-relay': ^2.18.4
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/plugin-errors': ^2.13.0
+      '@giraphql/plugin-relay': ^2.19.0
+      '@giraphql/test-utils': ^0.6.0
       '@prisma/client': ^3.6.0
       '@prisma/generator-helper': ^3.6.0
       graphql: 16.1.0
@@ -246,8 +246,8 @@ importers:
 
   packages/plugin-relay:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-subscriptions: ^2.0.0
       graphql-tag: ^2.12.6
@@ -263,8 +263,8 @@ importers:
 
   packages/plugin-scope-auth:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -278,8 +278,8 @@ importers:
 
   packages/plugin-simple-objects:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -293,8 +293,8 @@ importers:
 
   packages/plugin-smart-subscriptions:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-subscriptions: ^2.0.0
       graphql-tag: ^2.12.6
@@ -310,8 +310,8 @@ importers:
 
   packages/plugin-sub-graph:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql: 16.1.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -325,8 +325,8 @@ importers:
 
   packages/plugin-validation:
     specifiers:
-      '@giraphql/core': ^2.19.1
-      '@giraphql/test-utils': ^0.5.1
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
       graphql-tag: ^2.12.6
       zod: ^3.11.6
     devDependencies:

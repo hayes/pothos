@@ -1,6 +1,6 @@
 {
   "name": "@giraphql/plugin-errors",
-  "version": "2.12.3",
+  "version": "2.13.0",
   "description": "A GiraphQL plugin for adding typed errors into your schema",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -39,9 +39,9 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.19.1",
-    "@giraphql/plugin-validation": "^2.15.2",
-    "@giraphql/test-utils": "^0.5.1",
+    "@giraphql/core": "^2.22.0",
+    "@giraphql/plugin-validation": "^2.16.0",
+    "@giraphql/test-utils": "^0.6.0",
     "graphql": "16.1.0",
     "graphql-tag": "^2.12.6",
     "zod": "^3.11.6"

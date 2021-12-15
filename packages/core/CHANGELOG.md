@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.22.0
+
+### Minor Changes
+
+- 9307635a: Migrate build process to use turborepo
+
 ## 2.21.0
 
 ### Minor Changes
