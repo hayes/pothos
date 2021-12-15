@@ -4,12 +4,12 @@ datasource db {
 }
 
 generator client {
-  // In a real app use `provider = "prisma-client-js"` instead
-  provider = "ts-node ./src/generator.ts"
+  provider = "prisma-client-js"
 }
 
 generator giraphql {
-  provider     = "prisma-giraphql-types"
+  // In a real app use `provider = "prisma-giraphql-types"` instead
+  provider     = "ts-node node_modules/@giraphql/plugin-prisma/src/generator.ts"
   clientOutput = "@prisma/client"
 }
 
