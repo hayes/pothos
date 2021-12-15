@@ -1,14 +1,14 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInterfaceTypeConfig, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, GiraphQLUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
-import { BuildCache } from '../index.ts';
+import { BuildCache, createContextCache } from '../index.ts';
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     name;
     builder;
     buildCache;
     options;
-    private requestDataMap = new WeakMap<Types["Context"], T>();
+    private requestDataMap = createContextCache<T, Types["Context"]>((ctx) => this.createRequestData(ctx));
     constructor(buildCache: BuildCache<Types>, name: keyof GiraphQLSchemaTypes.Plugins<Types>) {
         this.name = name;
         this.builder = buildCache.builder;
@@ -111,9 +111,6 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @return {object} - The data object for the current request
      */
     protected requestData(context: Types["Context"]): T {
-        if (!this.requestDataMap.has(context)) {
-            this.requestDataMap.set(context, this.createRequestData(context))!;
-        }
-        return this.requestDataMap.get(context)!;
+        return this.requestDataMap(context)!;
     }
 }

@@ -52,7 +52,7 @@ const builder = new SchemaBuilder({
 });
 ```
 
-#### Helper for ussage with async iterators
+#### Helper for usage with async iterators
 
 ```typescript
 const builder = new SchemaBuilder({
@@ -64,7 +64,7 @@ const builder = new SchemaBuilder({
 });
 ```
 
-### Creaating a smart subscription
+### Creating a smart subscription
 
 ```typescript
 builder.queryFields((t) => ({

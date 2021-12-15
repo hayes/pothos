@@ -3,7 +3,7 @@ import { gql } from 'graphql-tag';
 import builder from './example/builder';
 import schema from './example/schema';
 
-describe('mocked', () => {
+describe('errors plugin', () => {
   it('generates expected schema', () => {
     expect(printSchema(schema)).toMatchSnapshot();
 

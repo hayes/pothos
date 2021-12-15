@@ -11,7 +11,13 @@
   },
   "scripts": {
     "generate": "prisma generate",
-    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\""
+    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
+    "type": "tsc --noEmit && tsc --project tests/tsconfig.json",
+    "build": "pnpm build:cjs && pnpm build:esm",
+    "build:cjs": "tsc --module commonjs --outDir lib",
+    "build:esm": "tsc --module es2020 --outDir esm && pnpm esm:extensions",
+    "esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ../../.config/esm-transformer.ts",
+    "test": "pnpm jest"
   },
   "repository": {
     "type": "git",
@@ -39,7 +45,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^3.5.0"
+    "@prisma/generator-helper": "^3.6.0"
   },
   "prisma": {
     "seed": "pnpm ts-node prisma/seed.ts"
@@ -54,9 +60,9 @@
     "@giraphql/plugin-errors": "^2.12.3",
     "@giraphql/plugin-relay": "^2.18.4",
     "@giraphql/test-utils": "^0.5.1",
-    "@prisma/client": "^3.5.0",
-    "graphql": "16.0.1",
+    "@prisma/client": "^3.6.0",
+    "graphql": "16.1.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^3.5.0"
+    "prisma": "^3.6.0"
   }
 }

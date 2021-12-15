@@ -23,6 +23,12 @@ const config: ESLintConfig = {
   },
   overrides: [
     {
+      files: ['packages/*/**/*.js'],
+      rules: {
+        'import/no-commonjs': 'off',
+      },
+    },
+    {
       files: ['packages/*/tests/**/*'],
       rules: {
         'no-magic-numbers': 'off',
@@ -30,7 +36,7 @@ const config: ESLintConfig = {
       },
     },
     {
-      files: ['packages/*/tests/examples?/**/*'],
+      files: ['packages/*/tests/examples?/**/*', 'examples/**/*'],
       rules: {
         'no-console': 'off',
       },
