@@ -14,5 +14,8 @@
     "@types/faker": "^5.5.9",
     "apollo-server": "^3.5.0",
     "ts-node": "^10.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
