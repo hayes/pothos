@@ -6,6 +6,7 @@
     "packages/*/src/**/*.ts",
     "packages/*/test/**/*.ts",
     "packages/*/tests/**/*.ts",
-    "examples/*/src/**/*.ts"
+    "examples/*/src/**/*.ts",
+    "examples/*/prisma/*.ts"
   ]
 }

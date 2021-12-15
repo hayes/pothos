@@ -49,6 +49,48 @@ importers:
       typescript: 4.5.4
       typescript-json-schema: 0.52.0
 
+  examples/prisma:
+    specifiers:
+      '@giraphql/core': ^2.22.0
+      '@giraphql/plugin-prisma': ^0.14.0
+      '@prisma/client': ^3.6.0
+      '@types/faker': ^5.5.9
+      apollo-server: ^3.5.0
+      faker: ^5.5.3
+      prisma: ^3.6.0
+      ts-node: ^10.4.0
+    dependencies:
+      '@giraphql/core': link:../../packages/core
+      '@giraphql/plugin-prisma': link:../../packages/plugin-prisma
+      '@prisma/client': 3.6.0_prisma@3.6.0
+      '@types/faker': 5.5.9
+      apollo-server: 3.5.0_graphql@16.1.0
+      faker: 5.5.3
+      prisma: 3.6.0
+      ts-node: 10.4.0_69110452f0eabb9535124518c5fd04a6
+
+  examples/prisma-relay:
+    specifiers:
+      '@giraphql/core': ^2.22.0
+      '@giraphql/plugin-prisma': ^0.14.0
+      '@giraphql/plugin-relay': ^2.19.0
+      '@prisma/client': ^3.6.0
+      '@types/faker': ^5.5.9
+      apollo-server: ^3.5.0
+      faker: ^5.5.3
+      prisma: ^3.6.0
+      ts-node: ^10.4.0
+    dependencies:
+      '@giraphql/core': link:../../packages/core
+      '@giraphql/plugin-prisma': link:../../packages/plugin-prisma
+      '@giraphql/plugin-relay': link:../../packages/plugin-relay
+      '@prisma/client': 3.6.0_prisma@3.6.0
+      '@types/faker': 5.5.9
+      apollo-server: 3.5.0_graphql@16.1.0
+      faker: 5.5.3
+      prisma: 3.6.0
+      ts-node: 10.4.0_69110452f0eabb9535124518c5fd04a6
+
   examples/simple-classes:
     specifiers:
       '@giraphql/core': ^2.21.0
@@ -3061,7 +3103,6 @@ packages:
     dependencies:
       '@prisma/engines-version': 3.6.0-24.dc520b92b1ebb2d28dc3161f9f82e875bd35d727
       prisma: 3.6.0
-    dev: true
 
   /@prisma/debug/3.6.0:
     resolution: {integrity: sha512-THh5YjfDCpvbU5NOfeGx7mOQZl8EADOZ1z3C0sEDYmYUnpBjmCrnLNRSMjmD1d9kDo5GgwkrbK9pnwonHiH0JQ==}
@@ -3072,12 +3113,10 @@ packages:
 
   /@prisma/engines-version/3.6.0-24.dc520b92b1ebb2d28dc3161f9f82e875bd35d727:
     resolution: {integrity: sha512-vtoO2ys6mSfc8ONTWdcYztKN3GBU1tcKBj0aXObyjzSuGwHFcM/pEA0xF+n1W4/0TAJgfoPX2khNEit6g0jtNA==}
-    dev: true
 
   /@prisma/engines/3.6.0-24.dc520b92b1ebb2d28dc3161f9f82e875bd35d727:
     resolution: {integrity: sha512-dRClHS7DsTVchDKzeG72OaEyeDskCv91pnZ72Fftn0mp4BkUvX2LvWup65hCNzwwQm5IDd6A88APldKDnMiEMA==}
     requiresBuild: true
-    dev: true
 
   /@prisma/generator-helper/3.6.0:
     resolution: {integrity: sha512-/mwQvnTbuiZjVmLtCBuOK+Tz2+HLYjqOCCvsEH0LMxHQBtzVSG4/LhVHMYxs/4du8TdgpnguMh4wtRWJ9Ow/DQ==}
@@ -8618,7 +8657,6 @@ packages:
     requiresBuild: true
     dependencies:
       '@prisma/engines': 3.6.0-24.dc520b92b1ebb2d28dc3161f9f82e875bd35d727
-    dev: true
 
   /prismjs/1.25.0:
     resolution: {integrity: sha512-WCjJHl1KEWbnkQom1+SzftbtXMKQoezOCYs5rECqMN+jP+apI7ftoflyqigqzopSO3hMhTEb0mFClA8lkolgEg==}

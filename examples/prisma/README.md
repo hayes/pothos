@@ -1,24 +1,25 @@
-# A Simple GiraphQL API using data described by typescript classes
-
-This example shows how to create a GraphQL API that exposes data defined by classes
+# A GraphQL API built with prisma
 
 This example uses the following packages:
 
 - `@giraphql/core`: For building the schema
+- `@giraphql/plugin-prism`: For prisma based type definitions, and efficient queries
+- `@prisma/client`: For querying data from a database
+- `prisma`: For running migrations and generating `@prisma/client`
 - `apollo-server`: For creating a server that executes the schema
 
 ## Schema
 
 ```graphql
 type Comment {
-  author: User
+  author: User!
   comment: String!
   id: ID!
   post: Post!
 }
 
 type Post {
-  author: User
+  author: User!
   comments: [Comment!]!
   content: String!
   id: ID!
@@ -27,7 +28,7 @@ type Post {
 
 type Query {
   post(id: ID!): Post
-  posts(skip: Int, take: Int): [Post!]
+  posts(skip: Int, take: Int): [Post!]!
   user(id: ID!): User
 }
 

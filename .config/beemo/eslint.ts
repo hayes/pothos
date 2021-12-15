@@ -8,6 +8,7 @@ const config: ESLintConfig = {
     'website',
     'packages/plugin-prisma/prisma',
     'packages/plugin-prisma/tests/generated.ts',
+    'examples/*/prisma/generated.ts',
   ],
   rules: {
     'import/no-unresolved': 'off',

@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "1.0.0",
+  "name": "@giraphql-examples/relay",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "seed": "prisma migrate reset -f",
+    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
+    "start": "ts-node --transpile-only src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "prisma": {
+    "seed": "pnpm ts-node prisma/seed.ts"
+  },
+  "dependencies": {
+    "@giraphql/core": "^2.22.0",
+    "@giraphql/plugin-prisma": "^0.14.0",
+    "@prisma/client": "^3.6.0",
+    "@types/faker": "^5.5.9",
+    "apollo-server": "^3.5.0",
+    "faker": "^5.5.3",
+    "prisma": "^3.6.0",
+    "ts-node": "^10.4.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
