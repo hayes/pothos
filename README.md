@@ -68,3 +68,7 @@ new ApolloServer({
   efficiently resolve queries
 - ## [**Complexity**](https://giraphql.com/plugins/complexity)
   A plugin for defining and limiting complexity of queries
+
+## Dev setup
+
+See [CONTRIBUTING.md](./CONTRIBUTING.md)
