@@ -15,7 +15,7 @@
     "build:cjs": "tsc --module commonjs --outDir lib",
     "build:esm": "tsc --module es2020 --outDir esm && pnpm esm:extensions",
     "esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ../../.config/esm-transformer.ts",
-    "test": "pnpm jest"
+    "test": "pnpm jest --runInBand"
   },
   "repository": {
     "type": "git",
