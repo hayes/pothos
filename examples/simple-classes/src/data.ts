@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-parameter-properties */
 /* eslint-disable max-classes-per-file */
 /* eslint-disable no-magic-numbers */
-import faker from 'faker';
+import * as faker from 'faker';
 
 faker.seed(123);
 

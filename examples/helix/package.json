@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "1.0.0",
+  "name": "@giraphql-examples/helix",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "start": "ts-node --transpile-only src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@giraphql/core": "^2.22.0",
+    "@types/faker": "^5.5.9",
+    "graphql-helix": "^1.10.3",
+    "faker": "^5.5.3"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=12.0.0"
+  }
+}

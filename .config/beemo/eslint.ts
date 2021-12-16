@@ -9,6 +9,8 @@ const config: ESLintConfig = {
     'packages/plugin-prisma/prisma',
     'packages/plugin-prisma/tests/generated.ts',
     'examples/*/prisma/generated.ts',
+    '*.generated.ts',
+    '*.generated.tsx',
   ],
   rules: {
     'import/no-unresolved': 'off',
@@ -24,7 +26,7 @@ const config: ESLintConfig = {
   },
   overrides: [
     {
-      files: ['packages/*/**/*.js'],
+      files: ['{packages,examples}/*/**/*.js'],
       rules: {
         'import/no-commonjs': 'off',
       },

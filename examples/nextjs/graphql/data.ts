@@ -1,5 +1,5 @@
 /* eslint-disable no-magic-numbers */
-import * as faker from 'faker';
+import faker from 'faker';
 
 export interface IUser {
   id: string;
