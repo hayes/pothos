@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/examples-nextjs",
+  "name": "@giraphql-examples/nextjs",
   "private": true,
   "scripts": {
     "generate": "graphql-codegen",

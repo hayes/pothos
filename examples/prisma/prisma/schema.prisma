@@ -10,8 +10,7 @@ generator client {
 }
 
 generator giraphql {
-  // In a real app use `provider = "prisma-giraphql-types"` instead
-  provider     = "ts-node node_modules/@giraphql/plugin-prisma/src/generator.ts"
+  provider     = "prisma-giraphql-types"
   // Match client output location from above
   clientOutput = "./client"
   output       = "./generated.d.ts"

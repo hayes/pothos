@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/schema-builder-root",
+  "name": "giraphql-schema-builder-root",
   "version": "0.0.0",
   "description": "A strongly typed code first schema builder for GraphQL",
   "directories": {
@@ -7,10 +7,11 @@
   },
   "scripts": {
     "preinstall": "npx only-allow pnpm",
-    "prepare": "pnpm create-config && pnpm run -r generate",
+    "prepare": "pnpm create-config && pnpm run -r generate --filter @giraphql/*",
     "create-config": "beemo create-config",
-    "build": "pnpm turbo run build --scope='@giraphql/*' && pnpm run build-deno",
-    "build:ci": "pnpm turbo run build --scope='@giraphql/*'",
+    "build": "pnpm turbo run build --scope='@giraphql/*' && pnpm run build-deno && pnpm run -r generate --filter @giraphql-examples/*",
+    "generate": "pnpm run -r generate",
+    "build:ci": "pnpm turbo run build --scope='@giraphql/*' && pnpm run -r generate --filter @giraphql-examples/*",
     "build-deno": "pnpm ts-node packages/deno/scripts/build.ts",
     "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm} && git checkout -- 'packages/*/esm/*'",
