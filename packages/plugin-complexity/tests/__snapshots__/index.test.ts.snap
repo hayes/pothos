@@ -152,6 +152,7 @@ Object {
     "hero": Object {
       "friends": Array [
         Object {
+          "__typename": "Human",
           "friends": Array [
             Object {
               "friends": Array [
@@ -202,6 +203,7 @@ Object {
           "name": "Han Solo",
         },
         Object {
+          "__typename": "Human",
           "friends": Array [
             Object {
               "friends": Array [
@@ -265,6 +267,7 @@ Object {
           "name": "Leia Organa",
         },
         Object {
+          "__typename": "Droid",
           "friends": Array [
             Object {
               "friends": Array [
@@ -328,6 +331,7 @@ Object {
           "name": "C-3PO",
         },
         Object {
+          "__typename": "Droid",
           "friends": Array [
             Object {
               "friends": Array [

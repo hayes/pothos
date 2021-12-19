@@ -13,6 +13,7 @@ describe('simple objects example schema', () => {
         query {
           hero(episode: EMPIRE) {
             friends {
+              __typename
               ... on Character {
                 name
                 friends {
