@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 2.5.0
+
+### Minor Changes
+
+- 1d62c1ff: Handle \_\_typename in complexity plugin
+
 ## 2.4.0
 
 ### Minor Changes
