@@ -26,6 +26,20 @@ const builder = new SchemaBuilder<{
 });
 ```
 
+This plugin will add the rules to your schema, but you will still need to set up your server (or
+execute function) to run the authorization checks. The implementation of this depends on how your
+app is set up.
+
+A simple example that just wraps the execute function might look like:
+
+```typescript
+import { execute } from 'graphql';
+import { wrapExecuteFn } from '@graphql-authz/core';
+import rules from './auth-rules';
+
+const wrappedExecute = wrapExecuteFn(execute, { rules });
+```
+
 ## Defining rules for fields
 
 ```typescript
