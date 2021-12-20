@@ -23,6 +23,7 @@
   - [Troubleshooting](guide/troubleshooting.md)
 - [Plugins](plugins/README.md)
   - [Auth](plugins/scope-auth.md)
+  - [AuthZ](plugins/authz.md)
   - [Complexity](plugins/complexity.md)
   - [Dataloader](plugins/dataloader.md)
   - [Directives](plugins/directives.md)

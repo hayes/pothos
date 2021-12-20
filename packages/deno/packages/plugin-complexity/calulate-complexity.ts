@@ -19,11 +19,15 @@ function complexityFromField<Types extends SchemaTypes>(plugin: GiraphQLComplexi
     if (!(type instanceof GraphQLObjectType || type instanceof GraphQLInterfaceType)) {
         throw new TypeError(`Expected Type ${type.name} to be an Object or Interface type`);
     }
-    const field = type.getFields()[selection.name.value];
-    if (!field) {
-        throw new Error(field);
+    const fieldName = selection.name.value;
+    const field = type.getFields()[fieldName];
+    let complexityOption;
+    if (field) {
+        complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
     }
-    let complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
+    else if (!fieldName.startsWith("__")) {
+        throw new Error(`Unknown field selected (${type.name}.${fieldName})`);
+    }
     if (typeof complexityOption === "function") {
         const args = getArgumentValues(field, selection, info.variableValues) as Record<string, unknown>;
         complexityOption = complexityOption(args, ctx);
@@ -33,7 +37,7 @@ function complexityFromField<Types extends SchemaTypes>(plugin: GiraphQLComplexi
         fieldMultiplier = complexityOption.multiplier;
     }
     else {
-        fieldMultiplier = isListType(field.type) ? plugin.defaultListMultiplier : 1;
+        fieldMultiplier = field && isListType(field.type) ? plugin.defaultListMultiplier : 1;
     }
     let complexity = 0;
     if (selection.selectionSet) {

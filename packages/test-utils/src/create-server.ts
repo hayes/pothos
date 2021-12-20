@@ -4,7 +4,7 @@
 /* eslint-disable node/no-unsupported-features/es-builtins */
 import { createServer, IncomingMessage, ServerResponse } from 'http';
 import { URL, URLSearchParams } from 'url';
-import { ExecutionResult, GraphQLError, GraphQLSchema } from 'graphql';
+import { execute, ExecutionResult, GraphQLError, GraphQLSchema } from 'graphql';
 import {
   getGraphQLParameters,
   processRequest,
@@ -14,6 +14,7 @@ import {
 } from 'graphql-helix';
 
 export interface TestServerOptions {
+  execute?: typeof execute;
   schema: GraphQLSchema;
   contextFactory?: (req: IncomingMessage, res: ServerResponse) => object;
 }
@@ -52,7 +53,7 @@ const formatResult = (result: ExecutionResult) => {
 function handelRequest(
   req: IncomingMessage,
   res: ServerResponse,
-  { schema, contextFactory = () => ({}) }: TestServerOptions,
+  { schema, contextFactory = () => ({}), execute: customExecute }: TestServerOptions,
 ) {
   const url = new URL(req.url!, `http://${req.headers.host}`);
   const searchParams = new URLSearchParams(url.search);
@@ -111,6 +112,7 @@ function handelRequest(
         request,
         schema,
         contextFactory: () => contextFactory(req, res),
+        execute: customExecute,
       });
 
       await sendResult(result, res, formatResult);

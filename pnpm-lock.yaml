@@ -235,6 +235,21 @@ importers:
     devDependencies:
       ts-node: 10.4.0_69110452f0eabb9535124518c5fd04a6
 
+  packages/plugin-authz:
+    specifiers:
+      '@giraphql/core': ^2.22.0
+      '@giraphql/test-utils': ^0.6.0
+      '@graphql-authz/core': ^1.2.0
+      graphql-tag: ^2.12.6
+    devDependencies:
+      '@giraphql/core': link:../core
+      '@giraphql/test-utils': link:../test-utils
+      '@graphql-authz/core': 1.2.0_graphql@16.1.0
+      graphql-tag: 2.12.6_graphql@16.1.0
+
+  packages/plugin-authz/esm:
+    specifiers: {}
+
   packages/plugin-complexity:
     specifiers:
       '@giraphql/core': ^2.22.0
@@ -2723,6 +2738,14 @@ packages:
     dependencies:
       ajv: 6.12.6
     dev: false
+
+  /@graphql-authz/core/1.2.0_graphql@16.1.0:
+    resolution: {integrity: sha512-t1Xz3kGSDRc9psG5fE/qHMh56usRE/hQcY84kI0FJaVIsVVrer5z2IcBjfIVVia5XugReFFZYo9Zj1b/xYykmQ==}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0
+    dependencies:
+      graphql: 16.1.0
+    dev: true
 
   /@graphql-codegen/add/3.1.0_graphql@16.1.0:
     resolution: {integrity: sha512-vRRHpuUFadYXnPrb5RNiIzm3Ao39UxjvrdX760lEfXh2qeG7YddM5QFC+ev2BH3X452R15gv/gf/rXy0+Hqm1A==}
