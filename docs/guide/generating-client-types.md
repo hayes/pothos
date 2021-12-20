@@ -49,7 +49,7 @@ module.exports = require('@boost/module').requireModule(require.resolve('./schem
 ## Set up graphql-code-generator
 
 The following set up will generate a schema.graphql file, and apollo client hooks for queries
-defined in your in your client ts and tsx files. The specifics of this config file should be updated
+defined in your client ts and tsx files. The specifics of this config file should be updated
 to match your own needs using docs from
 [graphql-code-generator](https://www.graphql-code-generator.com/).
 
