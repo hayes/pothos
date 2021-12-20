@@ -1,10 +1,10 @@
 # AuthZ plugin
 
 This is a simple plugin for integrating with
-[GraphQL AuthZ](https://github.com/apigee/graphql-authz)
+[GraphQL AuthZ](https://github.com/AstrumU/graphql-authz)
 
 For more details on GraphQL AuthZ see the official
-[documentation here](https://github.com/apigee/graphql-authz)
+[documentation here](https://github.com/AstrumU/graphql-authz)
 
 ## Usage
 
