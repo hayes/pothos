@@ -246,7 +246,7 @@ builder.queryFields((t) => ({
   numbers: t.connection({
     type: SomeThings,
     resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
+      return resolveArrayConnection({ args }, getAllTheThingsAsArray());
     },
   }),
 }));
