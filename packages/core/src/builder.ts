@@ -6,6 +6,7 @@ import {
   GraphQLInt,
   GraphQLIsTypeOfFn,
   GraphQLObjectType,
+  GraphQLScalarSerializer,
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLString,
@@ -456,7 +457,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       description: options.description,
       parseLiteral: options.parseLiteral,
       parseValue: options.parseValue,
-      serialize: options.serialize,
+      serialize: options.serialize as GraphQLScalarSerializer<OutputShape<Types, Name>>,
       giraphqlOptions: options as unknown as GiraphQLSchemaTypes.ScalarTypeOptions,
       extensions: options.extensions,
     };

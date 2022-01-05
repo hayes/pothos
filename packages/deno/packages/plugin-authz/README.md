@@ -1,10 +1,10 @@
 # AuthZ plugin
 
 This is a simple plugin for integrating with
-[GraphQL AuthZ](https://github.com/apigee/graphql-authz)
+[GraphQL AuthZ](https://github.com/AstrumU/graphql-authz)
 
 For more details on GraphQL AuthZ see the official
-[documentation here](https://github.com/apigee/graphql-authz)
+[documentation here](https://github.com/AstrumU/graphql-authz)
 
 ## Usage
 
@@ -24,6 +24,20 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [AuthzPlugin],
 });
+```
+
+This plugin will add the rules to your schema, but you will still need to set up your server (or
+execute function) to run the authorization checks. The implementation of this depends on how your
+app is set up.
+
+A simple example that just wraps the execute function might look like:
+
+```typescript
+import { execute } from 'graphql';
+import { wrapExecuteFn } from '@graphql-authz/core';
+import rules from './auth-rules';
+
+const wrappedExecute = wrapExecuteFn(execute, { rules });
 ```
 
 ## Defining rules for fields

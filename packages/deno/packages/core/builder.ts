@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLIsTypeOfFn, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
+import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLIsTypeOfFn, GraphQLObjectType, GraphQLScalarSerializer, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
 import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
@@ -265,7 +265,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             description: options.description,
             parseLiteral: options.parseLiteral,
             parseValue: options.parseValue,
-            serialize: options.serialize,
+            serialize: options.serialize as GraphQLScalarSerializer<OutputShape<Types, Name>>,
             giraphqlOptions: options as unknown as GiraphQLSchemaTypes.ScalarTypeOptions,
             extensions: options.extensions,
         };

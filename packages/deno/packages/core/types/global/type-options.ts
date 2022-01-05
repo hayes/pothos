@@ -45,7 +45,7 @@ declare global {
         }
         export interface ScalarTypeOptions<Types extends SchemaTypes = SchemaTypes, ScalarInputShape = unknown, ScalarOutputShape = unknown> extends BaseTypeOptions<Types> {
             // Serializes an internal value to include in a response.
-            serialize: GraphQLScalarSerializer<ScalarOutputShape>;
+            serialize: (outputValue: ScalarOutputShape) => unknown;
             // Parses an externally provided value to use as an input.
             parseValue?: GraphQLScalarValueParser<ScalarInputShape>;
             // Parses an externally provided literal value to use as an input.
