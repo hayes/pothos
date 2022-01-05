@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.23.0
+
+### Minor Changes
+
+- afa16607: Fixed types for serialize in scalarType options
+
 ## 2.22.0
 
 ### Minor Changes
