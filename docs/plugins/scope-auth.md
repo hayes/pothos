@@ -265,12 +265,37 @@ builder.queryType({
 ```
 
 In the example above, the authScope map uses the customPerm scope loader with a parameter of
-`readArticle`. The first time a field requests this scope, the customPerm loader will be called
-with `readArticle` as its argument. This scope will be cached, so that if multiple fields request
-the same scope, the scope loader will still only be called once.
+`readArticle`. The first time a field requests this scope, the customPerm loader will be called with
+`readArticle` as its argument. This scope will be cached, so that if multiple fields request the
+same scope, the scope loader will still only be called once.
 
 The types for the parameters you provide for each scope are based on the types provided to the
 builder in the `AuthScopes` type.
+
+### Returning a custom value when unauthorized
+
+In some cases you may want to return null, and empty array, throw a custom error, or return a custom
+result when a user is not authorized. To do this you can add a `unauthorizedResolver` option to your
+field.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    articles: t.field({
+      type: [Article],
+      authScopes: {
+        customPerm: 'readArticle',
+      },
+      resolve: () => Article.getSome(),
+      unauthorizedResolver: () => [],
+    }),
+  }),
+});
+```
+
+In the example above, if a user is not authorized they will simply receive an empty array in the
+response. The `unauthorizedResolver` option takes the same arguments as a resolver, but also
+receives a 5th argument that is an instance of `ForbiddenError`.
 
 ### Setting scopes that apply for a full request
 

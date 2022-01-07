@@ -267,6 +267,31 @@ same scope, the scope loader will still only be called once.
 The types for the parameters you provide for each scope are based on the types provided to the
 builder in the `AuthScopes` type.
 
+### Returning a custom value when unauthorized
+
+In some cases you may want to return null, and empty array, throw a custom error, or return a custom
+result when a user is not authorized. To do this you can add a `unauthorizedResolver` option to your
+field.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    articles: t.field({
+      type: [Article],
+      authScopes: {
+        customPerm: 'readArticle',
+      },
+      resolve: () => Article.getSome(),
+      unauthorizedResolver: () => [],
+    }),
+  }),
+});
+```
+
+In the example above, if a user is not authorized they will simply receive an empty array in the
+response. The `unauthorizedResolver` option takes the same arguments as a resolver, but also
+receives a 5th argument that is an instance of `ForbiddenError`.
+
 ### Setting scopes that apply for a full request
 
 We have already seen several examples of this. For scopes that apply to a full request like `public`

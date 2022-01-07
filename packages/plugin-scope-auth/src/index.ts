@@ -47,7 +47,7 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     const steps = this.createResolveSteps(fieldConfig, typeConfig, resolver);
 
     if (steps.length > 1) {
-      return resolveHelper(steps, this);
+      return resolveHelper(steps, this, fieldConfig);
     }
 
     return resolver;

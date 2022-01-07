@@ -148,6 +148,7 @@ type Query {
   forAdmin: String!
   forAdminAsyncFn: String!
   forAdminFn: String!
+  forAdminUnauthorizedResolve: [String!]!
   forAll: String!
   forAllFn: String!
   forAny: String!

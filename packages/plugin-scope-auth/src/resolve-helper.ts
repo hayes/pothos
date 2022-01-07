@@ -1,15 +1,29 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { GiraphQLOutputFieldConfig, isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import ResolveState from './resolve-state';
 import { ResolveStep } from './types';
 import { GiraphQLScopeAuthPlugin } from '.';
 
+const defaultUnauthorizedResolver = (
+  root: unknown,
+  args: unknown,
+  context: unknown,
+  info: GraphQLResolveInfo,
+  error: ForbiddenError,
+) => {
+  throw error;
+};
+
 export function resolveHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],
   plugin: GiraphQLScopeAuthPlugin<Types>,
+  fieldConfig: GiraphQLOutputFieldConfig<Types>,
 ) {
+  const unauthorizedResolver =
+    fieldConfig.giraphqlOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
+
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
     const state = new ResolveState(RequestCache.fromContext(context, plugin));
 
@@ -22,10 +36,16 @@ export function resolveHelper<Types extends SchemaTypes>(
         if (isThenable(stepResult)) {
           return stepResult.then((result) => {
             if (!result) {
-              throw new ForbiddenError(
-                typeof errorMessage === 'function'
-                  ? errorMessage(parent, args, context, info)
-                  : errorMessage,
+              return unauthorizedResolver(
+                parent as never,
+                args,
+                context,
+                info,
+                new ForbiddenError(
+                  typeof errorMessage === 'function'
+                    ? errorMessage(parent, args, context, info)
+                    : errorMessage,
+                ),
               );
             }
 
@@ -34,10 +54,16 @@ export function resolveHelper<Types extends SchemaTypes>(
         }
 
         if (!stepResult) {
-          throw new ForbiddenError(
-            typeof errorMessage === 'function'
-              ? errorMessage(parent, args, context, info)
-              : errorMessage,
+          return unauthorizedResolver(
+            parent as never,
+            args,
+            context,
+            info,
+            new ForbiddenError(
+              typeof errorMessage === 'function'
+                ? errorMessage(parent, args, context, info)
+                : errorMessage,
+            ),
           );
         }
       }

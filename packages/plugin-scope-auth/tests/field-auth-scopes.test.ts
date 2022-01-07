@@ -58,6 +58,32 @@ describe('queries for field authScopes with', () => {
     `);
   });
 
+  it('simple field scope (custom unauthorized)', async () => {
+    const query = gql`
+      query {
+        forAdminUnauthorizedResolve
+      }
+    `;
+
+    const result = await execute({
+      schema: exampleSchema,
+      document: query,
+      contextValue: {
+        user: new User({
+          'x-user-id': '1',
+        }),
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "forAdminUnauthorizedResolve": Array [],
+        },
+      }
+    `);
+  });
+
   it('field scope with sync loader', async () => {
     const query = gql`
       query {

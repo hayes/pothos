@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldNullability,
@@ -6,6 +7,8 @@ import {
   FieldRef,
   InputFieldMap,
   InputShapeFromFields,
+  ListResolveValue,
+  MaybePromise,
   Normalize,
   Resolver,
   RootName,
@@ -13,6 +16,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@giraphql/core';
+import { ForbiddenError } from './errors';
 import {
   FieldAuthScopes,
   FieldGrantScopes,
@@ -79,6 +83,13 @@ declare global {
       authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       skipTypeScopes?: boolean;
+      unauthorizedResolver?: (
+        parent: ParentShape,
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+        error: ForbiddenError,
+      ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
     }
 
     export interface ObjectFieldOptions<

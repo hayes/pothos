@@ -365,6 +365,13 @@ builder.queryType({
     return ['grantedFromQuery'];
   },
   fields: (t) => ({
+    forAdminUnauthorizedResolve: t.stringList({
+      authScopes: {
+        admin: true,
+      },
+      resolve: () => ['ok'],
+      unauthorizedResolver: () => [],
+    }),
     forAdmin: t.string({
       authScopes: {
         admin: true,
