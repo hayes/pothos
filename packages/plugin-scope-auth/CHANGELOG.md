@@ -1,5 +1,11 @@
 # Change Log
 
+## 2.15.0
+
+### Minor Changes
+
+- a7c34fe1: Add an unauthorizedResolver option to the scope-auth plugin
+
 ## 2.14.0
 
 ### Minor Changes
