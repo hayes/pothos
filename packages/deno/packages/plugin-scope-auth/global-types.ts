@@ -1,6 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, ListResolveValue, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { ForbiddenError } from './errors.ts';
 import { FieldAuthScopes, FieldGrantScopes, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
 import { ContextForAuth, GiraphQLScopeAuthPlugin } from './index.ts';
 declare global {
@@ -39,6 +41,7 @@ declare global {
             authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
             grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
             skipTypeScopes?: boolean;
+            unauthorizedResolver?: (parent: ParentShape, args: InputShapeFromFields<Args>, context: Types["Context"], info: GraphQLResolveInfo, error: ForbiddenError) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
         }
         export interface ObjectFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape> extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape, ResolveReturnShape> {
             skipInterfaceScopes?: boolean;
