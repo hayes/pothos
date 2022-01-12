@@ -85,6 +85,7 @@ type Query {
   userOrProfile: [UserOrProfile]
   users: [User!]!
   usersWithError: QueryUsersWithErrorResult!
+  viewer: Viewer!
 }
 
 type QueryUnrelatedConnection {
@@ -148,6 +149,7 @@ type User implements Named & Node {
   profile: Profile
   profileThroughManualLookup: Profile
   profileWithErrors: UserProfileWithErrorsResult
+  viewer: Viewer!
 }
 
 type UserCommentedPostsConnection {
@@ -203,6 +205,13 @@ union UserProfileWithErrorsResult = BaseError | UserProfileWithErrorsSuccess
 
 type UserProfileWithErrorsSuccess {
   data: Profile!
+}
+
+type Viewer {
+  bio: String
+  id: ID!
+  posts: [Post!]!
+  user: User!
 }"
 `;
 

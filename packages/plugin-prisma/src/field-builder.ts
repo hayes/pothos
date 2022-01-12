@@ -6,7 +6,6 @@ import {
   ObjectRef,
   RootFieldBuilder,
   SchemaTypes,
-  TypeParam,
 } from '@pothos/core';
 import { resolvePrismaCursorConnection } from './cursors';
 import { getRefFromModel } from './refs';
@@ -22,9 +21,12 @@ const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFi
 >;
 
 fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options }) {
-  const model: string = Array.isArray(type) ? type[0] : type;
-  const typeRef = getRefFromModel(model, this.builder);
-  const typeParam: TypeParam<SchemaTypes> = Array.isArray(type) ? [typeRef] : typeRef;
+  const modelOrRef = Array.isArray(type) ? type[0] : type;
+  const typeRef =
+    typeof modelOrRef === 'string'
+      ? getRefFromModel(modelOrRef, this.builder)
+      : (modelOrRef as ObjectRef<unknown>);
+  const typeParam = Array.isArray(type) ? ([typeRef] as [ObjectRef<unknown>]) : typeRef;
 
   return this.field({
     ...options,
@@ -66,7 +68,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   connectionOptions: {},
   edgeOptions: {},
 ) {
-  const ref = getRefFromModel(type, this.builder);
+  const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
   let typeName: string | undefined;
 
   const fieldRef = (

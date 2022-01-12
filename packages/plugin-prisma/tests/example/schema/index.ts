@@ -18,6 +18,27 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   }),
 });
 
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  findUnique: (user) => ({ id: user.id }),
+  include: {
+    profile: true,
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    posts: t.relation('posts', {
+      query: {
+        take: 5,
+      },
+    }),
+    user: t.variant('User'),
+    bio: t.string({
+      nullable: true,
+      resolve: (user) => user.profile?.bio,
+    }),
+  }),
+});
+
 const User = builder.prismaNode('User', {
   // Testing that user is typed correctly
   authScopes: (user) => !!user.id,
@@ -27,6 +48,7 @@ const User = builder.prismaNode('User', {
   },
   findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
+    viewer: t.variant(Viewer, {}),
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile', {
@@ -203,6 +225,15 @@ builder.prismaObject('Unrelated', {
 
 builder.queryType({
   fields: (t) => ({
+    viewer: t.prismaField({
+      type: Viewer,
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findUnique({
+          ...query,
+          where: { id: ctx.user.id },
+          rejectOnNotFound: true,
+        }),
+    }),
     me: t.prismaField({
       type: 'User',
       nullable: true,

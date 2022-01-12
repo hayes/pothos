@@ -18,8 +18,8 @@ import { queryFromInfo } from './util';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
-  const ref = getRefFromModel(type, this);
-  const name = options.name ?? type;
+  const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
+  const name = options.variant ?? options.name ?? type;
 
   ref.name = name;
 
@@ -53,6 +53,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   {
     findUnique,
     name,
+    variant,
     ...options
   }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, [], never, {}>,
 ) {
@@ -62,16 +63,12 @@ schemaBuilderProto.prismaNode = function prismaNode(
     throw new TypeError('builder.prismaNode requires @pothos/plugin-relay to be installed');
   }
 
-  const typeName = name ?? type;
+  const typeName = variant ?? name ?? type;
   const delegate = getDelegateFromModel(this.options.prisma.client, type);
   const nodeRef = new PrismaNodeRef(typeName);
   const extendedOptions = {
     ...options,
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
-    extensions: {
-      ...options.extensions,
-      pothosPrismaInclude: options.include,
-    },
     isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
     findUnique: (parent: unknown, context: {}) =>
       findUnique(options.id.resolve(parent as never, context) as string, context),

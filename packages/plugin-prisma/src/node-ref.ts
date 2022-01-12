@@ -1,7 +1,12 @@
-import { abstractReturnShapeKey, brandWithType, ObjectRef, typeBrandKey } from '@pothos/core';
+import { abstractReturnShapeKey, brandWithType, typeBrandKey } from '@pothos/core';
+import { PrismaObjectRef } from './object-ref';
 import { WithBrand } from './types';
+import { PrismaModelTypes } from '.';
 
-export default class PrismaNodeRef<T> extends ObjectRef<T, T> {
+export default class PrismaNodeRef<Model extends PrismaModelTypes, T> extends PrismaObjectRef<
+  Model,
+  T
+> {
   [abstractReturnShapeKey]: WithBrand<T>;
 
   addBrand<V extends T | T[]>(

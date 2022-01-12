@@ -22,6 +22,8 @@ import {
 } from '../types';
 import { mergeIncludes, resolveIndirectType } from '.';
 
+export const SELF_RELATION = '@self';
+
 function handleField(
   ctx: object,
   info: GraphQLResolveInfo,
@@ -108,7 +110,8 @@ function handleField(
     query = query(args, ctx);
   }
 
-  const existingInclude = includes[relationName];
+  const existingInclude =
+    relationName === SELF_RELATION ? { include: includes } : includes[relationName];
 
   query = { ...(query as {}), include: newIncludes };
 
@@ -120,6 +123,10 @@ function handleField(
     }
   }
 
+  if (!mappings[relationName]) {
+    mappings[relationName] = [];
+  }
+
   const nestedIncludes = (query as { include: IncludeMap }).include;
   const nestedMappings: LoaderMappings = {};
   const nestedCounts: IncludeCounts = {
@@ -127,8 +134,33 @@ function handleField(
     parent: counts.current,
   };
 
-  if (!mappings[relationName]) {
-    mappings[relationName] = [];
+  if (relationName === SELF_RELATION) {
+    mappings[relationName].push({
+      field: selection.name.value,
+      alias: selection.alias?.value,
+      mappings: nestedMappings,
+      indirectPath: indirectMap?.path ?? [],
+    });
+
+    const { include } = query as { include: Record<string, IncludeMap> };
+
+    if (selection.selectionSet) {
+      includesFromSelectionSet(
+        ctx,
+        type,
+        info,
+        includes,
+        counts,
+        nestedMappings,
+        selection.selectionSet,
+      );
+    }
+
+    Object.keys(include).forEach((key) => {
+      includes[key] = include[key];
+    });
+
+    return;
   }
 
   mappings[relationName].push({

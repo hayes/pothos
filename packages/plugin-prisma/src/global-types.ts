@@ -13,6 +13,7 @@ import {
   ShapeFromTypeParam,
 } from '@pothos/core';
 import PrismaNodeRef from './node-ref';
+import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import {
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
@@ -58,7 +59,7 @@ declare global {
       >(
         name: Name,
         options: PrismaObjectTypeOptions<Types, Model, Interfaces, FindUnique, Include, Shape>,
-      ) => ObjectRef<Shape>;
+      ) => PrismaObjectRef<Model, Shape>;
 
       prismaNode: 'relay' extends PluginName
         ? <
@@ -70,7 +71,7 @@ declare global {
           >(
             name: Name,
             options: PrismaNodeOptions<Types, Model, Interfaces, Include, Shape>,
-          ) => PrismaNodeRef<Shape>
+          ) => PrismaNodeRef<Model, Shape>
         : '@pothos/plugin-relay is required to use this method';
     }
 
@@ -81,15 +82,23 @@ declare global {
     > {
       prismaField: <
         Args extends InputFieldMap,
-        TypeParam extends keyof Types['PrismaTypes'] | [keyof Types['PrismaTypes']],
+        TypeParam extends
+          | PrismaObjectRef<PrismaModelTypes>
+          | keyof Types['PrismaTypes']
+          | [keyof Types['PrismaTypes']]
+          | [PrismaObjectRef<PrismaModelTypes>],
         Nullable extends FieldNullability<Type>,
         ResolveReturnShape,
-        Type extends TypeParam extends [keyof Types['PrismaTypes']]
+        Type extends TypeParam extends [unknown]
           ? [ObjectRef<Model['Shape']>]
           : ObjectRef<Model['Shape']>,
         Model extends PrismaModelTypes = PrismaModelTypes &
           (TypeParam extends [keyof Types['PrismaTypes']]
             ? Types['PrismaTypes'][TypeParam[0]]
+            : TypeParam extends [PrismaObjectRef<PrismaModelTypes>]
+            ? TypeParam[0][typeof prismaModelKey]
+            : TypeParam extends PrismaObjectRef<PrismaModelTypes>
+            ? TypeParam[typeof prismaModelKey]
             : TypeParam extends keyof Types['PrismaTypes']
             ? Types['PrismaTypes'][TypeParam]
             : never),
@@ -109,11 +118,13 @@ declare global {
 
       prismaConnection: 'relay' extends PluginName
         ? <
-            Type extends keyof Types['PrismaTypes'],
+            Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
-            Model extends PrismaModelTypes = PrismaModelTypes & Types['PrismaTypes'][Type],
+            Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
+              ? T
+              : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
           >(
             ...args: NormalizeArgs<
               [
