@@ -3,7 +3,7 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '../core/index.ts';
 import { ScopeLoaderMap } from './types.ts';
 import { cacheKey } from './util.ts';
-import { GiraphQLScopeAuthPlugin } from './index.ts';
+import { PothosScopeAuthPlugin } from './index.ts';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();
 export default class RequestCache<Types extends SchemaTypes> {
@@ -15,11 +15,11 @@ export default class RequestCache<Types extends SchemaTypes> {
     typeGrants = new Map<string, Map<unknown, MaybePromise<boolean>>>();
     grantCache = new Map<string, Set<string>>();
     scopes?: MaybePromise<ScopeLoaderMap<Types>>;
-    constructor(plugin: GiraphQLScopeAuthPlugin<Types>, context: Types["Context"]) {
+    constructor(plugin: PothosScopeAuthPlugin<Types>, context: Types["Context"]) {
         this.plugin = plugin;
         this.context = context;
     }
-    static fromContext<T extends SchemaTypes>(context: T["Context"], plugin: GiraphQLScopeAuthPlugin<T>): RequestCache<T> {
+    static fromContext<T extends SchemaTypes>(context: T["Context"], plugin: PothosScopeAuthPlugin<T>): RequestCache<T> {
         if (!requestCache.has(context)) {
             requestCache.set(context, new RequestCache<T>(plugin, context));
         }

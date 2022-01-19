@@ -3,16 +3,16 @@ import {
   InputFieldBuilder,
   InputFieldRef,
   InputShapeFromTypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import {
   GlobalIDInputFieldOptions,
   GlobalIDInputShape,
   GlobalIDListInputFieldOptions,
 } from './types';
 
-type DefaultSchemaTypes = GiraphQLSchemaTypes.ExtendDefaultTypes<{}>;
+type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 
-const inputFieldBuilder = InputFieldBuilder.prototype as GiraphQLSchemaTypes.InputFieldBuilder<
+const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.InputFieldBuilder<
   DefaultSchemaTypes,
   'Arg' | 'InputObject'
 >;

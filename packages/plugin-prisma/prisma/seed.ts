@@ -1,5 +1,5 @@
 // @ts-ignore
-import * as faker from 'faker';
+import * as faker from '@faker-js/faker';
 import { PrismaClient } from '../tests/client';
 
 const prisma = new PrismaClient();

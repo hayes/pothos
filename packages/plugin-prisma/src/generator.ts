@@ -6,8 +6,8 @@ import { generatorHandler } from '@prisma/generator-helper';
 
 generatorHandler({
   onManifest: () => ({
-    prettyName: 'GiraphQL integration',
-    defaultOutput: 'node_modules/@giraphql/plugin-prisma/generated.ts',
+    prettyName: 'Pothos integration',
+    defaultOutput: 'node_modules/@pothos/plugin-prisma/generated.ts',
     requiresGenerators: ['prisma-client-js'],
   }),
   onGenerate: async (options) => {

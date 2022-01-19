@@ -34,14 +34,14 @@ schema are accessible via the subscribe query, since any type or field can regis
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-smart-subscriptions
+yarn add @pothos/plugin-smart-subscriptions
 ```
 
 ### Setup
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import SmartSubscriptionsPlugin from '@giraphql/plugin-smart-subscriptions';
+import SchemaBuilder from '@pothos/core';
+import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
 
 const builder = new SchemaBuilder({
   plugins: [SmartSubscriptionsPlugin],

@@ -5,14 +5,14 @@ menu: Guide
 
 # App layout
 
-GiraphQL tries not to be opinionated about how you structure your code, and provides multiple ways
-of doing many things. This short guide are a few conventions I use, as a starting place for anyone
-who is just looking for a decent setup that should just work. Everything suggested here is just a
+Pothos tries not to be opinionated about how you structure your code, and provides multiple ways of
+doing many things. This short guide are a few conventions I use, as a starting place for anyone who
+is just looking for a decent setup that should just work. Everything suggested here is just a
 recommendation, and is completely optional.
 
 ## Files
 
-Here are a few files I create in almost every GiraphQL schema I have built:
+Here are a few files I create in almost every Pothos schema I have built:
 
 - `src/server.ts`: Setup and run your server \(probably apollo, as described in other guides\)
 - `src/builder.ts`: Setup for your schema builder. Does not contain any definitions for types in
@@ -41,7 +41,7 @@ the parent field figure out how to return an object of the right shape.
 
 ## Backing models
 
-GiraphQL gives you a lot of control over how you define the types that your schema and resolver use.
+Pothos gives you a lot of control over how you define the types that your schema and resolver use.
 Which can make figuring out the right approach can be confusing at first. In my projects, I try to
 avoid using the `SchemaTypes` approach for defining backing models. Instead, I tend to use model
 classes for defining most of the important objects in my graph, and fall back to using either the

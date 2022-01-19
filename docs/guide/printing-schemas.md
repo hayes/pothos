@@ -11,7 +11,7 @@ the `graphql` package to write your schema out as SDL to a file.
 ```typescript
 import { writeFileSync } from 'fs';
 import { printSchema, lexicographicSortSchema } from 'graphql';
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 

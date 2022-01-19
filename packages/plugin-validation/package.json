@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/plugin-validation",
+  "name": "@pothos/plugin-validation",
   "version": "2.16.0",
   "description": "A GiraphQL plugin for adding argument validation",
   "main": "./lib/index.js",
@@ -36,8 +36,8 @@
     "zod": "*"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@giraphql/test-utils": "^0.6.0",
+    "@pothos/core": "^2.22.0",
+    "@pothos/test-utils": "^0.6.0",
     "graphql-tag": "^2.12.6",
     "zod": "^3.11.6"
   },

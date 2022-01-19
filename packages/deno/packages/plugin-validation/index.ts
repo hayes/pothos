@@ -2,17 +2,17 @@
 import './global-types.ts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLInputFieldConfig, GiraphQLInputFieldType, GiraphQLOutputFieldConfig, mapInputFields, resolveInputTypeConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, PothosInputFieldType, PothosOutputFieldConfig, resolveInputTypeConfig, SchemaTypes, } from '../core/index.ts';
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
 import { RefineConstraint, ValidationOptionUnion } from './types.ts';
 export * from './types.ts';
 const pluginName = "validation" as const;
-export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
     inputTypeValidators = new Map<string, zod.ZodType<unknown>>();
-    override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>): GiraphQLInputFieldConfig<Types> {
+    override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>): PothosInputFieldConfig<Types> {
         const fieldType = resolveInputTypeConfig(fieldConfig.type, this.buildCache);
-        const validationOptions = fieldConfig.giraphqlOptions.validate as ValidationOptionUnion | undefined;
+        const validationOptions = fieldConfig.pothosOptions.validate as ValidationOptionUnion | undefined;
         if (!validationOptions && fieldType.kind !== "InputObject") {
             return fieldConfig;
         }
@@ -41,10 +41,10 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         });
         return fieldConfig;
     }
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         // Only used to check if validation is required
         const argMap = mapInputFields(fieldConfig.args, this.buildCache, (field) => field.extensions?.validator ?? null);
-        if (!argMap && !fieldConfig.giraphqlOptions.validate) {
+        if (!argMap && !fieldConfig.pothosOptions.validate) {
             return resolver;
         }
         const args: Record<string, zod.ZodType<unknown>> = {};
@@ -55,23 +55,23 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
             }
         });
         let validator: zod.ZodTypeAny = zod.object(args).passthrough();
-        if (fieldConfig.giraphqlOptions.validate) {
+        if (fieldConfig.pothosOptions.validate) {
             validator = refine(validator, {
-                refine: fieldConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+                refine: fieldConfig.pothosOptions.validate as RefineConstraint<unknown>,
             });
         }
         return async (parent, rawArgs, context, info) => resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info);
     }
-    createValidator(optionsOrConstraint: RefineConstraint | ValidationOptionUnion | undefined, type: GiraphQLInputFieldType<Types> | null, fieldName: string): zod.ZodTypeAny {
+    createValidator(optionsOrConstraint: RefineConstraint | ValidationOptionUnion | undefined, type: PothosInputFieldType<Types> | null, fieldName: string): zod.ZodTypeAny {
         const options: ValidationOptionUnion | undefined = Array.isArray(optionsOrConstraint) || typeof optionsOrConstraint === "function"
             ? { refine: optionsOrConstraint }
             : optionsOrConstraint;
         if (type?.kind === "InputObject") {
             const typeConfig = this.buildCache.getTypeConfig(type.ref, "InputObject");
             let fieldValidator = refine(zod.lazy(() => zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).passthrough()), options);
-            if (typeConfig.giraphqlOptions.validate) {
+            if (typeConfig.pothosOptions.validate) {
                 fieldValidator = refine(fieldValidator, {
-                    refine: typeConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+                    refine: typeConfig.pothosOptions.validate as RefineConstraint<unknown>,
                 });
             }
             return combine([fieldValidator], type.required);
@@ -94,6 +94,6 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         return createZodSchema(options, !type || type.required);
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLValidationPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin);
 export default pluginName;
 export { default as createZodSchema } from './createZodSchema.ts';

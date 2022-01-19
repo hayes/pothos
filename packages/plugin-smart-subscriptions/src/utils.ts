@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { createContextCache } from '@giraphql/core';
+import { createContextCache } from '@pothos/core';
 import { SmartSubscriptionOptions } from './types';
 
 export function rootName(path: GraphQLResolveInfo['path']): string {

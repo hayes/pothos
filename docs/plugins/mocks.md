@@ -12,13 +12,13 @@ A simple plugin for adding resolver mocks to a graphQL schema.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-mocks
+yarn add @pothos/plugin-mocks
 ```
 
 ### Setup
 
 ```typescript
-import MocksPlugin from '@giraphql/plugin-mocks';
+import MocksPlugin from '@pothos/plugin-mocks';
 const builder = new SchemaBuilder({
   plugins: [MocksPlugin],
 });

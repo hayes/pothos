@@ -5,9 +5,9 @@ menu: Guide
 
 # Writing Plugins
 
-Writing plugins for GiraphQL may seem a little intimidating at first, because the types used by
-GiraphQL are fairly complex. Fortunately, for many types of plugins, the process is actually pretty
-easy, once you understand the core concepts of how GiraphQL's type system works. Don't worry if the
+Writing plugins for Pothos may seem a little intimidating at first, because the types used by Pothos
+are fairly complex. Fortunately, for many types of plugins, the process is actually pretty easy,
+once you understand the core concepts of how Pothos's type system works. Don't worry if the
 descriptions don't make complete sense at first. Going the the examples in this guide will hopefully
 make things seem a lot easier. This guide aims to cover a lot of the most common use cases for
 creating plugins, but does not contain full API documentation. Exploring the types or source code to
@@ -15,17 +15,17 @@ see what all is available is highly encouraged, but should not be required for m
 
 ## The type system
 
-GiraphQL has 2 main pieces to it's type system:
+Pothos has 2 main pieces to it's type system:
 
-1. `GiraphQLSchemaTypes`: A global namespace for shared types
+1. `PothosSchemaTypes`: A global namespace for shared types
 2. `SchemaTypes`: A collection of types passed around through Generics specific to each instance of
 
    `SchemaBuilder`
 
-### `GiraphQLSchemaTypes`
+### `PothosSchemaTypes`
 
-The `GiraphQLSchemaTypes` contains interfaces for all the various options objects used throughout
-the API, along with some other types that plugins may want to extend. Each of the interfaces can be
+The `PothosSchemaTypes` contains interfaces for all the various options objects used throughout the
+API, along with some other types that plugins may want to extend. Each of the interfaces can be
 extended by a plugin to add new options. Each interface takes a number of relevant generic
 parameters that can be used to make the options more useful. For example, the interface for field
 options will be passed the the shape of the parent, the expected return type, and any arguments.
@@ -33,12 +33,12 @@ options will be passed the the shape of the parent, the expected return type, an
 ### `SchemaTypes`
 
 The `SchemaTypes` type is based on the Generic argument passed to the `SchemaBuilder`, and extended
-with reasonable defaults. Almost every interface in the `GiraphQLSchemaTypes` will have access to it
+with reasonable defaults. Almost every interface in the `PothosSchemaTypes` will have access to it
 \(look for `Types extends SchemaTypes` in the generics of almost any interface\). This Type contains
 the types for Scalars, backing models for some object and interface types, and many custom
 properties from various plugins. If your plugin needs the user to provide some types that will be
 shared across the whole schema, this is how you will be able to access them when adding fields to
-the options objects defined in `GiraphQLSchemaTypes`.
+the options objects defined in `PothosSchemaTypes`.
 
 ## Getting Started
 
@@ -48,8 +48,8 @@ The best place to start is by looking through the
 The general structure of a plugin has 3 main parts:
 
 1. `index.ts` which contains a plugins actual implementation
-2. `global-types.ts` which contains any additions to `GiraphQL`s built in types.
-3. `types.ts` which should contain any types that do NOT belong to the global `GiraphQLSchemaTypes`
+2. `global-types.ts` which contains any additions to `Pothos`s built in types.
+3. `types.ts` which should contain any types that do NOT belong to the global `PothosSchemaTypes`
 
    namespace.
 
@@ -73,30 +73,30 @@ your types.
 
 `global-types.ts` must contain the following:
 
-1. A declaration of the `GiraphQLSchemaTypes` namespace
+1. A declaration of the `PothosSchemaTypes` namespace
 
    ```typescript
    declare global {
-     export namespace GiraphQLSchemaTypes {}
+     export namespace PothosSchemaTypes {}
    }
    ```
 
 2. An addition to the `Plugins` interface that maps the plugin name, to the plugin type \(this needs
-   to be inside the `GiraphQLSchemaTypes` namespace\)
+   to be inside the `PothosSchemaTypes` namespace\)
 
    ```typescript
    export interface Plugins<Types extends SchemaTypes> {
-     example: GiraphQLExamplePlugin<Types>;
+     example: PothosExamplePlugin<Types>;
    }
    ```
 
-`global-types.ts` should NOT include definitions that do not belong to the `GiraphQLSchemaTypes`
+`global-types.ts` should NOT include definitions that do not belong to the `PothosSchemaTypes`
 namespace. Types for your plugin should be added to a separate `types.ts` file, and imported as
 needed into `global-types.ts`.
 
 To add properties to the various config objects used by the `SchemaBuilder`, you should start by
-finding the interface that defines that config object in `@giraphql/core`. Currently there are 4
-main file that define the types that make up `GiraphQLSchemaTypes` namespace.
+finding the interface that defines that config object in `@pothos/core`. Currently there are 4 main
+file that define the types that make up `PothosSchemaTypes` namespace.
 
 1. [`type-options.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/type-options.ts):
 
@@ -119,13 +119,13 @@ main file that define the types that make up `GiraphQLSchemaTypes` namespace.
 
 4. [`classes.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/classes.ts)
 
-   Contains interfaces that describe the classes used by GiraphQL, include `SchemaBuilder` and the
+   Contains interfaces that describe the classes used by Pothos, include `SchemaBuilder` and the
 
    various field builder classes.
 
-Once you have identified a type you wish to extend, copy it into the `GiraphQLSchemaTypes` namespace
+Once you have identified a type you wish to extend, copy it into the `PothosSchemaTypes` namespace
 in your `global-types.ts`, but remove all the existing properties. You will need to keep all the
-Generics used by the interface, and should import the types used in generics from `@giraphql/core`.
+Generics used by the interface, and should import the types used in generics from `@pothos/core`.
 You can now add any new properties to the interface that your plugin needs. Making new properties
 optional \(`newProp?: TypeOfProp`\) is recommended for most use cases.
 
@@ -140,13 +140,13 @@ optional \(`newProp?: TypeOfProp`\) is recommended for most use cases.
 
 3. A default export of the plugin name `export default pluginName`
 4. A class that extends BasePlugin:
-   `export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}`.
+   `export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}`.
 
-   `BasePlugin` and `SchemaTypes` can both be imported from `@giraphql/core`
+   `BasePlugin` and `SchemaTypes` can both be imported from `@pothos/core`
 
-5. A call to register the plugin: `SchemaBuilder.registerPlugin(pluginName, GiraphQLExamplePlugin);`
+5. A call to register the plugin: `SchemaBuilder.registerPlugin(pluginName, PothosExamplePlugin);`
 
-   `SchemaBuilder` can also be imported from `@giraphql/core`
+   `SchemaBuilder` can also be imported from `@pothos/core`
 
 ### Life cycle hooks
 
@@ -186,9 +186,9 @@ This can be done by either using `Object.assign`, or spreading the original conf
 
 Each config object will have the properties expected by the GraphQL for creating the types or fields
 \(although some properties like `resolve` will be added later\), but will also include a number of
-GiraphQL specific properties. These properties include `graphqlKind` to indicate what kind of
-GraphQL type the config object is for, `giraphQLOptions`, which contains all the options passed in
-to the schema builder when creating the type or field.
+Pothos specific properties. These properties include `graphqlKind` to indicate what kind of GraphQL
+type the config object is for, `giraphQLOptions`, which contains all the options passed in to the
+schema builder when creating the type or field.
 
 If your plugin needs to add additional types or fields to the schema it should do this in the
 `beforeBuild` hook. Any types added to the schema after this, may not be included correctly. Plugins
@@ -200,13 +200,13 @@ a callback once per schema for the given key.
 
 ## Use cases
 
-Below are a few of the most common use cases for how a plugin might extend the GiraphQL with very
+Below are a few of the most common use cases for how a plugin might extend the Pothos with very
 simplified examples. Most plugins will likely need a combination of these strategies, and some uses
 cases may not be well documented. If you are unsure about how to solve a specific problem, feel free
 to open a GitHub Issue for more help.
 
 In the examples below, when "extending an interface", the interface should be added to the
-`GiraphQLSchemaTypes` namespace in `global-types.ts`.
+`PothosSchemaTypes` namespace in `global-types.ts`.
 
 ### Adding options to the SchemaBuilder constructor
 
@@ -229,8 +229,8 @@ You can then access the options through `this.builder.options` in your plugin, w
 correctly typed:
 
 ```typescript
-export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  onTypeConfig(typeConfig: PothosTypeConfig) {
     console.log(this.builder.options.optionInRootOfConfig)
 
     return typeConfig;
@@ -253,8 +253,8 @@ export interface BuildSchemaOptions<Types extends SchemaTypes> {
 These options can be accessed through `this.options` in your plugin:
 
 ```typescript
-export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  onTypeConfig(typeConfig: PothosTypeConfig) {
     console.log(this.options.customBuildTimeOptions)
 
     return typeConfig;
@@ -275,10 +275,10 @@ export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
 These options can then be accessed in your plugin when you receive the config for the type:
 
 ```typescript
-export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  onTypeConfig(typeConfig: PothosTypeConfig) {
     if (typeConfig.kind === 'Object') {
-      console.log(typeConfig.giraphqlOptions.optionOnObject);
+      console.log(typeConfig.pothosOptions.optionOnObject);
     }
 
     return typeConfig;
@@ -287,10 +287,10 @@ export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin
 
 In the example above, we need to check `typeConfig.kind` to ensure that the type config is for an
 object. Without this check, typescript will not know that the config object is for an object, and
-will not let us access the property. `typeConfig.kind` corresponds to how GiraphQL splits up Types
-for its config objects, meaning that it has separate `kind`s for `Query`, `Mutation`, and
-`Subscription` even though these are all `Objects` in GraphQL terminology. The
-`typeConfig.graphqlKind` can be used to get the actual GraphQL type instead.
+will not let us access the property. `typeConfig.kind` corresponds to how Pothos splits up Types for
+its config objects, meaning that it has separate `kind`s for `Query`, `Mutation`, and `Subscription`
+even though these are all `Objects` in GraphQL terminology. The `typeConfig.graphqlKind` can be used
+to get the actual GraphQL type instead.
 
 ### Adding options to fields
 
@@ -311,7 +311,7 @@ export interface MutationFieldOptions<
 
 Field interfaces have a few more generics than other interfaces we have looked at. These generics
 can be used to make the options you add more specific to the field currently being defined. It is
-important to copy all the generics of the interfaces as they are defined in `@giraphql/core` even if
+important to copy all the generics of the interfaces as they are defined in `@pothos/core` even if
 you do not use the generics in your own properties. If the generics do not match, typescript won't
 be able to merge the definitions. You do NOT need to include the `extends` clause of the interface,
 if the interface extends another interface \(like `FieldOptions`\).
@@ -320,10 +320,10 @@ Similar to Type options, Field options will be available in the fieldConfigs in 
 you check that the fieldConfig is for the correct `kind` of field.
 
 ```typescript
-export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
     if (fieldConfig.kind === 'Mutation') {
-      console.log(fieldConfig.giraphqlOptions.customMutationFieldOption);
+      console.log(fieldConfig.pothosOptions.customMutationFieldOption);
     }
 
     return fieldConfig;
@@ -348,8 +348,7 @@ and returns a reference to a new custom object type. Defining this type will not
 and we still need to define the actual implementation of this method. This might look like:
 
 ```typescript
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.buildCustomObject = function buildCustomObject() {
   return this.objectRef<{ custom: 'shape' }>('CustomObject').implement({
@@ -374,10 +373,10 @@ wrapper that introspected the return value of a resolve function. Plugins should
 when absolutely necessary.
 
 ```typescript
-export class GiraphQLExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => {
       console.log(`Resolving ${info.parentType}.${info.fieldName}`);
@@ -398,8 +397,8 @@ to use 3rd party libraries like `graphql-tools` to arbitrarily transform schemas
 
 ### Using SchemaTypes
 
-You may have noticed that almost every interface and type in `@giraphql/core` take a generic that
-looks like: `Types extends SchemaTypes`. This type is what allows GiraphQL and its plugins to share
+You may have noticed that almost every interface and type in `@pothos/core` take a generic that
+looks like: `Types extends SchemaTypes`. This type is what allows Pothos and its plugins to share
 type information across the entire schema, and to incorporate user defined types into that system.
 These SchemaTypes are a combination of default types merged with the Types provided in the Generic
 parameter of the SchemaBuilder constructor, and includes a wide variety of useful types:
@@ -451,14 +450,14 @@ cases your plugin can define a `createRequestData` method, and use the `requestD
 the data for the current request.
 
 ```typescript
-export class GiraphQLExamplePlugin<Types extends SchemaTypes, { resolveCount: number }> extends BasePlugin<Types> {
+export class PothosExamplePlugin<Types extends SchemaTypes, { resolveCount: number }> extends BasePlugin<Types> {
   createRequestData(context: Types['Context']): T {
     return { resolveCount: 0 };
   }
 
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => {
       const requestData = this.requestData(context);
@@ -484,7 +483,7 @@ and `wrapSubscribe` methods can be used to modify the `args` object before passi
 original resolver.
 
 Figuring out how to wrap inputs can be a little complex, especially when dealing with recursive
-inputs, and optimizing to wrap as little as possible. To help with this, giraphql has a couple of
+inputs, and optimizing to wrap as little as possible. To help with this, Pothos has a couple of
 utility functions that can make this easier:
 
 - `mapInputFields`: Used to select affected input fields and extract some configuration
@@ -494,10 +493,10 @@ utility functions that can make this easier:
 The relay plugin uses these methods to decode `globalID` inputs:
 
 ```typescript
-export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     // Given the args for the this field, select the fields that are globalIds
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
@@ -537,7 +536,7 @@ with the following shape:
 interface InputFieldMapping<Types extends SchemaTypes, T> {
   kind: 'Enum' | 'Scalar' | 'InputObject';
   isList: boolean;
-  config: GiraphQLInputFieldConfig<Types>;
+  config: PothosInputFieldConfig<Types>;
   value: T; // the value returned by the mapping function (if it was not null).
   // The value may still be for `InputObject` mappings if there are nested fields with non-null mappings
 }
@@ -548,7 +547,7 @@ object of the following shape:
 
 ```typescript
 interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
-  configs: Record<string, GiraphQLInputFieldConfig<Types>>;
+  configs: Record<string, PothosInputFieldConfig<Types>>;
   map: Map<string, InputFieldMapping<Types, T>> | null;
 }
 ```
@@ -563,7 +562,7 @@ Plugins can remove fields from objects, interfaces, and input objects, and remov
 from enums. To do this, simply return null from the corresponding on\*Config plugin hook:
 
 ```typescript
-onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
   if (fieldConfig.name === 'removeMe') {
     return null;
   }
@@ -571,7 +570,7 @@ onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
   return fieldConfig;
 }
 
-onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
   if (fieldConfig.name === 'removeMe') {
     return null;
   }
@@ -579,7 +578,7 @@ onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
   return fieldConfig;
 }
 
-onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
   if (valueConfig.value === 'removeMe') {
     return null;
   }

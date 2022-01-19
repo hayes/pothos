@@ -5,7 +5,7 @@ menu: Api
 
 # SchemaBuilder
 
-SchemaBuilder is the core class of GiraphQl. It can be used to build types, and merge them into a
+SchemaBuilder is the core class of Pothos. It can be used to build types, and merge them into a
 graphql.js Schema.
 
 ## `constructor<SchemaTypes>(options)`

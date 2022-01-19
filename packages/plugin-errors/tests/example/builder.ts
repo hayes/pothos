@@ -1,5 +1,5 @@
-import SchemaBuilder from '@giraphql/core';
-import ValidationPlugin from '@giraphql/plugin-validation';
+import SchemaBuilder from '@pothos/core';
+import ValidationPlugin from '@pothos/plugin-validation';
 import ErrorPlugin from '../../src';
 
 export default new SchemaBuilder<{}>({

@@ -3,13 +3,13 @@ import { GraphQLFieldResolver } from 'graphql';
 import * as zod from 'zod';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLInputFieldConfig,
-  GiraphQLInputFieldType,
-  GiraphQLOutputFieldConfig,
   mapInputFields,
+  PothosInputFieldConfig,
+  PothosInputFieldType,
+  PothosOutputFieldConfig,
   resolveInputTypeConfig,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import createZodSchema, {
   combine,
   createArrayValidator,
@@ -22,16 +22,16 @@ export * from './types';
 
 const pluginName = 'validation' as const;
 
-export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
 
   inputTypeValidators = new Map<string, zod.ZodType<unknown>>();
 
   override onInputFieldConfig(
-    fieldConfig: GiraphQLInputFieldConfig<Types>,
-  ): GiraphQLInputFieldConfig<Types> {
+    fieldConfig: PothosInputFieldConfig<Types>,
+  ): PothosInputFieldConfig<Types> {
     const fieldType = resolveInputTypeConfig(fieldConfig.type, this.buildCache);
-    const validationOptions = fieldConfig.giraphqlOptions.validate as
+    const validationOptions = fieldConfig.pothosOptions.validate as
       | ValidationOptionUnion
       | undefined;
 
@@ -73,7 +73,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     // Only used to check if validation is required
     const argMap = mapInputFields(
@@ -82,7 +82,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
       (field) => field.extensions?.validator ?? null,
     );
 
-    if (!argMap && !fieldConfig.giraphqlOptions.validate) {
+    if (!argMap && !fieldConfig.pothosOptions.validate) {
       return resolver;
     }
 
@@ -100,9 +100,9 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 
     let validator: zod.ZodTypeAny = zod.object(args).passthrough();
 
-    if (fieldConfig.giraphqlOptions.validate) {
+    if (fieldConfig.pothosOptions.validate) {
       validator = refine(validator, {
-        refine: fieldConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+        refine: fieldConfig.pothosOptions.validate as RefineConstraint<unknown>,
       });
     }
 
@@ -112,7 +112,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
 
   createValidator(
     optionsOrConstraint: RefineConstraint | ValidationOptionUnion | undefined,
-    type: GiraphQLInputFieldType<Types> | null,
+    type: PothosInputFieldType<Types> | null,
     fieldName: string,
   ): zod.ZodTypeAny {
     const options: ValidationOptionUnion | undefined =
@@ -130,9 +130,9 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
         options,
       );
 
-      if (typeConfig.giraphqlOptions.validate) {
+      if (typeConfig.pothosOptions.validate) {
         fieldValidator = refine(fieldValidator, {
-          refine: typeConfig.giraphqlOptions.validate as RefineConstraint<unknown>,
+          refine: typeConfig.pothosOptions.validate as RefineConstraint<unknown>,
         });
       }
 
@@ -163,7 +163,7 @@ export class GiraphQLValidationPlugin<Types extends SchemaTypes> extends BasePlu
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLValidationPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin);
 
 export default pluginName;
 

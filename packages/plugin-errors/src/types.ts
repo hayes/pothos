@@ -1,10 +1,4 @@
-import {
-  EmptyToOptional,
-  FieldNullability,
-  Normalize,
-  SchemaTypes,
-  TypeParam,
-} from '@giraphql/core';
+import { EmptyToOptional, FieldNullability, Normalize, SchemaTypes, TypeParam } from '@pothos/core';
 
 export interface ErrorsPluginOptions {
   defaultTypes?: (new (...args: any[]) => Error)[];
@@ -20,18 +14,18 @@ export type ErrorFieldOptions<
   types?: (new (...args: any[]) => Error)[];
   directResult?: Type extends unknown[] ? false : boolean;
   union: Normalize<
-    Omit<GiraphQLSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
+    Omit<PothosSchemaTypes.UnionTypeOptions<Types>, 'resolveType' | 'types'> & {
       name?: string;
     }
   >;
   result: Normalize<
-    Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isTypeOf'> & {
+    Omit<PothosSchemaTypes.ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isTypeOf'> & {
       name?: string;
     }
   >;
   dataField: Normalize<
     Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<
+      PothosSchemaTypes.ObjectFieldOptions<
         Types,
         Shape,
         Type,

@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/deno",
+  "name": "@pothos/deno",
   "version": "2.20.0",
   "description": "Deno compatible versions of GiraphQL packages",
   "repository": {

@@ -6,14 +6,14 @@ import {
   ObjectParam,
   OutputType,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { NodeObjectOptions } from '../types';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal';
 
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 
 export async function resolveNodes<Types extends SchemaTypes>(
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
   globalIDs: (string | null | undefined)[],
@@ -61,7 +61,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
 }
 
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
   ids: string[],
@@ -69,7 +69,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
-  const options = config.giraphqlOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
+  const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
 
   if (options.loadMany) {
     const loadManyPromise = Promise.resolve(options.loadMany(ids, context));

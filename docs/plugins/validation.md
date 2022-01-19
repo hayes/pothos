@@ -16,13 +16,13 @@ options map closely to the validations available in zod.
 To use the validation plugin you will need to install both `zod` package and the validation plugin:
 
 ```bash
-yarn add zod @giraphql/plugin-validation
+yarn add zod @pothos/plugin-validation
 ```
 
 ### Setup
 
 ```typescript
-import ValidationPlugin from '@giraphql/plugin-validation';
+import ValidationPlugin from '@pothos/plugin-validation';
 const builder = new SchemaBuilder({
   plugins: [ValidationPlugin],
 });
@@ -296,7 +296,7 @@ file using the normal zod APIs, and then attaching those to your fields using th
 
 ```typescript
 // shared
-import { ValidationOptions } from '@giraphql/plugin-validation';
+import { ValidationOptions } from '@pothos/plugin-validation';
 
 const numberValidation = zod.number().max(5);
 
@@ -326,7 +326,7 @@ options object:
 
 ```typescript
 // shared
-import { ValidationOptions } from '@giraphql/plugin-validation';
+import { ValidationOptions } from '@pothos/plugin-validation';
 
 const numberValidation: ValidationOptions<number> = {
   max: 5,
@@ -347,7 +347,7 @@ builder.queryType({
 });
 
 // client
-import { createZodSchema } from '@giraphql/plugin-validation';
+import { createZodSchema } from '@pothos/plugin-validation';
 
 const validator = createZodSchema(numberValidator);
 

@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/plugin-authz",
+  "name": "@pothos/plugin-authz",
   "version": "2.0.0",
   "description": "A GiraphQL plugin for applying GraphQL AuthZ rules to fields",
   "main": "./lib/index.js",
@@ -30,14 +30,14 @@
     "access": "public"
   },
   "peerDependencies": {
-    "graphql": ">=15.1.0",
-    "@graphql-authz/core": "*"
+    "@graphql-authz/core": "*",
+    "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@giraphql/test-utils": "^0.6.0",
-    "graphql-tag": "^2.12.6",
-    "@graphql-authz/core": "^1.2.0"
+    "@graphql-authz/core": "^1.2.1",
+    "@pothos/core": "^2.22.0",
+    "@pothos/test-utils": "^0.6.0",
+    "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

@@ -1,11 +1,11 @@
-import { FieldMap, FieldRef, NullableToOptional, SchemaTypes } from '@giraphql/core';
+import { FieldMap, FieldRef, NullableToOptional, SchemaTypes } from '@pothos/core';
 
 export type SimpleObjectFieldsShape<Types extends SchemaTypes, Fields extends FieldMap> = (
-  t: GiraphQLSchemaTypes.RootFieldBuilder<Types, unknown, 'SimpleObject'>,
+  t: PothosSchemaTypes.RootFieldBuilder<Types, unknown, 'SimpleObject'>,
 ) => Fields;
 
 export type SimpleInterfaceFieldsShape<Types extends SchemaTypes, Fields extends FieldMap> = (
-  t: GiraphQLSchemaTypes.RootFieldBuilder<Types, unknown, 'SimpleInterface'>,
+  t: PothosSchemaTypes.RootFieldBuilder<Types, unknown, 'SimpleInterface'>,
 ) => Fields;
 
 export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<{

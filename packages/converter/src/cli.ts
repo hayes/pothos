@@ -2,11 +2,11 @@ import fs from 'fs';
 import path from 'path';
 import { buildSchema } from 'graphql';
 import yargs from 'yargs';
-import GiraphQLConverter from '.';
+import PothosConverter from '.';
 
 export default yargs.command(
   'convert <path>',
-  'convert SDL to GiraphQL',
+  'convert SDL to Pothos',
   (args) => {
     args.option('out', { type: 'string', description: 'path to write output to' });
     args.alias('o', 'out');
@@ -23,7 +23,7 @@ export default yargs.command(
 
     const schemaText = fs.readFileSync(inputPath, 'utf8');
 
-    const converter = new GiraphQLConverter(buildSchema(schemaText), {
+    const converter = new PothosConverter(buildSchema(schemaText), {
       types: (argv.types as string[]) || null,
     });
 

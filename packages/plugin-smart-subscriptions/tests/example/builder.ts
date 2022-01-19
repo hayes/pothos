@@ -1,4 +1,4 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import SmartSubscriptionsPlugin, { subscribeOptionsFromIterator } from '../../src';
 import { Poll } from './data';
 import { ContextType } from './types';

@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/plugin-relay",
+  "name": "@pothos/plugin-relay",
   "version": "2.19.0",
   "description": "A GiraphQL plugin for adding relay style connections, nodes, and cursor based pagination to your GraphQL schema",
   "main": "./lib/index.js",
@@ -42,9 +42,9 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@giraphql/test-utils": "^0.6.0",
-    "graphql": "16.1.0",
+    "@pothos/core": "^2.22.0",
+    "@pothos/test-utils": "^0.6.0",
+    "graphql": "16.2.0",
     "graphql-subscriptions": "^2.0.0",
     "graphql-tag": "^2.12.6"
   },

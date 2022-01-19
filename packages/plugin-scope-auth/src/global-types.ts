@@ -15,7 +15,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { ForbiddenError } from './errors';
 import {
   FieldAuthScopes,
@@ -25,12 +25,12 @@ import {
   TypeAuthScopes,
   TypeGrantScopes,
 } from './types';
-import { ContextForAuth, GiraphQLScopeAuthPlugin } from '.';
+import { ContextForAuth, PothosScopeAuthPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      scopeAuth: GiraphQLScopeAuthPlugin<Types>;
+      scopeAuth: PothosScopeAuthPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

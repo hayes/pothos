@@ -13,7 +13,7 @@ variety of authorization use cases, while incurring a minimal performance overhe
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-scope-auth
+yarn add @pothos/plugin-scope-auth
 ```
 
 #### IMPORTANT
@@ -24,8 +24,8 @@ to ensure that other plugins that wrap resolvers do not execute first.
 ### Setup
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import ScopeAuthPlugin from '@giraphql/plugin-scope-auth';
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
 type MyPerms = 'readStuff' | 'updateStuff' | 'readArticle';
 

@@ -16,14 +16,14 @@ export interface TocProps {
 
 export function Toc({ table, active, className }: TocProps) {
   return (
-    <nav className={`bg-purple-500 text-white w-64 pb-4 pl-4 overflow-scroll ${className ?? ''}`}>
+    <nav className={`bg-darkGreen text-white w-64 pb-4 pl-4 overflow-scroll ${className ?? ''}`}>
       <ol>
         {table.entries.map((entry) => (
           <li key={entry.link}>
             {entry.children ? (
               <details open={entry.name === 'Guide'}>
                 <summary
-                  className={`block rounded-l hover:bg-purple-400 ${
+                  className={`block rounded-l hover:bg-green ${
                     active === entry.link ? 'font-bold text-white bg-pink-500' : ''
                   }`}
                 >
@@ -36,8 +36,10 @@ export function Toc({ table, active, className }: TocProps) {
                   {entry.children.map((child) => (
                     <li key={child.link}>
                       <a
-                        className={`block rounded-l hover:bg-purple-400 pl-2 py-1 ${
-                          active === child.link ? 'font-bold text-white bg-pink-500 hover:bg-pink-500' : ''
+                        className={`block rounded-l hover:bg-green pl-2 py-1 ${
+                          active === child.link
+                            ? 'font-bold text-white bg-pink-500 hover:bg-pink-500'
+                            : ''
                         }`}
                         href={child.link}
                       >
@@ -49,7 +51,7 @@ export function Toc({ table, active, className }: TocProps) {
               </details>
             ) : (
               <a
-                className={`block pl-2 py-1 rounded-l hover:bg-purple-400 ${
+                className={`block pl-2 py-1 rounded-l hover:bg-green ${
                   active === entry.link ? 'rounded-l font-bold text-white bg-pink-500' : ''
                 }`}
                 href={entry.link}

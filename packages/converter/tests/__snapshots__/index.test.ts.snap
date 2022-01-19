@@ -1,7 +1,7 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`Code generator example schema 1`] = `
-"import SchemaBuilder from \\"@giraphql/core\\";
+"import SchemaBuilder from \\"@pothos/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
     Objects: {
@@ -459,7 +459,7 @@ enum stuff {
 `;
 
 exports[`Code generator starwars schema 1`] = `
-"import SchemaBuilder from \\"@giraphql/core\\";
+"import SchemaBuilder from \\"@pothos/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
     Objects: {

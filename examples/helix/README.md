@@ -2,8 +2,8 @@
 
 This example uses the following packages:
 
-- `@giraphql/core`: For building the schema
-- `@giraphql/plugin-prism`: For prisma based type definitions, and efficient queries
+- `@pothos/core`: For building the schema
+- `@pothos/plugin-prism`: For prisma based type definitions, and efficient queries
 - `graphql-helix`: For executing queries based on incoming requests
 
 ## Schema

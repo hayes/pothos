@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { EmptyToOptional, FieldNullability, Normalize, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { EmptyToOptional, FieldNullability, Normalize, SchemaTypes, TypeParam } from '../core/index.ts';
 export interface ErrorsPluginOptions {
     defaultTypes?: (new (...args: any[]) => Error)[];
     directResult?: boolean;
@@ -7,13 +7,13 @@ export interface ErrorsPluginOptions {
 export type ErrorFieldOptions<Types extends SchemaTypes, Type extends TypeParam<Types>, Shape, Nullable extends FieldNullability<Type>> = EmptyToOptional<{
     types?: (new (...args: any[]) => Error)[];
     directResult?: Type extends unknown[] ? false : boolean;
-    union: Normalize<Omit<GiraphQLSchemaTypes.UnionTypeOptions<Types>, "resolveType" | "types"> & {
+    union: Normalize<Omit<PothosSchemaTypes.UnionTypeOptions<Types>, "resolveType" | "types"> & {
         name?: string;
     }>;
-    result: Normalize<Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>, "interfaces" | "isTypeOf"> & {
+    result: Normalize<Omit<PothosSchemaTypes.ObjectTypeOptions<Types, Shape>, "interfaces" | "isTypeOf"> & {
         name?: string;
     }>;
-    dataField: Normalize<Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Type extends [
+    dataField: Normalize<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, Shape, Type, Type extends [
         unknown
     ] ? {
         list: false;

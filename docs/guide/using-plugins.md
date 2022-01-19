@@ -5,15 +5,15 @@ menu: Guide
 
 # Using Plugins
 
-Using plugins with GiraphQL is fairly easy, but works a little differently than other plugin systems
+Using plugins with Pothos is fairly easy, but works a little differently than other plugin systems
 you may be familiar with. One of the most important things to note is that importing plugins may
 have some side effects on the Schema builder, and it is recommended to only import the plugins you
 are actually using.
 
-The reason for this is that GiraphQLs plugin system was designed to allow plugins to contribute
+The reason for this is that Pothos's plugin system was designed to allow plugins to contribute
 features in a way that feels like they are built into the core API, and allow the plugins to take
-full advantage of the type system. This means that plugins can extend the core types in GiraphQL
-with their own properties, which happens as soon as the plugin is imported.
+full advantage of the type system. This means that plugins can extend the core types in Pothos with
+their own properties, which happens as soon as the plugin is imported.
 
 ## Setup
 
@@ -22,17 +22,17 @@ Each plugin should have setup instructions, but should work in a similar way.
 First install the plugin:
 
 ```bash
-npm install --save @giraphql/plugin-scope-auth
+npm install --save @pothos/plugin-scope-auth
 # or
-yarn add @giraphql/plugin-scope-auth
+yarn add @pothos/plugin-scope-auth
 ```
 
 Next import the plugin's default export \(which should just be the name of the plugin\), and pass it
 when you create your schema builder.
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import ScopeAuthPlugin from '@giraphql/plugin-scope-auth';
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin from '@pothos/plugin-scope-auth';
 
 const builder = new SchemaBuilder({
   plugins: [ScopeAuthPlugin],
@@ -43,7 +43,7 @@ Some plugins may allow you to use your own types for one of their features. This
 types in through the Generic SchemaTypes used by the Schema builder:
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 plugin - scope - auth;
 
 const builder = new SchemaBuilder<{

@@ -1,4 +1,4 @@
-import { TableOfContents } from "../Toc";
+import { TableOfContents } from '../Toc';
 
 export const tableOfContents: TableOfContents = {
   entries: [
@@ -73,4 +73,3 @@ export const tableOfContents: TableOfContents = {
     },
   ],
 };
-

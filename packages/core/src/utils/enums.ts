@@ -1,16 +1,16 @@
-import { GiraphQLEnumValueConfig, SchemaTypes } from '../types';
+import { PothosEnumValueConfig, SchemaTypes } from '../types';
 
 import { BaseEnum, EnumValues } from '..';
 
 export function normalizeEnumValues<Types extends SchemaTypes>(
   values: EnumValues<SchemaTypes>,
-): Record<string, GiraphQLEnumValueConfig<Types>> {
-  const result: Record<string, GiraphQLEnumValueConfig<Types>> = {};
+): Record<string, PothosEnumValueConfig<Types>> {
+  const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
   if (Array.isArray(values)) {
     values.forEach((key) => {
       result[String(key)] = {
-        giraphqlOptions: {},
+        pothosOptions: {},
       };
     });
   } else {
@@ -19,11 +19,11 @@ export function normalizeEnumValues<Types extends SchemaTypes>(
         // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
         result[key] = {
           ...value,
-          giraphqlOptions: value as GiraphQLSchemaTypes.EnumValueConfig<Types>,
+          pothosOptions: value as PothosSchemaTypes.EnumValueConfig<Types>,
         };
       } else if (typeof value === 'string') {
         result[value] = {
-          giraphqlOptions: {},
+          pothosOptions: {},
         };
       }
     });
@@ -34,15 +34,15 @@ export function normalizeEnumValues<Types extends SchemaTypes>(
 
 export function valuesFromEnum<Types extends SchemaTypes>(
   Enum: BaseEnum,
-): Record<string, GiraphQLEnumValueConfig<Types>> {
-  const result: Record<string, GiraphQLEnumValueConfig<Types>> = {};
+): Record<string, PothosEnumValueConfig<Types>> {
+  const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
   Object.keys(Enum)
     .filter((key) => typeof Enum[Enum[key]] !== 'number')
     .forEach((key) => {
       result[key] = {
         value: Enum[key],
-        giraphqlOptions: {},
+        pothosOptions: {},
       };
     });
 

@@ -1,6 +1,6 @@
 import './global-types';
 import { GraphQLFieldResolver } from 'graphql';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, SchemaTypes } from '@giraphql/core';
+import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 import { ResolverMap } from './types';
 
 const pluginName = 'mocks' as const;
@@ -9,7 +9,7 @@ export default pluginName;
 export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const { mocks } = this.options;
 
@@ -24,7 +24,7 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
     const { mocks } = this.options;
 

@@ -42,11 +42,11 @@ function handleField(
     throw new Error(`Unknown field ${selection.name.value}`);
   }
 
-  const countName = field.extensions?.giraphQLPrismaRelationCount as string | undefined;
-  const parentCountName = field.extensions?.giraphQLPrismaRelationCountForParent as
+  const countName = field.extensions?.pothosPrismaRelationCount as string | undefined;
+  const parentCountName = field.extensions?.pothosPrismaRelationCountForParent as
     | string
     | undefined;
-  const relationName = field.extensions?.giraphQLPrismaRelation as string | undefined;
+  const relationName = field.extensions?.pothosPrismaRelation as string | undefined;
 
   if (countName) {
     counts.current[countName] = true;
@@ -94,10 +94,10 @@ function handleField(
   const includeType = resolveIndirectType(type, info);
 
   const newIncludes: IncludeMap = {
-    ...(includeType.extensions?.giraphqlPrismaInclude as IncludeMap),
+    ...(includeType.extensions?.pothosPrismaInclude as IncludeMap),
   };
 
-  let query = field.extensions?.giraphQLPrismaQuery ?? {};
+  let query = field.extensions?.pothosPrismaQuery ?? {};
 
   if (typeof query === 'function') {
     const args = getArgumentValues(field, selection, info.variableValues) as Record<
@@ -172,7 +172,7 @@ export function includesFromSelectionSet(
   selectionSet: SelectionSetNode,
   prevIndirectMap?: IndirectLoadMap,
 ) {
-  const indirectInclude = type.extensions?.giraphQLPrismaIndirectInclude as
+  const indirectInclude = type.extensions?.pothosPrismaIndirectInclude as
     | { path: SubFieldInclude[] }
     | undefined;
 
@@ -263,7 +263,7 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
   const includeType = resolveIndirectType(getNamedType(info.returnType), info);
 
   const includes: IncludeMap = {
-    ...(includeType.extensions?.giraphqlPrismaInclude as IncludeMap),
+    ...(includeType.extensions?.pothosPrismaInclude as IncludeMap),
   };
 
   const counts = {

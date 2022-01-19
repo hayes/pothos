@@ -16,13 +16,13 @@ only exposing a subset of your graph publicly.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-sub-graph
+yarn add @pothos/plugin-sub-graph
 ```
 
 ### Setup
 
 ```typescript
-import SubGraphPlugin from '@giraphql/plugin-sub-graph';
+import SubGraphPlugin from '@pothos/plugin-sub-graph';
 const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Internal';
 }>({

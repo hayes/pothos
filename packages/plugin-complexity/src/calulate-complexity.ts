@@ -16,9 +16,9 @@ import {
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
-import { SchemaTypes } from '@giraphql/core';
+import { SchemaTypes } from '@pothos/core';
 
-import type { ComplexityResult, FieldComplexity, GiraphQLComplexityPlugin } from '.';
+import type { ComplexityResult, FieldComplexity, PothosComplexityPlugin } from '.';
 
 function isListType(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLList) {
@@ -33,7 +33,7 @@ function isListType(type: GraphQLOutputType): boolean {
 }
 
 function complexityFromField<Types extends SchemaTypes>(
-  plugin: GiraphQLComplexityPlugin<Types>,
+  plugin: PothosComplexityPlugin<Types>,
   ctx: {},
   info: GraphQLResolveInfo,
   selection: FieldNode,
@@ -98,7 +98,7 @@ function complexityFromField<Types extends SchemaTypes>(
 }
 
 export function calculateComplexity<Types extends SchemaTypes>(
-  plugin: GiraphQLComplexityPlugin<Types>,
+  plugin: PothosComplexityPlugin<Types>,
   ctx: {},
   info: GraphQLResolveInfo,
 ) {
@@ -116,7 +116,7 @@ export function calculateComplexity<Types extends SchemaTypes>(
 }
 
 function complexityFromFragment<Types extends SchemaTypes>(
-  plugin: GiraphQLComplexityPlugin<Types>,
+  plugin: PothosComplexityPlugin<Types>,
   ctx: {},
   info: GraphQLResolveInfo,
   fragment: FragmentDefinitionNode | InlineFragmentNode,
@@ -138,7 +138,7 @@ function complexityFromFragment<Types extends SchemaTypes>(
 }
 
 function complexityFromSelectionSet<Types extends SchemaTypes>(
-  plugin: GiraphQLComplexityPlugin<Types>,
+  plugin: PothosComplexityPlugin<Types>,
   ctx: {},
   info: GraphQLResolveInfo,
   selectionSet: SelectionSetNode,

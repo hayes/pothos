@@ -8,7 +8,7 @@ import {
   InterfaceRef,
   RootFieldBuilder,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import {
   ConnectionShape,
   GlobalIDFieldOptions,
@@ -18,7 +18,7 @@ import {
 import { capitalize, resolveNodes } from './utils';
 import { internalEncodeGlobalID } from './utils/internal';
 
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind

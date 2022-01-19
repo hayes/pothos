@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/test-utils",
+  "name": "@pothos/test-utils",
   "version": "0.6.0",
   "description": "shared test utils for testing giraphql packages",
   "main": "./lib/index.js",
@@ -26,9 +26,9 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "16.1.0",
-    "graphql-helix": "^1.10.3",
+    "graphql": "16.2.0",
+    "graphql-helix": "^1.11.0",
     "ts-morph": "^13.0.2",
-    "yargs": "^17.3.0"
+    "yargs": "^17.3.1"
   }
 }

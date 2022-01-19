@@ -3,11 +3,11 @@ name: Prisma
 menu: Plugins
 ---
 
-# Prisma Plugin for GiraphQL
+# Prisma Plugin for Pothos
 
-This plugin provides tighter integration with prisma, making it easier to define prisma based
-object types, and helps solve n+1 queries for relations. It also has integrations for the relay
-plugin to make defining nodes and connections easy and efficient.
+This plugin provides tighter integration with prisma, making it easier to define prisma based object
+types, and helps solve n+1 queries for relations. It also has integrations for the relay plugin to
+make defining nodes and connections easy and efficient.
 
 ## Disclaimers
 
@@ -41,8 +41,8 @@ Here is a quick example of what an API using this plugin might look like. There 
 breakdown of what the methods and options used in the example below.
 
 If you are looking for an example integrated with the
-[relay plugin](https://giraphql.com/plugins/relay), see the [Relay integration](#relay-integration)
-section below.
+[relay plugin](https://pothos-graphql.dev/plugins/relay), see the
+[Relay integration](#relay-integration) section below.
 
 ```typescript
 builder.prismaObject('User', {
@@ -54,7 +54,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
-      resolve: user => user.profile.bio,
+      resolve: (user) => user.profile.bio,
     }),
     posts: t.relation('posts', {
       args: {
@@ -137,7 +137,7 @@ resolve everything inside `oldPosts`. Prisma can only resolve each relation once
 so we need a separate to handle the second `posts` relation. This may seem slightly magical, but
 should be predictable and hopefully easy to understand after reading the documentation below.
 
-## GiraphQL + Prisma without a plugin
+## Pothos + Prisma without a plugin
 
 If you just want learn about the plugin, feel free to skip this section, but understanding how to
 use prisma without a plugin may be useful for evaluating if this plugin is a good fit for your use
@@ -277,7 +277,7 @@ more efficient, but they are too complex to describe here.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-prisma
+yarn add @pothos/plugin-prisma
 ```
 
 ### Setup
@@ -288,15 +288,15 @@ this plugin used to infer all required types from the prisma client itself, but 
 poor dev experience because the complex types slowed down editors, and some more advanced use cases
 could not be typed correctly.
 
-#### Add a the giraphql generator to your prisma schema
+#### Add a the Pothos generator to your prisma schema
 
 ```
-generator giraphql {
-  provider = "prisma-giraphql-types"
+generator pothos {
+  provider = "prisma-pothos-types"
 }
 ```
 
-Now the types giraphql uses will be generated whenever you re-generate your prisma client. Run the
+Now the types Pothos uses will be generated whenever you re-generate your prisma client. Run the
 following command to re-generate the client and create the new types:
 
 ```bash
@@ -313,22 +313,22 @@ additional options:
 Example with more options:
 
 ```
-generator giraphql {
-  provider = "prisma-giraphql-types"
+generator pothos {
+  provider = "prisma-pothos-types"
   clientOutput = "@prisma/client"
-  output = "./giraphql-types.ts"
+  output = "./pothos-types.ts"
 }
 ```
 
 #### Set up the builder
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import { PrismaClient } from '@prisma/client';
-import PrismaPlugin from '@giraphql/plugin-prisma';
+import PrismaPlugin from '@pothos/plugin-prisma';
 // This is the default location for the generator, but this can be customized as described above
 // Using a type only import will help avoid issues with undeclared exports in esm mode
-import type PrismaTypes from '@giraphql/plugin-prisma/generated';
+import type PrismaTypes from '@pothos/plugin-prisma/generated';
 
 const prisma = new PrismaClient({});
 
@@ -375,7 +375,7 @@ builder.prismaObject('Post', {
 ```
 
 So far, this is just creating some simple object types. They work just like any other object type in
-GiraphQL. They main advantage of this is that we get the type information without using object refs,
+Pothos. They main advantage of this is that we get the type information without using object refs,
 or needing imports from prisma client.
 
 The `findUnique` option is described more below.
@@ -630,8 +630,9 @@ builder.prismaObject('User', {
 
 ## Relay integration
 
-This plugin has extensive integration with the [relay plugin](https://giraphql.com/plugins/relay),
-which makes creating nodes and connections very easy.
+This plugin has extensive integration with the
+[relay plugin](https://pothos-graphql.dev/plugins/relay), which makes creating nodes and connections
+very easy.
 
 ### Example
 

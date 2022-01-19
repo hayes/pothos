@@ -23,7 +23,7 @@ import {
 } from '..';
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
-  GiraphQLSchemaTypes.SchemaBuilderOptions<Types>
+  PothosSchemaTypes.SchemaBuilderOptions<Types>
 >;
 
 export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
@@ -60,7 +60,7 @@ export type EnumValues<Types extends SchemaTypes> = EnumValueConfigMap<Types> | 
 
 export type EnumValueConfigMap<Types extends SchemaTypes> = Record<
   string,
-  GiraphQLSchemaTypes.EnumValueConfig<Types>
+  PothosSchemaTypes.EnumValueConfig<Types>
 >;
 
 export type ShapeFromEnumValues<
@@ -75,43 +75,43 @@ export type ShapeFromEnumValues<
   : never;
 
 export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
-  t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
+  t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>,
 ) => FieldMap;
 
 export type InterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
-  t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
+  t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
 ) => FieldMap;
 
 export type QueryFieldsShape<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
+  t: PothosSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
 ) => FieldMap;
 
 export type MutationFieldsShape<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
+  t: PothosSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
 ) => FieldMap;
 
 export type SubscriptionFieldsShape<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
+  t: PothosSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
 ) => FieldMap;
 
 export type ObjectFieldThunk<Types extends SchemaTypes, Shape> = (
-  t: GiraphQLSchemaTypes.ObjectFieldBuilder<Types, Shape>,
+  t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>,
 ) => FieldRef<unknown>;
 
 export type InterfaceFieldThunk<Types extends SchemaTypes, Shape> = (
-  t: GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
+  t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
 ) => FieldRef<unknown>;
 
 export type QueryFieldThunk<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
+  t: PothosSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
 ) => FieldRef<unknown>;
 
 export type MutationFieldThunk<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
+  t: PothosSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
 ) => FieldRef<unknown>;
 
 export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
-  t: GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
+  t: PothosSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
 ) => FieldRef<unknown>;
 
 export type FieldMap = Record<string, FieldRef>;
@@ -127,7 +127,7 @@ export type FieldOptionsFromKind<
   Kind extends FieldKind,
   ResolveShape,
   ResolveReturnShape,
-> = GiraphQLSchemaTypes.FieldOptionsByKind<
+> = PothosSchemaTypes.FieldOptionsByKind<
   Types,
   ParentShape,
   Type,
@@ -149,8 +149,8 @@ export type ObjectTypeOptions<
     ? { name?: string }
     : { name: string }) &
     (
-      | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-      | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
+      | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+      | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
     )
 >;
 
@@ -159,7 +159,7 @@ export type InterfaceTypeOptions<
   Param extends InterfaceParam<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
-> = GiraphQLSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> &
+> = PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> &
   (Param extends string
     ? {}
     : Param extends InterfaceRef<unknown>
@@ -172,17 +172,17 @@ export type EnumTypeOptions<
   Values extends EnumValues<Types>,
 > = Param extends BaseEnum
   ? Merge<
-      Omit<GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
+      Omit<PothosSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
         name: string;
       }
     >
-  : GiraphQLSchemaTypes.EnumTypeOptions<Types, Values>;
+  : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
 
-export type ArgBuilder<Types extends SchemaTypes> = GiraphQLSchemaTypes.InputFieldBuilder<
+export type ArgBuilder<Types extends SchemaTypes> = PothosSchemaTypes.InputFieldBuilder<
   Types,
   'Arg'
 >['field'] &
-  Omit<GiraphQLSchemaTypes.InputFieldBuilder<Types, 'Arg'>, 'field'>;
+  Omit<PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>, 'field'>;
 
 export type ValidateInterfaces<
   Shape,
@@ -208,7 +208,7 @@ export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
   ? T
   : never;
 
-export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
+export type FieldKind = keyof PothosSchemaTypes.FieldOptionsByKind<
   SchemaTypes,
   {},
   TypeParam<SchemaTypes>,
@@ -217,9 +217,9 @@ export type FieldKind = keyof GiraphQLSchemaTypes.FieldOptionsByKind<
   {},
   {}
 > &
-  keyof GiraphQLSchemaTypes.GiraphQLKindToGraphQLType;
+  keyof PothosSchemaTypes.PothosKindToGraphQLType;
 
-export type InputFieldKind = keyof GiraphQLSchemaTypes.InputFieldOptionsByKind<
+export type InputFieldKind = keyof PothosSchemaTypes.InputFieldOptionsByKind<
   SchemaTypes,
   InputRef<unknown>,
   boolean

@@ -125,8 +125,8 @@ builder.queryType({
 
 ## Nullable fields
 
-Unlike some other GraphQL implementations, fields in GiraphQL are non-nullable by default. It is
-still often desirable to make fields in your schema nullable. This default can be changed in the
+Unlike some other GraphQL implementations, fields in Pothos are non-nullable by default. It is still
+often desirable to make fields in your schema nullable. This default can be changed in the
 SchemaBuilder constructor, see [Changing Default Nullability](./changing-default-nullability.md).
 
 ```typescript
@@ -164,7 +164,7 @@ example above shows how you can make list items nullable.
 ## Exposing fields from the underlying data
 
 Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve
-field that have a property of the same name in the underlying data. In GiraphQL, these relationships
+field that have a property of the same name in the underlying data. In Pothos, these relationships
 need to be explicitly defined, but there are helper methods that make exposing fields easier.
 
 These helpers are not available for root types \(Query, Mutation and Subscription\), but will work

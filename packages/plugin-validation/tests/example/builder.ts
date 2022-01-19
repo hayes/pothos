@@ -1,5 +1,5 @@
 import '../../src';
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 
 export default new SchemaBuilder<{
   Scalars: {

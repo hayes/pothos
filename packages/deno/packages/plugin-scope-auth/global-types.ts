@@ -4,11 +4,11 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, ListResolveValue, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import { ForbiddenError } from './errors.ts';
 import { FieldAuthScopes, FieldGrantScopes, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
-import { ContextForAuth, GiraphQLScopeAuthPlugin } from './index.ts';
+import { ContextForAuth, PothosScopeAuthPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            scopeAuth: GiraphQLScopeAuthPlugin<Types>;
+            scopeAuth: PothosScopeAuthPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             scopeAuthOptions?: ScopeAuthPluginOptions;

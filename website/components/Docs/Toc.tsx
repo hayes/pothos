@@ -1,8 +1,20 @@
+/* eslint-disable unicorn/prefer-query-selector */
+/* eslint-disable no-magic-numbers */
 import { MouseEvent, useEffect, useRef, useState } from 'react';
 
 export const dynamicStyles = <div className="pl-2 pl-6 pl-8" />;
 
-export function TocEntry({ active, url, depth, text }: { url: string; depth: number; text: any, active: boolean }) {
+export function TocEntry({
+  active,
+  url,
+  depth,
+  text,
+}: {
+  url: string;
+  depth: number;
+  text: unknown;
+  active: boolean;
+}) {
   const [target, setTarget] = useState<HTMLElement>(null);
   const id = url.startsWith('#') ? url.slice(1) : null;
 
@@ -19,8 +31,8 @@ export function TocEntry({ active, url, depth, text }: { url: string; depth: num
 
   return (
     <li
-      className={`hover:bg-gray-200 dark:hover:bg-yellow-450 my-1 py-1 pl-${(depth - 2) * 4 + 2} ${
-        active ? 'border-l-2 border-pink-500 dark:border-yellow-450 font-bold' : 'border-l-4 border-transparent'
+      className={`hover:bg-green my-1 py-1 pl-${(depth - 2) * 4 + 2} ${
+        active ? 'border-l-2 border-darkGreen font-bold' : 'border-l-4 border-transparent'
       }`}
     >
       <a href={url} onClick={handleClick}>
@@ -38,12 +50,43 @@ export function Toc({
   items: {
     url: string;
     depth: number;
-    text: any;
+    text: unknown;
   }[];
 }) {
   const ref = useRef<HTMLElement>();
   const positions = useRef<{ id: string; offset: number }[]>([]);
-  const [activeId, setActiveId] = useState<null | string>(null);
+  const [activeId, setActiveId] = useState<string | null>(null);
+
+  function setClosestHeader() {
+    const parent = ref.current.parentElement;
+    const offset = parent.offsetTop;
+    const rect = parent.getClientRects()[0];
+
+    let closest = positions.current[0].id;
+
+    for (const next of positions.current) {
+      if (next.offset - offset + rect.y <= 50) {
+        closest = next.id;
+      } else {
+        break;
+      }
+    }
+
+    setActiveId(closest);
+  }
+
+  function updatePositions() {
+    positions.current = [];
+    items.forEach((item) => {
+      const id = item.url.startsWith('#') ? item.url.slice(1) : null;
+
+      if (id) {
+        positions.current.push({ id, offset: document.getElementById(id).offsetTop });
+      }
+    });
+
+    setClosestHeader();
+  }
 
   useEffect(() => {
     const observer = new MutationObserver(updatePositions);
@@ -64,42 +107,11 @@ export function Toc({
     };
   }, [ref]);
 
-  function updatePositions() {
-    positions.current = [];
-    items.map((item) => {
-      const id = item.url.startsWith('#') ? item.url.slice(1) : null;
-
-      if (id) {
-        positions.current.push({ id, offset: document.getElementById(id).offsetTop });
-      }
-    });
-
-    setClosestHeader();
-  }
-
-  function setClosestHeader() {
-    const parent = ref.current.parentElement as HTMLElement;
-    const offset = parent.offsetTop;
-    const rect = parent.getClientRects()[0];
-
-    let closest = positions.current[0].id;
-
-    for (const next of positions.current) {
-      if (next.offset - offset + rect.y <= 50) {
-        closest = next.id;
-      } else {
-        break;
-      }
-    }
-
-    setActiveId(closest);
-  }
-
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
-      <ol className="border-l border-gray-200 dark:border-yellow-450 flex-shrink">
+      <ol className="border-l border-darkGreen flex-shrink">
         {items.map((item, i) => (
-          <TocEntry active={item.url.slice(1) === activeId } key={item.url} {...item} />
+          <TocEntry active={item.url.slice(1) === activeId} key={item.url} {...item} />
         ))}
       </ol>
     </nav>

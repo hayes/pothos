@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
 import type { ComplexityPluginOptions, FieldComplexity } from './types.ts';
-import type { GiraphQLComplexityPlugin } from './index.ts';
+import type { PothosComplexityPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            complexity: GiraphQLComplexityPlugin<Types>;
+            complexity: PothosComplexityPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             complexity?: ComplexityPluginOptions<Types>;

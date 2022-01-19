@@ -13,7 +13,7 @@ resolvers
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-errors
+yarn add @pothos/plugin-errors
 ```
 
 ### Setup
@@ -23,7 +23,7 @@ Ensure that the target in your `tsconfig.json` is set to `es6` or higher (defaul
 ### Example Usage
 
 ```typescript
-import ErrorsPlugin from '@giraphql/plugin-errors';
+import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
   errorOptions: {
@@ -134,7 +134,7 @@ your clients.
 The follow is a small example of this pattern:
 
 ```typescript
-import ErrorsPlugin from '@giraphql/plugin-errors';
+import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
   errorOptions: {

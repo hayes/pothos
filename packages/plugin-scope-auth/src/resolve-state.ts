@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
 import RequestCache from './request-cache';
 import { AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction } from './types';
 import { canCache } from './util';

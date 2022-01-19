@@ -13,17 +13,17 @@ This plugin makes it easy to add fields and types that are loaded through a data
 
 ### Install
 
-To use the dataloader plugin you will need to install both the `dataloader` package and the giraphql
+To use the dataloader plugin you will need to install both the `dataloader` package and the Pothos
 dataloader plugin:
 
 ```bash
-yarn add dataloader @giraphql/plugin-dataloader
+yarn add dataloader @pothos/plugin-dataloader
 ```
 
 ### Setup
 
 ```typescript
-import DataloaderPlugin from '@giraphql/plugin-dataloader';
+import DataloaderPlugin from '@pothos/plugin-dataloader';
 
 const builder = new SchemaBuilder({
   plugins: [DataloaderPlugin],
@@ -88,9 +88,9 @@ builder.queryType({
 });
 ```
 
-GiraphQL will detect when a resolver returns `string`, `number`, or `bigint` (typescript will
+Pothos will detect when a resolver returns `string`, `number`, or `bigint` (typescript will
 constrain the allowed types to whatever is expected by the load function). If a resolver returns an
-object instead, GiraphQL knows it can skip the dataloader for that object.
+object instead, Pothos knows it can skip the dataloader for that object.
 
 ### loadable fields
 
@@ -189,7 +189,7 @@ builder.queryField('user', (t) =>
 
 Calling dataloader.loadMany will resolve to a value like `(Type | Error)[]`. Your `load` function
 may also return results in that format if your loader can have parital failures. GraphQL does not
-have special handling for Error objects. Instead GiraphQL will map these results to something like
+have special handling for Error objects. Instead Pothos will map these results to something like
 `(Type | Promise<Type>)[]` where Errors are replaced with promises that will be rejected. This
 allows the normal graphql resolver flow to correctly handle these errors.
 
@@ -197,7 +197,7 @@ If you are using the `loadMany` method from a dataloader manually, you can apply
 using the `rejectErrors` helper:
 
 ```typescript
-import { rejectErrors } from '@giraphql/plugin-dataloader';
+import { rejectErrors } from '@pothos/plugin-dataloader';
 
 builder.queryField('user', (t) =>
   t.field({
@@ -220,7 +220,7 @@ object. You can determine which of these options works best for you or add you o
 First you'll need to update the types for your context type:
 
 ```typescript
-import { LoadableRef } from '@giraphql/plugin-dataloader';
+import { LoadableRef } from '@pothos/plugin-dataloader';
 
 export interface ContextType {
   userLoader: DataLoader<string, { id: number }>; // expose a specific loader
@@ -235,8 +235,8 @@ next you'll need to update your context factory function. The exact format of th
 graphql server implementation you are using.
 
 ```typescript
-import { initContextCache } from '@giraphql/core';
-import { LoadableRef, rejectErrors } from '@giraphql/plugin-dataloader';
+import { initContextCache } from '@pothos/core';
+import { LoadableRef, rejectErrors } from '@pothos/plugin-dataloader';
 
 export const createContext = (req, res): ContextType => ({
   // Adding this will prevent any issues if you server implementation

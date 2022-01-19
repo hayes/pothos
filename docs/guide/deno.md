@@ -1,6 +1,6 @@
 # Deno
 
-GiraphQL now supports deno, but the server implementations available for deno are relatively new and
+Pothos now supports deno, but the server implementations available for deno are relatively new and
 take a bit more effort to set up than on node
 
 ### Setup
@@ -8,7 +8,7 @@ take a bit more effort to set up than on node
 #### Imports
 
 Most of the setup for deno works exactly the same way as it does for node. The main difference is
-where things are imported from. GiraphQL and all its plugins are published as a single package on
+where things are imported from. Pothos and all its plugins are published as a single package on
 deno.land. Each of the node packages available on npm are available in the `packages` directory:
 
 ```typescript
@@ -32,7 +32,7 @@ import { shouldRenderGraphiQL } from 'https://cdn.jsdelivr.net/gh/contrawork/gra
 import { processRequest } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/process-request.ts';
 import { getGraphQLParameters } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/get-graphql-parameters.ts';
 import playground from 'https://gist.githubusercontent.com/hayes/5c99f7b4f71234452036fd88e142a825/raw/655245a052b10c2912a803c8a6d537096b73c10b/playground.ts';
-// GiraphQL
+// Pothos
 import SchemaBuilder from 'https://deno.land/x/giraphql/packages/core/mod.ts';
 
 // Create app and router
@@ -108,7 +108,7 @@ incompatible. This means that we need a way to ensure that our graphql library v
 across our dependencies. There isn't a perfect solution right now, but `import-maps` give us
 something that works.
 
-GiraphQL uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map.
+Pothos uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map.
 GraphQL Helix currently uses
 `https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts`
 

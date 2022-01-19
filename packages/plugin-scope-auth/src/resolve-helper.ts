@@ -1,10 +1,10 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { GiraphQLOutputFieldConfig, isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import ResolveState from './resolve-state';
 import { ResolveStep } from './types';
-import { GiraphQLScopeAuthPlugin } from '.';
+import { PothosScopeAuthPlugin } from '.';
 
 const defaultUnauthorizedResolver = (
   root: unknown,
@@ -18,11 +18,11 @@ const defaultUnauthorizedResolver = (
 
 export function resolveHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],
-  plugin: GiraphQLScopeAuthPlugin<Types>,
-  fieldConfig: GiraphQLOutputFieldConfig<Types>,
+  plugin: PothosScopeAuthPlugin<Types>,
+  fieldConfig: PothosOutputFieldConfig<Types>,
 ) {
   const unauthorizedResolver =
-    fieldConfig.giraphqlOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
+    fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
 
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
     const state = new ResolveState(RequestCache.fromContext(context, plugin));

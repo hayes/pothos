@@ -1,11 +1,11 @@
 // @ts-nocheck
 import './global-types.ts';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
 export * from './types.ts';
 const pluginName = "authz" as const;
-export class GiraphQLAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> | null {
-        const { authz } = fieldConfig.giraphqlOptions;
+export class PothosAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>): PothosOutputFieldConfig<Types> | null {
+        const { authz } = fieldConfig.pothosOptions;
         if (!authz) {
             return fieldConfig;
         }
@@ -24,14 +24,14 @@ export class GiraphQLAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<T
             },
         };
     }
-    override onTypeConfig(typeConfig: GiraphQLTypeConfig): GiraphQLTypeConfig {
+    override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
         if ((typeConfig.graphqlKind !== "Object" && typeConfig.graphqlKind !== "Interface") ||
             typeConfig.kind === "Query" ||
             typeConfig.kind === "Mutation" ||
             typeConfig.kind === "Subscription") {
             return typeConfig;
         }
-        const { authz } = typeConfig.giraphqlOptions;
+        const { authz } = typeConfig.pothosOptions;
         if (!authz) {
             return typeConfig;
         }
@@ -51,5 +51,5 @@ export class GiraphQLAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<T
         };
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLAuthZPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosAuthZPlugin);
 export default pluginName;

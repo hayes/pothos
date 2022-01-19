@@ -1,4 +1,4 @@
-import { MaybePromise } from '@giraphql/core';
+import { MaybePromise } from '@pothos/core';
 import { RegisterTypeSubscriptionOptions } from '../types';
 import BaseSubscriptionManager from './base';
 

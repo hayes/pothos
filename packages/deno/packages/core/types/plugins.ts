@@ -1,14 +1,14 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { BasePlugin } from '../plugins/index.ts';
-import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '../index.ts';
+import { BuildCache, PothosObjectTypeConfig, MaybePromise, SchemaTypes } from '../index.ts';
 /**
  * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
  */
 export interface ResolveHooks<Types extends SchemaTypes, T> {
     overwriteResolve?: (parent: unknown, args: {}, context: Types["Context"], info: GraphQLResolveInfo, originalResolver: GraphQLFieldResolver<unknown, Types["Context"]>) => unknown;
     onResolve?: (value: unknown) => MaybePromise<void>;
-    onChild?: (child: unknown, index: number | null, type: GiraphQLObjectTypeConfig, update: (value: unknown) => void) => MaybePromise<T | null>;
+    onChild?: (child: unknown, index: number | null, type: PothosObjectTypeConfig, update: (value: unknown) => void) => MaybePromise<T | null>;
     onWrappedResolve?: (wrapped: unknown) => MaybePromise<void>;
 }
 /**
@@ -20,7 +20,7 @@ export interface SubscribeHooks<Types extends SchemaTypes, T> {
     onValue?: (child: unknown) => MaybePromise<T | null>;
 }
 export type PluginConstructorMap<Types extends SchemaTypes> = {
-    [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: new (buildCache: BuildCache<SchemaTypes>, name: K) => BasePlugin<Types> & GiraphQLSchemaTypes.Plugins<Types>[K];
+    [K in keyof PothosSchemaTypes.Plugins<SchemaTypes>]: new (buildCache: BuildCache<SchemaTypes>, name: K) => BasePlugin<Types> & PothosSchemaTypes.Plugins<Types>[K];
 };
 export type PluginMap<Types extends SchemaTypes> = {
     [K in keyof PluginConstructorMap<Types>]: InstanceType<PluginConstructorMap<Types>[K]>;

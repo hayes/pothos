@@ -1,5 +1,5 @@
 import '../../src';
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import { postExecRule, preExecRule } from '@graphql-authz/core';
 import { posts } from './data';
 

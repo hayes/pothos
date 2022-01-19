@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 import { GraphQLFieldResolver } from 'graphql';
-import { isThenable, SchemaTypes } from '@giraphql/core';
+import { isThenable, SchemaTypes } from '@pothos/core';
 import {
   FieldAuthScopes,
   FieldGrantScopes,

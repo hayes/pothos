@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import { ErrorFieldOptions, ErrorsPluginOptions } from './types.ts';
-import { GiraphQLErrorsPlugin } from './index.ts';
+import { PothosErrorsPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            errors: GiraphQLErrorsPlugin<Types>;
+            errors: PothosErrorsPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             errorOptions?: ErrorsPluginOptions;

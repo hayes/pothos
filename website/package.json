@@ -10,18 +10,19 @@
     "@jsdevtools/rehype-toc": "^3.0.2",
     "@mdx-js/loader": "^1.6.22",
     "@mdx-js/react": "^1.6.22",
-    "@next/mdx": "^12.0.7",
+    "@next/mdx": "^12.0.8",
     "@tailwindcss/typography": "^0.5.0",
-    "next": "^12.0.7",
+    "next": "^12.0.8",
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-syntax-highlighter": "^15.4.5",
     "rehype-slug": "^4.0.0"
   },
   "devDependencies": {
-    "@types/react": "^17.0.37",
-    "autoprefixer": "^10.4.0",
+    "@types/react": "^17.0.38",
+    "@types/tailwindcss": "^3.0.2",
+    "autoprefixer": "^10.4.2",
     "postcss": "^8.4.5",
-    "tailwindcss": "^3.0.2"
+    "tailwindcss": "^3.0.15"
   }
 }

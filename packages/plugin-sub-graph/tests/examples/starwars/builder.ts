@@ -1,4 +1,4 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import SubGraphPlugin from '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 

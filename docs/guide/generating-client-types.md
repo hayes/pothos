@@ -5,7 +5,7 @@ menu: Guide
 
 # Generating types for client
 
-GiraphQL does not have a built in mechanism for generating types to use with a client, but
+Pothos does not have a built in mechanism for generating types to use with a client, but
 [graphql-code-generator](https://www.graphql-code-generator.com/) can be configured to consume a
 schema directly from your typescript files.
 
@@ -49,8 +49,8 @@ module.exports = require('@boost/module').requireModule(require.resolve('./schem
 ## Set up graphql-code-generator
 
 The following set up will generate a schema.graphql file, and apollo client hooks for queries
-defined in your client ts and tsx files. The specifics of this config file should be updated
-to match your own needs using docs from
+defined in your client ts and tsx files. The specifics of this config file should be updated to
+match your own needs using docs from
 [graphql-code-generator](https://www.graphql-code-generator.com/).
 
 ```bash

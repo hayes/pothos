@@ -19,7 +19,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 
 export type DataloaderKey = bigint | number | string;
 
@@ -114,7 +114,7 @@ export type LoadableUnionOptions<
   Member extends ObjectParam<Types>,
   CacheKey,
   Shape,
-> = GiraphQLSchemaTypes.UnionTypeOptions<Types, Member> & {
+> = PothosSchemaTypes.UnionTypeOptions<Types, Member> & {
   load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & (

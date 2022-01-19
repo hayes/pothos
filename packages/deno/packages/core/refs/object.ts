@@ -3,7 +3,7 @@
 import { OutputRef, outputShapeKey } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
 import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
-export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef, GiraphQLSchemaTypes.ObjectRef<T, P> {
+export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef, PothosSchemaTypes.ObjectRef<T, P> {
     override kind = "Object" as const;
     [outputShapeKey]: T;
     [parentShapeKey]: P;
@@ -12,8 +12,8 @@ export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRe
     }
 }
 export class ImplementableObjectRef<Types extends SchemaTypes, Shape, Parent = Shape> extends ObjectRef<Shape, Parent> {
-    private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
-    constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
+    private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
         super(name);
         this.builder = builder;
     }

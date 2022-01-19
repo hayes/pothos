@@ -9,17 +9,17 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { LoadableInterfaceRef } from './refs/interface';
 import { LoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
 import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
-import { GiraphQLDataloaderPlugin, LoadableInterfaceOptions, LoadableUnionOptions } from '.';
+import { LoadableInterfaceOptions, LoadableUnionOptions, PothosDataloaderPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      dataloader: GiraphQLDataloaderPlugin<Types>;
+      dataloader: PothosDataloaderPlugin<Types>;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
@@ -72,7 +72,7 @@ declare global {
             nameOrRef: NameOrRef,
             options: LoadableNodeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
           ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>
-        : '@giraphql/plugin-relay is required to use this method';
+        : '@pothos/plugin-relay is required to use this method';
     }
 
     export interface RootFieldBuilder<

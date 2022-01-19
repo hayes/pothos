@@ -14,7 +14,7 @@ for you.
 ### Objects and Interfaces
 
 ```typescript
-import { ObjectRef } from '@giraphql/core';
+import { ObjectRef } from '@pothos/core';
 import builder from './builder';
 
 function addCommonFields(refs: ObjectRef<unknown, { id: string }>[]) {
@@ -48,13 +48,12 @@ accepts both, you can differentiate the refs by using `ref.kind` which will be e
 
 ### Args
 
-Args are a little more complicated fields on objects and interfaces. GiraphQL infers the shape of
-args for your resolvers, so you can't just add on more args later. Instead, we can define a helper
-that returns a set of args to apply to your field. To make this work, we need to get a few extra
-types:
+Args are a little more complicated fields on objects and interfaces. Pothos infers the shape of args
+for your resolvers, so you can't just add on more args later. Instead, we can define a helper that
+returns a set of args to apply to your field. To make this work, we need to get a few extra types:
 
 ```typescript
-import { InputFieldBuilder } from '@giraphql/core';
+import { InputFieldBuilder } from '@pothos/core';
 
 export interface SchemaTypes {
   Scalars: {
@@ -64,7 +63,7 @@ export interface SchemaTypes {
     };
   };
 }
-export type TypesWithDefaults = GiraphQLSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
+export type TypesWithDefaults = PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
 
 const builder = new SchemaBuilder<SchemaTypes>({});
 
@@ -94,10 +93,10 @@ builder.mutationType({
 ```
 
 I this example `SchemaTypes` are the types that will be provided to the builder when it is created.
-Internally GiraphQL extends these with some default types. This extened set of types is what gets
-passed around in many of GiraphQLs internal types. To correctly type our helper function, we need to
-create a version of `SchemaTypes` with the same defaults GiraphQL adds in (`TypesWithDefaults`).
-Once we have `TypesWithDefaults` we can define a helper function that accepts an arg builder
+Internally Pothos extends these with some default types. This extended set of types is what gets
+passed around in many of Pothos's internal types. To correctly type our helper function, we need to
+create a version of `SchemaTypes` with the same defaults Pothos adds in (`TypesWithDefaults`). Once
+we have `TypesWithDefaults` we can define a helper function that accepts an arg builder
 (`ArgBuilder<TypesWithDefaults>`) and creates a set of arguments.
 
 The last step is to call your helper with `t.arg` (the arg builder), and spread the returned args
@@ -106,10 +105,10 @@ into the args object for the current field.
 ### Input fields
 
 Input fields are similar to args, and also all need to be present when the type is defined so that
-GiraphQL can infer the correct types.
+Pothos can infer the correct types.
 
 ```typescript
-import { InputFieldBuilder } from '@giraphql/core';
+import { InputFieldBuilder } from '@pothos/core';
 import builder, { TypesWithDefault } from './builder';
 
 function createInputFields(t: InputFieldBuilder<TypesWithDefault, 'InputObject'>) {

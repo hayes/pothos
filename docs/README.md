@@ -3,26 +3,26 @@ name: Overview
 route: /
 ---
 
-![GiraphQL](../website/public/assets/logo-name-light.svg)
+![Pothos](../website/public/assets/logo-name-light.svg)
 
-## GiraphQL - A plugin based GraphQL schema builder for typescript
+## Pothos - A plugin based GraphQL schema builder for typescript
 
-GiraphQL makes writing graphql schemas in typescript easy, fast and enjoyable. The core of GiraphQL
-adds 0 overhead at runtime, and has `graphql` as its only dependency.
+Pothos makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds
+0 overhead at runtime, and has `graphql` as its only dependency.
 
-By leaning heavily on typescripts ability to infer types, GiraphQL is the most type-safe way of
+By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
 writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
 code generation.
 
-GiraphQL has a unique and powerful plugin system that makes every plugin feel like its features are
+Pothos has a unique and powerful plugin system that makes every plugin feel like its features are
 built into the core library. Plugins can extend almost any part of the API by adding new options or
-methods that can take full advantage of GiraphQLs type system.
+methods that can take full advantage of the Pothos type system.
 
 ## Hello, World
 
 ```typescript
 import { ApolloServer } from 'apollo-server';
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -42,7 +42,7 @@ new ApolloServer({
 }).listen(3000);
 ```
 
-## Plugins that make GiraphQL even better
+## Plugins that make Pothos even better
 
 - [**Scope Auth**](plugins/scope-auth.md)
 

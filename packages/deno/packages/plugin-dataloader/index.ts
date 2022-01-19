@@ -4,18 +4,18 @@ import './field-builder.ts';
 import './schema-builder.ts';
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, isThenable, MaybePromise, ObjectRef, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, ObjectRef, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
 import { DataloaderObjectTypeOptions } from './types.ts';
 export * from './refs/index.ts';
 export * from './types.ts';
 export * from './util.ts';
 const pluginName = "dataloader" as const;
-export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";
         const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
         const options = this.buildCache.getTypeConfig(type.ref)
-            .giraphqlOptions as DataloaderObjectTypeOptions<Types, unknown, bigint | number | string, [
+            .pothosOptions as DataloaderObjectTypeOptions<Types, unknown, bigint | number | string, [
         ], ObjectRef<unknown>, unknown>;
         const getDataloader = options.extensions?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
         if (!getDataloader) {
@@ -55,5 +55,5 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
         return (parent, args, context, info) => loadIfID(resolver(parent, args, context, info), getDataloader(context));
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLDataloaderPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosDataloaderPlugin);
 export default pluginName;

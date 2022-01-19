@@ -65,7 +65,7 @@ function isRecursive(type: GraphQLNamedType, seen: string[] = []): boolean {
   });
 }
 
-export default class GiraphQLConverter {
+export default class PothosConverter {
   project = new Project();
 
   schema: GraphQLSchema;
@@ -91,7 +91,7 @@ export default class GiraphQLConverter {
     if (!this.types) {
       this.sourcefile.addImportDeclaration({
         kind: StructureKind.ImportDeclaration,
-        moduleSpecifier: '@giraphql/core',
+        moduleSpecifier: '@pothos/core',
         defaultImport: 'SchemaBuilder',
       });
 

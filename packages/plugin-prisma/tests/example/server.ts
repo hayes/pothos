@@ -1,4 +1,4 @@
-import { createTestServer } from '@giraphql/test-utils';
+import { createTestServer } from '@pothos/test-utils';
 import { prisma } from './builder';
 import schema from './schema';
 

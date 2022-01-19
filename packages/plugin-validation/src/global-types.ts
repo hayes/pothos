@@ -8,14 +8,14 @@ import {
   InputType,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { RefineConstraint, ValidationOptions } from './types';
-import { GiraphQLValidationPlugin } from '.';
+import { PothosValidationPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      validation: GiraphQLValidationPlugin<Types>;
+      validation: PothosValidationPlugin<Types>;
     }
 
     export interface FieldOptions<

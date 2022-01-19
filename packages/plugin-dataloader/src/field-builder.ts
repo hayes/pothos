@@ -8,12 +8,12 @@ import {
   RootFieldBuilder,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { LoadableFieldOptions, LoaderShapeFromType } from './types';
 import { rejectErrors } from './util';
 import { dataloaderGetter } from '.';
 
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind

@@ -5,14 +5,14 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { ErrorFieldOptions, ErrorsPluginOptions } from './types';
-import { GiraphQLErrorsPlugin } from '.';
+import { PothosErrorsPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      errors: GiraphQLErrorsPlugin<Types>;
+      errors: PothosErrorsPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import { GiraphQLEnumValueConfig, GiraphQLInputFieldConfig, GiraphQLInterfaceTypeConfig, GiraphQLOutputFieldConfig, GiraphQLTypeConfig, GiraphQLUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { BuildCache, createContextCache } from '../index.ts';
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
@@ -9,7 +9,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     buildCache;
     options;
     private requestDataMap = createContextCache<T, Types["Context"]>((ctx) => this.createRequestData(ctx));
-    constructor(buildCache: BuildCache<Types>, name: keyof GiraphQLSchemaTypes.Plugins<Types>) {
+    constructor(buildCache: BuildCache<Types>, name: keyof PothosSchemaTypes.Plugins<Types>) {
         this.name = name;
         this.builder = buildCache.builder;
         this.buildCache = buildCache;
@@ -17,34 +17,34 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     }
     /**
      * Called for each type defined with the SchemaBuilder
-     * @param  {GiraphQLTypeConfig} typeConfig - Config object describing the added type
-     * @return {GiraphQLTypeConfig} Original or updated `typeConfig`
+     * @param  {PothosTypeConfig} typeConfig - Config object describing the added type
+     * @return {PothosTypeConfig} Original or updated `typeConfig`
      */
-    onTypeConfig(typeConfig: GiraphQLTypeConfig): GiraphQLTypeConfig {
+    onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
         return typeConfig;
     }
     /**
      * Called for each field on an Object or Interface type
-     * @param  {GiraphQLOutputFieldConfig} fieldConfig - Config object describing the added field
-     * @return {GiraphQLOutputFieldConfig} Original or updated `fieldConfig`
+     * @param  {PothosOutputFieldConfig} fieldConfig - Config object describing the added field
+     * @return {PothosOutputFieldConfig} Original or updated `fieldConfig`
      */
-    onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> | null {
+    onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>): PothosOutputFieldConfig<Types> | null {
         return fieldConfig;
     }
     /**
      * Called for each argument or field on an Input object defined in your schema
-     * @param  {GiraphQLInputFieldConfig} fieldConfig - Config object describing the added field
-     * @return {GiraphQLInputFieldConfig} Original or updated `fieldConfig`
+     * @param  {PothosInputFieldConfig} fieldConfig - Config object describing the added field
+     * @return {PothosInputFieldConfig} Original or updated `fieldConfig`
      */
-    onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>): GiraphQLInputFieldConfig<Types> | null {
+    onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>): PothosInputFieldConfig<Types> | null {
         return fieldConfig;
     }
     /**
      * Called for each Enum value defined in your schema
-     * @param  {GiraphQLEnumValueConfig} valueConfig - Config object describing the enum value
-     * @return {GiraphQLEnumValueConfig} Original or updated `valueConfig`
+     * @param  {PothosEnumValueConfig} valueConfig - Config object describing the enum value
+     * @return {PothosEnumValueConfig} Original or updated `valueConfig`
      */
-    onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>): GiraphQLEnumValueConfig<Types> | null {
+    onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>): PothosEnumValueConfig<Types> | null {
         return valueConfig;
     }
     /**
@@ -54,7 +54,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     /**
      * Called after all fields and types have been built during `builder.toSchema()`
      * @param  {GraphQLSchema} schema - the generated schema
-     * @return {GiraphQLEnumValueConfig} Original or updated `schema`
+     * @return {PothosEnumValueConfig} Original or updated `schema`
      */
     afterBuild(schema: GraphQLSchema): GraphQLSchema {
         return schema;
@@ -62,28 +62,28 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     /**
      * Called with the resolver for each field in the schema
      * @param  {GraphQLFieldResolver} resolve - the resolve function
-     * @param  {GiraphQLOutputFieldConfig} fieldConfig - the config object for the field associated with this resolve function
+     * @param  {PothosOutputFieldConfig} fieldConfig - the config object for the field associated with this resolve function
      * @return {GraphQLFieldResolver} - Either the original, or a new resolver function to use for this field
      */
-    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         return resolver;
     }
     /**
      * Called with the subscribe for each field on the Subscription type
      * @param  {GraphQLFieldResolver} subscribe - the subscribe function
-     * @param  {GiraphQLOutputFieldConfig} fieldConfig - the config object for the field associated with this subscribe function
+     * @param  {PothosOutputFieldConfig} fieldConfig - the config object for the field associated with this subscribe function
      * @return {GraphQLFieldResolver} - Either the original, or a new subscribe function to use for this field
      */
-    wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
+    wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         return subscribe;
     }
     /**
      * Called with the resolveType for each Interface or Union type
      * @param  {GraphQLTypeResolver} resolveType - the resolveType function
-     * @param  {GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig} typeConfig - the config object for the Interface or Union type
+     * @param  {PothosInterfaceTypeConfig | PothosUnionTypeConfig} typeConfig - the config object for the Interface or Union type
      * @return {GraphQLTypeResolver} - Either the original, or a new resolveType function to use for this field
      */
-    wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
+    wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
         return resolveType;
     }
     protected runUnique<R>(key: unknown, cb: () => R): R {

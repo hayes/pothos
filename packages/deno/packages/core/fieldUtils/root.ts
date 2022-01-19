@@ -7,7 +7,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     arg: ArgBuilder<Types> = new InputFieldBuilder<Types, "Arg">(this.builder, "Arg", this.typename).argBuilder();
     /**
      * Create a Boolean field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     boolean<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<"Boolean"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Boolean", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
@@ -20,7 +20,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a Float field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     float<Args extends InputFieldMap, Nullable extends FieldNullability<"Float">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Float", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
@@ -33,7 +33,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a ID field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     id<Args extends InputFieldMap, Nullable extends FieldNullability<"ID">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
@@ -43,7 +43,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a Int field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     int<Args extends InputFieldMap, Nullable extends FieldNullability<"Int">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
@@ -53,7 +53,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a String field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     string<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<"String"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "String", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
@@ -66,7 +66,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a Boolean list field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     booleanList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Boolean"
@@ -82,7 +82,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a Float list field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     floatList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Float"
@@ -98,7 +98,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a ID list field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     idList<Args extends InputFieldMap, Nullable extends FieldNullability<[
         "ID"
@@ -114,7 +114,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a Int list field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     intList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Int"
@@ -130,7 +130,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * Create a String list field
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     stringList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "String"
@@ -146,7 +146,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     }
     /**
      * create a new field for the current type
-     * @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+     * @param {PothosSchemaTypes.FieldOptions} options - options for this field
      */
     field<Args extends InputFieldMap, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>) {
         return this.createField<Args, Type, Nullable>(options);

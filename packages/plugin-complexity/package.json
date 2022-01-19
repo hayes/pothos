@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/plugin-complexity",
+  "name": "@pothos/plugin-complexity",
   "version": "2.5.0",
   "description": "a GiraphQL plugin for defining and limiting complexity of queries",
   "main": "./lib/index.js",
@@ -40,9 +40,9 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@giraphql/test-utils": "^0.6.0",
-    "graphql": "16.1.0",
+    "@pothos/core": "^2.22.0",
+    "@pothos/test-utils": "^0.6.0",
+    "graphql": "16.2.0",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

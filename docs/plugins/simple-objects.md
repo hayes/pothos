@@ -13,13 +13,13 @@ definitions for those objects, while still getting full type safety.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-simple-objects
+yarn add @pothos/plugin-simple-objects
 ```
 
 ### Setup
 
 ```typescript
-import SimpleObjectsPlugin from '@giraphql/plugin-simple-objects';
+import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
 const builder = new SchemaBuilder({
   plugins: [SimpleObjectsPlugin],
 });
@@ -28,8 +28,8 @@ const builder = new SchemaBuilder({
 ### Example
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import SimpleObjectsPlugin from '@giraphql/plugin-simple-objects';
+import SchemaBuilder from '@pothos/core';
+import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
 
 const builder = new SchemaBuilder({
   plugins: [SimpleObjectsPlugin],

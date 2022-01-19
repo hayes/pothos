@@ -13,13 +13,13 @@ compatible schema.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-relay
+yarn add @pothos/plugin-relay
 ```
 
 ### Setup
 
 ```typescript
-import RelayPlugin from '@giraphql/plugin-relay';
+import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relayOptions: {
@@ -65,7 +65,7 @@ To make it easier to create globally unique ids the relay plugin adds new method
 globalID fields.
 
 ```typescript
-import { encodeGlobalID } from '@giraphql/plugin-relay';
+import { encodeGlobalID } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
   singleID: t.globalID({
@@ -211,7 +211,7 @@ can make resolving connections a little easier.
 For limit/offset based apis:
 
 ```typescript
-import { resolveOffsetConnection } from '@giraphql/plugin-relay';
+import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
   numbers: t.connection({
@@ -240,7 +240,7 @@ For APIs where you have the full array available you can use `resolveArrayConnec
 just like `resolveOffsetConnection` and accepts the same options.
 
 ```typescript
-import { resolveArrayConnection } from '@giraphql/plugin-relay';
+import { resolveArrayConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
   numbers: t.connection({
@@ -326,7 +326,8 @@ The `inputOptions` has a couple of non-standard options:
 The `payloadOptions` object also accepts a `name` property for setting the name of the payload
 object.
 
-You can also access refs for the created input and payload objects so you can re-use them in other fields:
+You can also access refs for the created input and payload objects so you can re-use them in other
+fields:
 
 ```typescript
 // Using aliases when destructuring lets you name your refs rather than using the generic `inputType` and `payloadType`
@@ -343,7 +344,7 @@ do this, you will need to create the connection object separately and then creat
 ref to your connection object:
 
 ```typescript
-import { resolveOffsetConnection } from '@giraphql/plugin-relay';
+import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 const ThingsConnection = builder.connectionObject(
   {
@@ -428,9 +429,9 @@ In some cases you may want to encode global ids differently than the build in ID
 this, you can pass a custom encoding and decoding function into the relay options of the builder:
 
 ```typescript
-import '@giraphql/plugin-relay';
+import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
-  plugins: ['GiraphQLRelay'],
+  plugins: [RelayPlugin],
   relayOptions: {
     encodeGlobalID: (typename: string, id: string | number | bigint) => `${typename}:${id}`,
     decodeGlobalID: (globalID: string) => {
@@ -470,13 +471,13 @@ contains a totalCount for us. To guarantee that resolvers correclty implement th
 define custom properties that must be returned from connection resolvers when we set up our builder:
 
 ```typescript
-import '@giraphql/plugin-relay';
+import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder<{
   Connection: {
     totalCount: number;
   };
 }>({
-  plugins: ['GiraphQLRelay'],
+  plugins: [RelayPlugin],
   relayOptions: {},
 });
 ```

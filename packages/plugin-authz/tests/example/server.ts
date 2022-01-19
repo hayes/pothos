@@ -1,5 +1,5 @@
 import { execute } from 'graphql';
-import { createTestServer } from '@giraphql/test-utils';
+import { createTestServer } from '@pothos/test-utils';
 import { wrapExecuteFn } from '@graphql-authz/core';
 import { rules } from './builder';
 import { users } from './data';

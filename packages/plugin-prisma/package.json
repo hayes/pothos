@@ -1,5 +1,5 @@
 {
-  "name": "@giraphql/plugin-prisma",
+  "name": "@pothos/plugin-prisma",
   "version": "0.14.0",
   "description": "A GiraphQL plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
@@ -24,7 +24,7 @@
     "url": "git+https://github.com/hayes/giraphql.git"
   },
   "bin": {
-    "prisma-giraphql-types": "./bin/generator.js"
+    "prisma-pothos-types": "./bin/generator.js"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -45,7 +45,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^3.6.0"
+    "@prisma/generator-helper": "^3.8.1"
   },
   "prisma": {
     "seed": "pnpm ts-node prisma/seed.ts"
@@ -56,13 +56,13 @@
     "typescript": ">4.5.2"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@giraphql/plugin-errors": "^2.13.0",
-    "@giraphql/plugin-relay": "^2.19.0",
-    "@giraphql/test-utils": "^0.6.0",
-    "@prisma/client": "^3.6.0",
-    "graphql": "16.1.0",
+    "@pothos/core": "^2.22.0",
+    "@pothos/plugin-errors": "^2.13.0",
+    "@pothos/plugin-relay": "^2.19.0",
+    "@pothos/test-utils": "^0.6.0",
+    "@prisma/client": "^3.8.1",
+    "graphql": "16.2.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^3.6.0"
+    "prisma": "^3.8.1"
   }
 }

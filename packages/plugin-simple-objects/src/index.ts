@@ -9,19 +9,19 @@ import SchemaBuilder, {
   ObjectRef,
   ParentShape,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { OutputShapeFromFields } from './types';
 
 const pluginName = 'simpleObjects' as const;
 
 export default pluginName;
 
-export class GiraphQLSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
+export class PothosSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLSimpleObjectsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosSimpleObjectsPlugin);
 
-const proto: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const proto: PothosSchemaTypes.SchemaBuilder<SchemaTypes> =
+  SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 proto.simpleObject = function simpleObject<
   Interfaces extends InterfaceParam<SchemaTypes>[],
@@ -31,7 +31,7 @@ proto.simpleObject = function simpleObject<
   >,
 >(
   name: string,
-  options: GiraphQLSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
+  options: PothosSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
 ) {
   const ref = new ObjectRef<Shape>(name);
 
@@ -56,7 +56,7 @@ proto.simpleObject = function simpleObject<
     };
   }
 
-  this.objectType(ref, options as GiraphQLSchemaTypes.ObjectTypeOptions);
+  this.objectType(ref, options as PothosSchemaTypes.ObjectTypeOptions);
 
   return ref;
 };
@@ -67,7 +67,7 @@ proto.simpleInterface = function simpleInterface<
   Interfaces extends InterfaceParam<SchemaTypes>[],
 >(
   name: string,
-  options: GiraphQLSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
+  options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
 ) {
   const ref = new InterfaceRef<Shape>(name);
 
