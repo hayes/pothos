@@ -23,7 +23,7 @@ export function Toc({ table, active, className }: TocProps) {
         {table.entries.map((entry) => (
           <li key={entry.link}>
             {entry.children ? (
-              <details open={entry.name === 'Guide'}>
+              <details open={active.startsWith(entry.link)}>
                 <summary
                   className={`block rounded-l hover:bg-green hover:text-white ${
                     active === entry.link ? 'font-bold dark:text-white ' : ''
