@@ -1,6 +1,10 @@
 /* eslint-disable unicorn/prefer-query-selector */
 /* eslint-disable no-magic-numbers */
+import Head from 'next/head';
+import Image from 'next/image';
+import Link from 'next/link';
 import { MouseEvent, useEffect, useRef, useState } from 'react';
+import { useCurrentDocsPage } from './Nav';
 
 export const dynamicStyles = <div className="pl-2 pl-6 pl-8" />;
 
@@ -111,13 +115,21 @@ export function Toc({
     };
   }, [ref]);
 
+  const currentPage = useCurrentDocsPage();
+
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
+      <Head>
+        <title>{currentPage.name}</title>
+      </Head>
       <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">
         {items.map((item, i) => (
           <TocEntry active={item.url.slice(1) === activeId} key={item.url} {...item} />
         ))}
       </ol>
+      <Link href={currentPage.githubFile}>
+        <a className='flex space-x-2 mt-8'><Image src={"/assets/Github-Mark.png"} height={20} width={20}/><span>Edit on Github</span></a>
+      </Link>
     </nav>
   );
 }

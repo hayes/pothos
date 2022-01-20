@@ -1,3 +1,4 @@
+import { useRouter } from 'next/router';
 import { TableOfContents } from '../Toc';
 
 export const tableOfContents: TableOfContents = {
@@ -79,3 +80,22 @@ export const tableOfContents: TableOfContents = {
     },
   ],
 };
+
+const flatEntries = tableOfContents.entries.flatMap(entry => [entry, ...entry.children ?? []])
+
+
+export function useCurrentDocsPage() {
+  const router = useRouter()
+
+  const entry = flatEntries.find(entry => entry.link === router.pathname);
+
+
+  if (!entry) {
+    return null;
+  }
+
+  return {
+    ...entry,
+    githubFile: `https://github.com/hayes/giraphql/edit/mh-pothos/website/pages/${entry.link}${entry.children ? '/index.mdx' : '.mdx'}`
+  }
+}
