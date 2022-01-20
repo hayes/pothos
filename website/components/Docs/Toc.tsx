@@ -132,7 +132,7 @@ export function Toc({
       {currentPage && (
         <Link href={currentPage.githubFile}>
           <a className="flex space-x-2 mt-8">
-            <Image src={'/assets/Github-Mark.png'} height={20} width={20} />
+            <Image src={'/assets/GitHub-Mark.png'} height={20} width={20} />
             <span>Edit on Github</span>
           </a>
         </Link>
