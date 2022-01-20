@@ -1,11 +1,11 @@
 import { Children, ReactNode } from 'react';
 import SyntaxHighlighter from 'react-syntax-highlighter';
 import dracula from 'react-syntax-highlighter/dist/cjs/styles/hljs/dracula';
+import Link from 'next/link';
 import { MDXProvider } from '@mdx-js/react';
 import { Layout } from '../Layout';
 import { tableOfContents } from './Nav';
 import { Toc } from './Toc';
-import Link from 'next/link';
 
 export interface BaseProps {
   children: ReactNode;
@@ -13,7 +13,7 @@ export interface BaseProps {
 
 const components = {
   a: ({ href, ...props }) => (
-    <Link href={href}>
+    <Link href={href as string}>
       <a {...props} className="dark:!text-white" />
     </Link>
   ),

@@ -1,11 +1,11 @@
 import { ReactNode } from 'react';
-import MenuIcon from '@heroicons/react/outline/MenuIcon';
-import { TableOfContents, Toc } from './Toc';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
+import MenuIcon from '@heroicons/react/outline/MenuIcon';
+import { TableOfContents, Toc } from './Toc';
 
 export function Layout({ children, toc }: { children: ReactNode; toc: TableOfContents }) {
-  const router = useRouter()
+  const router = useRouter();
   return (
     <>
       <Head>
@@ -44,7 +44,11 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
           <summary className="p-4 text-white">
             <MenuIcon className="h-8" />
           </summary>
-          <Toc active={router.pathname} className="absolute py-4 xl:hidden top-16 bottom-0" table={toc} />
+          <Toc
+            active={router.pathname}
+            className="absolute py-4 xl:hidden top-16 bottom-0"
+            table={toc}
+          />
         </details>
         <Toc
           className="hidden xl:block absolute py-4 top-16 bottom-0"

@@ -62,8 +62,8 @@ export function Toc({
     const offset = parent.offsetTop;
     const rect = parent.getClientRects()[0];
 
-    if (!positions.current.length) {
-      return
+    if (positions.current.length === 0) {
+      return;
     }
 
     let closest = positions.current[0].id;

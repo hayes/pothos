@@ -1,4 +1,4 @@
-import Link from "next/link";
+import Link from 'next/link';
 
 export interface TableOfContentsEntry {
   name: string;
@@ -12,13 +12,17 @@ export interface TableOfContents {
 
 export interface TocProps {
   table: TableOfContents;
-  active: string
+  active: string;
   className?: string;
 }
 
 export function Toc({ table, active, className }: TocProps) {
   return (
-    <nav className={`bg-gray-300 shadow dark:bg-darkGreen dark:text-white w-64 pb-4 pl-4 overflow-scroll z-10 ${className ?? ''}`}>
+    <nav
+      className={`bg-gray-300 shadow dark:bg-darkGreen dark:text-white w-64 pb-4 pl-4 overflow-scroll z-10 ${
+        className ?? ''
+      }`}
+    >
       <ol>
         {table.entries.map((entry) => (
           <li key={entry.link}>
@@ -30,9 +34,7 @@ export function Toc({ table, active, className }: TocProps) {
                   }`}
                 >
                   <Link href={entry.link}>
-                    <a className={`pl-2 py-1 select-none block`}>
-                      {entry.name}
-                    </a>
+                    <a className={`pl-2 py-1 select-none block`}>{entry.name}</a>
                   </Link>
                 </summary>
                 <ol className="block ml-2 pl-2 border-l border-darkGreen dark:border-white text-sm">
@@ -41,9 +43,7 @@ export function Toc({ table, active, className }: TocProps) {
                       <Link href={child.link}>
                         <a
                           className={`block rounded-l hover:bg-green hover:text-white pl-2 py-1 ${
-                            active === child.link
-                              ? 'font-bold dark:text-white'
-                              : ''
+                            active === child.link ? 'font-bold dark:text-white' : ''
                           }`}
                         >
                           {child.name}
