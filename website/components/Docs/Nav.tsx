@@ -22,6 +22,7 @@ export const tableOfContents: TableOfContents = {
         { name: 'Unions', link: '/docs/guide/unions' },
         { name: 'Using Plugins', link: '/docs/guide/using-plugins' },
         { name: 'App layout', link: '/docs/guide/app-layout' },
+        { name: 'Generating Client Types', link: '/docs/guide/generating-client-types' },
         { name: 'Patterns', link: '/docs/guide/patterns' },
         { name: 'Printing Schema', link: '/docs/guide/printing-schemas' },
         { name: 'Changing Default Nullability', link: '/docs/guide/changing-default-nullability' },
@@ -34,7 +35,8 @@ export const tableOfContents: TableOfContents = {
       name: 'Plugins',
       link: '/docs/plugins',
       children: [
-        { name: 'Auth', link: '/docs/plugins/auth' },
+        { name: 'Auth', link: '/docs/plugins/scope-auth' },
+        { name: 'Complexity', link: '/docs/plugins/complexity' },
         { name: 'Dataloader', link: '/docs/plugins/dataloader' },
         { name: 'Directives', link: '/docs/plugins/directives' },
         { name: 'Errors', link: '/docs/plugins/errors' },
@@ -54,7 +56,7 @@ export const tableOfContents: TableOfContents = {
         { name: 'SchemaBuilder', link: '/docs/api/schema-builder' },
         { name: 'FieldBuilder', link: '/docs/api/field-builder' },
         { name: 'ArgBuilder', link: '/docs/api/arg-builder' },
-        { name: 'InputFieldBuilder', link: '/docs/api/input-builder' },
+        { name: 'InputFieldBuilder', link: '/docs/api/input-field-builder' },
       ],
     },
     {
@@ -66,8 +68,12 @@ export const tableOfContents: TableOfContents = {
       link: '/docs/migrations',
       children: [
         {
-          name: '/docs/migrations/v2.0',
+          name: 'GiraphQL (2.*) to Pothos (3.0)',
           link: '/docs/migrations/giraphql-pothos',
+        },
+        {
+          name: '1.* to 2.0',
+          link: '/docs/migrations/2.0',
         },
       ],
     },

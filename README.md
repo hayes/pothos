@@ -41,33 +41,57 @@ new ApolloServer({
 
 ## Plugins that make Pothos even better
 
-- ## [Scope Auth](https://pothos-graphql.dev/plugins/scope-auth)
+- [**Auth**](./plugins/scope-auth)
+
   Add global, type level, or field level authorization checks to your schema
-- ## [Validation](https://pothos-graphql.dev/plugins/validation)
-  Validating your inputs and arguments
-- ## [Dataloader](https://pothos-graphql.dev/plugins/dataloader)
-  Quickly define data-loaders for your types and fields to avoid n+1 queries.
-- ## [Relay](https://pothos-graphql.dev/plugins/relay)
-  Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
-  for cursor based pagination.
-- ## [Simple Objects](https://pothos-graphql.dev/plugins/simple-objects)
-  Define simple object types without resolvers or manual type definitions.
-- ## [Mocks](https://pothos-graphql.dev/plugins/mocks)
-  Add mock resolver for easier testing
-- ## [Sub-Graph](https://pothos-graphql.dev/plugins/sub-graph)
-  Build multiple subsets of your graph to easily share code between internal and external APIs.
-- ## [Directives](https://pothos-graphql.dev/plugins/directives)
+
+- [**Complexity**](./docs/plugins/complexity)
+
+  A plugin for defining and limiting complexity of queries
+
+- [**Directives**](./plugins/directives)
+
   Integrate with existing schema graphql directives in a type-safe way.
-- ## [Smart Subscriptions](https://pothos-graphql.dev/plugins/smart-subscriptions)
-  Make any part of your graph subscribable to get live updates as your data changes.
-- ## [Errors](https://pothos-graphql.dev/plugins/errors)
+
+- [**Errors**](./plugins/errors)
+
   A plugin for easily including error types in your GraphQL schema and hooking up error types to
   resolvers.
-- ## [**Prisma**](https://pothos-graphql.dev/plugins/prisma)
+
+- [**Dataloader**](./plugins/dataloader)
+
+  Quickly define data-loaders for your types and fields to avoid n+1 queries.
+
+- [**Mocks**](./plugins/mocks)
+
+  Add mock resolver for easier testing
+
+- [**Prisma**](./plugins/prisma)
+
   A plugin for more efficient integration with prisma that can help solve n+1 issues and more
-  efficiently resolve queries
-- ## [**Complexity**](https://pothos-graphql.dev/plugins/complexity)
-  A plugin for defining and limiting complexity of queries
+  efficienty resolve queries
+
+- [**Relay**](./plugins/relay)
+
+  Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
+
+  for cursor based pagination.
+
+- [**Simple Objects**](./plugins/simple-objects)
+
+  Define simple object types without resolvers or manual type definitions.
+
+- [**Smart Subscriptions**](./plugins/smart-subscriptions)
+
+  Make any part of your graph subscribable to get live updates as your data changes.
+
+- [**Sub-Graph**](./plugins/sub-graph)
+
+  Build multiple subsets of your graph to easily share code between internal and external APIs.
+
+- [**Validation**](./plugins/validation)
+
+  Validating your inputs and arguments
 
 ## Dev setup
 
