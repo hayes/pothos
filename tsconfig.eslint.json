@@ -2,7 +2,12 @@
   "$schema": "https://json.schemastore.org/tsconfig",
   "extends": "./tsconfig.options.json",
   "compilerOptions": {
-    "jsx": "preserve"
+    "jsx": "preserve",
+    "lib": [
+      "dom",
+      "dom.iterable",
+      "esnext"
+    ]
   },
   "include": [
     "packages/*/*.js",
@@ -11,6 +16,8 @@
     "packages/*/tests/**/*.ts",
     "examples/**/*.ts",
     "examples/**/*.js",
-    "examples/**/*.tsx"
+    "examples/**/*.tsx",
+    "website/components/**/*.tsx",
+    "website/pages/**/*.tsx"
   ]
 }

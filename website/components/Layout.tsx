@@ -61,8 +61,8 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
           </section>
         </div>
         <footer className="flex justify-center m-12">
-          <div className='text-align-center text-coolGray-400 text-xs'>
-          {`© ${new Date().getFullYear()} Michael Hayes`}
+          <div className="text-align-center text-coolGray-400 text-xs">
+            {`© ${new Date().getFullYear()} Michael Hayes`}
           </div>
         </footer>
       </div>

@@ -81,14 +81,12 @@ export const tableOfContents: TableOfContents = {
   ],
 };
 
-const flatEntries = tableOfContents.entries.flatMap(entry => [entry, ...entry.children ?? []])
-
+const flatEntries = tableOfContents.entries.flatMap((entry) => [entry, ...(entry.children ?? [])]);
 
 export function useCurrentDocsPage() {
-  const router = useRouter()
+  const router = useRouter();
 
-  const entry = flatEntries.find(entry => entry.link === router.pathname);
-
+  const entry = flatEntries.find((e) => e.link === router.pathname);
 
   if (!entry) {
     return null;
@@ -96,6 +94,8 @@ export function useCurrentDocsPage() {
 
   return {
     ...entry,
-    githubFile: `https://github.com/hayes/giraphql/edit/mh-pothos/website/pages/${entry.link}${entry.children ? '/index.mdx' : '.mdx'}`
-  }
+    githubFile: `https://github.com/hayes/giraphql/edit/mh-pothos/website/pages${entry.link}${
+      entry.children ? '/index.mdx' : '.mdx'
+    }`,
+  };
 }

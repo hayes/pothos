@@ -20,6 +20,8 @@
   },
   "devDependencies": {
     "@types/react": "^17.0.38",
+    "@types/react-syntax-highlighter": "^13.5.2",
+    "@types/mdx-js__react": "^1.5.5",
     "@types/tailwindcss": "^3.0.2",
     "autoprefixer": "^10.4.2",
     "postcss": "^8.4.5",

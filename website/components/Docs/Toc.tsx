@@ -1,9 +1,9 @@
 /* eslint-disable unicorn/prefer-query-selector */
 /* eslint-disable no-magic-numbers */
+import { MouseEvent, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import Image from 'next/image';
 import Link from 'next/link';
-import { MouseEvent, useEffect, useRef, useState } from 'react';
 import { useCurrentDocsPage } from './Nav';
 
 export const dynamicStyles = <div className="pl-2 pl-6 pl-8" />;
@@ -16,10 +16,10 @@ export function TocEntry({
 }: {
   url: string;
   depth: number;
-  text: unknown;
+  text: string;
   active: boolean;
 }) {
-  const [target, setTarget] = useState<HTMLElement>(null);
+  const [target, setTarget] = useState<HTMLElement | null>(null);
   const id = url.startsWith('#') ? url.slice(1) : null;
 
   useEffect(() => {
@@ -54,16 +54,16 @@ export function Toc({
   items: {
     url: string;
     depth: number;
-    text: unknown;
+    text: string;
   }[];
 }) {
-  const ref = useRef<HTMLElement>();
+  const ref = useRef<HTMLElement | null>(null);
   const positions = useRef<{ id: string; offset: number }[]>([]);
   const [activeId, setActiveId] = useState<string | null>(null);
 
   function setClosestHeader() {
-    const parent = ref.current.parentElement;
-    const offset = parent.offsetTop;
+    const parent = ref.current!.parentElement!;
+    const offset = parent.offsetTop ?? 0;
     const rect = parent.getClientRects()[0];
 
     if (positions.current.length === 0) {
@@ -87,9 +87,10 @@ export function Toc({
     positions.current = [];
     items.forEach((item) => {
       const id = item.url.startsWith('#') ? item.url.slice(1) : null;
+      const el = id && document.getElementById(id);
 
-      if (id) {
-        positions.current.push({ id, offset: document.getElementById(id).offsetTop });
+      if (el) {
+        positions.current.push({ id, offset: el.offsetTop });
       }
     });
 
@@ -98,7 +99,7 @@ export function Toc({
 
   useEffect(() => {
     const observer = new MutationObserver(updatePositions);
-    observer.observe(ref.current, {
+    observer.observe(ref.current!, {
       childList: true,
       subtree: true,
     });
@@ -120,16 +121,22 @@ export function Toc({
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
       <Head>
-        <title>{currentPage.name}</title>
+        <title>{currentPage?.name ?? 'Pothos Docs'}</title>
       </Head>
       <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">
         {items.map((item, i) => (
           <TocEntry active={item.url.slice(1) === activeId} key={item.url} {...item} />
         ))}
       </ol>
-      <Link href={currentPage.githubFile}>
-        <a className='flex space-x-2 mt-8'><Image src={"/assets/Github-Mark.png"} height={20} width={20}/><span>Edit on Github</span></a>
-      </Link>
+
+      {currentPage && (
+        <Link href={currentPage.githubFile}>
+          <a className="flex space-x-2 mt-8">
+            <Image src={'/assets/Github-Mark.png'} height={20} width={20} />
+            <span>Edit on Github</span>
+          </a>
+        </Link>
+      )}
     </nav>
   );
 }
