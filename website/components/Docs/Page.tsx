@@ -5,20 +5,25 @@ import { MDXProvider } from '@mdx-js/react';
 import { Layout } from '../Layout';
 import { tableOfContents } from './Nav';
 import { Toc } from './Toc';
+import Link from 'next/link';
 
 export interface BaseProps {
   children: ReactNode;
 }
 
 const components = {
-  a: (props) => <a {...props} className="!text-white" />,
-  p: (props) => <p {...props} className="!text-white" />,
-  h1: (props) => <h1 {...props} className="!text-white" />,
-  h2: (props) => <h2 {...props} className="!text-white" />,
-  h3: (props) => <h3 {...props} className="!text-white" />,
-  h4: (props) => <h4 {...props} className="!text-white" />,
-  strong: (props) => <strong {...props} className="!text-white" />,
-  inlineCode: (props) => <code {...props} className="!text-white" />,
+  a: ({ href, ...props }) => (
+    <Link href={href}>
+      <a {...props} className="dark:!text-white" />
+    </Link>
+  ),
+  p: (props) => <p {...props} className="dark:!text-white" />,
+  h1: (props) => <h1 {...props} className="dark:!text-white" />,
+  h2: (props) => <h2 {...props} className="dark:!text-white" />,
+  h3: (props) => <h3 {...props} className="dark:!text-white" />,
+  h4: (props) => <h4 {...props} className="dark:!text-white" />,
+  strong: (props) => <strong {...props} className="dark:!text-white" />,
+  inlineCode: (props) => <code {...props} className="dark:!text-white" />,
   pre: (props: BaseProps) => <pre className="!p-0 !pt-0">{props.children}</pre>,
   code: (props: BaseProps) => (
     <SyntaxHighlighter className="!m-0" language="typescript" style={dracula as unknown}>
@@ -44,7 +49,7 @@ export function DocsPage({ children }: { children?: React.ReactNode }) {
     <Layout toc={tableOfContents}>
       <MDXProvider components={components}>
         <Toc
-          className="fixed top-24 right-0 w-0 md:w-[calc(100%-min(800px,75%))] xl:w-[calc(50%-min(400px,37.5%))]"
+          className="fixed top-24 right-0 hidden md:block md:w-[calc(100%-min(800px,75%))] xl:w-[calc(50%-min(400px,37.5%))]"
           items={items}
         />
         <div className="prose">{children}</div>

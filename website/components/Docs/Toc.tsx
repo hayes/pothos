@@ -31,11 +31,11 @@ export function TocEntry({
 
   return (
     <li
-      className={`hover:bg-green my-1 py-1 pl-${(depth - 2) * 4 + 2} ${
+      className={`hover:bg-green my-1 ${
         active ? 'border-l-2 border-darkGreen font-bold' : 'border-l-4 border-transparent'
       }`}
     >
-      <a href={url} onClick={handleClick}>
+      <a href={url} onClick={handleClick} className={`block py-1 pl-${(depth - 2) * 4 + 2}`}>
         {text}
       </a>
     </li>
@@ -61,6 +61,10 @@ export function Toc({
     const parent = ref.current.parentElement;
     const offset = parent.offsetTop;
     const rect = parent.getClientRects()[0];
+
+    if (!positions.current.length) {
+      return
+    }
 
     let closest = positions.current[0].id;
 
@@ -109,7 +113,7 @@ export function Toc({
 
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
-      <ol className="border-l border-darkGreen flex-shrink">
+      <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">
         {items.map((item, i) => (
           <TocEntry active={item.url.slice(1) === activeId} key={item.url} {...item} />
         ))}

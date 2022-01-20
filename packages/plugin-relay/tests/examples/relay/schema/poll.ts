@@ -48,25 +48,30 @@ builder.node('Poll', {
         type: 'Answer',
         resolve: (parent, args) =>
           // If you don't have a helper, this is the shape you are expected to return
-          ({
-            pageInfo: {
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor: 'abc',
-              endCursor: 'def',
-            },
-            edges: [
-              {
-                cursor: 'xyz',
-                node: parent.answers[0],
+          {
+            const result = {
+              pageInfo: {
+                hasNextPage: false,
+                hasPreviousPage: false,
+                startCursor: 'abc',
+                endCursor: 'def',
               },
-            ],
-          }),
+              edges: [
+                {
+                  cursor: 'xyz',
+                  node: parent.answers[0],
+                },
+              ],
+              count: 213,
+            };
+
+            return { ...result, count: 123 };
+          },
       },
       {
         // Name for the Connection object
         name: 'PollAnswersCon', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
-        fields: () => ({
+        fields: (t) => ({
           /* define extra fields on Connection */
         }),
         // Other options like auth would go into this object as well
