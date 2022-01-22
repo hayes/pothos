@@ -127,8 +127,8 @@ export type PrismaObjectTypeOptions<
   Include extends Model['Include'],
   Shape extends object,
 > = Omit<
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, ObjectRef<Shape>>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, ObjectRef<Shape>, Interfaces>,
+  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields'
 > & {
   name?: string;
