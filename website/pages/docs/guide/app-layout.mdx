@@ -1,6 +1,15 @@
+---
+title: App Layout
+menu: Guide
+description: Guide for Pothos app layouts
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # App layout
 

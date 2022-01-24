@@ -10,9 +10,8 @@
   },
   "dependencies": {
     "@pothos/core": "^2.21.0",
-    "@types/faker": "^6.6.9",
+    "@faker-js/faker": "^6.0.0-alpha.3",
     "apollo-server": "^3.6.2",
-    "faker": "^6.6.6",
     "ts-node": "^10.4.0"
   },
   "publishConfig": {

@@ -19,14 +19,14 @@ export interface TocProps {
 export function Toc({ table, active, className }: TocProps) {
   return (
     <nav
-      className={`bg-[#22212C] shadow text-white w-64 pb-4 pl-4 overflow-scroll z-10 ${
+      className={`bg-[#22212C] dark:bg-[#282a36] shadow text-white w-64 pb-4 pl-4 overflow-scroll z-10 ${
         className ?? ''
       }`}
     >
       <ol>
         {table.entries.map((entry) => (
           <li key={entry.link}>
-            {entry.children ? (
+            {entry.children && entry.children.length > 0 ? (
               <details open={active.startsWith(entry.link)}>
                 <summary
                   className={`block rounded-l hover:bg-green hover:text-white ${

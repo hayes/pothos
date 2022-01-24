@@ -1,6 +1,15 @@
+---
+title: Generating client types
+menu: Guide
+description: Guide for generating client types from a Pothos schema
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Generating types for client
 

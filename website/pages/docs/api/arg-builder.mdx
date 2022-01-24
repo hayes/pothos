@@ -1,6 +1,15 @@
+---
+title: ArgBuilder
+menu: API
+description: API docs for Pothos ArgBuilder
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # ArgBuilder
 

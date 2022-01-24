@@ -1,6 +1,15 @@
+---
+title: Smart subscriptions plugin
+menu: Plugins
+description: Smart subscriptions plugin docs for Pothos
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Smart Subscriptions Plugin
 

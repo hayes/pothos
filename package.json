@@ -26,7 +26,8 @@
   },
   "workspaces": [
     "packages/*",
-    "examples/*"
+    "examples/*",
+    "website"
   ],
   "private": true,
   "devDependencies": {
@@ -73,7 +74,8 @@
         ],
         "outputs": [
           "lib/**",
-          "esm/**"
+          "esm/**",
+          ".next"
         ]
       },
       "type": {

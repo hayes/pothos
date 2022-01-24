@@ -1,6 +1,16 @@
+---
+title: Printing Schemas
+menu: Guide
+description: Guide for printing a Pothos schema to an SDL schema file
+---
+
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Printing Schema
 

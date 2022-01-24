@@ -111,7 +111,6 @@ export class ModelLoader {
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
       setTimeout(() => {
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         this.staged.delete(entry);
 
         resolve(

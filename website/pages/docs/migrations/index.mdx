@@ -1,6 +1,14 @@
+---
+title: Migrations
+description: List of GiraphQL and Pothos migration guides
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 
 # Migrations

@@ -1,6 +1,15 @@
+---
+title: Relay plugin
+menu: Plugins
+description: Relay plugin docs for Pothos
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Relay Plugin
 

@@ -1,6 +1,15 @@
+---
+title: FieldBuilder
+menu: API
+description: API docs for Pothos FieldBuilder
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # FieldBuilder
 

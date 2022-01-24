@@ -22,12 +22,18 @@ const config: ESLintConfig = {
     complexity: 'off',
     'import/no-extraneous-dependencies': 'off',
     '@typescript-eslint/no-namespace': 'off',
+    '@typescript-eslint/no-use-before-define': 'off',
   },
   overrides: [
     {
-      files: ['{packages,examples}/*/**/*.js'],
+      files: ['{packages,examples,website}/**/*.js', '{packages,examples,website}/**/*.mjs'],
       rules: {
         'import/no-commonjs': 'off',
+        '@typescript-eslint/no-unsafe-return': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
       },
     },
     {

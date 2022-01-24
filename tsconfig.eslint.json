@@ -17,7 +17,9 @@
     "examples/**/*.ts",
     "examples/**/*.js",
     "examples/**/*.tsx",
-    "website/components/**/*.tsx",
-    "website/pages/**/*.tsx"
+    "website/**/*.tsx",
+    "website/**/*.ts",
+    "website/**/*.js",
+    "website/**/*.mjs"
   ]
 }

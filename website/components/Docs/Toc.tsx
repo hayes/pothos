@@ -2,8 +2,8 @@
 /* eslint-disable no-magic-numbers */
 import { MouseEvent, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
-import Image from 'next/image';
 import Link from 'next/link';
+import GithubLogo from './github';
 import { useCurrentDocsPage } from './Nav';
 
 export const dynamicStyles = <div className="pl-2 pl-6 pl-8" />;
@@ -114,9 +114,9 @@ export function Toc({
       document.removeEventListener('scroll', setClosestHeader, true);
       window.removeEventListener('resize', updatePositions);
     };
-  }, [ref]);
+  }, [ref, items]);
 
-  const currentPage = useCurrentDocsPage();
+  const currentPage = useCurrentDocsPage({ entries: [] });
 
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
@@ -131,8 +131,9 @@ export function Toc({
 
       {currentPage && (
         <Link href={currentPage.githubFile}>
-          <a className="flex space-x-2 mt-8">
-            <Image src={'/assets/GitHub-Mark.png'} height={20} width={20} />
+          <a className="flex space-x-2 mt-8 dark:text-white">
+            <GithubLogo height={20} width={20} />
+
             <span>Edit on Github</span>
           </a>
         </Link>

@@ -1,6 +1,15 @@
+---
+title: Prisma plugin
+menu: Plugins
+description: Prisma plugin docs for Pothos
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Prisma Plugin for Pothos
 

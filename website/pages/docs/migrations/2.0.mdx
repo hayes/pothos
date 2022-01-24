@@ -1,6 +1,15 @@
+---
+title: '2.0'
+menu: Migrations
+description: Migration guide for upgrading from GiraphQL 1.* to GiraphQL 2.0
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # v2.0
 

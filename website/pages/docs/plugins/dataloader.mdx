@@ -1,6 +1,15 @@
+---
+title: Dataloader plugin
+menu: Plugins
+description: Dataloader plugin docs for Pothos
+---
+
 import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
 
 export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Dataloader Plugin
 
