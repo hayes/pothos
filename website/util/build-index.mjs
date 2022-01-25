@@ -1,3 +1,4 @@
+import { writeFileSync } from 'fs';
 import path from 'path';
 import url from 'url';
 import slug from 'rehype-slug';
@@ -17,11 +18,11 @@ function removeMdx() {
   });
 }
 
-const docs = boostModule
-  .requireModule(path.resolve(path.dirname(url.fileURLToPath(import.meta.url)), './build-nav.ts'))
-  .loadDocsFiles();
+const dirName = path.dirname(url.fileURLToPath(import.meta.url));
 
-export const docsIndex = docs.map((doc) => {
+const docs = boostModule.requireModule(path.resolve(dirName, './build-nav.ts')).loadDocsFiles();
+
+const docsIndex = docs.map((doc) => {
   const ast = docsProcessor.runSync(docsProcessor.parse(doc.content));
 
   return {
@@ -84,3 +85,13 @@ function toPlainText(node) {
 
   return node.value;
 }
+
+writeFileSync(
+  path.resolve(dirName, 'search-index.js'),
+  `/* eslint-ignore */
+
+const searchIndex = ${JSON.stringify(docsIndex, null, 2)};
+
+export default searchIndex;
+`,
+);

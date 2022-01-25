@@ -1,3 +1,4 @@
+import './util/build-index.mjs';
 import slug from 'rehype-slug';
 import frontmatter from 'remark-frontmatter';
 import { remarkMdxFrontmatter } from 'remark-mdx-frontmatter';

@@ -1,5 +1,4 @@
-import { docsIndex } from '../util/build-index.mjs';
-import { builder } from './builder';
+import searchIndex from '../util/search-index';
 import {
   DocsIndex,
   DocsSection,
@@ -7,9 +6,8 @@ import {
   SearchMatcher,
   SearchMatchKind,
   SearchResult,
-} from './search-matcher';
-
-const docsIndexFiles = docsIndex as DocsIndex[];
+} from '../util/search-matcher';
+import { builder } from './builder';
 
 const DocsPage = builder.objectRef<DocsIndex>('DocsPage').implement({
   fields: (t) => ({
@@ -55,7 +53,7 @@ builder.queryType({
           required: true,
         }),
       },
-      resolve: (_, { query }) => new SearchMatcher(query).matchDocs(docsIndexFiles).getResults(),
+      resolve: (_, { query }) => new SearchMatcher(query).matchDocs(searchIndex).getResults(),
     }),
   }),
 });

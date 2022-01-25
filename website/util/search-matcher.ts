@@ -1,4 +1,4 @@
-import { MDXFile } from '../util/build-nav';
+import { MDXFile } from './build-nav';
 
 export interface DocsSection {
   heading: string;
