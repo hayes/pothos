@@ -14,7 +14,7 @@ import {
 } from '../..';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface FieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       ParentShape = unknown,

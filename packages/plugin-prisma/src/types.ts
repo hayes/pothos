@@ -18,7 +18,7 @@ import {
   ShapeWithNullability,
   typeBrandKey,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
 
 export interface PrismaDelegate {
@@ -127,8 +127,8 @@ export type PrismaObjectTypeOptions<
   Include extends Model['Include'],
   Shape extends object,
 > = Omit<
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+  | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields'
 > & {
   name?: string;
@@ -144,8 +144,8 @@ export type PrismaNodeOptions<
   Include extends Model['Include'],
   Shape extends object,
 > = Omit<
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, ObjectRef<Shape>, Interfaces>,
+  | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, ObjectRef<Shape>, Interfaces>,
   'fields' | 'isTypeOf'
 > & {
   name?: string;
@@ -221,7 +221,7 @@ export type RelatedFieldOptions<
   NeedsResolve extends boolean,
   Shape,
 > = Omit<
-  GiraphQLSchemaTypes.ObjectFieldOptions<
+  PothosSchemaTypes.ObjectFieldOptions<
     Types,
     Shape,
     RefForRelation<Model, Field>,
@@ -262,7 +262,7 @@ export type RelationCountOptions<
   Shape,
   NeedsResolve extends boolean,
 > = Omit<
-  GiraphQLSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, {}, number>,
+  PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, {}, number>,
   'resolve' | 'type'
 > &
   (NeedsResolve extends false
@@ -334,7 +334,7 @@ export type PrismaConnectionFieldOptions<
   Kind extends FieldKind,
   // eslint-disable-next-line @typescript-eslint/sort-type-union-intersection-members
 > = Omit<
-  GiraphQLSchemaTypes.ConnectionFieldOptions<
+  PothosSchemaTypes.ConnectionFieldOptions<
     Types,
     ParentShape,
     Param,
@@ -350,7 +350,7 @@ export type PrismaConnectionFieldOptions<
       ParentShape,
       Param,
       Nullable,
-      Args & InputFieldsFromShape<GiraphQLSchemaTypes.DefaultConnectionArguments>,
+      Args & InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
       Kind,
       ParentShape,
       ResolveReturnShape
@@ -369,7 +369,7 @@ export type PrismaConnectionFieldOptions<
         skip: number;
       },
       parent: ParentShape,
-      args: GiraphQLSchemaTypes.DefaultConnectionArguments & InputShapeFromFields<Args>,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<Model['Shape'][]>;
@@ -384,7 +384,7 @@ export type RelatedConnectionOptions<
   NeedsResolve extends boolean,
   // eslint-disable-next-line @typescript-eslint/sort-type-union-intersection-members
 > = Omit<
-  GiraphQLSchemaTypes.ObjectFieldOptions<
+  PothosSchemaTypes.ObjectFieldOptions<
     Types,
     Model['Shape'],
     ObjectRef<unknown>,
@@ -395,7 +395,7 @@ export type RelatedConnectionOptions<
   'resolve' | 'type'
 > &
   Omit<
-    GiraphQLSchemaTypes.ConnectionFieldOptions<
+    PothosSchemaTypes.ConnectionFieldOptions<
       Types,
       Model['Shape'],
       ObjectRef<unknown>,

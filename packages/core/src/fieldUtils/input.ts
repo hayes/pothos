@@ -11,9 +11,9 @@ import {
 
 export default class InputFieldBuilder<
   Types extends SchemaTypes,
-  Kind extends keyof GiraphQLSchemaTypes.InputFieldOptionsByKind,
+  Kind extends keyof PothosSchemaTypes.InputFieldOptionsByKind,
 > {
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   kind: Kind;
 
@@ -21,65 +21,65 @@ export default class InputFieldBuilder<
 
   /**
    * Create a Boolean input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   boolean = this.helper('Boolean');
 
   /**
    * Create a Float input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   float = this.helper('Float');
 
   /**
    * Create a ID input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   id = this.helper('ID');
 
   /**
    * Create a Int input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   int = this.helper('Int');
 
   /**
    * Create a String input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   string = this.helper('String');
 
   /**
    * Create a Boolean list input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   booleanList = this.helper(['Boolean']);
 
   /**
    * Create a Float list input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   floatList = this.helper(['Float']);
 
   /**
    * Create a ID list input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   idList = this.helper(['ID']);
 
   /**
    * Create a Int list input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   intList = this.helper(['Int']);
 
   /**
    * Create a String list input field
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   stringList = this.helper(['String']);
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, typename: string) {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, kind: Kind, typename: string) {
     this.builder = builder;
     this.kind = kind;
     this.typename = typename;
@@ -106,10 +106,10 @@ export default class InputFieldBuilder<
 
   /**
    * Create in input field or argument for the current type
-   * @param {GiraphQLSchemaTypes.InputFieldOptions} [options={}] - Options for this field
+   * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
-    options: GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
+    options: PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
   ) {
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = new InputFieldRef(
       this.kind,
@@ -127,8 +127,7 @@ export default class InputFieldBuilder<
         this.builder.configStore,
         options.required ?? this.builder.defaultInputFieldRequiredness,
       ),
-      giraphqlOptions:
-        options as unknown as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
+      pothosOptions: options as unknown as PothosSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
       description: options.description,
       deprecationReason: options.deprecationReason,
       defaultValue: options.defaultValue,
@@ -141,12 +140,7 @@ export default class InputFieldBuilder<
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
       ...args: NormalizeArgs<
-        [
-          options?: Omit<
-            GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
-            'type'
-          >,
-        ]
+        [options?: Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind], 'type'>]
       >
     ) => {
       const [options = {} as never] = args;
@@ -154,7 +148,7 @@ export default class InputFieldBuilder<
       return this.field({
         ...options,
         type,
-      } as GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind]);
+      } as PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind]);
     };
   }
 }

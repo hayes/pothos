@@ -1,10 +1,10 @@
-# A Simple GiraphQL API using data described by typescript classes
+# A Simple Pothos API using data described by typescript classes
 
 This example shows how to create a GraphQL API that exposes data defined by classes
 
 This example uses the following packages:
 
-- `@giraphql/core`: For building the schema
+- `@pothos/core`: For building the schema
 - `apollo-server`: For creating a server that executes the schema
 
 ## Schema

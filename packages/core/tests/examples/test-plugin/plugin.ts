@@ -2,12 +2,12 @@ import './global-types';
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLEnumValueConfig,
-  GiraphQLInputFieldConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
-  GiraphQLUnionTypeConfig,
+  PothosEnumValueConfig,
+  PothosInputFieldConfig,
+  PothosInterfaceTypeConfig,
+  PothosOutputFieldConfig,
+  PothosTypeConfig,
+  PothosUnionTypeConfig,
   SchemaTypes,
 } from '../../../src';
 
@@ -15,12 +15,12 @@ const pluginName = 'test' as const;
 
 export default pluginName;
 
-export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+export class PothosTestPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
     return typeConfig;
   }
 
-  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
     if (fieldConfig.name === 'removeMe') {
       return null;
     }
@@ -28,7 +28,7 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return fieldConfig;
   }
 
-  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
     if (fieldConfig.name === 'removeMe') {
       return null;
     }
@@ -36,7 +36,7 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     return fieldConfig;
   }
 
-  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
+  override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
     if (valueConfig.value === 'removeMe') {
       return null;
     }
@@ -52,24 +52,24 @@ export class GiraphQLTestPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     return (parent, args, context, info) => resolver(parent, args, context, info);
   }
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return subscribe;
   }
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
+    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ) {
     return resolveType;
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLTestPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosTestPlugin);

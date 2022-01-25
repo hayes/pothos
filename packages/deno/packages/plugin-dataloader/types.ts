@@ -33,7 +33,7 @@ export type LoadableInterfaceOptions<Types extends SchemaTypes, Shape, Key exten
     cacheResolved?: (value: Shape) => Key;
     sort?: (value: Shape) => Key;
 });
-export type LoadableUnionOptions<Types extends SchemaTypes, Key extends bigint | number | string, Member extends ObjectParam<Types>, CacheKey, Shape> = GiraphQLSchemaTypes.UnionTypeOptions<Types, Member> & {
+export type LoadableUnionOptions<Types extends SchemaTypes, Key extends bigint | number | string, Member extends ObjectParam<Types>, CacheKey, Shape> = PothosSchemaTypes.UnionTypeOptions<Types, Member> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | Shape)[]>;
     loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & ({

@@ -5,7 +5,7 @@ export default class QueryFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
 > extends RootFieldBuilder<Types, ParentShape, 'Query'> {
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>) {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
     super('Query', builder, 'Query', 'Object');
   }
 }

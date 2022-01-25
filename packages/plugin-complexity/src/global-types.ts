@@ -5,15 +5,15 @@ import {
   InputShapeFromFields,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import type { ComplexityPluginOptions, FieldComplexity } from './types';
 
-import type { GiraphQLComplexityPlugin } from '.';
+import type { PothosComplexityPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      complexity: GiraphQLComplexityPlugin<Types>;
+      complexity: PothosComplexityPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

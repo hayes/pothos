@@ -1,11 +1,11 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, InterfaceParam, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { AuthZOption, GiraphQLAuthZPlugin } from './index.ts';
+import { AuthZOption, PothosAuthZPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            authz: GiraphQLAuthZPlugin<Types>;
+            authz: PothosAuthZPlugin<Types>;
         }
         export interface UserSchemaTypes {
             AuthZRule: string;

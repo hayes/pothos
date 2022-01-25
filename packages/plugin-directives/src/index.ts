@@ -3,12 +3,12 @@ import './global-types';
 import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLEnumValueConfig,
-  GiraphQLInputFieldConfig,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
+  PothosEnumValueConfig,
+  PothosInputFieldConfig,
+  PothosOutputFieldConfig,
+  PothosTypeConfig,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import mockAst from './mock-ast';
 import { DirectiveList } from './types';
 
@@ -17,9 +17,9 @@ export * from './types';
 const pluginName = 'directives' as const;
 
 export default pluginName;
-export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    const options = fieldConfig.giraphqlOptions;
+export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+    const options = fieldConfig.pothosOptions;
 
     if (!options.directives) {
       return fieldConfig;
@@ -34,8 +34,8 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
     };
   }
 
-  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    const options = fieldConfig.giraphqlOptions;
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+    const options = fieldConfig.pothosOptions;
 
     if (!options.directives) {
       return fieldConfig;
@@ -50,8 +50,8 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
     };
   }
 
-  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
-    const options = valueConfig.giraphqlOptions;
+  override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
+    const options = valueConfig.pothosOptions;
 
     if (!options.directives) {
       return valueConfig;
@@ -66,8 +66,8 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
     };
   }
 
-  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
-    const options = typeConfig.giraphqlOptions;
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
+    const options = typeConfig.pothosOptions;
 
     if (!options.directives) {
       return typeConfig;
@@ -114,4 +114,4 @@ export class GiraphQLDirectivesPlugin<Types extends SchemaTypes> extends BasePlu
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLDirectivesPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosDirectivesPlugin);

@@ -8,13 +8,13 @@ breadth of queries.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-complexity
+yarn add @pothos/plugin-complexity
 ```
 
 ### Setup
 
 ```typescript
-import ComplexityPlugin from '@giraphql/plugin-complexity';
+import ComplexityPlugin from '@pothos/plugin-complexity';
 
 const builder = new SchemaBuilder({
   plugins: [ComplexityPlugin],

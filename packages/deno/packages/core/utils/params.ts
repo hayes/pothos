@@ -1,7 +1,7 @@
 // @ts-nocheck
 import ConfigStore from '../config-store.ts';
-import { BaseTypeRef, FieldNullability, FieldRequiredness, GiraphQLInputFieldType, GiraphQLNameInputFieldType, GiraphQLNameOutputFieldType, GiraphQLOutputFieldType, InputType, InputTypeParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
-export function typeFromNonListParam<Types extends SchemaTypes>(type: OutputType<Types>, configStore: ConfigStore<Types>, nullable: boolean): GiraphQLNameOutputFieldType<Types> {
+import { BaseTypeRef, FieldNullability, FieldRequiredness, PothosInputFieldType, PothosNameInputFieldType, PothosNameOutputFieldType, PothosOutputFieldType, InputType, InputTypeParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
+export function typeFromNonListParam<Types extends SchemaTypes>(type: OutputType<Types>, configStore: ConfigStore<Types>, nullable: boolean): PothosNameOutputFieldType<Types> {
     const ref = configStore.getOutputTypeRef(type);
     const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
     const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
@@ -16,7 +16,7 @@ export function typeFromNonListParam<Types extends SchemaTypes>(type: OutputType
 }
 export function typeFromParam<Types extends SchemaTypes>(param: TypeParam<Types>, configStore: ConfigStore<Types>, nullable: FieldNullability<[
     unknown
-]>): GiraphQLOutputFieldType<Types> {
+]>): PothosOutputFieldType<Types> {
     const itemNullable = typeof nullable === "object" ? nullable.items : false;
     const listNullable = typeof nullable === "object" ? nullable.list : !!nullable;
     if (Array.isArray(param)) {
@@ -28,7 +28,7 @@ export function typeFromParam<Types extends SchemaTypes>(param: TypeParam<Types>
     }
     return typeFromNonListParam(param, configStore, listNullable);
 }
-export function inputTypeFromNonListParam<Types extends SchemaTypes>(type: InputType<Types>, configStore: ConfigStore<Types>, required: boolean): GiraphQLNameInputFieldType<Types> {
+export function inputTypeFromNonListParam<Types extends SchemaTypes>(type: InputType<Types>, configStore: ConfigStore<Types>, required: boolean): PothosNameInputFieldType<Types> {
     const ref = configStore.getInputTypeRef(type);
     const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
     const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
@@ -43,7 +43,7 @@ export function inputTypeFromNonListParam<Types extends SchemaTypes>(type: Input
 }
 export function inputTypeFromParam<Types extends SchemaTypes>(param: InputTypeParam<Types>, configStore: ConfigStore<Types>, required: FieldRequiredness<[
     unknown
-]>): GiraphQLInputFieldType<Types> {
+]>): PothosInputFieldType<Types> {
     const itemRequired = typeof required === "object" ? required.items : true;
     const listRequired = typeof required === "object" ? required.list : !!required;
     if (Array.isArray(param)) {

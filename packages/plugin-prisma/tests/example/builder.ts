@@ -1,6 +1,6 @@
-import SchemaBuilder from '@giraphql/core';
-import ErrorsPlugin from '@giraphql/plugin-errors';
-import RelayPlugin from '@giraphql/plugin-relay';
+import SchemaBuilder from '@pothos/core';
+import ErrorsPlugin from '@pothos/plugin-errors';
+import RelayPlugin from '@pothos/plugin-relay';
 // eslint-disable-next-line import/no-named-as-default
 import PrismaPlugin from '../../src';
 import { PrismaClient } from '../client';

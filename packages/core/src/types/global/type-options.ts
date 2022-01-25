@@ -23,7 +23,7 @@ import {
 import { MaybePromise } from '../utils';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       description?: string;
       extensions?: Readonly<Record<string, unknown>>;

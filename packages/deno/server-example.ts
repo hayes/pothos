@@ -4,7 +4,7 @@ import { shouldRenderGraphiQL } from 'https://cdn.jsdelivr.net/gh/contrawork/gra
 import { processRequest } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/process-request.ts';
 import { getGraphQLParameters } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/get-graphql-parameters.ts';
 import playground from 'https://gist.githubusercontent.com/hayes/5c99f7b4f71234452036fd88e142a825/raw/655245a052b10c2912a803c8a6d537096b73c10b/playground.ts';
-// GiraphQL
+// Pothos
 import SchemaBuilder from './packages/core/mod.ts';
 
 // Create app and router

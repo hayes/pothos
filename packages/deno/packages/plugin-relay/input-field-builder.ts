@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { FieldRequiredness, InputFieldBuilder, InputFieldRef, InputShapeFromTypeParam, } from '../core/index.ts';
 import { GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListInputFieldOptions, } from './types.ts';
-type DefaultSchemaTypes = GiraphQLSchemaTypes.ExtendDefaultTypes<{}>;
-const inputFieldBuilder = InputFieldBuilder.prototype as GiraphQLSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
+type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
+const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
 inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequiredness<[
     "ID"
 ]>>(options: GlobalIDListInputFieldOptions<DefaultSchemaTypes, Req, "Arg" | "InputObject"> = {} as never): InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, ImplementableObjectRef, SchemaTypes, sortClasses, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosOutputFieldConfig, SchemaTypes, sortClasses, } from '../core/index.ts';
 export * from './types.ts';
 const pluginName = "errors";
 export default pluginName;
@@ -20,9 +20,9 @@ function createErrorProxy(target: {}): {} {
     });
 }
 const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
-export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>): GiraphQLOutputFieldConfig<Types> | null {
-        const errorOptions = fieldConfig.giraphqlOptions.errors;
+export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>): PothosOutputFieldConfig<Types> | null {
+        const errorOptions = fieldConfig.pothosOptions.errors;
         const errorBuilderOptions = this.builder.options.errorOptions;
         if (!errorOptions) {
             return fieldConfig;
@@ -41,8 +41,8 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
         const unionType = this.runUnique(resultName, () => {
             let resultType: ImplementableObjectRef<Types, unknown>;
-            if (directResult && !Array.isArray(fieldConfig.giraphqlOptions.type)) {
-                resultType = fieldConfig.giraphqlOptions.type as ImplementableObjectRef<Types, unknown>;
+            if (directResult && !Array.isArray(fieldConfig.pothosOptions.type)) {
+                resultType = fieldConfig.pothosOptions.type as ImplementableObjectRef<Types, unknown>;
                 const resultConfig = this.builder.configStore.getTypeConfig(resultType);
                 if (resultConfig.graphqlKind !== "Object") {
                     throw new TypeError(`Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`);
@@ -56,7 +56,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
                         ...resultFieldOptions?.(t),
                         [dataFieldName]: t.field({
                             ...dataField,
-                            type: fieldConfig.giraphqlOptions.type,
+                            type: fieldConfig.pothosOptions.type,
                             nullable: fieldConfig.type.kind === "List"
                                 ? { items: fieldConfig.type.type.nullable, list: false }
                                 : false,
@@ -74,7 +74,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
                 extensions: {
                     ...unionOptions.extensions,
                     getDataloader,
-                    giraphQLPrismaIndirectInclude: {
+                    pothosPrismaIndirectInclude: {
                         getType: () => typeName,
                         path: [{ type: resultName, name: dataFieldName }],
                     },
@@ -85,7 +85,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                giraphqlErrors: errorTypes,
+                pothosErrors: errorTypes,
             },
             type: {
                 kind: "Union",
@@ -94,9 +94,9 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
             },
         };
     }
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
-        const giraphqlErrors = fieldConfig.extensions?.giraphqlErrors as typeof Error[] | undefined;
-        if (!giraphqlErrors) {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+        const pothosErrors = fieldConfig.extensions?.pothosErrors as typeof Error[] | undefined;
+        if (!pothosErrors) {
             return resolver;
         }
         return async (...args) => {
@@ -104,7 +104,7 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
                 return (await resolver(...args)) as never;
             }
             catch (error: unknown) {
-                for (const errorType of giraphqlErrors) {
+                for (const errorType of pothosErrors) {
                     if (error instanceof errorType) {
                         const result = createErrorProxy(error);
                         errorTypeMap.set(result, errorType);
@@ -116,4 +116,4 @@ export class GiraphQLErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<
         };
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLErrorsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin);

@@ -4,14 +4,14 @@ import './field-builder.ts';
 import './input-field-builder.ts';
 import './schema-builder.ts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, createInputValueMapper, GiraphQLOutputFieldConfig, mapInputFields, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, createInputValueMapper, mapInputFields, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
 import { internalDecodeGlobalID } from './utils/internal.ts';
 export * from './types.ts';
 export * from './utils/index.ts';
 const pluginName = "relay";
 export default pluginName;
-export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
             if (inputField.extensions?.isRelayGlobalID) {
                 return true;
@@ -24,7 +24,7 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
         const argMapper = createInputValueMapper(argMappings, (globalID) => internalDecodeGlobalID(this.builder, String(globalID)));
         return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
     }
-    override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
+    override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
             if (inputField.extensions?.isRelayGlobalID) {
                 return true;
@@ -38,4 +38,4 @@ export class GiraphQLRelayPlugin<Types extends SchemaTypes> extends BasePlugin<T
         return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info);
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLRelayPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosRelayPlugin);

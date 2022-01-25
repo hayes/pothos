@@ -1,4 +1,4 @@
-import { Path, SchemaTypes } from '@giraphql/core';
+import { Path, SchemaTypes } from '@pothos/core';
 import { AuthScopeMap } from '.';
 
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {

@@ -1,12 +1,12 @@
 import { InterfaceRef, ObjectRef, RootName, SchemaTypes } from '..';
 
-export const outputShapeKey = Symbol.for('GiraphQL.outputShapeKey');
-export const parentShapeKey = Symbol.for('GiraphQL.parentShapeKey');
-export const abstractReturnShapeKey = Symbol.for('GiraphQL.abstractReturnShapeKey');
-export const inputShapeKey = Symbol.for('GiraphQL.inputShapeKey');
-export const inputFieldShapeKey = Symbol.for('GiraphQL.inputFieldShapeKey');
-export const outputFieldShapeKey = Symbol.for('GiraphQL.outputFieldShapeKey');
-export const typeBrandKey = Symbol.for('GiraphQL.typeBrandKey');
+export const outputShapeKey = Symbol.for('Pothos.outputShapeKey');
+export const parentShapeKey = Symbol.for('Pothos.parentShapeKey');
+export const abstractReturnShapeKey = Symbol.for('Pothos.abstractReturnShapeKey');
+export const inputShapeKey = Symbol.for('Pothos.inputShapeKey');
+export const inputFieldShapeKey = Symbol.for('Pothos.inputFieldShapeKey');
+export const outputFieldShapeKey = Symbol.for('Pothos.outputFieldShapeKey');
+export const typeBrandKey = Symbol.for('Pothos.typeBrandKey');
 
 export type OutputShape<Types extends SchemaTypes, T> = T extends {
   [outputShapeKey]: infer U;

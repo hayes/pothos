@@ -1,4 +1,4 @@
-import { createContextCache } from '@giraphql/core';
+import { createContextCache } from '@pothos/core';
 import builder from '../builder';
 import { ContextType } from '../types';
 

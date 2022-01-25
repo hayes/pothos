@@ -3,11 +3,11 @@
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldNullability, InputFieldMap, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { SmartSubscriptionOptions } from './types.ts';
-import { FieldSubscriptionManager, GiraphQLSmartSubscriptionsPlugin, TypeSubscriptionManager, } from './index.ts';
+import { FieldSubscriptionManager, PothosSmartSubscriptionsPlugin, TypeSubscriptionManager, } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            smartSubscriptions: GiraphQLSmartSubscriptionsPlugin<Types>;
+            smartSubscriptions: PothosSmartSubscriptionsPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             smartSubscriptions: SmartSubscriptionOptions<Types["Context"]>;

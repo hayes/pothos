@@ -8,7 +8,7 @@ export interface SchemaTypes {
     };
   };
 }
-export type TypesWithDefault = GiraphQLSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
+export type TypesWithDefault = PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes>;
 
 const builder = new SchemaBuilder<SchemaTypes>({});
 

@@ -1,5 +1,5 @@
 import DataLoader from 'dataloader';
-import { SchemaTypes, UnionRef } from '@giraphql/core';
+import { SchemaTypes, UnionRef } from '@pothos/core';
 
 export class LoadableUnionRef<
   Types extends SchemaTypes,

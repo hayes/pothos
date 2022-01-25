@@ -7,7 +7,7 @@ export function resolveIndirectType(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
 ): GraphQLNamedType {
-  const indirectInclude = type.extensions?.giraphQLPrismaIndirectInclude as
+  const indirectInclude = type.extensions?.pothosPrismaIndirectInclude as
     | { getType: () => string }
     | undefined;
 

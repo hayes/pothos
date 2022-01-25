@@ -23,7 +23,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a Boolean field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   boolean<
     Args extends InputFieldMap,
@@ -59,7 +59,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a Float field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   float<
     Args extends InputFieldMap,
@@ -95,7 +95,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a ID field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   id<
     Args extends InputFieldMap,
@@ -128,7 +128,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a Int field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   int<
     Args extends InputFieldMap,
@@ -161,7 +161,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a String field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   string<
     Args extends InputFieldMap,
@@ -197,7 +197,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a Boolean list field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   booleanList<
     Args extends InputFieldMap,
@@ -230,7 +230,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a Float list field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   floatList<
     Args extends InputFieldMap,
@@ -263,7 +263,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a ID list field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   idList<
     Args extends InputFieldMap,
@@ -296,7 +296,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a Int list field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   intList<
     Args extends InputFieldMap,
@@ -329,7 +329,7 @@ export default class RootFieldBuilder<
 
   /**
    * Create a String list field
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - Options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   stringList<
     Args extends InputFieldMap,
@@ -362,7 +362,7 @@ export default class RootFieldBuilder<
 
   /**
    * create a new field for the current type
-   * @param {GiraphQLSchemaTypes.FieldOptions} options - options for this field
+   * @param {PothosSchemaTypes.FieldOptions} options - options for this field
    */
   field<
     Args extends InputFieldMap,

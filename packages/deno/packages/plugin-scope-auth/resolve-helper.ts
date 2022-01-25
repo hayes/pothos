@@ -1,16 +1,16 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { GiraphQLOutputFieldConfig, isThenable, MaybePromise, SchemaTypes } from '../core/index.ts';
+import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
 import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
 import ResolveState from './resolve-state.ts';
 import { ResolveStep } from './types.ts';
-import { GiraphQLScopeAuthPlugin } from './index.ts';
+import { PothosScopeAuthPlugin } from './index.ts';
 const defaultUnauthorizedResolver = (root: unknown, args: unknown, context: unknown, info: GraphQLResolveInfo, error: ForbiddenError) => {
     throw error;
 };
-export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: GiraphQLScopeAuthPlugin<Types>, fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    const unauthorizedResolver = fieldConfig.giraphqlOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
+export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: PothosScopeAuthPlugin<Types>, fieldConfig: PothosOutputFieldConfig<Types>) {
+    const unauthorizedResolver = fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
     return (parent: unknown, args: {}, context: Types["Context"], info: GraphQLResolveInfo) => {
         const state = new ResolveState(RequestCache.fromContext(context, plugin));
         function runSteps(index: number): MaybePromise<unknown> {

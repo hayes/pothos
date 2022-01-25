@@ -1,13 +1,13 @@
 // @ts-nocheck
 import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
 import { typeFromParam } from '../utils/index.ts';
-import { FieldKind, FieldRef, GiraphQLInputFieldConfig, InputFieldMap, ShapeFromTypeParam, } from '../index.ts';
+import { FieldKind, FieldRef, PothosInputFieldConfig, InputFieldMap, ShapeFromTypeParam } from '../index.ts';
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
     typename: string;
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+    builder: PothosSchemaTypes.SchemaBuilder<Types>;
     kind: Kind;
-    graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[Kind];
-    constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, kind: Kind, graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[Kind]) {
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind];
+    constructor(name: string, builder: PothosSchemaTypes.SchemaBuilder<Types>, kind: Kind, graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind]) {
         this.typename = name;
         this.builder = builder;
         this.kind = kind;
@@ -15,10 +15,10 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
     }
     protected createField<Args extends InputFieldMap, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options: GiraphQLSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(this.kind, this.typename);
         this.builder.configStore.addFieldRef(ref, options.type, options.args ?? {}, (name) => {
-            const args: Record<string, GiraphQLInputFieldConfig<Types>> = {};
+            const args: Record<string, PothosInputFieldConfig<Types>> = {};
             if (options.args) {
                 Object.keys(options.args).forEach((argName) => {
                     const argRef = options.args![argName];
@@ -32,7 +32,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
                 name,
                 args,
                 type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? this.builder.defaultFieldNullability),
-                giraphqlOptions: options as never,
+                pothosOptions: options as never,
                 extensions: options.extensions,
                 description: options.description,
                 deprecationReason: options.deprecationReason,
@@ -49,7 +49,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         });
         return ref;
     }
-    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(name: Name, options: Omit<GiraphQLSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(name: Name, options: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         return this.createField({
             ...options,
             resolve: (parent) => (parent as Record<string, never>)[name as string],

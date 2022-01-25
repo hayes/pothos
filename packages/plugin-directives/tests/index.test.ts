@@ -7,7 +7,7 @@ import {
   printSchema,
 } from 'graphql';
 import gql from 'graphql-tag';
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import schema from './example/schema';
 
 describe('extends example schema', () => {

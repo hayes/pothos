@@ -1,4 +1,4 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import DirectivePlugin from '../../src';
 
 // eslint-disable-next-line @typescript-eslint/consistent-type-definitions

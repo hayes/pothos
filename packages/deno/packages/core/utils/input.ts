@@ -1,29 +1,29 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-use-before-define */
-import { BuildCache, GiraphQLInputFieldConfig, GiraphQLInputFieldType, GiraphQLTypeConfig, SchemaTypes, } from '../index.ts';
+import { BuildCache, PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../index.ts';
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
-    configs: Record<string, GiraphQLInputFieldConfig<Types>>;
+    configs: Record<string, PothosInputFieldConfig<Types>>;
     map: InputFieldsMapping<Types, T> | null;
 }
 export type InputFieldMapping<Types extends SchemaTypes, T> = {
     kind: "Enum";
     isList: boolean;
-    config: GiraphQLInputFieldConfig<Types>;
+    config: PothosInputFieldConfig<Types>;
     value: T;
 } | {
     kind: "InputObject";
-    config: GiraphQLInputFieldConfig<Types>;
+    config: PothosInputFieldConfig<Types>;
     isList: boolean;
     value: T | null;
     fields: InputTypeFieldsMapping<Types, T>;
 } | {
     kind: "Scalar";
     isList: boolean;
-    config: GiraphQLInputFieldConfig<Types>;
+    config: PothosInputFieldConfig<Types>;
     value: T;
 };
 export type InputFieldsMapping<Types extends SchemaTypes, T> = Map<string, InputFieldMapping<Types, T>>;
-export function resolveInputTypeConfig<Types extends SchemaTypes>(type: GiraphQLInputFieldType<Types>, buildCache: BuildCache<Types>): Extract<GiraphQLTypeConfig, {
+export function resolveInputTypeConfig<Types extends SchemaTypes>(type: PothosInputFieldType<Types>, buildCache: BuildCache<Types>): Extract<PothosTypeConfig, {
     kind: "Enum" | "InputObject" | "Scalar";
 }> {
     if (type.kind === "List") {
@@ -35,7 +35,7 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(type: GiraphQL
     }
     throw new TypeError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
 }
-export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, GiraphQLInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null): InputFieldsMapping<Types, T> | null {
+export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, PothosInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: PothosInputFieldConfig<Types>) => T | null): InputFieldsMapping<Types, T> | null {
     const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();
     return filterMapped(internalMapInputFields(inputs, buildCache, mapper, new Map<string, InputTypeFieldsMapping<Types, T>>()));
     function filterMapped(map: InputFieldsMapping<Types, T>) {
@@ -82,7 +82,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<stri
         return result;
     }
 }
-function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, GiraphQLInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: GiraphQLInputFieldConfig<Types>) => T | null, seenTypes: Map<string, InputTypeFieldsMapping<Types, T>>) {
+function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, PothosInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: PothosInputFieldConfig<Types>) => T | null, seenTypes: Map<string, InputTypeFieldsMapping<Types, T>>) {
     const map = new Map<string, InputFieldMapping<Types, T>>();
     Object.keys(inputs).forEach((fieldName) => {
         const inputField = inputs[fieldName];

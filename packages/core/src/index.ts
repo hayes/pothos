@@ -26,9 +26,9 @@ const SchemaBuilder = SchemaBuilderClass as unknown as {
   registerPlugin: typeof SchemaBuilderClass.registerPlugin;
   allowPluginReRegistration: boolean;
 
-  new <Types extends Partial<GiraphQLSchemaTypes.UserSchemaTypes> = {}>(
-    options: NormalizeSchemeBuilderOptions<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>,
-  ): GiraphQLSchemaTypes.SchemaBuilder<GiraphQLSchemaTypes.ExtendDefaultTypes<Types>>;
+  new <Types extends Partial<PothosSchemaTypes.UserSchemaTypes> = {}>(
+    options: NormalizeSchemeBuilderOptions<PothosSchemaTypes.ExtendDefaultTypes<Types>>,
+  ): PothosSchemaTypes.SchemaBuilder<PothosSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 
 export default SchemaBuilder;
@@ -37,20 +37,20 @@ export type FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
-> = GiraphQLSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
+> = PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 export const FieldBuilder = InternalFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
   Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
 >(
   name: string,
-) => GiraphQLSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
+) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 
 export type RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
-> = GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+> = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 export const RootFieldBuilder = InternalRootFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
@@ -59,70 +59,70 @@ export const RootFieldBuilder = InternalRootFieldBuilder as new <
   name: string,
   builder: SchemaBuilderClass<Types>,
   kind: FieldKind,
-  graphqlKind: GiraphQLSchemaTypes.GiraphQLKindToGraphQLType[FieldKind],
-) => GiraphQLSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
+) => PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 
 export type QueryFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = GiraphQLSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
+> = PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
 export const QueryFieldBuilder = InternalQueryFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
 >(
   builder: SchemaBuilderClass<Types>,
-) => GiraphQLSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
+) => PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
 
 export type MutationFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = GiraphQLSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
+> = PothosSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
 export const MutationFieldBuilder = InternalMutationFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
 >(
   builder: SchemaBuilderClass<Types>,
-) => GiraphQLSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
+) => PothosSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
 
 export type SubscriptionFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
+> = PothosSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
 export const SubscriptionFieldBuilder = InternalSubscriptionFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
 >(
   builder: SchemaBuilderClass<Types>,
-) => GiraphQLSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
+) => PothosSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
 
 export type ObjectFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = GiraphQLSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
+> = PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
 export const ObjectFieldBuilder = InternalObjectFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
 >(
   name: string,
   builder: SchemaBuilderClass<Types>,
-) => GiraphQLSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
+) => PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
 
 export type InterfaceFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
+> = PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
 export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
 >(
   name: string,
   builder: SchemaBuilderClass<Types>,
-) => GiraphQLSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
+) => PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
 
 export type InputFieldBuilder<
   Types extends SchemaTypes,
   Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject',
-> = GiraphQLSchemaTypes.InputFieldBuilder<Types, Kind>;
+> = PothosSchemaTypes.InputFieldBuilder<Types, Kind>;
 export const InputFieldBuilder = InternalInputFieldBuilder as new <
   Types extends SchemaTypes,
   Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject',
@@ -130,43 +130,44 @@ export const InputFieldBuilder = InternalInputFieldBuilder as new <
   builder: SchemaBuilderClass<Types>,
   kind: Kind,
   typename: string,
-) => GiraphQLSchemaTypes.InputFieldBuilder<Types, Kind>;
+) => PothosSchemaTypes.InputFieldBuilder<Types, Kind>;
 
-export type BaseTypeRef = GiraphQLSchemaTypes.BaseTypeRef;
+export type BaseTypeRef = PothosSchemaTypes.BaseTypeRef;
 export const BaseTypeRef = InternalBaseTypeRef as new (
   kind: 'Enum' | 'InputObject' | 'Interface' | 'Object' | 'Scalar' | 'Union',
   name: string,
-) => GiraphQLSchemaTypes.BaseTypeRef;
+) => PothosSchemaTypes.BaseTypeRef;
 
-export type EnumRef<T, P = T> = GiraphQLSchemaTypes.EnumRef<T, P>;
-export const EnumRef = InternalEnumRef as new <T, P = T>(
-  name: string,
-) => GiraphQLSchemaTypes.EnumRef<T, P>;
+export type EnumRef<T, P = T> = PothosSchemaTypes.EnumRef<T, P>;
+export const EnumRef = InternalEnumRef as new <T, P = T>(name: string) => PothosSchemaTypes.EnumRef<
+  T,
+  P
+>;
 
-export type InputObjectRef<T> = GiraphQLSchemaTypes.InputObjectRef<T>;
+export type InputObjectRef<T> = PothosSchemaTypes.InputObjectRef<T>;
 export const InputObjectRef = InternalInputObjectRef as new <T>(
   name: string,
-) => GiraphQLSchemaTypes.InputObjectRef<T>;
+) => PothosSchemaTypes.InputObjectRef<T>;
 
-export type InterfaceRef<T, P = T> = GiraphQLSchemaTypes.InterfaceRef<T, P>;
+export type InterfaceRef<T, P = T> = PothosSchemaTypes.InterfaceRef<T, P>;
 export const InterfaceRef = InternalInterfaceRef as new <T, P = T>(
   name: string,
-) => GiraphQLSchemaTypes.InterfaceRef<T, P>;
+) => PothosSchemaTypes.InterfaceRef<T, P>;
 
-export type ObjectRef<T, P = T> = GiraphQLSchemaTypes.ObjectRef<T, P>;
+export type ObjectRef<T, P = T> = PothosSchemaTypes.ObjectRef<T, P>;
 export const ObjectRef = InternalObjectRef as new <T, P = T>(
   name: string,
-) => GiraphQLSchemaTypes.ObjectRef<T, P>;
+) => PothosSchemaTypes.ObjectRef<T, P>;
 
-export type ScalarRef<T, U, P = T> = GiraphQLSchemaTypes.ScalarRef<T, U, P>;
+export type ScalarRef<T, U, P = T> = PothosSchemaTypes.ScalarRef<T, U, P>;
 export const ScalarRef = InternalScalarRef as new <T, U, P = T>(
   name: string,
-) => GiraphQLSchemaTypes.ScalarRef<T, U, P>;
+) => PothosSchemaTypes.ScalarRef<T, U, P>;
 
-export type UnionRef<T, P = T> = GiraphQLSchemaTypes.UnionRef<T, P>;
+export type UnionRef<T, P = T> = PothosSchemaTypes.UnionRef<T, P>;
 export const UnionRef = InternalUnionRef as new <T, P = T>(
   name: string,
-) => GiraphQLSchemaTypes.UnionRef<T, P>;
+) => PothosSchemaTypes.UnionRef<T, P>;
 
 export { default as BuildCache } from './build-cache';
 export { default as BuiltinScalarRef } from './refs/builtin-scalar';

@@ -5,12 +5,12 @@ import DataLoader from 'dataloader';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
-  GiraphQLOutputFieldConfig,
   isThenable,
   MaybePromise,
   ObjectRef,
+  PothosOutputFieldConfig,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { DataloaderObjectTypeOptions } from './types';
 
 export * from './refs';
@@ -18,16 +18,16 @@ export * from './types';
 export * from './util';
 
 const pluginName = 'dataloader' as const;
-export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const isList = fieldConfig.type.kind === 'List';
     const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
 
     const options = this.buildCache.getTypeConfig(type.ref)
-      .giraphqlOptions as DataloaderObjectTypeOptions<
+      .pothosOptions as DataloaderObjectTypeOptions<
       Types,
       unknown,
       bigint | number | string,
@@ -91,6 +91,6 @@ export class GiraphQLDataloaderPlugin<Types extends SchemaTypes> extends BasePlu
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLDataloaderPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosDataloaderPlugin);
 
 export default pluginName;

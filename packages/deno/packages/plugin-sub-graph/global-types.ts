@@ -1,9 +1,9 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { GiraphQLSubGraphPlugin } from './index.ts';
+import { PothosSubGraphPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
             subGraphs?: Types["SubGraphs"][];
         }
@@ -23,7 +23,7 @@ declare global {
             subGraphs?: Types["SubGraphs"][];
         }
         export interface Plugins<Types extends SchemaTypes> {
-            subGraph: GiraphQLSubGraphPlugin<Types>;
+            subGraph: PothosSubGraphPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             subGraphs?: {

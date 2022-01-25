@@ -1,4 +1,4 @@
-import { abstractReturnShapeKey, brandWithType, ObjectRef, typeBrandKey } from '@giraphql/core';
+import { abstractReturnShapeKey, brandWithType, ObjectRef, typeBrandKey } from '@pothos/core';
 import { WithBrand } from './types';
 
 export default class PrismaNodeRef<T> extends ObjectRef<T, T> {

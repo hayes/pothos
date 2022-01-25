@@ -24,7 +24,7 @@ import {
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import {
   ConnectionShape,
   ConnectionShapeForType,
@@ -44,12 +44,12 @@ import {
   RelayMutationPayloadOptions,
   RelayPluginOptions,
 } from './types';
-import { GiraphQLRelayPlugin } from '.';
+import { PothosRelayPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      relay: GiraphQLRelayPlugin<Types>;
+      relay: PothosRelayPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

@@ -1,5 +1,5 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { MaybePromise, SchemaTypes } from '@giraphql/core';
+import { MaybePromise, SchemaTypes } from '@pothos/core';
 import SubscriptionManager from './manager';
 import { FieldSubscriptionManager } from '.';
 

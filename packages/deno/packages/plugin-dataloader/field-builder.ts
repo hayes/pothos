@@ -4,7 +4,7 @@ import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InputShapeFromFie
 import { LoadableFieldOptions, LoaderShapeFromType } from './types.ts';
 import { rejectErrors } from './util.ts';
 import { dataloaderGetter } from './index.ts';
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
 fieldBuilderProto.loadable = function loadable<Args extends InputFieldMap, Type extends TypeParam<SchemaTypes>, Key, CacheKey, ResolveReturnShape, Nullable extends FieldNullability<Type> = SchemaTypes["DefaultFieldNullability"]>({ load, sort, loaderOptions, resolve, type, ...options }: LoadableFieldOptions<SchemaTypes, unknown, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, FieldKind>): FieldRef<unknown> {
     const getLoader = dataloaderGetter<Key, LoaderShapeFromType<SchemaTypes, Type, Nullable>, CacheKey>(loaderOptions, load, undefined, sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key);
     return this.field({

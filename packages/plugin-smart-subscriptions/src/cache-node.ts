@@ -1,4 +1,4 @@
-import { MaybePromise, SchemaTypes } from '@giraphql/core';
+import { MaybePromise, SchemaTypes } from '@pothos/core';
 import SubscriptionCache from './cache';
 import { FieldSubscriptionManager, TypeSubscriptionManager } from '.';
 

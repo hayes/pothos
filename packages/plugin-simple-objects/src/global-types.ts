@@ -10,14 +10,14 @@ import {
   ParentShape,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
-import { GiraphQLSimpleObjectsPlugin } from '.';
+import { PothosSimpleObjectsPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      simpleObjects: GiraphQLSimpleObjectsPlugin<Types>;
+      simpleObjects: PothosSimpleObjectsPlugin<Types>;
     }
     export interface SchemaBuilder<Types extends SchemaTypes> {
       simpleObject: <
@@ -41,7 +41,7 @@ declare global {
       ) => InterfaceRef<Shape>;
     }
 
-    export interface GiraphQLKindToGraphQLType {
+    export interface PothosKindToGraphQLType {
       SimpleObject: 'Object';
       SimpleInterface: 'Interface';
     }

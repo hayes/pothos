@@ -4,7 +4,7 @@ import { GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarSerializer
 import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
 import { MaybePromise } from '../utils.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
             description?: string;
             extensions?: Readonly<Record<string, unknown>>;

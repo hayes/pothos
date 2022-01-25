@@ -1,0 +1,152 @@
+---
+title: Complexity plugin
+menu: Plugins
+description: Complexity plugin docs for Pothos
+---
+
+import { DocsPage } from '../../../components/Docs/Page'
+import { buildNav } from '../../../util/build-nav'
+
+export default DocsPage
+
+export const getStaticProps = () => ({ props: { nav: buildNav() }})
+
+# Complexity Plugin
+
+This plugin allows you to define complexity of fields and limit the maximum complexity, depth, and
+breadth of queries.
+
+## Usage
+
+### Install
+
+```bash
+yarn add @pothos/plugin-complexity
+```
+
+### Setup
+
+```typescript
+import ComplexityPlugin from '@pothos/plugin-complexity';
+
+const builder = new SchemaBuilder({
+  plugins: [ComplexityPlugin],
+});
+```
+
+### Configure defaults and limits
+
+To limit query complexity you can specify a maximum complexity either in the builder setup, or when
+building the schema:
+
+```typescript
+const builder = new SchemaBuilder({
+  plugins: [ComplexityPlugin],
+  defaultComplexity: 1,
+  defaultListMultiplier: 10,
+  complexity: {
+    limit: {
+      complexity: 500,
+      depth: 10,
+      breadth: 50,
+    },
+    // or
+    limit: (ctx) => ({
+      complexity: 500,
+      depth: 10,
+      breadth: 50,
+    }),
+  },
+});
+// or
+const schema = builder.toSchema({
+  complexity: {
+    limit: {
+      complexity: 500,
+      depth: 10,
+      breadth: 50,
+    },
+  },
+});
+```
+
+#### Options
+
+- defaultComplexity: (optional `number`) defines the default complexity for every field in the
+  schema
+- defaultListMultiplier: (optional `number`) defines a default complexity multiplier for a list
+  fields sub selections
+- limit: Defines limits for queries, passed the context object if `limit` is a function
+  - complexity: defines the maximum complexity allowed for queries
+  - depth: defines the maximum depth of selections in a query
+  - breadth: defines the maximum total selections in a query
+
+### How complexity is calculated
+
+Complexity is calculated before resolving root any root level fields (query, mutation,
+subscription), and is based purely on the shape of the query before execution begins.
+
+The complexity of a query is the sum of the complexity of each selected field. If a field has
+sub-selections, the complexity of its sub-selections are multiplied by a fields multiplier, and then
+added to the fields own complexity. The default multiplier for fields is 1, and 10 for list fields.
+This multiplier is meant to the n+1 complexity of list fields.
+
+#### Example
+
+The following query has a complexity of `131` (assuming we are using the default options), a depth
+of `3`, and a breadth of `5`:
+
+```gql
+query {
+  posts {
+    # complexity = 131 (posts + 10 * (2 + 11))
+    author {
+      # complexity = 2 (author + 1 * name)
+      name # complexity = 1, depth: 3
+    }
+    comments {
+      # complexity = 11 (comments + 10 * comment)
+      comment # complexity = 1, depth: 3
+    }
+  }
+}
+```
+
+### Defining complexity of a field:
+
+You can set a custom complexity value on any field:
+
+```typescript
+builder.queryFields((t) => ({
+  posts: t.field({
+    type: [Post],
+    complexity: 20,
+  }),
+}));
+```
+
+The complexity option can also set the multiplier for a field:
+
+```typescript
+builder.queryFields((t) => ({
+  posts: t.field({
+    type: [Post],
+    complexity: { field: 5, multiplier: 20 },
+  }),
+}));
+```
+
+A fields complexity can also be based on the fields arguments, or the context value:
+
+```typescript
+builder.queryFields((t) => ({
+  posts: t.field({
+    type: [Post],
+    args: {
+      limit: t.arg.int(),
+    },
+    // base multiplier on how many posts are being requested
+    complexity: (args, ctx) => ({ field: 5, multiplier: args.limit ?? 5 }),
+  }),
+}));
+```

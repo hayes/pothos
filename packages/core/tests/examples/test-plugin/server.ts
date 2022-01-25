@@ -1,4 +1,4 @@
-import { createTestServer } from '@giraphql/test-utils';
+import { createTestServer } from '@pothos/test-utils';
 import schema from '.';
 
 const server = createTestServer({ schema });

@@ -6,15 +6,14 @@ import SchemaBuilder, {
   ObjectParam,
   SchemaTypes,
   ShapeFromTypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { LoadableInterfaceRef } from './refs/interface';
 import { LoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from '.';
 
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.loadableObject = function loadableObject<
   Shape extends NameOrRef extends ObjectParam<SchemaTypes>
@@ -149,7 +148,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
   NameOrRef extends ObjectParam<SchemaTypes> | string,
   CacheKey = Key,
 >(
-  this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   nameOrRef: NameOrRef,
   {
     load,
@@ -161,10 +160,10 @@ schemaBuilderProto.loadableNode = function loadableNode<
   }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
 ) {
   if (
-    typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
+    typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
       .nodeInterfaceRef !== 'function'
   ) {
-    throw new TypeError('builder.loadableNode requires @giraphql/plugin-relay to be installed');
+    throw new TypeError('builder.loadableNode requires @pothos/plugin-relay to be installed');
   }
 
   const name =
@@ -180,7 +179,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
     ...options,
     interfaces: [
       (
-        this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
+        this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
           nodeInterfaceRef: () => InterfaceRef<unknown>;
         }
       ).nodeInterfaceRef(),

@@ -9,8 +9,8 @@ generator client {
   output   = "./client"
 }
 
-generator giraphql {
-  provider     = "prisma-giraphql-types"
+generator pothos {
+  provider     = "prisma-pothos-types"
   // Match client output location from above
   clientOutput = "./client"
   output       = "./generated.d.ts"

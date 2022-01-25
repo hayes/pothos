@@ -13,7 +13,7 @@ const moduleMap: Record<string, string> = {
   graphql: 'https://cdn.skypack.dev/graphql?dts',
   zod: 'https://cdn.skypack.dev/zod@v1.11.17?dts',
   dataloader: 'https://cdn.skypack.dev/dataloader?dts',
-  '@giraphql/core': './core/index.ts',
+  '@pothos/core': './core/index.ts',
   'graphql/execution/values': 'https://cdn.skypack.dev/graphql/execution/values?dts'
 };
 

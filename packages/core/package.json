@@ -1,7 +1,7 @@
 {
-  "name": "@giraphql/core",
-  "version": "2.23.0",
-  "description": "GiraphQL is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
+  "name": "@pothos/core",
+  "version": "3.0.0",
+  "description": "Pothos (formerly GiraphQL) is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -19,12 +19,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "types",
@@ -41,8 +42,8 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@giraphql/test-utils": "^0.6.0",
-    "graphql": "16.1.0",
+    "@pothos/test-utils": "^1.0.0",
+    "graphql": "16.2.0",
     "graphql-scalars": "^1.14.1",
     "graphql-tag": "^2.12.6"
   },

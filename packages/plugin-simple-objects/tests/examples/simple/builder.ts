@@ -1,4 +1,4 @@
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import SimpleObjectsPlugin from '../../../src';
 import { ContextType } from './types';
 

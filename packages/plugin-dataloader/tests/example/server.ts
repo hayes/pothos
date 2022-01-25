@@ -1,4 +1,4 @@
-import { createTestServer } from '@giraphql/test-utils';
+import { createTestServer } from '@pothos/test-utils';
 import { createContext } from './context';
 import schema from './schema';
 

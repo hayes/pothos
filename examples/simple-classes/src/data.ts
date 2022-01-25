@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-parameter-properties */
 /* eslint-disable max-classes-per-file */
 /* eslint-disable no-magic-numbers */
-import * as faker from 'faker';
+import faker from '@faker-js/faker';
 
 faker.seed(123);
 
@@ -22,7 +22,7 @@ export class Post {
 
   constructor(public id: string) {
     this.authorId = String(faker.datatype.number({ min: 1, max: 100 }));
-    this.title = faker.lorem.text();
+    this.title = faker.lorem.text() as string;
     this.content = faker.lorem.paragraphs(2);
   }
 }
@@ -34,7 +34,7 @@ export class Comment {
   constructor(public id: string) {
     this.authorId = String(faker.datatype.number({ min: 1, max: 100 }));
     this.postId = String(faker.datatype.number({ min: 1, max: 100 }));
-    this.comment = faker.lorem.text();
+    this.comment = faker.lorem.text() as string;
   }
 }
 

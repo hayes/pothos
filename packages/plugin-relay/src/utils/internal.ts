@@ -1,8 +1,8 @@
-import { SchemaTypes } from '@giraphql/core';
+import { SchemaTypes } from '@pothos/core';
 import { decodeGlobalID, encodeGlobalID } from '.';
 
 export function internalEncodeGlobalID<Types extends SchemaTypes>(
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   typename: string,
   id: bigint | number | string,
 ) {
@@ -14,7 +14,7 @@ export function internalEncodeGlobalID<Types extends SchemaTypes>(
 }
 
 export function internalDecodeGlobalID<Types extends SchemaTypes>(
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   globalID: string,
 ) {
   if (builder.options.relayOptions.decodeGlobalID) {

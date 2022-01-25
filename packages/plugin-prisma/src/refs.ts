@@ -1,4 +1,4 @@
-import { ObjectRef, SchemaTypes } from '@giraphql/core';
+import { ObjectRef, SchemaTypes } from '@pothos/core';
 import { Prisma } from '../tests/client';
 import { PrismaDelegate } from './types';
 
@@ -15,7 +15,7 @@ export const includeForRefMap = new WeakMap<
 
 export function getRefFromModel<Types extends SchemaTypes>(
   name: string,
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ): ObjectRef<unknown> {
   if (!refMap.has(builder)) {
     refMap.set(builder, new Map());
@@ -31,7 +31,7 @@ export function getRefFromModel<Types extends SchemaTypes>(
 
 export function getFindUniqueForRef<Types extends SchemaTypes>(
   ref: ObjectRef<unknown>,
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ) {
   if (!findUniqueMap.has(builder)) {
     findUniqueMap.set(builder, new Map());
@@ -47,7 +47,7 @@ export function getFindUniqueForRef<Types extends SchemaTypes>(
 
 export function setFindUniqueForRef<Types extends SchemaTypes>(
   ref: ObjectRef<unknown>,
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   findUnique: ((args: any, context: Types['Context']) => unknown) | null,
 ) {
@@ -61,7 +61,7 @@ export function setFindUniqueForRef<Types extends SchemaTypes>(
 
 export function getRelation<Types extends SchemaTypes>(
   name: string,
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   relation: string,
 ) {
   const { client } = builder.options.prisma;
@@ -89,7 +89,7 @@ export function getRelation<Types extends SchemaTypes>(
 
 export function getRelatedDelegate<Types extends SchemaTypes>(
   name: string,
-  builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   relation: string,
 ) {
   const fieldData = getRelation(name, builder, relation);

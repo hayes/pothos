@@ -4,11 +4,11 @@
 import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
-const pageInfoRefMap = new WeakMap<GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<PageInfoShape>>();
-const nodeInterfaceRefMap = new WeakMap<GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, InterfaceRef<ObjectParam<SchemaTypes>>>();
-export const connectionRefs = new WeakMap<GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>[]>();
-export const globalConnectionFieldsMap = new WeakMap<GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, ((ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]>();
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+const pageInfoRefMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<PageInfoShape>>();
+const nodeInterfaceRefMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, InterfaceRef<ObjectParam<SchemaTypes>>>();
+export const connectionRefs = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>[]>();
+export const globalConnectionFieldsMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, ((ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]>();
 schemaBuilderProto.pageInfoRef = function pageInfoRef() {
     if (pageInfoRefMap.has(this)) {
         return pageInfoRefMap.get(this)!;

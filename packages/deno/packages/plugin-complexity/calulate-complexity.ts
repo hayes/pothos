@@ -1,9 +1,8 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { FieldNode, FragmentDefinitionNode, getNamedType, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import { getArgumentValues } from 'https://cdn.skypack.dev/graphql/execution/values?dts';
 import { SchemaTypes } from '../core/index.ts';
-import type { ComplexityResult, FieldComplexity, GiraphQLComplexityPlugin } from './index.ts';
+import type { ComplexityResult, FieldComplexity, PothosComplexityPlugin } from './index.ts';
 function isListType(type: GraphQLOutputType): boolean {
     if (type instanceof GraphQLList) {
         return true;
@@ -13,7 +12,7 @@ function isListType(type: GraphQLOutputType): boolean {
     }
     return false;
 }
-function complexityFromField<Types extends SchemaTypes>(plugin: GiraphQLComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, selection: FieldNode, type: GraphQLNamedType): ComplexityResult {
+function complexityFromField<Types extends SchemaTypes>(plugin: PothosComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, selection: FieldNode, type: GraphQLNamedType): ComplexityResult {
     let depth = 1;
     let breadth = 1;
     if (!(type instanceof GraphQLObjectType || type instanceof GraphQLInterfaceType)) {
@@ -52,7 +51,7 @@ function complexityFromField<Types extends SchemaTypes>(plugin: GiraphQLComplexi
             : complexityOption?.field ?? plugin.defaultComplexity;
     return { complexity, depth, breadth };
 }
-export function calculateComplexity<Types extends SchemaTypes>(plugin: GiraphQLComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo) {
+export function calculateComplexity<Types extends SchemaTypes>(plugin: PothosComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo) {
     const operationName = `${info.operation.operation
         .slice(0, 1)
         .toUpperCase()}${info.operation.operation.slice(1)}`;
@@ -62,7 +61,7 @@ export function calculateComplexity<Types extends SchemaTypes>(plugin: GiraphQLC
     }
     return complexityFromSelectionSet(plugin, ctx, info, info.operation.selectionSet, operationType);
 }
-function complexityFromFragment<Types extends SchemaTypes>(plugin: GiraphQLComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, fragment: FragmentDefinitionNode | InlineFragmentNode, type: GraphQLNamedType): ComplexityResult {
+function complexityFromFragment<Types extends SchemaTypes>(plugin: PothosComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, fragment: FragmentDefinitionNode | InlineFragmentNode, type: GraphQLNamedType): ComplexityResult {
     const fragmentType = fragment.typeCondition
         ? info.schema.getType(fragment.typeCondition.name.value)
         : type;
@@ -74,7 +73,7 @@ function complexityFromFragment<Types extends SchemaTypes>(plugin: GiraphQLCompl
     }
     return complexityFromSelectionSet(plugin, ctx, info, fragment.selectionSet, fragmentType);
 }
-function complexityFromSelectionSet<Types extends SchemaTypes>(plugin: GiraphQLComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, selectionSet: SelectionSetNode, type: GraphQLNamedType): ComplexityResult {
+function complexityFromSelectionSet<Types extends SchemaTypes>(plugin: PothosComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, selectionSet: SelectionSetNode, type: GraphQLNamedType): ComplexityResult {
     const result = {
         depth: 0,
         breadth: 0,

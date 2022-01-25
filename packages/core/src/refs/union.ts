@@ -3,7 +3,7 @@ import BaseTypeRef from './base';
 
 export default class UnionRef<T, P = T>
   extends BaseTypeRef
-  implements OutputRef, GiraphQLSchemaTypes.UnionRef<T, P>
+  implements OutputRef, PothosSchemaTypes.UnionRef<T, P>
 {
   override kind = 'Union' as const;
 

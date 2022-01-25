@@ -1,7 +1,7 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import { BasePlugin } from '../plugins';
 
-import { BuildCache, GiraphQLObjectTypeConfig, MaybePromise, SchemaTypes } from '..';
+import { BuildCache, PothosObjectTypeConfig, MaybePromise, SchemaTypes } from '..';
 
 /**
  * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType
@@ -18,7 +18,7 @@ export interface ResolveHooks<Types extends SchemaTypes, T> {
   onChild?: (
     child: unknown,
     index: number | null,
-    type: GiraphQLObjectTypeConfig,
+    type: PothosObjectTypeConfig,
     update: (value: unknown) => void,
   ) => MaybePromise<T | null>;
   onWrappedResolve?: (wrapped: unknown) => MaybePromise<void>;
@@ -40,10 +40,10 @@ export interface SubscribeHooks<Types extends SchemaTypes, T> {
 }
 
 export type PluginConstructorMap<Types extends SchemaTypes> = {
-  [K in keyof GiraphQLSchemaTypes.Plugins<SchemaTypes>]: new (
+  [K in keyof PothosSchemaTypes.Plugins<SchemaTypes>]: new (
     buildCache: BuildCache<SchemaTypes>,
     name: K,
-  ) => BasePlugin<Types> & GiraphQLSchemaTypes.Plugins<Types>[K];
+  ) => BasePlugin<Types> & PothosSchemaTypes.Plugins<Types>[K];
 };
 
 export type PluginMap<Types extends SchemaTypes> = {

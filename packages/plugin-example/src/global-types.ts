@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '@giraphql/core';
+import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '@pothos/core';
 import { ExamplePluginOptions } from './types';
-import { GiraphQLExamplePlugin } from '.';
+import { PothosExamplePlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      example: GiraphQLExamplePlugin<Types>;
+      example: PothosExamplePlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

@@ -1,16 +1,12 @@
 import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
-import {
-  GiraphQLEnumValueConfig,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLUnionTypeConfig,
-} from '../types';
+import { PothosEnumValueConfig, PothosInterfaceTypeConfig, PothosUnionTypeConfig } from '../types';
 import { BasePlugin } from './plugin';
 
 import {
   BuildCache,
-  GiraphQLInputFieldConfig,
-  GiraphQLOutputFieldConfig,
-  GiraphQLTypeConfig,
+  PothosInputFieldConfig,
+  PothosOutputFieldConfig,
+  PothosTypeConfig,
   SchemaTypes,
 } from '..';
 
@@ -18,34 +14,34 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
   plugins;
 
   constructor(buildCache: BuildCache<Types>, plugins: BasePlugin<Types>[]) {
-    super(buildCache, 'GiraphQLMergedPlugin' as never);
+    super(buildCache, 'PothosMergedPlugin' as never);
 
     this.plugins = plugins;
   }
 
-  override onTypeConfig(typeConfig: GiraphQLTypeConfig) {
+  override onTypeConfig(typeConfig: PothosTypeConfig) {
     return this.plugins.reduceRight(
       (config, plugin) => (config === null ? config : plugin.onTypeConfig(config)),
       typeConfig,
     );
   }
 
-  override onInputFieldConfig(fieldConfig: GiraphQLInputFieldConfig<Types>) {
-    return this.plugins.reduceRight<GiraphQLInputFieldConfig<Types> | null>(
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+    return this.plugins.reduceRight<PothosInputFieldConfig<Types> | null>(
       (config, plugin) => (config === null ? config : plugin.onInputFieldConfig(config)),
       fieldConfig,
     );
   }
 
-  override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
-    return this.plugins.reduceRight<GiraphQLOutputFieldConfig<Types> | null>(
+  override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
+    return this.plugins.reduceRight<PothosOutputFieldConfig<Types> | null>(
       (config, plugin) => (config === null ? config : plugin.onOutputFieldConfig(config)),
       fieldConfig,
     );
   }
 
-  override onEnumValueConfig(valueConfig: GiraphQLEnumValueConfig<Types>) {
-    return this.plugins.reduceRight<GiraphQLEnumValueConfig<Types> | null>(
+  override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
+    return this.plugins.reduceRight<PothosEnumValueConfig<Types> | null>(
       (config, plugin) => (config === null ? config : plugin.onEnumValueConfig(config)),
       valueConfig,
     );
@@ -63,7 +59,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
 
   override wrapResolve(
     resolve: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return this.plugins.reduceRight(
       (nextResolve, plugin) => plugin.wrapResolve(nextResolve, fieldConfig),
@@ -73,7 +69,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ) {
     return this.plugins.reduceRight(
       (nextSubscribe, plugin) => plugin.wrapSubscribe(nextSubscribe, fieldConfig),
@@ -83,7 +79,7 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
 
   override wrapResolveType(
     resolveType: GraphQLTypeResolver<unknown, Types['Context']>,
-    typeConfig: GiraphQLInterfaceTypeConfig | GiraphQLUnionTypeConfig,
+    typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig,
   ) {
     return this.plugins.reduceRight(
       (nextResolveType, plugin) => plugin.wrapResolveType(nextResolveType, typeConfig),

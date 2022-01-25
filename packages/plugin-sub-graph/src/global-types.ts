@@ -6,11 +6,11 @@ import {
   RootName,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
-import { GiraphQLSubGraphPlugin } from '.';
+} from '@pothos/core';
+import { PothosSubGraphPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
       subGraphs?: Types['SubGraphs'][];
     }
@@ -50,7 +50,7 @@ declare global {
     }
 
     export interface Plugins<Types extends SchemaTypes> {
-      subGraph: GiraphQLSubGraphPlugin<Types>;
+      subGraph: PothosSubGraphPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

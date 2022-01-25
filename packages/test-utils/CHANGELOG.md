@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.0.0
+
+### Major Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
 ## 0.6.0
 
 ### Minor Changes

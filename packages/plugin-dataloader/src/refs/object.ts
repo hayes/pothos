@@ -1,5 +1,5 @@
 import DataLoader from 'dataloader';
-import { ObjectRef, SchemaTypes } from '@giraphql/core';
+import { ObjectRef, SchemaTypes } from '@pothos/core';
 
 export class LoadableObjectRef<
   Types extends SchemaTypes,

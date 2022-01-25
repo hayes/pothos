@@ -3,7 +3,7 @@ import BaseTypeRef from './base';
 
 export default class EnumRef<T, U = T>
   extends BaseTypeRef
-  implements OutputRef, InputRef, GiraphQLSchemaTypes.EnumRef<T, U>
+  implements OutputRef, InputRef, PothosSchemaTypes.EnumRef<T, U>
 {
   override kind = 'Enum' as const;
 
