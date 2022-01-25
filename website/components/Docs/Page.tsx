@@ -1,4 +1,4 @@
-import { HTMLProps, ReactNode, useEffect, useRef, useState } from 'react';
+import { HTMLProps, ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import ArrowLeftIcon from '@heroicons/react/outline/ArrowLeftIcon';
 import ArrowRightIcon from '@heroicons/react/outline/ArrowRightIcon';
@@ -44,6 +44,8 @@ const components = {
   },
 };
 
+const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+
 export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: TableOfContents }) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
   const [items, setItems] = useState<
@@ -54,7 +56,7 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
     }[]
   >([]);
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     setItems(
       // eslint-disable-next-line unicorn/prefer-spread
       Array.from(bodyRef.current?.querySelectorAll('h2, h3') ?? []).map((header) => ({
