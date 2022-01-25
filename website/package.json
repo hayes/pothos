@@ -3,7 +3,7 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build",
+    "next-build": "next build",
     "build-ci": "cd .. && pnpm build-website",
     "start": "next start"
   },
