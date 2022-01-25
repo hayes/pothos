@@ -140,7 +140,7 @@ export function SearchPane() {
           ) : (
             <ul className="mt-1">
               {data!.map((result) => (
-                <li className="p-2 border-b border-gray-500 hover:border-green hover:bg-gray-200 dark:hover:bg-gray-800">
+                <li className="p-2 border-b border-gray-500 hover:border-green hover:bg-gray-100 dark:hover:bg-gray-800">
                   <Link href={result.doc.link}>
                     <a className="block">
                       <h2 className="text-lg font-semibold">{result.doc.title}</h2>

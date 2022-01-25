@@ -18,9 +18,10 @@ const components = {
       <a {...props} className="dark:!text-white" />
     </Link>
   ),
+  img: (props: HTMLProps<HTMLElement>) => <img {...(props as {})} className="mb-16" />,
   p: (props: HTMLProps<HTMLParagraphElement>) => <p {...props} className="dark:!text-white" />,
   h1: (props: HTMLProps<HTMLHeadingElement>) => (
-    <h1 {...props} className="dark:!text-white text-3xl mt-16" />
+    <h1 {...props} className="dark:!text-white text-3xl" />
   ),
   h2: (props: HTMLProps<HTMLHeadingElement>) => <h2 {...props} className="dark:!text-white" />,
   h3: (props: HTMLProps<HTMLHeadingElement>) => <h3 {...props} className="dark:!text-white" />,
@@ -80,7 +81,7 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
           <div className="mt-20 flex justify-center space-x-4">
             {currentPage?.prevPage && (
               <Link href={currentPage.prevPage.link}>
-                <a className="flex items-center space-x-2 border shadow p-4 text-gray-700 no-underline hover:shadow-md hover:underline">
+                <a className="flex items-center space-x-2 border shadow p-4 text-gray-700 dark:text-gray-200 no-underline hover:shadow-md hover:underline">
                   <ArrowLeftIcon height={22} />
                   <span>{currentPage.prevPage.name}</span>
                 </a>
@@ -88,7 +89,7 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
             )}
             {currentPage?.nextPage && (
               <Link href={currentPage.nextPage.link}>
-                <a className="flex items-center space-x-2 border shadow p-4 text-gray-700 no-underline hover:shadow-md hover:underline">
+                <a className="flex items-center space-x-2 border shadow p-4 text-gray-700  dark:text-gray-200 no-underline hover:shadow-md hover:underline">
                   <span>{currentPage.nextPage.name}</span>
                   <ArrowRightIcon height={22} />
                 </a>
