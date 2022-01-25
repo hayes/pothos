@@ -4,6 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "build-ci": "cd .. && pnpm run build",
     "start": "next start"
   },
   "dependencies": {

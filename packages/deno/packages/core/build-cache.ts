@@ -373,7 +373,6 @@ export default class BuildCache<Types extends SchemaTypes> {
                 }
                 return this.getTypeConfig(typeBrand).name;
             }
-            // eslint-disable-next-line @typescript-eslint/no-use-before-define
             const implementers = this.getImplementers(type);
             const promises: Promise<PothosObjectTypeConfig | null>[] = [];
             for (const impl of implementers) {

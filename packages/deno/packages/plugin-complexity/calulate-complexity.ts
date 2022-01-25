@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { FieldNode, FragmentDefinitionNode, getNamedType, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import { getArgumentValues } from 'https://cdn.skypack.dev/graphql/execution/values?dts';
 import { SchemaTypes } from '../core/index.ts';
