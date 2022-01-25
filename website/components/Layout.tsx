@@ -41,8 +41,16 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
         <header className="px-16 xl:pl-4 z-10 fixed top-0 bottom-0 flex w-full h-16 py-2 shadow justify-between bg-green text-white">
           <Link href="/">
             <a>
-              <img className="hidden sm:block h-full" src="/assets/logo-name-dark.svg"></img>
-              <img className="sm:hidden h-full" src="/assets/logo-dark.svg"></img>
+              <img
+                alt="Pothos GraphQL"
+                className="hidden sm:block h-full"
+                src="/assets/logo-name-dark.svg"
+              ></img>
+              <img
+                alt="Pothos GraphQL"
+                className="sm:hidden h-full"
+                src="/assets/logo-dark.svg"
+              ></img>
             </a>
           </Link>
           <ul className="flex space-x-3 h-full flex-row items-center lg:space-x-4">
