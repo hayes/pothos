@@ -1,5 +1,4 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
-import { SchemaTypes } from '@pothos/core';
+import { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ConnectionShape, DefaultConnectionArguments } from '../types';
 
 interface ResolveOffsetConnectionOptions {
@@ -72,13 +71,23 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   };
 }
 
-export async function resolveOffsetConnection<T>(
+export async function resolveOffsetConnection<T, U extends Promise<T[] | null> | T[] | null>(
   options: ResolveOffsetConnectionOptions,
-  resolve: (params: { offset: number; limit: number }) => Promise<T[]> | T[],
-): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, boolean>> {
+  resolve: (params: { offset: number; limit: number }) => U & (MaybePromise<T[] | null> | null),
+): Promise<
+  ConnectionShape<
+    SchemaTypes,
+    NonNullable<T>,
+    null extends U ? true : Promise<null> extends U ? true : false
+  >
+> {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
-  const nodes = await resolve({ offset, limit });
+  const nodes = (await resolve({ offset, limit })) as T[] | null;
+
+  if (!nodes) {
+    return nodes as never;
+  }
 
   const edges = nodes.map((value, index) =>
     value == null

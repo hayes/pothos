@@ -210,11 +210,11 @@ export type ConnectionShapeFromResolve<
   Nullable extends boolean,
   Resolved,
 > = Resolved extends Promise<infer T>
-  ? T extends ConnectionShapeForType<Types, Type, Nullable>
-    ? T
+  ? NonNullable<T> extends ConnectionShapeForType<Types, Type, Nullable>
+    ? NonNullable<T>
     : ConnectionShapeForType<Types, Type, Nullable>
   : Resolved extends ConnectionShapeForType<Types, Type, Nullable>
-  ? Resolved
+  ? NonNullable<Resolved>
   : ConnectionShapeForType<Types, Type, Nullable>;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}

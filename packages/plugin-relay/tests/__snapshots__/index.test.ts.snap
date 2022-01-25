@@ -315,6 +315,7 @@ type Query {
 
   \\"\\"\\"nodes query\\"\\"\\"
   nodes(ids: [ID!]!): [Node]!
+  nullableNumbers(after: String, before: String, first: Int, last: Int): QueryNullableNumbersConnection
   numbers(after: String, before: String, first: Int, last: Int): QueryNumbersConnection!
   poll(id: Int!): Poll
   pollIds: [ID!]!
@@ -335,8 +336,22 @@ type QueryBatchNumbersConnectionEdge {
   node: BatchNumber!
 }
 
+type QueryNullableNumbersConnection {
+  edges: [QueryNullableNumbersConnectionEdge]!
+  other: String!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryNullableNumbersConnectionEdge {
+  cursor: String!
+  node: Number!
+}
+
 type QueryNumbersConnection {
   edges: [QueryNumbersConnectionEdge]!
+  other: String!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!

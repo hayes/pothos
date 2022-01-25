@@ -40,29 +40,63 @@ builder.node(BatchLoadableNumberThing, {
 });
 
 builder.queryFields((t) => ({
-  numbers: t.connection({
-    type: NumberThing,
-    resolve: async (parent, args) => {
-      const result = await resolveOffsetConnection({ args }, ({ limit, offset }) => {
-        const items = [];
+  numbers: t.connection(
+    {
+      type: NumberThing,
+      resolve: async (parent, args) => {
+        const result = await resolveOffsetConnection({ args }, ({ limit, offset }) => {
+          const items = [];
 
-        for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
-          items.push(new NumberThing(i));
+          for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+            items.push(new NumberThing(i));
+          }
+
+          return items;
+        });
+
+        return {
+          totalCount: 500,
+          other: 'abc',
+          ...result,
+        };
+      },
+    },
+    {
+      fields: (t2) => ({
+        other: t2.exposeString('other'),
+      }),
+    },
+  ),
+}));
+
+builder.queryFields((t) => ({
+  nullableNumbers: t.connection(
+    {
+      type: NumberThing,
+      nullable: true,
+      resolve: async (parent, args) => {
+        const result = await resolveOffsetConnection(
+          { args },
+          ({ limit, offset }) => null as NumberThing[] | null,
+        );
+
+        if (!result) {
+          return null;
         }
 
-        return items;
-      });
-
-      if (!result) {
-        return null;
-      }
-
-      return {
-        totalCount: 500,
-        ...result,
-      };
+        return {
+          totalCount: 500,
+          other: 'abc',
+          ...result,
+        };
+      },
     },
-  }),
+    {
+      fields: (t2) => ({
+        other: t2.exposeString('other'),
+      }),
+    },
+  ),
 }));
 
 builder.queryFields((t) => ({
@@ -110,10 +144,6 @@ builder.queryField('sharedConnection', (t) =>
 
         return items;
       });
-
-      if (!result) {
-        return null;
-      }
 
       return {
         totalCount: 500,
