@@ -29,7 +29,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
           display: none;
         }
       `}</style>
-      <div className="h-full overflow-scroll dark:bg-[#22212C]">
+      <div className="h-full overflow-y-auto dark:bg-[#22212C]">
         <Head>
           <link
             rel="stylesheet"

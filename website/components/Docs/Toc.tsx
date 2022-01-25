@@ -20,17 +20,12 @@ export function TocEntry({
   text: string;
   active: boolean;
 }) {
-  const [target, setTarget] = useState<HTMLElement | null>(null);
   const id = url.startsWith('#') ? url.slice(1) : null;
 
-  useEffect(() => {
-    setTarget(id ? document.getElementById(id) : null);
-  }, [id]);
-
   function handleClick(ev: MouseEvent) {
-    if (target) {
+    if (id) {
       ev.preventDefault();
-      target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   }
 

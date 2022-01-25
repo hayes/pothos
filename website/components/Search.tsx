@@ -95,7 +95,7 @@ export function SearchPane() {
   return (
     <details
       ref={detailsRef}
-      className="absolute top-0 z-10 h-full right-0"
+      className="absolute top-0 z-10 h-full right-4"
       open={open}
       onToggle={(ev) => {
         const shouldOpen = (ev.currentTarget as HTMLDetailsElement).open;
@@ -106,11 +106,11 @@ export function SearchPane() {
         }
       }}
     >
-      <summary ref={summaryRef} className="p-4 cursor-pointer text-white">
+      <summary ref={summaryRef} className="-mr-4 p-4 cursor-pointer text-white">
         <SearchIcon className="h-8" />
       </summary>
       <div
-        className={`absolute py-4 top-16 bottom-0 right-0 dark:bg-[#282a36] shadow w-96 pb-4 px overflow-scroll z-20 bg-white`}
+        className={`absolute py-4 top-16 bottom-0 -right-4 dark:bg-[#282a36] shadow w-96 pb-4 px overflow-y-auto z-20 bg-white`}
       >
         <label htmlFor="search-field" className="sr-only">
           Search

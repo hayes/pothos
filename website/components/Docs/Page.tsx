@@ -73,7 +73,7 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
     <Layout toc={nav}>
       <MDXProvider components={components}>
         <Toc
-          className="fixed top-24 right-0 hidden md:block md:w-[calc(100%-min(800px,75%))] xl:w-[calc(50%-min(400px,37.5%))] bottom-4 overflow-y-scroll"
+          className="fixed pt-8 top-16 right-4 hidden md:block md:w-[calc(100%-min(816px,75%))] xl:w-[calc(50%-min(416px,37.5%))] bottom-0 overflow-y-auto"
           items={items}
           nav={nav}
           currentPage={currentPage}
