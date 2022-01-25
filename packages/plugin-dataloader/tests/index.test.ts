@@ -143,6 +143,15 @@ describe('dataloader', () => {
           classThingRef {
             id
           }
+          oneToMany(id: 1) {
+            id
+          }
+          twoToMany: oneToMany(id: 2) {
+            id
+          }
+          threeToMany: oneToMany(id: 3) {
+            id
+          }
         }
       `;
 

@@ -95,4 +95,34 @@ builder.queryFields((t) => ({
     sort: (post) => post.id,
     resolve: (_root, args) => Promise.resolve(args.ids),
   }),
+
+  oneToMany: t.loadableList({
+    type: Post,
+    nullable: {
+      list: true,
+      items: true,
+    },
+    args: {
+      id: t.arg.id({
+        required: true,
+      }),
+    },
+    load: (ids: number[]) =>
+      Promise.resolve(
+        ids.map((idRange) =>
+          idRange % 2
+            ? [idRange * 10 + 1, idRange * 10 + 2, idRange * 10 + 3, null].map((id) =>
+                id === null
+                  ? null
+                  : {
+                      id,
+                      title: `${id} title`,
+                      content: `${id} content`,
+                    },
+              )
+            : null,
+        ),
+      ),
+    resolve: (_root, args) => Number.parseInt(String(args.id), 10),
+  }),
 }));

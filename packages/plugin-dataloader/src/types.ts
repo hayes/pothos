@@ -14,6 +14,7 @@ import {
   ObjectRef,
   ObjectTypeOptions,
   OutputShape,
+  OutputType,
   ParentShape,
   Resolver,
   SchemaTypes,
@@ -48,6 +49,36 @@ export type LoadableFieldOptions<
     InputShapeFromFields<Args>,
     Types['Context'],
     Type extends unknown[] ? Key[] : Key,
+    ResolveReturnShape
+  >;
+};
+
+export type LoadableListFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends OutputType<Types>,
+  Nullable extends FieldNullability<[Type]>,
+  Args extends InputFieldMap,
+  ResolveReturnShape,
+  Key,
+  CacheKey,
+  Kind extends FieldKind = FieldKind,
+> = Omit<
+  FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
+  'resolve' | 'type'
+> & {
+  type: Type;
+  load: (
+    keys: Key[],
+    context: Types['Context'],
+  ) => Promise<(Error | ShapeFromTypeParam<Types, [Type], Nullable>)[]>;
+  loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [Type], Nullable>, CacheKey>;
+  sort?: (value: ShapeFromTypeParam<Types, [Type], false>) => Key;
+  resolve: Resolver<
+    ParentShape,
+    InputShapeFromFields<Args>,
+    Types['Context'],
+    Key,
     ResolveReturnShape
   >;
 };

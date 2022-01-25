@@ -139,6 +139,25 @@ builder.objectField(User, 'posts', (t) =>
 );
 ```
 
+### loadableList fields for one-to-many relations
+
+`loadable` fields can return lists, but do not work for loading a list of records from a single id.
+
+The `loadableList` method can be used to define loadable fields that represent this kind of relationship.
+
+```typescript
+// Loading multiple Posts
+builder.objectField(User, 'posts', (t) =>
+  t.loadableList({
+    // type is singular, but will create a list field
+    type: Post,
+    // will be called with ids of all the users, and should return `Post[][]`
+    load: (ids: number[], context) => context.postsByUserIds(ids),
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
 ### dataloader options
 
 You can provide additional options for your dataloaders using `loaderOptions`.

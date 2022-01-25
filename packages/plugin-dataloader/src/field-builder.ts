@@ -5,13 +5,15 @@ import {
   FieldRef,
   InputFieldMap,
   InputShapeFromFields,
+  OutputType,
   RootFieldBuilder,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 import { LoadableFieldOptions, LoaderShapeFromType } from './types';
 import { rejectErrors } from './util';
-import { dataloaderGetter } from '.';
+import { dataloaderGetter, LoadableListFieldOptions } from '.';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -71,6 +73,60 @@ fieldBuilderProto.loadable = function loadable<
       if (Array.isArray(type)) {
         return rejectErrors(loader.loadMany(ids as Key[]));
       }
+
+      return loader.load(ids as Key);
+    },
+  });
+};
+
+fieldBuilderProto.loadableList = function loadableList<
+  Args extends InputFieldMap,
+  Type extends OutputType<SchemaTypes>,
+  Key,
+  CacheKey,
+  ResolveReturnShape,
+  Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
+>({
+  load,
+  sort,
+  loaderOptions,
+  resolve,
+  type,
+  ...options
+}: LoadableListFieldOptions<
+  SchemaTypes,
+  unknown,
+  Type,
+  Nullable,
+  Args,
+  ResolveReturnShape,
+  Key,
+  CacheKey,
+  FieldKind
+>): FieldRef<unknown> {
+  const getLoader = dataloaderGetter<
+    Key,
+    ShapeFromTypeParam<SchemaTypes, [Type], Nullable>,
+    CacheKey
+  >(
+    loaderOptions,
+    load,
+    undefined,
+    sort as (value: ShapeFromTypeParam<SchemaTypes, [Type], Nullable>) => Key,
+  );
+
+  return this.field({
+    ...options,
+    type: [type],
+    // @ts-expect-error types don't match because this handles both lists and single objects
+    resolve: async (
+      parent: unknown,
+      args: InputShapeFromFields<Args>,
+      context: {},
+      info: GraphQLResolveInfo,
+    ) => {
+      const ids = await resolve(parent, args, context, info);
+      const loader = getLoader(context);
 
       return loader.load(ids as Key);
     },

@@ -1,10 +1,10 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InterfaceParam, ObjectParam, PluginName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InterfaceParam, ObjectParam, OutputType, PluginName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import { LoadableInterfaceRef } from './refs/interface.ts';
 import { LoadableObjectRef } from './refs/object.ts';
 import { LoadableUnionRef } from './refs/union.ts';
 import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types.ts';
-import { LoadableInterfaceOptions, LoadableUnionOptions, PothosDataloaderPlugin } from './index.ts';
+import { LoadableInterfaceOptions, LoadableListFieldOptions, LoadableUnionOptions, PothosDataloaderPlugin, } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
@@ -18,6 +18,9 @@ declare global {
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> {
             loadable: <Args extends InputFieldMap, Type extends TypeParam<Types>, Key, CacheKey, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: LoadableFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, Kind>) => FieldRef<unknown>;
+            loadableList: <Args extends InputFieldMap, Type extends OutputType<Types>, Key, CacheKey, ResolveReturnShape, Nullable extends FieldNullability<[
+                Type
+            ]> = Types["DefaultFieldNullability"]>(options: LoadableListFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, Kind>) => FieldRef<unknown>;
         }
     }
 }

@@ -5,6 +5,7 @@ import {
   InputFieldMap,
   InterfaceParam,
   ObjectParam,
+  OutputType,
   PluginName,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -14,7 +15,12 @@ import { LoadableInterfaceRef } from './refs/interface';
 import { LoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
 import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
-import { LoadableInterfaceOptions, LoadableUnionOptions, PothosDataloaderPlugin } from '.';
+import {
+  LoadableInterfaceOptions,
+  LoadableListFieldOptions,
+  LoadableUnionOptions,
+  PothosDataloaderPlugin,
+} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -89,6 +95,26 @@ declare global {
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
       >(
         options: LoadableFieldOptions<
+          Types,
+          ParentShape,
+          Type,
+          Nullable,
+          Args,
+          ResolveReturnShape,
+          Key,
+          CacheKey,
+          Kind
+        >,
+      ) => FieldRef<unknown>;
+      loadableList: <
+        Args extends InputFieldMap,
+        Type extends OutputType<Types>,
+        Key,
+        CacheKey,
+        ResolveReturnShape,
+        Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
+      >(
+        options: LoadableListFieldOptions<
           Types,
           ParentShape,
           Type,

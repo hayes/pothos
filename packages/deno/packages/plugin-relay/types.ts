@@ -58,7 +58,7 @@ export type ConnectionShape<Types extends SchemaTypes, T, Nullable> = (Nullable 
 });
 export type ConnectionShapeFromBaseShape<Types extends SchemaTypes, Shape, Nullable extends boolean> = ConnectionShape<Types, Shape, Nullable>;
 export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, false>, Nullable>;
-export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, Resolved> = Resolved extends Promise<infer T> ? T extends ConnectionShapeForType<Types, Type, Nullable> ? T : ConnectionShapeForType<Types, Type, Nullable> : Resolved extends ConnectionShapeForType<Types, Type, Nullable> ? Resolved : ConnectionShapeForType<Types, Type, Nullable>;
+export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, Resolved> = Resolved extends Promise<infer T> ? NonNullable<T> extends ConnectionShapeForType<Types, Type, Nullable> ? NonNullable<T> : ConnectionShapeForType<Types, Type, Nullable> : Resolved extends ConnectionShapeForType<Types, Type, Nullable> ? NonNullable<Resolved> : ConnectionShapeForType<Types, Type, Nullable>;
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {
 }
 export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, "isTypeOf"> & 

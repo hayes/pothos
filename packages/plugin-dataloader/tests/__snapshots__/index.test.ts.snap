@@ -76,6 +76,7 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   nullableUser(id: String): NullableUser
   nullableUsers(ids: [String!]): [NullableUser]
+  oneToMany(id: ID!): [Post]
   pets(ids: [ID!]!): [Pet!]!
   post(id: Int!): Post
   postSorted(id: Int!): Post
@@ -391,6 +392,18 @@ Object {
         "id": "789",
       },
     ],
+    "oneToMany": Array [
+      Object {
+        "id": "11",
+      },
+      Object {
+        "id": "12",
+      },
+      Object {
+        "id": "13",
+      },
+      null,
+    ],
     "post": Object {
       "id": "1",
     },
@@ -451,6 +464,19 @@ Object {
         "title": "789 title",
       },
     ],
+    "threeToMany": Array [
+      Object {
+        "id": "31",
+      },
+      Object {
+        "id": "32",
+      },
+      Object {
+        "id": "33",
+      },
+      null,
+    ],
+    "twoToMany": null,
     "user": Object {
       "id": "1",
       "idFromInterface": "1",
