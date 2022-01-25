@@ -19,7 +19,6 @@ Post.implement({
       type: Status,
     }),
     author: t.field({
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       type: User,
       resolve: (parent: { authorId: string }) => users.find(({ id }) => id === parent.authorId)!,
     }),

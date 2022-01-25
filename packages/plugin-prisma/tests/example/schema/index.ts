@@ -65,7 +65,6 @@ const User = builder.prismaNode('User', {
       cursor: 'createdAt',
     }),
     profileThroughManualLookup: t.field({
-      // eslint-disable-next-line @typescript-eslint/no-use-before-define
       type: Profile,
       nullable: true,
       resolve: (user) => prisma.user.findUnique({ where: { id: user.id } }).profile(),

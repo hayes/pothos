@@ -1,4 +1,4 @@
-![Pothos](./website/public/assets/logo-name-auto.svg)
+![Pothos](https://www.pothos-graphql.dev/assets/logo-name-auto.svg)
 
 # Pothos GraphQL ([formerly GiraphQL](https://www.pothos-graphql.dev/docs/migrations/giraphql-pothos)) -
 
