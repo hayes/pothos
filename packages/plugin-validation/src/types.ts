@@ -1,5 +1,5 @@
 import { ZodSchema } from 'zod';
-import { MaybePromise } from '@giraphql/core';
+import { MaybePromise } from '@pothos/core';
 
 export type Constraint<T> =
   | T

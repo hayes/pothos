@@ -10,14 +10,14 @@ import {
   RootName,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { DirectiveLocation, Directives } from './types';
-import { GiraphQLDirectivesPlugin } from '.';
+import { PothosDirectivesPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      directives: GiraphQLDirectivesPlugin<Types>;
+      directives: PothosDirectivesPlugin<Types>;
     }
 
     export interface UserSchemaTypes {

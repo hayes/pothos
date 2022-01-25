@@ -2,7 +2,7 @@
 
 This example uses the following packages:
 
-- `@giraphql/core`: For building the schema
+- `@pothos/core`: For building the schema
 - `@envelop/core`: For wrapping schema execution with additional logic
 - `graphql-helix`: For parsing and processing requests
 - `fastify`: For routing and starting the http server

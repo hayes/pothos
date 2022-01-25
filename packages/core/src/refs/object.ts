@@ -6,7 +6,7 @@ import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '
 
 export default class ObjectRef<T, P = T>
   extends BaseTypeRef
-  implements OutputRef, GiraphQLSchemaTypes.ObjectRef<T, P>
+  implements OutputRef, PothosSchemaTypes.ObjectRef<T, P>
 {
   override kind = 'Object' as const;
 
@@ -23,9 +23,9 @@ export class ImplementableObjectRef<
   Shape,
   Parent = Shape,
 > extends ObjectRef<Shape, Parent> {
-  private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+  private builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
     super(name);
 
     this.builder = builder;

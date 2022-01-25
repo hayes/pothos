@@ -1,4 +1,4 @@
-export const contextCacheSymbol = Symbol.for('GiraphQL.contextCache');
+export const contextCacheSymbol = Symbol.for('Pothos.contextCache');
 
 export function initContextCache() {
   return {

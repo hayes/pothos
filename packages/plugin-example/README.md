@@ -1,4 +1,4 @@
-# Example plugin for GiraphQL
+# Example plugin for Pothos
 
-For details on writing your own GiraphQL plugin, check out the full guide at
-https://giraphql.com/guide/writing-plugins
+For details on writing your own Pothos plugin, check out the full guide at
+https://pothos-graphql.dev/guide/writing-plugins

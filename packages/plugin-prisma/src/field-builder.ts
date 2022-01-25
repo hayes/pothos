@@ -7,7 +7,7 @@ import {
   RootFieldBuilder,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { resolvePrismaCursorConnection } from './cursors';
 import { getRefFromModel } from './refs';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
@@ -15,7 +15,7 @@ import { queryFromInfo } from './util';
 
 export * from './prisma-field-builder';
 
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind
@@ -77,7 +77,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       type: ref,
       resolve: (
         parent: unknown,
-        args: GiraphQLSchemaTypes.DefaultConnectionArguments,
+        args: PothosSchemaTypes.DefaultConnectionArguments,
         ctx: {},
         info: GraphQLResolveInfo,
       ) =>
@@ -96,7 +96,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       ...connectionOptions,
       extensions: {
         ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-        giraphQLPrismaIndirectInclude: {
+        pothosPrismaIndirectInclude: {
           getType: () => {
             if (!typeName) {
               typeName = this.builder.configStore.getTypeConfig(ref).name;

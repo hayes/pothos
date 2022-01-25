@@ -1,7 +1,7 @@
 {
-  "name": "@giraphql/test-utils",
+  "name": "@pothos/test-utils",
   "version": "0.6.0",
-  "description": "shared test utils for testing giraphql packages",
+  "description": "shared test utils for testing Pothos packages",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -18,7 +18,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -26,9 +26,9 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "16.1.0",
-    "graphql-helix": "^1.10.3",
-    "ts-morph": "^13.0.2",
-    "yargs": "^17.3.0"
+    "graphql": "16.2.0",
+    "graphql-helix": "^1.11.0",
+    "ts-morph": "^13.0.3",
+    "yargs": "^17.3.1"
   }
 }

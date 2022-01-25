@@ -2,7 +2,7 @@
 
 This example uses the following packages:
 
-- `@giraphql/core`: For building the schema
+- `@pothos/core`: For building the schema
 - `graphql-helix`: For executing queries based on incoming requests
 - `next`: For building and serving the app
 - `@apollo/client`: For making graphql requests from the front-end

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ContextCache, createContextCache, GiraphQLOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, ContextCache, createContextCache, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
 import { calculateComplexity } from './calulate-complexity.ts';
 import type { ComplexityResult } from './types.ts';
 export * from './types.ts';
@@ -9,7 +9,7 @@ const pluginName = "complexity" as const;
 const DEFAULT_COMPLEXITY = 1;
 const DEFAULT_LIST_MULTIPLIER = 10;
 export default pluginName;
-export class GiraphQLComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     defaultComplexity: number = this.options.complexity?.defaultComplexity ??
         this.builder.options?.complexity?.defaultComplexity ??
         DEFAULT_COMPLEXITY;
@@ -19,16 +19,16 @@ export class GiraphQLComplexityPlugin<Types extends SchemaTypes> extends BasePlu
     complexityCache: ContextCache<ComplexityResult, Types["Context"], [
         GraphQLResolveInfo
     ]> = createContextCache((ctx: Types["Context"], info: GraphQLResolveInfo) => calculateComplexity(this, ctx, info));
-    override onOutputFieldConfig(fieldConfig: GiraphQLOutputFieldConfig<Types>) {
+    override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
         return {
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                complexity: fieldConfig.giraphqlOptions.complexity,
+                complexity: fieldConfig.pothosOptions.complexity,
             },
         };
     }
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         if (fieldConfig.kind !== "Query" &&
             fieldConfig.kind !== "Mutation" &&
             fieldConfig.kind !== "Subscription") {
@@ -66,4 +66,4 @@ export class GiraphQLComplexityPlugin<Types extends SchemaTypes> extends BasePlu
         return null;
     }
 }
-SchemaBuilder.registerPlugin(pluginName, GiraphQLComplexityPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosComplexityPlugin);

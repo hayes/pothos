@@ -5,7 +5,7 @@ import { PluginConstructorMap } from '../..';
 import { MergedScalars, SchemaTypes } from '..';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       plugins?: (keyof PluginConstructorMap<Types>)[];
       defaultFieldNullability: false extends Types['DefaultFieldNullability']
@@ -23,7 +23,7 @@ declare global {
 
     export interface Plugins<Types extends SchemaTypes> {}
 
-    export interface GiraphQLKindToGraphQLType {
+    export interface PothosKindToGraphQLType {
       Object: 'Object';
       Query: 'Object';
       Mutation: 'Object';

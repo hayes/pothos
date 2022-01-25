@@ -1,6 +1,6 @@
 /* eslint-disable prefer-destructuring */
 /* eslint-disable no-underscore-dangle */
-import { createContextCache, SchemaTypes } from '@giraphql/core';
+import { createContextCache, SchemaTypes } from '@pothos/core';
 import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs';
 import { PrismaDelegate } from './types';
 import { mergeIncludes } from './util';
@@ -29,7 +29,7 @@ export class ModelLoader {
 
   static forModel<Types extends SchemaTypes>(
     modelName: string,
-    builder: GiraphQLSchemaTypes.SchemaBuilder<Types>,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     const delegate = getDelegateFromModel(builder.options.prisma.client, modelName);
 
@@ -111,7 +111,6 @@ export class ModelLoader {
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
       setTimeout(() => {
-        // eslint-disable-next-line @typescript-eslint/no-use-before-define
         this.staged.delete(entry);
 
         resolve(

@@ -1,4 +1,4 @@
-# SubGraph Plugin for GiraphQL
+# SubGraph Plugin for Pothos
 
 A plugin for creating sub-selections of your graph. This Allows you to use the same code/types for
 multiple variants of your API.
@@ -11,13 +11,13 @@ only exposing a subset of your graph publicly.
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-sub-graph
+yarn add @pothos/plugin-sub-graph
 ```
 
 ### Setup
 
 ```typescript
-import SubGraphPlugin from '@giraphql/plugin-sub-graph';
+import SubGraphPlugin from '@pothos/plugin-sub-graph';
 const builder = new SchemaBuilder<{
   SubGraphs: 'Public' | 'Internal';
 }>({

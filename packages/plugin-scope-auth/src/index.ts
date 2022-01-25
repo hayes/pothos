@@ -3,15 +3,15 @@ import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   FieldKind,
-  GiraphQLInterfaceTypeConfig,
-  GiraphQLMutationTypeConfig,
-  GiraphQLObjectTypeConfig,
-  GiraphQLOutputFieldConfig,
-  GiraphQLQueryTypeConfig,
-  GiraphQLSubscriptionTypeConfig,
+  PothosInterfaceTypeConfig,
+  PothosMutationTypeConfig,
+  PothosObjectTypeConfig,
+  PothosOutputFieldConfig,
+  PothosQueryTypeConfig,
+  PothosSubscriptionTypeConfig,
   RootFieldBuilder,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { resolveHelper } from './resolve-helper';
 import {
   createFieldAuthScopesStep,
@@ -27,10 +27,10 @@ export * from './types';
 const pluginName = 'scopeAuth' as const;
 
 export default pluginName;
-export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     if (this.options.disableScopeAuth) {
       return resolver;
@@ -54,19 +54,19 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
   }
 
   createResolveSteps(
-    fieldConfig: GiraphQLOutputFieldConfig<Types>,
+    fieldConfig: PothosOutputFieldConfig<Types>,
     typeConfig:
-      | GiraphQLInterfaceTypeConfig
-      | GiraphQLMutationTypeConfig
-      | GiraphQLObjectTypeConfig
-      | GiraphQLQueryTypeConfig
-      | GiraphQLSubscriptionTypeConfig,
+      | PothosInterfaceTypeConfig
+      | PothosMutationTypeConfig
+      | PothosObjectTypeConfig
+      | PothosQueryTypeConfig
+      | PothosSubscriptionTypeConfig,
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
   ): ResolveStep<Types>[] {
-    const parentAuthScope = typeConfig.giraphqlOptions.authScopes;
-    const parentGrantScopes = typeConfig.giraphqlOptions.grantScopes;
-    const fieldAuthScopes = fieldConfig.giraphqlOptions.authScopes;
-    const fieldGrantScopes = fieldConfig.giraphqlOptions.grantScopes;
+    const parentAuthScope = typeConfig.pothosOptions.authScopes;
+    const parentGrantScopes = typeConfig.pothosOptions.grantScopes;
+    const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
+    const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;
 
     const interfaceConfigs =
       typeConfig.kind === 'Object' || typeConfig.kind === 'Interface'
@@ -77,7 +77,7 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
 
     const steps: ResolveStep<Types>[] = [];
 
-    if (parentAuthScope && !fieldConfig.giraphqlOptions.skipTypeScopes) {
+    if (parentAuthScope && !fieldConfig.pothosOptions.skipTypeScopes) {
       steps.push(
         createTypeAuthScopesStep(
           parentAuthScope as TypeAuthScopes<Types, unknown>,
@@ -88,13 +88,13 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
 
     if (
       !(fieldConfig.kind === 'Interface' || fieldConfig.kind === 'Object') ||
-      !fieldConfig.giraphqlOptions.skipInterfaceScopes
+      !fieldConfig.pothosOptions.skipInterfaceScopes
     ) {
       interfaceConfigs.forEach((interfaceConfig) => {
-        if (interfaceConfig.giraphqlOptions.authScopes) {
+        if (interfaceConfig.pothosOptions.authScopes) {
           steps.push(
             createTypeAuthScopesStep(
-              interfaceConfig.giraphqlOptions.authScopes as TypeAuthScopes<Types, unknown>,
+              interfaceConfig.pothosOptions.authScopes as TypeAuthScopes<Types, unknown>,
               interfaceConfig.name,
             ),
           );
@@ -112,10 +112,10 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
     }
 
     interfaceConfigs.forEach((interfaceConfig) => {
-      if (interfaceConfig.giraphqlOptions.grantScopes) {
+      if (interfaceConfig.pothosOptions.grantScopes) {
         steps.push(
           createTypeGrantScopesStep(
-            interfaceConfig.giraphqlOptions.grantScopes as TypeGrantScopes<Types, unknown>,
+            interfaceConfig.pothosOptions.grantScopes as TypeGrantScopes<Types, unknown>,
             interfaceConfig.name,
           ),
         );
@@ -136,7 +136,7 @@ export class GiraphQLScopeAuthPlugin<Types extends SchemaTypes> extends BasePlug
   }
 }
 
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,
   FieldKind
@@ -146,4 +146,4 @@ fieldBuilderProto.authField = function authField(options) {
   return this.field(options as never);
 };
 
-SchemaBuilder.registerPlugin(pluginName, GiraphQLScopeAuthPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosScopeAuthPlugin);

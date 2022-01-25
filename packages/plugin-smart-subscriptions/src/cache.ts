@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { BuildCache, Path, SchemaTypes } from '@giraphql/core';
+import { BuildCache, Path, SchemaTypes } from '@pothos/core';
 import CacheNode from './cache-node';
 import SubscriptionManager from './manager';
 
@@ -46,7 +46,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     const config = this.buildCache.getTypeConfig(type, 'Object');
 
     if (config.graphqlKind === 'Object') {
-      return config.giraphqlOptions.subscribe ?? null;
+      return config.pothosOptions.subscribe ?? null;
     }
 
     return null;

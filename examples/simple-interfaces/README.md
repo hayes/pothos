@@ -1,10 +1,10 @@
-# A Simple GiraphQL API using data described by typescript interfaces
+# A Simple Pothos API using data described by typescript interfaces
 
 This example shows how to create a GraphQL API that exposes data that is described by interfaces
 
 This example uses the following packages:
 
-- `@giraphql/core`: For building the schema
+- `@pothos/core`: For building the schema
 - `apollo-server`: For creating a server that executes the schema
 
 ## Schema

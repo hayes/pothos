@@ -1,4 +1,4 @@
-export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
+export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   outputShapes: {
     String: unknown;
     ID: unknown;
@@ -28,7 +28,7 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
   Context: object;
 }
 
-export type MergedScalars<PartialTypes extends Partial<GiraphQLSchemaTypes.UserSchemaTypes>> =
+export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSchemaTypes>> =
   SchemaTypes['Scalars'] & {
     [K in
       | keyof DefaultScalars

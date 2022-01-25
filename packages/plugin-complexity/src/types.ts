@@ -1,4 +1,4 @@
-import { InputFieldMap, SchemaTypes } from '@giraphql/core';
+import { InputFieldMap, SchemaTypes } from '@pothos/core';
 
 export interface ComplexityPluginOptions<Types extends SchemaTypes> {
   limit: Partial<ComplexityResult> | ((ctx: Types['Context']) => Partial<ComplexityResult>);

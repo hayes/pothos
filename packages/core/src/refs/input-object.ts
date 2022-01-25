@@ -6,7 +6,7 @@ import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes }
 
 export default class InputObjectRef<T>
   extends BaseTypeRef
-  implements InputRef, GiraphQLSchemaTypes.InputObjectRef<T>
+  implements InputRef, PothosSchemaTypes.InputObjectRef<T>
 {
   override kind = 'InputObject' as const;
 
@@ -21,16 +21,16 @@ export class ImplementableInputObjectRef<
   Types extends SchemaTypes,
   T extends object,
 > extends InputObjectRef<RecursivelyNormalizeNullableFields<T>> {
-  private builder: GiraphQLSchemaTypes.SchemaBuilder<Types>;
+  private builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
-  constructor(builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, name: string) {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
     super(name);
 
     this.builder = builder;
   }
 
   implement(
-    options: GiraphQLSchemaTypes.InputObjectTypeOptions<
+    options: PothosSchemaTypes.InputObjectTypeOptions<
       Types,
       InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
     >,

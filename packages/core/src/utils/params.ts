@@ -4,10 +4,10 @@ import {
   BaseTypeRef,
   FieldNullability,
   FieldRequiredness,
-  GiraphQLInputFieldType,
-  GiraphQLNameInputFieldType,
-  GiraphQLNameOutputFieldType,
-  GiraphQLOutputFieldType,
+  PothosInputFieldType,
+  PothosNameInputFieldType,
+  PothosNameOutputFieldType,
+  PothosOutputFieldType,
   InputType,
   InputTypeParam,
   OutputType,
@@ -19,7 +19,7 @@ export function typeFromNonListParam<Types extends SchemaTypes>(
   type: OutputType<Types>,
   configStore: ConfigStore<Types>,
   nullable: boolean,
-): GiraphQLNameOutputFieldType<Types> {
+): PothosNameOutputFieldType<Types> {
   const ref = configStore.getOutputTypeRef(type);
   const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
   const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
@@ -41,7 +41,7 @@ export function typeFromParam<Types extends SchemaTypes>(
   param: TypeParam<Types>,
   configStore: ConfigStore<Types>,
   nullable: FieldNullability<[unknown]>,
-): GiraphQLOutputFieldType<Types> {
+): PothosOutputFieldType<Types> {
   const itemNullable = typeof nullable === 'object' ? nullable.items : false;
   const listNullable = typeof nullable === 'object' ? nullable.list : !!nullable;
 
@@ -60,7 +60,7 @@ export function inputTypeFromNonListParam<Types extends SchemaTypes>(
   type: InputType<Types>,
   configStore: ConfigStore<Types>,
   required: boolean,
-): GiraphQLNameInputFieldType<Types> {
+): PothosNameInputFieldType<Types> {
   const ref = configStore.getInputTypeRef(type);
   const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
   const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
@@ -82,7 +82,7 @@ export function inputTypeFromParam<Types extends SchemaTypes>(
   param: InputTypeParam<Types>,
   configStore: ConfigStore<Types>,
   required: FieldRequiredness<[unknown]>,
-): GiraphQLInputFieldType<Types> {
+): PothosInputFieldType<Types> {
   const itemRequired = typeof required === 'object' ? required.items : true;
   const listRequired = typeof required === 'object' ? required.list : !!required;
 

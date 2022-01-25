@@ -1,12 +1,12 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, GiraphQLOutputFieldConfig, SchemaTypes } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
 import { ResolverMap } from './types.ts';
 const pluginName = "mocks" as const;
 export default pluginName;
 export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+    override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const { mocks } = this.options;
         if (!mocks) {
             return resolver;
@@ -14,7 +14,7 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
         const resolveMock = this.resolveMock(fieldConfig.parentType, fieldConfig.name, mocks);
         return resolveMock ?? resolver;
     }
-    override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: GiraphQLOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
+    override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         const { mocks } = this.options;
         if (!mocks) {
             return subscribe;

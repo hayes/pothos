@@ -1,5 +1,5 @@
-import SchemaBuilder from '@giraphql/core';
-import PrismaPlugin from '@giraphql/plugin-prisma';
+import SchemaBuilder from '@pothos/core';
+import PrismaPlugin from '@pothos/plugin-prisma';
 import type PrismaTypes from '../prisma/generated';
 import { db } from './db';
 

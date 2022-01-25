@@ -12,30 +12,29 @@ import SchemaBuilder, {
   OutputRef,
   SchemaTypes,
   verifyRef,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 const pageInfoRefMap = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   ObjectRef<PageInfoShape>
 >();
 
 const nodeInterfaceRefMap = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   InterfaceRef<ObjectParam<SchemaTypes>>
 >();
 
 export const connectionRefs = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>[]
 >();
 
 export const globalConnectionFieldsMap = new WeakMap<
-  GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>,
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   ((ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]
 >();
 

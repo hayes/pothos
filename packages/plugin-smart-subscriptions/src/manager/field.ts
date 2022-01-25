@@ -1,4 +1,4 @@
-import { SchemaTypes } from '@giraphql/core';
+import { SchemaTypes } from '@pothos/core';
 import CacheNode from '../cache-node';
 import { RegisterFieldSubscriptionOptions } from '../types';
 import BaseSubscriptionManager from './base';

@@ -1,4 +1,4 @@
-# Smart Subscriptions Plugin for GiraphQL
+# Smart Subscriptions Plugin for Pothos
 
 This plugin provides a way of turning queries into GraphQL subscriptions. Each field, Object, and
 Interface in a schema can define subscriptions to be registered when that field or type is used in a
@@ -29,14 +29,14 @@ schema are accessible via the subscribe query, since any type or field can regis
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-smart-subscriptions
+yarn add @pothos/plugin-smart-subscriptions
 ```
 
 ### Setup
 
 ```typescript
-import SchemaBuilder from '@giraphql/core';
-import SmartSubscriptionsPlugin from '@giraphql/plugin-smart-subscriptions';
+import SchemaBuilder from '@pothos/core';
+import SmartSubscriptionsPlugin from '@pothos/plugin-smart-subscriptions';
 
 const builder = new SchemaBuilder({
   plugins: [SmartSubscriptionsPlugin],

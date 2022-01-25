@@ -33,7 +33,7 @@ export default class SubscriptionCache<Types extends SchemaTypes> {
     getTypeSubscriber(type: string) {
         const config = this.buildCache.getTypeConfig(type, "Object");
         if (config.graphqlKind === "Object") {
-            return config.giraphqlOptions.subscribe ?? null;
+            return config.pothosOptions.subscribe ?? null;
         }
         return null;
     }

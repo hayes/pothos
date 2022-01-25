@@ -5,13 +5,13 @@ import {
   InterfaceParam,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
-import { AuthZOption, GiraphQLAuthZPlugin } from '.';
+} from '@pothos/core';
+import { AuthZOption, PothosAuthZPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      authz: GiraphQLAuthZPlugin<Types>;
+      authz: PothosAuthZPlugin<Types>;
     }
 
     export interface UserSchemaTypes {

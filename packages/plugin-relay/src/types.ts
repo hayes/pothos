@@ -26,15 +26,15 @@ import {
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
-  nodeTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
-  pageInfoTypeOptions: Omit<GiraphQLSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
+  nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
+  pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
   nodeQueryOptions: Omit<
-    GiraphQLSchemaTypes.QueryFieldOptions<
+    PothosSchemaTypes.QueryFieldOptions<
       Types,
       OutputRefShape<GlobalIDShape<Types> | string>,
       true,
@@ -44,7 +44,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   nodesQueryOptions: Omit<
-    GiraphQLSchemaTypes.QueryFieldOptions<
+    PothosSchemaTypes.QueryFieldOptions<
       Types,
       [OutputRefShape<GlobalIDShape<Types> | string>],
       true,
@@ -54,15 +54,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   mutationInputArgOptions: Omit<
-    GiraphQLSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
+    PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
     'fields' | 'required' | 'type'
   >;
   clientMutationIdInputOptions: Omit<
-    GiraphQLSchemaTypes.InputObjectFieldOptions<Types, 'ID', true>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID', true>,
     'required' | 'type'
   >;
   clientMutationIdFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<
+    PothosSchemaTypes.ObjectFieldOptions<
       Types,
       {},
       'ID',
@@ -74,7 +74,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   >;
   cursorFieldOptions: Normalize<
     Omit<
-      GiraphQLSchemaTypes.ObjectFieldOptions<
+      PothosSchemaTypes.ObjectFieldOptions<
         Types,
         {},
         'ID' | 'String',
@@ -88,7 +88,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     }
   >;
   nodeFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<
+    PothosSchemaTypes.ObjectFieldOptions<
       Types,
       {},
       ObjectRef<{}>,
@@ -99,11 +99,11 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   edgesFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<Types, {}, [ObjectRef<{}>], false, {}, unknown[]>,
+    PothosSchemaTypes.ObjectFieldOptions<Types, {}, [ObjectRef<{}>], false, {}, unknown[]>,
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   pageInfoFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<
+    PothosSchemaTypes.ObjectFieldOptions<
       Types,
       {},
       OutputRef<PageInfoShape>,
@@ -114,15 +114,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   hasNextPageFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', false, {}, boolean>,
+    PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', false, {}, boolean>,
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   hasPreviousPageFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', false, {}, boolean>,
+    PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', false, {}, boolean>,
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   startCursorFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<
+    PothosSchemaTypes.ObjectFieldOptions<
       Types,
       PageInfoShape,
       'ID' | 'String',
@@ -133,7 +133,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   endCursorFieldOptions: Omit<
-    GiraphQLSchemaTypes.ObjectFieldOptions<
+    PothosSchemaTypes.ObjectFieldOptions<
       Types,
       PageInfoShape,
       'ID' | 'String',
@@ -144,19 +144,19 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'nullable' | 'resolve' | 'type'
   >;
   beforeArgOptions: Omit<
-    GiraphQLSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', false>,
     'required' | 'type'
   >;
   afterArgOptions: Omit<
-    GiraphQLSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', false>,
     'required' | 'type'
   >;
   firstArgOptions: Omit<
-    GiraphQLSchemaTypes.InputObjectFieldOptions<Types, 'Int', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', false>,
     'required' | 'type'
   >;
   lastArgOptions: Omit<
-    GiraphQLSchemaTypes.InputObjectFieldOptions<Types, 'Int', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', false>,
     'required' | 'type'
   >;
   encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
@@ -217,8 +217,7 @@ export type ConnectionShapeFromResolve<
   ? Resolved
   : ConnectionShapeForType<Types, Type, Nullable>;
 
-export interface DefaultConnectionArguments
-  extends GiraphQLSchemaTypes.DefaultConnectionArguments {}
+export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 
 export type NodeBaseObjectOptionsForParam<
   Types extends SchemaTypes,
@@ -316,13 +315,13 @@ export type GlobalIDInputFieldOptions<
   Types extends SchemaTypes,
   Req extends boolean,
   Kind extends 'Arg' | 'InputObject',
-> = Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'>;
+> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'>;
 
 export type GlobalIDListInputFieldOptions<
   Types extends SchemaTypes,
   Req extends FieldRequiredness<['ID']>,
   Kind extends 'Arg' | 'InputObject',
-> = Omit<GiraphQLSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'>;
+> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'>;
 
 export type NodeIDFieldOptions<
   Types extends SchemaTypes,
@@ -466,10 +465,10 @@ export type RelayMutationInputOptions<
   Types extends SchemaTypes,
   Fields extends InputFieldMap,
   InputName extends string,
-> = Omit<GiraphQLSchemaTypes.InputObjectTypeOptions<Types, Fields>, 'fields'> & {
+> = Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>, 'fields'> & {
   name?: string;
   argName?: InputName;
-  inputFields: (t: GiraphQLSchemaTypes.InputFieldBuilder<Types, 'InputObject'>) => Fields;
+  inputFields: (t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>) => Fields;
 };
 
 export type RelayMutationFieldOptions<
@@ -500,8 +499,8 @@ export type RelayMutationPayloadOptions<
   Shape,
   Interfaces extends InterfaceParam<Types>[],
 > = Omit<
-  | GiraphQLSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | GiraphQLSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+  | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields'
 > & {
   name?: string;

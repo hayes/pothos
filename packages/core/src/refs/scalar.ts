@@ -3,7 +3,7 @@ import BaseTypeRef from './base';
 
 export default class ScalarRef<T, U, P = T>
   extends BaseTypeRef
-  implements OutputRef, InputRef, GiraphQLSchemaTypes.ScalarRef<T, U, P>
+  implements OutputRef, InputRef, PothosSchemaTypes.ScalarRef<T, U, P>
 {
   override kind = 'Scalar' as const;
 

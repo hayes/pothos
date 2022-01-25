@@ -8,15 +8,14 @@ import SchemaBuilder, {
   OutputType,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
 import PrismaNodeRef from './node-ref';
 import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
 import { ModelTypes, PrismaDelegate, PrismaNodeOptions } from './types';
 import { queryFromInfo } from './util';
 
-const schemaBuilderProto =
-  SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
   const ref = getRefFromModel(type, this);
@@ -27,7 +26,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
   setFindUniqueForRef(ref, this, findUnique);
 
   this.objectType(ref, {
-    ...(options as {} as GiraphQLSchemaTypes.ObjectFieldOptions<
+    ...(options as {} as PothosSchemaTypes.ObjectFieldOptions<
       SchemaTypes,
       unknown,
       TypeParam<SchemaTypes>,
@@ -37,7 +36,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
     >),
     extensions: {
       ...options.extensions,
-      giraphqlPrismaInclude: options.include,
+      pothosPrismaInclude: options.include,
     },
     name,
     fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
@@ -47,7 +46,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
 };
 
 schemaBuilderProto.prismaNode = function prismaNode(
-  this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
     nodeInterfaceRef?: () => InterfaceRef<unknown>;
   },
   type: keyof SchemaTypes['PrismaTypes'],
@@ -60,7 +59,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const interfaceRef = this.nodeInterfaceRef?.();
 
   if (!interfaceRef) {
-    throw new TypeError('builder.prismaNode requires @giraphql/plugin-relay to be installed');
+    throw new TypeError('builder.prismaNode requires @pothos/plugin-relay to be installed');
   }
 
   const typeName = name ?? type;
@@ -71,7 +70,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
     extensions: {
       ...options.extensions,
-      giraphqlPrismaInclude: options.include,
+      pothosPrismaInclude: options.include,
     },
     isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
     findUnique: (parent: unknown, context: {}) =>

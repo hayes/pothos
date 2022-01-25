@@ -1,5 +1,5 @@
 // @ts-nocheck
-export default class BaseTypeRef implements GiraphQLSchemaTypes.BaseTypeRef {
+export default class BaseTypeRef implements PothosSchemaTypes.BaseTypeRef {
     kind;
     name;
     constructor(kind: "Enum" | "InputObject" | "Interface" | "Object" | "Scalar" | "Union", name: string) {

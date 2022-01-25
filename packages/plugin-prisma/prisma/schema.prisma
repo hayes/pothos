@@ -10,7 +10,7 @@ generator client {
   output   = "../tests/client"
 }
 
-generator giraphql {
+generator pothos {
   provider     = "ts-node ./src/generator.ts"
   clientOutput = "../tests/client"
   output       = "../tests/generated.ts"

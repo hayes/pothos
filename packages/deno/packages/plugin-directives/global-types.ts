@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { EnumValues, FieldNullability, FieldRequiredness, InputFieldMap, InputType, InterfaceParam, ObjectParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { DirectiveLocation, Directives } from './types.ts';
-import { GiraphQLDirectivesPlugin } from './index.ts';
+import { PothosDirectivesPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            directives: GiraphQLDirectivesPlugin<Types>;
+            directives: PothosDirectivesPlugin<Types>;
         }
         export interface UserSchemaTypes {
             Directives: Record<string, {

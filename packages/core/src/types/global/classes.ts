@@ -12,7 +12,7 @@ import InternalScalarRef from '../../refs/scalar';
 import InternalUnionRef from '../../refs/union';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface SchemaBuilder<Types extends SchemaTypes> extends Builder<Types> {}
 
     export interface RootFieldBuilder<

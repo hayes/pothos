@@ -1,5 +1,5 @@
 import DataLoader, { Options } from 'dataloader';
-import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '@giraphql/core';
+import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
 
 export function rejectErrors<T>(
   val: MaybePromise<(Error | T)[]>,

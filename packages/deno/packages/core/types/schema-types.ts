@@ -1,5 +1,5 @@
 // @ts-nocheck
-export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
+export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
     outputShapes: {
         String: unknown;
         ID: unknown;
@@ -43,7 +43,7 @@ export interface SchemaTypes extends GiraphQLSchemaTypes.UserSchemaTypes {
     Root: object;
     Context: object;
 }
-export type MergedScalars<PartialTypes extends Partial<GiraphQLSchemaTypes.UserSchemaTypes>> = SchemaTypes["Scalars"] & {
+export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSchemaTypes>> = SchemaTypes["Scalars"] & {
     [K in keyof DefaultScalars | keyof PartialTypes["Scalars"]]: K extends keyof PartialTypes["Scalars"] ? PartialTypes["Scalars"][K] : K extends keyof DefaultScalars ? DefaultScalars[K] : never;
 };
 export interface DefaultScalars {

@@ -1,4 +1,4 @@
-import { initContextCache } from '@giraphql/core';
+import { initContextCache } from '@pothos/core';
 import { LoadableRef } from '../../src';
 import { User } from './schema/objects';
 import { ContextType } from './types';

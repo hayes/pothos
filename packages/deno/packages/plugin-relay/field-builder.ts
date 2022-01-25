@@ -4,7 +4,7 @@ import { assertArray, FieldKind, FieldNullability, InputFieldMap, InputShapeFrom
 import { ConnectionShape, GlobalIDFieldOptions, GlobalIDListFieldOptions, GlobalIDShape, } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 import { internalEncodeGlobalID } from './utils/internal.ts';
-const fieldBuilderProto = RootFieldBuilder.prototype as GiraphQLSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
+const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
 fieldBuilderProto.globalIDList = function globalIDList<Args extends InputFieldMap, Nullable extends FieldNullability<[
     "ID"
 ]>, ResolveReturnShape>({ resolve, ...options }: GlobalIDListFieldOptions<SchemaTypes, unknown, Args, Nullable, ResolveReturnShape, FieldKind>) {

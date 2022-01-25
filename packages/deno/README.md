@@ -1,21 +1,21 @@
-## GiraphQL - A plugin based GraphQL schema builder for typescript
+## Pothos - A plugin based GraphQL schema builder for typescript
 
-GiraphQL makes writing graphql schemas in typescript easy, fast and enjoyable. The core of GiraphQL
+Pothos makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos
 adds 0 overhead at runtime, and has `graphql` as its only dependency.
 
-By leaning heavily on typescripts ability to infer types, GiraphQL is the most type-safe way of
+By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
 writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
 code generation.
 
-GiraphQL has a unique and powerful plugin system that makes every plugin feel like its features are
+Pothos has a unique and powerful plugin system that makes every plugin feel like its features are
 built into the core library. Plugins can extend almost any part of the API by adding new options or
-methods that can take full advantage of GiraphQLs type system.
+methods that can take full advantage of the Pothos type system.
 
 ## Hello, World
 
 ```typescript
 import { ApolloServer } from 'apollo-server';
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
 
@@ -35,7 +35,7 @@ new ApolloServer({
 }).listen(3000);
 ```
 
-## Plugins that make GiraphQL even better
+## Plugins that make Pothos even better
 
 - ## [Scope Auth](plugins/scope-auth.md)
   Add global, type level, or field level authorization checks to your schema
@@ -62,15 +62,15 @@ new ApolloServer({
 ### Imports
 
 Most of the setup for deno works exactly the same way as it does for node. The main difference is
-where things are imported from. GiraphQL and all its plugins are published as a single package on
+where things are imported from. Pothos and all its plugins are published as a single package on
 deno.land. Each of the node packages available on npm are available in the `packages` directory:
 
 ```typescript
 // Core
-import SchemaBuilder from 'https://deno.land/x/giraphql/packages/core/mod.ts';
+import SchemaBuilder from 'https://deno.land/x/pothos/packages/core/mod.ts';
 // Plugins:
-import ValidationPlugin from 'https://deno.land/x/giraphql/packages/plugin-validation/mod.ts';
-import ScopeAuthPlugin from 'https://deno.land/x/giraphql/packages/plugin-scope-auth/mod.ts';
+import ValidationPlugin from 'https://deno.land/x/pothos/packages/plugin-validation/mod.ts';
+import ScopeAuthPlugin from 'https://deno.land/x/pothos/packages/plugin-scope-auth/mod.ts';
 // ...etc
 ```
 
@@ -86,8 +86,8 @@ import { shouldRenderGraphiQL } from 'https://cdn.jsdelivr.net/gh/contrawork/gra
 import { processRequest } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/process-request.ts';
 import { getGraphQLParameters } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/get-graphql-parameters.ts';
 import playground from 'https://gist.githubusercontent.com/hayes/5c99f7b4f71234452036fd88e142a825/raw/655245a052b10c2912a803c8a6d537096b73c10b/playground.ts';
-// GiraphQL
-import SchemaBuilder from 'https://deno.land/x/giraphql/packages/core/mod.ts';
+// Pothos
+import SchemaBuilder from 'https://deno.land/x/pothos/packages/core/mod.ts';
 
 // Create app and router
 const app = new Application();
@@ -162,7 +162,7 @@ incompatible. This means that we need a way to ensure that our graphql library v
 across our dependencies. There isn't a perfect solution right now, but `import-maps` give us
 something that works.
 
-GiraphQL uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map.
+Pothos uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map.
 GraphQL Helix currently uses
 `https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts`
 
@@ -187,4 +187,4 @@ update your dependencies.
 deno run --allow-net --import-map=import-map.json server-example.ts
 ```
 
-## Full docs available at https://giraphql.com/
+## Full docs available at https://pothos-graphql.dev/

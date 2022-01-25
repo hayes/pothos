@@ -11,13 +11,13 @@ For more details on GraphQL AuthZ see the official
 ### Install
 
 ```bash
-yarn add @giraphql/plugin-authz
+yarn add @pothos/plugin-authz
 ```
 
 ### Setup
 
 ```typescript
-import AuthzPlugin from '@giraphql/plugin-authz';
+import AuthzPlugin from '@pothos/plugin-authz';
 
 const builder = new SchemaBuilder<{
   AuthZRule: keyof typeof rules;

@@ -4,7 +4,7 @@ import { GraphQLDirective } from 'https://cdn.skypack.dev/graphql?dts';
 import { PluginConstructorMap } from '../../index.ts';
 import { MergedScalars, SchemaTypes } from '../index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             plugins?: (keyof PluginConstructorMap<Types>)[];
             defaultFieldNullability: false extends Types["DefaultFieldNullability"] ? never : Types["DefaultFieldNullability"];
@@ -16,7 +16,7 @@ declare global {
         }
         export interface Plugins<Types extends SchemaTypes> {
         }
-        export interface GiraphQLKindToGraphQLType {
+        export interface PothosKindToGraphQLType {
             Object: "Object";
             Query: "Object";
             Mutation: "Object";

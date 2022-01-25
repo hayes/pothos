@@ -6,18 +6,18 @@ import {
   InputShapeFromFields,
   SchemaTypes,
   TypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { SmartSubscriptionOptions } from './types';
 import {
   FieldSubscriptionManager,
-  GiraphQLSmartSubscriptionsPlugin,
+  PothosSmartSubscriptionsPlugin,
   TypeSubscriptionManager,
 } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      smartSubscriptions: GiraphQLSmartSubscriptionsPlugin<Types>;
+      smartSubscriptions: PothosSmartSubscriptionsPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {

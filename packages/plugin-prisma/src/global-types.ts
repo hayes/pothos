@@ -12,7 +12,7 @@ import {
   PluginName,
   SchemaTypes,
   ShapeFromTypeParam,
-} from '@giraphql/core';
+} from '@pothos/core';
 import PrismaNodeRef from './node-ref';
 import {
   PrismaConnectionFieldOptions,
@@ -25,7 +25,7 @@ import {
 import { PrismaPlugin } from '.';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
       prisma: PrismaPlugin<Types>;
     }
@@ -72,7 +72,7 @@ declare global {
             name: Name,
             options: PrismaNodeOptions<Types, Model, Interfaces, Include, Shape>,
           ) => PrismaNodeRef<Shape>
-        : '@giraphql/plugin-relay is required to use this method';
+        : '@pothos/plugin-relay is required to use this method';
     }
 
     export interface RootFieldBuilder<
@@ -142,7 +142,7 @@ declare global {
               ]
             >
           ) => FieldRef<ConnectionShapeHelper<Types, Model['Shape'], Nullable>['shape']>
-        : '@giraphql/plugin-relay is required to use this method';
+        : '@pothos/plugin-relay is required to use this method';
     }
 
     export interface ConnectionFieldOptions<

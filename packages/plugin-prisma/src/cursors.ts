@@ -1,5 +1,5 @@
 /* eslint-disable no-nested-ternary */
-import { MaybePromise } from '@giraphql/core';
+import { MaybePromise } from '@pothos/core';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -44,7 +44,7 @@ function parseCursor(cursor: unknown) {
 }
 
 interface PrismaCursorConnectionQueryOptions {
-  args: GiraphQLSchemaTypes.DefaultConnectionArguments;
+  args: PothosSchemaTypes.DefaultConnectionArguments;
   defaultSize?: number;
   maxSize?: number;
   column: string;
@@ -106,7 +106,7 @@ export function prismaCursorConnectionQuery({
 
 export function wrapConnectionResult<T extends {}>(
   results: T[],
-  args: GiraphQLSchemaTypes.DefaultConnectionArguments,
+  args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
   column: string,
   totalCount?: number,

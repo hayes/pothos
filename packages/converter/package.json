@@ -1,7 +1,7 @@
 {
-  "name": "@giraphql/converter",
+  "name": "@pothos/converter",
   "version": "2.12.0",
-  "description": "A converter for generating GiraphQL SchemaBuilder code from GraphQL SDL",
+  "description": "A converter for generating typescript that implements an SDL input schema",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -19,12 +19,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",
@@ -34,14 +35,14 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "16.1.0",
-    "ts-morph": "^13.0.2",
-    "yargs": "^17.3.0"
+    "graphql": "16.2.0",
+    "ts-morph": "^13.0.3",
+    "yargs": "^17.3.1"
   },
   "devDependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@giraphql/test-utils": "^0.6.0",
-    "@types/yargs": "^17.0.7"
+    "@pothos/core": "^2.22.0",
+    "@pothos/test-utils": "^0.6.0",
+    "@types/yargs": "^17.0.8"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

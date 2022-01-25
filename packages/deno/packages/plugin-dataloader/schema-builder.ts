@@ -6,7 +6,7 @@ import { LoadableObjectRef } from './refs/object.ts';
 import { LoadableUnionRef } from './refs/union.ts';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.ts';
 import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from './index.ts';
-const schemaBuilderProto = SchemaBuilder.prototype as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>;
+const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(nameOrRef: NameOrRef, { load, toKey, sort, cacheResolved, loaderOptions, ...options }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
     const name = typeof nameOrRef === "string"
         ? nameOrRef
@@ -65,10 +65,10 @@ schemaBuilderProto.loadableUnion = function loadableUnion<Key extends Dataloader
     return ref;
 };
 const TloadableNode = schemaBuilderProto.loadableNode;
-schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(this: GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, { load, toKey, sort, cacheResolved, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
-    if (typeof (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
+schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, { load, toKey, sort, cacheResolved, loaderOptions, ...options }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
+    if (typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
         .nodeInterfaceRef !== "function") {
-        throw new TypeError("builder.loadableNode requires @giraphql/plugin-relay to be installed");
+        throw new TypeError("builder.loadableNode requires @pothos/plugin-relay to be installed");
     }
     const name = typeof nameOrRef === "string"
         ? nameOrRef
@@ -82,7 +82,7 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
     const extendedOptions = {
         ...options,
         interfaces: [
-            (this as GiraphQLSchemaTypes.SchemaBuilder<SchemaTypes> & {
+            (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
                 nodeInterfaceRef: () => InterfaceRef<unknown>;
             }).nodeInterfaceRef(),
             ...(options.interfaces ?? []),

@@ -2,18 +2,18 @@
 /* eslint-disable node/no-callback-literal */
 import { GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLScalarType, GraphQLString, } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types/index.ts';
-import { BaseTypeRef, BuiltinScalarRef, ConfigurableRef, FieldRef, GiraphQLFieldConfig, GiraphQLObjectTypeConfig, GiraphQLTypeConfig, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, InputTypeRef, OutputType, OutputTypeRef, TypeParam, } from './index.ts';
+import { BaseTypeRef, BuiltinScalarRef, ConfigurableRef, FieldRef, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, InputTypeRef, OutputType, OutputTypeRef, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, TypeParam, } from './index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
-    typeConfigs = new Map<string, GiraphQLTypeConfig>();
-    private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>>();
-    private fields = new Map<string, Record<string, GiraphQLFieldConfig<Types>>>();
+    typeConfigs = new Map<string, PothosTypeConfig>();
+    private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined) => PothosFieldConfig<Types>>();
+    private fields = new Map<string, Record<string, PothosFieldConfig<Types>>>();
     private addFieldFns: (() => void)[] = [];
     private refsToName = new Map<ConfigurableRef<Types>, string>();
     private scalarsToRefs = new Map<string, BuiltinScalarRef<unknown, unknown>>();
-    private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, GiraphQLFieldConfig<Types>[]>();
+    private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, PothosFieldConfig<Types>[]>();
     private pendingFields = new Map<FieldRef | InputFieldRef, InputType<Types> | OutputType<Types>>();
-    private pendingRefResolutions = new Map<ConfigurableRef<Types>, ((config: GiraphQLTypeConfig) => void)[]>();
-    private fieldRefCallbacks = new Map<FieldRef | InputFieldRef, ((config: GiraphQLFieldConfig<Types>) => void)[]>();
+    private pendingRefResolutions = new Map<ConfigurableRef<Types>, ((config: PothosTypeConfig) => void)[]>();
+    private fieldRefCallbacks = new Map<FieldRef | InputFieldRef, ((config: PothosFieldConfig<Types>) => void)[]>();
     private pending = true;
     constructor() {
         const scalars: GraphQLScalarType[] = [
@@ -37,7 +37,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     addFieldRef(ref: FieldRef | InputFieldRef, 
     // We need to be able to resolve the types kind before configuring the field
-    typeParam: InputTypeParam<Types> | TypeParam<Types>, args: InputFieldMap, getConfig: (name: string, parentField: string | undefined) => GiraphQLFieldConfig<Types>) {
+    typeParam: InputTypeParam<Types> | TypeParam<Types>, args: InputFieldMap, getConfig: (name: string, parentField: string | undefined) => PothosFieldConfig<Types>) {
         if (this.fieldRefs.has(ref)) {
             throw new Error(`FieldRef ${String(ref)} has already been added to config store`);
         }
@@ -72,7 +72,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             });
         }
     }
-    createFieldConfig<T extends GraphQLFieldKind>(ref: FieldRef | InputFieldRef, name: string, parentField?: string, kind?: T): Extract<GiraphQLFieldConfig<Types>, {
+    createFieldConfig<T extends GraphQLFieldKind>(ref: FieldRef | InputFieldRef, name: string, parentField?: string, kind?: T): Extract<PothosFieldConfig<Types>, {
         graphqlKind: T;
     }> {
         if (!this.fieldRefs.has(ref)) {
@@ -85,7 +85,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         if (kind && config.graphqlKind !== kind) {
             throw new TypeError(`Expected ref for field named ${name} to resolve to a ${kind} type, but got ${config.graphqlKind}`);
         }
-        return config as Extract<GiraphQLFieldConfig<Types>, {
+        return config as Extract<PothosFieldConfig<Types>, {
             graphqlKind: T;
         }>;
     }
@@ -100,7 +100,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             cbs.forEach((cb) => void cb(this.typeConfigs.get(name)!));
         }
     }
-    addTypeConfig(config: GiraphQLTypeConfig, ref?: ConfigurableRef<Types>) {
+    addTypeConfig(config: PothosTypeConfig, ref?: ConfigurableRef<Types>) {
         const { name } = config;
         if (this.typeConfigs.has(name)) {
             throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
@@ -115,8 +115,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
             cbs.forEach((cb) => void cb(config));
         }
     }
-    getTypeConfig<T extends GiraphQLTypeConfig["kind"]>(ref: ConfigurableRef<Types> | string, kind?: T) {
-        let config: GiraphQLTypeConfig;
+    getTypeConfig<T extends PothosTypeConfig["kind"]>(ref: ConfigurableRef<Types> | string, kind?: T) {
+        let config: PothosTypeConfig;
         if (typeof ref === "string") {
             if (!this.typeConfigs.has(ref)) {
                 throw new Error(`Type ${String(ref)} has not been implemented`);
@@ -132,7 +132,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         if (kind && config.graphqlKind !== kind) {
             throw new TypeError(`Expected ref to resolve to a ${kind} type, but got ${config.kind}`);
         }
-        return config as Extract<GiraphQLTypeConfig, {
+        return config as Extract<PothosTypeConfig, {
             kind: T;
         }>;
     }
@@ -184,7 +184,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         }
         return ref as OutputType<Types>;
     }
-    onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: GiraphQLTypeConfig) => void) {
+    onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: PothosTypeConfig) => void) {
         if (!ref) {
             throw new Error(`${ref} is not a valid type ref`);
         }
@@ -204,7 +204,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             this.pendingRefResolutions.set(ref, [cb]);
         }
     }
-    onFieldUse(ref: FieldRef | InputFieldRef, cb: (config: GiraphQLFieldConfig<Types>) => void) {
+    onFieldUse(ref: FieldRef | InputFieldRef, cb: (config: PothosFieldConfig<Types>) => void) {
         if (!this.fieldRefCallbacks.has(ref)) {
             this.fieldRefCallbacks.set(ref, []);
         }
@@ -213,7 +213,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             this.fieldRefsToConfigs.get(ref)!.forEach((config) => void cb(config));
         }
     }
-    getFields<T extends GraphQLFieldKind>(name: string, kind?: T): Record<string, Extract<GiraphQLFieldConfig<Types>, {
+    getFields<T extends GraphQLFieldKind>(name: string, kind?: T): Record<string, Extract<PothosFieldConfig<Types>, {
         graphqlKind: T;
     }>> {
         const typeConfig = this.getTypeConfig(name);
@@ -221,7 +221,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         if (kind && typeConfig.graphqlKind !== kind) {
             throw new TypeError(`Expected ${name} to be a ${kind} type, but found ${typeConfig.graphqlKind}`);
         }
-        return fields as Record<string, Extract<GiraphQLFieldConfig<Types>, {
+        return fields as Record<string, Extract<PothosFieldConfig<Types>, {
             graphqlKind: T;
         }>>;
     }
@@ -249,7 +249,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     getImplementers(ref: ConfigurableRef<Types> | string) {
         const typeConfig = this.getTypeConfig(ref, "Interface");
         const implementers = [...this.typeConfigs.values()].filter((type) => type.kind === "Object" &&
-            type.interfaces.find((i) => this.getTypeConfig(i).name === typeConfig.name)) as GiraphQLObjectTypeConfig[];
+            type.interfaces.find((i) => this.getTypeConfig(i).name === typeConfig.name)) as PothosObjectTypeConfig[];
         return implementers;
     }
     private describeRef(ref: ConfigurableRef<Types>): string {

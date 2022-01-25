@@ -9,7 +9,7 @@ import {
   ObjectRef,
   PluginName,
   SchemaTypes,
-} from '@giraphql/core';
+} from '@pothos/core';
 import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
 import { getLoaderMapping, setLoaderMappings } from './loader-map';
 import { ModelLoader } from './model-loader';
@@ -43,20 +43,20 @@ export class PrismaObjectFieldBuilder<
           [
             field: Field,
             options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
-            connectionOptions?: GiraphQLSchemaTypes.ConnectionObjectOptions<
+            connectionOptions?: PothosSchemaTypes.ConnectionObjectOptions<
               Types,
               ObjectRef<Shape>,
               ResolveReturnShape
             >,
-            edgeOptions?: GiraphQLSchemaTypes.ConnectionEdgeObjectOptions<
+            edgeOptions?: PothosSchemaTypes.ConnectionEdgeObjectOptions<
               Types,
               ObjectRef<Shape>,
               ResolveReturnShape
             >,
           ]
         >
-      ) => FieldRef<GiraphQLSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>['shape']>
-    : '@giraphql/plugin-relay is required to use this method' = function relatedConnection(
+      ) => FieldRef<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>['shape']>
+    : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
     this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
     name: string,
     {
@@ -89,7 +89,7 @@ export class PrismaObjectFieldBuilder<
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
     let typeName: string | undefined;
 
-    const getQuery = (args: GiraphQLSchemaTypes.DefaultConnectionArguments, ctx: {}) => ({
+    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => ({
       ...((typeof query === 'function' ? query(args, ctx) : query) as {}),
       ...prismaCursorConnectionQuery({
         column: cursor,
@@ -108,13 +108,13 @@ export class PrismaObjectFieldBuilder<
         ...options,
         extensions: {
           ...extensions,
-          giraphQLPrismaQuery: getQuery,
-          giraphQLPrismaRelation: name,
+          pothosPrismaQuery: getQuery,
+          pothosPrismaRelation: name,
         },
         type: ref,
         resolve: async (
           parent: object,
-          args: GiraphQLSchemaTypes.DefaultConnectionArguments,
+          args: PothosSchemaTypes.DefaultConnectionArguments,
           context: {},
           info: GraphQLResolveInfo,
         ) => {
@@ -161,10 +161,10 @@ export class PrismaObjectFieldBuilder<
       {
         ...connectionOptions,
         fields: totalCount
-          ? (t: GiraphQLSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
+          ? (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
               totalCount: t.int({
                 extensions: {
-                  giraphQLPrismaRelationCountForParent: name,
+                  pothosPrismaRelationCountForParent: name,
                 },
                 resolve: (parent, args, context) => {
                   const loadedValue = parent.totalCount;
@@ -181,7 +181,7 @@ export class PrismaObjectFieldBuilder<
           : (connectionOptions as { fields: undefined }).fields,
         extensions: {
           ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-          giraphQLPrismaIndirectInclude: {
+          pothosPrismaIndirectInclude: {
             getType: () => {
               if (!typeName) {
                 typeName = this.builder.configStore.getTypeConfig(ref).name;
@@ -198,7 +198,7 @@ export class PrismaObjectFieldBuilder<
     return fieldRef;
   } as never;
 
-  constructor(name: string, builder: GiraphQLSchemaTypes.SchemaBuilder<Types>, model: string) {
+  constructor(name: string, builder: PothosSchemaTypes.SchemaBuilder<Types>, model: string) {
     super(name, builder);
 
     this.model = model;
@@ -243,8 +243,8 @@ export class PrismaObjectFieldBuilder<
       type: relationField.isList ? [ref] : ref,
       extensions: {
         ...options.extensions,
-        giraphQLPrismaQuery: query,
-        giraphQLPrismaRelation: name,
+        pothosPrismaQuery: query,
+        pothosPrismaRelation: name,
       },
       resolve: (parent, args, context, info) => {
         const mapping = getLoaderMapping(context, info.path);
@@ -300,7 +300,7 @@ export class PrismaObjectFieldBuilder<
       nullable: false,
       extensions: {
         ...options.extensions,
-        giraphQLPrismaRelationCount: name,
+        pothosPrismaRelationCount: name,
       },
       resolve: (parent, args, context, info) => {
         const loadedValue = (parent as { _count: Record<string, unknown> })._count?.[name];

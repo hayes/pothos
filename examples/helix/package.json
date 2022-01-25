@@ -1,7 +1,7 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
   "version": "1.0.0",
-  "name": "@giraphql-examples/helix",
+  "name": "@pothos-examples/helix",
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
@@ -9,10 +9,9 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@giraphql/core": "^2.22.0",
-    "@types/faker": "^5.5.9",
-    "graphql-helix": "^1.10.3",
-    "faker": "^5.5.3"
+    "@faker-js/faker": "^6.0.0-alpha.4",
+    "@pothos/core": "^2.22.0",
+    "graphql-helix": "^1.11.0"
   },
   "publishConfig": {
     "access": "public"

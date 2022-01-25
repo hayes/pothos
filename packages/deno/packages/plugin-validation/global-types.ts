@@ -2,11 +2,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { RefineConstraint, ValidationOptions } from './types.ts';
-import { GiraphQLValidationPlugin } from './index.ts';
+import { PothosValidationPlugin } from './index.ts';
 declare global {
-    export namespace GiraphQLSchemaTypes {
+    export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            validation: GiraphQLValidationPlugin<Types>;
+            validation: PothosValidationPlugin<Types>;
         }
         export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
             validate?: RefineConstraint<InputShapeFromFields<Args>>;

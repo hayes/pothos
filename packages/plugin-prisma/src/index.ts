@@ -1,7 +1,7 @@
 import './global-types';
 import './field-builder';
 import './schema-builder';
-import SchemaBuilder, { BasePlugin, BuildCache, SchemaTypes } from '@giraphql/core';
+import SchemaBuilder, { BasePlugin, BuildCache, SchemaTypes } from '@pothos/core';
 
 export * from './types';
 

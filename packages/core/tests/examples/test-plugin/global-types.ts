@@ -1,11 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, SchemaTypes, TypeParam } from '../../../src';
-import { GiraphQLTestPlugin } from './plugin';
+import { PothosTestPlugin } from './plugin';
 
 declare global {
-  export namespace GiraphQLSchemaTypes {
+  export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      test: GiraphQLTestPlugin<Types>;
+      test: PothosTestPlugin<Types>;
     }
 
     export interface InterfaceFieldOptions<

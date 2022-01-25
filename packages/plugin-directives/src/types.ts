@@ -1,4 +1,4 @@
-import { SchemaTypes } from '@giraphql/core';
+import { SchemaTypes } from '@pothos/core';
 
 export type DirectiveLocation =
   | 'ARGUMENT_DEFINITION'

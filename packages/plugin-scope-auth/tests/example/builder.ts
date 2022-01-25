@@ -1,5 +1,5 @@
 /* eslint-disable @typescript-eslint/require-await */
-import SchemaBuilder from '@giraphql/core';
+import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '../../src';
 import User from './user';
 

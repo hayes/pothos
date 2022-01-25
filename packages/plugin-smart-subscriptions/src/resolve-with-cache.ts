@@ -1,5 +1,5 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { isThenable, SchemaTypes } from '@giraphql/core';
+import { isThenable, SchemaTypes } from '@pothos/core';
 import { FieldSubscriber } from './types';
 import { SubscriptionCache } from '.';
 
