@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import Head from 'next/head';
 import { useRouter } from 'next/router';
 import MenuIcon from '@heroicons/react/outline/MenuIcon';
+import GithubLogo from './Docs/github';
 import { SearchPane } from './Search';
 import { TableOfContents, Toc } from './Toc';
 
@@ -34,9 +35,19 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
       <div className="h-full overflow-scroll dark:bg-[#22212C]">
         <header className="px-16 xl:pl-4 z-10 fixed top-0 bottom-0 flex w-full h-16 py-2 shadow justify-between bg-green text-white">
           <img className="h-full" src="/assets/logo-name-green.png"></img>
-          <ul className="flex space-x-3 h-full flex-row items-center">
-            <li>Examples</li>
-            <li>Github</li>
+          <ul className="flex space-x-3 h-full flex-row items-center lg:space-x-4">
+            <li>
+              <a
+                className="flex space-x-2 hover:underline"
+                href="https://github.com/hayes/giraphql"
+              >
+                <GithubLogo height={24} width={24} />
+                <span>Github</span>
+              </a>
+            </li>
+            <li className="hidden sm:block">
+              <a href="https://github.com/hayes/giraphql/tree/main/examples">Examples</a>
+            </li>
           </ul>
         </header>
         <details className="xl:hidden absolute top-0 z-20 h-full">

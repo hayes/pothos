@@ -68,6 +68,7 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
         <Toc
           className="fixed top-24 right-0 hidden md:block md:w-[calc(100%-min(800px,75%))] xl:w-[calc(50%-min(400px,37.5%))]"
           items={items}
+          nav={nav}
         />
         <div ref={bodyRef} className="prose">
           {children}

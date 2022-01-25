@@ -3,6 +3,7 @@
 import { MouseEvent, useEffect, useRef, useState } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
+import { TableOfContents } from '../Toc';
 import GithubLogo from './github';
 import { useCurrentDocsPage } from './Nav';
 
@@ -49,6 +50,7 @@ export function TocEntry({
 export function Toc({
   items,
   className,
+  nav,
 }: {
   className: string;
   items: {
@@ -56,6 +58,7 @@ export function Toc({
     depth: number;
     text: string;
   }[];
+  nav: TableOfContents;
 }) {
   const ref = useRef<HTMLElement | null>(null);
   const positions = useRef<{ id: string; offset: number }[]>([]);
@@ -116,28 +119,27 @@ export function Toc({
     };
   }, [ref, items]);
 
-  const currentPage = useCurrentDocsPage({ entries: [] });
+  const currentPage = useCurrentDocsPage(nav);
 
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
       <Head>
         <title>{currentPage?.name ?? 'Pothos Docs'}</title>
       </Head>
-      <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">
-        {items.map((item, i) => (
-          <TocEntry active={item.url.slice(1) === activeId} key={item.url} {...item} />
-        ))}
-      </ol>
-
       {currentPage && (
         <Link href={currentPage.githubFile}>
-          <a className="flex space-x-2 mt-8 dark:text-white">
+          <a className="flex space-x-2 mb-8 dark:text-white">
             <GithubLogo height={20} width={20} />
 
             <span>Edit on Github</span>
           </a>
         </Link>
       )}
+      <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">
+        {items.map((item, i) => (
+          <TocEntry active={item.url.slice(1) === activeId} key={item.url} {...item} />
+        ))}
+      </ol>
     </nav>
   );
 }
