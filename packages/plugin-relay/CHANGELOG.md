@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.0
+
+### Minor Changes
+
+- 11b02e73: Fix some issues with type inference on nullable connections
+
 ## 3.0.0
 
 ### Major Changes
