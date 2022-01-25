@@ -34,7 +34,7 @@ const components = {
     const match = /language-(\w+)/.exec(props.className ?? '');
 
     return match ? (
-      <code>props.children</code>
+      <code>{props.children}</code>
     ) : (
       <code
         {...props}
