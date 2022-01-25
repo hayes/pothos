@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.15.1
+
+### Patch Changes
+
+- ce585cca: fix Prisma object parent shape when combined with other plugins
+
 ## 0.15.0
 
 ### Minor Changes
