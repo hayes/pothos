@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build-ci": "cd .. && pnpm run build",
+    "build-ci": "cd .. && pnpm turbo run build --scope='@pothos/website'",
     "start": "next start"
   },
   "dependencies": {
