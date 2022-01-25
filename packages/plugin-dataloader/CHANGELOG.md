@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.0
+
+### Minor Changes
+
+- 7593d24f: Add loadableList method to dataloader plugin for handling one-to-many relations
+
 ## 3.0.0
 
 ### Major Changes

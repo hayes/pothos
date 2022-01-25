@@ -1,6 +1,13 @@
 # @pothos/website
 
 ## null
+
+### Minor Changes
+
+- 7593d24f: Add loadableList method to dataloader plugin for handling one-to-many relations
+
+## null
+
 ### Patch Changes
 
 - Updated dependencies [4caad5e4]
