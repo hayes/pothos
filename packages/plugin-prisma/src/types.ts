@@ -127,8 +127,8 @@ export type PrismaObjectTypeOptions<
   Include extends Model['Include'],
   Shape extends object,
 > = Omit<
-  | PothosSchemaTypes.ObjectTypeOptions<Types, ObjectRef<Shape>>
-  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, ObjectRef<Shape>, Interfaces>,
+  | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields'
 > & {
   name?: string;
