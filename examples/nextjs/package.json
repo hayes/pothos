@@ -1,6 +1,6 @@
 {
   "name": "@pothos-examples/nextjs",
-  "version": "1.1.0",
+  "version": "2.0.0",
   "private": true,
   "scripts": {
     "generate": "graphql-codegen",
@@ -12,7 +12,7 @@
     "@apollo/client": "^3.5.8",
     "@boost/module": "^3.1.0",
     "@faker-js/faker": "^6.0.0-alpha.4",
-    "@pothos/core": "^2.22.0",
+    "@pothos/core": "^3.0.0",
     "graphql-helix": "^1.11.0",
     "graphql-tag": "^2.12.6",
     "next": "12.0.8",

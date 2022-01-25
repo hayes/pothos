@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-validation",
-  "version": "2.16.0",
+  "version": "3.0.0",
   "description": "A Pothos plugin for adding argument validation",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -37,8 +37,8 @@
     "zod": "*"
   },
   "devDependencies": {
-    "@pothos/core": "^2.22.0",
-    "@pothos/test-utils": "^0.6.0",
+    "@pothos/core": "^3.0.0",
+    "@pothos/test-utils": "^1.0.0",
     "graphql-tag": "^2.12.6",
     "zod": "^3.11.6"
   },

@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma",
-  "version": "0.14.0",
+  "version": "0.15.0",
   "description": "A Pothos plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -57,10 +57,10 @@
     "typescript": ">4.5.2"
   },
   "devDependencies": {
-    "@pothos/core": "^2.22.0",
-    "@pothos/plugin-errors": "^2.13.0",
-    "@pothos/plugin-relay": "^2.19.0",
-    "@pothos/test-utils": "^0.6.0",
+    "@pothos/core": "^3.0.0",
+    "@pothos/plugin-errors": "^3.0.0",
+    "@pothos/plugin-relay": "^3.0.0",
+    "@pothos/test-utils": "^1.0.0",
     "@prisma/client": "^3.8.1",
     "graphql": "16.2.0",
     "graphql-tag": "^2.12.6",
