@@ -10,10 +10,6 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
   const router = useRouter();
   return (
     <>
-      <Head>
-        <title>Pothos GraphQL</title>
-        <link rel="shortcut icon" href="/favicon.png" />
-      </Head>
       <style global jsx>{`
         html,
         body,
@@ -33,6 +29,12 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
         }
       `}</style>
       <div className="h-full overflow-scroll dark:bg-[#22212C]">
+        <Head>
+          <link
+            rel="stylesheet"
+            href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.4.0/build/styles/atom-one-dark.min.css"
+          ></link>
+        </Head>
         <header className="px-16 xl:pl-4 z-10 fixed top-0 bottom-0 flex w-full h-16 py-2 shadow justify-between bg-green text-white">
           <img className="h-full" src="/assets/logo-name-green.png"></img>
           <ul className="flex space-x-3 h-full flex-row items-center lg:space-x-4">

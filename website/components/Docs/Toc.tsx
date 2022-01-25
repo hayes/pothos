@@ -52,6 +52,11 @@ export function Toc({
   className,
   nav,
 }: {
+  currentPage: {
+    title: string;
+    description?: string;
+    githubFile: string;
+  } | null;
   className: string;
   items: {
     url: string;
@@ -124,7 +129,8 @@ export function Toc({
   return (
     <nav ref={ref} className={`flex items-start pl-4 pr-2 ${className} text-sm`}>
       <Head>
-        <title>{currentPage?.name ?? 'Pothos Docs'}</title>
+        <title>{currentPage?.title ?? 'Pothos GraphQL'}</title>
+        {currentPage?.description && <meta name="description" content={currentPage.description} />}
       </Head>
       {currentPage && (
         <Link href={currentPage.githubFile}>

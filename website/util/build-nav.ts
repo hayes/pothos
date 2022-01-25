@@ -4,7 +4,7 @@ import matter, { GrayMatterFile } from 'gray-matter';
 import { TableOfContents, TableOfContentsEntry } from '../components/Toc';
 
 const navOrder: Record<string, string[]> = {
-  '@root': ['Docs', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
+  '@root': ['Overview', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
   Guide: [
     'Objects',
     'SchemaBuilder',
@@ -45,6 +45,7 @@ export type MDXFile = GrayMatterFile<string> & {
   path: string;
   menu?: string;
   name: string;
+  title: string;
   description: string;
   link: string;
 };
@@ -59,10 +60,11 @@ export function loadDocsFiles() {
 
   cachedFiles = loadMDXFiles(pagesDir).map((entry) => {
     const matterFile = matter(fs.readFileSync(entry));
-    const { menu, title, link, description } = matterFile.data as {
+    const { menu, title, link, description, name } = matterFile.data as {
       menu?: string;
       title: string;
       link?: string;
+      name?: string;
       description?: string;
     };
 
@@ -70,7 +72,9 @@ export function loadDocsFiles() {
       ...matterFile,
       path: entry,
       menu,
-      name: title,
+      name: name ?? title,
+      title,
+      navName: title,
       description: description ?? '',
       link: link ?? toLink(entry),
     };
@@ -89,11 +93,13 @@ export function buildNav(): TableOfContents {
   // Sort to ensure menu entries are added to nav first
   const sorted = [...entries].sort((a, b) => (a.data.menu ? 1 : -1));
 
-  sorted.forEach(({ path, data, menu, name, link }) => {
+  sorted.forEach(({ path, data, menu, name, link, description, title }) => {
     if (!menu) {
       nav.entries.push({
         name,
+        title,
         link,
+        description,
       });
     } else {
       const menuEntry = nav.entries.find((entry) => entry.name === menu);
@@ -108,7 +114,9 @@ export function buildNav(): TableOfContents {
 
       menuEntry?.children.push({
         name,
+        title,
         link,
+        description,
       });
     }
   });

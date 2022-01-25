@@ -1,6 +1,7 @@
 ---
-title: Docs
-description: Pothos documentation
+title: Pothos Docs
+name: Overview
+description: Pothos - A plugin based GraphQL schema builder for typescript
 link: /
 ---
 
@@ -13,9 +14,11 @@ export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 ![Pothos](/assets/logo-name-white.png)
 
-## Pothos - A plugin based GraphQL schema builder for typescript
+# Pothos GraphQL (formerly GiraphQL) - 
 
-Pothos makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds
+Pothos is a plugin based GraphQL schema builder for typescript.
+
+It makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds
 0 overhead at runtime, and has `graphql` as its only dependency.
 
 By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
@@ -28,7 +31,7 @@ methods that can take full advantage of the Pothos type system.
 
 ## Hello, World
 
-```typescript
+```javascript
 import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@pothos/core';
 

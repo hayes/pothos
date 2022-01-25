@@ -1,5 +1,5 @@
 import { useRouter } from 'next/router';
-import { TableOfContents } from '../Toc';
+import { TableOfContents, TableOfContentsEntry } from '../Toc';
 
 export function useCurrentDocsPage(tableOfContents: TableOfContents) {
   const router = useRouter();
@@ -15,10 +15,17 @@ export function useCurrentDocsPage(tableOfContents: TableOfContents) {
     return null;
   }
 
+  const index = flatEntries.indexOf(entry);
+
+  const prevPage = flatEntries[index - 1] as TableOfContentsEntry | undefined;
+  const nextPage = flatEntries[index + 1] as TableOfContentsEntry | undefined;
+
   return {
     ...entry,
     githubFile: `https://github.com/hayes/giraphql/edit/mh-pothos/website/pages${entry.link}${
       entry.children ? '/index.mdx' : '.mdx'
     }`,
+    prevPage,
+    nextPage,
   };
 }

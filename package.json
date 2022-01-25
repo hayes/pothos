@@ -10,6 +10,7 @@
     "prepare": "pnpm create-config && pnpm run -r generate --filter @pothos/*",
     "create-config": "beemo create-config",
     "build": "pnpm turbo run build --scope='@pothos/*' && pnpm run build-deno && pnpm run -r generate --filter @pothos-examples/*",
+    "generate": "pnpm run -r generate --filter @pothos-examples/*",
     "build-deno": "pnpm ts-node packages/deno/scripts/build.ts",
     "clean:all": "pnpm clean && rm -rf ./packages/*/node_modules node_modules ./packages/deno/packages && pnpm",
     "clean": "rm -rf ./packages/*/{tsconfig.tsbuildinfo,lib,esm} && git checkout -- 'packages/*/esm/*'",

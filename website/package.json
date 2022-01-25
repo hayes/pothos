@@ -4,7 +4,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
-    "build-ci": "cd .. && pnpm turbo run build --scope='@pothos/website' --include-dependencies",
+    "build-ci": "cd .. && pnpm generate && pnpm turbo run build --scope=\"@pothos/website\" --no-deps --include-dependencies",
     "start": "next start"
   },
   "dependencies": {
@@ -23,7 +23,6 @@
     "react": "^17.0.2",
     "react-dom": "^17.0.2",
     "react-instantsearch-dom": "^6.20.0",
-    "react-syntax-highlighter": "^15.4.5",
     "rehype-slug": "^5.0.1",
     "remark-frontmatter": "4.0.1",
     "remark-mdx-frontmatter": "^1.1.1",
@@ -34,12 +33,14 @@
     "rehype-stringify": "^9.0.2",
     "unist-util-visit": "^4.1.0",
     "react-query": "^4.0.0-alpha.9",
-    "just-debounce": "^1.1.0"
+    "just-debounce": "^1.1.0",
+    "rehype-highlight": "^5.0.2",
+    "highlight.js": "^11.4.0",
+    "highlightjs-graphql": "^1.0.2"
   },
   "devDependencies": {
     "@boost/module": "^3.1.0",
     "@types/react": "^17.0.38",
-    "@types/react-syntax-highlighter": "^13.5.2",
     "@types/tailwindcss": "^3.0.2",
     "@types/mdast":"^3.0.10",
     "autoprefixer": "^10.4.2",

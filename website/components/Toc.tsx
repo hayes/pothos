@@ -1,7 +1,9 @@
 import Link from 'next/link';
 
 export interface TableOfContentsEntry {
+  title: string;
   name: string;
+  description?: string;
   link: string;
   children?: TableOfContentsEntry[];
 }
