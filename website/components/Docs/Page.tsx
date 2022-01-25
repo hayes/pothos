@@ -38,7 +38,7 @@ const components = {
     ) : (
       <code
         {...props}
-        className="text-white bg-[#1f2937] rounded before:content-[''] after:content-[''] px-1"
+        className="bg-gray-200 dark:bg-gray-700 dark:text-white rounded before:content-[''] after:content-[''] px-2 font-semibold inline-block"
       />
     );
   },
