@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-mocks",
-  "version": "2.10.0",
+  "version": "3.0.0",
   "description": "A Pothos plugin for mocking resolvers",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -41,8 +41,8 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@pothos/core": "^2.22.0",
-    "@pothos/test-utils": "^0.6.0",
+    "@pothos/core": "^3.0.0",
+    "@pothos/test-utils": "^1.0.0",
     "graphql": "16.2.0",
     "graphql-tag": "^2.12.6"
   },

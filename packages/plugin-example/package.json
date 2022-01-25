@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-example",
-  "version": "2.11.0",
+  "version": "3.0.0",
   "description": "An example plugin for Pothos",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -37,8 +37,8 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@pothos/core": "^2.22.0",
-    "@pothos/test-utils": "^0.6.0",
+    "@pothos/core": "^3.0.0",
+    "@pothos/test-utils": "^1.0.0",
     "graphql": "16.2.0",
     "graphql-tag": "^2.12.6"
   },

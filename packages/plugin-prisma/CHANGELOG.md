@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.15.0
+
+### Minor Changes
+
+- 4caad5e4: Rename GiraphQL to Pothos
+
 ## 0.14.0
 
 ### Minor Changes
