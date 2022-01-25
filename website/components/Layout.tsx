@@ -37,6 +37,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
           ></link>
           <link rel="shortcut icon" href="/favicon.ico" />
           <link rel="canonical" href={`https://www.pothos-graphql.dev/${router.pathname}`} />
+          <meta httpEquiv="content-language" content="en-us" />
         </Head>
         <header className="px-16 xl:pl-4 z-10 fixed top-0 bottom-0 flex w-full h-16 py-2 shadow justify-between bg-green text-white">
           <Link href="/">
