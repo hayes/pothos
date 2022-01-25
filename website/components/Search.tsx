@@ -151,7 +151,7 @@ export function SearchPane() {
                   </Link>
                   <ul className="py-2">
                     {result.matches
-                      .filter((match) => match.kind === 'Heading')
+                      .filter((match) => match.kind === 'Heading' || match.kind === 'Content')
                       .map((match) => (
                         <li className="px-2">
                           <Link href={match.section!.link}>
