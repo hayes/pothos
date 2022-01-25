@@ -36,7 +36,7 @@ Here is a quick example of what an API using this plugin might look like. There 
 breakdown of what the methods and options used in the example below.
 
 If you are looking for an example integrated with the
-[relay plugin](https://pothos-graphql.dev/plugins/relay), see the
+[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), see the
 [Relay integration](#relay-integration) section below.
 
 ```typescript
@@ -626,8 +626,8 @@ builder.prismaObject('User', {
 ## Relay integration
 
 This plugin has extensive integration with the
-[relay plugin](https://pothos-graphql.dev/plugins/relay), which makes creating nodes and connections
-very easy.
+[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
+connections very easy.
 
 ### Example
 

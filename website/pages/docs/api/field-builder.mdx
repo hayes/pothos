@@ -30,7 +30,7 @@ type FieldOptions = {
 };
 ```
 
-- `type`: [Type Parameter](./field-builder.md#type-parameter)
+- `type`: [Type Parameter](./field-builder#type-parameter)
 - `args`: a map of arg name to arg values. Arg values can be created using an
   [`InputFieldBuilder`](./input-field-builder)
 
@@ -40,7 +40,7 @@ type FieldOptions = {
   [Changing Default Nullability](../guide/changing-default-nullability).
 - `description`: string
 - `deprecationReason`: string
-- `resolve`: [Resolver](./field-builder.md#resolver)
+- `resolve`: [Resolver](./field-builder#resolver)
 
 ### Type Parameter
 
@@ -80,7 +80,7 @@ details.
 ## helpers
 
 A set of helpers for creating scalar fields. This work the same as
-[`field`](./field-builder.md#fieldoptions), but omit the `type` field from options.
+[`field`](./field-builder#fieldoptions), but omit the `type` field from options.
 
 ### Scalars
 
@@ -99,7 +99,7 @@ A set of helpers for creating scalar fields. This work the same as
 
 A set of helpers to expose fields from the backing model. The `name` arg can be any field from the
 backing model that matches the type being exposed. Options are the same as
-[`field`](./field-builder.md#fieldoptions), but `type` and `resolve` are omitted.
+[`field`](./field-builder#fieldoptions), but `type` and `resolve` are omitted.
 
 - `exposeString(name, options)`
 - `exposeID(name, options)`
