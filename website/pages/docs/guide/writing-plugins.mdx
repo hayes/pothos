@@ -51,7 +51,7 @@ the options objects defined in `PothosSchemaTypes`.
 ## Getting Started
 
 The best place to start is by looking through the
-[example plugin](https://github.com/hayes/giraphql/tree/main/packages/plugin-example).
+[example plugin](https://github.com/hayes/pothos/tree/main/packages/plugin-example).
 
 The general structure of a plugin has 3 main parts:
 
@@ -106,18 +106,18 @@ To add properties to the various config objects used by the `SchemaBuilder`, you
 finding the interface that defines that config object in `@pothos/core`. Currently there are 4 main
 file that define the types that make up `PothosSchemaTypes` namespace.
 
-1. [`type-options.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/type-options.ts):
+1. [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts):
 
    Contains the interfaces that define the options objects for the various types \(Object,
    Interface,
 
    Enum, etc\).
 
-2. [`field-options.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/field-options.ts):
+2. [`field-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/field-options.ts):
 
    Contains the interfaces that define the options objects for creating fields
 
-3. [`schema-types.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/schema-types.ts)
+3. [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts)
 
    Contains the interfaces for SchemaBuilder options, SchemaTypes, options for `toSchema`, and other
 
@@ -125,7 +125,7 @@ file that define the types that make up `PothosSchemaTypes` namespace.
 
    other categories.
 
-4. [`classes.ts`](https://github.com/hayes/giraphql/blob/main/packages/core/src/types/global/classes.ts)
+4. [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts)
 
    Contains interfaces that describe the classes used by Pothos, include `SchemaBuilder` and the
 
@@ -195,7 +195,7 @@ This can be done by either using `Object.assign`, or spreading the original conf
 Each config object will have the properties expected by the GraphQL for creating the types or fields
 \(although some properties like `resolve` will be added later\), but will also include a number of
 Pothos specific properties. These properties include `graphqlKind` to indicate what kind of GraphQL
-type the config object is for, `giraphQLOptions`, which contains all the options passed in to the
+type the config object is for, `pothosOptions`, which contains all the options passed in to the
 schema builder when creating the type or field.
 
 If your plugin needs to add additional types or fields to the schema it should do this in the

@@ -1,5 +1,6 @@
 import { ReactNode } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 import { useRouter } from 'next/router';
 import MenuIcon from '@heroicons/react/outline/MenuIcon';
 import GithubLogo from './Docs/github';
@@ -34,21 +35,24 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
             rel="stylesheet"
             href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.4.0/build/styles/atom-one-dark.min.css"
           ></link>
+          <link rel="shortcut icon" href="/favicon.ico" />
         </Head>
         <header className="px-16 xl:pl-4 z-10 fixed top-0 bottom-0 flex w-full h-16 py-2 shadow justify-between bg-green text-white">
-          <img className="h-full" src="/assets/logo-name-green.png"></img>
+          <Link href="/">
+            <a>
+              <img className="hidden sm:block h-full" src="/assets/logo-name-dark.svg"></img>
+              <img className="sm:hidden h-full" src="/assets/logo-dark.svg"></img>
+            </a>
+          </Link>
           <ul className="flex space-x-3 h-full flex-row items-center lg:space-x-4">
             <li>
-              <a
-                className="flex space-x-2 hover:underline"
-                href="https://github.com/hayes/giraphql"
-              >
+              <a className="flex space-x-2 hover:underline" href="https://github.com/hayes/pothos">
                 <GithubLogo height={24} width={24} />
                 <span>Github</span>
               </a>
             </li>
             <li className="hidden sm:block">
-              <a href="https://github.com/hayes/giraphql/tree/main/examples">Examples</a>
+              <a href="https://github.com/hayes/pothos/tree/main/examples">Examples</a>
             </li>
           </ul>
         </header>

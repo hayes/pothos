@@ -20,7 +20,7 @@ const components = {
   ),
   p: (props: HTMLProps<HTMLParagraphElement>) => <p {...props} className="dark:!text-white" />,
   h1: (props: HTMLProps<HTMLHeadingElement>) => (
-    <h1 {...props} className="dark:!text-white text-2xl" />
+    <h1 {...props} className="dark:!text-white text-3xl mt-16" />
   ),
   h2: (props: HTMLProps<HTMLHeadingElement>) => <h2 {...props} className="dark:!text-white" />,
   h3: (props: HTMLProps<HTMLHeadingElement>) => <h3 {...props} className="dark:!text-white" />,

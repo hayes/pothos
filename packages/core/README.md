@@ -1,5 +1,3 @@
-![Pothos](./website/public/assets/logo-name-auto.svg)
-
 ## Pothos - A plugin based GraphQL schema builder for typescript
 
 Pothos makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds

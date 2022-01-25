@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-errors",
   "version": "2.13.0",
-  "description": "A GiraphQL plugin for adding typed errors into your schema",
+  "description": "A Pothos plugin for adding typed errors into your schema",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -19,12 +19,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",

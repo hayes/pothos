@@ -1,9 +1,11 @@
 ![Pothos](./website/public/assets/logo-name-auto.svg)
 
-## Pothos - A plugin based GraphQL schema builder for typescript
+# Pothos GraphQL ([formerly GiraphQL](/docs/migrations/giraphql-pothos)) -
 
-Pothos makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds
-0 overhead at runtime, and has `graphql` as its only dependency.
+Pothos is a plugin based GraphQL schema builder for typescript.
+
+It makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
+overhead at runtime, and has `graphql` as its only dependency.
 
 By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
 writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
@@ -15,7 +17,7 @@ methods that can take full advantage of the Pothos type system.
 
 ## Hello, World
 
-```typescript
+```javascript
 import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@pothos/core';
 
@@ -37,62 +39,56 @@ new ApolloServer({
 }).listen(3000);
 ```
 
-## Full docs available at https://pothos-graphql.dev
-
 ## Plugins that make Pothos even better
 
-- [**Auth**](./plugins/scope-auth)
+- [**Auth**](/docs/plugins/scope-auth)
 
   Add global, type level, or field level authorization checks to your schema
 
-- [**Complexity**](./docs/plugins/complexity)
+- [**Complexity**](/docs/plugins/complexity)
 
   A plugin for defining and limiting complexity of queries
 
-- [**Directives**](./plugins/directives)
+- [**Directives**](/docs/plugins/directives)
 
   Integrate with existing schema graphql directives in a type-safe way.
 
-- [**Errors**](./plugins/errors)
+- [**Errors**](/docs/plugins/errors)
 
   A plugin for easily including error types in your GraphQL schema and hooking up error types to
   resolvers.
 
-- [**Dataloader**](./plugins/dataloader)
+- [**Dataloader**](/docs/plugins/dataloader)
 
   Quickly define data-loaders for your types and fields to avoid n+1 queries.
 
-- [**Mocks**](./plugins/mocks)
+- [**Mocks**](/docs/plugins/mocks)
 
   Add mock resolver for easier testing
 
-- [**Prisma**](./plugins/prisma)
+- [**Prisma**](/docs/plugins/prisma)
 
   A plugin for more efficient integration with prisma that can help solve n+1 issues and more
   efficienty resolve queries
 
-- [**Relay**](./plugins/relay)
+- [**Relay**](/docs/plugins/relay)
 
   Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
 
   for cursor based pagination.
 
-- [**Simple Objects**](./plugins/simple-objects)
+- [**Simple Objects**](/docs/plugins/simple-objects)
 
   Define simple object types without resolvers or manual type definitions.
 
-- [**Smart Subscriptions**](./plugins/smart-subscriptions)
+- [**Smart Subscriptions**](/docs/plugins/smart-subscriptions)
 
   Make any part of your graph subscribable to get live updates as your data changes.
 
-- [**Sub-Graph**](./plugins/sub-graph)
+- [**Sub-Graph**](/docs/plugins/sub-graph)
 
   Build multiple subsets of your graph to easily share code between internal and external APIs.
 
-- [**Validation**](./plugins/validation)
+- [**Validation**](/docs/plugins/validation)
 
   Validating your inputs and arguments
-
-## Dev setup
-
-See [CONTRIBUTING.md](./CONTRIBUTING.md)

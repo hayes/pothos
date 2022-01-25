@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-validation",
   "version": "2.16.0",
-  "description": "A GiraphQL plugin for adding argument validation",
+  "description": "A Pothos plugin for adding argument validation",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -21,6 +21,7 @@
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",

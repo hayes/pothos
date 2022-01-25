@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-dataloader",
   "version": "2.20.0",
-  "description": "A GiraphQL plugin for attaching dataloader to object types",
+  "description": "A Pothos plugin for attaching dataloader to object types",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -21,6 +21,7 @@
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",

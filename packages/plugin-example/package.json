@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-example",
   "version": "2.11.0",
-  "description": "An example plugin for GiraphQL",
+  "description": "An example plugin for Pothos",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -18,12 +18,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "example",

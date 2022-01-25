@@ -1,10 +1,10 @@
 {
   "name": "@pothos/deno",
   "version": "2.20.0",
-  "description": "Deno compatible versions of GiraphQL packages",
+  "description": "Deno compatible versions of Pothos packages",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",

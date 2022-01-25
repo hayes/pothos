@@ -57,14 +57,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/hayes/giraphql/issues"
+    "url": "https://github.com/hayes/pothos/issue"
   },
-  "homepage": "https://github.com/hayes/giraphql#readme",
+  "homepage": "https://pothos-graphql.dev",
   "turbo": {
     "baseBranch": "origin/main",
     "npmClient": "pnpm",

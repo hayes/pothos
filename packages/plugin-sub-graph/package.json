@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-sub-graph",
   "version": "2.11.0",
-  "description": "A GiraphQL plugin for creating multiple variants or sub-selections of the same graph",
+  "description": "A Pothos plugin for creating multiple variants or sub-selections of the same graph",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -19,12 +19,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
     "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",

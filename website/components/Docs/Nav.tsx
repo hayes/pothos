@@ -22,7 +22,7 @@ export function useCurrentDocsPage(tableOfContents: TableOfContents) {
 
   return {
     ...entry,
-    githubFile: `https://github.com/hayes/giraphql/edit/mh-pothos/website/pages${entry.link}${
+    githubFile: `https://github.com/hayes/pothos/edit/mh-pothos/website/pages${entry.link}${
       entry.children ? '/index.mdx' : '.mdx'
     }`,
     prevPage,
