@@ -28,7 +28,7 @@
   "dependencies": {
     "graphql": "16.2.0",
     "graphql-helix": "^1.11.0",
-    "ts-morph": "^13.0.2",
+    "ts-morph": "^13.0.3",
     "yargs": "^17.3.1"
   }
 }

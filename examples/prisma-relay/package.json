@@ -15,11 +15,11 @@
     "seed": "pnpm ts-node prisma/seed.ts"
   },
   "dependencies": {
+    "@faker-js/faker": "^6.0.0-alpha.4",
     "@pothos/core": "^2.22.0",
     "@pothos/plugin-prisma": "^0.14.0",
     "@pothos/plugin-relay": "^2.19.0",
     "@prisma/client": "^3.8.1",
-    "@faker-js/faker": "^6.0.0-alpha.3",
     "apollo-server": "^3.6.2",
     "prisma": "^3.8.1",
     "ts-node": "^10.4.0"

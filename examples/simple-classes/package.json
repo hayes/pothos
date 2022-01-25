@@ -9,8 +9,8 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
+    "@faker-js/faker": "^6.0.0-alpha.4",
     "@pothos/core": "^2.21.0",
-    "@faker-js/faker": "^6.0.0-alpha.3",
     "apollo-server": "^3.6.2",
     "ts-node": "^10.4.0"
   },
