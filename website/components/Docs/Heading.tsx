@@ -14,7 +14,7 @@ export function Heading({
     <Tag className={`relative group items-center ${className}`} id={id} {...props}>
       {id && (
         <a
-          className={`hidden group-hover:flex items-center absolute -left-8 right-full h-full ${className}`}
+          className={`hidden group-hover:flex items-center absolute -left-6 right-full h-full ${className}`}
           href={`#${id}`}
         >
           <LinkIcon className="h-2/3" />
