@@ -121,8 +121,8 @@ importers:
   examples/prisma:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.0
-      '@pothos/plugin-prisma': ^0.15.0
+      '@pothos/core': ^3.0.1
+      '@pothos/plugin-prisma': ^0.15.2
       '@prisma/client': ^3.8.1
       apollo-server: ^3.6.2
       prisma: ^3.8.1
@@ -139,8 +139,8 @@ importers:
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.0
-      '@pothos/plugin-prisma': ^0.15.0
+      '@pothos/core': ^3.0.1
+      '@pothos/plugin-prisma': ^0.15.2
       '@pothos/plugin-relay': ^3.0.0
       '@prisma/client': ^3.8.1
       apollo-server: ^3.6.2
@@ -338,7 +338,7 @@ importers:
 
   packages/plugin-prisma:
     specifiers:
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.0.1
       '@pothos/plugin-errors': ^3.0.0
       '@pothos/plugin-relay': ^3.0.0
       '@pothos/plugin-scope-auth': ^3.0.0
@@ -482,7 +482,7 @@ importers:
       '@mdx-js/mdx': ^2.0.0-rc.2
       '@mdx-js/react': ^2.0.0-rc.2
       '@next/mdx': ^12.0.8
-      '@pothos/core': 3.0.0
+      '@pothos/core': 3.0.1
       '@tailwindcss/typography': ^0.5.0
       '@types/mdast': ^3.0.10
       '@types/react': ^17.0.38

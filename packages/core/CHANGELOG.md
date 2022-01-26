@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.0.1
+
+### Patch Changes
+
+- a01abb7f: Fix compatability between prisma and auth plugins
+
 ## 3.0.0
 
 ### Major Changes
