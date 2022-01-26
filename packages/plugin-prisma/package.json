@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma",
-  "version": "0.15.1",
+  "version": "0.15.2",
   "description": "A Pothos plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -57,7 +57,7 @@
     "typescript": ">4.5.2"
   },
   "devDependencies": {
-    "@pothos/core": "^3.0.0",
+    "@pothos/core": "^3.0.1",
     "@pothos/plugin-errors": "^3.0.0",
     "@pothos/plugin-relay": "^3.0.0",
     "@pothos/plugin-scope-auth": "^3.0.0",
