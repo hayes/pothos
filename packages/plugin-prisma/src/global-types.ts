@@ -7,7 +7,6 @@ import {
   InputFieldMap,
   InterfaceParam,
   NormalizeArgs,
-  ObjectRef,
   OutputType,
   PluginName,
   SchemaTypes,

@@ -19,6 +19,8 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
 });
 
 const User = builder.prismaNode('User', {
+  // Testing that user is typed correctly
+  authScopes: (user) => !!user.id,
   interfaces: [Named],
   id: {
     resolve: (user) => user.id,
@@ -98,6 +100,8 @@ const User = builder.prismaNode('User', {
 });
 
 const Profile = builder.prismaObject('Profile', {
+  // Testing that user is typed correctly
+  authScopes: (user) => !!user.id,
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),

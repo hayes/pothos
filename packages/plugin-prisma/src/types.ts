@@ -145,7 +145,7 @@ export type PrismaNodeOptions<
   Shape extends object,
 > = Omit<
   | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
-  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, ObjectRef<Shape>, Interfaces>,
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields' | 'isTypeOf'
 > & {
   name?: string;

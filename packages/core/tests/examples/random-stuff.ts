@@ -13,7 +13,7 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: string; Output: String };
+    Date: { Input: string; Output: string };
   };
   Context: { userID: number };
 }
@@ -40,7 +40,7 @@ class Giraffe extends Animal {
 const builder = new SchemaBuilder<Types>({});
 
 builder.scalarType('Date', {
-  serialize: (date) => new Date(date as Date).toISOString(),
+  serialize: (date) => new Date(date).toISOString(),
 });
 
 builder.interfaceType(Animal, {

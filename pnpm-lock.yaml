@@ -341,6 +341,7 @@ importers:
       '@pothos/core': ^3.0.0
       '@pothos/plugin-errors': ^3.0.0
       '@pothos/plugin-relay': ^3.0.0
+      '@pothos/plugin-scope-auth': ^3.0.0
       '@pothos/test-utils': ^1.0.0
       '@prisma/client': ^3.8.1
       '@prisma/generator-helper': ^3.8.1
@@ -353,6 +354,7 @@ importers:
       '@pothos/core': link:../core
       '@pothos/plugin-errors': link:../plugin-errors
       '@pothos/plugin-relay': link:../plugin-relay
+      '@pothos/plugin-scope-auth': link:../plugin-scope-auth
       '@pothos/test-utils': link:../test-utils
       '@prisma/client': 3.8.1_prisma@3.8.1
       graphql: 16.1.0

@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
+import AuthPlugin from '@pothos/plugin-scope-auth';
 // eslint-disable-next-line import/no-named-as-default
 import PrismaPlugin from '../../src';
 import { PrismaClient } from '../client';
@@ -32,9 +33,15 @@ export default new SchemaBuilder<{
     user: { id: number };
   };
   PrismaTypes: PrismaTypes;
+  AuthScopes: {
+    user: boolean;
+  };
 }>({
-  plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin],
+  plugins: [AuthPlugin, ErrorsPlugin, PrismaPlugin, RelayPlugin],
   relayOptions: {},
+  authScopes: () => ({
+    user: true,
+  }),
   prisma: {
     client: prisma,
   },
