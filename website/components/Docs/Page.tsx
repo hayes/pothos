@@ -5,6 +5,7 @@ import ArrowRightIcon from '@heroicons/react/outline/ArrowRightIcon';
 import { MDXProvider } from '@mdx-js/react';
 import { Layout } from '../Layout';
 import { TableOfContents } from '../Toc';
+import { Heading } from './Heading';
 import { useCurrentDocsPage } from './Nav';
 import { Toc } from './Toc';
 
@@ -21,11 +22,17 @@ const components = {
   img: (props: HTMLProps<HTMLElement>) => <img {...(props as {})} className="mb-16" />,
   p: (props: HTMLProps<HTMLParagraphElement>) => <p {...props} className="dark:!text-white" />,
   h1: (props: HTMLProps<HTMLHeadingElement>) => (
-    <h1 {...props} className="dark:!text-white text-3xl" />
+    <Heading tag="h1" {...props} className="dark:!text-white text-3xl" />
   ),
-  h2: (props: HTMLProps<HTMLHeadingElement>) => <h2 {...props} className="dark:!text-white" />,
-  h3: (props: HTMLProps<HTMLHeadingElement>) => <h3 {...props} className="dark:!text-white" />,
-  h4: (props: HTMLProps<HTMLHeadingElement>) => <h4 {...props} className="dark:!text-white" />,
+  h2: (props: HTMLProps<HTMLHeadingElement>) => (
+    <Heading tag="h2" {...props} className="dark:!text-white text-3xl" />
+  ),
+  h3: (props: HTMLProps<HTMLHeadingElement>) => (
+    <Heading tag="h3" {...props} className="dark:!text-white text-3xl" />
+  ),
+  h4: (props: HTMLProps<HTMLHeadingElement>) => (
+    <Heading tag="h4" {...props} className="dark:!text-white text-3xl" />
+  ),
   li: (props: HTMLProps<HTMLLIElement>) => <li {...props} className="dark:!text-white" />,
   strong: (props: HTMLProps<HTMLElement>) => <strong {...props} className="dark:!text-white" />,
   inlineCode: (props: HTMLProps<HTMLElement>) => <code {...props} className="dark:!text-white" />,
