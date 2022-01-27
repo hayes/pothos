@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- b58ee414: Fix primaNode variants
+
+## null
+
+### Patch Changes
+
 - Updated dependencies [a01abb7f]
   - @pothos/core@3.0.1
 
