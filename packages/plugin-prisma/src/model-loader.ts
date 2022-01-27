@@ -66,6 +66,20 @@ export class ModelLoader {
     return (result._count as Record<string, number>)[relation];
   }
 
+  async loadSelf(include: unknown, context: {}) {
+    for (const entry of this.staged) {
+      const merged = mergeIncludes(entry.include, include as Record<string, unknown>);
+
+      if (merged) {
+        entry.include = merged as Record<string, unknown>;
+
+        return entry.promise;
+      }
+    }
+
+    return this.initLoad(null, include, context);
+  }
+
   async loadRelation(relation: string, include: unknown, context: {}) {
     let promise;
     for (const entry of this.staged) {
@@ -96,18 +110,21 @@ export class ModelLoader {
     return result[relation];
   }
 
-  async initLoad(relation: string, includeArg: unknown, context: {}, count = false) {
-    const include: Record<string, unknown> = count
-      ? {
-          _count: {
-            select: {
-              [relation]: true,
-            },
-          },
-        }
-      : {
-          [relation]: includeArg,
-        };
+  async initLoad(relation: string | null, includeArg: unknown, context: {}, count = false) {
+    const include: Record<string, unknown> =
+      (relation &&
+        (count
+          ? {
+              _count: {
+                select: {
+                  [relation]: true,
+                },
+              },
+            }
+          : {
+              [relation]: includeArg,
+            })) ||
+      {};
 
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
       setTimeout(() => {
@@ -117,7 +134,7 @@ export class ModelLoader {
           this.delegate.findUnique({
             rejectOnNotFound: true,
             where: { ...(this.findUnique(this.model, context) as {}) },
-            include,
+            include: Object.keys(include).length > 0 ? include : undefined,
           } as never) as Promise<Record<string, unknown>>,
         );
       }, 0);

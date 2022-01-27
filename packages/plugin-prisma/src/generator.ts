@@ -45,7 +45,14 @@ generatorHandler({
         [],
         model.name,
         undefined,
+
         ts.factory.createTypeLiteralNode([
+          ts.factory.createPropertySignature(
+            [],
+            'Name',
+            undefined,
+            ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(model.name)),
+          ),
           ts.factory.createPropertySignature(
             [],
             'Shape',

@@ -5,12 +5,12 @@ menu: Plugins
 description: Prisma plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Prisma Plugin for Pothos
 
@@ -637,11 +637,90 @@ builder.prismaObject('User', {
 });
 ```
 
+### Variants
+
+In some cases, you may want to craete multiple graphql types for a single prisma model. Using
+`builder.prismaObject` multiple times with the same model will result in an error, because Pothos
+will not know which version to use when creating relations.
+
+To create additional types based on the same model you can add a `variant` option to your
+`prismaObject` (or `prismaNode`) call. To use this type you will need to use the returned
+`ObjectRef` when defining other fields.
+
+```typescript
+// Define your primary type
+builder.prismaObject('User', {
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({...}),
+});
+
+// Define your variant type
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({...}),
+});
+
+// Use the type with a prismaField
+builder.queryField('viewer', t => t.prismaField({
+  // specify type with the ref rather than the model name as a string
+  type: Viewer,
+  resolve: (query, _root, args, { user }) => prisma.user.findUnique({ ...query, where: { id: user.id }})
+}))
+
+// Using the type with a relation field
+builder.prismaObject('Post', {
+  findUnique: post => ({ id: post.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    author: t.relation('author')
+    // Pass ref as Type to use the variant instead of the primary type
+    authorAsViewer: t.relation('author', { type: Viewer }),
+  }),
+});
+```
+
+You may also want to reference a variant as a child of the primary type. To do this, you can use the
+`t.varient` field builder method. This will create a field that resolves to the same record, as the
+variant graphql type. Any child selections on the variant field will be included as part of the
+optimized prisma query, so relationships inside the variant will still have n+1 optimizations
+applied, unless there are incompatible includes or selections, which would automatically be split
+into a second query.
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // You can reference the primary type using the model name as a string
+    user: t.variant('User'),
+  }),
+});
+
+builder.prismaObject('User', {
+  // Testing that user is typed correctly
+  authScopes: (user) => !!user.id,
+  interfaces: [Named],
+  id: {
+    resolve: (user) => user.id,
+  },
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    // To reference a varient, pass the variants ref to `t.variant`.
+    viewer: t.variant(Viewer, {}),
+  }),
+});
+```
+
+The above options will also work the the relay equivelents (`builder.prismaNode`,
+`t.relatedConnection`, etc)
+
 ## Relay integration
 
 This plugin has extensive integration with the
-[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and connections
-very easy.
+[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), which makes creating nodes and
+connections very easy.
 
 ### Example
 

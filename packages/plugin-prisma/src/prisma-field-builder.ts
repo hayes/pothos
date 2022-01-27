@@ -13,6 +13,7 @@ import {
 import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
 import { getLoaderMapping, setLoaderMappings } from './loader-map';
 import { ModelLoader } from './model-loader';
+import { PrismaObjectRef } from './object-ref';
 import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel, getRelation } from './refs';
 import {
   PrismaDelegate,
@@ -21,7 +22,8 @@ import {
   RelatedFieldOptions,
   RelationCountOptions,
 } from './types';
-import { queryFromInfo } from './util';
+import { queryFromInfo, SELF_RELATION } from './util';
+import { VariantFieldOptions } from '.';
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -69,6 +71,7 @@ export class PrismaObjectFieldBuilder<
       totalCount,
       ...options
     }: {
+      type?: ObjectRef<unknown, unknown>;
       totalCount?: boolean;
       maxSize?: number;
       defaultSize?: number;
@@ -84,7 +87,7 @@ export class PrismaObjectFieldBuilder<
     const parentRef = getRefFromModel(this.model, this.builder);
     const relationTypeName =
       typeof relationField.type === 'string' ? relationField.type : relationField.type.name;
-    const ref = getRefFromModel(relationTypeName, this.builder);
+    const ref = options.type ?? getRefFromModel(relationTypeName, this.builder);
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
     let typeName: string | undefined;
@@ -232,7 +235,7 @@ export class PrismaObjectFieldBuilder<
     const parentRef = getRefFromModel(this.model, this.builder);
     const relationTypeName =
       typeof relationField.type === 'string' ? relationField.type : relationField.type.name;
-    const ref = getRefFromModel(relationTypeName, this.builder);
+    const ref = options.type ?? getRefFromModel(relationTypeName, this.builder);
     const findUnique = getFindUniqueForRef(parentRef, this.builder);
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
 
@@ -320,5 +323,51 @@ export class PrismaObjectFieldBuilder<
         return loaderCache(parent).loadCount(name, context) as never;
       },
     }) as FieldRef<number, 'Object'>;
+  }
+
+  variant<Variant extends Model['Name'] | PrismaObjectRef<Model>>(
+    ...allArgs: NormalizeArgs<
+      [
+        variant: Variant,
+        options?: VariantFieldOptions<
+          Types,
+          Model,
+          Variant extends PrismaObjectRef<Model> ? Variant : PrismaObjectRef<Model>
+        >,
+      ]
+    >
+  ): FieldRef<Model['Shape'], 'Object'> {
+    const [variant, options = {} as never] = allArgs;
+    const ref: PrismaObjectRef<PrismaModelTypes> =
+      typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
+    const parentRef = getRefFromModel(this.model, this.builder);
+    const findUnique = getFindUniqueForRef(parentRef, this.builder);
+    const loaderCache = ModelLoader.forModel(this.model, this.builder);
+
+    return this.field({
+      ...options,
+      type: ref,
+      extensions: {
+        ...options.extensions,
+        pothosPrismaRelation: SELF_RELATION,
+      },
+      resolve: (parent, args, context, info) => {
+        const mapping = getLoaderMapping(context, info.path);
+
+        if (mapping) {
+          setLoaderMappings(context, info.path, mapping);
+
+          return parent as never;
+        }
+
+        const queryOptions = queryFromInfo(context, info);
+
+        if (!findUnique) {
+          throw new Error(`Missing findUnique for Prisma type ${this.model}`);
+        }
+
+        return loaderCache(parent).loadSelf(queryOptions, context) as never;
+      },
+    }) as FieldRef<Model['Shape'], 'Object'>;
   }
 }
