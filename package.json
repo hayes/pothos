@@ -63,7 +63,7 @@
   "author": "Michael Hayes",
   "license": "ISC",
   "bugs": {
-    "url": "https://github.com/hayes/pothos/issue"
+    "url": "https://github.com/hayes/pothos/issues"
   },
   "homepage": "https://pothos-graphql.dev",
   "turbo": {
