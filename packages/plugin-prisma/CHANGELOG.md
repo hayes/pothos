@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.16.0
+
+### Minor Changes
+
+- 044396ea: Add support for multiple variants of the same prisma model
+
 ## 0.15.2
 
 ### Patch Changes
