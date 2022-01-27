@@ -39,6 +39,15 @@ const Viewer = builder.prismaObject('User', {
   }),
 });
 
+const ViewerNode = builder.prismaNode('User', {
+  variant: 'ViewerNode',
+  id: {
+    resolve: (user) => user.id,
+  },
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: () => ({}),
+});
+
 const User = builder.prismaNode('User', {
   // Testing that user is typed correctly
   authScopes: (user) => !!user.id,
@@ -227,6 +236,15 @@ builder.queryType({
   fields: (t) => ({
     viewer: t.prismaField({
       type: Viewer,
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findUnique({
+          ...query,
+          where: { id: ctx.user.id },
+          rejectOnNotFound: true,
+        }),
+    }),
+    viewerNode: t.prismaField({
+      type: ViewerNode,
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,

@@ -22,16 +22,23 @@ describe('variants', () => {
   it('query with multiple variant fields and conflicting relations', async () => {
     const query = gql`
       query {
+        viewerNode {
+          __typename
+          id
+        }
         me {
+          __typename
           profile {
             bio
           }
           viewer {
+            __typename
             posts {
               id
             }
             bio
             user {
+              __typename
               posts {
                 id
               }
@@ -54,10 +61,12 @@ describe('variants', () => {
       Object {
         "data": Object {
           "me": Object {
+            "__typename": "User",
             "profile": Object {
               "bio": "Sequi minus inventore itaque similique et.",
             },
             "viewer": Object {
+              "__typename": "Viewer",
               "bio": "Sequi minus inventore itaque similique et.",
               "posts": Array [
                 Object {
@@ -77,6 +86,7 @@ describe('variants', () => {
                 },
               ],
               "user": Object {
+                "__typename": "User",
                 "posts": Array [
                   Object {
                     "id": "250",
@@ -115,12 +125,27 @@ describe('variants', () => {
               },
             },
           },
+          "viewerNode": Object {
+            "__typename": "ViewerNode",
+            "id": "Vmlld2VyTm9kZTox",
+          },
         },
       }
     `);
 
     expect(queries).toMatchInlineSnapshot(`
       Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
         Object {
           "action": "findUnique",
           "args": Object {

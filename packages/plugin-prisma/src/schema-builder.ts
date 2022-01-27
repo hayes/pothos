@@ -68,6 +68,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const nodeRef = new PrismaNodeRef(typeName);
   const extendedOptions = {
     ...options,
+    variant,
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
     isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
     findUnique: (parent: unknown, context: {}) =>
