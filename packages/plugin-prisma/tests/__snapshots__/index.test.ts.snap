@@ -86,6 +86,7 @@ type Query {
   users: [User!]!
   usersWithError: QueryUsersWithErrorResult!
   viewer: Viewer!
+  viewerNode: ViewerNode!
 }
 
 type QueryUnrelatedConnection {
@@ -212,6 +213,10 @@ type Viewer {
   id: ID!
   posts: [Post!]!
   user: User!
+}
+
+type ViewerNode implements Node {
+  id: ID!
 }"
 `;
 
