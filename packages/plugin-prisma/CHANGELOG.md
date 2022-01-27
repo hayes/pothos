@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.16.1
+
+### Patch Changes
+
+- b58ee414: Fix primaNode variants
+
 ## 0.16.0
 
 ### Minor Changes
