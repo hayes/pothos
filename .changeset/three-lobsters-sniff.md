@@ -4,4 +4,4 @@
 '@giraphql/plugin-federation': minor
 ---
 
-Test federation plugin
+Add initial support for new federation plugin
