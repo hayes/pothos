@@ -11,14 +11,14 @@ export default pluginName;
 export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
         const options = fieldConfig.pothosOptions;
-        if (!options.directives) {
+        if (!options.directives && !fieldConfig.extensions?.directives) {
             return fieldConfig;
         }
         return {
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+                directives: this.normalizeDirectives(this.mergeDirectives(fieldConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
             },
         };
     }
@@ -31,7 +31,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+                directives: this.normalizeDirectives(this.mergeDirectives(fieldConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
             },
         };
     }
@@ -44,7 +44,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...valueConfig,
             extensions: {
                 ...valueConfig.extensions,
-                directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+                directives: this.normalizeDirectives(this.mergeDirectives(valueConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
             },
         };
     }
@@ -57,13 +57,26 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
             ...typeConfig,
             extensions: {
                 ...typeConfig.extensions,
-                directives: this.normalizeDirectives(options.directives as unknown as Record<string, {}>),
+                directives: this.normalizeDirectives(this.mergeDirectives(typeConfig.extensions?.directives as Record<string, {}>, options.directives as unknown as Record<string, {}>)),
             },
         };
     }
     override afterBuild(schema: GraphQLSchema) {
         mockAst(schema);
         return schema;
+    }
+    mergeDirectives(left: DirectiveList | Record<string, {}>, right: DirectiveList | Record<string, {}>) {
+        if (!(left && right)) {
+            return left || right;
+        }
+        return [
+            ...(Array.isArray(left)
+                ? left
+                : Object.keys(left).map((name) => ({ name, args: left[name] }))),
+            ...(Array.isArray(right)
+                ? right
+                : Object.keys(right).map((name) => ({ name, args: right[name] }))),
+        ];
     }
     normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
         if (this.builder.options.useGraphQLToolsUnorderedDirectives) {

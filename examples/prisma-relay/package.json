@@ -22,7 +22,8 @@
     "@prisma/client": "^3.8.1",
     "apollo-server": "^3.6.2",
     "prisma": "^3.8.1",
-    "ts-node": "^10.4.0"
+    "ts-node": "^10.4.0",
+    "graphql": "^16.1.0"
   },
   "publishConfig": {
     "access": "public"

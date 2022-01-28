@@ -4,7 +4,7 @@ import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
 import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils/index.ts';
-import { AbstractReturnShape, BaseEnum, EnumParam, EnumRef, EnumTypeOptions, ImplementableInputObjectRef, ImplementableInterfaceRef, ImplementableObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceRef, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectRef, ObjectTypeOptions, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldBuilder, ScalarRef, SubscriptionFieldBuilder, UnionRef, ValuesFromEnum, } from './index.ts';
+import { AbstractReturnShape, BaseEnum, BaseTypeRef, EnumParam, EnumRef, EnumTypeOptions, ImplementableInputObjectRef, ImplementableInterfaceRef, ImplementableObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceRef, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectRef, ObjectTypeOptions, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldBuilder, ScalarRef, SubscriptionFieldBuilder, UnionRef, ValuesFromEnum, } from './index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
     static allowPluginReRegistration = false;
@@ -42,7 +42,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         if (name === "Query" || name === "Mutation" || name === "Subscription") {
             throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
         }
-        const ref = param instanceof ObjectRef
+        const ref = param instanceof BaseTypeRef
             ? (param as ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>)
             : new ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>(name);
         const config: PothosObjectTypeConfig = {
@@ -171,7 +171,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             }).name ?? (param as {
                 name: string;
             }).name;
-        const ref = param instanceof InterfaceRef
+        const ref = param instanceof BaseTypeRef
             ? (param as InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>)
             : new InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>(name);
         const typename = ref.name;
@@ -272,11 +272,17 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         this.configStore.addTypeConfig(config, ref);
         return ref;
     }
-    addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType, options: Omit<PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>, "description" | "parseLiteral" | "parseValue" | "serialize">) {
+    addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType, options: Omit<PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>, "serialize"> & {
+        serialize?: GraphQLScalarSerializer<OutputShape<Types, Name>>;
+    }) {
         const config = scalar.toConfig();
         return this.scalarType<Name>(name, {
             ...config,
             ...options,
+            extensions: {
+                ...config.extensions,
+                ...options.extensions,
+            },
         } as PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
     }
     inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param> & {}> : InputFieldMap>(param: Param, options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>): PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {

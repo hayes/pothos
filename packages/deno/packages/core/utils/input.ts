@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { BuildCache, PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../index.ts';
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
     configs: Record<string, PothosInputFieldConfig<Types>>;

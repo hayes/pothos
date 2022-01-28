@@ -17,7 +17,7 @@ import InternalInterfaceRef from './refs/interface.ts';
 import InternalObjectRef from './refs/object.ts';
 import InternalScalarRef from './refs/scalar.ts';
 import InternalUnionRef from './refs/union.ts';
-import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types/index.ts';
+import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types/index.ts';
 export * from './plugins/index.ts';
 export * from './types/index.ts';
 export * from './utils/index.ts';
@@ -27,8 +27,7 @@ const SchemaBuilder = SchemaBuilderClass as unknown as {
     new <Types extends Partial<PothosSchemaTypes.UserSchemaTypes> = {}>(options: NormalizeSchemeBuilderOptions<PothosSchemaTypes.ExtendDefaultTypes<Types>>): PothosSchemaTypes.SchemaBuilder<PothosSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 export default SchemaBuilder;
-export type FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends "Interface" | "Object" = "Interface" | "Object"> = PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
-export const FieldBuilder = InternalFieldBuilder as new <Types extends SchemaTypes, ParentShape, Kind extends "Interface" | "Object" = "Interface" | "Object">(name: string) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
+export const FieldBuilder = InternalFieldBuilder as new <Types extends SchemaTypes, ParentShape, Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>>(name: string, builder: SchemaBuilderClass<Types>, kind: FieldKind, graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind]) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 export type RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 export const RootFieldBuilder = InternalRootFieldBuilder as new <Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind>(name: string, builder: SchemaBuilderClass<Types>, kind: FieldKind, graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind]) => PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
 export type QueryFieldBuilder<Types extends SchemaTypes, ParentShape> = PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;

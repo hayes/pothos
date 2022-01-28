@@ -1,0 +1,227 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`federation accounts schema generates expected schema 1`] = `
+"type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  me: User
+}
+
+type User @key(fields: \\"id\\") {
+  id: ID
+  name: String
+  username: String
+}
+"
+`;
+
+exports[`federation accounts schema generates expected schema 2`] = `
+"directive @extends on INTERFACE | OBJECT
+
+directive @external on FIELD_DEFINITION | OBJECT
+
+directive @key(fields: String!) on INTERFACE | OBJECT
+
+directive @provides(fields: String!) on FIELD_DEFINITION
+
+directive @requires(fields: String!) on FIELD_DEFINITION
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  me: User
+}
+
+type User {
+  id: ID
+  name: String
+  username: String
+}
+
+scalar _Any
+
+union _Entity = User
+
+type _Service {
+  \\"\\"\\"
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  \\"\\"\\"
+  sdl: String
+}"
+`;
+
+exports[`federation inventory schema generates expected schema 1`] = `
+"type Product @key(fields: \\"upc\\") @extends {
+  inStock: Boolean
+  price: Float @external
+  shippingEstimate: Float @requires(fields: \\"price weight\\")
+  upc: String
+  weight: Float @external
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+"
+`;
+
+exports[`federation inventory schema generates expected schema 2`] = `
+"directive @extends on INTERFACE | OBJECT
+
+directive @external on FIELD_DEFINITION | OBJECT
+
+directive @key(fields: String!) on INTERFACE | OBJECT
+
+directive @provides(fields: String!) on FIELD_DEFINITION
+
+directive @requires(fields: String!) on FIELD_DEFINITION
+
+type Product {
+  inStock: Boolean
+  price: Float
+  shippingEstimate: Float
+  upc: String
+  weight: Float
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+scalar _Any
+
+union _Entity = Product
+
+type _Service {
+  \\"\\"\\"
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  \\"\\"\\"
+  sdl: String
+}"
+`;
+
+exports[`federation products schema generates expected schema 1`] = `
+"type Product @key(fields: \\"upc\\") {
+  name: String
+  price: Float
+  upc: String
+  weight: Float
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  topProducts(first: Int = 5): [Product!]
+}
+"
+`;
+
+exports[`federation products schema generates expected schema 2`] = `
+"directive @extends on INTERFACE | OBJECT
+
+directive @external on FIELD_DEFINITION | OBJECT
+
+directive @key(fields: String!) on INTERFACE | OBJECT
+
+directive @provides(fields: String!) on FIELD_DEFINITION
+
+directive @requires(fields: String!) on FIELD_DEFINITION
+
+type Product {
+  name: String
+  price: Float
+  upc: String
+  weight: Float
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+  topProducts(first: Int = 5): [Product!]
+}
+
+scalar _Any
+
+union _Entity = Product
+
+type _Service {
+  \\"\\"\\"
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  \\"\\"\\"
+  sdl: String
+}"
+`;
+
+exports[`federation reviews schema generates expected schema 1`] = `
+"type Product @key(fields: \\"upc\\") @extends {
+  reviews: [Review!]
+  upc: String
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type Review @key(fields: \\"id\\") {
+  author: User @provides(fields: \\"username\\")
+  body: String
+  id: ID
+  product: Product
+}
+
+type User @key(fields: \\"id\\") @extends {
+  id: ID
+  reviews: [Review!]
+  username: String @external
+}
+"
+`;
+
+exports[`federation reviews schema generates expected schema 2`] = `
+"directive @extends on INTERFACE | OBJECT
+
+directive @external on FIELD_DEFINITION | OBJECT
+
+directive @key(fields: String!) on INTERFACE | OBJECT
+
+directive @provides(fields: String!) on FIELD_DEFINITION
+
+directive @requires(fields: String!) on FIELD_DEFINITION
+
+type Product {
+  reviews: [Review!]
+  upc: String
+}
+
+type Query {
+  _entities(representations: [_Any!]!): [_Entity]!
+  _service: _Service!
+}
+
+type Review {
+  author: User
+  body: String
+  id: ID
+  product: Product
+}
+
+type User {
+  id: ID
+  reviews: [Review!]
+  username: String
+}
+
+scalar _Any
+
+union _Entity = Product | Review | User
+
+type _Service {
+  \\"\\"\\"
+  The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
+  \\"\\"\\"
+  sdl: String
+}"
+`;

@@ -4,7 +4,6 @@ import {
   FieldNullability,
   FieldOptionsFromKind,
   NormalizeArgs,
-  RootName,
   SchemaTypes,
   TypeParam,
 } from '../types';
@@ -13,7 +12,7 @@ import RootFieldBuilder from './root';
 export default class FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
+  Kind extends FieldKind = FieldKind,
 > extends RootFieldBuilder<Types, ParentShape, Kind> {
   /**
    * Create a Boolean field from a boolean property on the parent object

@@ -16,7 +16,7 @@ import InternalInterfaceRef from './refs/interface';
 import InternalObjectRef from './refs/object';
 import InternalScalarRef from './refs/scalar';
 import InternalUnionRef from './refs/union';
-import { FieldKind, NormalizeSchemeBuilderOptions, SchemaTypes } from './types';
+import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
 
 export * from './plugins';
 export * from './types';
@@ -33,17 +33,15 @@ const SchemaBuilder = SchemaBuilderClass as unknown as {
 
 export default SchemaBuilder;
 
-export type FieldBuilder<
-  Types extends SchemaTypes,
-  ParentShape,
-  Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
-> = PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 export const FieldBuilder = InternalFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
-  Kind extends 'Interface' | 'Object' = 'Interface' | 'Object',
+  Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
 >(
   name: string,
+  builder: SchemaBuilderClass<Types>,
+  kind: FieldKind,
+  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
 ) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
 
 export type RootFieldBuilder<
