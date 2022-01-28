@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-directives",
-  "version": "3.0.0",
+  "version": "3.1.0",
   "description": "Directive plugin for Pothos, enables using graphql-tools based directives with Pothos",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
@@ -41,7 +41,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@pothos/core": "^3.0.0",
+    "@pothos/core": "^3.1.0",
     "@pothos/test-utils": "^1.0.0",
     "graphql": "16.2.0",
     "graphql-rate-limit-directive": "^2.0.0",

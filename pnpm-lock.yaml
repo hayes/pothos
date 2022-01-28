@@ -290,7 +290,7 @@ importers:
 
   packages/plugin-directives:
     specifiers:
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.1.0
       '@pothos/test-utils': ^1.0.0
       graphql: 16.1.0
       graphql-rate-limit-directive: ^2.0.0
@@ -344,8 +344,8 @@ importers:
       '@apollo/gateway': ^2.0.0-alpha.4
       '@apollo/subgraph': ^2.0.0-alpha.3
       '@graphql-tools/utils': ^8.5.3
-      '@pothos/core': ^3.0.1
-      '@pothos/plugin-directives': ^3.0.0
+      '@pothos/core': ^3.1.0
+      '@pothos/plugin-directives': ^3.1.0
       '@pothos/test-utils': ^1.0.0
       apollo-server: ^3.6.2
       apollo-server-core: ^3.6.2
@@ -529,7 +529,7 @@ importers:
       '@mdx-js/mdx': ^2.0.0-rc.2
       '@mdx-js/react': ^2.0.0-rc.2
       '@next/mdx': ^12.0.8
-      '@pothos/core': 3.0.1
+      '@pothos/core': 3.1.0
       '@tailwindcss/typography': ^0.5.0
       '@types/mdast': ^3.0.10
       '@types/react': ^17.0.38

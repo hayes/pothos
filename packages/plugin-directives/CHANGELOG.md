@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.0
+
+### Minor Changes
+
+- 4094e70a: Add initial support for new federation plugin
+
 ## 3.0.0
 
 ### Major Changes
