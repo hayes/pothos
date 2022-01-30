@@ -63,7 +63,7 @@
     "@pothos/plugin-scope-auth": "^3.0.0",
     "@pothos/test-utils": "^1.0.0",
     "@prisma/client": "^3.8.1",
-    "graphql": "16.2.0",
+    "graphql": "16.3.0",
     "graphql-tag": "^2.12.6",
     "prisma": "^3.8.1"
   }

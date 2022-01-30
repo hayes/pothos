@@ -45,7 +45,7 @@
   "devDependencies": {
     "@pothos/core": "^3.0.0",
     "@pothos/test-utils": "^1.0.0",
-    "graphql": "16.2.0",
+    "graphql": "16.3.0",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
