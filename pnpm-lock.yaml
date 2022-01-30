@@ -529,7 +529,7 @@ importers:
       '@mdx-js/mdx': ^2.0.0-rc.2
       '@mdx-js/react': ^2.0.0-rc.2
       '@next/mdx': ^12.0.8
-      '@pothos/core': 3.1.0
+      '@pothos/core': 3.1.1
       '@tailwindcss/typography': ^0.5.1
       '@types/mdast': ^3.0.10
       '@types/react': ^17.0.38
