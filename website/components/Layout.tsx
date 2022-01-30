@@ -36,6 +36,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
             href="//cdn.jsdelivr.net/gh/highlightjs/cdn-release@11.4.0/build/styles/atom-one-dark.min.css"
           ></link>
           <link rel="shortcut icon" href="/favicon.ico" />
+          <link rel="canonical" href={`https://pothos-graphql.dev${router.pathname}`} />
           <meta httpEquiv="content-language" content="en-us" />
           `<meta name="theme-color" content="#5E854C" />
         </Head>

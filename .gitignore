@@ -33,11 +33,12 @@ tmp/
 *.map
 todo.md
 
-# Generated configs 
+# Generated configs
 .eslintignore
 .eslintrc.js
 .prettierignore
 prettier.config.js
+.devcontainer
 
 *.tsbuildinfo
 
