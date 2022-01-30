@@ -4,10 +4,11 @@ const colors = require('tailwindcss/colors');
 // eslint-disable-next-line import/no-commonjs
 module.exports = {
   mode: 'jit',
-  purge: ['./pages/**/*.{js,ts,jsx,tsx}', './components/**/*.{js,ts,jsx,tsx}'],
+  purge: ['./pages/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'media',
   theme: {
     colors: {
+      ...colors,
       transparent: 'transparent',
       current: 'currentColor',
       black: colors.black,

@@ -5,13 +5,12 @@ menu: Guide
 description: Guide for defining Object types in Pothos
 ---
 
-
 import { DocsPage } from '../../../components/Docs/Page';
 import { buildNav } from '../../../util/build-nav';
 
 export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }});
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Object Types
 
@@ -260,7 +259,9 @@ builder.queryFields((t) => ({
 }));
 ```
 
-<figure>If the type you are defining has a circular reference to itself (either
-directly, or through another type) you may need to keep \`builder.objectRef\` and \`ref.implement\`
-as separate statements for at least one of the types to allow typescript to correctly resolve the
-types for your circular references.</figure>
+<Alert>
+  If the type you are defining has a circular reference to itself (either directly, or through
+  another type) you may need to keep \`builder.objectRef\` and \`ref.implement\` as separate
+  statements for at least one of the types to allow typescript to correctly resolve the types for
+  your circular references.
+</Alert>

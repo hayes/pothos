@@ -8,6 +8,7 @@ import { TableOfContents } from '../Toc';
 import { Heading } from './Heading';
 import { useCurrentDocsPage } from './Nav';
 import { Toc } from './Toc';
+import Alert from './Alert';
 
 export interface BaseProps {
   children: ReactNode;
@@ -49,6 +50,7 @@ const components = {
       />
     );
   },
+  Alert,
 };
 
 const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
