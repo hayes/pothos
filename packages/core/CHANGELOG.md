@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.1
+
+### Patch Changes
+
+- 12ac37c7: Update readme links
+
 ## 3.1.0
 
 ### Minor Changes
