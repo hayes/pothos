@@ -77,7 +77,7 @@ export function SubMenu({ entry, active }: MenuProps) {
 export function Toc({ table, active, className }: TocProps) {
   return (
     <nav
-      className={`bg-[#22212C] dark:bg-[#282a36] shadow text-white w-64 pb-4 pl-4 overflow-y-auto z-10 ${
+      className={`bg-[#22212C] dark:bg-[#282a36] shadow text-white w-[235px] pb-4 pl-4 overflow-y-auto z-10 ${
         className ?? ''
       }`}
     >

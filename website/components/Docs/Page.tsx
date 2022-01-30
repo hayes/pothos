@@ -5,10 +5,10 @@ import ArrowRightIcon from '@heroicons/react/outline/ArrowRightIcon';
 import { MDXProvider } from '@mdx-js/react';
 import { Layout } from '../Layout';
 import { TableOfContents } from '../Toc';
+import Alert from './Alert';
 import { Heading } from './Heading';
 import { useCurrentDocsPage } from './Nav';
 import { Toc } from './Toc';
-import Alert from './Alert';
 
 export interface BaseProps {
   children: ReactNode;

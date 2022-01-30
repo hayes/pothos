@@ -11,16 +11,17 @@ export function Heading({
   const Tag = tag as 'h1';
 
   return (
-    <Tag className={`relative group items-center ${className}`} id={id} {...props}>
-      {id && (
-        <a
-          className={`hidden group-hover:flex items-center absolute -left-6 right-full h-full ${className}`}
-          href={`#${id}`}
-        >
-          <LinkIcon className="h-2/3" />
-        </a>
-      )}
-      {children}
-    </Tag>
+    <a href={`#${id}`}>
+      <Tag className={`relative group items-center ${className}`} id={id} {...props}>
+        {id && (
+          <div
+            className={`hidden group-hover:flex items-center absolute -left-6 right-full h-full ${className}`}
+          >
+            <LinkIcon className="h-2/3" />
+          </div>
+        )}
+        {children}
+      </Tag>
+    </a>
   );
 }
