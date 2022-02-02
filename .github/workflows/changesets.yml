@@ -6,7 +6,6 @@ on:
       - main
 env:
   CI: true
-  PNPM_CACHE_FOLDER: .pnpm-store
 
 jobs:
   version:
@@ -33,18 +32,10 @@ jobs:
 
       - uses: pnpm/action-setup@v2.0.1
         with:
-          version: 6.20.3
+          version: 6.29.1
     
       - name: install dependencies
         run: pnpm install
-
-      - name: Cache turbo
-        uses: actions/cache@v2
-        with:
-          path: ./node_modules/.cache/turbo
-          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-
       
       - name: Creating .npmrc
         run: |

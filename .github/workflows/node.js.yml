@@ -24,7 +24,6 @@ jobs:
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
-          cache: 'pnpm'
 
       - name: Cache pnpm modules
         uses: actions/cache@v2
@@ -36,9 +35,17 @@ jobs:
 
       - uses: pnpm/action-setup@v2.0.1
         with:
-          version: 6.20.3
+          version: 6.29.1
      
       - name: Install dependencies
         run: pnpm install
+
+      - name: Cache turbo
+        uses: actions/cache@v2
+        with:
+          path: ./node_modules/.cache/turbo
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-
 
       - run: pnpm run ci
