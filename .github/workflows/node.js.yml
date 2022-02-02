@@ -19,14 +19,26 @@ jobs:
 
     steps:
       - uses: actions/checkout@v2
-      - uses: pnpm/action-setup@v2.0.1
-        with:
-          version: 6.20.3
+
       - name: Use Node.js ${{ matrix.node-version }}
         uses: actions/setup-node@v2
         with:
           node-version: ${{ matrix.node-version }}
           cache: 'pnpm'
+
+      - name: Cache pnpm modules
+        uses: actions/cache@v2
+        with:
+          path: ~/.pnpm-store
+          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-
+
+      - uses: pnpm/action-setup@v2.0.1
+        with:
+          version: 6.20.3
+     
       - name: Install dependencies
         run: pnpm install
+
       - run: pnpm run ci

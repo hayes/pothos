@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
 import { typeFromParam } from '../utils/index.ts';
-import { FieldKind, FieldRef, PothosInputFieldConfig, InputFieldMap, ShapeFromTypeParam } from '../index.ts';
+import { FieldKind, FieldRef, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam } from '../index.ts';
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
     typename: string;
     builder: PothosSchemaTypes.SchemaBuilder<Types>;

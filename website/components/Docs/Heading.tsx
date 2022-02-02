@@ -11,7 +11,7 @@ export function Heading({
   const Tag = tag as 'h1';
 
   return (
-    <a href={`#${id}`}>
+    <a href={`#${id}`} className="no-underline">
       <Tag className={`relative group items-center ${className}`} id={id} {...props}>
         {id && (
           <div
