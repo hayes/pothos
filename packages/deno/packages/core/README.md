@@ -4,12 +4,12 @@
 
 Pothos is a plugin based GraphQL schema builder for typescript.
 
-It makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
+It makes building graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
 overhead at runtime, and has `graphql` as its only dependency.
 
-By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
-writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
-code generation.
+Pothos is the most type-safe way to build GraphQL schemas in typescript, and by leveraging type
+inference and typescript's powerful type system Pothos requires very few manual type definitions and
+no code generation.
 
 Pothos has a unique and powerful plugin system that makes every plugin feel like its features are
 built into the core library. Plugins can extend almost any part of the API by adding new options or
@@ -17,7 +17,7 @@ methods that can take full advantage of the Pothos type system.
 
 ## Hello, World
 
-```javascript
+```typescript
 import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@pothos/core';
 
@@ -38,6 +38,17 @@ new ApolloServer({
   schema: builder.toSchema({}),
 }).listen(3000);
 ```
+
+## What sets Pothos apart
+
+- Pothos was built from the start to leverage typescript for best-in-class type-safety
+- Pothos has a clear separation between the shape of your external graphql API, and the internal
+  representation of your data
+- Pothos comes with a large plugin ecosystem that provides a wide variety of features while maintain
+  great interoperability between features.
+- Pothos does not depend on code-generation or experimental decorators for type-safety
+- Pothos has been designed to work at every scale from small prototypes to huge Enterprise
+  applications, and is in use at some of the largest tech companies including Airbnb and Netflix.
 
 ## Plugins that make Pothos even better
 
@@ -64,7 +75,7 @@ new ApolloServer({
 
 - [**Mocks**](https://pothos-graphql.dev/docs/plugins/mocks)
 
-  Add mock resolver for easier testing
+  Add mock resolvers for easier testing
 
 - [**Prisma**](https://pothos-graphql.dev/docs/plugins/prisma)
 
@@ -74,7 +85,6 @@ new ApolloServer({
 - [**Relay**](https://pothos-graphql.dev/docs/plugins/relay)
 
   Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
-
   for cursor based pagination.
 
 - [**Simple Objects**](https://pothos-graphql.dev/docs/plugins/simple-objects)
