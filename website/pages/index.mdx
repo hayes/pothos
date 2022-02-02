@@ -5,12 +5,12 @@ description: Pothos - A plugin based GraphQL schema builder for typescript
 link: /
 ---
 
-import { DocsPage } from '../components/Docs/Page'
-import { buildNav } from '../util/build-nav'
+import { DocsPage } from '../components/Docs/Page';
+import { buildNav } from '../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 ![Pothos](/assets/logo-name-auto.svg)
 
@@ -18,12 +18,12 @@ export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 Pothos is a plugin based GraphQL schema builder for typescript.
 
-It makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds
-0 overhead at runtime, and has `graphql` as its only dependency.
+It makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
+overhead at runtime, and has `graphql` as its only dependency.
 
-By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
-writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
-code generation.
+Pothos is the most type-safe way to build GraphQL schemas in typescript, and by leveraging type
+inference and typescript's powerful type system Pothos requires very few manual type definitions and
+no code generation.
 
 Pothos has a unique and powerful plugin system that makes every plugin feel like its features are
 built into the core library. Plugins can extend almost any part of the API by adding new options or
@@ -77,7 +77,7 @@ new ApolloServer({
   Quickly define data-loaders for your types and fields to avoid n+1 queries.
 
 - [**Mocks**](/docs/plugins/mocks)
-  
+
   Add mock resolver for easier testing
 
 - [**Prisma**](/docs/plugins/prisma)
@@ -86,7 +86,7 @@ new ApolloServer({
   efficienty resolve queries
 
 - [**Relay**](/docs/plugins/relay)
-  
+
   Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
 
   for cursor based pagination.
@@ -106,4 +106,3 @@ new ApolloServer({
 - [**Validation**](/docs/plugins/validation)
 
   Validating your inputs and arguments
-
