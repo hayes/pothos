@@ -43,7 +43,7 @@ jobs:
       - name: Cache turbo
         uses: actions/cache@v2
         with:
-          path: ./node_modules/.cache/turbo
+          path: ./node_modules/.cache
           key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-
