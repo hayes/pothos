@@ -14,11 +14,13 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 ![Pothos](/assets/logo-name-auto.svg)
 
-# Pothos GraphQL ([formerly GiraphQL](/docs/migrations/giraphql-pothos))
+![Pothos](https://pothos-graphql.dev/assets/logo-name-auto.svg)
+
+# Pothos GraphQL ([formerly GiraphQL](https://pothos-graphql.dev/docs/migrations/giraphql-pothos))
 
 Pothos is a plugin based GraphQL schema builder for typescript.
 
-It makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
+It makes building graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
 overhead at runtime, and has `graphql` as its only dependency.
 
 Pothos is the most type-safe way to build GraphQL schemas in typescript, and by leveraging type
@@ -31,7 +33,7 @@ methods that can take full advantage of the Pothos type system.
 
 ## Hello, World
 
-```javascript
+```typescript
 import { ApolloServer } from 'apollo-server';
 import SchemaBuilder from '@pothos/core';
 
@@ -53,56 +55,66 @@ new ApolloServer({
 }).listen(3000);
 ```
 
+## What sets Pothos apart
+
+- Pothos was build from the start to leverage typescript for best-in-class type-safety
+- Pothos has a clear separation between the shape of your external graphql API, and the internal
+  representation of your data
+- Pothos comes with a large plugin ecosystem that provides a wide variety of features while maintain
+  great interoperability between features.
+- Pothos does not depend on code-generation or experimental decorators for type-safety
+- Pothos has been designed to work at every scale from small prototypes to huge Enterprise
+  applications, and is in use at some of the largest tech companies including Airbnb and Netflix.
+
 ## Plugins that make Pothos even better
 
-- [**Auth**](/docs/plugins/scope-auth)
+- [**Auth**](https://pothos-graphql.dev/docs/plugins/scope-auth)
 
   Add global, type level, or field level authorization checks to your schema
 
-- [**Complexity**](/docs/plugins/complexity)
+- [**Complexity**](https://pothos-graphql.dev/docs/plugins/complexity)
 
   A plugin for defining and limiting complexity of queries
 
-- [**Directives**](/docs/plugins/directives)
+- [**Directives**](https://pothos-graphql.dev/docs/plugins/directives)
 
   Integrate with existing schema graphql directives in a type-safe way.
 
-- [**Errors**](/docs/plugins/errors)
+- [**Errors**](https://pothos-graphql.dev/docs/plugins/errors)
 
   A plugin for easily including error types in your GraphQL schema and hooking up error types to
   resolvers.
 
-- [**Dataloader**](/docs/plugins/dataloader)
+- [**Dataloader**](https://pothos-graphql.dev/docs/plugins/dataloader)
 
   Quickly define data-loaders for your types and fields to avoid n+1 queries.
 
-- [**Mocks**](/docs/plugins/mocks)
+- [**Mocks**](https://pothos-graphql.dev/docs/plugins/mocks)
 
-  Add mock resolver for easier testing
+  Add mock resolvers for easier testing
 
-- [**Prisma**](/docs/plugins/prisma)
+- [**Prisma**](https://pothos-graphql.dev/docs/plugins/prisma)
 
   A plugin for more efficient integration with prisma that can help solve n+1 issues and more
   efficienty resolve queries
 
-- [**Relay**](/docs/plugins/relay)
+- [**Relay**](https://pothos-graphql.dev/docs/plugins/relay)
 
   Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
-
   for cursor based pagination.
 
-- [**Simple Objects**](/docs/plugins/simple-objects)
+- [**Simple Objects**](https://pothos-graphql.dev/docs/plugins/simple-objects)
 
   Define simple object types without resolvers or manual type definitions.
 
-- [**Smart Subscriptions**](/docs/plugins/smart-subscriptions)
+- [**Smart Subscriptions**](https://pothos-graphql.dev/docs/plugins/smart-subscriptions)
 
   Make any part of your graph subscribable to get live updates as your data changes.
 
-- [**Sub-Graph**](/docs/plugins/sub-graph)
+- [**Sub-Graph**](https://pothos-graphql.dev/docs/plugins/sub-graph)
 
   Build multiple subsets of your graph to easily share code between internal and external APIs.
 
-- [**Validation**](/docs/plugins/validation)
+- [**Validation**](https://pothos-graphql.dev/docs/plugins/validation)
 
   Validating your inputs and arguments

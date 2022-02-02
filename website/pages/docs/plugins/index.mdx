@@ -4,12 +4,12 @@ title: Using Plugins in Pothos GraphQL
 description: List of plugins for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Plugins
 
@@ -36,7 +36,7 @@ export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 - [**Mocks**](./plugins/mocks)
 
-  Add mock resolver for easier testing
+  Add mock resolvers for easier testing
 
 - [**Prisma**](./plugins/prisma)
 
@@ -44,7 +44,7 @@ export const getStaticProps = () => ({ props: { nav: buildNav() }})
   efficienty resolve queries
 
 - [**Relay**](./plugins/relay)
-  
+
   Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
 
   for cursor based pagination.

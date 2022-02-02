@@ -5,12 +5,12 @@ menu: Guide
 description: Guide for using Pothos with deno
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Deno
 
@@ -128,7 +128,7 @@ GraphQL Helix currently uses
 
 To get these 2 libraries to work together, we can define an import map like:
 
-```javascript
+```typescript
 {
   "imports": {
     "https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts": "https://cdn.skypack.dev/graphql@v15.5.0?dts",

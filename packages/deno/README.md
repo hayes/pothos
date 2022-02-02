@@ -1,11 +1,15 @@
-## Pothos - A plugin based GraphQL schema builder for typescript
+![Pothos](https://pothos-graphql.dev/assets/logo-name-auto.svg)
 
-Pothos makes writing graphql schemas in typescript easy, fast and enjoyable. The core of Pothos
-adds 0 overhead at runtime, and has `graphql` as its only dependency.
+# Pothos GraphQL ([formerly GiraphQL](https://pothos-graphql.dev/docs/migrations/giraphql-pothos))
 
-By leaning heavily on typescripts ability to infer types, Pothos is the most type-safe way of
-writing GraphQL schemas in typescript/node while requiring very few manual type definitions and no
-code generation.
+Pothos is a plugin based GraphQL schema builder for typescript.
+
+It makes building graphql schemas in typescript easy, fast and enjoyable. The core of Pothos adds 0
+overhead at runtime, and has `graphql` as its only dependency.
+
+Pothos is the most type-safe way to build GraphQL schemas in typescript, and by leveraging type
+inference and typescript's powerful type system Pothos requires very few manual type definitions and
+no code generation.
 
 Pothos has a unique and powerful plugin system that makes every plugin feel like its features are
 built into the core library. Plugins can extend almost any part of the API by adding new options or
@@ -23,7 +27,7 @@ builder.queryType({
   fields: (t) => ({
     hello: t.string({
       args: {
-        name: t.arg.string({}),
+        name: t.arg.string(),
       },
       resolve: (parent, { name }) => `hello, ${name || 'World'}`,
     }),
@@ -35,27 +39,69 @@ new ApolloServer({
 }).listen(3000);
 ```
 
+## What sets Pothos apart
+
+- Pothos was build from the start to leverage typescript for best-in-class type-safety
+- Pothos has a clear separation between the shape of your external graphql API, and the internal
+  representation of your data
+- Pothos comes with a large plugin ecosystem that provides a wide variety of features while maintain
+  great interoperability between features.
+- Pothos does not depend on code-generation or experimental decorators for type-safety
+- Pothos has been designed to work at every scale from small prototypes to huge Enterprise
+  applications, and is in use at some of the largest tech companies including Airbnb and Netflix.
+
 ## Plugins that make Pothos even better
 
-- ## [Scope Auth](plugins/scope-auth.md)
+- [**Auth**](https://pothos-graphql.dev/docs/plugins/scope-auth)
+
   Add global, type level, or field level authorization checks to your schema
-- ## [Validation](plugins/validation.md)
-  Validating your inputs and arguments
-- ## [Dataloader](plugins/dataloader.md)
-  Quickly define data-loaders for your types and fields to avoid n+1 queries.
-- ## [Relay](plugins/relay.md)
-- Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
-  for cursor based pagination.
-- ## [Simple Objects](plugins/simple-objects.md)
-  Define simple object types without resolvers or manual type definitions.
-- ## [Mocks](plugins/mocks.md)
-  Add mock resolver for easier testing
-- ## [Sub-Graph](plugins/sub-graph.md)
-  Build multiple subsets of your graph to easily share code between internal and external APIs.
-- ## [Directives](plugins/directives.md)
+
+- [**Complexity**](https://pothos-graphql.dev/docs/plugins/complexity)
+
+  A plugin for defining and limiting complexity of queries
+
+- [**Directives**](https://pothos-graphql.dev/docs/plugins/directives)
+
   Integrate with existing schema graphql directives in a type-safe way.
-- ## [Smart Subscriptions](plugins/smart-subscriptions.md)
+
+- [**Errors**](https://pothos-graphql.dev/docs/plugins/errors)
+
+  A plugin for easily including error types in your GraphQL schema and hooking up error types to
+  resolvers.
+
+- [**Dataloader**](https://pothos-graphql.dev/docs/plugins/dataloader)
+
+  Quickly define data-loaders for your types and fields to avoid n+1 queries.
+
+- [**Mocks**](https://pothos-graphql.dev/docs/plugins/mocks)
+
+  Add mock resolvers for easier testing
+
+- [**Prisma**](https://pothos-graphql.dev/docs/plugins/prisma)
+
+  A plugin for more efficient integration with prisma that can help solve n+1 issues and more
+  efficienty resolve queries
+
+- [**Relay**](https://pothos-graphql.dev/docs/plugins/relay)
+
+  Easy to use builder methods for defining relay style nodes and connections, and helpful utilities
+  for cursor based pagination.
+
+- [**Simple Objects**](https://pothos-graphql.dev/docs/plugins/simple-objects)
+
+  Define simple object types without resolvers or manual type definitions.
+
+- [**Smart Subscriptions**](https://pothos-graphql.dev/docs/plugins/smart-subscriptions)
+
   Make any part of your graph subscribable to get live updates as your data changes.
+
+- [**Sub-Graph**](https://pothos-graphql.dev/docs/plugins/sub-graph)
+
+  Build multiple subsets of your graph to easily share code between internal and external APIs.
+
+- [**Validation**](https://pothos-graphql.dev/docs/plugins/validation)
+
+  Validating your inputs and arguments
 
 ## Setup
 
