@@ -3,6 +3,7 @@ import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
 import MenuIcon from '@heroicons/react/outline/MenuIcon';
+import DiscordLogo from './Docs/discord';
 import GithubLogo from './Docs/github';
 import { SearchPane } from './Search';
 import { TableOfContents, Toc } from './Toc';
@@ -62,7 +63,16 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
                 <span>Github</span>
               </a>
             </li>
-            <li className="hidden sm:block">
+            <li className="hidden sm:block hover:underline">
+              <a
+                className="flex space-x-2 hover:underline"
+                href="https://discord.com/channels/625400653321076807/868135255616417834"
+              >
+                <DiscordLogo height={24} width={24} />
+                <span>Discord</span>
+              </a>
+            </li>
+            <li className="hidden sm:block hover:underline">
               <a href="https://github.com/hayes/pothos/tree/main/examples">Examples</a>
             </li>
           </ul>
