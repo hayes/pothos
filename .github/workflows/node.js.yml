@@ -44,8 +44,8 @@ jobs:
         uses: actions/cache@v2
         with:
           path: ./node_modules/.cache
-          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
+          key: ${{ runner.os }}-${{ matrix.node-version }}-${{ hashFiles('**/pnpm-lock.yaml') }}
           restore-keys: |
-            ${{ runner.os }}-
+            ${{ runner.os }}-${{ matrix.node-version }}
 
       - run: pnpm run ci
