@@ -342,7 +342,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 };
 
 schemaBuilderProto.connectionObject = function connectionObject(
-  { type, name: connectionName, ...connectionOptions },
+  { type, name: connectionName, edgesNullable: edgesNullableField, ...connectionOptions },
   { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
 ) {
   verifyRef(type);
@@ -394,7 +394,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
       edges: t.field({
         ...edgesFieldOptions,
         type: [edgeRef],
-        nullable: edgesNullable as { list: false; items: true },
+        nullable: (edgesNullableField ?? edgesNullable) as { list: false; items: true },
         resolve: (parent) => parent.edges,
       }),
       ...connectionFields?.(t as never),

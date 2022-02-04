@@ -97,6 +97,26 @@ builder.queryFields((t) => ({
       }),
     },
   ),
+  oddNumbers: t.connection({
+    type: NumberThing,
+    edgesNullable: {
+      items: true,
+      list: false,
+    },
+    resolve: async (parent, args) => {
+      const result = await resolveOffsetConnection({ args }, () => [
+        new NumberThing(1),
+        null,
+        new NumberThing(3),
+      ]);
+
+      return {
+        totalCount: 500,
+        other: 'abc',
+        ...result,
+      };
+    },
+  }),
 }));
 
 builder.queryFields((t) => ({

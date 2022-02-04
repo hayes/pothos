@@ -175,7 +175,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
 };
 
 fieldBuilderProto.connection = function connection(
-  { type, ...fieldOptions },
+  { type, edgesNullable, ...fieldOptions },
   { name: connectionNameFromOptions, ...connectionOptions } = {} as never,
   { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
 ) {
@@ -203,6 +203,7 @@ fieldBuilderProto.connection = function connection(
     this.builder.connectionObject(
       {
         type,
+        edgesNullable,
         name: connectionName,
         ...connectionOptions,
       },

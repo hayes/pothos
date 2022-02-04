@@ -110,10 +110,19 @@ declare global {
         payloadType: ObjectRef<ResolveShape>;
       };
 
-      connectionObject: <Type extends OutputType<Types>, ResolveReturnShape>(
+      connectionObject: <
+        Type extends OutputType<Types>,
+        ResolveReturnShape,
+        EdgeNullability extends FieldNullability<[unknown]>,
+      >(
         ...args: NormalizeArgs<
           [
-            connectionOptions: ConnectionObjectOptions<Types, Type, ResolveReturnShape> & {
+            connectionOptions: ConnectionObjectOptions<
+              Types,
+              Type,
+              EdgeNullability,
+              ResolveReturnShape
+            > & {
               name: string;
               type: Type;
             },
@@ -122,7 +131,7 @@ declare global {
             },
           ]
         >
-      ) => ObjectRef<ConnectionShapeForType<Types, Type, false>>;
+      ) => ObjectRef<ConnectionShapeForType<Types, Type, false, EdgeNullability>>;
     }
 
     export interface InputFieldBuilder<
@@ -195,6 +204,7 @@ declare global {
         Args extends InputFieldMap,
         Nullable extends boolean,
         ResolveReturnShape,
+        EdgeNullability extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
       >(
         ...args: NormalizeArgs<
           [
@@ -203,6 +213,7 @@ declare global {
               ParentShape,
               Type,
               Nullable,
+              EdgeNullability,
               Args,
               ResolveReturnShape
             > &
@@ -219,11 +230,14 @@ declare global {
                 >,
                 'args' | 'resolve' | 'type'
               >,
-            connectionOptions?: ConnectionObjectOptions<Types, Type, ResolveReturnShape>,
+            connectionOptions?: Omit<
+              ConnectionObjectOptions<Types, Type, EdgeNullability, ResolveReturnShape>,
+              'edgesNullable'
+            >,
             edgeOptions?: ConnectionEdgeObjectOptions<Types, Type, ResolveReturnShape>,
           ]
         >
-      ) => FieldRef<ConnectionShapeForType<Types, Type, Nullable>>;
+      ) => FieldRef<ConnectionShapeForType<Types, Type, Nullable, EdgeNullability>>;
     }
 
     export interface ConnectionFieldOptions<
@@ -231,16 +245,18 @@ declare global {
       ParentShape,
       Type extends OutputType<Types>,
       Nullable extends boolean,
+      EdgeNullability extends FieldNullability<[unknown]>,
       Args extends InputFieldMap,
       ResolveReturnShape,
     > {
       type: Type;
       args?: Args;
+      edgesNullable?: EdgeNullability;
       resolve: Resolver<
         ParentShape,
         InputShapeFromFields<Args & InputFieldsFromShape<DefaultConnectionArguments>>,
         Types['Context'],
-        ConnectionShapeForType<Types, Type, Nullable>,
+        ConnectionShapeForType<Types, Type, Nullable, EdgeNullability>,
         ResolveReturnShape
       >;
     }
@@ -248,9 +264,14 @@ declare global {
     export interface ConnectionObjectOptions<
       Types extends SchemaTypes,
       Type extends OutputType<Types>,
+      EdgeNullability extends FieldNullability<[unknown]>,
       Resolved,
-    > extends ObjectTypeOptions<Types, ConnectionShapeFromResolve<Types, Type, false, Resolved>> {
+    > extends ObjectTypeOptions<
+        Types,
+        ConnectionShapeFromResolve<Types, Type, false, EdgeNullability, Resolved>
+      > {
       name?: string;
+      edgesNullable?: FieldNullability<[unknown]>;
     }
 
     export interface ConnectionEdgeObjectOptions<
@@ -259,7 +280,9 @@ declare global {
       Resolved,
     > extends ObjectTypeOptions<
         Types,
-        NonNullable<ConnectionShapeFromResolve<Types, Type, false, Resolved>['edges']>[number]
+        NonNullable<
+          ConnectionShapeFromResolve<Types, Type, false, false, Resolved>['edges']
+        >[number]
       > {
       name?: string;
     }
