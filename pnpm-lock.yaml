@@ -55,7 +55,7 @@ importers:
     specifiers:
       '@envelop/core': ^1.7.1
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.0
+      '@pothos/core': workspace:*
       fastify: ^3.27.0
       graphql: 16.3.0
       graphql-helix: ^1.11.0
@@ -72,7 +72,7 @@ importers:
   examples/helix:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.0
+      '@pothos/core': workspace:*
       graphql: 16.3.0
       graphql-helix: ^1.11.0
     dependencies:
@@ -92,7 +92,7 @@ importers:
       '@graphql-codegen/typescript': ^2.4.2
       '@graphql-codegen/typescript-operations': ^2.2.2
       '@graphql-codegen/typescript-react-apollo': ^3.2.4
-      '@pothos/core': ^3.0.0
+      '@pothos/core': workspace:*
       '@types/node': 17.0.13
       '@types/react': 17.0.38
       concurrently: ^7.0.0
@@ -131,8 +131,8 @@ importers:
   examples/prisma:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.1
-      '@pothos/plugin-prisma': ^0.16.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-prisma': workspace:*
       '@prisma/client': ^3.8.1
       apollo-server: ^3.6.2
       graphql: 16.3.0
@@ -151,9 +151,9 @@ importers:
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.1
-      '@pothos/plugin-prisma': ^0.16.0
-      '@pothos/plugin-relay': ^3.0.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-prisma': workspace:*
+      '@pothos/plugin-relay': workspace:*
       '@prisma/client': ^3.8.1
       apollo-server: ^3.6.2
       graphql: 16.3.0
@@ -173,7 +173,7 @@ importers:
   examples/simple-classes:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.0
+      '@pothos/core': workspace:*
       apollo-server: ^3.6.2
       graphql: 16.3.0
       ts-node: ^10.4.0
@@ -187,7 +187,7 @@ importers:
   examples/simple-interfaces:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.4
-      '@pothos/core': ^3.0.0
+      '@pothos/core': workspace:*
       apollo-server: ^3.6.2
       graphql: 16.3.0
       ts-node: ^10.4.0
@@ -200,8 +200,8 @@ importers:
 
   packages/converter:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       '@types/yargs': ^17.0.8
       graphql: 16.3.0
       ts-morph: ^13.0.3
@@ -220,7 +220,7 @@ importers:
 
   packages/core:
     specifiers:
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-scalars: ^1.14.1
       graphql-tag: ^2.12.6
@@ -242,8 +242,8 @@ importers:
   packages/plugin-authz:
     specifiers:
       '@graphql-authz/core': ^1.2.1
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql-tag: ^2.12.6
     devDependencies:
       '@graphql-authz/core': 1.2.1_graphql@16.3.0
@@ -256,8 +256,8 @@ importers:
 
   packages/plugin-complexity:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -271,10 +271,10 @@ importers:
 
   packages/plugin-dataloader:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/plugin-errors': ^3.0.0
-      '@pothos/plugin-relay': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-errors': workspace:*
+      '@pothos/plugin-relay': workspace:*
+      '@pothos/test-utils': workspace:*
       dataloader: ^2.0.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -290,8 +290,8 @@ importers:
 
   packages/plugin-directives:
     specifiers:
-      '@pothos/core': ^3.1.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-rate-limit-directive: ^2.0.0
       graphql-tag: ^2.12.6
@@ -307,9 +307,9 @@ importers:
 
   packages/plugin-errors:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/plugin-validation': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-validation': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
       zod: ^3.11.6
@@ -326,8 +326,8 @@ importers:
 
   packages/plugin-example:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -344,9 +344,9 @@ importers:
       '@apollo/gateway': ^2.0.0-alpha.4
       '@apollo/subgraph': ^2.0.0-alpha.3
       '@graphql-tools/utils': ^8.5.3
-      '@pothos/core': ^3.1.0
-      '@pothos/plugin-directives': ^3.1.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-directives': workspace:*
+      '@pothos/test-utils': workspace:*
       apollo-server: ^3.6.2
       apollo-server-core: ^3.6.2
       axios: ^0.25.0
@@ -370,8 +370,8 @@ importers:
 
   packages/plugin-mocks:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -385,11 +385,11 @@ importers:
 
   packages/plugin-prisma:
     specifiers:
-      '@pothos/core': ^3.0.1
-      '@pothos/plugin-errors': ^3.0.0
-      '@pothos/plugin-relay': ^3.0.0
-      '@pothos/plugin-scope-auth': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-errors': workspace:*
+      '@pothos/plugin-relay': workspace:*
+      '@pothos/plugin-scope-auth': workspace:*
+      '@pothos/test-utils': workspace:*
       '@prisma/client': ^3.8.1
       '@prisma/generator-helper': ^3.8.1
       graphql: 16.3.0
@@ -413,8 +413,8 @@ importers:
 
   packages/plugin-relay:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-subscriptions: ^2.0.0
       graphql-tag: ^2.12.6
@@ -430,8 +430,8 @@ importers:
 
   packages/plugin-scope-auth:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -445,8 +445,8 @@ importers:
 
   packages/plugin-simple-objects:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -460,8 +460,8 @@ importers:
 
   packages/plugin-smart-subscriptions:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-subscriptions: ^2.0.0
       graphql-tag: ^2.12.6
@@ -477,8 +477,8 @@ importers:
 
   packages/plugin-sub-graph:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql: 16.3.0
       graphql-tag: ^2.12.6
     devDependencies:
@@ -492,8 +492,8 @@ importers:
 
   packages/plugin-validation:
     specifiers:
-      '@pothos/core': ^3.0.0
-      '@pothos/test-utils': ^1.0.0
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
       graphql-tag: ^2.12.6
       zod: ^3.11.6
     devDependencies:
@@ -529,7 +529,7 @@ importers:
       '@mdx-js/mdx': ^2.0.0-rc.2
       '@mdx-js/react': ^2.0.0-rc.2
       '@next/mdx': ^12.0.8
-      '@pothos/core': 3.1.1
+      '@pothos/core': workspace:*
       '@tailwindcss/typography': ^0.5.1
       '@types/mdast': ^3.0.10
       '@types/react': ^17.0.38

@@ -57,11 +57,11 @@
     "typescript": ">4.5.2"
   },
   "devDependencies": {
-    "@pothos/core": "^3.0.1",
-    "@pothos/plugin-errors": "^3.0.0",
-    "@pothos/plugin-relay": "^3.0.0",
-    "@pothos/plugin-scope-auth": "^3.0.0",
-    "@pothos/test-utils": "^1.0.0",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-scope-auth": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^3.8.1",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.6",

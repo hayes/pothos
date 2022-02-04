@@ -35,10 +35,10 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@pothos/core": "^3.0.0",
-    "@pothos/plugin-errors": "^3.0.0",
-    "@pothos/plugin-relay": "^3.0.0",
-    "@pothos/test-utils": "^1.0.0",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
     "dataloader": "^2.0.0",
     "graphql-tag": "^2.12.6"
   },

@@ -78,7 +78,8 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
   ConnectionShape<
     SchemaTypes,
     NonNullable<T>,
-    null extends U ? true : Promise<null> extends U ? true : false
+    U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
+    T extends NonNullable<T> ? false : { list: false; items: true }
   >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
@@ -101,7 +102,7 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
   const trimmed = edges.slice(0, expectedSize);
 
   return {
-    edges: trimmed,
+    edges: trimmed as never,
     pageInfo: {
       startCursor: offsetToCursor(offset),
       endCursor: offsetToCursor(offset + trimmed.length - 1),
@@ -128,7 +129,12 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
   array: T[],
-): ConnectionShape<SchemaTypes, NonNullable<T>, boolean> {
+): ConnectionShape<
+  SchemaTypes,
+  NonNullable<T>,
+  boolean,
+  T extends NonNullable<T> ? false : { list: false; items: true }
+> {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
   const nodes = array.slice(offset, offset + limit);
@@ -145,7 +151,7 @@ export function resolveArrayConnection<T>(
   const trimmed = edges.slice(0, expectedSize);
 
   return {
-    edges: trimmed,
+    edges: trimmed as never,
     pageInfo: {
       startCursor: offsetToCursor(offset),
       endCursor: offsetToCursor(offset + trimmed.length - 1),

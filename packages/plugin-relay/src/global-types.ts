@@ -7,17 +7,14 @@ import {
   InputFieldMap,
   InputFieldRef,
   InputFieldsFromShape,
-  InputObjectRef,
   InputShapeFromFields,
   InputShapeFromTypeParam,
   inputShapeKey,
   InterfaceParam,
-  InterfaceRef,
   NormalizeArgs,
   ObjectFieldsShape,
   ObjectFieldThunk,
   ObjectParam,
-  ObjectRef,
   OutputShape,
   OutputType,
   ParentShape,
@@ -44,7 +41,7 @@ import {
   RelayMutationPayloadOptions,
   RelayPluginOptions,
 } from './types';
-import { PothosRelayPlugin } from '.';
+import { DefaultEdgesNullability, PothosRelayPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -58,12 +55,16 @@ declare global {
 
     export interface UserSchemaTypes {
       Connection: {};
+      DefaultEdgesNullability: FieldNullability<[unknown]>;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       Connection: undefined extends PartialTypes['Connection']
         ? {}
         : PartialTypes['Connection'] & {};
+      DefaultEdgesNullability: undefined extends PartialTypes['DefaultEdgesNullability']
+        ? DefaultEdgesNullability
+        : PartialTypes['DefaultEdgesNullability'];
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
@@ -258,7 +259,7 @@ declare global {
       Resolved,
     > extends ObjectTypeOptions<
         Types,
-        ConnectionShapeFromResolve<Types, Type, false, Resolved>['edges'][number]
+        NonNullable<ConnectionShapeFromResolve<Types, Type, false, Resolved>['edges']>[number]
       > {
       name?: string;
     }

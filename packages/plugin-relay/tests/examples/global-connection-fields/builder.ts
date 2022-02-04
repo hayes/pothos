@@ -3,7 +3,7 @@ import RelayPlugin from '../../../src';
 import { Poll } from './data';
 import { ContextType } from './types';
 
-interface UserSchemaTypes {
+export default new SchemaBuilder<{
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
@@ -12,11 +12,11 @@ interface UserSchemaTypes {
   Connection: {
     totalCount: number;
   };
-}
-
-export default new SchemaBuilder<UserSchemaTypes>({
+  DefaultEdgesNullability: false;
+}>({
   plugins: [RelayPlugin],
   relayOptions: {
+    edgesNullable: false,
     clientMutationId: 'omit',
     cursorType: 'String',
     nodeQueryOptions: {

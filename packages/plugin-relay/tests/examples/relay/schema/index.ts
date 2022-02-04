@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-useless-promise-resolve-reject */
 import './poll';
 import './numbers';
 import builder from '../builder';

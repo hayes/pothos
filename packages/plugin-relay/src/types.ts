@@ -25,10 +25,12 @@ import {
   ParentShape,
   Resolver,
   SchemaTypes,
+  ShapeFromListTypeParam,
   ShapeFromTypeParam,
 } from '@pothos/core';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
+  edgesNullable?: FieldNullability<[unknown]>;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
@@ -166,6 +168,12 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   };
 }>;
 
+export interface DefaultEdgesNullability {
+  // TODO(breaking) according to the spec, this should be nullable
+  list: false;
+  items: true;
+}
+
 export interface PageInfoShape {
   hasNextPage: boolean;
   hasPreviousPage: boolean;
@@ -178,18 +186,25 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
   type: OutputType<Types> | string;
 }
 
-export type ConnectionShape<Types extends SchemaTypes, T, Nullable> =
+export type ConnectionShape<
+  Types extends SchemaTypes,
+  T,
+  Nullable,
+  EdgesNullable extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
+> =
   | (Nullable extends false ? never : null | undefined)
   | (Types['Connection'] & {
       pageInfo: PageInfoShape;
-      edges: (
-        | {
+      edges: ShapeFromListTypeParam<
+        Types,
+        [
+          ObjectRef<{
             cursor: string;
             node: T;
-          }
-        | null
-        | undefined
-      )[];
+          }>,
+        ],
+        EdgesNullable
+      >;
     });
 
 export type ConnectionShapeFromBaseShape<

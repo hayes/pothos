@@ -353,6 +353,10 @@ schemaBuilderProto.connectionObject = function connectionObject(
     cursorFieldOptions = {} as never,
     nodeFieldOptions = {} as never,
     pageInfoFieldOptions = {} as never,
+    edgesNullable = {
+      list: false,
+      items: true,
+    },
   } = this.options.relayOptions;
 
   const connectionRef =
@@ -390,12 +394,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
       edges: t.field({
         ...edgesFieldOptions,
         type: [edgeRef],
-        nullable: {
-          // TODO(breaking) according to the spec, this should be nullable
-          // Should be configuratble and default to true
-          list: false,
-          items: true,
-        },
+        nullable: edgesNullable as { list: false; items: true },
         resolve: (parent) => parent.edges,
       }),
       ...connectionFields?.(t as never),
