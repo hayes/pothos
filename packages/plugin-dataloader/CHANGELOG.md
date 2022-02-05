@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.2.0
+
+### Minor Changes
+
+- eb9c33b8: Add loadManyWithoutCache option to dataloader to avoid double caching in loadableNode
+
 ## 3.1.1
 
 ### Patch Changes

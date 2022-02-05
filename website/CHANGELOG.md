@@ -2,6 +2,12 @@
 
 ## null
 
+### Minor Changes
+
+- eb9c33b8: Add loadManyWithoutCache option to dataloader to avoid double caching in loadableNode
+
+## null
+
 ### Patch Changes
 
 - 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
