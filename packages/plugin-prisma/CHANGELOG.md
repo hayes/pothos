@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.16.3
+
+### Patch Changes
+
+- ab4a9ae4: Fix some type compatibility issues when skipLibCheck is false
+
 ## 0.16.2
 
 ### Patch Changes

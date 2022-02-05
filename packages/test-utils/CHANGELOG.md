@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.0.1
+
+### Patch Changes
+
+- ab4a9ae4: Fix some type compatibility issues when skipLibCheck is false
+
 ## 1.0.0
 
 ### Major Changes
