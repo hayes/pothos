@@ -3,7 +3,8 @@
     "composite": false,
     "emitDeclarationOnly": false,
     "noEmit": true,
-    "rootDir": "."
+    "rootDir": ".",
+    "skipLibCheck": true,
   },
   "extends": "../../../tsconfig.options.json",
   "include": [
