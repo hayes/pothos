@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-smart-subscriptions",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A Pothos plugin for turning queries into subscriptions",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",

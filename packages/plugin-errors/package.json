@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-errors",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "description": "A Pothos plugin for adding typed errors into your schema",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
 ## 3.1.0
 
 ### Minor Changes
