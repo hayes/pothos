@@ -277,7 +277,7 @@ type PollAnswersCon {
 
 type PollAnswersConEdge {
   cursor: String!
-  node: Answer!
+  node: Answer
 }
 
 type PollAnswersConnection {
@@ -289,7 +289,7 @@ type PollAnswersConnection {
 
 type PollAnswersConnectionEdge {
   cursor: String!
-  node: Answer!
+  node: Answer
 }
 
 type PollAnswersUsingOffsetConnection {
@@ -301,7 +301,7 @@ type PollAnswersUsingOffsetConnection {
 
 type PollAnswersUsingOffsetConnectionEdge {
   cursor: String!
-  node: Answer!
+  node: Answer
 }
 
 type Query {
@@ -317,6 +317,7 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   nullableNumbers(after: String, before: String, first: Int, last: Int): QueryNullableNumbersConnection
   numbers(after: String, before: String, first: Int, last: Int): QueryNumbersConnection!
+  oddNumbers(after: String, before: String, first: Int, last: Int): QueryOddNumbersConnection!
   poll(id: Int!): Poll
   pollIds: [ID!]!
   polls: [Poll!]!
@@ -333,7 +334,7 @@ type QueryBatchNumbersConnection {
 
 type QueryBatchNumbersConnectionEdge {
   cursor: String!
-  node: BatchNumber!
+  node: BatchNumber
 }
 
 type QueryNullableNumbersConnection {
@@ -346,7 +347,7 @@ type QueryNullableNumbersConnection {
 
 type QueryNullableNumbersConnectionEdge {
   cursor: String!
-  node: Number!
+  node: Number
 }
 
 type QueryNumbersConnection {
@@ -358,6 +359,18 @@ type QueryNumbersConnection {
 }
 
 type QueryNumbersConnectionEdge {
+  cursor: String!
+  node: Number
+}
+
+type QueryOddNumbersConnection {
+  edges: [QueryOddNumbersConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+  totalCount2: Int!
+}
+
+type QueryOddNumbersConnectionEdge {
   cursor: String!
   node: Number!
 }
@@ -373,7 +386,7 @@ type QueryPollsConnection {
 type QueryPollsConnectionEdge {
   cursor: String!
   extraEdgeField: Int!
-  node: Poll!
+  node: Poll
 }
 
 type SharedConnection {
@@ -385,7 +398,7 @@ type SharedConnection {
 
 type SharedEdge {
   cursor: String!
-  node: Number!
+  node: Number
 }"
 `;
 

@@ -103,6 +103,7 @@ builder.queryFields((t) => ({
       items: true,
       list: false,
     },
+    nodeNullable: false,
     resolve: async (parent, args) => {
       const result = await resolveOffsetConnection({ args }, () => [
         new NumberThing(1),

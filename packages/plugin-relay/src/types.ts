@@ -31,6 +31,7 @@ import {
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   edgesNullable?: FieldNullability<[unknown]>;
+  nodeNullable?: boolean;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
@@ -191,6 +192,7 @@ export type ConnectionShape<
   T,
   Nullable,
   EdgesNullable extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
+  NodeNullable extends boolean = Types['DefaultNodeNullability'],
 > =
   | (Nullable extends false ? never : null | undefined)
   | (Types['Connection'] & {
@@ -200,7 +202,7 @@ export type ConnectionShape<
         [
           ObjectRef<{
             cursor: string;
-            node: T;
+            node: NodeNullable extends false ? T : T | null | undefined;
           }>,
         ],
         EdgesNullable
@@ -218,21 +220,35 @@ export type ConnectionShapeForType<
   Type extends OutputType<Types>,
   Nullable extends boolean,
   EdgeNullability extends FieldNullability<[unknown]>,
-> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, false>, Nullable, EdgeNullability>;
+  NodeNullability extends boolean,
+> = ConnectionShape<
+  Types,
+  ShapeFromTypeParam<Types, Type, false>,
+  Nullable,
+  EdgeNullability,
+  NodeNullability
+>;
 
 export type ConnectionShapeFromResolve<
   Types extends SchemaTypes,
   Type extends OutputType<Types>,
   Nullable extends boolean,
   EdgeNullability extends FieldNullability<[unknown]>,
+  NodeNullability extends boolean,
   Resolved,
 > = Resolved extends Promise<infer T>
-  ? NonNullable<T> extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability>
+  ? NonNullable<T> extends ConnectionShapeForType<
+      Types,
+      Type,
+      Nullable,
+      EdgeNullability,
+      NodeNullability
+    >
     ? NonNullable<T>
-    : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability>
-  : Resolved extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability>
+    : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>
+  : Resolved extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>
   ? NonNullable<Resolved>
-  : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability>;
+  : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 

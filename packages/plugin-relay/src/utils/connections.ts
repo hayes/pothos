@@ -79,7 +79,8 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
     SchemaTypes,
     NonNullable<T>,
     U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
-    T extends NonNullable<T> ? false : { list: false; items: true }
+    T extends NonNullable<T> ? false : { list: false; items: true },
+    false
   >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
@@ -133,7 +134,8 @@ export function resolveArrayConnection<T>(
   SchemaTypes,
   NonNullable<T>,
   boolean,
-  T extends NonNullable<T> ? false : { list: false; items: true }
+  T extends NonNullable<T> ? false : { list: false; items: true },
+  false
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 

@@ -13,10 +13,12 @@ export default new SchemaBuilder<{
     totalCount: number;
   };
   DefaultEdgesNullability: false;
+  DefaultNodeNullability: true;
 }>({
   plugins: [RelayPlugin],
   relayOptions: {
     edgesNullable: false,
+    nodeNullable: true,
     clientMutationId: 'omit',
     cursorType: 'String',
     nodeQueryOptions: {
