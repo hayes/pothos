@@ -6,6 +6,7 @@ import { resolveHelper } from './resolve-helper.ts';
 import { createFieldAuthScopesStep, createFieldGrantScopesStep, createResolveStep, createTypeAuthScopesStep, createTypeGrantScopesStep, } from './steps.ts';
 import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.ts';
 export * from './types.ts';
+export * from './errors.ts';
 const pluginName = "scopeAuth" as const;
 export default pluginName;
 export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
