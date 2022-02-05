@@ -30,8 +30,6 @@ import {
 } from '@pothos/core';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
-  edgesNullable?: FieldNullability<[unknown]>;
-  nodeNullable?: boolean;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
@@ -100,11 +98,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       GlobalIDShape<Types> | string
     >,
     'args' | 'nullable' | 'resolve' | 'type'
-  >;
+  > & {
+    nullable?: Types['DefaultNodeNullability'];
+  };
   edgesFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<Types, {}, [ObjectRef<{}>], false, {}, unknown[]>,
     'args' | 'nullable' | 'resolve' | 'type'
-  >;
+  > & {
+    nullable?: Types['DefaultEdgesNullability'];
+  };
   pageInfoFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
       Types,

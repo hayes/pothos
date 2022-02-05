@@ -5,12 +5,12 @@ menu: Plugins
 description: Relay plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Relay Plugin
 
@@ -140,8 +140,12 @@ builder.node(NumberThing, {
     resolve: (num) => num.id,
     // other options for id field can be added here
   },
+
   loadOne: (id) => new NumberThing(parseInt(id)),
+  // or
   loadMany: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
+  // or
+  loadWithoutCache: (id) => new NumberThing(parseInt(id)),,
   name: 'Number',
   fields: (t) => ({
     binary: t.exposeString('binary', {}),
@@ -151,10 +155,13 @@ builder.node(NumberThing, {
 
 `builder.node` will create an object type that implements the `Node` interface. It will also create
 the `Node` interface the first time it is used. The `resolve` function for `id` should return a
-number or string, which will be converted to a globalID. The `loadOne` and `loadMany` methods are
-optional, and `loadMany` will be used if both are present. These methods allow a nodes to be loaded
-by id. The relay plugin adds to new query fields `node` and `nodes` which can be used to directly
-fetch nodes using global IDs.
+number or string, which will be converted to a globalID. The `loadOne`, `loadMany`
+`loadWithoutCache` methods are optional, with `loadMany` taking precidence. Generally you should
+only implement ONE of these methods.These methods allow a nodes to be loaded by id. The relay plugin
+adds to new query fields `node` and `nodes` which can be used to directly fetch nodes using global
+IDs. Each node will only be loaded once by id, and cached if the same node is loaded multiple times.
+`loadWithoutCache` can be used if caching is not desired, or the entity is already being loaded from
+something like a dataloader that does it's own caching.
 
 Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
 lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
@@ -223,7 +230,7 @@ For limit/offset based apis:
 import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
-  numbers: t.connection({
+  things: t.connection({
     type: SomeThings,
     resolve: (parent, args) => {
       return resolveOffsetConnection({ args }, ({ limit, offset }) => {
@@ -252,7 +259,7 @@ just like `resolveOffsetConnection` and accepts the same options.
 import { resolveArrayConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
-  numbers: t.connection({
+  things: t.connection({
     type: SomeThings,
     resolve: (parent, args) => {
       return resolveArrayConnection({ args }, getAllTheThingsAsArray());
@@ -357,7 +364,7 @@ import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 const ThingsConnection = builder.connectionObject(
   {
-    // connection optionss
+    // connection options
     type: SomeThing,
     name: 'ThingsConnection',
   },
@@ -519,4 +526,67 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+```
+
+### Changing nullability of edges and nodes
+
+If you want to change the nullability of the `edges` field on a `Connection` or the `node` field on
+an `Edge` you can configure this in 2 ways:
+
+#### Globally
+
+```typescript
+import RelayPlugin from '@pothos/plugin-relay';
+const builder = new SchemaBuilder<{
+  DefaultEdgesNullability: false;
+  DefaultNodeNullability: true;
+}>({
+  plugins: [RelayPlugin],
+  relayOptions: {
+    edgesFieldOptions: {
+      nullable: false,
+    },
+    nodeFieldOptions: {
+      nullable: true,
+    },
+  },
+});
+```
+
+The types provided for `DefaultEdgesNullability` and `DefaultNodeNullability` must match the values
+provided in the nullable option of `edgesFieldOptions` and `nodeFieldOptions` respectivly. This will
+set the default nullabilitty for all connections created by your builder.
+
+Nullablity for `edges` fields defaults to `{ list: false, items: true }` and the nullablity of
+`node` fields default to `false`.
+
+#### Per connection
+
+```typescript
+builder.queryFields((t) => ({
+  things: t.connection({
+    type: SomeThings,
+    edgesNullable: {
+      items: true,
+      list: false,
+    },
+    nodeNullable: false,
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        return getThings(offset, limit);
+      });
+    },
+  }),
+}));
+// Or
+
+const ThingsConnection = builder.connectionObject({
+  type: SomeThing,
+  name: 'ThingsConnection',
+  edgesNullable: {
+    items: true,
+    list: false,
+  },
+  nodeNullable: false,
+});
 ```

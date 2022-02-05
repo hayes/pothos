@@ -355,15 +355,13 @@ schemaBuilderProto.connectionObject = function connectionObject(
 
   const {
     cursorType = 'String',
-    edgesFieldOptions = {} as never,
+    edgesFieldOptions: {
+      nullable: edgesNullable = { items: true, list: false },
+      ...edgesFieldOptions
+    } = {} as never,
     cursorFieldOptions = {} as never,
-    nodeFieldOptions = {} as never,
+    nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never,
     pageInfoFieldOptions = {} as never,
-    edgesNullable = {
-      list: false,
-      items: true,
-    },
-    nodeNullable = false,
   } = this.options.relayOptions;
 
   const connectionRef =

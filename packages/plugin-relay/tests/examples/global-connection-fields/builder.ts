@@ -17,8 +17,12 @@ export default new SchemaBuilder<{
 }>({
   plugins: [RelayPlugin],
   relayOptions: {
-    edgesNullable: false,
-    nodeNullable: true,
+    nodeFieldOptions: {
+      nullable: true,
+    },
+    edgesFieldOptions: {
+      nullable: false,
+    },
     clientMutationId: 'omit',
     cursorType: 'String',
     nodeQueryOptions: {
