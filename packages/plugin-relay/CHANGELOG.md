@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.2.0
+
+### Minor Changes
+
+- 2d9b21cd: Make edge nullability configurable at both the builder and field level
+- 695c9b2d: Make relay node nullability configurable
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
 ## 3.1.0
 
 ### Minor Changes

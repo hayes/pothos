@@ -4,6 +4,14 @@
 
 ### Patch Changes
 
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+- Updated dependencies [2d9b21cd]
+  - @pothos/core@3.1.2
+
+## null
+
+### Patch Changes
+
 - Updated dependencies [12ac37c7]
   - @pothos/core@3.1.1
 

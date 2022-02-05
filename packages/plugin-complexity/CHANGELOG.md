@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.0.1
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
 ## 3.0.0
 
 ### Major Changes

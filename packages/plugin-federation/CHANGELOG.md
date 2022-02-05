@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 0.2.2
+
+### Patch Changes
+
+- 2d9b21cd: Use workspace:\* for dev dependencies on pothos packages
+
 ## 0.2.1
 
 ### Patch Changes
