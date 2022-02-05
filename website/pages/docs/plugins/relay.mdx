@@ -136,16 +136,18 @@ class NumberThing {
 }
 
 builder.node(NumberThing, {
+  // defiine an id field
   id: {
     resolve: (num) => num.id,
     // other options for id field can be added here
   },
 
+  // Define only one of the following methods for loading nodes by id
   loadOne: (id) => new NumberThing(parseInt(id)),
-  // or
   loadMany: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
-  // or
-  loadWithoutCache: (id) => new NumberThing(parseInt(id)),,
+  loadWithoutCache: (id) => new NumberThing(parseInt(id)),
+  loadManyWithoutCache: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
+
   name: 'Number',
   fields: (t) => ({
     binary: t.exposeString('binary', {}),
@@ -155,13 +157,12 @@ builder.node(NumberThing, {
 
 `builder.node` will create an object type that implements the `Node` interface. It will also create
 the `Node` interface the first time it is used. The `resolve` function for `id` should return a
-number or string, which will be converted to a globalID. The `loadOne`, `loadMany`
-`loadWithoutCache` methods are optional, with `loadMany` taking precidence. Generally you should
-only implement ONE of these methods.These methods allow a nodes to be loaded by id. The relay plugin
-adds to new query fields `node` and `nodes` which can be used to directly fetch nodes using global
-IDs. Each node will only be loaded once by id, and cached if the same node is loaded multiple times.
-`loadWithoutCache` can be used if caching is not desired, or the entity is already being loaded from
-something like a dataloader that does it's own caching.
+number or string, which will be converted to a globalID. The relay plugin adds to new query fields
+`node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
+provided `loadOne` or `laodMany` method. Each node will only be loaded once by id, and cached if the
+same node is loaded multiple times inn the same request. You can provide `loadWithoutCache` or
+`loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
+datasource like a dataloader.
 
 Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
 lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to

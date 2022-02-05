@@ -315,6 +315,10 @@ export type NodeObjectOptions<
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
+  loadManyWithoutCache?: (
+    ids: string[],
+    context: Types['Context'],
+  ) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
 };
 
 export type GlobalIDFieldOptions<

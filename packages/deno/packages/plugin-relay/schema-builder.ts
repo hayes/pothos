@@ -217,9 +217,9 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
         payloadType: payloadRef,
     } as never;
 };
-schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
+schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable: nodeNullableField, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
     verifyRef(type);
-    const { cursorType = "String", edgesFieldOptions = {} as never, cursorFieldOptions = {} as never, nodeFieldOptions = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
+    const { cursorType = "String", edgesFieldOptions: { nullable: edgesNullable = { items: true, list: false }, ...edgesFieldOptions } = {} as never, cursorFieldOptions = {} as never, nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
     const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
     const edgeName = edgeNameFromOptions ?? `${connectionName.replace(/Connection$/, "")}Edge`;
     const edgeRef = this.objectRef<{
@@ -242,11 +242,9 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
             edges: t.field({
                 ...edgesFieldOptions,
                 type: [edgeRef],
-                nullable: {
-                    // TODO(breaking) according to the spec, this should be nullable
-                    // Should be configuratble and default to true
-                    list: false,
-                    items: true,
+                nullable: (edgesNullableField ?? edgesNullable) as {
+                    list: false;
+                    items: true;
                 },
                 resolve: (parent) => parent.edges,
             }),
@@ -258,6 +256,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
         fields: (t) => ({
             node: t.field({
                 ...nodeFieldOptions,
+                nullable: nodeNullableField ?? nodeNullable,
                 type,
                 resolve: (parent) => parent.node as never,
             }),

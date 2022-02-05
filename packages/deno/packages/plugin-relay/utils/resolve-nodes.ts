@@ -61,6 +61,9 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(bui
             return entryPromise;
         }));
     }
+    if (options.loadManyWithoutCache) {
+        return options.loadManyWithoutCache(ids, context);
+    }
     if (options.loadWithoutCache) {
         return Promise.all(ids.map((id) => Promise.resolve(options.loadWithoutCache!(id, context, info))));
     }

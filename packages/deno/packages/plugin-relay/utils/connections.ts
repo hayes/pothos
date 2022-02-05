@@ -58,7 +58,10 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 export async function resolveOffsetConnection<T, U extends Promise<T[] | null> | T[] | null>(options: ResolveOffsetConnectionOptions, resolve: (params: {
     offset: number;
     limit: number;
-}) => U & (MaybePromise<T[] | null> | null)): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, null extends U ? true : Promise<null> extends U ? true : false>> {
+}) => U & (MaybePromise<T[] | null> | null)): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true, T extends NonNullable<T> ? false : {
+    list: false;
+    items: true;
+}, false>> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = (await resolve({ offset, limit })) as T[] | null;
     if (!nodes) {
@@ -72,7 +75,7 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
         });
     const trimmed = edges.slice(0, expectedSize);
     return {
-        edges: trimmed,
+        edges: trimmed as never,
         pageInfo: {
             startCursor: offsetToCursor(offset),
             endCursor: offsetToCursor(offset + trimmed.length - 1),
@@ -91,7 +94,10 @@ export function cursorToOffset(cursor: string): number {
 export function offsetToCursor(offset: number): string {
     return Buffer.from(`${OFFSET_CURSOR_PREFIX}${offset}`).toString("base64");
 }
-export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, NonNullable<T>, boolean> {
+export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, NonNullable<T>, boolean, T extends NonNullable<T> ? false : {
+    list: false;
+    items: true;
+}, false> {
     const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
     const nodes = array.slice(offset, offset + limit);
     const edges = nodes.map((value, index) => value == null
@@ -102,7 +108,7 @@ export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions
         });
     const trimmed = edges.slice(0, expectedSize);
     return {
-        edges: trimmed,
+        edges: trimmed as never,
         pageInfo: {
             startCursor: offsetToCursor(offset),
             endCursor: offsetToCursor(offset + trimmed.length - 1),

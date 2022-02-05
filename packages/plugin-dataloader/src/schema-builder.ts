@@ -185,7 +185,8 @@ schemaBuilderProto.loadableNode = function loadableNode<
       ).nodeInterfaceRef(),
       ...(options.interfaces ?? []),
     ],
-    loadMany: (ids: Key[], context: SchemaTypes['Context']) => getDataloader(context).loadMany(ids),
+    loadManyWithoutCache: (ids: Key[], context: SchemaTypes['Context']) =>
+      getDataloader(context).loadMany(ids),
     extensions: {
       getDataloader,
       cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,

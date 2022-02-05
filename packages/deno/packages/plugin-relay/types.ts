@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     clientMutationId?: "omit" | "optional" | "required";
     cursorType?: "ID" | "String";
@@ -20,10 +20,14 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     cursorFieldOptions: Normalize<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID" | "String", false, {}, Types["Scalars"]["ID" | "String"]["Output"]>, "args" | "nullable" | "resolve" | "type"> & {
         type?: "ID" | "String";
     }>;
-    nodeFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<{}>, false, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
+    nodeFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<{}>, false, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> & {
+        nullable?: Types["DefaultNodeNullability"];
+    };
     edgesFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
         ObjectRef<{}>
-    ], false, {}, unknown[]>, "args" | "nullable" | "resolve" | "type">;
+    ], false, {}, unknown[]>, "args" | "nullable" | "resolve" | "type"> & {
+        nullable?: Types["DefaultEdgesNullability"];
+    };
     pageInfoFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, false, {}, PageInfoShape>, "args" | "nullable" | "resolve" | "type">;
     hasNextPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", false, {}, boolean>, "args" | "nullable" | "resolve" | "type">;
     hasPreviousPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", false, {}, boolean>, "args" | "nullable" | "resolve" | "type">;
@@ -39,6 +43,11 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         id: string;
     };
 }>;
+export interface DefaultEdgesNullability {
+    // TODO(breaking) according to the spec, this should be nullable
+    list: false;
+    items: true;
+}
 export interface PageInfoShape {
     hasNextPage: boolean;
     hasPreviousPage: boolean;
@@ -49,16 +58,24 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
     id: OutputShape<Types, "ID">;
     type: OutputType<Types> | string;
 }
-export type ConnectionShape<Types extends SchemaTypes, T, Nullable> = (Nullable extends false ? never : null | undefined) | (Types["Connection"] & {
+export type ConnectionShape<Types extends SchemaTypes, T, Nullable, EdgesNullable extends FieldNullability<[
+    unknown
+]> = Types["DefaultEdgesNullability"], NodeNullable extends boolean = Types["DefaultNodeNullability"]> = (Nullable extends false ? never : null | undefined) | (Types["Connection"] & {
     pageInfo: PageInfoShape;
-    edges: ({
-        cursor: string;
-        node: T;
-    } | null | undefined)[];
+    edges: ShapeFromListTypeParam<Types, [
+        ObjectRef<{
+            cursor: string;
+            node: NodeNullable extends false ? T : T | null | undefined;
+        }>
+    ], EdgesNullable>;
 });
 export type ConnectionShapeFromBaseShape<Types extends SchemaTypes, Shape, Nullable extends boolean> = ConnectionShape<Types, Shape, Nullable>;
-export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, false>, Nullable>;
-export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, Resolved> = Resolved extends Promise<infer T> ? NonNullable<T> extends ConnectionShapeForType<Types, Type, Nullable> ? NonNullable<T> : ConnectionShapeForType<Types, Type, Nullable> : Resolved extends ConnectionShapeForType<Types, Type, Nullable> ? NonNullable<Resolved> : ConnectionShapeForType<Types, Type, Nullable>;
+export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, EdgeNullability extends FieldNullability<[
+    unknown
+]>, NodeNullability extends boolean> = ConnectionShape<Types, ShapeFromTypeParam<Types, Type, false>, Nullable, EdgeNullability, NodeNullability>;
+export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, EdgeNullability extends FieldNullability<[
+    unknown
+]>, NodeNullability extends boolean, Resolved> = Resolved extends Promise<infer T> ? NonNullable<T> extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability> ? NonNullable<T> : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability> : Resolved extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability> ? NonNullable<Resolved> : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>;
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {
 }
 export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, "isTypeOf"> & 
@@ -77,6 +94,7 @@ export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectPar
     loadOne?: (id: string, context: Types["Context"]) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
     loadMany?: (ids: string[], context: Types["Context"]) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
     loadWithoutCache?: (id: string, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
+    loadManyWithoutCache?: (ids: string[], context: Types["Context"]) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
 };
 export type GlobalIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type"> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;
