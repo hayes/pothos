@@ -21,6 +21,7 @@ import {
   RelatedConnectionOptions,
   RelatedFieldOptions,
   RelationCountOptions,
+  ShapeFromConnection,
 } from './types';
 import { queryFromInfo, SELF_RELATION } from './util';
 import { VariantFieldOptions } from '.';
@@ -48,16 +49,21 @@ export class PrismaObjectFieldBuilder<
             connectionOptions?: PothosSchemaTypes.ConnectionObjectOptions<
               Types,
               ObjectRef<Shape>,
+              false,
+              false,
               ResolveReturnShape
             >,
             edgeOptions?: PothosSchemaTypes.ConnectionEdgeObjectOptions<
               Types,
               ObjectRef<Shape>,
+              false,
               ResolveReturnShape
             >,
           ]
         >
-      ) => FieldRef<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>['shape']>
+      ) => FieldRef<
+        ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>>
+      >
     : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
     this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
     name: string,

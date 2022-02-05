@@ -103,7 +103,7 @@ generatorHandler({
             undefined,
             ts.factory.createTypeLiteralNode(
               relations.map((field) => {
-                const typeName = typeof field.type === 'string' ? field.type : field.type.name;
+                const typeName = field.type;
 
                 return ts.factory.createPropertySignature(
                   [],

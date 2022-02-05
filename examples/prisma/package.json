@@ -18,10 +18,10 @@
     "@faker-js/faker": "^6.0.0-alpha.4",
     "@pothos/core": "^3.0.1",
     "@pothos/plugin-prisma": "^0.16.0",
-    "@prisma/client": "^3.8.1",
+    "@prisma/client": "^3.9.1",
     "apollo-server": "^3.6.2",
     "graphql": "16.3.0",
-    "prisma": "^3.8.1",
+    "prisma": "^3.9.1",
     "ts-node": "^10.4.0"
   },
   "publishConfig": {

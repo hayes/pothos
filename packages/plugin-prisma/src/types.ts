@@ -366,6 +366,8 @@ export type PrismaConnectionFieldOptions<
     ParentShape,
     Param,
     Nullable,
+    false,
+    false,
     Args,
     ResolveReturnShape
   >,
@@ -426,6 +428,8 @@ export type RelatedConnectionOptions<
       Types,
       Model['Shape'],
       ObjectRef<unknown>,
+      false,
+      false,
       Nullable,
       Args,
       unknown
@@ -496,3 +500,5 @@ export interface IndirectLoadMap {
   subFields: SubFieldInclude[];
   path: string[];
 }
+
+export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;

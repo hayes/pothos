@@ -65,10 +65,10 @@ declare global {
         : PartialTypes['Connection'] & {};
       DefaultEdgesNullability: undefined extends PartialTypes['DefaultEdgesNullability']
         ? DefaultEdgesNullability
-        : PartialTypes['DefaultEdgesNullability'];
+        : NonNullable<PartialTypes['DefaultEdgesNullability']>;
       DefaultNodeNullability: undefined extends PartialTypes['DefaultNodeNullability']
         ? false
-        : PartialTypes['DefaultNodeNullability'];
+        : NonNullable<PartialTypes['DefaultNodeNullability']> & boolean;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {

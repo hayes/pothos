@@ -22,7 +22,7 @@ import {
   PrismaObjectTypeOptions,
   ShapeWithInclude,
 } from './types';
-import { PrismaPlugin } from '.';
+import { PrismaPlugin, ShapeFromConnection } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -142,16 +142,19 @@ declare global {
                 connectionOptions?: ConnectionObjectOptions<
                   Types,
                   ObjectRef<Model['Shape']>,
+                  false,
+                  false,
                   ResolveReturnShape
                 >,
                 edgeOptions?: ConnectionEdgeObjectOptions<
                   Types,
                   ObjectRef<Model['Shape']>,
+                  false,
                   ResolveReturnShape
                 >,
               ]
             >
-          ) => FieldRef<ConnectionShapeHelper<Types, Model['Shape'], Nullable>['shape']>
+          ) => FieldRef<ShapeFromConnection<ConnectionShapeHelper<Types, Model['Shape'], Nullable>>>
         : '@pothos/plugin-relay is required to use this method';
     }
 
@@ -160,6 +163,8 @@ declare global {
       ParentShape,
       Type extends OutputType<Types>,
       Nullable extends boolean,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
       Args extends InputFieldMap,
       ResolveReturnShape,
     > {}
@@ -167,12 +172,15 @@ declare global {
     export interface ConnectionObjectOptions<
       Types extends SchemaTypes,
       Type extends OutputType<Types>,
+      EdgeNullability extends FieldNullability<[unknown]>,
+      NodeNullability extends boolean,
       Resolved,
     > {}
 
     export interface ConnectionEdgeObjectOptions<
       Types extends SchemaTypes,
       Type extends OutputType<Types>,
+      NodeNullability extends boolean,
       Resolved,
     > {}
 
@@ -183,8 +191,6 @@ declare global {
       after?: string | null | undefined;
     }
 
-    export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {
-      shape: unknown;
-    }
+    export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {}
   }
 }

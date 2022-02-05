@@ -1,7 +1,8 @@
 {
   "compilerOptions": {
     "outDir": "lib",
-    "rootDir": "src"
+    "rootDir": "src",
+    "skipLibCheck": true
   },
   "exclude": [
     "lib",

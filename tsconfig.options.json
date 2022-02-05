@@ -19,7 +19,7 @@
     "pretty": true,
     "removeComments": false,
     "resolveJsonModule": false,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "sourceMap": true,
     "strict": true,
     "target": "es2019",
