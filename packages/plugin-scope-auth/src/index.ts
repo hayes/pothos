@@ -48,7 +48,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const steps = this.createResolveSteps(fieldConfig, typeConfig, resolver);
 
     if (steps.length > 1) {
-      return resolveHelper(steps, this, fieldConfig, this.options.scopeAuthError);
+      return resolveHelper(steps, this, fieldConfig);
     }
 
     return resolver;

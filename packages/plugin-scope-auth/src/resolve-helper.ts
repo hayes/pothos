@@ -3,17 +3,16 @@ import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import ResolveState from './resolve-state';
-import { CustomAuthError, ResolveStep, UnauthorizedResolver } from './types';
-import { PothosScopeAuthPlugin } from '.';
+import { ResolveStep, UnauthorizedResolver } from './types';
+import { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 
-const defaultUnauthorizedResolver: UnauthorizedResolver<
-  never,
-  never,
-  never,
-  never,
-  never,
-  typeof Error
-> = (_root, _args, _context, _info, error) => {
+const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (
+  _root,
+  _args,
+  _context,
+  _info,
+  error,
+) => {
   throw error;
 };
 
@@ -21,23 +20,14 @@ export function resolveHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],
   plugin: PothosScopeAuthPlugin<Types>,
   fieldConfig: PothosOutputFieldConfig<Types>,
-  globalCustomError:
-    | CustomAuthError<Types, never, never, never, never, ErrorConstructor>
-    | undefined,
 ) {
   const unauthorizedResolver =
-    fieldConfig.pothosOptions.unauthorizedResolver ??
-    globalCustomError?.unauthorizedResolver ??
-    defaultUnauthorizedResolver;
+    fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
 
-  const UnauthorizedError =
+  const createError: UnauthorizedErrorFn<Types, object, {}> =
     fieldConfig.pothosOptions.unauthorizedError ??
-    globalCustomError?.unauthorizedError ??
-    ForbiddenError;
-
-  const UnauthorizedErrorMessage =
-    fieldConfig.pothosOptions.unauthorizedErrorMessage ??
-    globalCustomError?.unauthorizedErrorMessage;
+    plugin.builder.options.scopeAuthOptions?.unauthorizedError ??
+    ((parent, args, context, info, result) => result.message);
 
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
     const state = new ResolveState(RequestCache.fromContext(context, plugin));
@@ -51,17 +41,20 @@ export function resolveHelper<Types extends SchemaTypes>(
         if (isThenable(stepResult)) {
           return stepResult.then((result) => {
             if (result) {
+              const error = createError(parent as object, args, context, info, {
+                message:
+                  typeof errorMessage === 'function'
+                    ? errorMessage(parent, args, context, info)
+                    : errorMessage,
+                failure: result,
+              });
+
               return unauthorizedResolver(
                 parent as never,
                 args,
                 context as never,
                 info,
-                new UnauthorizedError(
-                  UnauthorizedErrorMessage ??
-                    (typeof errorMessage === 'function'
-                      ? errorMessage(parent, args, context, info)
-                      : errorMessage),
-                ),
+                typeof error === 'string' ? new ForbiddenError(error) : error,
               );
             }
 
@@ -70,17 +63,20 @@ export function resolveHelper<Types extends SchemaTypes>(
         }
 
         if (stepResult) {
+          const error = createError(parent as object, args, context, info, {
+            message:
+              typeof errorMessage === 'function'
+                ? errorMessage(parent, args, context, info)
+                : errorMessage,
+            failure: stepResult,
+          });
+
           return unauthorizedResolver(
             parent as never,
             args,
             context as never,
             info,
-            new UnauthorizedError(
-              UnauthorizedErrorMessage ??
-                (typeof errorMessage === 'function'
-                  ? errorMessage(parent, args, context, info)
-                  : errorMessage),
-            ),
+            typeof error === 'string' ? new ForbiddenError(error) : error,
           );
         }
       }

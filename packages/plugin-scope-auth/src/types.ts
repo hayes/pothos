@@ -11,8 +11,9 @@ import {
 } from '@pothos/core';
 import ResolveState from './resolve-state';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ScopeAuthPluginOptions {}
+export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
+  unauthorizedError?: UnauthorizedErrorFn<Types, unknown, {}>;
+}
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
   $all?: true extends true ? AuthScopeMap<Types> : never;
@@ -105,6 +106,11 @@ export type AuthFailure =
   | AnyAuthScopesFailure
   | AllAuthScopesFailure;
 
+export interface AuthFailureResult {
+  message: string;
+  failure: AuthFailure;
+}
+
 export interface ResolveStep<Types extends SchemaTypes> {
   run: (
     state: ResolveState<Types>,
@@ -134,24 +140,33 @@ export type UnauthorizedResolver<
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
-  TError extends ErrorConstructor,
 > = (
   parent: ParentShape,
   args: InputShapeFromFields<Args>,
   context: Types['Context'],
   info: GraphQLResolveInfo,
-  error: ReturnType<TError>,
+  error: Error,
 ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
 
-export interface CustomAuthError<
+export type UnauthorizedErrorFn<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+> = (
+  parent: ParentShape,
+  args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+  result: AuthFailureResult,
+) => Error | string;
+
+export interface UnauthorizedOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
-  TError extends ErrorConstructor,
 > {
-  unauthorizedError?: ErrorConstructor;
-  unauthorizedErrorMessage?: string;
-  unauthorizedResolver?: UnauthorizedResolver<Types, ParentShape, Type, Nullable, Args, TError>;
+  unauthorizedError?: UnauthorizedErrorFn<Types, ParentShape, Args>;
+  unauthorizedResolver?: UnauthorizedResolver<Types, ParentShape, Type, Nullable, Args>;
 }

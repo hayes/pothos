@@ -14,7 +14,6 @@ import {
   TypeParam,
 } from '@pothos/core';
 import {
-  CustomAuthError,
   FieldAuthScopes,
   FieldGrantScopes,
   ScopeAuthInitializer,
@@ -22,7 +21,7 @@ import {
   TypeAuthScopes,
   TypeGrantScopes,
 } from './types';
-import { ContextForAuth, PothosScopeAuthPlugin } from '.';
+import { ContextForAuth, PothosScopeAuthPlugin, UnauthorizedOptions } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -31,13 +30,12 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      scopeAuthOptions?: ScopeAuthPluginOptions;
+      scopeAuthOptions?: ScopeAuthPluginOptions<Types>;
       authScopes: ScopeAuthInitializer<Types>;
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
       disableScopeAuth?: boolean;
-      scopeAuthError?: CustomAuthError<Types, unknown, never, never, InputFieldMap, typeof Error>;
     }
 
     export interface UserSchemaTypes {
@@ -77,7 +75,7 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
-    > extends CustomAuthError<Types, ParentShape, Type, Nullable, Args, typeof Error> {
+    > extends UnauthorizedOptions<Types, ParentShape, Type, Nullable, Args> {
       authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       skipTypeScopes?: boolean;
