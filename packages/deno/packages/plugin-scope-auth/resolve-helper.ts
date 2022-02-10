@@ -19,7 +19,7 @@ export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Type
                 const stepResult = run(state, parent, args, context, info);
                 if (isThenable(stepResult)) {
                     return stepResult.then((result) => {
-                        if (!result) {
+                        if (result) {
                             return unauthorizedResolver(parent as never, args, context, info, new ForbiddenError(typeof errorMessage === "function"
                                 ? errorMessage(parent, args, context, info)
                                 : errorMessage));
@@ -27,7 +27,7 @@ export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Type
                         return runSteps(i + 1);
                     });
                 }
-                if (!stepResult) {
+                if (stepResult) {
                     return unauthorizedResolver(parent as never, args, context, info, new ForbiddenError(typeof errorMessage === "function"
                         ? errorMessage(parent, args, context, info)
                         : errorMessage));

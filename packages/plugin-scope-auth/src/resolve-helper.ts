@@ -35,7 +35,7 @@ export function resolveHelper<Types extends SchemaTypes>(
 
         if (isThenable(stepResult)) {
           return stepResult.then((result) => {
-            if (!result) {
+            if (result) {
               return unauthorizedResolver(
                 parent as never,
                 args,
@@ -53,7 +53,7 @@ export function resolveHelper<Types extends SchemaTypes>(
           });
         }
 
-        if (!stepResult) {
+        if (stepResult) {
           return unauthorizedResolver(
             parent as never,
             args,

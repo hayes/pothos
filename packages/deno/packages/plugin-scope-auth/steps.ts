@@ -29,15 +29,7 @@ export function createFieldAuthScopesStep<Types extends SchemaTypes>(authScopes:
             run: (state, parent, args, context, info) => {
                 const scopeMap = authScopes(parent as {}, args, context, info);
                 if (isThenable(scopeMap)) {
-                    return scopeMap.then((resolved) => {
-                        if (typeof resolved === "boolean") {
-                            return resolved;
-                        }
-                        return state.evaluateScopeMap(resolved, info);
-                    });
-                }
-                if (typeof scopeMap === "boolean") {
-                    return scopeMap;
+                    return scopeMap.then((resolved) => state.evaluateScopeMap(resolved, info));
                 }
                 return state.evaluateScopeMap(scopeMap, info);
             },
@@ -54,17 +46,17 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(grantScope
         run: (state, parent, args, context, info) => {
             if (typeof grantScopes !== "function") {
                 state.cache.saveGrantedScopes(grantScopes, info.path);
-                return true;
+                return null;
             }
             const result = grantScopes(parent as {}, args, context, info);
             if (isThenable(result)) {
                 return result.then((resolved) => {
                     state.cache.saveGrantedScopes(resolved, info.path);
-                    return true;
+                    return null;
                 });
             }
             state.cache.saveGrantedScopes(result, info.path);
-            return true;
+            return null;
         },
     };
 }
@@ -76,11 +68,11 @@ export function createResolveStep<Types extends SchemaTypes>(resolver: GraphQLFi
             if (isThenable(result)) {
                 return result.then((resolved) => {
                     state.resolveValue = resolved;
-                    return true;
+                    return null;
                 });
             }
             state.resolveValue = result;
-            return true;
+            return null;
         },
     };
 }
