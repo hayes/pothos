@@ -4,13 +4,16 @@ import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '
 import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
 import ResolveState from './resolve-state.ts';
-import { ResolveStep } from './types.ts';
-import { PothosScopeAuthPlugin } from './index.ts';
-const defaultUnauthorizedResolver = (root: unknown, args: unknown, context: unknown, info: GraphQLResolveInfo, error: ForbiddenError) => {
+import { ResolveStep, UnauthorizedResolver } from './types.ts';
+import { PothosScopeAuthPlugin, UnauthorizedErrorFn } from './index.ts';
+const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (_root, _args, _context, _info, error) => {
     throw error;
 };
 export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: PothosScopeAuthPlugin<Types>, fieldConfig: PothosOutputFieldConfig<Types>) {
     const unauthorizedResolver = fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
+    const createError: UnauthorizedErrorFn<Types, object, {}> = fieldConfig.pothosOptions.unauthorizedError ??
+        plugin.builder.options.scopeAuthOptions?.unauthorizedError ??
+        ((parent, args, context, info, result) => result.message);
     return (parent: unknown, args: {}, context: Types["Context"], info: GraphQLResolveInfo) => {
         const state = new ResolveState(RequestCache.fromContext(context, plugin));
         function runSteps(index: number): MaybePromise<unknown> {
@@ -19,18 +22,26 @@ export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Type
                 const stepResult = run(state, parent, args, context, info);
                 if (isThenable(stepResult)) {
                     return stepResult.then((result) => {
-                        if (!result) {
-                            return unauthorizedResolver(parent as never, args, context, info, new ForbiddenError(typeof errorMessage === "function"
-                                ? errorMessage(parent, args, context, info)
-                                : errorMessage));
+                        if (result) {
+                            const error = createError(parent as object, args, context, info, {
+                                message: typeof errorMessage === "function"
+                                    ? errorMessage(parent, args, context, info)
+                                    : errorMessage,
+                                failure: result,
+                            });
+                            return unauthorizedResolver(parent as never, args, context as never, info, typeof error === "string" ? new ForbiddenError(error, result) : error);
                         }
                         return runSteps(i + 1);
                     });
                 }
-                if (!stepResult) {
-                    return unauthorizedResolver(parent as never, args, context, info, new ForbiddenError(typeof errorMessage === "function"
-                        ? errorMessage(parent, args, context, info)
-                        : errorMessage));
+                if (stepResult) {
+                    const error = createError(parent as object, args, context, info, {
+                        message: typeof errorMessage === "function"
+                            ? errorMessage(parent, args, context, info)
+                            : errorMessage,
+                        failure: stepResult,
+                    });
+                    return unauthorizedResolver(parent as never, args, context as never, info, typeof error === "string" ? new ForbiddenError(error, stepResult) : error);
                 }
             }
             return state.resolveValue;

@@ -1,9 +1,19 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { MaybePromise, Merge, SchemaTypes } from '@pothos/core';
+import {
+  FieldNullability,
+  InputFieldMap,
+  InputShapeFromFields,
+  MaybePromise,
+  Merge,
+  SchemaTypes,
+  ShapeFromTypeParam,
+  TypeParam,
+} from '@pothos/core';
 import ResolveState from './resolve-state';
 
-// eslint-disable-next-line @typescript-eslint/no-empty-interface
-export interface ScopeAuthPluginOptions {}
+export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
+  unauthorizedError?: UnauthorizedErrorFn<Types, unknown, {}>;
+}
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
   $all?: true extends true ? AuthScopeMap<Types> : never;
@@ -57,6 +67,56 @@ export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}>
       info: GraphQLResolveInfo,
     ) => MaybePromise<string[]>);
 
+export enum AuthScopeFailureType {
+  AuthScope = 'AuthScope',
+  AuthScopeFunction = 'AuthScopeFunction',
+  GrantedScope = 'GrantedScope',
+  AnyAuthScopes = 'AnyAuthScopes',
+  AllAuthScopes = 'AllAuthScopes',
+  Unknown = 'Unknown',
+}
+
+export interface AuthScopeFailure {
+  kind: AuthScopeFailureType.AuthScope;
+  scope: string;
+  parameter: unknown;
+}
+
+export interface AuthScopeFunctionFailure {
+  kind: AuthScopeFailureType.AuthScopeFunction;
+}
+
+export interface UnknownAuthFailure {
+  kind: AuthScopeFailureType.Unknown;
+}
+
+export interface AnyAuthScopesFailure {
+  kind: AuthScopeFailureType.AnyAuthScopes;
+  failures: AuthFailure[];
+}
+
+export interface AllAuthScopesFailure {
+  kind: AuthScopeFailureType.AllAuthScopes;
+  failures: AuthFailure[];
+}
+export interface GrantedScopeFailure {
+  kind: AuthScopeFailureType.GrantedScope;
+  scope: string;
+}
+
+export type AuthFailure =
+  | AuthScopeFailure
+  | AuthScopeFunctionFailure
+  | GrantedScopeFailure
+  | AnyAuthScopesFailure
+  | AllAuthScopesFailure
+  | UnknownAuthFailure;
+
+export interface ForbiddenResult {
+  message: string;
+  failure: AuthFailure;
+}
+
 export interface ResolveStep<Types extends SchemaTypes> {
   run: (
     state: ResolveState<Types>,
@@ -64,7 +124,7 @@ export interface ResolveStep<Types extends SchemaTypes> {
     args: Record<string, unknown>,
     context: {},
     info: GraphQLResolveInfo,
-  ) => MaybePromise<boolean>;
+  ) => MaybePromise<null | AuthFailure>;
   errorMessage:
     | string
     | ((
@@ -79,3 +139,40 @@ export type ContextForAuth<Types extends SchemaTypes, Scopes extends {}> = keyof
   keyof Types['AuthContexts'] extends string
   ? Types['AuthContexts'][keyof Scopes & keyof Types['AuthContexts']]
   : Types['Context'];
+
+export type UnauthorizedResolver<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+> = (
+  parent: ParentShape,
+  args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+  error: Error,
+) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
+
+export type UnauthorizedErrorFn<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+> = (
+  parent: ParentShape,
+  args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+  result: ForbiddenResult,
+) => Error | string;
+
+export interface UnauthorizedOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+> {
+  unauthorizedError?: UnauthorizedErrorFn<Types, ParentShape, Args>;
+  unauthorizedResolver?: UnauthorizedResolver<Types, ParentShape, Type, Nullable, Args>;
+}

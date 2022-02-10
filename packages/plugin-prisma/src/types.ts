@@ -359,7 +359,6 @@ export type PrismaConnectionFieldOptions<
   Args extends InputFieldMap,
   ResolveReturnShape,
   Kind extends FieldKind,
-  // eslint-disable-next-line @typescript-eslint/sort-type-union-intersection-members
 > = Omit<
   PothosSchemaTypes.ConnectionFieldOptions<
     Types,
@@ -411,7 +410,6 @@ export type RelatedConnectionOptions<
   Nullable extends boolean,
   Args extends InputFieldMap,
   NeedsResolve extends boolean,
-  // eslint-disable-next-line @typescript-eslint/sort-type-union-intersection-members
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<
     Types,

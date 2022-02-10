@@ -141,6 +141,8 @@ type Query {
   ObjWithIfaceSkipFields: ObjWithIfaceSkipFields
   ObjWithSkipFields: ObjWithSkipFields
   currentId: ID!
+  customError: String
+  customErrorMessage: String
   emptyAll: String!
   emptyAllFn: String!
   emptyAny: String!

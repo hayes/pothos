@@ -1,8 +1,9 @@
+/* eslint-disable @typescript-eslint/promise-function-async */
 import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '@pothos/core';
 import { ScopeLoaderMap } from './types';
 import { cacheKey } from './util';
-import { PothosScopeAuthPlugin } from '.';
+import { AuthFailure, AuthScopeFailureType, PothosScopeAuthPlugin } from '.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();
@@ -12,13 +13,13 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   context;
 
-  mapCache = new Map<{}, MaybePromise<boolean>>();
+  mapCache = new Map<{}, MaybePromise<null | AuthFailure>>();
 
-  scopeCache = new Map<keyof Types['AuthScopes'], Map<unknown, MaybePromise<boolean>>>();
+  scopeCache = new Map<keyof Types['AuthScopes'], Map<unknown, MaybePromise<AuthFailure | null>>>();
 
-  typeCache = new Map<string, Map<unknown, MaybePromise<boolean>>>();
+  typeCache = new Map<string, Map<unknown, MaybePromise<null | AuthFailure>>>();
 
-  typeGrants = new Map<string, Map<unknown, MaybePromise<boolean>>>();
+  typeGrants = new Map<string, Map<unknown, MaybePromise<null>>>();
 
   grantCache = new Map<string, Set<string>>();
 
@@ -78,7 +79,7 @@ export default class RequestCache<Types extends SchemaTypes> {
       this.grantCache.set(key, new Set(scopes));
     }
 
-    return true;
+    return null;
   }
 
   testGrantedScopes(scope: string, path: Path) {
@@ -102,7 +103,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     cb: () => MaybePromise<string[]>,
   ) {
     if (!this.typeGrants.has(type)) {
-      this.typeGrants.set(type, new Map<string, Promise<boolean>>());
+      this.typeGrants.set(type, new Map<string, Promise<null>>());
     }
 
     const cache = this.typeGrants.get(type)!;
@@ -129,7 +130,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     arg: Types['AuthScopes'][T],
   ) {
     if (!this.scopeCache.has(name)) {
-      this.scopeCache.set(name, new Map<string, Promise<boolean>>());
+      this.scopeCache.set(name, new Map());
     }
 
     const cache = this.scopeCache.get(name)!;
@@ -143,7 +144,33 @@ export default class RequestCache<Types extends SchemaTypes> {
         );
       }
 
-      cache.set(arg, (loader as (param: Types['AuthScopes'][T]) => MaybePromise<boolean>)(arg));
+      const result = (loader as (param: Types['AuthScopes'][T]) => MaybePromise<boolean>)(arg);
+
+      if (isThenable(result)) {
+        cache.set(
+          arg,
+          result.then((r) =>
+            r
+              ? null
+              : {
+                  kind: AuthScopeFailureType.AuthScope,
+                  scope: name as string,
+                  parameter: arg,
+                },
+          ),
+        );
+      } else {
+        cache.set(
+          arg,
+          result
+            ? null
+            : {
+                kind: AuthScopeFailureType.AuthScope,
+                scope: name as string,
+                parameter: arg,
+              },
+        );
+      }
     }
 
     return cache.get(arg)!;

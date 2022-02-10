@@ -3,15 +3,15 @@ import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import ResolveState from './resolve-state';
-import { ResolveStep } from './types';
-import { PothosScopeAuthPlugin } from '.';
+import { ResolveStep, UnauthorizedResolver } from './types';
+import { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 
-const defaultUnauthorizedResolver = (
-  root: unknown,
-  args: unknown,
-  context: unknown,
-  info: GraphQLResolveInfo,
-  error: ForbiddenError,
+const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (
+  _root,
+  _args,
+  _context,
+  _info,
+  error,
 ) => {
   throw error;
 };
@@ -24,6 +24,11 @@ export function resolveHelper<Types extends SchemaTypes>(
   const unauthorizedResolver =
     fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
 
+  const createError: UnauthorizedErrorFn<Types, object, {}> =
+    fieldConfig.pothosOptions.unauthorizedError ??
+    plugin.builder.options.scopeAuthOptions?.unauthorizedError ??
+    ((parent, args, context, info, result) => result.message);
+
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
     const state = new ResolveState(RequestCache.fromContext(context, plugin));
 
@@ -35,17 +40,21 @@ export function resolveHelper<Types extends SchemaTypes>(
 
         if (isThenable(stepResult)) {
           return stepResult.then((result) => {
-            if (!result) {
-              return unauthorizedResolver(
-                parent as never,
-                args,
-                context,
-                info,
-                new ForbiddenError(
+            if (result) {
+              const error = createError(parent as object, args, context, info, {
+                message:
                   typeof errorMessage === 'function'
                     ? errorMessage(parent, args, context, info)
                     : errorMessage,
-                ),
+                failure: result,
+              });
+
+              return unauthorizedResolver(
+                parent as never,
+                args,
+                context as never,
+                info,
+                typeof error === 'string' ? new ForbiddenError(error, result) : error,
               );
             }
 
@@ -53,17 +62,21 @@ export function resolveHelper<Types extends SchemaTypes>(
           });
         }
 
-        if (!stepResult) {
-          return unauthorizedResolver(
-            parent as never,
-            args,
-            context,
-            info,
-            new ForbiddenError(
+        if (stepResult) {
+          const error = createError(parent as object, args, context, info, {
+            message:
               typeof errorMessage === 'function'
                 ? errorMessage(parent, args, context, info)
                 : errorMessage,
-            ),
+            failure: stepResult,
+          });
+
+          return unauthorizedResolver(
+            parent as never,
+            args,
+            context as never,
+            info,
+            typeof error === 'string' ? new ForbiddenError(error, stepResult) : error,
           );
         }
       }
