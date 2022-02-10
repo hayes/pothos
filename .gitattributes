@@ -1,1 +1,1 @@
-packages/deno/packages/* linguist-generated
+packages/deno/packages/**/*.ts linguist-generated
