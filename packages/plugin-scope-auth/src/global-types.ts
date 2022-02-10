@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldNullability,
@@ -7,8 +6,6 @@ import {
   FieldRef,
   InputFieldMap,
   InputShapeFromFields,
-  ListResolveValue,
-  MaybePromise,
   Normalize,
   Resolver,
   RootName,
@@ -16,8 +13,8 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { ForbiddenError } from './errors';
 import {
+  CustomAuthError,
   FieldAuthScopes,
   FieldGrantScopes,
   ScopeAuthInitializer,
@@ -40,6 +37,7 @@ declare global {
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
       disableScopeAuth?: boolean;
+      scopeAuthError?: CustomAuthError<Types, unknown, never, never, InputFieldMap, typeof Error>;
     }
 
     export interface UserSchemaTypes {
@@ -79,17 +77,10 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
-    > {
+    > extends CustomAuthError<Types, ParentShape, Type, Nullable, Args, typeof Error> {
       authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
       skipTypeScopes?: boolean;
-      unauthorizedResolver?: (
-        parent: ParentShape,
-        args: InputShapeFromFields<Args>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-        error: ForbiddenError,
-      ) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
     }
 
     export interface ObjectFieldOptions<

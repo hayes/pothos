@@ -1,5 +1,14 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { MaybePromise, Merge, SchemaTypes } from '@pothos/core';
+import {
+  FieldNullability,
+  InputFieldMap,
+  InputShapeFromFields,
+  MaybePromise,
+  Merge,
+  SchemaTypes,
+  ShapeFromTypeParam,
+  TypeParam,
+} from '@pothos/core';
 import ResolveState from './resolve-state';
 
 // eslint-disable-next-line @typescript-eslint/no-empty-interface
@@ -79,3 +88,31 @@ export type ContextForAuth<Types extends SchemaTypes, Scopes extends {}> = keyof
   keyof Types['AuthContexts'] extends string
   ? Types['AuthContexts'][keyof Scopes & keyof Types['AuthContexts']]
   : Types['Context'];
+
+export type UnauthorizedResolver<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  TError extends ErrorConstructor,
+> = (
+  parent: ParentShape,
+  args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+  error: ReturnType<TError>,
+) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
+
+export interface CustomAuthError<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  TError extends ErrorConstructor,
+> {
+  unauthorizedError?: ErrorConstructor;
+  unauthorizedErrorMessage?: string;
+  unauthorizedResolver?: UnauthorizedResolver<Types, ParentShape, Type, Nullable, Args, TError>;
+}
