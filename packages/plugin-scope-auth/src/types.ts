@@ -73,6 +73,7 @@ export enum AuthScopeFailureType {
   GrantedScope = 'GrantedScope',
   AnyAuthScopes = 'AnyAuthScopes',
   AllAuthScopes = 'AllAuthScopes',
+  Unknown = 'Unknown',
 }
 
 export interface AuthScopeFailure {
@@ -83,6 +84,10 @@ export interface AuthScopeFailure {
 
 export interface AuthScopeFunctionFailure {
   kind: AuthScopeFailureType.AuthScopeFunction;
+}
+
+export interface UnknownAuthFailure {
+  kind: AuthScopeFailureType.Unknown;
 }
 
 export interface AnyAuthScopesFailure {
@@ -104,9 +109,10 @@ export type AuthFailure =
   | AuthScopeFunctionFailure
   | GrantedScopeFailure
   | AnyAuthScopesFailure
-  | AllAuthScopesFailure;
+  | AllAuthScopesFailure
+  | UnknownAuthFailure;
 
-export interface AuthFailureResult {
+export interface ForbiddenResult {
   message: string;
   failure: AuthFailure;
 }
@@ -157,7 +163,7 @@ export type UnauthorizedErrorFn<
   args: InputShapeFromFields<Args>,
   context: Types['Context'],
   info: GraphQLResolveInfo,
-  result: AuthFailureResult,
+  result: ForbiddenResult,
 ) => Error | string;
 
 export interface UnauthorizedOptions<

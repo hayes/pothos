@@ -5,12 +5,12 @@ menu: Plugins
 description: Auth plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Auth Plugin
 
@@ -246,8 +246,8 @@ builder.objectType(Article, {
 ```
 
 This will allow non-logged in users to resolve the title, but not the content of an Article.
-`skipTypeScopes` can be used in conjunction with `authScopes` on a field to completely
-overwrite the default scopes.
+`skipTypeScopes` can be used in conjunction with `authScopes` on a field to completely overwrite the
+default scopes.
 
 ### Generalized auth functions with field specific arguments
 
@@ -280,6 +280,51 @@ same scope, the scope loader will still only be called once.
 
 The types for the parameters you provide for each scope are based on the types provided to the
 builder in the `AuthScopes` type.
+
+### Customizing error messages
+
+Error messages (and error instances) can be customized either globally or on specific fields.
+
+#### Globally
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuthOptions: {
+    unauthorizedError: (parent, args, context, info, result) => new Error(`Not authorized`),
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+```
+
+The `unauthorizedError` callback will be called with the same arguments as the resolver for the
+unauthorized field. It will also include a 5th argument `result` that has the default message for
+this type of failure, and a `failure` property with some details about what caused the field to be
+unauthorizerd. This callback can either return an `Error` instance (or an instance of a class that
+extends `Error`), or a `string`. If a string is returned, it will be converted to a
+`ForbiddenError`.
+
+#### On individual fields
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    example: t.string({
+      authScopes: { loggedIn: true },
+      unauthorizedError: (parent, args, context, info, result) =>
+        new Error("You must be logged in to query the 'example' field"),
+      resolve: () => 'example',
+    }),
+  }),
+});
+```
 
 ### Returning a custom value when unauthorized
 

@@ -365,6 +365,20 @@ builder.queryType({
     return ['grantedFromQuery'];
   },
   fields: (t) => ({
+    customError: t.string({
+      nullable: true,
+      authScopes: () => false,
+      unauthorizedError: (parent, args, context, info, result) =>
+        new Error(`${result.failure.kind}: ${result.message}`),
+      resolve: () => 'test',
+    }),
+    customErrorMessage: t.string({
+      nullable: true,
+      authScopes: () => false,
+      unauthorizedError: (parent, args, context, info, result) =>
+        `${result.failure.kind}: ${result.message}`,
+      resolve: () => 'test',
+    }),
     forAdminUnauthorizedResolve: t.stringList({
       authScopes: {
         admin: true,

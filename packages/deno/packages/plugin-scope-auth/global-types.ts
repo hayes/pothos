@@ -1,17 +1,15 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, ListResolveValue, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import { ForbiddenError } from './errors.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import { FieldAuthScopes, FieldGrantScopes, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
-import { ContextForAuth, PothosScopeAuthPlugin } from './index.ts';
+import { ContextForAuth, PothosScopeAuthPlugin, UnauthorizedOptions } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
             scopeAuth: PothosScopeAuthPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-            scopeAuthOptions?: ScopeAuthPluginOptions;
+            scopeAuthOptions?: ScopeAuthPluginOptions<Types>;
             authScopes: ScopeAuthInitializer<Types>;
         }
         export interface BuildSchemaOptions<Types extends SchemaTypes> {
@@ -37,11 +35,10 @@ declare global {
             authScopes?: TypeAuthScopes<Types, Shape>;
             grantScopes?: TypeGrantScopes<Types, Shape>;
         }
-        export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
+        export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> extends UnauthorizedOptions<Types, ParentShape, Type, Nullable, Args> {
             authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;
             grantScopes?: FieldGrantScopes<Types, ParentShape, InputShapeFromFields<Args>>;
             skipTypeScopes?: boolean;
-            unauthorizedResolver?: (parent: ParentShape, args: InputShapeFromFields<Args>, context: Types["Context"], info: GraphQLResolveInfo, error: ForbiddenError) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
         }
         export interface ObjectFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape> extends FieldOptions<Types, ParentShape, Type, Nullable, Args, ParentShape, ResolveReturnShape> {
             skipInterfaceScopes?: boolean;

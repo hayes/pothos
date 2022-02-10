@@ -54,7 +54,7 @@ export function resolveHelper<Types extends SchemaTypes>(
                 args,
                 context as never,
                 info,
-                typeof error === 'string' ? new ForbiddenError(error) : error,
+                typeof error === 'string' ? new ForbiddenError(error, result) : error,
               );
             }
 
@@ -76,7 +76,7 @@ export function resolveHelper<Types extends SchemaTypes>(
             args,
             context as never,
             info,
-            typeof error === 'string' ? new ForbiddenError(error) : error,
+            typeof error === 'string' ? new ForbiddenError(error, stepResult) : error,
           );
         }
       }
