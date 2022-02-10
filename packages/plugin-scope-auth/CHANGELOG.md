@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.0
+
+### Minor Changes
+
+- 4234ab3e: Allow Error customization
+
 ## 3.0.2
 
 ### Patch Changes
