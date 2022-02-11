@@ -72,7 +72,7 @@ const UserType = builder.objectRef<User>('User').implement({
 
 builder.asEntity(UserType, {
   key: builder.selection<{ id: string }>('id'),
-  resolveReference: (user) => users.find(({ id }) => user.id === id),
+  resolveReference: (user, users) => users.find(({ id }) => user.id === id),
 });
 ```
 
