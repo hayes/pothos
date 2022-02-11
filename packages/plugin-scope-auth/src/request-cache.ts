@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/promise-function-async */
-import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '@pothos/core';
 import { ScopeLoaderMap } from './types';
 import { cacheKey } from './util';
@@ -102,7 +101,7 @@ export default class RequestCache<Types extends SchemaTypes> {
   grantTypeScopes(
     type: string,
     parent: unknown,
-    info: GraphQLResolveInfo,
+    path: Path | undefined,
     cb: () => MaybePromise<string[]>,
   ) {
     if (!this.typeGrants.has(type)) {
@@ -117,10 +116,10 @@ export default class RequestCache<Types extends SchemaTypes> {
       if (isThenable(result)) {
         cache.set(
           parent,
-          result.then((resolved) => this.saveGrantedScopes(resolved, info.path.prev)),
+          result.then((resolved) => this.saveGrantedScopes(resolved, path)),
         );
       } else {
-        cache.set(parent, this.saveGrantedScopes(result, info.path.prev));
+        cache.set(parent, this.saveGrantedScopes(result, path));
       }
     }
 

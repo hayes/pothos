@@ -1,26 +1,54 @@
 // @ts-nocheck
 import './global-types.ts';
-import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosOutputFieldConfig, SchemaTypes, sortClasses, } from '../core/index.ts';
+import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev/graphql?dts';
+import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, SchemaTypes, sortClasses, typeBrandKey, } from '../core/index.ts';
 export * from './types.ts';
 const pluginName = "errors";
 export default pluginName;
 export function capitalize(s: string) {
     return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
-function createErrorProxy(target: {}): {} {
+export const unwrapError = Symbol.for("Pothos.unwrapErrors");
+function createErrorProxy(target: {}, ref: unknown, state: {
+    wrapped: boolean;
+}): {} {
     return new Proxy(target, {
+        get(err, val, receiver) {
+            if (val === unwrapError) {
+                return () => {
+                    // eslint-disable-next-line no-param-reassign
+                    state.wrapped = false;
+                };
+            }
+            if (val === typeBrandKey) {
+                return ref;
+            }
+            return Reflect.get(err, val, receiver) as unknown;
+        },
         getPrototypeOf(err) {
-            const proto = Object.getPrototypeOf(err) as {};
-            if (!proto) {
+            const proto = Reflect.getPrototypeOf(err) as {};
+            if (!state.wrapped || !proto) {
                 return proto;
             }
-            return createErrorProxy(proto);
+            return createErrorProxy(proto, ref, state);
         },
     });
 }
 const errorTypeMap = new WeakMap<{}, new (...args: any[]) => Error>();
 export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+    override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, config: PothosObjectTypeConfig): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
+        if (isTypeOf) {
+            return (parent, context, info) => {
+                if (typeof parent === "object" && parent) {
+                    (parent as {
+                        [unwrapError]?: () => void;
+                    })[unwrapError]?.();
+                }
+                return isTypeOf(parent, context, info);
+            };
+        }
+        return isTypeOf;
+    }
     override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>): PothosOutputFieldConfig<Types> | null {
         const errorOptions = fieldConfig.pothosOptions.errors;
         const errorBuilderOptions = this.builder.options.errorOptions;
@@ -106,7 +134,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
             catch (error: unknown) {
                 for (const errorType of pothosErrors) {
                     if (error instanceof errorType) {
-                        const result = createErrorProxy(error);
+                        const result = createErrorProxy(error, errorType, { wrapped: true });
                         errorTypeMap.set(result, errorType);
                         return result;
                     }

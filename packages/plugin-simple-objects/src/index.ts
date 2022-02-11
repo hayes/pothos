@@ -4,7 +4,6 @@ import SchemaBuilder, {
   FieldMap,
   InterfaceParam,
   InterfaceRef,
-  InterfaceTypeOptions,
   Normalize,
   ObjectRef,
   ParentShape,
@@ -92,10 +91,7 @@ proto.simpleInterface = function simpleInterface<
     };
   }
 
-  this.interfaceType(
-    ref,
-    options as InterfaceTypeOptions<SchemaTypes, InterfaceParam<SchemaTypes>, Shape, Interfaces>,
-  );
+  this.interfaceType(ref, options as {});
 
   return ref;
 };

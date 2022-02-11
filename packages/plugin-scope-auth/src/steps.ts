@@ -32,10 +32,13 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
 export function createTypeGrantScopesStep<Types extends SchemaTypes>(
   grantScopes: TypeGrantScopes<Types, unknown>,
   type: string,
+  forField: boolean,
 ): ResolveStep<Types> {
   return {
     run: (state, parent, args, context, info) =>
-      state.cache.grantTypeScopes(type, parent, info, () => grantScopes(parent, context)),
+      state.cache.grantTypeScopes(type, parent, forField ? info.path.prev : info.path, () =>
+        grantScopes(parent, context),
+      ),
     errorMessage: `Unknown error creating grants for ${type}`,
   };
 }

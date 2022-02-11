@@ -1,9 +1,11 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   GraphQLIsTypeOfFn,
+  GraphQLResolveInfo,
   GraphQLScalarLiteralParser,
   GraphQLScalarValueParser,
   GraphQLTypeResolver,
+  GraphQLUnionType,
 } from 'graphql';
 import {
   EnumValues,
@@ -81,7 +83,12 @@ declare global {
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
       interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
-      resolveType?: GraphQLTypeResolver<Shape, Types['Context']>;
+      resolveType?: (
+        parent: Shape,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+        type: GraphQLUnionType,
+      ) => MaybePromise<ObjectParam<Types> | string | null | undefined>;
     }
 
     export interface UnionTypeOptions<
@@ -89,7 +96,12 @@ declare global {
       Member extends ObjectParam<Types> = ObjectParam<Types>,
     > extends BaseTypeOptions<Types> {
       types: Member[];
-      resolveType?: GraphQLTypeResolver<ParentShape<Types, Member>, Types['Context']>;
+      resolveType?: (
+        parent: ParentShape<Types, Member>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+        type: GraphQLUnionType,
+      ) => MaybePromise<Member | string | null | undefined>;
     }
 
     export interface ScalarTypeOptions<

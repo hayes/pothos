@@ -78,17 +78,7 @@ export type ConnectionShapeFromResolve<Types extends SchemaTypes, Type extends O
 ]>, NodeNullability extends boolean, Resolved> = Resolved extends Promise<infer T> ? NonNullable<T> extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability> ? NonNullable<T> : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability> : Resolved extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability> ? NonNullable<Resolved> : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>;
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {
 }
-export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, "isTypeOf"> & 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(Param extends new (...args: any[]) => any ? {
-    isTypeOf?: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
-} : OutputShape<Types, Param> extends {
-    __type: string;
-} ? {
-    isTypeOf?: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
-} : {
-    isTypeOf: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
-});
+export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>;
 export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
     id: Omit<FieldOptionsFromKind<Types, ParentShape<Types, Param>, "ID", false, {}, "Object", OutputShape<Types, "ID">, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type">;
     loadOne?: (id: string, context: Types["Context"]) => MaybePromise<OutputShape<Types, Param> | null | undefined>;

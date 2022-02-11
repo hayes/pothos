@@ -1,6 +1,6 @@
 // @ts-nocheck
 import './global-types.ts';
-import SchemaBuilder, { BasePlugin, FieldMap, InterfaceParam, InterfaceRef, InterfaceTypeOptions, Normalize, ObjectRef, ParentShape, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, FieldMap, InterfaceParam, InterfaceRef, Normalize, ObjectRef, ParentShape, SchemaTypes, } from '../core/index.ts';
 import { OutputShapeFromFields } from './types.ts';
 const pluginName = "simpleObjects" as const;
 export default pluginName;
@@ -47,6 +47,6 @@ proto.simpleInterface = function simpleInterface<Fields extends FieldMap, Shape 
             return fields;
         };
     }
-    this.interfaceType(ref, options as InterfaceTypeOptions<SchemaTypes, InterfaceParam<SchemaTypes>, Shape, Interfaces>);
+    this.interfaceType(ref, options as {});
     return ref;
 };

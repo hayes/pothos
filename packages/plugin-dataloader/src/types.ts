@@ -178,10 +178,7 @@ export type LoadableNodeOptions<
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-> = Omit<
-  DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
-  'isTypeOf'
-> & {
+> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> & {
   id: Omit<
     FieldOptionsFromKind<
       Types,

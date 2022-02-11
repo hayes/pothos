@@ -1,6 +1,5 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/promise-function-async */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '../core/index.ts';
 import { ScopeLoaderMap } from './types.ts';
 import { cacheKey } from './util.ts';
@@ -69,7 +68,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         }
         return false;
     }
-    grantTypeScopes(type: string, parent: unknown, info: GraphQLResolveInfo, cb: () => MaybePromise<string[]>) {
+    grantTypeScopes(type: string, parent: unknown, path: Path | undefined, cb: () => MaybePromise<string[]>) {
         if (!this.typeGrants.has(type)) {
             this.typeGrants.set(type, new Map<string, Promise<null>>());
         }
@@ -77,10 +76,10 @@ export default class RequestCache<Types extends SchemaTypes> {
         if (!cache.has(parent)) {
             const result = cb();
             if (isThenable(result)) {
-                cache.set(parent, result.then((resolved) => this.saveGrantedScopes(resolved, info.path.prev)));
+                cache.set(parent, result.then((resolved) => this.saveGrantedScopes(resolved, path)));
             }
             else {
-                cache.set(parent, this.saveGrantedScopes(result, info.path.prev));
+                cache.set(parent, this.saveGrantedScopes(result, path));
             }
         }
         return cache.get(parent)!;

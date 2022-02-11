@@ -54,20 +54,21 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     return resolver;
   }
 
-  createResolveSteps(
-    fieldConfig: PothosOutputFieldConfig<Types>,
+  createStepsForType(
     typeConfig:
       | PothosInterfaceTypeConfig
       | PothosMutationTypeConfig
       | PothosObjectTypeConfig
       | PothosQueryTypeConfig
       | PothosSubscriptionTypeConfig,
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
-  ): ResolveStep<Types>[] {
+    {
+      skipTypeScopes,
+      skipInterfaceScopes,
+      forField,
+    }: { skipTypeScopes: boolean; skipInterfaceScopes: boolean; forField: boolean },
+  ) {
     const parentAuthScope = typeConfig.pothosOptions.authScopes;
     const parentGrantScopes = typeConfig.pothosOptions.grantScopes;
-    const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
-    const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;
 
     const interfaceConfigs =
       typeConfig.kind === 'Object' || typeConfig.kind === 'Interface'
@@ -78,7 +79,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     const steps: ResolveStep<Types>[] = [];
 
-    if (parentAuthScope && !fieldConfig.pothosOptions.skipTypeScopes) {
+    if (parentAuthScope && !skipTypeScopes) {
       steps.push(
         createTypeAuthScopesStep(
           parentAuthScope as TypeAuthScopes<Types, unknown>,
@@ -87,10 +88,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       );
     }
 
-    if (
-      !(fieldConfig.kind === 'Interface' || fieldConfig.kind === 'Object') ||
-      !fieldConfig.pothosOptions.skipInterfaceScopes
-    ) {
+    if (!skipInterfaceScopes) {
       interfaceConfigs.forEach((interfaceConfig) => {
         if (interfaceConfig.pothosOptions.authScopes) {
           steps.push(
@@ -108,20 +106,39 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         createTypeGrantScopesStep(
           parentGrantScopes as TypeGrantScopes<Types, unknown>,
           typeConfig.name,
+          forField,
         ),
       );
     }
 
-    interfaceConfigs.forEach((interfaceConfig) => {
-      if (interfaceConfig.pothosOptions.grantScopes) {
-        steps.push(
-          createTypeGrantScopesStep(
-            interfaceConfig.pothosOptions.grantScopes as TypeGrantScopes<Types, unknown>,
-            interfaceConfig.name,
-          ),
-        );
-      }
+    return steps;
+  }
+
+  createResolveSteps(
+    fieldConfig: PothosOutputFieldConfig<Types>,
+    typeConfig:
+      | PothosInterfaceTypeConfig
+      | PothosMutationTypeConfig
+      | PothosObjectTypeConfig
+      | PothosQueryTypeConfig
+      | PothosSubscriptionTypeConfig,
+    resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+  ): ResolveStep<Types>[] {
+    const stepsForType = this.createStepsForType(typeConfig, {
+      skipTypeScopes:
+        ((fieldConfig.kind === 'Interface' || fieldConfig.kind === 'Object') &&
+          fieldConfig.pothosOptions.skipTypeScopes) ??
+        false,
+      skipInterfaceScopes:
+        ((fieldConfig.kind === 'Interface' || fieldConfig.kind === 'Object') &&
+          fieldConfig.pothosOptions.skipInterfaceScopes) ??
+        false,
+      forField: true,
     });
+    const fieldAuthScopes = fieldConfig.pothosOptions.authScopes;
+    const fieldGrantScopes = fieldConfig.pothosOptions.grantScopes;
+
+    const steps: ResolveStep<Types>[] = [...stepsForType];
 
     if (fieldAuthScopes) {
       steps.push(createFieldAuthScopesStep(fieldAuthScopes));
