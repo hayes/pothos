@@ -295,7 +295,7 @@ const builder = new SchemaBuilder<{
   };
 }>({
   scopeAuthOptions: {
-    unauthorizedError: (parent, args, context, info, result) => new Error(`Not authorized`),
+    unauthorizedError: (parent, context, info, result) => new Error(`Not authorized`),
   },
   plugins: [ScopeAuthPlugin],
   authScopes: async (context) => ({
@@ -304,10 +304,10 @@ const builder = new SchemaBuilder<{
 });
 ```
 
-The `unauthorizedError` callback will be called with the same arguments as the resolver for the
-unauthorized field. It will also include a 5th argument `result` that has the default message for
+The `unauthorizedError` callback will be called with the parent, context, and info object of the
+unauthorized field. It will also include a 4th argument `result` that has the default message for
 this type of failure, and a `failure` property with some details about what caused the field to be
-unauthorizerd. This callback can either return an `Error` instance (or an instance of a class that
+unauthorized. This callback can either return an `Error` instance (or an instance of a class that
 extends `Error`), or a `string`. If a string is returned, it will be converted to a
 `ForbiddenError`.
 
