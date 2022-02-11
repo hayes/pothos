@@ -1,10 +1,9 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
-import ResolveState from './resolve-state';
 import { ResolveStep, UnauthorizedResolver } from './types';
-import { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
+import { PothosScopeAuthPlugin, UnauthorizedErrorFn, UnauthorizedForTypeErrorFn } from '.';
 
 const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (
   _root,
@@ -40,13 +39,18 @@ export function resolveHelper<Types extends SchemaTypes>(
     fieldConfig.pothosOptions.unauthorizedError ?? defaultUnauthorizedError;
 
   return (parent: unknown, args: {}, context: Types['Context'], info: GraphQLResolveInfo) => {
-    const state = new ResolveState(RequestCache.fromContext(context, plugin));
+    let resolvedValue: unknown;
+
+    const cache = RequestCache.fromContext(context, plugin);
 
     function runSteps(index: number): MaybePromise<unknown> {
       for (let i = index; i < steps.length; i += 1) {
         const { run, errorMessage } = steps[i];
 
-        const stepResult = run(state, parent, args, context, info);
+        // eslint-disable-next-line @typescript-eslint/no-loop-func
+        const stepResult = run(cache, parent, args, context, info, (val) => {
+          resolvedValue = val;
+        });
 
         if (isThenable(stepResult)) {
           return stepResult.then((result) => {
@@ -91,7 +95,65 @@ export function resolveHelper<Types extends SchemaTypes>(
         }
       }
 
-      return state.resolveValue;
+      return resolvedValue;
+    }
+
+    return runSteps(0);
+  };
+}
+
+export function isTypeOfHelper<Types extends SchemaTypes>(
+  steps: ResolveStep<Types>[],
+  plugin: PothosScopeAuthPlugin<Types>,
+  isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
+) {
+  const globalUnauthorizedError = plugin.builder.options.scopeAuthOptions?.unauthorizedError;
+  const createError: UnauthorizedForTypeErrorFn<Types, object> = (parent, context, info, result) =>
+    globalUnauthorizedError
+      ? globalUnauthorizedError(parent, context, info, result)
+      : result.message;
+
+  return (parent: unknown, context: Types['Context'], info: GraphQLResolveInfo) => {
+    const cache = RequestCache.fromContext(context, plugin);
+
+    function runSteps(index: number): MaybePromise<boolean> {
+      for (let i = index; i < steps.length; i += 1) {
+        const { run, errorMessage } = steps[i];
+
+        const stepResult = run(cache, parent, {}, context, info, () => {});
+
+        if (isThenable(stepResult)) {
+          return stepResult.then((result) => {
+            if (result) {
+              const error = createError(parent as object, context, info, {
+                message:
+                  typeof errorMessage === 'function'
+                    ? errorMessage(parent, {}, context, info)
+                    : errorMessage,
+                failure: result,
+              });
+
+              throw typeof error === 'string' ? new ForbiddenError(error, result) : error;
+            }
+
+            return runSteps(i + 1);
+          });
+        }
+
+        if (stepResult) {
+          const error = createError(parent as object, context, info, {
+            message:
+              typeof errorMessage === 'function'
+                ? errorMessage(parent, {}, context, info)
+                : errorMessage,
+            failure: stepResult,
+          });
+
+          throw typeof error === 'string' ? new ForbiddenError(error, stepResult) : error;
+        }
+      }
+
+      return isTypeOf ? isTypeOf(parent, context, info) : true;
     }
 
     return runSteps(0);

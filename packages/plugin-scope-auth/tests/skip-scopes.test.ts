@@ -17,7 +17,7 @@ describe('query', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
         }),
       },
@@ -52,7 +52,7 @@ describe('query', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),

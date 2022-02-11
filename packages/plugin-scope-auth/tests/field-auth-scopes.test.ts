@@ -15,7 +15,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -95,7 +95,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -149,7 +149,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -203,7 +203,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -230,7 +230,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -257,7 +257,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -311,7 +311,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a,b',
@@ -339,7 +339,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a,b',
         }),
@@ -367,7 +367,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a',
@@ -396,7 +396,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'b',
@@ -425,7 +425,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -450,7 +450,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -474,7 +474,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -528,7 +528,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -582,7 +582,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'x',
         }),
@@ -639,7 +639,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'x',
         }),
@@ -696,7 +696,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a',
         }),
@@ -723,7 +723,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -750,7 +750,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'b',
         }),
@@ -804,7 +804,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a,b',
@@ -832,7 +832,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-permissions': 'a,b',
         }),
@@ -860,7 +860,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'a',
@@ -889,7 +889,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
           'x-permissions': 'b',
@@ -918,7 +918,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -943,7 +943,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -967,7 +967,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -991,7 +991,7 @@ describe('queries for field authScopes with', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
