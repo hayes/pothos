@@ -133,6 +133,7 @@ const UserType = builder.externalRef('User', builder.selection<{ id: string }>('
   }),
 });
 
+const ReviewType = builder.objectRef<Review>('Review');
 ReviewType.implement({
   fields: (t) => ({
     id: t.exposeID('id'),
