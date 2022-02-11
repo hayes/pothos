@@ -23,7 +23,7 @@ const builder = new SchemaBuilder<{
 }>({
   defaultFieldNullability: true,
   scopeAuthOptions: {
-    unauthorizedError: (parent, args, context, info, result) =>
+    unauthorizedError: (parent, context, info, result) =>
       new Error(`${result.failure.kind}: ${result.message}`),
   },
   plugins: [ScopeAuthPlugin],

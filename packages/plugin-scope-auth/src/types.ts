@@ -12,7 +12,7 @@ import {
 import ResolveState from './resolve-state';
 
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
-  unauthorizedError?: UnauthorizedErrorFn<Types, unknown, {}>;
+  unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;
 }
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
@@ -161,6 +161,13 @@ export type UnauthorizedErrorFn<
 > = (
   parent: ParentShape,
   args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+  result: ForbiddenResult,
+) => Error | string;
+
+export type UnauthorizedForTypeErrorFn<Types extends SchemaTypes, ParentShape> = (
+  parent: ParentShape,
   context: Types['Context'],
   info: GraphQLResolveInfo,
   result: ForbiddenResult,
