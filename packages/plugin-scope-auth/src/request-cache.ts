@@ -25,9 +25,12 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   scopes?: MaybePromise<ScopeLoaderMap<Types>>;
 
+  cacheKey?: (value: unknown) => unknown;
+
   constructor(plugin: PothosScopeAuthPlugin<Types>, context: Types['Context']) {
     this.plugin = plugin;
     this.context = context;
+    this.cacheKey = plugin.builder.options.scopeAuthOptions?.cacheKey;
   }
 
   static fromContext<T extends SchemaTypes>(
@@ -134,8 +137,9 @@ export default class RequestCache<Types extends SchemaTypes> {
     }
 
     const cache = this.scopeCache.get(name)!;
+    const key = this.cacheKey ? this.cacheKey(arg) : arg;
 
-    if (!cache.has(arg)) {
+    if (!cache.has(key)) {
       const loader = scopes[name];
 
       if (typeof loader !== 'function') {
@@ -148,7 +152,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
       if (isThenable(result)) {
         cache.set(
-          arg,
+          key,
           result.then((r) =>
             r
               ? null
@@ -161,7 +165,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         );
       } else {
         cache.set(
-          arg,
+          key,
           result
             ? null
             : {
@@ -173,6 +177,6 @@ export default class RequestCache<Types extends SchemaTypes> {
       }
     }
 
-    return cache.get(arg)!;
+    return cache.get(key)!;
   }
 }

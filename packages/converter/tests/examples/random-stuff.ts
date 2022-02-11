@@ -53,7 +53,7 @@ builder.objectType(Giraffe, {
   name: 'Giraffe',
   interfaces: [Animal],
   isTypeOf(parent) {
-    return parent.species === 'Giraffe';
+    return parent instanceof Animal && parent.species === 'Giraffe';
   },
   fields: (t) => ({
     name: t.exposeString('name', {}),

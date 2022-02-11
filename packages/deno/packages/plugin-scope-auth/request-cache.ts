@@ -16,9 +16,11 @@ export default class RequestCache<Types extends SchemaTypes> {
     typeGrants = new Map<string, Map<unknown, MaybePromise<null>>>();
     grantCache = new Map<string, Set<string>>();
     scopes?: MaybePromise<ScopeLoaderMap<Types>>;
+    cacheKey?: (value: unknown) => unknown;
     constructor(plugin: PothosScopeAuthPlugin<Types>, context: Types["Context"]) {
         this.plugin = plugin;
         this.context = context;
+        this.cacheKey = plugin.builder.options.scopeAuthOptions?.cacheKey;
     }
     static fromContext<T extends SchemaTypes>(context: T["Context"], plugin: PothosScopeAuthPlugin<T>): RequestCache<T> {
         if (!requestCache.has(context)) {
@@ -88,14 +90,15 @@ export default class RequestCache<Types extends SchemaTypes> {
             this.scopeCache.set(name, new Map());
         }
         const cache = this.scopeCache.get(name)!;
-        if (!cache.has(arg)) {
+        const key = this.cacheKey ? this.cacheKey(arg) : arg;
+        if (!cache.has(key)) {
             const loader = scopes[name];
             if (typeof loader !== "function") {
                 throw new TypeError(`Attempted to evaluate scope ${name} as scope loader, but it is not a function`);
             }
             const result = (loader as (param: Types["AuthScopes"][T]) => MaybePromise<boolean>)(arg);
             if (isThenable(result)) {
-                cache.set(arg, result.then((r) => r
+                cache.set(key, result.then((r) => r
                     ? null
                     : {
                         kind: AuthScopeFailureType.AuthScope,
@@ -104,7 +107,7 @@ export default class RequestCache<Types extends SchemaTypes> {
                     }));
             }
             else {
-                cache.set(arg, result
+                cache.set(key, result
                     ? null
                     : {
                         kind: AuthScopeFailureType.AuthScope,
@@ -113,6 +116,6 @@ export default class RequestCache<Types extends SchemaTypes> {
                     });
             }
         }
-        return cache.get(arg)!;
+        return cache.get(key)!;
     }
 }

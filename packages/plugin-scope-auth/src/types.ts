@@ -13,6 +13,7 @@ import ResolveState from './resolve-state';
 
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;
+  cacheKey?: (value: unknown) => unknown;
 }
 
 export interface BuiltInScopes<Types extends SchemaTypes> {

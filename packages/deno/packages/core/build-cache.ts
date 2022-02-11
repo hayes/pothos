@@ -356,6 +356,7 @@ export default class BuildCache<Types extends SchemaTypes> {
                 pothosConfig: config,
             },
             fields: () => this.getFields(type),
+            isTypeOf,
             interfaces: config.kind === "Object"
                 ? () => (config as PothosObjectTypeConfig).interfaces.map((iface) => this.getTypeOfKind(iface, "Interface"))
                 : undefined,

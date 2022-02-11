@@ -70,7 +70,6 @@ schemaBuilderProto.prismaNode = function prismaNode(
     ...options,
     variant,
     interfaces: [interfaceRef, ...(options.interfaces ?? [])],
-    isTypeOf: (val: unknown) => nodeRef.hasBrand(val),
     findUnique: (parent: unknown, context: {}) =>
       findUnique(options.id.resolve(parent as never, context) as string, context),
     loadWithoutCache: async (

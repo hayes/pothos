@@ -9,7 +9,6 @@ const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
 
 builder.objectType(Error, {
   name: 'BaseError',
-  isTypeOf: (obj) => obj instanceof Error,
   interfaces: [ErrorInterface],
 });
 
@@ -27,7 +26,6 @@ class LengthError extends Error {
 builder.objectType(LengthError, {
   name: 'LengthError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof LengthError,
   fields: (t) => ({
     minLength: t.exposeInt('minLength'),
   }),
@@ -107,7 +105,6 @@ builder.objectType(ExtendedError, {
 builder.objectType(Extended2Error, {
   name: 'Extended2Error',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof ExtendedError,
   fields: (t) => ({
     message: t.exposeString('message'),
     code: t.exposeInt('errorCode'),
@@ -232,7 +229,6 @@ const ZodFieldError = builder
 builder.objectType(ZodError, {
   name: 'ZodError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof ZodError,
   fields: (t) => ({
     fieldErrors: t.field({
       type: [ZodFieldError],

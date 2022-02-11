@@ -5,12 +5,12 @@ menu: Plugins
 description: Errors plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Errors Plugin
 
@@ -159,7 +159,6 @@ const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
 
 builder.objectType(Error, {
   name: 'BaseError',
-  isTypeOf: (obj) => obj instanceof Error,
   interfaces: [ErrorInterface],
 });
 
@@ -177,7 +176,6 @@ class LengthError extends Error {
 builder.objectType(LengthError, {
   name: 'LengthError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof LengthError,
   fields: (t) => ({
     minLength: t.exposeInt('minLength'),
   }),
@@ -271,7 +269,6 @@ const ZodFieldError = builder
 builder.objectType(ZodError, {
   name: 'ZodError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof ZodError,
   fields: (t) => ({
     fieldErrors: t.field({
       type: [ZodFieldError],

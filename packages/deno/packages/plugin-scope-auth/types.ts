@@ -4,6 +4,7 @@ import { FieldNullability, InputFieldMap, InputShapeFromFields, MaybePromise, Me
 import ResolveState from './resolve-state.ts';
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
     unauthorizedError?: UnauthorizedErrorFn<Types, unknown, {}>;
+    cacheKey?: (value: unknown) => unknown;
 }
 export interface BuiltInScopes<Types extends SchemaTypes> {
     $all?: true extends true ? AuthScopeMap<Types> : never;

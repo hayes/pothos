@@ -8,6 +8,5 @@ const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
 
 builder.objectType(Error, {
   name: 'BaseError',
-  isTypeOf: (obj) => obj instanceof Error,
   interfaces: [ErrorInterface],
 });

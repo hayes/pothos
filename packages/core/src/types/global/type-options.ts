@@ -1,9 +1,9 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
-  GraphQLResolveInfo,
+  GraphQLIsTypeOfFn,
   GraphQLScalarLiteralParser,
-  GraphQLScalarSerializer,
   GraphQLScalarValueParser,
+  GraphQLTypeResolver,
 } from 'graphql';
 import {
   EnumValues,
@@ -39,20 +39,15 @@ declare global {
       extends BaseTypeOptions<Types> {
       fields?: ObjectFieldsShape<Types, Shape>;
       interfaces?: undefined;
-      isTypeOf?: undefined;
+      isTypeOf?: GraphQLIsTypeOfFn<unknown, Types['Context']>;
     }
 
     export interface ObjectTypeWithInterfaceOptions<
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
-    > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces' | 'isTypeOf'> {
+    > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces'> {
       interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
-      isTypeOf: (
-        obj: ParentShape<Types, Interfaces[number]>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => boolean;
     }
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
       extends BaseTypeOptions<Types> {}
@@ -86,6 +81,7 @@ declare global {
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
       interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+      resolveType?: GraphQLTypeResolver<Shape, Types['Context']>;
     }
 
     export interface UnionTypeOptions<
@@ -93,11 +89,7 @@ declare global {
       Member extends ObjectParam<Types> = ObjectParam<Types>,
     > extends BaseTypeOptions<Types> {
       types: Member[];
-      resolveType: (
-        parent: ParentShape<Types, Member>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-      ) => MaybePromise<Member | null | undefined>;
+      resolveType?: GraphQLTypeResolver<ParentShape<Types, Member>, Types['Context']>;
     }
 
     export interface ScalarTypeOptions<
