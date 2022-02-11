@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.2.0
+
+### Minor Changes
+
+- c959d459: Remove args option from global unauthorizedError callback
+
 ## 3.1.0
 
 ### Minor Changes
