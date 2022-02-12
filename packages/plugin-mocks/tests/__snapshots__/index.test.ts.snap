@@ -9,3 +9,28 @@ Object {
   },
 }
 `;
+
+exports[`mocked type mocks queries lists 1`] = `
+Object {
+  "data": Object {
+    "r2d2": Object {
+      "friends": Array [
+        Object {
+          "name": "C-3PO",
+        },
+      ],
+      "name": "C-3PO",
+    },
+  },
+}
+`;
+
+exports[`mocked type mocks queries stuff 1`] = `
+Object {
+  "data": Object {
+    "r2d2": Object {
+      "name": "C-3PO",
+    },
+  },
+}
+`;

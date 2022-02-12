@@ -10,3 +10,8 @@ export type Resolvers<Types extends SchemaTypes, Parent> = Record<
 >;
 
 export type ResolverMap<Types extends SchemaTypes> = Record<string, Resolvers<Types, unknown>>;
+
+export interface Mock<Types extends SchemaTypes> {
+  name: string;
+  resolver: Resolver<unknown, unknown, Types['Context'], unknown>;
+}
