@@ -1,5 +1,19 @@
 # Change Log
 
+## 3.3.0
+
+### Minor Changes
+
+- 5ade1c8c: Add runScopesOnType option for better type level auth checks
+- 43ca3031: Add skipInterfaceScopes option on Object types
+- 4ad5f4ff: Add cacheKey option
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
 ## 3.2.0
 
 ### Minor Changes

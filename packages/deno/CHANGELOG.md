@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.4.0
+
+### Minor Changes
+
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
 ## 3.3.1
 
 ### Patch Changes

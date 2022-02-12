@@ -4,6 +4,20 @@
 
 ### Minor Changes
 
+- 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
+  both to be optional
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+- Updated dependencies [43ca3031]
+- Updated dependencies [4ad5f4ff]
+  - @pothos/core@3.2.0
+
+## null
+
+### Minor Changes
+
 - eb9c33b8: Add loadManyWithoutCache option to dataloader to avoid double caching in loadableNode
 
 ## null
