@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "name": "@pothos-examples/simple-interfaces",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^6.0.0-alpha.6",
-    "@pothos/core": "^3.0.0",
+    "@pothos/core": "^3.2.0",
     "apollo-server": "^3.6.3",
     "graphql": "16.3.0",
     "ts-node": "^10.5.0"

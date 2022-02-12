@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 0.2.3
+
+### Patch Changes
+
+- 43ca3031: Update dev dependencies
+
 ## 0.2.2
 
 ### Patch Changes

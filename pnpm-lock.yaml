@@ -55,7 +55,7 @@ importers:
     specifiers:
       '@envelop/core': ^2.0.0
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.2.0
       fastify: ^3.27.1
       graphql: 16.3.0
       graphql-helix: ^1.11.0
@@ -72,7 +72,7 @@ importers:
   examples/helix:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.2.0
       graphql: 16.3.0
       graphql-helix: ^1.11.0
     dependencies:
@@ -92,7 +92,7 @@ importers:
       '@graphql-codegen/typescript': ^2.4.3
       '@graphql-codegen/typescript-operations': ^2.3.0
       '@graphql-codegen/typescript-react-apollo': ^3.2.5
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.2.0
       '@types/node': 17.0.17
       '@types/react': 17.0.39
       concurrently: ^7.0.0
@@ -131,8 +131,8 @@ importers:
   examples/prisma:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.0.1
-      '@pothos/plugin-prisma': ^0.16.0
+      '@pothos/core': ^3.2.0
+      '@pothos/plugin-prisma': ^0.17.0
       '@prisma/client': ^3.9.2
       apollo-server: ^3.6.3
       graphql: 16.3.0
@@ -151,9 +151,9 @@ importers:
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.0.1
-      '@pothos/plugin-prisma': ^0.16.0
-      '@pothos/plugin-relay': workspace:^3.3.1
+      '@pothos/core': ^3.2.0
+      '@pothos/plugin-prisma': ^0.17.0
+      '@pothos/plugin-relay': workspace:^3.4.0
       '@prisma/client': ^3.9.2
       apollo-server: ^3.6.3
       graphql: 16.3.0
@@ -173,7 +173,7 @@ importers:
   examples/simple-classes:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.2.0
       apollo-server: ^3.6.3
       graphql: 16.3.0
       ts-node: ^10.5.0
@@ -187,7 +187,7 @@ importers:
   examples/simple-interfaces:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.0.0
+      '@pothos/core': ^3.2.0
       apollo-server: ^3.6.3
       graphql: 16.3.0
       ts-node: ^10.5.0
