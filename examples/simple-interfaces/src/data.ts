@@ -38,7 +38,7 @@ for (let i = 1; i <= 100; i += 1) {
   Posts.set(String(i), {
     id: String(i),
     authorId: String(faker.datatype.number({ min: 1, max: 100 })),
-    title: faker.lorem.text() as string,
+    title: faker.lorem.text(),
     content: faker.lorem.paragraphs(2),
   });
 
@@ -46,6 +46,6 @@ for (let i = 1; i <= 100; i += 1) {
     id: String(i),
     authorId: String(faker.datatype.number({ min: 1, max: 100 })),
     postId: String(faker.datatype.number({ min: 1, max: 100 })),
-    comment: faker.lorem.text() as string,
+    comment: faker.lorem.text(),
   });
 }

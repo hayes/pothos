@@ -9,7 +9,7 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@faker-js/faker": "^6.0.0-alpha.4",
+    "@faker-js/faker": "^6.0.0-alpha.6",
     "@pothos/core": "^3.0.0",
     "graphql": "16.3.0",
     "graphql-helix": "^1.11.0"

@@ -47,8 +47,8 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "apollo-server": "^3.6.2",
-    "apollo-server-core": "^3.6.2",
+    "apollo-server": "^3.6.3",
+    "apollo-server-core": "^3.6.3",
     "axios": "^0.25.0",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.5"

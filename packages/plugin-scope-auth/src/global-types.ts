@@ -61,6 +61,7 @@ declare global {
       authScopes?: TypeAuthScopes<Types, Shape>;
       grantScopes?: TypeGrantScopes<Types, Shape>;
       runScopesOnType?: boolean;
+      skipInterfaceScopes?: boolean;
     }
 
     export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {

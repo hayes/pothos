@@ -22,7 +22,7 @@ export class Post {
 
   constructor(public id: string) {
     this.authorId = String(faker.datatype.number({ min: 1, max: 100 }));
-    this.title = faker.lorem.text() as string;
+    this.title = faker.lorem.text();
     this.content = faker.lorem.paragraphs(2);
   }
 }
@@ -34,7 +34,7 @@ export class Comment {
   constructor(public id: string) {
     this.authorId = String(faker.datatype.number({ min: 1, max: 100 }));
     this.postId = String(faker.datatype.number({ min: 1, max: 100 }));
-    this.comment = faker.lorem.text() as string;
+    this.comment = faker.lorem.text();
   }
 }
 

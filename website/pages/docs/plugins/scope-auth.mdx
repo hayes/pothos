@@ -249,6 +249,58 @@ This will allow non-logged in users to resolve the title, but not the content of
 `skipTypeScopes` can be used in conjunction with `authScopes` on a field to completely overwrite the
 default scopes.
 
+### Running scopes on types rather than fields
+
+By default, all auth scopes are tested before a field resolves. This includes both scopes defined on
+a type and scopes defined on a fields. When scopes for a `type` fail, you will end up with an error
+for each field of that type. Type level scopes are only executed once, but the errors are emitted
+for each affected field.
+
+The behavior may not be desireable for all users. You can set `runScopesOnType` to true, either on
+object types, or in the `scopeAuthOptions` of the builder
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuthOptions: {
+    // Affects all object types (Excluding Query, Mutation, and Subscription)
+    runScopesOnType: true,
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+
+builder.objectType(Article, {
+  runScopesOnType: true,
+  authScopes: {
+    readArticle: true,
+  },
+  fields: (t) => ({
+    title: t.exposeString('title', {
+      // this will not have any affect because type scopes are not evaluated at the field level
+      skipTypeScopes: true,
+    }),
+    content: t.exposeString('title', {}),
+  }),
+});
+```
+
+Enabling this has a couple of limitations:
+
+1. THIS DOES NOT CURRENTLY WORK WITH `graphql-jit`. This options uses the `isTypeOf` function, but
+   `graphql-jit` does not support async `isTypeOf`, and also does not correctly pass the context
+   object to the isTypeOf checks. Until this is resolved, this option will not work with
+   `graphql-jit`.
+
+2. Fields of types that set `runScopesOnType` to true will not be able to use `skipTypeScopes` or
+   `skipInterfaceScopes`.
+
 ### Generalized auth functions with field specific arguments
 
 The scopes we have covered so far have all been related to information that applies to a full
@@ -470,8 +522,7 @@ by non employees unless they have been published.
 ### Setting scopes based on the return value of a field
 
 This is a use that is not currently supported. The current work around is to move those checks down
-to the returned type. The downside of this is that any resulting permission errors will appear on
-the fields of the returned type rather than the parent field.
+to the returned type. Combining this with `runScopesOnType` should work for most cases.
 
 ### Granting access to a resource based on how it is accessed
 
@@ -558,6 +609,9 @@ in each individual field.
 Interfaces can define auth scopes on their fields the same way objects do. Fields for a type will
 run checks for each interface it implements separately, meaning that a request would need to satisfy
 the scope requirements for each interface separately before the field is resolved.
+
+Object types can set `skipInterfaceScopes` to `true` to skip interface checks when resolving fields
+for that Object type.
 
 ### Cache keys
 

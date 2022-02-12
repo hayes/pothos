@@ -13,5 +13,5 @@
 '@pothos/website': minor
 ---
 
-Normalize resloveType and isTypeOf behavior to match graphql spec behavir and allow both to be
+Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow both to be
 optional

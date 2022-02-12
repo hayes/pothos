@@ -154,7 +154,10 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       );
     }
 
-    if (!skipInterfaceScopes) {
+    if (
+      !skipInterfaceScopes &&
+      !(typeConfig.kind === 'Object' && typeConfig.pothosOptions.skipInterfaceScopes)
+    ) {
       interfaceConfigs.forEach((interfaceConfig) => {
         if (interfaceConfig.pothosOptions.authScopes) {
           steps.push(

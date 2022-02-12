@@ -11,7 +11,7 @@
   },
   "scripts": {
     "generate": "prisma generate",
-    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
+    "ts-node": "ts-node --transpile-only --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
     "type": "tsc --noEmit && tsc --project tests/tsconfig.json",
     "build": "pnpm build:cjs && pnpm build:esm",
     "build:cjs": "tsc --module commonjs --outDir lib",
@@ -46,7 +46,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^3.9.1"
+    "@prisma/generator-helper": "^3.9.2"
   },
   "prisma": {
     "seed": "pnpm ts-node prisma/seed.ts"
@@ -62,9 +62,9 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^3.9.1",
+    "@prisma/client": "^3.9.2",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^3.9.1"
+    "prisma": "^3.9.2"
   }
 }
