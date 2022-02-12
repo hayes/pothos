@@ -9,10 +9,12 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import ResolveState from './resolve-state';
+import RequestCache from './request-cache';
 
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;
+  cacheKey?: (value: unknown) => unknown;
+  runScopesOnType?: boolean;
 }
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
@@ -119,11 +121,12 @@ export interface ForbiddenResult {
 
 export interface ResolveStep<Types extends SchemaTypes> {
   run: (
-    state: ResolveState<Types>,
+    cache: RequestCache<Types>,
     parent: unknown,
     args: Record<string, unknown>,
     context: {},
     info: GraphQLResolveInfo,
+    setResolved: (val: unknown) => void,
   ) => MaybePromise<null | AuthFailure>;
   errorMessage:
     | string

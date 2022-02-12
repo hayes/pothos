@@ -60,11 +60,14 @@ declare global {
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       authScopes?: TypeAuthScopes<Types, Shape>;
       grantScopes?: TypeGrantScopes<Types, Shape>;
+      runScopesOnType?: boolean;
+      skipInterfaceScopes?: boolean;
     }
 
     export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
       authScopes?: TypeAuthScopes<Types, Shape>;
       grantScopes?: TypeGrantScopes<Types, Shape>;
+      runScopesOnType?: boolean;
     }
 
     export interface FieldOptions<

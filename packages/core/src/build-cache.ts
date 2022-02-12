@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/prefer-object-from-entries */
 import {
   defaultFieldResolver,
+  defaultTypeResolver,
   GraphQLBoolean,
   GraphQLEnumType,
   GraphQLFieldConfigArgumentMap,
@@ -532,14 +533,13 @@ export default class BuildCache<Types extends SchemaTypes> {
     throw new Error(`Expected ${String(ref)} to be of type ${kind}`);
   }
 
-  private buildObject({
-    isTypeOf,
-    ...config
-  }:
-    | PothosMutationTypeConfig
-    | PothosObjectTypeConfig
-    | PothosQueryTypeConfig
-    | PothosSubscriptionTypeConfig) {
+  private buildObject(
+    config:
+      | PothosMutationTypeConfig
+      | PothosObjectTypeConfig
+      | PothosQueryTypeConfig
+      | PothosSubscriptionTypeConfig,
+  ) {
     const type: GraphQLObjectType = new GraphQLObjectType({
       ...config,
       extensions: {
@@ -548,12 +548,13 @@ export default class BuildCache<Types extends SchemaTypes> {
         pothosConfig: config,
       },
       fields: () => this.getFields(type),
+      isTypeOf:
+        config.kind === 'Object'
+          ? this.plugin.wrapIsTypeOf(config.isTypeOf ?? undefined, config)
+          : undefined,
       interfaces:
         config.kind === 'Object'
-          ? () =>
-              (config as PothosObjectTypeConfig).interfaces.map((iface) =>
-                this.getTypeOfKind(iface, 'Interface'),
-              )
+          ? () => config.interfaces.map((iface) => this.getTypeOfKind(iface, 'Interface'))
           : undefined,
     });
 
@@ -572,30 +573,9 @@ export default class BuildCache<Types extends SchemaTypes> {
         return this.getTypeConfig(typeBrand).name;
       }
 
-      const implementers = this.getImplementers(type);
+      const resolver = config.resolveType ?? defaultTypeResolver;
 
-      const promises: Promise<PothosObjectTypeConfig | null>[] = [];
-
-      for (const impl of implementers) {
-        if (!impl.isTypeOf) {
-          // eslint-disable-next-line no-continue
-          continue;
-        }
-
-        const result = impl.isTypeOf(parent, context, info);
-
-        if (isThenable(result)) {
-          promises.push(result.then((res) => (res ? impl : null)));
-        } else if (result) {
-          return impl.name;
-        }
-      }
-
-      if (promises.length > 0) {
-        return Promise.all(promises).then((results) => results.find((result) => !!result)?.name);
-      }
-
-      return undefined;
+      return resolver(parent, context, info, type);
     };
 
     const type: GraphQLInterfaceType = new GraphQLInterfaceType({
@@ -614,8 +594,27 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildUnion(config: PothosUnionTypeConfig) {
-    const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (...args) => {
-      const resultOrPromise = config.resolveType!(...args);
+    const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (
+      parent,
+      context,
+      info,
+      type,
+    ) => {
+      if (typeof parent === 'object' && parent !== null && typeBrandKey in parent) {
+        const typeBrand = (parent as { [typeBrandKey]: OutputType<SchemaTypes> })[typeBrandKey];
+
+        if (typeof typeBrand === 'string') {
+          return typeBrand;
+        }
+
+        return this.getTypeConfig(typeBrand).name;
+      }
+
+      if (!config.resolveType) {
+        return defaultTypeResolver(parent, context, info, type);
+      }
+
+      const resultOrPromise = config.resolveType(parent, context, info, type);
 
       const getResult = (
         result: GraphQLObjectType<unknown, object> | string | null | undefined,

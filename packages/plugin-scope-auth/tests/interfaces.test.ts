@@ -17,7 +17,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -48,7 +48,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -77,7 +77,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -108,7 +108,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -137,7 +137,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -168,7 +168,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 
@@ -197,7 +197,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({
+        user: new User({
           'x-user-id': '1',
           'x-roles': 'admin',
         }),
@@ -228,7 +228,7 @@ describe('interfaces', () => {
       schema: exampleSchema,
       document: query,
       contextValue: {
-        User: new User({}),
+        user: new User({}),
       },
     });
 

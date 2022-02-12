@@ -1,4 +1,4 @@
-import { Path, SchemaTypes } from '@pothos/core';
+import { Path, PothosFieldConfig, SchemaTypes } from '@pothos/core';
 import { AuthScopeMap } from '.';
 
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {
@@ -24,4 +24,13 @@ export function cacheKey(path: Path | undefined) {
   }
 
   return key;
+}
+
+export function isObjectOrInterface(fieldConfig: PothosFieldConfig<never>) {
+  return (
+    (fieldConfig.graphqlKind === 'Interface' || fieldConfig.graphqlKind === 'Object') &&
+    fieldConfig.kind !== 'Query' &&
+    fieldConfig.kind !== 'Mutation' &&
+    fieldConfig.kind !== 'Subscription'
+  );
 }

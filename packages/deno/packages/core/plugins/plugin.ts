@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
+import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
-import { BuildCache, createContextCache } from '../index.ts';
+import { BuildCache, createContextCache, PothosObjectTypeConfig } from '../index.ts';
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
     name;
@@ -85,6 +85,15 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      */
     wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig): GraphQLTypeResolver<unknown, Types["Context"]> {
         return resolveType;
+    }
+    /**
+     * Called with the isTypeOf for each Object type
+     * @param  {GraphQLTypeResolver} resolveType - the resolveType function
+     * @param  {PothosObjectTypeConfig} typeConfig - the config object for the Interface or Union type
+     * @return {GraphQLTypeResolver} - Either the original, or a new resolveType function to use for this field
+     */
+    wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, typeConfig: PothosObjectTypeConfig): GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined {
+        return isTypeOf;
     }
     protected runUnique<R>(key: unknown, cb: () => R): R {
         if (!runCache.has(this.builder)) {

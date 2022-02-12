@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
+import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosEnumValueConfig, PothosInterfaceTypeConfig, PothosUnionTypeConfig } from '../types/index.ts';
 import { BasePlugin } from './plugin.ts';
-import { BuildCache, PothosInputFieldConfig, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../index.ts';
+import { BuildCache, PothosInputFieldConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../index.ts';
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
     plugins;
     constructor(buildCache: BuildCache<Types>, plugins: BasePlugin<Types>[]) {
@@ -37,5 +37,8 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     }
     override wrapResolveType(resolveType: GraphQLTypeResolver<unknown, Types["Context"]>, typeConfig: PothosInterfaceTypeConfig | PothosUnionTypeConfig) {
         return this.plugins.reduceRight((nextResolveType, plugin) => plugin.wrapResolveType(nextResolveType, typeConfig), resolveType);
+    }
+    override wrapIsTypeOf(isTypeOf: GraphQLIsTypeOfFn<unknown, Types["Context"]> | undefined, typeConfig: PothosObjectTypeConfig) {
+        return this.plugins.reduceRight((nextResolveType, plugin) => plugin.wrapIsTypeOf(nextResolveType, typeConfig), isTypeOf);
     }
 }

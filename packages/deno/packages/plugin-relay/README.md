@@ -146,7 +146,7 @@ Nodes may also implement an `isTypeOf` method which can be used to resolve the c
 lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
 using an `instanceof` check, and falls back to checking the constructor property on the prototype.
 The means that for many cases if you are using classes in your type parameters, and all your values
-are instances of those classes, you won't need to implement an `isTypeOf` method, but it is ussually
+are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
 better to explicitly define that behavior.
 
 ### Creating Connections

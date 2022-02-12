@@ -4,7 +4,6 @@ import {
   GraphQLFloat,
   GraphQLID,
   GraphQLInt,
-  GraphQLIsTypeOfFn,
   GraphQLObjectType,
   GraphQLScalarSerializer,
   GraphQLScalarType,
@@ -149,7 +148,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
       description: options.description,
       extensions: options.extensions,
-      isTypeOf: options.isTypeOf as GraphQLIsTypeOfFn<unknown, Types['Context']>,
+      isTypeOf: options.isTypeOf,
       pothosOptions: options as PothosSchemaTypes.ObjectTypeOptions,
     };
 

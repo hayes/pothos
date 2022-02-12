@@ -38,7 +38,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-permissions': 'a',
           }),
@@ -98,7 +98,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-permissions': 'a',
           }),
@@ -151,7 +151,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-permissions': 'a',
           }),
@@ -201,7 +201,7 @@ describe('caching', () => {
         document: query,
         contextValue: {
           count: counter.count,
-          User: new User({
+          user: new User({
             'x-user-id': '1',
             'x-roles': 'admin',
           }),

@@ -1,10 +1,16 @@
-import { GraphQLFieldResolver, GraphQLSchema, GraphQLTypeResolver } from 'graphql';
+import {
+  GraphQLFieldResolver,
+  GraphQLIsTypeOfFn,
+  GraphQLSchema,
+  GraphQLTypeResolver,
+} from 'graphql';
 import { PothosEnumValueConfig, PothosInterfaceTypeConfig, PothosUnionTypeConfig } from '../types';
 import { BasePlugin } from './plugin';
 
 import {
   BuildCache,
   PothosInputFieldConfig,
+  PothosObjectTypeConfig,
   PothosOutputFieldConfig,
   PothosTypeConfig,
   SchemaTypes,
@@ -84,6 +90,16 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
     return this.plugins.reduceRight(
       (nextResolveType, plugin) => plugin.wrapResolveType(nextResolveType, typeConfig),
       resolveType,
+    );
+  }
+
+  override wrapIsTypeOf(
+    isTypeOf: GraphQLIsTypeOfFn<unknown, Types['Context']> | undefined,
+    typeConfig: PothosObjectTypeConfig,
+  ) {
+    return this.plugins.reduceRight(
+      (nextResolveType, plugin) => plugin.wrapIsTypeOf(nextResolveType, typeConfig),
+      isTypeOf,
     );
   }
 }

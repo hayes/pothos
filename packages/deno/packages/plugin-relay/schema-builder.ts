@@ -1,6 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
@@ -89,15 +90,15 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     let nodeName!: string;
     const ref = this.objectType<[
     ], ObjectParam<SchemaTypes>>(param, {
-        ...options,
-        isTypeOf: (maybeNode, context, info) => {
+        ...(options as {}),
+        isTypeOf: (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
             if (options.isTypeOf) {
                 return options.isTypeOf(maybeNode, context, info);
             }
             if (!maybeNode) {
                 return false;
             }
-            if (typeof param === "function" && (maybeNode as unknown) instanceof (param as Function)) {
+            if (typeof param === "function" && maybeNode instanceof (param as Function)) {
                 return true;
             }
             const proto = Object.getPrototypeOf(maybeNode) as {

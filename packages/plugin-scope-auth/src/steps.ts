@@ -1,4 +1,3 @@
-/* eslint-disable no-param-reassign */
 import { GraphQLFieldResolver } from 'graphql';
 import { isThenable, SchemaTypes } from '@pothos/core';
 import {
@@ -32,10 +31,13 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(
 export function createTypeGrantScopesStep<Types extends SchemaTypes>(
   grantScopes: TypeGrantScopes<Types, unknown>,
   type: string,
+  forField: boolean,
 ): ResolveStep<Types> {
   return {
     run: (state, parent, args, context, info) =>
-      state.cache.grantTypeScopes(type, parent, info, () => grantScopes(parent, context)),
+      state.grantTypeScopes(type, parent, forField ? info.path.prev : info.path, () =>
+        grantScopes(parent, context),
+      ),
     errorMessage: `Unknown error creating grants for ${type}`,
   };
 }
@@ -74,7 +76,7 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(
       `Unknown issue generating grants for ${info.parentType}.${info.fieldName}`,
     run: (state, parent, args, context, info) => {
       if (typeof grantScopes !== 'function') {
-        state.cache.saveGrantedScopes(grantScopes, info.path);
+        state.saveGrantedScopes(grantScopes, info.path);
 
         return null;
       }
@@ -82,13 +84,13 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(
 
       if (isThenable(result)) {
         return result.then((resolved) => {
-          state.cache.saveGrantedScopes(resolved, info.path);
+          state.saveGrantedScopes(resolved, info.path);
 
           return null;
         });
       }
 
-      state.cache.saveGrantedScopes(result, info.path);
+      state.saveGrantedScopes(result, info.path);
 
       return null;
     },
@@ -101,18 +103,18 @@ export function createResolveStep<Types extends SchemaTypes>(
   return {
     errorMessage: (parent, args, context, info) =>
       `Unknown issue resolving ${info.parentType}.${info.fieldName}`,
-    run: (state, parent, args, context, info) => {
+    run: (state, parent, args, context, info, setResolved) => {
       const result: unknown = resolver(parent, args, context, info);
 
       if (isThenable(result)) {
         return result.then((resolved) => {
-          state.resolveValue = resolved;
+          setResolved(resolved);
 
           return null;
         });
       }
 
-      state.resolveValue = result;
+      setResolved(result);
 
       return null;
     },

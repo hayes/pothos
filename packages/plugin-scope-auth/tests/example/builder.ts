@@ -4,7 +4,7 @@ import ScopeAuthPlugin from '../../src';
 import User from './user';
 
 interface Context {
-  User: User | null;
+  user: User | null;
   count?: (name: string) => void;
 }
 
@@ -22,17 +22,17 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [ScopeAuthPlugin],
   authScopes: async (context) => ({
-    loggedIn: !!context.User,
-    admin: !!context.User?.roles.includes('admin'),
+    loggedIn: !!context.user,
+    admin: !!context.user?.roles.includes('admin'),
     syncPermission: (perm) => {
       context.count?.('syncPermission');
 
-      return !!context.User?.permissions.includes(perm);
+      return !!context.user?.permissions.includes(perm);
     },
     asyncPermission: async (perm) => {
       context.count?.('asyncPermission');
 
-      return !!context.User?.permissions.includes(perm);
+      return !!context.user?.permissions.includes(perm);
     },
   }),
 });

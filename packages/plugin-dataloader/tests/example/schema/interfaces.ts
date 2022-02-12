@@ -37,7 +37,7 @@ const Animal = builder.loadableInterface('Animal', {
 
 export const DogObject = builder.objectRef<Dog>('Dog').implement({
   interfaces: [Animal],
-  isTypeOf: (animal) => animal.type === 'Dog',
+  isTypeOf: (animal) => (animal as { type: string }).type === 'Dog',
   fields: (t) => ({
     chasingTail: t.exposeBoolean('chasingTail'),
   }),
@@ -45,7 +45,7 @@ export const DogObject = builder.objectRef<Dog>('Dog').implement({
 
 export const CatObject = builder.objectRef<Cat>('Cat').implement({
   interfaces: [Animal],
-  isTypeOf: (animal) => animal.type === 'Cat',
+  isTypeOf: (animal) => (animal as { type: string }).type === 'Cat',
   fields: (t) => ({
     chasingMouse: t.exposeBoolean('chasingMouse'),
   }),

@@ -47,47 +47,47 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "node": Object {
-      "__typename": "User",
-      "email": "Maurine.Ratke@gmail.com",
-      "id": "VXNlcjox",
-      "name": "Maurine Ratke",
-      "profile": Object {
-        "bio": "Sequi minus inventore itaque similique et.",
-        "id": "1",
-        "user": Object {
-          "id": "VXNlcjox",
-        },
-      },
-    },
-  },
-}
-`);
-
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "profile": Object {
-          "include": Object {
-            "user": true,
+      Object {
+        "data": Object {
+          "node": Object {
+            "__typename": "User",
+            "email": "Maurine.Rath@gmail.com",
+            "id": "VXNlcjox",
+            "name": "Maurine Rath",
+            "profile": Object {
+              "bio": "Sequi minus inventore itaque similique et.",
+              "id": "1",
+              "user": Object {
+                "id": "VXNlcjox",
+              },
+            },
           },
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "profile": Object {
+                "include": Object {
+                  "user": true,
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('query for single node', async () => {
@@ -118,74 +118,74 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "nodes": Array [
       Object {
-        "__typename": "User",
-        "email": "Maurine.Ratke@gmail.com",
-        "id": "VXNlcjox",
-        "name": "Maurine Ratke",
-        "profile": Object {
-          "bio": "Sequi minus inventore itaque similique et.",
-          "id": "1",
-          "user": Object {
-            "id": "VXNlcjox",
-          },
+        "data": Object {
+          "nodes": Array [
+            Object {
+              "__typename": "User",
+              "email": "Maurine.Rath@gmail.com",
+              "id": "VXNlcjox",
+              "name": "Maurine Rath",
+              "profile": Object {
+                "bio": "Sequi minus inventore itaque similique et.",
+                "id": "1",
+                "user": Object {
+                  "id": "VXNlcjox",
+                },
+              },
+            },
+            Object {
+              "__typename": "User",
+              "email": "Nichole6@hotmail.com",
+              "id": "VXNlcjoy",
+              "name": "Nichole Konopelski",
+              "profile": null,
+            },
+          ],
         },
-      },
-      Object {
-        "__typename": "User",
-        "email": "Nichole6@hotmail.com",
-        "id": "VXNlcjoy",
-        "name": "Nichole Koss",
-        "profile": null,
-      },
-    ],
-  },
-}
-`);
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "profile": Object {
-          "include": Object {
-            "user": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "profile": Object {
+                "include": Object {
+                  "user": true,
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
           },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "profile": Object {
-          "include": Object {
-            "user": true,
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "profile": Object {
+                "include": Object {
+                  "user": true,
+                },
+              },
+            },
+            "where": Object {
+              "id": 2,
+            },
           },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 2,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('query with multiple fragments', async () => {
@@ -215,82 +215,82 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "node": Object {
-      "__typename": "User",
-      "id": "VXNlcjox",
-      "posts": Array [
-        Object {
-          "id": "250",
-        },
-        Object {
-          "id": "249",
-        },
-        Object {
-          "id": "248",
-        },
-        Object {
-          "id": "247",
-        },
-        Object {
-          "id": "246",
-        },
-        Object {
-          "id": "245",
-        },
-        Object {
-          "id": "244",
-        },
-        Object {
-          "id": "243",
-        },
-        Object {
-          "id": "242",
-        },
-        Object {
-          "id": "241",
-        },
-      ],
-      "profile": Object {
-        "id": "1",
-      },
-    },
-  },
-}
-`);
-
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
+      Object {
+        "data": Object {
+          "node": Object {
+            "__typename": "User",
+            "id": "VXNlcjox",
+            "posts": Array [
+              Object {
+                "id": "250",
               },
+              Object {
+                "id": "249",
+              },
+              Object {
+                "id": "248",
+              },
+              Object {
+                "id": "247",
+              },
+              Object {
+                "id": "246",
+              },
+              Object {
+                "id": "245",
+              },
+              Object {
+                "id": "244",
+              },
+              Object {
+                "id": "243",
+              },
+              Object {
+                "id": "242",
+              },
+              Object {
+                "id": "241",
+              },
+            ],
+            "profile": Object {
+              "id": "1",
             },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "take": 10,
         },
-        "profile": true,
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "posts": Object {
+                "include": Object {
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                  },
+                },
+                "orderBy": Object {
+                  "createdAt": "desc",
+                },
+                "take": 10,
+              },
+              "profile": true,
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('resolvers branded nodes in interfaces', async () => {
@@ -312,37 +312,37 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "named": Array [
       Object {
-        "id": "VXNlcjox",
-        "name": "Maurine Ratke",
-      },
-      null,
-    ],
-  },
-  "errors": Array [
-    [GraphQLError: Abstract type "Named" must resolve to an Object type at runtime for field "Query.named". Either the "Named" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.],
-  ],
-}
-`);
+        "data": Object {
+          "named": Array [
+            Object {
+              "id": "VXNlcjox",
+              "name": "Maurine Rath",
+            },
+            null,
+          ],
+        },
+        "errors": Array [
+          [GraphQLError: Abstract type "Named" must resolve to an Object type at runtime for field "Query.named". Either the "Named" type should provide a "resolveType" function or each possible type should provide an "isTypeOf" function.],
+        ],
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findFirst",
-    "args": Object {
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      Array [
+        Object {
+          "action": "findFirst",
+          "args": Object {
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('resolves unions', async () => {
@@ -367,47 +367,47 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "userOrProfile": Array [
       Object {
-        "__typename": "User",
-        "id": "VXNlcjox",
-      },
-      Object {
-        "__typename": "Profile",
-        "id": "1",
-      },
-    ],
-  },
-}
-`);
+        "data": Object {
+          "userOrProfile": Array [
+            Object {
+              "__typename": "User",
+              "id": "VXNlcjox",
+            },
+            Object {
+              "__typename": "Profile",
+              "id": "1",
+            },
+          ],
+        },
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findFirst",
-    "args": Object {
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Profile",
-    "runInTransaction": false,
-  },
-]
-`);
+      Array [
+        Object {
+          "action": "findFirst",
+          "args": Object {
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "Profile",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 });

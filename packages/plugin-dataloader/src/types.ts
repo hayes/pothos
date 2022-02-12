@@ -1,5 +1,4 @@
 import DataLoader from 'dataloader';
-import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldNullability,
@@ -15,7 +14,6 @@ import {
   ObjectTypeOptions,
   OutputShape,
   OutputType,
-  ParentShape,
   Resolver,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -180,37 +178,18 @@ export type LoadableNodeOptions<
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-> = Omit<
-  DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
-  'isTypeOf'
-> &
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (NameOrRef extends new (...args: any[]) => any
-    ? {
-        isTypeOf?: (
-          obj: ParentShape<Types, Interfaces[number]>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => boolean;
-      }
-    : {
-        isTypeOf: (
-          obj: ParentShape<Types, Interfaces[number]>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => boolean;
-      }) & {
-    id: Omit<
-      FieldOptionsFromKind<
-        Types,
-        Shape,
-        'ID',
-        false,
-        {},
-        'Object',
-        Shape,
-        MaybePromise<OutputShape<Types, 'ID'>>
-      >,
-      'args' | 'nullable' | 'type'
-    >;
-  };
+> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> & {
+  id: Omit<
+    FieldOptionsFromKind<
+      Types,
+      Shape,
+      'ID',
+      false,
+      {},
+      'Object',
+      Shape,
+      MaybePromise<OutputShape<Types, 'ID'>>
+    >,
+    'args' | 'nullable' | 'type'
+  >;
+};

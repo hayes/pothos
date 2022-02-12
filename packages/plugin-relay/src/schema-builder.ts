@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   createContextCache,
   FieldRef,
@@ -153,8 +154,8 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
   const ref = this.objectType<[], ObjectParam<SchemaTypes>>(
     param,
     {
-      ...options,
-      isTypeOf: (maybeNode, context, info) => {
+      ...(options as {}),
+      isTypeOf: (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
         if (options.isTypeOf) {
           return options.isTypeOf(maybeNode, context, info);
         }
@@ -163,7 +164,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
           return false;
         }
 
-        if (typeof param === 'function' && (maybeNode as unknown) instanceof (param as Function)) {
+        if (typeof param === 'function' && maybeNode instanceof (param as Function)) {
           return true;
         }
 

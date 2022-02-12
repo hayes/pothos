@@ -43,68 +43,68 @@ describe('query on relations', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "me": Object {
-      "commentedPostsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "id": "1",
-            },
-          },
-          Object {
-            "node": Object {
-              "id": "2",
-            },
-          },
-          Object {
-            "node": Object {
-              "id": "3",
-            },
-          },
-        ],
-      },
-    },
-  },
-}
-`);
-
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
-            },
-          },
-          "skip": 0,
-          "take": 4,
-          "where": Object {
-            "comments": Object {
-              "some": Object {
-                "authorId": 1,
-              },
+      Object {
+        "data": Object {
+          "me": Object {
+            "commentedPostsConnection": Object {
+              "edges": Array [
+                Object {
+                  "node": Object {
+                    "id": "1",
+                  },
+                },
+                Object {
+                  "node": Object {
+                    "id": "2",
+                  },
+                },
+                Object {
+                  "node": Object {
+                    "id": "3",
+                  },
+                },
+              ],
             },
           },
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "posts": Object {
+                "include": Object {
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 4,
+                "where": Object {
+                  "comments": Object {
+                    "some": Object {
+                      "authorId": 1,
+                    },
+                  },
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('queries related connections', async () => {
@@ -129,68 +129,68 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "me": Object {
-      "commentedPostsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "id": "1",
-            },
-          },
-          Object {
-            "node": Object {
-              "id": "2",
-            },
-          },
-          Object {
-            "node": Object {
-              "id": "3",
-            },
-          },
-        ],
-      },
-    },
-  },
-}
-`);
-
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
-            },
-          },
-          "skip": 0,
-          "take": 4,
-          "where": Object {
-            "comments": Object {
-              "some": Object {
-                "authorId": 1,
-              },
+      Object {
+        "data": Object {
+          "me": Object {
+            "commentedPostsConnection": Object {
+              "edges": Array [
+                Object {
+                  "node": Object {
+                    "id": "1",
+                  },
+                },
+                Object {
+                  "node": Object {
+                    "id": "2",
+                  },
+                },
+                Object {
+                  "node": Object {
+                    "id": "3",
+                  },
+                },
+              ],
             },
           },
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "posts": Object {
+                "include": Object {
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 4,
+                "where": Object {
+                  "comments": Object {
+                    "some": Object {
+                      "authorId": 1,
+                    },
+                  },
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('queries with conflicting selections', async () => {
@@ -212,67 +212,67 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "post": Object {
-      "ownComments": Array [
-        Object {
-          "content": "Adipisci autem ducimus sunt et expedita consequuntur esse nam.",
-          "id": "1",
+      Object {
+        "data": Object {
+          "post": Object {
+            "ownComments": Array [
+              Object {
+                "content": "Adipisci autem ducimus sunt et expedita consequuntur esse nam.",
+                "id": "1",
+              },
+            ],
+          },
         },
-      ],
-    },
-  },
-}
-`);
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": true,
-          },
-        },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": true,
+                },
               },
             },
+            "where": Object {
+              "id": 1,
+            },
           },
-          "where": Object {
-            "authorId": 1,
-          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": Object {
+                    "include": Object {
+                      "profile": true,
+                    },
+                  },
+                },
+                "where": Object {
+                  "authorId": 1,
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('queries with conflicting selections on connections', async () => {
@@ -300,74 +300,74 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "post": Object {
-      "ownCommentsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "author": Object {
-                "name": "Maurine Ratke",
-              },
-              "content": "Adipisci autem ducimus sunt et expedita consequuntur esse nam.",
+      Object {
+        "data": Object {
+          "post": Object {
+            "ownCommentsConnection": Object {
+              "edges": Array [
+                Object {
+                  "node": Object {
+                    "author": Object {
+                      "name": "Maurine Rath",
+                    },
+                    "content": "Adipisci autem ducimus sunt et expedita consequuntur esse nam.",
+                  },
+                },
+              ],
             },
           },
-        ],
-      },
-    },
-  },
-}
-`);
+        },
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": true,
-          },
-        },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": true,
+                },
               },
             },
+            "where": Object {
+              "id": 1,
+            },
           },
-          "skip": 0,
-          "take": 21,
-          "where": Object {
-            "authorId": 1,
-          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": Object {
+                    "include": Object {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 21,
+                "where": Object {
+                  "authorId": 1,
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 });

@@ -1,7 +1,6 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 export type DataloaderKey = bigint | number | string;
 export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
@@ -68,12 +67,6 @@ export type LoaderShapeFromType<Types extends SchemaTypes, Type extends TypePara
 export interface LoadableRef<K, V, C> {
     getDataloader: (context: C) => DataLoader<K, V>;
 }
-export type LoadableNodeOptions<Types extends SchemaTypes, Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>, "isTypeOf"> & 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-(NameOrRef extends new (...args: any[]) => any ? {
-    isTypeOf?: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
-} : {
-    isTypeOf: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
-}) & {
+export type LoadableNodeOptions<Types extends SchemaTypes, Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>, "isTypeOf"> & {
     id: Omit<FieldOptionsFromKind<Types, Shape, "ID", false, {}, "Object", Shape, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type">;
 };

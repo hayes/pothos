@@ -232,8 +232,60 @@ builder.objectType(Article, {
 ```
 
 This will allow non-logged in users to resolve the title, but not the content of an Article.
-`ignoreScopesFromType` can be used in conjunction with `authScopes` on a field to completely
-overwrite the default scopes.
+`skipTypeScopes` can be used in conjunction with `authScopes` on a field to completely overwrite the
+default scopes.
+
+### Running scopes on types rather than fields
+
+By default, all auth scopes are tested before a field resolves. This includes both scopes defined on
+a type and scopes defined on a fields. When scopes for a `type` fail, you will end up with an error
+for each field of that type. Type level scopes are only executed once, but the errors are emitted
+for each affected field.
+
+The behavior may not be desireable for all users. You can set `runScopesOnType` to true, either on
+object types, or in the `scopeAuthOptions` of the builder
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuthOptions: {
+    // Affects all object types (Excluding Query, Mutation, and Subscription)
+    runScopesOnType: true,
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+
+builder.objectType(Article, {
+  runScopesOnType: true,
+  authScopes: {
+    readArticle: true,
+  },
+  fields: (t) => ({
+    title: t.exposeString('title', {
+      // this will not have any affect because type scopes are not evaluated at the field level
+      skipTypeScopes: true,
+    }),
+    content: t.exposeString('title', {}),
+  }),
+});
+```
+
+Enabling this has a couple of limitations:
+
+1. THIS DOES NOT CURRENTLY WORK WITH `graphql-jit`. This options uses the `isTypeOf` function, but
+   `graphql-jit` does not support async `isTypeOf`, and also does not correctly pass the context
+   object to the isTypeOf checks. Until this is resolved, this option will not work with
+   `graphql-jit`.
+
+2. Fields of types that set `runScopesOnType` to true will not be able to use `skipTypeScopes` or
+   `skipInterfaceScopes`.
 
 ### Generalized auth functions with field specific arguments
 
@@ -266,6 +318,51 @@ same scope, the scope loader will still only be called once.
 
 The types for the parameters you provide for each scope are based on the types provided to the
 builder in the `AuthScopes` type.
+
+### Customizing error messages
+
+Error messages (and error instances) can be customized either globally or on specific fields.
+
+#### Globally
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuthOptions: {
+    unauthorizedError: (parent, context, info, result) => new Error(`Not authorized`),
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+```
+
+The `unauthorizedError` callback will be called with the parent, context, and info object of the
+unauthorized field. It will also include a 4th argument `result` that has the default message for
+this type of failure, and a `failure` property with some details about what caused the field to be
+unauthorized. This callback can either return an `Error` instance (or an instance of a class that
+extends `Error`), or a `string`. If a string is returned, it will be converted to a
+`ForbiddenError`.
+
+#### On individual fields
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    example: t.string({
+      authScopes: { loggedIn: true },
+      unauthorizedError: (parent, args, context, info, result) =>
+        new Error("You must be logged in to query the 'example' field"),
+      resolve: () => 'example',
+    }),
+  }),
+});
+```
 
 ### Returning a custom value when unauthorized
 
@@ -411,8 +508,7 @@ by non employees unless they have been published.
 ### Setting scopes based on the return value of a field
 
 This is a use that is not currently supported. The current work around is to move those checks down
-to the returned type. The downside of this is that any resulting permission errors will appear on
-the fields of the returned type rather than the parent field.
+to the returned type. Combining this with `runScopesOnType` should work for most cases.
 
 ### Granting access to a resource based on how it is accessed
 
@@ -499,6 +595,40 @@ in each individual field.
 Interfaces can define auth scopes on their fields the same way objects do. Fields for a type will
 run checks for each interface it implements separately, meaning that a request would need to satisfy
 the scope requirements for each interface separately before the field is resolved.
+
+Object types can set `skipInterfaceScopes` to `true` to skip interface checks when resolving fields
+for that Object type.
+
+### Cache keys
+
+Auth scopes by default are cached based on the identity of the scope parameter. This works great for
+statically defined scopes, and scopes that take primitive values as their parameters. If you define
+auth scopes that take complex objects, and create those objects in a scope function (based on
+arguments, or parent values) You won't get cache hits on those checks.
+
+To work around this, you can provide a `cacheKey` option to the builder for generating a cache key
+from your scope checks.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuthOptions: {
+    cacheKey: (val) => JSON.stringify(val),
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+```
+
+Above we are using `JSON.stringify` to generate a key. This will work for most complex objects, but
+you may want to consider something like `faster-stable-stringify` that can handle circular
+references, and swill always produce the same output regardless of the order of properties.
 
 ## When checks are run, and how things are cached
 

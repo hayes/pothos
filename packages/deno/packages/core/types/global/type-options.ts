@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarSerializer, GraphQLScalarValueParser, } from 'https://cdn.skypack.dev/graphql?dts';
+import { GraphQLIsTypeOfFn, GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarValueParser, GraphQLTypeResolver, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
 import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
 import { MaybePromise } from '../utils.ts';
 declare global {
@@ -15,11 +15,10 @@ declare global {
         export interface ObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown> extends BaseTypeOptions<Types> {
             fields?: ObjectFieldsShape<Types, Shape>;
             interfaces?: undefined;
-            isTypeOf?: undefined;
+            isTypeOf?: GraphQLIsTypeOfFn<unknown, Types["Context"]>;
         }
-        export interface ObjectTypeWithInterfaceOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends Omit<ObjectTypeOptions<Types, Shape>, "interfaces" | "isTypeOf"> {
+        export interface ObjectTypeWithInterfaceOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends Omit<ObjectTypeOptions<Types, Shape>, "interfaces"> {
             interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
-            isTypeOf: (obj: ParentShape<Types, Interfaces[number]>, context: Types["Context"], info: GraphQLResolveInfo) => boolean;
         }
         export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> extends BaseTypeOptions<Types> {
         }
@@ -38,10 +37,11 @@ declare global {
         export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends BaseTypeOptions<Types> {
             fields?: InterfaceFieldsShape<Types, Shape>;
             interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+            resolveType?: (parent: Shape, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<ObjectParam<Types> | string | null | undefined>;
         }
         export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>> extends BaseTypeOptions<Types> {
             types: Member[];
-            resolveType: (parent: ParentShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<Member | null | undefined>;
+            resolveType?: (parent: ParentShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<Member | string | null | undefined>;
         }
         export interface ScalarTypeOptions<Types extends SchemaTypes = SchemaTypes, ScalarInputShape = unknown, ScalarOutputShape = unknown> extends BaseTypeOptions<Types> {
             // Serializes an internal value to include in a response.

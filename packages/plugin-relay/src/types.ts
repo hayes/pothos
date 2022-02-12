@@ -258,31 +258,7 @@ export type NodeBaseObjectOptionsForParam<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[],
-> = Omit<ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, 'isTypeOf'> &
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  (Param extends new (...args: any[]) => any
-    ? {
-        isTypeOf?: (
-          obj: ParentShape<Types, Interfaces[number]>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => boolean;
-      }
-    : OutputShape<Types, Param> extends { __type: string }
-    ? {
-        isTypeOf?: (
-          obj: ParentShape<Types, Interfaces[number]>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => boolean;
-      }
-    : {
-        isTypeOf: (
-          obj: ParentShape<Types, Interfaces[number]>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => boolean;
-      });
+> = ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>;
 
 export type NodeObjectOptions<
   Types extends SchemaTypes,

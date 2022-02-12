@@ -5,12 +5,12 @@ menu: API
 description: API docs for Pothos SchemaBuilder
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # SchemaBuilder
 
@@ -213,16 +213,12 @@ type ObjectTypeOptions = {
 
 - `description`: A description of the current type
 - `fields`: a function that receives a [`FieldBuilder`](./field-builder), and returns an object of
-  field names to
+  field names to field refs. See [`FieldBuilder`](./field-builder) for more details.
 
-  field refs. See [`FieldBuilder`](./field-builder) for more details.
-
-- `isTypeOf`: Only required when implementing interfaces. This is a method that will be used when
-
+- `isTypeOf`: Recomended when implementing interfaces. This is a method that will be used when
   determining if a value of an implemented interface is of the current type.
 
 - `interfaces`: an array of interfaces implemented by this interface type. Items in this array
-
   should be an interface param. See `param` argument of `interfaceType`
 
 - `name`: name of GraphQL type. Required when param is a class
@@ -424,8 +420,8 @@ type InputTypeOptions = {
 - `description`: A description of the current type
 - `fields`: a function that receives an `InputFieldBuilder`, and returns an object of field names
 
-  to field definitions. See [`InputFieldBuilder`](./input-field-builder) for more details. If
-  `name` is a key of the `Input`
+  to field definitions. See [`InputFieldBuilder`](./input-field-builder) for more details. If `name`
+  is a key of the `Input`
 
   property in `SchemaTypes`, shape will show type errors for any fields that do not match the types
 
