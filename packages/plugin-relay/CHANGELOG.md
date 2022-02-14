@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.5.0
+
+### Minor Changes
+
+- 80b24ec1: Add ability to branded objects loaded by relay plugin with typename to reduce need to
+  isTypeOf checks
+
+### Patch Changes
+
+- 80b24ec1: Fix issue with connection arg types
+
 ## 3.4.0
 
 ### Minor Changes

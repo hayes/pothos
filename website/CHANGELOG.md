@@ -2,6 +2,13 @@
 
 ## null
 
+### Patch Changes
+
+- Updated dependencies [80b24ec1]
+  - @pothos/core@3.3.0
+
+## null
+
 ### Minor Changes
 
 - 4ad5f4ff: Normalize resolveType and isTypeOf behavior to match graphql spec behavior and allow
