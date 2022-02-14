@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.3.0
+
+### Minor Changes
+
+- 80b24ec1: Add ability to branded objects loaded by relay plugin with typename to reduce need to
+  isTypeOf checks
+
 ## 3.2.0
 
 ### Minor Changes
