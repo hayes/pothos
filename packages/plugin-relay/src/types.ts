@@ -32,6 +32,7 @@ import {
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
+  brandLoadedObjects?: boolean;
   nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
   pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
   nodeQueryOptions: Omit<
@@ -278,6 +279,7 @@ export type NodeObjectOptions<
     >,
     'args' | 'nullable' | 'type'
   >;
+  brandLoadedObjects?: boolean;
   loadOne?: (
     id: string,
     context: Types['Context'],

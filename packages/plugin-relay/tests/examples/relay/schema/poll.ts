@@ -29,7 +29,12 @@ builder.node('Poll', {
         // args automatically gets default cursor pagination args, but you can add more args like any other field
         resolve: (parent, args) =>
           // This would be for simple cases where you already have all the data
-          resolveArrayConnection({ args }, parent.answers),
+          resolveArrayConnection(
+            {
+              args: { after: args.after, before: args.before, first: args.first, last: args.last },
+            },
+            parent.answers,
+          ),
       },
       {},
       {},

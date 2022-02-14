@@ -4,6 +4,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   createContextCache,
   FieldRef,
+  getTypeBrand,
   InterfaceParam,
   InterfaceRef,
   ObjectFieldsShape,
@@ -162,6 +163,12 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
 
         if (!maybeNode) {
           return false;
+        }
+
+        const typeBrand = getTypeBrand(maybeNode);
+
+        if (typeBrand && this.configStore.getTypeConfig(typeBrand as string).name === nodeName) {
+          return true;
         }
 
         if (typeof param === 'function' && maybeNode instanceof (param as Function)) {

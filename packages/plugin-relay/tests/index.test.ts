@@ -368,6 +368,32 @@ describe('relay example schema', () => {
     });
   });
 
+  it('branded nodes', async () => {
+    const query = gql`
+      query {
+        node(id: "TnVtYmVyUmVmOjEyMw==") {
+          id
+          __typename
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result.data).toMatchInlineSnapshot(`
+      Object {
+        "node": Object {
+          "__typename": "NumberRef",
+          "id": "TnVtYmVyUmVmOjEyMw==",
+        },
+      }
+    `);
+  });
+
   describe('mutations', () => {
     it('returns correct clientMutationId', async () => {
       const query = gql`

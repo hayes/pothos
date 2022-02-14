@@ -1,6 +1,6 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { GraphQLResolveInfo } from 'graphql';
 import {
+  brandWithType,
   createContextCache,
   MaybePromise,
   ObjectParam,
@@ -43,6 +43,11 @@ export async function resolveNodes<Types extends SchemaTypes>(
       const ids = [...idsByType[typename].keys()];
       const globalIds = [...idsByType[typename].values()];
 
+      const config = builder.configStore.getTypeConfig(typename, 'Object');
+      const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
+      const shouldBrandObjects =
+        options.brandLoadedObjects ?? builder.options.relayOptions.brandLoadedObjects ?? false;
+
       const resultsForType = await resolveUncachedNodesForType(
         builder,
         context,
@@ -52,6 +57,10 @@ export async function resolveNodes<Types extends SchemaTypes>(
       );
 
       resultsForType.forEach((val, i) => {
+        if (shouldBrandObjects) {
+          brandWithType(val, typename as OutputType<Types>);
+        }
+
         results[globalIds[i]] = val;
       });
     }),

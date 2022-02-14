@@ -28,7 +28,7 @@ import ConfigStore from './config-store';
 import { MergedPlugins } from './plugins';
 import BuiltinScalarRef from './refs/builtin-scalar';
 import { PluginMap } from './types';
-import { isThenable } from './utils';
+import { getTypeBrand, isThenable } from './utils';
 import {
   assertNever,
   BasePlugin,
@@ -563,9 +563,8 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private buildInterface(config: PothosInterfaceTypeConfig) {
     const resolveType: GraphQLTypeResolver<unknown, Types['Context']> = (parent, context, info) => {
-      if (typeof parent === 'object' && parent !== null && typeBrandKey in parent) {
-        const typeBrand = (parent as { [typeBrandKey]: OutputType<SchemaTypes> })[typeBrandKey];
-
+      const typeBrand = getTypeBrand(parent);
+      if (typeBrand) {
         if (typeof typeBrand === 'string') {
           return typeBrand;
         }

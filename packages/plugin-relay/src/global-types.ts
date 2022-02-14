@@ -282,7 +282,7 @@ declare global {
       nodeNullable?: NodeNullability;
       resolve: Resolver<
         ParentShape,
-        InputShapeFromFields<Args & InputFieldsFromShape<DefaultConnectionArguments>>,
+        InputShapeFromFields<Args> & DefaultConnectionArguments,
         Types['Context'],
         ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>,
         ResolveReturnShape

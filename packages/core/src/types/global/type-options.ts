@@ -4,7 +4,6 @@ import {
   GraphQLResolveInfo,
   GraphQLScalarLiteralParser,
   GraphQLScalarValueParser,
-  GraphQLTypeResolver,
   GraphQLUnionType,
 } from 'graphql';
 import {

@@ -28,6 +28,14 @@ builder.node(NumberThing, {
   }),
 });
 
+const NumberRef = builder.node(builder.objectRef<NumberThing>('NumberRef'), {
+  id: {
+    resolve: (n) => n.id,
+  },
+  brandLoadedObjects: true,
+  loadOne: (id) => ({ id: Number.parseInt(String(id), 10) }),
+});
+
 builder.node(BatchLoadableNumberThing, {
   id: {
     resolve: (n) => n.id,
@@ -104,6 +112,10 @@ builder.queryFields((t) => ({
   }),
   moreNodes: t.nodeList({
     ids: () => ['TnVtYmVyOjI=', { id: 10, type: NumberThing }],
+  }),
+  numberRef: t.field({
+    type: NumberRef,
+    resolve: () => ({ id: 123 }),
   }),
 }));
 
