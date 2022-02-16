@@ -1,4 +1,4 @@
-import { GraphQLNamedType, GraphQLResolveInfo, isAbstractType } from 'graphql';
+import { GraphQLNamedType, GraphQLResolveInfo } from 'graphql';
 
 export * from './map-includes';
 export * from './merge-includes';
@@ -6,7 +6,6 @@ export * from './merge-includes';
 export function resolveIndirectType(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
-  typename?: string,
 ): GraphQLNamedType {
   const indirectInclude = type.extensions?.pothosPrismaIndirectInclude as
     | { getType: () => string }
@@ -21,14 +20,6 @@ export function resolveIndirectType(
     }
 
     return resolveIndirectType(resolvedType, info);
-  }
-
-  if (isAbstractType(type) && typename) {
-    const namedType = info.schema.getType(typename);
-
-    if (namedType) {
-      return namedType;
-    }
   }
 
   return type;

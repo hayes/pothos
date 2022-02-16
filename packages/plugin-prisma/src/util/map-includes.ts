@@ -291,7 +291,8 @@ export function includesFromSelectionSet(
 
 export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: string): {} {
   const { fieldNodes } = info;
-  const includeType = resolveIndirectType(getNamedType(info.returnType), info, typeName);
+  const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
+  const includeType = resolveIndirectType(type, info);
 
   const includes: IncludeMap = {
     ...(includeType.extensions?.pothosPrismaInclude as IncludeMap),
@@ -307,8 +308,6 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
     if (!node.selectionSet) {
       continue;
     }
-
-    const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
 
     includesFromSelectionSet(ctx, type, info, includes, counts, mappings, node.selectionSet);
   }
