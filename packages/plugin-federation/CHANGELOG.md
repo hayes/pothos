@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 0.2.4
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
 ## 0.2.3
 
 ### Patch Changes

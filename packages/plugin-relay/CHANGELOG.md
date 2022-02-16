@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.5.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
 ## 3.5.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.1.1
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
 ## 3.1.0
 
 ### Minor Changes
