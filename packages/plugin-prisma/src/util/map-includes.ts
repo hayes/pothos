@@ -291,7 +291,7 @@ export function includesFromSelectionSet(
 
 export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: string): {} {
   const { fieldNodes } = info;
-  const includeType = resolveIndirectType(getNamedType(info.returnType), info);
+  const includeType = resolveIndirectType(getNamedType(info.returnType), info, typeName);
 
   const includes: IncludeMap = {
     ...(includeType.extensions?.pothosPrismaInclude as IncludeMap),

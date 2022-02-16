@@ -138,6 +138,9 @@ describe('variants', () => {
         Object {
           "action": "findUnique",
           "args": Object {
+            "include": Object {
+              "profile": true,
+            },
             "where": Object {
               "id": 1,
             },

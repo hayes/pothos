@@ -41,11 +41,19 @@ const Viewer = builder.prismaObject('User', {
 
 const ViewerNode = builder.prismaNode('User', {
   variant: 'ViewerNode',
+  include: {
+    profile: true,
+  },
   id: {
     resolve: (user) => user.id,
   },
   findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
-  fields: () => ({}),
+  fields: (t) => ({
+    bio: t.string({
+      nullable: true,
+      resolve: (user) => user.profile?.bio,
+    }),
+  }),
 });
 
 const User = builder.prismaNode('User', {

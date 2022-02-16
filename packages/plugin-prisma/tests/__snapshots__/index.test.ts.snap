@@ -216,6 +216,7 @@ type Viewer {
 }
 
 type ViewerNode implements Node {
+  bio: String
   id: ID!
 }"
 `;

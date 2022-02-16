@@ -410,4 +410,53 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('loads type includes', async () => {
+    const query = gql`
+      query {
+        node(id: "Vmlld2VyTm9kZTox") {
+          id
+          ... on ViewerNode {
+            bio
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "node": Object {
+            "bio": "Sequi minus inventore itaque similique et.",
+            "id": "Vmlld2VyTm9kZTox",
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "profile": true,
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });
