@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.17.2
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
 ## 0.17.1
 
 ### Patch Changes

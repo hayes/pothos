@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.0.2
+
+### Patch Changes
+
+- 03aecf76: update .npmignore
+
 ## 1.0.1
 
 ### Patch Changes
