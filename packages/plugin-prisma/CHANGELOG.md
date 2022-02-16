@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.17.1
+
+### Patch Changes
+
+- c288534e: correctly load type includes when resolving prismaNodes
+
 ## 0.17.0
 
 ### Minor Changes
