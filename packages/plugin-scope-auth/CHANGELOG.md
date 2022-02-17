@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.4.0
+
+### Minor Changes
+
+- 6b441da8: Allow running scopemaps directly
+
 ## 3.3.1
 
 ### Patch Changes
