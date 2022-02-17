@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.4.1
+
+### Patch Changes
+
+- e7d18c41: make error formatter optional for runAuthScopes
+
 ## 3.4.0
 
 ### Minor Changes
