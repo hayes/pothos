@@ -1,4 +1,5 @@
 import './global-types';
+import './schema-builder';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -13,7 +14,8 @@ import SchemaBuilder, {
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
-import { isTypeOfHelper, resolveHelper } from './resolve-helper';
+import { isTypeOfHelper } from './is-type-of-helper';
+import { resolveHelper } from './resolve-helper';
 import {
   createFieldAuthScopesStep,
   createFieldGrantScopesStep,

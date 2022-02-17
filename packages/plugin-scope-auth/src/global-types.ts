@@ -6,6 +6,7 @@ import {
   FieldRef,
   InputFieldMap,
   InputShapeFromFields,
+  MaybePromise,
   Normalize,
   Resolver,
   RootName,
@@ -21,7 +22,13 @@ import {
   TypeAuthScopes,
   TypeGrantScopes,
 } from './types';
-import { ContextForAuth, PothosScopeAuthPlugin, UnauthorizedOptions } from '.';
+import {
+  AuthScopeMap,
+  ContextForAuth,
+  ForbiddenResult,
+  PothosScopeAuthPlugin,
+  UnauthorizedOptions,
+} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -32,6 +39,14 @@ declare global {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       scopeAuthOptions?: ScopeAuthPluginOptions<Types>;
       authScopes: ScopeAuthInitializer<Types>;
+    }
+
+    export interface SchemaBuilder<Types extends SchemaTypes> {
+      runAuthScopes: (
+        context: Types['Context'],
+        scopes: AuthScopeMap<Types>,
+        unauthorizedError: (result: ForbiddenResult) => Error | string,
+      ) => MaybePromise<void>;
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {

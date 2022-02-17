@@ -3,19 +3,13 @@ import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '@pothos/core';
 import { ScopeLoaderMap } from './types';
 import { cacheKey, canCache } from './util';
-import {
-  AuthFailure,
-  AuthScopeFailureType,
-  AuthScopeMap,
-  PothosScopeAuthPlugin,
-  TypeAuthScopesFunction,
-} from '.';
+import { AuthFailure, AuthScopeFailureType, AuthScopeMap, TypeAuthScopesFunction } from '.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();
 
 export default class RequestCache<Types extends SchemaTypes> {
-  plugin;
+  builder;
 
   context;
 
@@ -33,18 +27,18 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   cacheKey?: (value: unknown) => unknown;
 
-  constructor(plugin: PothosScopeAuthPlugin<Types>, context: Types['Context']) {
-    this.plugin = plugin;
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: Types['Context']) {
+    this.builder = builder;
     this.context = context;
-    this.cacheKey = plugin.builder.options.scopeAuthOptions?.cacheKey;
+    this.cacheKey = builder.options.scopeAuthOptions?.cacheKey;
   }
 
   static fromContext<T extends SchemaTypes>(
     context: T['Context'],
-    plugin: PothosScopeAuthPlugin<T>,
+    builder: PothosSchemaTypes.SchemaBuilder<T>,
   ): RequestCache<T> {
     if (!requestCache.has(context)) {
-      requestCache.set(context, new RequestCache<T>(plugin, context));
+      requestCache.set(context, new RequestCache<T>(builder, context));
     }
 
     // eslint-disable-next-line @typescript-eslint/no-unsafe-return
@@ -53,7 +47,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   getScopes(): MaybePromise<ScopeLoaderMap<Types>> {
     if (!this.scopes) {
-      const scopes = this.plugin.builder.options.authScopes(this.context);
+      const scopes = this.builder.options.authScopes(this.context);
 
       this.scopes = isThenable(scopes)
         ? scopes.then((resolved) => {
@@ -189,7 +183,7 @@ export default class RequestCache<Types extends SchemaTypes> {
   evaluateScopeMapWithScopes(
     { $all, $any, $granted, ...map }: AuthScopeMap<Types>,
     scopes: ScopeLoaderMap<Types>,
-    info: GraphQLResolveInfo,
+    info: GraphQLResolveInfo | undefined,
     forAll: boolean,
   ): MaybePromise<null | AuthFailure> {
     const scopeNames = Object.keys(map) as (keyof typeof map)[];
@@ -243,7 +237,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     const promises: Promise<null | AuthFailure>[] = [];
 
     if ($granted) {
-      const result = this.testGrantedScopes($granted, info.path);
+      const result = !!info && this.testGrantedScopes($granted, info.path);
 
       if (result && !forAll) {
         return null;
@@ -341,7 +335,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   evaluateScopeMap(
     map: AuthScopeMap<Types> | boolean,
-    info: GraphQLResolveInfo,
+    info?: GraphQLResolveInfo,
     forAll = false,
   ): MaybePromise<null | AuthFailure> {
     if (typeof map === 'boolean') {
