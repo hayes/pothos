@@ -45,7 +45,7 @@ declare global {
       runAuthScopes: (
         context: Types['Context'],
         scopes: AuthScopeMap<Types>,
-        unauthorizedError: (result: ForbiddenResult) => Error | string,
+        unauthorizedError?: (result: ForbiddenResult) => Error | string,
       ) => MaybePromise<void>;
     }
 
