@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.3.2
+
+### Patch Changes
+
+- 122dd782: Allow subscribe function to return a promise
+
 ## 3.3.1
 
 ### Patch Changes
