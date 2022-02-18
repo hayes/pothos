@@ -54,7 +54,7 @@ export type Subscriber<Parent, Args, Context, Shape> = (
   args: Args,
   context: Context,
   info: GraphQLResolveInfo,
-) => AsyncIterable<Shape>;
+) => MaybePromise<AsyncIterable<Shape>>;
 
 export type EnumValues<Types extends SchemaTypes> = EnumValueConfigMap<Types> | readonly string[];
 
