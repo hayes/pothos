@@ -11,6 +11,7 @@ import {
   PluginName,
   SchemaTypes,
   ShapeFromTypeParam,
+  TypeParam,
 } from '@pothos/core';
 import PrismaNodeRef from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
@@ -20,9 +21,8 @@ import {
   PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
-  ShapeWithInclude,
 } from './types';
-import { PrismaPlugin, ShapeFromConnection } from '.';
+import { PrismaObjectFieldOptions, PrismaPlugin, ShapeFromConnection, ShapeFromSelection } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -48,17 +48,50 @@ declare global {
         : PartialTypes['PrismaTypes'] & {};
     }
 
+    export interface PothosKindToGraphQLType {
+      PrismaObject: 'Object';
+    }
+
+    export interface FieldOptionsByKind<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      PrismaObject: PrismaObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveShape,
+        ResolveReturnShape
+      >;
+    }
+
     export interface SchemaBuilder<Types extends SchemaTypes> {
       prismaObject: <
         Name extends keyof Types['PrismaTypes'],
         Interfaces extends InterfaceParam<Types>[],
         FindUnique,
         Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
-        Include extends Model['Include'] = {},
-        Shape extends object = ShapeWithInclude<Model, Include>,
+        Include = unknown,
+        Select = unknown,
+        Shape extends object = ShapeFromSelection<Model, { select: Select; include: Include }>,
       >(
         name: Name,
-        options: PrismaObjectTypeOptions<Types, Model, Interfaces, FindUnique, Include, Shape>,
+        options: PrismaObjectTypeOptions<
+          Types,
+          Model,
+          Interfaces,
+          FindUnique,
+          Include,
+          Select,
+          Shape
+        >,
       ) => PrismaObjectRef<Model, Shape>;
 
       prismaNode: 'relay' extends PluginName
@@ -66,11 +99,12 @@ declare global {
             Name extends keyof Types['PrismaTypes'],
             Interfaces extends InterfaceParam<Types>[],
             Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
-            Include extends Model['Include'] = {},
-            Shape extends object = ShapeWithInclude<Model, Include>,
+            Include = unknown,
+            Select = unknown,
+            Shape extends object = ShapeFromSelection<Model, { select: Select; include: Include }>,
           >(
             name: Name,
-            options: PrismaNodeOptions<Types, Model, Interfaces, Include, Shape>,
+            options: PrismaNodeOptions<Types, Model, Interfaces, Include, Select, Shape>,
           ) => PrismaNodeRef<Model, Shape>
         : '@pothos/plugin-relay is required to use this method';
     }

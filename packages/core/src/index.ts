@@ -49,6 +49,7 @@ export type RootFieldBuilder<
   ParentShape,
   Kind extends FieldKind = FieldKind,
 > = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+
 export const RootFieldBuilder = InternalRootFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,

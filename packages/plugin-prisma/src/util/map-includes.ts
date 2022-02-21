@@ -8,6 +8,7 @@ import {
   GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
+  GraphQLType,
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
@@ -21,6 +22,8 @@ import {
 } from '../types';
 import { mergeIncludes, resolveIndirectType } from '.';
 
+import { SelectionMap } from '..';
+
 export const SELF_RELATION = '@self';
 
 function handleField(
@@ -28,7 +31,7 @@ function handleField(
   info: GraphQLResolveInfo,
   fields: GraphQLFieldMap<unknown, unknown>,
   selection: FieldNode,
-  includes: IncludeMap,
+  selectionMap: SelectionMap,
   counts: IncludeCounts,
   mappings: LoaderMappings,
   indirectMap?: IndirectLoadMap,
@@ -92,11 +95,7 @@ function handleField(
   }
 
   const type = getNamedType(field.type);
-  const includeType = resolveIndirectType(type, info);
-
-  const newIncludes: IncludeMap = {
-    ...(includeType.extensions?.pothosPrismaInclude as IncludeMap),
-  };
+  const newSelections = getSelectionMapForType(type, info);
 
   let query = field.extensions?.pothosPrismaQuery ?? {};
 
@@ -109,24 +108,22 @@ function handleField(
     query = query(args, ctx);
   }
 
-  const existingInclude =
-    relationName === SELF_RELATION ? { include: includes } : includes[relationName];
+  const existingSelections =
+    relationName === SELF_RELATION ? selectionMap : selectionMap[selectionMap.mode];
 
-  query = { ...(query as {}), include: newIncludes };
+  const mergedQuery: SelectionMap | null = mergeIncludes(existingSelections, {
+    ...(query as {}),
+    ...newSelections,
+  });
 
-  if (typeof existingInclude === 'object') {
-    query = mergeIncludes(existingInclude, query as Record<string, unknown>);
-
-    if (!query) {
-      return;
-    }
+  if (!mergedQuery) {
+    return;
   }
 
   if (!mappings[relationName]) {
     mappings[relationName] = [];
   }
 
-  const nestedIncludes = (query as { include: IncludeMap }).include;
   const nestedMappings: LoaderMappings = {};
   const nestedCounts: IncludeCounts = {
     current: {},
@@ -141,23 +138,23 @@ function handleField(
       indirectPath: indirectMap?.path ?? [],
     });
 
-    const { include } = query as { include: Record<string, IncludeMap> };
+    // const { include } = mergedQuery;
 
     if (selection.selectionSet) {
       includesFromSelectionSet(
         ctx,
         type,
         info,
-        includes,
+        selectionMap,
         counts,
         nestedMappings,
         selection.selectionSet,
       );
     }
 
-    Object.keys(include).forEach((key) => {
-      includes[key] = include[key];
-    });
+    // Object.keys(include).forEach((key) => {
+    //   includes[key] = include[key];
+    // });
 
     return;
   }
@@ -174,30 +171,47 @@ function handleField(
       ctx,
       type,
       info,
-      nestedIncludes,
+      mergedQuery,
       nestedCounts,
       nestedMappings,
       selection.selectionSet,
     );
   }
 
+  const nestedIncludes = mergedQuery[mergedQuery.mode];
+
   if (Object.keys(nestedCounts.current).length > 0) {
-    nestedIncludes._count = { select: nestedCounts.current };
+    nestedIncludes._count = { mode: 'select', select: nestedCounts.current, include: {} };
   }
 
   if (Object.keys(nestedIncludes).length === 0) {
     delete (query as { include?: unknown }).include;
   }
 
-  includes[relationName] =
-    Object.keys(query as {}).length > 0 ? (query as Record<string, unknown>) : true;
+  // includes[relationName] =
+  //   Object.keys(query as {}).length > 0 ? (query as Record<string, unknown>) : true;
+}
+
+export function getSelectionMapForType(type: GraphQLType, info: GraphQLResolveInfo): SelectionMap {
+  const targetType = resolveIndirectType(getNamedType(type), info);
+
+  const { pothosPrismaInclude, pothosPrismaSelect } = (targetType.extensions ?? {}) as Record<
+    string,
+    IncludeMap
+  >;
+
+  return {
+    mode: pothosPrismaSelect ? 'select' : 'include',
+    select: { ...pothosPrismaSelect },
+    include: { ...pothosPrismaInclude },
+  };
 }
 
 export function includesFromSelectionSet(
   ctx: object,
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
-  includes: IncludeMap,
+  selectionMap: SelectionMap,
   counts: IncludeCounts,
   mappings: LoaderMappings,
   selectionSet: SelectionSetNode,
@@ -241,7 +255,7 @@ export function includesFromSelectionSet(
           info,
           type.getFields(),
           selection,
-          includes,
+          selectionMap,
           counts,
           mappings,
           indirectMap,
@@ -260,7 +274,7 @@ export function includesFromSelectionSet(
           ctx,
           expectedType,
           info,
-          includes,
+          selectionMap,
           counts,
           mappings,
           info.fragments[selection.name.value].selectionSet,
@@ -276,7 +290,7 @@ export function includesFromSelectionSet(
           ctx,
           selection.typeCondition ? expectedType : type,
           info,
-          includes,
+          selectionMap,
           counts,
           mappings,
           selection.selectionSet,
@@ -294,9 +308,7 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
   const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
   const includeType = resolveIndirectType(type, info);
 
-  const includes: IncludeMap = {
-    ...(includeType.extensions?.pothosPrismaInclude as IncludeMap),
-  };
+  const selectionMap = getSelectionMapForType(includeType, info);
 
   const counts = {
     parent: {},
@@ -309,19 +321,24 @@ export function queryFromInfo(ctx: object, info: GraphQLResolveInfo, typeName?: 
       continue;
     }
 
-    includesFromSelectionSet(ctx, type, info, includes, counts, mappings, node.selectionSet);
+    includesFromSelectionSet(ctx, type, info, selectionMap, counts, mappings, node.selectionSet);
   }
+
+  const includeOrSelect = selectionMap[selectionMap.mode] as Record<
+    string,
+    boolean | Record<string, unknown>
+  >;
 
   if (Object.keys(counts.current).length > 0) {
-    includes._count = { select: counts.current };
+    includeOrSelect._count = { select: counts.current };
   }
 
-  if (Object.keys(includes).length > 0) {
+  if (Object.keys(includeOrSelect).length > 0) {
     if (mappings) {
       setLoaderMappings(ctx, info.path, mappings);
     }
 
-    return { include: includes };
+    return { [selectionMap.mode]: includeOrSelect };
   }
 
   return {};

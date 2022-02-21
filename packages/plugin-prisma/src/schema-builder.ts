@@ -12,8 +12,9 @@ import SchemaBuilder, {
 import { PrismaObjectFieldBuilder } from './field-builder';
 import PrismaNodeRef from './node-ref';
 import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
-import { ModelTypes, PrismaDelegate, PrismaNodeOptions } from './types';
+import { PrismaNodeOptions } from './types';
 import { queryFromInfo } from './util';
+import { PrismaModelTypes } from '.';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -38,6 +39,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
       ...options.extensions,
       pothosPrismaInclude: options.include,
       pothosPrismaModel: type,
+      pothosPrismaSelect: options.select,
     },
     name,
     fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
@@ -56,7 +58,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     name,
     variant,
     ...options
-  }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, [], never, {}>,
+  }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}>,
 ) {
   const interfaceRef = this.nodeInterfaceRef?.();
 

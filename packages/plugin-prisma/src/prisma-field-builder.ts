@@ -1,14 +1,17 @@
 /* eslint-disable no-underscore-dangle */
 import { GraphQLResolveInfo } from 'graphql';
 import {
+  CompatibleTypes,
+  FieldKind,
   FieldRef,
   InputFieldMap,
   MaybePromise,
   NormalizeArgs,
-  ObjectFieldBuilder,
   ObjectRef,
   PluginName,
+  RootFieldBuilder,
   SchemaTypes,
+  TypeParam,
 } from '@pothos/core';
 import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
 import { getLoaderMapping, setLoaderMappings } from './loader-map';
@@ -33,14 +36,36 @@ import {
 import { queryFromInfo, SELF_RELATION } from './util';
 import { VariantFieldOptions } from '.';
 
+// Workaround for FieldKind not being extended on Builder classes
+const RootBuilder: {
+  // eslint-disable-next-line @typescript-eslint/prefer-function-type
+  new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
+    name: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    kind: FieldKind,
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
+  ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
+} = RootFieldBuilder as never;
+
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
   Shape extends object = Model['Shape'],
-> extends ObjectFieldBuilder<Types, Shape> {
+> extends RootBuilder<Types, Shape, 'PrismaObject'> {
   delegate: PrismaDelegate;
   model: string;
+
+  exposeBoolean = this.createExpose('Boolean');
+  exposeFloat = this.createExpose('Float');
+  exposeInt = this.createExpose('Int');
+  exposeID = this.createExpose('ID');
+  exposeString = this.createExpose('String');
+  exposeBooleanList = this.createExpose(['Boolean']);
+  exposeFloatList = this.createExpose(['Float']);
+  exposeIntList = this.createExpose(['Int']);
+  exposeIDList = this.createExpose(['ID']);
+  exposeStringList = this.createExpose(['String']);
 
   relatedConnection: 'relay' extends PluginName
     ? <
@@ -216,7 +241,7 @@ export class PrismaObjectFieldBuilder<
   } as never;
 
   constructor(name: string, builder: PothosSchemaTypes.SchemaBuilder<Types>, model: string) {
-    super(name, builder);
+    super(name, builder, 'PrismaObject', 'Object');
 
     this.model = model;
     this.delegate = getDelegateFromModel(builder.options.prisma.client, model);
@@ -285,7 +310,13 @@ export class PrismaObjectFieldBuilder<
         };
 
         if (resolve) {
-          return resolve(queryOptions, parent, args as never, context, info) as never;
+          return resolve(
+            queryOptions as never,
+            parent as never,
+            args as never,
+            context,
+            info,
+          ) as never;
         }
 
         if (!findUnique) {
@@ -318,7 +349,9 @@ export class PrismaObjectFieldBuilder<
         pothosPrismaRelationCount: name,
       },
       resolve: (parent, args, context, info) => {
-        const loadedValue = (parent as { _count: Record<string, unknown> })._count?.[name];
+        const loadedValue = (parent as unknown as { _count: Record<string, unknown> })._count?.[
+          name
+        ];
 
         if (loadedValue !== undefined) {
           return loadedValue as never;
@@ -381,5 +414,73 @@ export class PrismaObjectFieldBuilder<
         return loaderCache(parent).loadSelf(queryOptions, context) as never;
       },
     }) as FieldRef<Model['Shape'], 'Object'>;
+  }
+
+  expose<
+    Type extends TypeParam<Types>,
+    Nullable extends boolean,
+    ResolveReturnShape,
+    Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+  >(
+    ...args: NormalizeArgs<
+      [
+        name: Name,
+        options?: Omit<
+          PothosSchemaTypes.ObjectFieldOptions<
+            Types,
+            Shape,
+            Type,
+            Nullable,
+            {},
+            ResolveReturnShape
+          >,
+          'resolve'
+        >,
+      ]
+    >
+  ) {
+    const [name, options = {} as never] = args;
+
+    return this.exposeField(name as never, {
+      ...options,
+      extensions: {
+        ...options.extensions,
+        pothosPrismaSelect: {
+          [name]: true,
+        },
+      },
+    });
+  }
+
+  private createExpose<Type extends TypeParam<Types>>(type: Type) {
+    return <
+      Nullable extends boolean,
+      ResolveReturnShape,
+      Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+    >(
+      ...args: NormalizeArgs<
+        [
+          name: Name,
+          options?: Omit<
+            PothosSchemaTypes.ObjectFieldOptions<
+              Types,
+              Shape,
+              Type,
+              Nullable,
+              {},
+              ResolveReturnShape
+            >,
+            'resolve' | 'type'
+          >,
+        ]
+      >
+    ) => {
+      const [name, options = {} as never] = args;
+
+      return this.expose(name as never, {
+        ...options,
+        type,
+      });
+    };
   }
 }
