@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.3
+
+### Patch Changes
+
+- ad8d119b: update dev dependencies
+
 ## 3.1.2
 
 ### Patch Changes
