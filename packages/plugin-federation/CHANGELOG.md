@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 0.2.5
+
+### Patch Changes
+
+- ad8d119b: update dev dependencies
+
 ## 0.2.4
 
 ### Patch Changes

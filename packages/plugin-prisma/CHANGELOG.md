@@ -1,5 +1,15 @@
 # Change Log
 
+## 0.18.0
+
+### Minor Changes
+
+- ad8d119b: Add support for composite ids as cursors in connections
+
+### Patch Changes
+
+- ad8d119b: update dev dependencies
+
 ## 0.17.2
 
 ### Patch Changes

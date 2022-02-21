@@ -1,5 +1,11 @@
 # @pothos-examples/nextjs
 
+## 2.0.2
+
+### Patch Changes
+
+- ad8d119b: update dev dependencies
+
 ## 2.0.1
 
 ### Patch Changes
