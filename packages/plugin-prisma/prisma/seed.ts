@@ -66,6 +66,33 @@ async function main() {
   }
 
   await prisma.profile.delete({ where: { id: 2 } });
+
+  console.log('creating followers');
+
+  for (const user of users) {
+    const followers: number[] = [];
+    for (let i = 0; i < 15; i++) {
+      followers.push(
+        faker.datatype.number({
+          min: 1,
+          max: 100,
+        }),
+      );
+    }
+
+    await prisma.user.update({
+      where: { id: user.id },
+      data: {
+        followers: {
+          create: followers
+            .filter((n, i) => followers.indexOf(n) === i)
+            .map((id) => ({
+              fromId: id,
+            })),
+        },
+      },
+    });
+  }
 }
 
 main()

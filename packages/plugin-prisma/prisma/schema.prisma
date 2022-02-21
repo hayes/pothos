@@ -46,12 +46,23 @@ model Profile {
 }
 
 model User {
-  id       Int       @id @default(autoincrement())
-  email    String    @unique
-  name     String?
-  posts    Post[]
-  comments Comment[]
-  profile  Profile?
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  posts     Post[]
+  comments  Comment[]
+  profile   Profile?
+  followers Follow[]  @relation("followers")
+  following Follow[]  @relation("following")
+}
+
+model Follow {
+  fromId Int
+  toId   Int
+  from   User @relation("following", fields: [fromId], references: [id])
+  to     User @relation("followers", fields: [toId], references: [id])
+
+  @@id([fromId, toId], name: "compositeID")
 }
 
 model Unrelated {

@@ -37,6 +37,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
     extensions: {
       ...options.extensions,
       pothosPrismaInclude: options.include,
+      pothosPrismaModel: type,
     },
     name,
     fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,

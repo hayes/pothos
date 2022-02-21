@@ -17,6 +17,11 @@ interface Error {
   message: String!
 }
 
+type Follow {
+  from: User!
+  to: User!
+}
+
 interface Named {
   name: String
 }
@@ -141,6 +146,7 @@ type User implements Named & Node {
   commentedPostsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentedPostsConnection!
   commentsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentsConnection!
   email: String!
+  following(after: ID, before: ID, first: Int, last: Int): UserFollowingConnection!
   id: ID!
   name: String
   postCount: Int!
@@ -171,6 +177,16 @@ type UserCommentsConnection {
 type UserCommentsConnectionEdge {
   cursor: String!
   node: Comment!
+}
+
+type UserFollowingConnection {
+  edges: [UserFollowingConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type UserFollowingConnectionEdge {
+  cursor: String!
+  node: Follow!
 }
 
 union UserOrProfile = Profile | User

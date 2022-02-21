@@ -14,7 +14,14 @@ import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
 import { getLoaderMapping, setLoaderMappings } from './loader-map';
 import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
-import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel, getRelation } from './refs';
+import {
+  getCursorFormatter,
+  getCursorParser,
+  getDelegateFromModel,
+  getFindUniqueForRef,
+  getRefFromModel,
+  getRelation,
+} from './refs';
 import {
   PrismaDelegate,
   PrismaModelTypes,
@@ -96,10 +103,13 @@ export class PrismaObjectFieldBuilder<
     const loaderCache = ModelLoader.forModel(this.model, this.builder);
     let typeName: string | undefined;
 
+    const formatCursor = getCursorFormatter(relationField.type, this.builder, cursor);
+    const parseCursor = getCursorParser(relationField.type, this.builder, cursor);
+
     const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => ({
       ...((typeof query === 'function' ? query(args, ctx) : query) as {}),
       ...prismaCursorConnectionQuery({
-        column: cursor,
+        parseCursor,
         maxSize,
         defaultSize,
         args,
@@ -160,7 +170,7 @@ export class PrismaObjectFieldBuilder<
             await getResult(),
             args,
             connectionQuery.take,
-            cursor,
+            formatCursor,
             (parent as { _count?: Record<string, number> })._count?.[name],
           );
         },

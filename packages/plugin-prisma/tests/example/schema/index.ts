@@ -56,6 +56,14 @@ const ViewerNode = builder.prismaNode('User', {
   }),
 });
 
+builder.prismaObject('Follow', {
+  findUnique: (follow) => ({ compositeID: { fromId: follow.fromId, toId: follow.toId } }),
+  fields: (t) => ({
+    to: t.relation('to'),
+    from: t.relation('from'),
+  }),
+});
+
 const User = builder.prismaNode('User', {
   // Testing that user is typed correctly
   authScopes: (user) => !!user.id,
@@ -134,6 +142,9 @@ const User = builder.prismaNode('User', {
           },
         },
       }),
+    }),
+    following: t.relatedConnection('following', {
+      cursor: 'compositeID',
     }),
   }),
 });

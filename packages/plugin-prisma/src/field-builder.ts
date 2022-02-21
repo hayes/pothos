@@ -8,7 +8,7 @@ import {
   SchemaTypes,
 } from '@pothos/core';
 import { resolvePrismaCursorConnection } from './cursors';
-import { getRefFromModel } from './refs';
+import { getCursorFormatter, getCursorParser, getRefFromModel } from './refs';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
 import { queryFromInfo } from './util';
 
@@ -69,7 +69,12 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   edgeOptions: {},
 ) {
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
-  let typeName: string | undefined;
+  const typeName = this.builder.configStore.getTypeConfig(ref).name;
+
+  const model = this.builder.configStore.getTypeConfig(ref).extensions?.pothosPrismaModel as string;
+
+  const formatCursor = getCursorFormatter(model, this.builder, cursor);
+  const parseCursor = getCursorParser(model, this.builder, cursor);
 
   const fieldRef = (
     this as typeof fieldBuilderProto & { connection: (...args: unknown[]) => FieldRef<unknown> }
@@ -86,11 +91,12 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
         resolvePrismaCursorConnection(
           {
             query: queryFromInfo(ctx, info),
-            column: cursor,
+            parseCursor,
             maxSize,
             defaultSize,
             args,
           },
+          formatCursor,
           (query) => resolve(query as never, parent, args as never, ctx, info),
         ),
     },
@@ -99,13 +105,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       extensions: {
         ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
         pothosPrismaIndirectInclude: {
-          getType: () => {
-            if (!typeName) {
-              typeName = this.builder.configStore.getTypeConfig(ref).name;
-            }
-
-            return typeName;
-          },
+          getType: () => typeName,
           path: [{ name: 'edges' }, { name: 'node' }],
         },
       },

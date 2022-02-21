@@ -1465,4 +1465,163 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('connections with composite cursors', async () => {
+    const query = gql`
+      query {
+        me {
+          following(first: 3) {
+            edges {
+              cursor
+              node {
+                to {
+                  id
+                  name
+                }
+              }
+            }
+          }
+          followingAfter: following(first: 3, after: "R1BDOko6WzEsNV0=") {
+            edges {
+              cursor
+              node {
+                to {
+                  id
+                  name
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "me": Object {
+            "following": Object {
+              "edges": Array [
+                Object {
+                  "cursor": "R1BDOko6WzEsMV0=",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjox",
+                      "name": "Maurine Rath",
+                    },
+                  },
+                },
+                Object {
+                  "cursor": "R1BDOko6WzEsNV0=",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjo1",
+                      "name": "Teresa Rosenbaum",
+                    },
+                  },
+                },
+                Object {
+                  "cursor": "R1BDOko6WzEsOF0=",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjo4",
+                      "name": "Garret Russel",
+                    },
+                  },
+                },
+              ],
+            },
+            "followingAfter": Object {
+              "edges": Array [
+                Object {
+                  "cursor": "R1BDOko6WzEsOF0=",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjo4",
+                      "name": "Garret Russel",
+                    },
+                  },
+                },
+                Object {
+                  "cursor": "R1BDOko6WzEsMzdd",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjozNw==",
+                      "name": "Tiara O'Connell",
+                    },
+                  },
+                },
+                Object {
+                  "cursor": "R1BDOko6WzEsMzld",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjozOQ==",
+                      "name": "Joany Buckridge",
+                    },
+                  },
+                },
+              ],
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "following": Object {
+                "include": Object {
+                  "to": true,
+                },
+                "skip": 0,
+                "take": 4,
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "following": Object {
+                "cursor": Object {
+                  "compositeID": Object {
+                    "fromId": 1,
+                    "toId": 5,
+                  },
+                },
+                "include": Object {
+                  "to": true,
+                },
+                "skip": 1,
+                "take": 4,
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

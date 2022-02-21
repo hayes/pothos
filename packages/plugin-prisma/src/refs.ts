@@ -1,5 +1,6 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
 import { Prisma } from '../tests/client';
+import { formatCursor, parseCompositeCursor, parseRawCursor } from './cursors';
 import { PrismaObjectRef } from './object-ref';
 import { PrismaDelegate } from './types';
 import { PrismaModelTypes } from '.';
@@ -66,15 +67,7 @@ export function getRelation<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   relation: string,
 ) {
-  const { client } = builder.options.prisma;
-  // eslint-disable-next-line no-underscore-dangle
-  const dmmf = (client as unknown as { _dmmf: { modelMap: Record<string, Prisma.DMMF.Model> } })
-    ._dmmf;
-  const modelData = dmmf.modelMap[name];
-
-  if (!modelData) {
-    throw new Error(`Model '${name}' not found in DMMF`);
-  }
+  const modelData = getModel(name, builder);
 
   const fieldData = modelData.fields.find((field) => field.name === relation);
 
@@ -87,6 +80,50 @@ export function getRelation<Types extends SchemaTypes>(
   }
 
   return fieldData;
+}
+
+export function getModel<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+) {
+  const { client } = builder.options.prisma;
+  // eslint-disable-next-line no-underscore-dangle
+  const dmmf = (client as unknown as { _dmmf: { modelMap: Record<string, Prisma.DMMF.Model> } })
+    ._dmmf;
+  const modelData = dmmf.modelMap[name];
+
+  if (!modelData) {
+    throw new Error(`Model '${name}' not found in DMMF`);
+  }
+
+  return modelData;
+}
+
+export function getCursorFormatter<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  cursor: string,
+) {
+  const modelData = getModel(name, builder);
+  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+
+  return formatCursor(cursor === primaryKey ? modelData.primaryKey!.fields : cursor);
+}
+
+export function getCursorParser<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  cursor: string,
+) {
+  const modelData = getModel(name, builder);
+  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+
+  const parser =
+    cursor === primaryKey ? parseCompositeCursor(modelData.primaryKey!.fields) : parseRawCursor;
+
+  return (rawCursor: string) => ({
+    [cursor]: parser(rawCursor),
+  });
 }
 
 export function getRelatedDelegate<Types extends SchemaTypes>(

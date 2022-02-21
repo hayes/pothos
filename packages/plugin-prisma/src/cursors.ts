@@ -4,22 +4,34 @@ import { MaybePromise } from '@pothos/core';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
-function formatCursor(value: unknown): string {
+export function formatCursorChunk(value: unknown) {
   if (value instanceof Date) {
-    return Buffer.from(`GPC:D:${String(Number(value))}`).toString('base64');
+    return `D:${String(Number(value))}`;
   }
 
   switch (typeof value) {
     case 'number':
-      return Buffer.from(`GPC:N:${value}`).toString('base64');
+      return `N:${value}`;
     case 'string':
-      return Buffer.from(`GPC:S:${value}`).toString('base64');
+      return `S:${value}`;
     default:
       throw new TypeError(`Unsupported cursor type ${typeof value}`);
   }
 }
 
-function parseCursor(cursor: unknown) {
+export function formatCursor(fields: string | string[]) {
+  return (value: Record<string, unknown>) => {
+    if (typeof fields === 'string') {
+      return Buffer.from(`GPC:${formatCursorChunk(value[fields])}`).toString('base64');
+    }
+
+    return Buffer.from(`GPC:J:${JSON.stringify(fields.map((name) => value[name]))}`).toString(
+      'base64',
+    );
+  };
+}
+
+export function parseRawCursor(cursor: unknown) {
   if (typeof cursor !== 'string') {
     throw new TypeError('Cursor must be a string');
   }
@@ -35,6 +47,8 @@ function parseCursor(cursor: unknown) {
         return Number.parseInt(value, 10);
       case 'D':
         return new Date(Number.parseInt(value, 10));
+      case 'J':
+        return JSON.parse(value) as unknown;
       default:
         throw new TypeError(`Invalid cursor type ${type}`);
     }
@@ -43,11 +57,29 @@ function parseCursor(cursor: unknown) {
   }
 }
 
+export function parseCompositeCursor(fields: string[]) {
+  return (cursor: string) => {
+    const parsed = parseRawCursor(cursor) as unknown[];
+
+    if (!Array.isArray(parsed)) {
+      throw new TypeError(`Expected compound cursor to contain an array, but got ${parsed}`);
+    }
+
+    const record: Record<string, unknown> = {};
+
+    fields.forEach((field, i) => {
+      record[field] = parsed[i];
+    });
+
+    return record;
+  };
+}
+
 interface PrismaCursorConnectionQueryOptions {
   args: PothosSchemaTypes.DefaultConnectionArguments;
   defaultSize?: number;
   maxSize?: number;
-  column: string;
+  parseCursor: (cursor: string) => Record<string, unknown>;
 }
 
 interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQueryOptions {
@@ -59,7 +91,7 @@ export function prismaCursorConnectionQuery({
   args: { before, after, first, last },
   maxSize = DEFAULT_MAX_SIZE,
   defaultSize = DEFAULT_SIZE,
-  column,
+  parseCursor,
 }: PrismaCursorConnectionQueryOptions) {
   if (first != null && first < 0) {
     throw new TypeError('Argument "first" must be a non-negative integer');
@@ -96,9 +128,7 @@ export function prismaCursorConnectionQuery({
   return cursor == null
     ? { take, skip: 0 }
     : {
-        cursor: {
-          [column]: parseCursor(cursor),
-        },
+        cursor: parseCursor(cursor),
         take,
         skip: 1,
       };
@@ -108,7 +138,7 @@ export function wrapConnectionResult<T extends {}>(
   results: T[],
   args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
-  column: string,
+  cursor: (node: T) => string,
   totalCount?: number,
 ) {
   const gotFullResults = results.length === Math.abs(take);
@@ -122,7 +152,7 @@ export function wrapConnectionResult<T extends {}>(
     value == null
       ? null
       : {
-          cursor: formatCursor((value as Record<string, string>)[column]),
+          cursor: cursor(value),
           node: value,
         },
   );
@@ -141,6 +171,7 @@ export function wrapConnectionResult<T extends {}>(
 
 export async function resolvePrismaCursorConnection<T extends {}>(
   options: ResolvePrismaCursorConnectionOptions,
+  cursor: (node: T) => string,
   resolve: (query: { include?: {}; cursor?: {}; take: number; skip: number }) => MaybePromise<T[]>,
 ) {
   const query = prismaCursorConnectionQuery(options);
@@ -149,11 +180,5 @@ export async function resolvePrismaCursorConnection<T extends {}>(
     ...query,
   });
 
-  return wrapConnectionResult(
-    results,
-    options.args,
-    query.take,
-    options.column,
-    options.totalCount,
-  );
+  return wrapConnectionResult(results, options.args, query.take, cursor, options.totalCount);
 }
