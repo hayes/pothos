@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLIsTypeOfFn, GraphQLObjectType, GraphQLScalarSerializer, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
+import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLObjectType, GraphQLScalarSerializer, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
 import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
@@ -52,7 +52,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
             description: options.description,
             extensions: options.extensions,
-            isTypeOf: options.isTypeOf as GraphQLIsTypeOfFn<unknown, Types["Context"]>,
+            isTypeOf: options.isTypeOf,
             pothosOptions: options as PothosSchemaTypes.ObjectTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);

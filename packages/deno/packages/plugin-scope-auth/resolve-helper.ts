@@ -3,7 +3,6 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
 import { ForbiddenError } from './errors.ts';
 import RequestCache from './request-cache.ts';
-import ResolveState from './resolve-state.ts';
 import { ResolveStep, UnauthorizedResolver } from './types.ts';
 import { PothosScopeAuthPlugin, UnauthorizedErrorFn } from './index.ts';
 const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (_root, _args, _context, _info, error) => {
@@ -11,15 +10,21 @@ const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, nev
 };
 export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Types>[], plugin: PothosScopeAuthPlugin<Types>, fieldConfig: PothosOutputFieldConfig<Types>) {
     const unauthorizedResolver = fieldConfig.pothosOptions.unauthorizedResolver ?? defaultUnauthorizedResolver;
-    const createError: UnauthorizedErrorFn<Types, object, {}> = fieldConfig.pothosOptions.unauthorizedError ??
-        plugin.builder.options.scopeAuthOptions?.unauthorizedError ??
-        ((parent, args, context, info, result) => result.message);
+    const globalUnauthorizedError = plugin.builder.options.scopeAuthOptions?.unauthorizedError;
+    const defaultUnauthorizedError: UnauthorizedErrorFn<Types, object, {}> = (parent, args, context, info, result) => globalUnauthorizedError
+        ? globalUnauthorizedError(parent, context, info, result)
+        : result.message;
+    const createError: UnauthorizedErrorFn<Types, object, {}> = fieldConfig.pothosOptions.unauthorizedError ?? defaultUnauthorizedError;
     return (parent: unknown, args: {}, context: Types["Context"], info: GraphQLResolveInfo) => {
-        const state = new ResolveState(RequestCache.fromContext(context, plugin));
+        let resolvedValue: unknown;
+        const cache = RequestCache.fromContext(context, plugin.builder);
         function runSteps(index: number): MaybePromise<unknown> {
             for (let i = index; i < steps.length; i += 1) {
                 const { run, errorMessage } = steps[i];
-                const stepResult = run(state, parent, args, context, info);
+                // eslint-disable-next-line @typescript-eslint/no-loop-func
+                const stepResult = run(cache, parent, args, context, info, (val) => {
+                    resolvedValue = val;
+                });
                 if (isThenable(stepResult)) {
                     return stepResult.then((result) => {
                         if (result) {
@@ -44,7 +49,7 @@ export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Type
                     return unauthorizedResolver(parent as never, args, context as never, info, typeof error === "string" ? new ForbiddenError(error, stepResult) : error);
                 }
             }
-            return state.resolveValue;
+            return resolvedValue;
         }
         return runSteps(0);
     };

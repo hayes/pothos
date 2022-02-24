@@ -38,3 +38,11 @@ export function brandWithType<Types extends SchemaTypes>(val: unknown, type: Out
         value: type,
     });
 }
+export function getTypeBrand(val: unknown) {
+    if (typeof val === "object" && val !== null && typeBrandKey in val) {
+        return (val as {
+            [typeBrandKey]: OutputType<SchemaTypes>;
+        })[typeBrandKey];
+    }
+    return null;
+}

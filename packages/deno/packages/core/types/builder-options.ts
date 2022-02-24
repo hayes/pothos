@@ -10,7 +10,7 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (parent: P
 ] ? ListResolveValue<Type, Item, Return> : MaybePromise<Type>;
 export type ListResolveValue<Type, Item, Return> = Return extends AsyncGenerator<unknown, unknown> ? GeneratorResolver<Type, Item> & Return : null extends Type ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined> ? Return : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined : Return extends MaybePromise<readonly MaybePromise<Item>[]> ? Return : MaybePromise<readonly MaybePromise<Item>[]>;
 export type GeneratorResolver<Type, Item> = null extends Type ? AsyncGenerator<Item | null | undefined, Item | null | undefined> : AsyncGenerator<Item, Item>;
-export type Subscriber<Parent, Args, Context, Shape> = (parent: Parent, args: Args, context: Context, info: GraphQLResolveInfo) => AsyncIterable<Shape>;
+export type Subscriber<Parent, Args, Context, Shape> = (parent: Parent, args: Args, context: Context, info: GraphQLResolveInfo) => MaybePromise<AsyncIterable<Shape>>;
 export type EnumValues<Types extends SchemaTypes> = EnumValueConfigMap<Types> | readonly string[];
 export type EnumValueConfigMap<Types extends SchemaTypes> = Record<string, PothosSchemaTypes.EnumValueConfig<Types>>;
 export type ShapeFromEnumValues<Types extends SchemaTypes, Values extends EnumValues<Types>> = Values extends readonly string[] ? Values[number] : Values extends EnumValueConfigMap<Types> ? {

@@ -4,6 +4,7 @@ import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, Fie
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     clientMutationId?: "omit" | "optional" | "required";
     cursorType?: "ID" | "String";
+    brandLoadedObjects?: boolean;
     nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, "fields">;
     pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
     nodeQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, true, {
@@ -81,6 +82,7 @@ export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultCon
 export type NodeBaseObjectOptionsForParam<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>;
 export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Interfaces extends InterfaceParam<Types>[]> = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
     id: Omit<FieldOptionsFromKind<Types, ParentShape<Types, Param>, "ID", false, {}, "Object", OutputShape<Types, "ID">, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type">;
+    brandLoadedObjects?: boolean;
     loadOne?: (id: string, context: Types["Context"]) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
     loadMany?: (ids: string[], context: Types["Context"]) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
     loadWithoutCache?: (id: string, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<OutputShape<Types, Param> | null | undefined>;

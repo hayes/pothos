@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { createContextCache, FieldRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
+import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -98,6 +98,10 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
             if (!maybeNode) {
                 return false;
             }
+            const typeBrand = getTypeBrand(maybeNode);
+            if (typeBrand && this.configStore.getTypeConfig(typeBrand as string).name === nodeName) {
+                return true;
+            }
             if (typeof param === "function" && maybeNode instanceof (param as Function)) {
                 return true;
             }
@@ -105,11 +109,14 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
                 constructor: unknown;
             };
             try {
-                if (proto?.constructor) {
-                    const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
-                    return config.name === nodeName;
-                }
                 if (typeof maybeNode === "object") {
+                    // eslint-disable-next-line no-underscore-dangle
+                    const typename = (maybeNode as {
+                        __typename: string;
+                    }).__typename;
+                    if (typename === nodeName) {
+                        return true;
+                    }
                     // eslint-disable-next-line no-underscore-dangle
                     const nodeRef = (maybeNode as {
                         __type: OutputRef;
@@ -118,6 +125,10 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
                         return false;
                     }
                     const config = this.configStore.getTypeConfig(nodeRef);
+                    return config.name === nodeName;
+                }
+                if (proto?.constructor) {
+                    const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
                     return config.name === nodeName;
                 }
             }

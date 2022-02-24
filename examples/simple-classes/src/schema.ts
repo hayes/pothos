@@ -34,7 +34,7 @@ builder.objectType(Post, {
     }),
     comments: t.field({
       type: [Comment],
-      resolve: (user) => [...Comments.values()].filter((comment) => comment.authorId === user.id),
+      resolve: (post) => [...Comments.values()].filter((comment) => comment.postId === post.id),
     }),
   }),
 });

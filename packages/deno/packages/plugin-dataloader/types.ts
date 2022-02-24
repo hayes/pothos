@@ -67,6 +67,6 @@ export type LoaderShapeFromType<Types extends SchemaTypes, Type extends TypePara
 export interface LoadableRef<K, V, C> {
     getDataloader: (context: C) => DataLoader<K, V>;
 }
-export type LoadableNodeOptions<Types extends SchemaTypes, Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = Omit<DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>, "isTypeOf"> & {
+export type LoadableNodeOptions<Types extends SchemaTypes, Shape extends object, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> & {
     id: Omit<FieldOptionsFromKind<Types, Shape, "ID", false, {}, "Object", Shape, MaybePromise<OutputShape<Types, "ID">>>, "args" | "nullable" | "type">;
 };

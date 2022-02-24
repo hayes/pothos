@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import { FieldAuthScopes, FieldGrantScopes, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
-import { ContextForAuth, PothosScopeAuthPlugin, UnauthorizedOptions } from './index.ts';
+import { AuthScopeMap, ContextForAuth, ForbiddenResult, PothosScopeAuthPlugin, UnauthorizedOptions, } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
@@ -11,6 +11,9 @@ declare global {
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             scopeAuthOptions?: ScopeAuthPluginOptions<Types>;
             authScopes: ScopeAuthInitializer<Types>;
+        }
+        export interface SchemaBuilder<Types extends SchemaTypes> {
+            runAuthScopes: (context: Types["Context"], scopes: AuthScopeMap<Types>, unauthorizedError?: (result: ForbiddenResult) => Error | string) => MaybePromise<void>;
         }
         export interface BuildSchemaOptions<Types extends SchemaTypes> {
             disableScopeAuth?: boolean;
@@ -30,10 +33,13 @@ declare global {
         export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
             authScopes?: TypeAuthScopes<Types, Shape>;
             grantScopes?: TypeGrantScopes<Types, Shape>;
+            runScopesOnType?: boolean;
+            skipInterfaceScopes?: boolean;
         }
         export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
             authScopes?: TypeAuthScopes<Types, Shape>;
             grantScopes?: TypeGrantScopes<Types, Shape>;
+            runScopesOnType?: boolean;
         }
         export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> extends UnauthorizedOptions<Types, ParentShape, Type, Nullable, Args> {
             authScopes?: FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>;

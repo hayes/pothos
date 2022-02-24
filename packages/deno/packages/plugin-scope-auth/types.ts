@@ -1,10 +1,11 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldNullability, InputFieldMap, InputShapeFromFields, MaybePromise, Merge, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import ResolveState from './resolve-state.ts';
+import RequestCache from './request-cache.ts';
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
-    unauthorizedError?: UnauthorizedErrorFn<Types, unknown, {}>;
+    unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;
     cacheKey?: (value: unknown) => unknown;
+    runScopesOnType?: boolean;
 }
 export interface BuiltInScopes<Types extends SchemaTypes> {
     $all?: true extends true ? AuthScopeMap<Types> : never;
@@ -58,12 +59,13 @@ export interface ForbiddenResult {
     failure: AuthFailure;
 }
 export interface ResolveStep<Types extends SchemaTypes> {
-    run: (state: ResolveState<Types>, parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo) => MaybePromise<null | AuthFailure>;
+    run: (cache: RequestCache<Types>, parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo, setResolved: (val: unknown) => void) => MaybePromise<null | AuthFailure>;
     errorMessage: string | ((parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo) => string);
 }
 export type ContextForAuth<Types extends SchemaTypes, Scopes extends {}> = keyof Scopes & keyof Types["AuthContexts"] extends string ? Types["AuthContexts"][keyof Scopes & keyof Types["AuthContexts"]] : Types["Context"];
 export type UnauthorizedResolver<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap> = (parent: ParentShape, args: InputShapeFromFields<Args>, context: Types["Context"], info: GraphQLResolveInfo, error: Error) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
 export type UnauthorizedErrorFn<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap> = (parent: ParentShape, args: InputShapeFromFields<Args>, context: Types["Context"], info: GraphQLResolveInfo, result: ForbiddenResult) => Error | string;
+export type UnauthorizedForTypeErrorFn<Types extends SchemaTypes, ParentShape> = (parent: ParentShape, context: Types["Context"], info: GraphQLResolveInfo, result: ForbiddenResult) => Error | string;
 export interface UnauthorizedOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap> {
     unauthorizedError?: UnauthorizedErrorFn<Types, ParentShape, Args>;
     unauthorizedResolver?: UnauthorizedResolver<Types, ParentShape, Type, Nullable, Args>;

@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable no-param-reassign */
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, SchemaTypes } from '../core/index.ts';
 import { FieldAuthScopes, FieldGrantScopes, ResolveStep, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
@@ -18,7 +17,7 @@ export function createTypeAuthScopesStep<Types extends SchemaTypes>(authScopes: 
 }
 export function createTypeGrantScopesStep<Types extends SchemaTypes>(grantScopes: TypeGrantScopes<Types, unknown>, type: string, forField: boolean): ResolveStep<Types> {
     return {
-        run: (state, parent, args, context, info) => state.cache.grantTypeScopes(type, parent, forField ? info.path.prev : info.path, () => grantScopes(parent, context)),
+        run: (state, parent, args, context, info) => state.grantTypeScopes(type, parent, forField ? info.path.prev : info.path, () => grantScopes(parent, context)),
         errorMessage: `Unknown error creating grants for ${type}`,
     };
 }
@@ -45,17 +44,17 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(grantScope
         errorMessage: (parent, args, context, info) => `Unknown issue generating grants for ${info.parentType}.${info.fieldName}`,
         run: (state, parent, args, context, info) => {
             if (typeof grantScopes !== "function") {
-                state.cache.saveGrantedScopes(grantScopes, info.path);
+                state.saveGrantedScopes(grantScopes, info.path);
                 return null;
             }
             const result = grantScopes(parent as {}, args, context, info);
             if (isThenable(result)) {
                 return result.then((resolved) => {
-                    state.cache.saveGrantedScopes(resolved, info.path);
+                    state.saveGrantedScopes(resolved, info.path);
                     return null;
                 });
             }
-            state.cache.saveGrantedScopes(result, info.path);
+            state.saveGrantedScopes(result, info.path);
             return null;
         },
     };
@@ -63,15 +62,15 @@ export function createFieldGrantScopesStep<Types extends SchemaTypes>(grantScope
 export function createResolveStep<Types extends SchemaTypes>(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>): ResolveStep<Types> {
     return {
         errorMessage: (parent, args, context, info) => `Unknown issue resolving ${info.parentType}.${info.fieldName}`,
-        run: (state, parent, args, context, info) => {
+        run: (state, parent, args, context, info, setResolved) => {
             const result: unknown = resolver(parent, args, context, info);
             if (isThenable(result)) {
                 return result.then((resolved) => {
-                    state.resolveValue = resolved;
+                    setResolved(resolved);
                     return null;
                 });
             }
-            state.resolveValue = result;
+            setResolved(result);
             return null;
         },
     };

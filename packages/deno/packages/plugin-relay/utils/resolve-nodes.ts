@@ -1,7 +1,6 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { createContextCache, MaybePromise, ObjectParam, OutputType, SchemaTypes, } from '../../core/index.ts';
+import { brandWithType, createContextCache, MaybePromise, ObjectParam, OutputType, SchemaTypes, } from '../../core/index.ts';
 import { NodeObjectOptions } from '../types.ts';
 import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal.ts';
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
@@ -24,8 +23,15 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
     await Promise.all(Object.keys(idsByType).map(async (typename) => {
         const ids = [...idsByType[typename].keys()];
         const globalIds = [...idsByType[typename].values()];
+        const config = builder.configStore.getTypeConfig(typename, "Object");
+        const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [
+        ]>;
+        const shouldBrandObjects = options.brandLoadedObjects ?? builder.options.relayOptions.brandLoadedObjects ?? false;
         const resultsForType = await resolveUncachedNodesForType(builder, context, info, ids, typename);
         resultsForType.forEach((val, i) => {
+            if (shouldBrandObjects) {
+                brandWithType(val, typename as OutputType<Types>);
+            }
             results[globalIds[i]] = val;
         });
     }));

@@ -6,7 +6,7 @@ import ConfigStore from './config-store.ts';
 import { MergedPlugins } from './plugins/index.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
 import { PluginMap } from './types/index.ts';
-import { isThenable } from './utils/index.ts';
+import { getTypeBrand, isThenable } from './utils/index.ts';
 import { assertNever, BasePlugin, ImplementableInputObjectRef, InputType, OutputType, PothosEnumTypeConfig, PothosEnumValueConfig, PothosInputFieldConfig, PothosInputFieldType, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosKindToGraphQLTypeClass, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosOutputFieldType, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosTypeConfig, PothosTypeKind, PothosUnionTypeConfig, SchemaTypes, typeBrandKey, } from './index.ts';
 export default class BuildCache<Types extends SchemaTypes> {
     types = new Map<string, GraphQLNamedType>();
@@ -367,10 +367,8 @@ export default class BuildCache<Types extends SchemaTypes> {
     }
     private buildInterface(config: PothosInterfaceTypeConfig) {
         const resolveType: GraphQLTypeResolver<unknown, Types["Context"]> = (parent, context, info) => {
-            if (typeof parent === "object" && parent !== null && typeBrandKey in parent) {
-                const typeBrand = (parent as {
-                    [typeBrandKey]: OutputType<SchemaTypes>;
-                })[typeBrandKey];
+            const typeBrand = getTypeBrand(parent);
+            if (typeBrand) {
                 if (typeof typeBrand === "string") {
                     return typeBrand;
                 }

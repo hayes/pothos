@@ -88,7 +88,7 @@ declare global {
             args?: Args;
             edgesNullable?: EdgeNullability;
             nodeNullable?: NodeNullability;
-            resolve: Resolver<ParentShape, InputShapeFromFields<Args & InputFieldsFromShape<DefaultConnectionArguments>>, Types["Context"], ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>, ResolveReturnShape>;
+            resolve: Resolver<ParentShape, InputShapeFromFields<Args> & DefaultConnectionArguments, Types["Context"], ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>, ResolveReturnShape>;
         }
         export interface ConnectionObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, EdgeNullability extends FieldNullability<[
             unknown

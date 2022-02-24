@@ -178,13 +178,14 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
         const proto = Object.getPrototypeOf(maybeNode) as { constructor: unknown };
 
         try {
-          if (proto?.constructor) {
-            const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
-
-            return config.name === nodeName;
-          }
-
           if (typeof maybeNode === 'object') {
+            // eslint-disable-next-line no-underscore-dangle
+            const typename = (maybeNode as { __typename: string }).__typename;
+
+            if (typename === nodeName) {
+              return true;
+            }
+
             // eslint-disable-next-line no-underscore-dangle
             const nodeRef = (maybeNode as { __type: OutputRef }).__type;
 
@@ -193,6 +194,12 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
             }
 
             const config = this.configStore.getTypeConfig(nodeRef);
+
+            return config.name === nodeName;
+          }
+
+          if (proto?.constructor) {
+            const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
 
             return config.name === nodeName;
           }

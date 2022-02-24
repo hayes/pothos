@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "2.0.0-example",
+  "name": "@pothos-examples/relay-windowed-pagination",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
+    "start": "ts-node --transpile-only src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "prisma": {
+    "seed": "pnpm ts-node prisma/seed.ts"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^6.0.0-alpha.6",
+    "@graphql-yoga/node": "0.0.1-beta.2",
+    "@pothos/core": "^3.2.0",
+    "@pothos/plugin-relay": "workspace:^3.4.0",
+    "graphql": "16.3.0",
+    "prisma": "^3.9.2",
+    "ts-node": "^10.5.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
