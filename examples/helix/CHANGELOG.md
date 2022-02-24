@@ -1,5 +1,11 @@
 # @pothos-examples/helix
 
+## 2.0.2
+
+### Patch Changes
+
+- 31f9e8be: Fix isTypeOf check not handling \_\_typename correctly
+
 ## 2.0.1
 
 ### Patch Changes
