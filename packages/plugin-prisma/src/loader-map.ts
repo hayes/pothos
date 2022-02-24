@@ -30,13 +30,12 @@ export function setLoaderMappings(
   Object.keys(value).forEach((field) => {
     const map = cache(ctx);
 
-    for (const mapping of value[field]) {
-      const selectionName = mapping.alias ?? mapping.field;
-      const subPath = [...mapping.indirectPath, selectionName];
-      const key = cacheKey(path, subPath);
+    const mapping = value[field];
+    // TODO: make this type specific
+    const subPath = [...mapping.indirectPath, field];
+    const key = cacheKey(path, subPath);
 
-      map.set(key, mapping.mappings);
-    }
+    map.set(key, mapping.mappings);
   });
 }
 

@@ -1,9 +1,12 @@
-/* eslint-disable prefer-destructuring */
-/* eslint-disable no-underscore-dangle */
 import { createContextCache, SchemaTypes } from '@pothos/core';
 import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs';
 import { PrismaDelegate } from './types';
-import { mergeIncludes } from './util';
+import {
+  mergeSelection,
+  selectionCompatible,
+  SelectionState,
+  selectionToQuery,
+} from './util/selections';
 
 const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 
@@ -14,7 +17,7 @@ export class ModelLoader {
 
   staged = new Set<{
     promise: Promise<Record<string, unknown>>;
-    include: Record<string, unknown>;
+    state: SelectionState;
   }>();
 
   constructor(
@@ -46,86 +49,31 @@ export class ModelLoader {
     return loaderCache.get(delegate)!;
   }
 
-  async loadCount(relation: string, context: {}): Promise<number> {
-    let promise;
-    const entry = [...this.staged][0];
+  static forRef<Types extends SchemaTypes>(
+    modelName: string,
+    findUnique: (args: unknown, ctx: {}) => unknown,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ) {
+    const delegate = getDelegateFromModel(builder.options.prisma.client, modelName);
 
-    if (entry) {
-      if (!entry.include._count) {
-        entry.include._count = { select: {} };
-      }
-
-      (entry.include._count as { select: Record<string, boolean> }).select[relation] = true;
-      promise = entry.promise;
-    } else {
-      promise = this.initLoad(relation, null, context, true);
-    }
-
-    const result = await promise;
-
-    return (result._count as Record<string, number>)[relation];
+    return createContextCache((model) => new ModelLoader(model, delegate, findUnique));
   }
 
-  async loadSelf(include: unknown, context: {}) {
-    for (const entry of this.staged) {
-      const merged = mergeIncludes(entry.include, include as Record<string, unknown>);
+  async loadSelection(selection: SelectionState, context: object) {
+    const query = selectionToQuery(selection);
 
-      if (merged) {
-        entry.include = merged as Record<string, unknown>;
+    for (const entry of this.staged) {
+      if (selectionCompatible(entry.state, query)) {
+        mergeSelection(entry.state, query);
 
         return entry.promise;
       }
     }
 
-    return this.initLoad(null, include, context);
+    return this.initLoad(selection, context);
   }
 
-  async loadRelation(relation: string, include: unknown, context: {}) {
-    let promise;
-    for (const entry of this.staged) {
-      if (entry.include[relation] === undefined) {
-        promise = entry.promise;
-        entry.include[relation] = include;
-
-        break;
-      }
-
-      const merged = mergeIncludes(
-        entry.include[relation] as Record<string, unknown>,
-        include as Record<string, unknown>,
-      );
-
-      if (merged) {
-        entry.include[relation] = merged;
-        break;
-      }
-    }
-
-    if (!promise) {
-      promise = this.initLoad(relation, include, context);
-    }
-
-    const result = await promise;
-
-    return result[relation];
-  }
-
-  async initLoad(relation: string | null, includeArg: unknown, context: {}, count = false) {
-    const include: Record<string, unknown> =
-      (relation &&
-        (count
-          ? {
-              _count: {
-                select: {
-                  [relation]: true,
-                },
-              },
-            }
-          : {
-              [relation]: includeArg,
-            })) ||
-      {};
-
+  async initLoad(state: SelectionState, context: {}) {
     const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
       setTimeout(() => {
         this.staged.delete(entry);
@@ -133,8 +81,8 @@ export class ModelLoader {
         resolve(
           this.delegate.findUnique({
             rejectOnNotFound: true,
+            ...selectionToQuery(state),
             where: { ...(this.findUnique(this.model, context) as {}) },
-            include: Object.keys(include).length > 0 ? include : undefined,
           } as never) as Promise<Record<string, unknown>>,
         );
       }, 0);
@@ -142,7 +90,7 @@ export class ModelLoader {
 
     const entry = {
       promise,
-      include,
+      state,
     };
 
     this.staged.add(entry);

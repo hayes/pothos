@@ -511,6 +511,16 @@ export interface SelectionMap {
   where?: {};
 }
 
+export type FieldSelection =
+  | Record<string, SelectionMap | boolean>
+  | ((
+      args: object,
+      context: object,
+      query: (
+        selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
+      ) => SelectionMap | boolean,
+    ) => Record<string, SelectionMap | boolean>);
+
 export interface IncludeCounts {
   current: Record<string, boolean>;
   parent: Record<string, boolean>;
@@ -520,10 +530,9 @@ export type LoaderMappings = Record<
   string,
   {
     field: string;
-    alias?: string;
     mappings: LoaderMappings;
     indirectPath: string[];
-  }[]
+  }
 >;
 
 export interface SubFieldInclude {
@@ -534,6 +543,11 @@ export interface SubFieldInclude {
 export interface IndirectLoadMap {
   subFields: SubFieldInclude[];
   path: string[];
+}
+
+export interface IndirectInclude {
+  getType?: () => string;
+  path: { type?: string; name: string }[];
 }
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;

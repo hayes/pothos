@@ -75,7 +75,7 @@ export function parseCompositeCursor(fields: string[]) {
   };
 }
 
-interface PrismaCursorConnectionQueryOptions {
+export interface PrismaCursorConnectionQueryOptions {
   args: PothosSchemaTypes.DefaultConnectionArguments;
   defaultSize?: number;
   maxSize?: number;

@@ -10,10 +10,11 @@ import SchemaBuilder, {
   TypeParam,
 } from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
+import { ModelLoader } from './model-loader';
 import PrismaNodeRef from './node-ref';
 import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
 import { PrismaNodeOptions } from './types';
-import { queryFromInfo } from './util';
+import { queryFromInfo } from './util/map-query';
 import { PrismaModelTypes } from '.';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -40,6 +41,14 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
       pothosPrismaInclude: options.include,
       pothosPrismaModel: type,
       pothosPrismaSelect: options.select,
+      pothosPrismaLoader: ModelLoader.forRef(
+        type,
+        (findUnique as never) ||
+          (() => {
+            throw new Error(`Missing findUnique for ${ref.name}`);
+          }),
+        this,
+      ),
     },
     name,
     fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
@@ -80,7 +89,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       context: SchemaTypes['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const query = queryFromInfo(context, info, typeName);
+      const query = queryFromInfo(this, context, info, typeName);
       const record = await delegate.findUnique({
         ...query,
         rejectOnNotFound: true,

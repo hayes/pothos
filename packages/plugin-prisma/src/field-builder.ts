@@ -10,7 +10,7 @@ import {
 import { resolvePrismaCursorConnection } from './cursors';
 import { getCursorFormatter, getCursorParser, getRefFromModel } from './refs';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
-import { queryFromInfo } from './util';
+import { queryFromInfo } from './util/map-query';
 
 export * from './prisma-field-builder';
 
@@ -32,7 +32,7 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
     ...options,
     type: typeParam,
     resolve: (parent: unknown, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo(ctx, info);
+      const query = queryFromInfo(this.builder, ctx, info);
 
       return resolve(query, parent, args as never, ctx, info) as never;
     },
@@ -90,7 +90,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       ) =>
         resolvePrismaCursorConnection(
           {
-            query: queryFromInfo(ctx, info),
+            query: queryFromInfo(this.builder, ctx, info),
             parseCursor,
             maxSize,
             defaultSize,

@@ -21,9 +21,9 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   findUnique: (user) => ({ id: user.id }),
-  select: {
-    id: true,
-  },
+  // select: {
+  //   id: true,
+  // },
   fields: (t) => ({
     id: t.exposeID('id'),
     posts: t.relation('posts', {
@@ -34,11 +34,12 @@ const Viewer = builder.prismaObject('User', {
     user: t.variant('User'),
     bio: t.string({
       select: {
-        profile: {
-          select: {
-            bio: true,
-          },
-        },
+        profile: true,
+        // profile: {
+        //   select: {
+        //     bio: true,
+        //   },
+        // },
       },
       nullable: true,
       resolve: (user) => user.profile?.bio,
