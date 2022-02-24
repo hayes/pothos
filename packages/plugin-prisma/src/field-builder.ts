@@ -7,9 +7,9 @@ import {
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
-import { resolvePrismaCursorConnection } from './cursors';
-import { getCursorFormatter, getCursorParser, getRefFromModel } from './refs';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
+import { resolvePrismaCursorConnection } from './util/cursors';
+import { getCursorFormatter, getCursorParser, getRefFromModel } from './util/datamodel';
 import { queryFromInfo } from './util/map-query';
 
 export * from './prisma-field-builder';

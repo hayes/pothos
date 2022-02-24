@@ -1,14 +1,12 @@
 import { createContextCache, SchemaTypes } from '@pothos/core';
-import { getDelegateFromModel, getFindUniqueForRef, getRefFromModel } from './refs';
 import { PrismaDelegate } from './types';
+import { getDelegateFromModel } from './util/datamodel';
 import {
   mergeSelection,
   selectionCompatible,
   SelectionState,
   selectionToQuery,
 } from './util/selections';
-
-const loaderCache = new WeakMap<object, (model: object) => ModelLoader>();
 
 export class ModelLoader {
   model: object;
@@ -28,25 +26,6 @@ export class ModelLoader {
     this.model = model;
     this.delegate = delegate;
     this.findUnique = findUnique;
-  }
-
-  static forModel<Types extends SchemaTypes>(
-    modelName: string,
-    builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  ) {
-    const delegate = getDelegateFromModel(builder.options.prisma.client, modelName);
-
-    if (!loaderCache.has(delegate)) {
-      const ref = getRefFromModel(modelName, builder);
-
-      const findUnique = getFindUniqueForRef(ref, builder);
-      loaderCache.set(
-        delegate,
-        createContextCache((model) => new ModelLoader(model, delegate, findUnique!)),
-      );
-    }
-
-    return loaderCache.get(delegate)!;
   }
 
   static forRef<Types extends SchemaTypes>(

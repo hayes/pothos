@@ -1,6 +1,6 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-underscore-dangle */
-import { deepEqual } from '.';
+import { deepEqual } from './deep-equal';
 
 import { IncludeMap, LoaderMappings, SelectionMap } from '..';
 

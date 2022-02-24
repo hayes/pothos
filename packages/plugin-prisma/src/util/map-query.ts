@@ -15,7 +15,7 @@ import {
 import { getArgumentValues } from 'graphql/execution/values';
 import { SchemaTypes } from '@pothos/core';
 import SchemaBuilder from '@pothos/core/lib/builder';
-import { setLoaderMappings } from '../loader-map';
+import { setLoaderMappings } from './loader-map';
 import {
   createState,
   mergeSelection,
@@ -26,20 +26,6 @@ import {
 
 import { FieldSelection, IncludeMap, IndirectInclude, LoaderMappings, SelectionMap } from '..';
 
-export function getIncludeFromSelections<Types extends SchemaTypes>(
-  type: GraphQLNamedType,
-  builder: SchemaBuilder<Types>,
-  context: object,
-  info: GraphQLResolveInfo,
-) {
-  const state = createState();
-
-  // TODO: handle multiple fields?
-  addTypeSelectionsForField(type, builder, context, info, state, info.fieldNodes[0]);
-
-  return { selection: selectionToQuery(state), mappings: state.mappings };
-}
-
 function addTypeSelectionsForField<Types extends SchemaTypes>(
   type: GraphQLNamedType,
   builder: SchemaBuilder<Types>,
@@ -47,7 +33,7 @@ function addTypeSelectionsForField<Types extends SchemaTypes>(
   info: GraphQLResolveInfo,
   state: SelectionState,
   selection: FieldNode,
-  indirectPath: string[] = [],
+  indirectPath: string[],
 ) {
   if (selection.name.value.startsWith('__')) {
     return;
@@ -252,7 +238,7 @@ function addFieldSelection<Types extends SchemaTypes>(
         mergeSelection(fieldState, query);
       }
 
-      addTypeSelectionsForField(returnType, builder, context, info, fieldState, selection);
+      addTypeSelectionsForField(returnType, builder, context, info, fieldState, selection, []);
 
       // eslint-disable-next-line prefer-destructuring
       mappings = fieldState.mappings;
@@ -284,20 +270,21 @@ function addFieldSelection<Types extends SchemaTypes>(
 
 export function queryFromInfo<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  ctx: object,
+  context: object,
   info: GraphQLResolveInfo,
   typeName?: string,
 ): {} {
   const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
+  const state = createState();
 
-  const { selection, mappings } = getIncludeFromSelections(type, builder, ctx, info);
+  addTypeSelectionsForField(type, builder, context, info, state, info.fieldNodes[0], []);
 
-  setLoaderMappings(ctx, info.path, mappings);
+  setLoaderMappings(context, info.path, state.mappings);
 
-  return selection;
+  return selectionToQuery(state);
 }
 
-export function selectionFromInfo<Types extends SchemaTypes>(
+export function selectionStateFromInfo<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
@@ -311,7 +298,6 @@ export function selectionFromInfo<Types extends SchemaTypes>(
     throw new Error('Prisma plugin can only resolve includes for object types');
   }
 
-  // TODO: handle multiple fields?
   addFieldSelection(type, builder, context, info, state, info.fieldNodes[0], []);
 
   return state;

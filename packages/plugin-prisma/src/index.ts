@@ -8,9 +8,9 @@ import SchemaBuilder, {
   PothosOutputFieldConfig,
   SchemaTypes,
 } from '@pothos/core';
-import { getLoaderMapping, setLoaderMappings } from './loader-map';
 import { ModelLoader } from './model-loader';
-import { queryFromInfo, selectionFromInfo } from './util/map-query';
+import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
+import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
 
 export * from './types';
 
@@ -72,14 +72,13 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
         return fallback(queryFromInfo(this.builder, context, info), parent, args, context, info);
       }
 
-      const selectionState = selectionFromInfo(this.builder, context, info);
+      const selectionState = selectionStateFromInfo(this.builder, context, info);
 
       return loaderCache(parent)
         .loadSelection(selectionState, context)
         .then((result) => {
           const mappings = selectionState.mappings[info.path.key];
 
-          // TODO check type
           if (mappings) {
             setLoaderMappings(context, info.path, mappings.mappings);
           }

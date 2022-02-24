@@ -1,9 +1,8 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
-import { Prisma } from '../tests/client';
+import { Prisma } from '../../tests/client';
+import { PrismaObjectRef } from '../object-ref';
+import { PrismaDelegate, PrismaModelTypes } from '../types';
 import { formatCursor, parseCompositeCursor, parseRawCursor } from './cursors';
-import { PrismaObjectRef } from './object-ref';
-import { PrismaDelegate } from './types';
-import { PrismaModelTypes } from '.';
 
 export const refMap = new WeakMap<object, Map<string, PrismaObjectRef<PrismaModelTypes>>>();
 export const findUniqueMap = new WeakMap<
@@ -30,36 +29,6 @@ export function getRefFromModel<Types extends SchemaTypes>(
   }
 
   return cache.get(name)!;
-}
-
-export function getFindUniqueForRef<Types extends SchemaTypes>(
-  ref: ObjectRef<unknown>,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) {
-  if (!findUniqueMap.has(builder)) {
-    findUniqueMap.set(builder, new Map());
-  }
-  const cache = findUniqueMap.get(builder)!;
-
-  if (!cache.has(ref)) {
-    return null;
-  }
-
-  return cache.get(ref)! as (args: unknown, context: Types['Context']) => unknown;
-}
-
-export function setFindUniqueForRef<Types extends SchemaTypes>(
-  ref: ObjectRef<unknown>,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  findUnique: ((args: any, context: Types['Context']) => unknown) | null,
-) {
-  if (!findUniqueMap.has(builder)) {
-    findUniqueMap.set(builder, new Map());
-  }
-  const cache = findUniqueMap.get(builder)!;
-
-  cache.set(ref, findUnique);
 }
 
 export function getRelation<Types extends SchemaTypes>(
@@ -124,16 +93,6 @@ export function getCursorParser<Types extends SchemaTypes>(
   return (rawCursor: string) => ({
     [cursor]: parser(rawCursor),
   });
-}
-
-export function getRelatedDelegate<Types extends SchemaTypes>(
-  name: string,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  relation: string,
-) {
-  const fieldData = getRelation(name, builder, relation);
-
-  return fieldData.type;
 }
 
 export function getDelegateFromModel(client: Record<string, unknown>, model: string) {

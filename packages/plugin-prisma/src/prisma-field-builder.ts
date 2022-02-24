@@ -13,24 +13,23 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
 import { PrismaObjectRef } from './object-ref';
 import {
-  getCursorFormatter,
-  getCursorParser,
-  getDelegateFromModel,
-  getRefFromModel,
-  getRelation,
-} from './refs';
-import {
-  PrismaDelegate,
   PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
   RelationCountOptions,
+  SelectionMap,
   ShapeFromConnection,
+  VariantFieldOptions,
 } from './types';
-import { SelectionMap, VariantFieldOptions } from '.';
+import { prismaCursorConnectionQuery, wrapConnectionResult } from './util/cursors';
+import {
+  getCursorFormatter,
+  getCursorParser,
+  getRefFromModel,
+  getRelation,
+} from './util/datamodel';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -49,7 +48,6 @@ export class PrismaObjectFieldBuilder<
   NeedsResolve extends boolean,
   Shape extends object = Model['Shape'],
 > extends RootBuilder<Types, Shape, 'PrismaObject'> {
-  delegate: PrismaDelegate;
   model: string;
 
   exposeBoolean = this.createExpose('Boolean');
@@ -236,7 +234,6 @@ export class PrismaObjectFieldBuilder<
     super(name, builder, 'PrismaObject', 'Object');
 
     this.model = model;
-    this.delegate = getDelegateFromModel(builder.options.prisma.client, model);
   }
 
   relation<

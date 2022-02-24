@@ -47,15 +47,7 @@ export interface PrismaModelTypes {
   >;
 }
 
-export type ListRelationFields<T> = {
-  [K in keyof T]: T[K] extends infer Option
-    ? Option extends { orderBy?: unknown }
-      ? K
-      : never
-    : never;
-}[keyof T];
-
-export type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
+type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
   [prismaModelName]?: infer Name;
 }
   ? Types['PrismaTypes'][Name & keyof Types['PrismaTypes']] extends infer Model
@@ -86,7 +78,7 @@ export type PrismaObjectFieldOptions<
   select?: ExtractModel<Types, ParentShape>['Select'] & Select;
 };
 
-export type PrismaObjectFieldsShape<
+type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
@@ -102,7 +94,7 @@ type PrismaSelectionFieldBuilder<
   Shape extends object,
 > = PrismaObjectFieldBuilder<Types, Model, false, Shape>;
 
-export interface BaseSelection {
+interface BaseSelection {
   include?: unknown;
   select?: unknown;
 }
@@ -116,7 +108,7 @@ export type ShapeFromSelection<Model extends PrismaModelTypes, Selection> = Norm
     : Model['Shape']) & { [prismaModelName]?: Model['Name'] }
 >;
 
-export type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normalize<{
+type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normalize<{
   [K in keyof Include as K extends Model['RelationName']
     ? K
     : never]: K extends keyof Model['Relations']
@@ -161,7 +153,7 @@ export type PrismaObjectTypeOptions<
       }
   );
 
-export type NameOrVariant =
+type NameOrVariant =
   | {
       name?: never;
       variant?: string;
@@ -212,7 +204,7 @@ export type PrismaNodeOptions<
       }
   );
 
-export type QueryForField<
+type QueryForField<
   Types extends SchemaTypes,
   Args extends InputFieldMap,
   Include,
@@ -225,7 +217,7 @@ export type QueryForField<
         ) => Omit<Include, 'include' | 'select'>)
   : never;
 
-export type QueryFromRelation<
+type QueryFromRelation<
   Model extends PrismaModelTypes,
   Field extends keyof Model['Include'],
 > = Model['Include'][Field] extends infer Include
@@ -237,7 +229,7 @@ export type QueryFromRelation<
     : never
   : never;
 
-export type CursorFromRelation<
+type CursorFromRelation<
   Model extends PrismaModelTypes,
   Field extends Model['ListRelations'],
 > = Field extends keyof Model['Include']
@@ -248,7 +240,7 @@ export type CursorFromRelation<
     : never
   : never;
 
-export type RefForRelation<
+type RefForRelation<
   Model extends PrismaModelTypes,
   Field extends keyof Model['Relations'],
 > = Model['Relations'][Field] extends unknown[]
@@ -521,11 +513,6 @@ export type FieldSelection =
       ) => SelectionMap | boolean,
     ) => Record<string, SelectionMap | boolean>);
 
-export interface IncludeCounts {
-  current: Record<string, boolean>;
-  parent: Record<string, boolean>;
-}
-
 export type LoaderMappings = Record<
   string,
   {
@@ -534,16 +521,6 @@ export type LoaderMappings = Record<
     indirectPath: string[];
   }
 >;
-
-export interface SubFieldInclude {
-  type?: string;
-  name: string;
-}
-
-export interface IndirectLoadMap {
-  subFields: SubFieldInclude[];
-  path: string[];
-}
 
 export interface IndirectInclude {
   getType?: () => string;

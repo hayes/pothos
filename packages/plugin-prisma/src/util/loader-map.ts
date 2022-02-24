@@ -1,6 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { createContextCache } from '@pothos/core';
-import { LoaderMappings } from './types';
+import { LoaderMappings } from '../types';
 
 const cache = createContextCache((ctx) => new Map<string, LoaderMappings>());
 
