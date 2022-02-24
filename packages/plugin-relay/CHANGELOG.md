@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.5.2
+
+### Patch Changes
+
+- 31f9e8be: Fix isTypeOf check not handling \_\_typename correctly
+
 ## 3.5.1
 
 ### Patch Changes
