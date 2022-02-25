@@ -12,6 +12,9 @@ describe('simple objects example schema', () => {
       const query = gql`
         query {
           hero(episode: EMPIRE) {
+            friendsUnion {
+              __typename
+            }
             friends {
               __typename
               ... on Character {

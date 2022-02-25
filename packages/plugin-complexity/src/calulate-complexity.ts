@@ -2,14 +2,15 @@ import {
   FieldNode,
   FragmentDefinitionNode,
   getNamedType,
-  GraphQLInterfaceType,
+  GraphQLField,
   GraphQLList,
   GraphQLNamedType,
   GraphQLNonNull,
-  GraphQLObjectType,
   GraphQLOutputType,
   GraphQLResolveInfo,
   InlineFragmentNode,
+  isInterfaceType,
+  isObjectType,
   isOutputType,
   Kind,
   SelectionSetNode,
@@ -40,13 +41,9 @@ function complexityFromField<Types extends SchemaTypes>(
 ): ComplexityResult {
   let depth = 1;
   let breadth = 1;
-  if (!(type instanceof GraphQLObjectType || type instanceof GraphQLInterfaceType)) {
-    throw new TypeError(`Expected Type ${type.name} to be an Object or Interface type`);
-  }
-
   const fieldName = selection.name.value;
 
-  const field = type.getFields()[fieldName];
+  const field = (isObjectType(type) || isInterfaceType(type)) && type.getFields()[fieldName]!;
 
   let complexityOption;
   if (field) {
@@ -56,10 +53,11 @@ function complexityFromField<Types extends SchemaTypes>(
   }
 
   if (typeof complexityOption === 'function') {
-    const args = getArgumentValues(field, selection, info.variableValues) as Record<
-      string,
-      unknown
-    >;
+    const args = getArgumentValues(
+      field as GraphQLField<unknown, unknown>,
+      selection,
+      info.variableValues,
+    ) as Record<string, unknown>;
 
     complexityOption = complexityOption(args, ctx);
   }
@@ -74,7 +72,7 @@ function complexityFromField<Types extends SchemaTypes>(
 
   let complexity = 0;
 
-  if (selection.selectionSet) {
+  if (field && selection.selectionSet) {
     const subSelection = complexityFromSelectionSet(
       plugin,
       ctx,
