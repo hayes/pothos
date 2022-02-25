@@ -8,6 +8,9 @@ exports[`simple objects example schema generates expected schema 1`] = `
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends(limit: Int): [Character]!
 
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friendsUnion(limit: Int): [Friend]!
+
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
 
@@ -22,6 +25,9 @@ type Droid implements Character {
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends(limit: Int): [Character]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friendsUnion(limit: Int): [Friend]!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -45,6 +51,8 @@ enum Episode {
   NEWHOPE
 }
 
+union Friend = Droid | Human
+
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
@@ -52,6 +60,9 @@ type Human implements Character {
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends(limit: Int): [Character]!
+
+  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  friendsUnion(limit: Int): [Friend]!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -380,6 +391,20 @@ Object {
             },
           ],
           "name": "R2-D2",
+        },
+      ],
+      "friendsUnion": Array [
+        Object {
+          "__typename": "Human",
+        },
+        Object {
+          "__typename": "Human",
+        },
+        Object {
+          "__typename": "Droid",
+        },
+        Object {
+          "__typename": "Droid",
         },
       ],
     },
