@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.1.2
+
+### Patch Changes
+
+- a7d95fca: Fix bug with \_\_typename selected in a Union fragment
+
 ## 3.1.1
 
 ### Patch Changes
