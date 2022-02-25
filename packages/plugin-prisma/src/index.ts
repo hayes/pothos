@@ -69,10 +69,10 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       }
 
       if (fallback) {
-        return fallback(queryFromInfo(this.builder, context, info), parent, args, context, info);
+        return fallback(queryFromInfo(context, info), parent, args, context, info);
       }
 
-      const selectionState = selectionStateFromInfo(this.builder, context, info);
+      const selectionState = selectionStateFromInfo(context, info);
 
       return loaderCache(parent)
         .loadSelection(selectionState, context)

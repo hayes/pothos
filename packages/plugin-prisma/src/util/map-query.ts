@@ -13,9 +13,8 @@ import {
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
-import { SchemaTypes } from '@pothos/core';
-import SchemaBuilder from '@pothos/core/lib/builder';
 import { setLoaderMappings } from './loader-map';
+import { FieldMap } from './relation-map';
 import {
   createState,
   mergeSelection,
@@ -26,9 +25,8 @@ import {
 
 import { FieldSelection, IncludeMap, IndirectInclude, LoaderMappings, SelectionMap } from '..';
 
-function addTypeSelectionsForField<Types extends SchemaTypes>(
+function addTypeSelectionsForField(
   type: GraphQLNamedType,
-  builder: SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
@@ -54,13 +52,17 @@ function addTypeSelectionsForField<Types extends SchemaTypes>(
       pothosPrismaIndirectInclude.path,
       indirectPath,
       (resolvedType, field, path) => {
-        addTypeSelectionsForField(resolvedType, builder, context, info, state, field, path);
+        addTypeSelectionsForField(resolvedType, context, info, state, field, path);
       },
     );
   }
 
   if (!isObjectType(type)) {
     return;
+  }
+
+  if (!pothosPrismaSelect) {
+    state.mode = 'include';
   }
 
   if (pothosPrismaInclude || pothosPrismaSelect) {
@@ -71,7 +73,7 @@ function addTypeSelectionsForField<Types extends SchemaTypes>(
   }
 
   if (selection.selectionSet) {
-    addNestedSelections(type, builder, context, info, state, selection.selectionSet, indirectPath);
+    addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
   }
 }
 
@@ -142,9 +144,8 @@ function resolveIndirectInclude(
   }
 }
 
-function addNestedSelections<Types extends SchemaTypes>(
+function addNestedSelections(
   type: GraphQLObjectType,
-  builder: SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
@@ -154,7 +155,7 @@ function addNestedSelections<Types extends SchemaTypes>(
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
-        addFieldSelection(type, builder, context, info, state, selection, indirectPath);
+        addFieldSelection(type, context, info, state, selection, indirectPath);
 
         continue;
       case Kind.FRAGMENT_SPREAD:
@@ -164,7 +165,6 @@ function addNestedSelections<Types extends SchemaTypes>(
 
         addNestedSelections(
           type,
-          builder,
           context,
           info,
           state,
@@ -179,15 +179,7 @@ function addNestedSelections<Types extends SchemaTypes>(
           continue;
         }
 
-        addNestedSelections(
-          type,
-          builder,
-          context,
-          info,
-          state,
-          selection.selectionSet,
-          indirectPath,
-        );
+        addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
 
         continue;
 
@@ -197,9 +189,8 @@ function addNestedSelections<Types extends SchemaTypes>(
   }
 }
 
-function addFieldSelection<Types extends SchemaTypes>(
+function addFieldSelection(
   type: GraphQLObjectType,
-  builder: SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
@@ -216,7 +207,9 @@ function addFieldSelection<Types extends SchemaTypes>(
     throw new Error(`Unknown field ${selection.name.value} on ${type.name}`);
   }
 
-  let fieldSelect = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
+  const fieldSelect = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
+  let fieldSelectionMap: SelectionMap;
+
   const fieldParentSelect = field.extensions?.pothosPrismaParentSelect as
     | Record<string, SelectionMap | boolean>
     | undefined;
@@ -228,27 +221,29 @@ function addFieldSelection<Types extends SchemaTypes>(
       unknown
     >;
 
-    fieldSelect = fieldSelect(args, context, (rawQuery) => {
+    fieldSelectionMap = fieldSelect(args, context, (rawQuery) => {
       const returnType = getNamedType(field.type);
       const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
 
-      const fieldState = createState({ parent: state });
+      const fieldState = createStateForType(returnType, info, state);
 
       if (typeof query === 'object') {
         mergeSelection(fieldState, query);
       }
 
-      addTypeSelectionsForField(returnType, builder, context, info, fieldState, selection, []);
+      addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
 
       // eslint-disable-next-line prefer-destructuring
       mappings = fieldState.mappings;
 
       return selectionToQuery(fieldState);
     });
+  } else {
+    fieldSelectionMap = { select: fieldSelect };
   }
 
-  if (fieldSelect && selectionCompatible(state, { select: fieldSelect }, true)) {
-    mergeSelection(state, { select: fieldSelect });
+  if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
+    mergeSelection(state, fieldSelectionMap);
     state.mappings[selection.alias?.value ?? selection.name.value] = {
       field: selection.name.value,
       mappings,
@@ -268,37 +263,53 @@ function addFieldSelection<Types extends SchemaTypes>(
   }
 }
 
-export function queryFromInfo<Types extends SchemaTypes>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  context: object,
-  info: GraphQLResolveInfo,
-  typeName?: string,
-): {} {
+export function queryFromInfo(context: object, info: GraphQLResolveInfo, typeName?: string): {} {
   const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
-  const state = createState();
+  const state = createStateForType(type, info);
 
-  addTypeSelectionsForField(type, builder, context, info, state, info.fieldNodes[0], []);
+  addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
 
   setLoaderMappings(context, info.path, state.mappings);
 
   return selectionToQuery(state);
 }
 
-export function selectionStateFromInfo<Types extends SchemaTypes>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+export function selectionStateFromInfo(
   context: object,
   info: GraphQLResolveInfo,
   typeName?: string,
 ) {
   const type = typeName ? info.schema.getTypeMap()[typeName] : info.parentType;
 
-  const state = createState();
+  const state = createStateForType(type, info);
 
   if (!isObjectType(type)) {
     throw new Error('Prisma plugin can only resolve includes for object types');
   }
 
-  addFieldSelection(type, builder, context, info, state, info.fieldNodes[0], []);
+  addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
 
   return state;
+}
+
+function createStateForType(
+  type: GraphQLNamedType,
+  info: GraphQLResolveInfo,
+  parent?: SelectionState,
+) {
+  let targetType = type;
+
+  while (targetType.extensions.pothosPrismaIndirectInclude) {
+    targetType = info.schema.getType(
+      (targetType.extensions.pothosPrismaIndirectInclude as IndirectInclude).getType(),
+    )!;
+  }
+
+  const fieldMap = targetType.extensions.pothosPrismaFieldMap as FieldMap;
+
+  return createState(
+    fieldMap,
+    targetType.extensions.pothosPrismaSelect ? 'select' : 'include',
+    parent,
+  );
 }

@@ -1,12 +1,14 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-underscore-dangle */
 import { deepEqual } from './deep-equal';
+import { FieldMap } from './relation-map';
 
 import { IncludeMap, LoaderMappings, SelectionMap } from '..';
 
 export type SelectionMode = 'select' | 'include';
 
 export interface SelectionState {
+  fieldMap: FieldMap;
   query: object;
   mode: SelectionMode;
   fields: Set<string>;
@@ -27,31 +29,24 @@ export function selectionCompatible(
 
   const { select, include, ...query } = selectionMap;
 
-  if (
-    select &&
-    Object.keys(select).some(
-      (key) =>
-        select[key] &&
-        state.relations.has(key) &&
-        !selectionCompatible(state.relations.get(key)!, select[key]),
-    )
-  ) {
+  if (select && Object.keys(select).some((key) => compare(key, select[key]))) {
     return false;
   }
 
-  if (
-    include &&
-    Object.keys(include).some(
-      (key) =>
-        include[key] &&
-        state.relations.has(key) &&
-        !selectionCompatible(state.relations.get(key)!, include[key]),
-    )
-  ) {
+  if (include && Object.keys(include).some((key) => compare(key, include[key]))) {
     return false;
   }
 
   return ignoreQuery || queryCompatible(state, query);
+
+  function compare(key: string, value: SelectionMap | boolean) {
+    return (
+      value &&
+      state.fieldMap.relations.has(key) &&
+      state.relations.has(key) &&
+      !selectionCompatible(state.relations.get(key)!, value)
+    );
+  }
 }
 
 export function queryCompatible(state: SelectionState, query: boolean | object) {
@@ -66,80 +61,72 @@ export function queryCompatible(state: SelectionState, query: boolean | object) 
   return deepEqual(query, state.query);
 }
 
-export function createState(initialState: Partial<SelectionState> = {}): SelectionState {
+export function createState(
+  fieldMap: FieldMap,
+  mode: SelectionMode,
+  parent?: SelectionState,
+): SelectionState {
   return {
-    mode: 'include',
+    parent,
+    mode,
+    fieldMap,
     query: {},
     fields: new Set(),
     counts: new Set(),
     relations: new Map(),
     mappings: {},
-    ...initialState,
   };
 }
 
 export function mergeSelection(state: SelectionState, { select, include, ...query }: SelectionMap) {
-  if (state.mode === 'select' && include) {
+  if (state.mode === 'select' && !select) {
     state.mode = 'include';
   }
 
   if (include) {
     Object.keys(include).forEach((key) => {
-      if (!include[key]) {
-        return;
-      }
-
-      if (key === '_count') {
-        const counts = (include._count as { select?: {} }).select ?? {};
-
-        Object.keys(counts).forEach((count) => {
-          state.counts.add(count);
-        });
-        return;
-      }
-
-      const selection = include[key] === true ? {} : (include[key] as SelectionMap);
-
-      if (state.relations.has(key)) {
-        mergeSelection(state.relations.get(key)!, selection);
-      } else {
-        const relatedState = createState({ parent: state });
-        mergeSelection(relatedState, selection);
-
-        state.relations.set(key, relatedState);
-      }
+      merge(key, include[key]);
     });
   }
 
   if (select) {
     Object.keys(select).forEach((key) => {
-      if (!select[key]) {
-        return;
-      }
-
-      if (key === '_count') {
-        const counts = (select._count as { select?: {} }).select ?? {};
-        Object.keys(counts).forEach((count) => {
-          state.counts.add(count);
-        });
-        return;
-      }
-
-      const selection = select[key] === true ? {} : (select[key] as SelectionMap);
-
-      if (state.relations.has(key)) {
-        mergeSelection(state.relations.get(key)!, selection);
-      } else {
-        const relatedState = createState({ parent: state });
-        mergeSelection(relatedState, selection);
-
-        state.relations.set(key, relatedState);
-      }
+      merge(key, select[key]);
     });
   }
 
   if (Object.keys(query).length > 0) {
     state.query = query;
+  }
+
+  function merge(key: string, value: SelectionMap | boolean) {
+    if (!value) {
+      return;
+    }
+
+    if (key === '_count') {
+      const counts = (value as { select?: {} }).select ?? {};
+      Object.keys(counts).forEach((count) => {
+        state.counts.add(count);
+      });
+
+      return;
+    }
+
+    const selection = value === true ? {} : value;
+    const childMap = state.fieldMap.relations.get(key);
+
+    if (childMap) {
+      if (state.relations.has(key)) {
+        mergeSelection(state.relations.get(key)!, selection);
+      } else {
+        const relatedState = createState(childMap, 'select');
+        mergeSelection(relatedState, selection);
+        state.relations.set(key, relatedState);
+      }
+    } else {
+      state.fields.add(key);
+    }
   }
 }
 

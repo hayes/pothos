@@ -19,7 +19,6 @@ import {
   RelatedConnectionOptions,
   RelatedFieldOptions,
   RelationCountOptions,
-  SelectionMap,
   ShapeFromConnection,
   VariantFieldOptions,
 } from './types';
@@ -30,6 +29,7 @@ import {
   getRefFromModel,
   getRelation,
 } from './util/datamodel';
+import { FieldMap } from './util/relation-map';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -49,6 +49,7 @@ export class PrismaObjectFieldBuilder<
   Shape extends object = Model['Shape'],
 > extends RootBuilder<Types, Shape, 'PrismaObject'> {
   model: string;
+  prismaFieldMap: FieldMap;
 
   exposeBoolean = this.createExpose('Boolean');
   exposeFloat = this.createExpose('Float');
@@ -137,15 +138,17 @@ export class PrismaObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown) => unknown,
     ) => ({
-      [name]: nestedQuery({
-        ...((typeof query === 'function' ? query(args, context) : query) as {}),
-        ...prismaCursorConnectionQuery({
-          parseCursor,
-          maxSize,
-          defaultSize,
-          args,
+      select: {
+        [name]: nestedQuery({
+          ...((typeof query === 'function' ? query(args, context) : query) as {}),
+          ...prismaCursorConnectionQuery({
+            parseCursor,
+            maxSize,
+            defaultSize,
+            args,
+          }),
         }),
-      }),
+      },
     });
 
     const fieldRef = (
@@ -230,10 +233,16 @@ export class PrismaObjectFieldBuilder<
     return fieldRef;
   } as never;
 
-  constructor(name: string, builder: PothosSchemaTypes.SchemaBuilder<Types>, model: string) {
+  constructor(
+    name: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    model: string,
+    fieldMap: FieldMap,
+  ) {
     super(name, builder, 'PrismaObject', 'Object');
 
     this.model = model;
+    this.prismaFieldMap = fieldMap;
   }
 
   relation<
@@ -268,7 +277,7 @@ export class PrismaObjectFieldBuilder<
       args: object,
       context: object,
       nestedQuery: (query: unknown) => unknown,
-    ) => ({ [name]: nestedQuery(query) });
+    ) => ({ select: { [name]: nestedQuery(query) } });
 
     return this.field({
       ...rest,
@@ -333,15 +342,8 @@ export class PrismaObjectFieldBuilder<
     const ref: PrismaObjectRef<PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
-    const selfSelect = (
-      args: object,
-      context: object,
-      nestedQuery: (query: unknown) => unknown,
-    ) => {
-      const query = nestedQuery({}) as SelectionMap;
-
-      return query.include ?? query.select;
-    };
+    const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
+      nestedQuery({});
 
     return this.field({
       ...options,
@@ -376,11 +378,14 @@ export class PrismaObjectFieldBuilder<
   ) {
     const [name, options = {} as never] = args;
 
+    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
+    const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
+
     return this.exposeField(name as never, {
       ...options,
       extensions: {
         ...options.extensions,
-        pothosPrismaSelect: {
+        pothosPrismaSelect: usingSelect && {
           [name]: true,
         },
       },

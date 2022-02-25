@@ -2,7 +2,6 @@
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, SchemaTypes } from '../core/index.ts';
 import { FieldAuthScopes, FieldGrantScopes, ResolveStep, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
-// TODO generate useful error messages
 export function createTypeAuthScopesStep<Types extends SchemaTypes>(authScopes: TypeAuthScopes<Types, unknown>, type: string): ResolveStep<Types> {
     if (typeof authScopes === "function") {
         return {

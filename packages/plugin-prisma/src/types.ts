@@ -511,7 +511,7 @@ export type FieldSelection =
       query: (
         selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
       ) => SelectionMap | boolean,
-    ) => Record<string, SelectionMap | boolean>);
+    ) => SelectionMap);
 
 export type LoaderMappings = Record<
   string,
@@ -523,7 +523,7 @@ export type LoaderMappings = Record<
 >;
 
 export interface IndirectInclude {
-  getType?: () => string;
+  getType: () => string;
   path: { type?: string; name: string }[];
 }
 

@@ -15,12 +15,14 @@ import PrismaNodeRef from './node-ref';
 import { PrismaModelTypes, PrismaNodeOptions } from './types';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
 import { queryFromInfo } from './util/map-query';
+import { getRelationMap } from './util/relation-map';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
   const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
+  const fieldMap = getRelationMap(this.options.prisma.client).get(type)!;
 
   ref.name = name;
 
@@ -37,6 +39,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
       ...options.extensions,
       pothosPrismaInclude: options.include,
       pothosPrismaModel: type,
+      pothosPrismaFieldMap: fieldMap,
       pothosPrismaSelect: options.select,
       pothosPrismaLoader: ModelLoader.forRef(
         type,
@@ -48,7 +51,17 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
       ),
     },
     name,
-    fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
+    fields: fields
+      ? () =>
+          fields(
+            new PrismaObjectFieldBuilder(
+              name,
+              this,
+              type,
+              getRelationMap(this.options.prisma.client).get(type)!,
+            ),
+          )
+      : undefined,
   });
 
   return ref as never;
@@ -86,7 +99,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       context: SchemaTypes['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const query = queryFromInfo(this, context, info, typeName);
+      const query = queryFromInfo(context, info, typeName);
       const record = await delegate.findUnique({
         ...query,
         rejectOnNotFound: true,

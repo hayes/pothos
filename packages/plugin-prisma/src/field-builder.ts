@@ -32,7 +32,7 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
     ...options,
     type: typeParam,
     resolve: (parent: unknown, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo(this.builder, ctx, info);
+      const query = queryFromInfo(ctx, info);
 
       return resolve(query, parent, args as never, ctx, info) as never;
     },
@@ -90,7 +90,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       ) =>
         resolvePrismaCursorConnection(
           {
-            query: queryFromInfo(this.builder, ctx, info),
+            query: queryFromInfo(ctx, info),
             parseCursor,
             maxSize,
             defaultSize,
