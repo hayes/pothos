@@ -275,7 +275,7 @@ export function queryFromInfo(context: object, info: GraphQLResolveInfo, typeNam
 
   addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
 
-  setLoaderMappings(context, info.path, state.mappings);
+  setLoaderMappings(context, info, state.mappings, type);
 
   return selectionToQuery(state);
 }
@@ -303,13 +303,7 @@ function createStateForType(
   info: GraphQLResolveInfo,
   parent?: SelectionState,
 ) {
-  let targetType = type;
-
-  while (targetType.extensions.pothosPrismaIndirectInclude) {
-    targetType = info.schema.getType(
-      (targetType.extensions.pothosPrismaIndirectInclude as IndirectInclude).getType(),
-    )!;
-  }
+  const targetType = getIndirectType(type, info);
 
   const fieldMap = targetType.extensions.pothosPrismaFieldMap as FieldMap;
 
@@ -318,4 +312,16 @@ function createStateForType(
     targetType.extensions.pothosPrismaSelect ? 'select' : 'include',
     parent,
   );
+}
+
+export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
+  let targetType = type;
+
+  while (targetType.extensions.pothosPrismaIndirectInclude) {
+    targetType = info.schema.getType(
+      (targetType.extensions.pothosPrismaIndirectInclude as IndirectInclude).getType(),
+    )!;
+  }
+
+  return targetType;
 }

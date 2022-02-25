@@ -1,10 +1,11 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { GraphQLNamedType, GraphQLResolveInfo } from 'graphql';
 import { createContextCache } from '@pothos/core';
 import { LoaderMappings } from '../types';
+import { getIndirectType } from './map-query';
 
 const cache = createContextCache((ctx) => new Map<string, LoaderMappings>());
 
-export function cacheKey(path: GraphQLResolveInfo['path'], subPath: string[]) {
+export function cacheKey(type: string, path: GraphQLResolveInfo['path'], subPath: string[]) {
   let key = '';
   let current: GraphQLResolveInfo['path'] | undefined = path;
 
@@ -19,29 +20,29 @@ export function cacheKey(path: GraphQLResolveInfo['path'], subPath: string[]) {
     key = `${key}.${entry}`;
   }
 
-  return key;
+  return `${type}@${key}`;
 }
 
 export function setLoaderMappings(
   ctx: object,
-  path: GraphQLResolveInfo['path'],
+  info: GraphQLResolveInfo,
   value: LoaderMappings,
+  type: GraphQLNamedType,
 ) {
   Object.keys(value).forEach((field) => {
     const map = cache(ctx);
 
     const mapping = value[field];
-    // TODO: make this type specific
     const subPath = [...mapping.indirectPath, field];
-    const key = cacheKey(path, subPath);
+    const key = cacheKey(getIndirectType(type, info).name, info.path, subPath);
 
     map.set(key, mapping.mappings);
   });
 }
 
-export function getLoaderMapping(ctx: object, path: GraphQLResolveInfo['path']) {
+export function getLoaderMapping(ctx: object, path: GraphQLResolveInfo['path'], type: string) {
   const map = cache(ctx);
-  const key = cacheKey(path, []);
+  const key = cacheKey(type, path, []);
 
   return map.get(key) ?? null;
 }

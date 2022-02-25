@@ -1,7 +1,7 @@
 import './global-types';
 import './field-builder';
 import './schema-builder';
-import { GraphQLFieldResolver } from 'graphql';
+import { getNamedType, GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   BuildCache,
@@ -60,10 +60,10 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       | ((query: {}, parent: unknown, args: {}, context: {}, info: {}) => unknown);
 
     return (parent, args, context, info) => {
-      const mapping = getLoaderMapping(context, info.path);
+      const mapping = getLoaderMapping(context, info.path, info.parentType.name);
 
       if ((!loadedCheck || loadedCheck(parent)) && mapping) {
-        setLoaderMappings(context, info.path, mapping);
+        setLoaderMappings(context, info, mapping, getNamedType(info.returnType));
 
         return resolver(parent, args, context, info);
       }
@@ -80,7 +80,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
           const mappings = selectionState.mappings[info.path.key];
 
           if (mappings) {
-            setLoaderMappings(context, info.path, mappings.mappings);
+            setLoaderMappings(context, info, mappings.mappings, getNamedType(info.returnType));
           }
 
           return resolver(result, args, context, info);

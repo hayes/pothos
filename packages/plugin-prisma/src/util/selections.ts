@@ -148,7 +148,7 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
   }
 }
 
-export function selectionToQuery(state: SelectionState): SelectionMap | boolean {
+export function selectionToQuery(state: SelectionState): SelectionMap {
   const nestedIncludes: Record<string, SelectionMap | boolean> = {};
   const counts: Record<string, boolean> = {};
 
