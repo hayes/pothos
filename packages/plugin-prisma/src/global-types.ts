@@ -97,15 +97,23 @@ declare global {
       prismaNode: 'relay' extends PluginName
         ? <
             Name extends keyof Types['PrismaTypes'],
-            Interfaces extends InterfaceParam<Types>[],
-            Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
+            Interfaces extends InterfaceParam<Types>[] = [],
             Include = unknown,
             Select = unknown,
-            Shape extends object = ShapeFromSelection<Model, { select: Select; include: Include }>,
+            Shape extends object = Types['PrismaTypes'][Name] extends PrismaModelTypes
+              ? ShapeFromSelection<Types['PrismaTypes'][Name], { select: Select; include: Include }>
+              : never,
           >(
             name: Name,
-            options: PrismaNodeOptions<Types, Model, Interfaces, Include, Select, Shape>,
-          ) => PrismaNodeRef<Model, Shape>
+            options: PrismaNodeOptions<
+              Types,
+              Types['PrismaTypes'][Name] & PrismaModelTypes,
+              Interfaces,
+              Include,
+              Select,
+              Shape
+            >,
+          ) => PrismaNodeRef<Types['PrismaTypes'][Name] & PrismaModelTypes, Shape>
         : '@pothos/plugin-relay is required to use this method';
     }
 

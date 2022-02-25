@@ -3,7 +3,7 @@
 import { deepEqual } from './deep-equal';
 import { FieldMap } from './relation-map';
 
-import { IncludeMap, LoaderMappings, SelectionMap } from '..';
+import { LoaderMappings, SelectionMap } from '..';
 
 export type SelectionMode = 'select' | 'include';
 
@@ -24,7 +24,7 @@ export function selectionCompatible(
   ignoreQuery = false,
 ): boolean {
   if (typeof selectionMap === 'boolean') {
-    return ignoreQuery || queryCompatible(state, selectionMap);
+    return ignoreQuery || !selectionMap || Object.keys(state.query).length === 0;
   }
 
   const { select, include, ...query } = selectionMap;
@@ -37,7 +37,7 @@ export function selectionCompatible(
     return false;
   }
 
-  return ignoreQuery || queryCompatible(state, query);
+  return ignoreQuery || deepEqual(state.query, query);
 
   function compare(key: string, value: SelectionMap | boolean) {
     return (
@@ -49,16 +49,34 @@ export function selectionCompatible(
   }
 }
 
-export function queryCompatible(state: SelectionState, query: boolean | object) {
-  if (!query) {
-    return true;
+export function stateCompatible(
+  state: SelectionState,
+  newState: SelectionState,
+  ignoreQuery = false,
+): boolean {
+  for (const [name, relationState] of newState.relations) {
+    if (state.relations.has(name) && !stateCompatible(state.relations.get(name)!, relationState)) {
+      return false;
+    }
   }
 
-  if (query === true) {
-    return Object.keys(state.query).length === 0;
+  return ignoreQuery || deepEqual(state.query, newState.query);
+}
+
+export function mergeState(state: SelectionState, newState: SelectionState) {
+  for (const [name, relationState] of newState.relations) {
+    if (state.relations.has(name)) {
+      mergeState(state.relations.get(name)!, relationState);
+    }
   }
 
-  return deepEqual(query, state.query);
+  if (newState.mode === 'include') {
+    state.mode = 'include';
+  } else {
+    for (const name of newState.fields) {
+      state.fields.add(name);
+    }
+  }
 }
 
 export function createState(
@@ -113,7 +131,7 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
       return;
     }
 
-    const selection = value === true ? {} : value;
+    const selection = value === true ? { include: {} } : value;
     const childMap = state.fieldMap.relations.get(key);
 
     if (childMap) {
@@ -130,13 +148,11 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
   }
 }
 
-export function selectionToQuery(state: SelectionState): IncludeMap {
-  const nestedIncludes: Record<string, IncludeMap | boolean> = {};
+export function selectionToQuery(state: SelectionState): SelectionMap | boolean {
+  const nestedIncludes: Record<string, SelectionMap | boolean> = {};
   const counts: Record<string, boolean> = {};
 
   let hasSelection = false;
-
-  const query = typeof state.query === 'object' ? (state.query as IncludeMap) : {};
 
   state.relations.forEach((sel, relation) => {
     hasSelection = true;
@@ -161,18 +177,16 @@ export function selectionToQuery(state: SelectionState): IncludeMap {
       nestedIncludes[field] = true;
     });
 
-    return hasSelection
-      ? {
-          ...query,
-          select: nestedIncludes,
-        }
-      : { ...query };
+    return {
+      ...(state.query as SelectionMap),
+      select: nestedIncludes,
+    };
   }
 
   return hasSelection
     ? {
-        ...query,
+        ...state.query,
         include: nestedIncludes,
       }
-    : { ...query };
+    : (state.query as SelectionMap);
 }

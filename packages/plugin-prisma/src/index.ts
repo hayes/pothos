@@ -26,7 +26,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
-    if (fieldConfig.kind === 'PrismaObject') {
+    if (fieldConfig.kind === 'PrismaObject' && fieldConfig.pothosOptions.select) {
       return {
         ...fieldConfig,
         extensions: {

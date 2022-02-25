@@ -385,6 +385,7 @@ export class PrismaObjectFieldBuilder<
       ...options,
       extensions: {
         ...options.extensions,
+        pothosPrismaVariant: name,
         pothosPrismaSelect: usingSelect && {
           [name]: true,
         },

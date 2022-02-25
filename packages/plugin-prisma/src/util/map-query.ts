@@ -37,12 +37,17 @@ function addTypeSelectionsForField(
     return;
   }
 
-  const { pothosPrismaInclude, pothosPrismaSelect, pothosPrismaIndirectInclude } =
-    (type.extensions ?? {}) as {
-      pothosPrismaInclude?: IncludeMap;
-      pothosPrismaSelect?: IncludeMap;
-      pothosPrismaIndirectInclude?: IndirectInclude;
-    };
+  const {
+    pothosPrismaInclude,
+    pothosPrismaSelect,
+    pothosPrismaIndirectInclude,
+    pothosPrismaModel,
+  } = (type.extensions ?? {}) as {
+    pothosPrismaModel?: string;
+    pothosPrismaInclude?: IncludeMap;
+    pothosPrismaSelect?: IncludeMap;
+    pothosPrismaIndirectInclude?: IndirectInclude;
+  };
 
   if (pothosPrismaIndirectInclude) {
     resolveIndirectInclude(
@@ -61,7 +66,7 @@ function addTypeSelectionsForField(
     return;
   }
 
-  if (!pothosPrismaSelect) {
+  if (pothosPrismaModel && !pothosPrismaSelect) {
     state.mode = 'include';
   }
 
@@ -208,6 +213,7 @@ function addFieldSelection(
   }
 
   const fieldSelect = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
+
   let fieldSelectionMap: SelectionMap;
 
   const fieldParentSelect = field.extensions?.pothosPrismaParentSelect as
@@ -227,8 +233,8 @@ function addFieldSelection(
 
       const fieldState = createStateForType(returnType, info, state);
 
-      if (typeof query === 'object') {
-        mergeSelection(fieldState, query);
+      if (typeof query === 'object' && Object.keys(query).length > 0) {
+        mergeSelection(fieldState, { select: {}, ...query });
       }
 
       addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
