@@ -13,6 +13,7 @@ more details.
 ## Features
 
 - 🎨 Quickly define GraphQL types based on your Prisma models
+- 🦺 Strong type-safety throughout the entire API
 - 🤝 Automatically resolve relationships defined in your database
 - 🎣 Automatic Query optimization efficiently load the specific data needed to resolve a query
   (solves common N+1 issues)
@@ -26,10 +27,6 @@ more details.
 
 Here is a quick example of what an API using this plugin might look like. There is a more thorough
 breakdown of what the methods and options used in the example below.
-
-If you are looking for an example integrated with the
-[relay plugin](https://pothos-graphql.dev/docs/plugins/relay), see the
-[Relay integration](#relay-integration) section below.
 
 ```typescript
 // Create an object type based on a prisma model without providing any custom type information
@@ -142,15 +139,13 @@ so we need a separate to handle the second `posts` relation. These additional qu
 `findUnique` defined for the parent type to create a new efficient query to load any conflicting
 relations.
 
-## Usage
-
-### Install
+## Install
 
 ```bash
 yarn add @pothos/plugin-prisma
 ```
 
-### Setup
+## Setup
 
 This plugin requires a little more setup than other plugins because it integrates with the prisma to
 generate some types that help the plugin better understand your prisma schema. Previous versions of
@@ -158,9 +153,9 @@ this plugin used to infer all required types from the prisma client itself, but 
 poor dev experience because the complex types slowed down editors, and some more advanced use cases
 could not be typed correctly.
 
-#### Add a the `pothos` generator to your prisma schema
+### Add a the `pothos` generator to your prisma schema
 
-```prisma
+```
 generator pothos {
   provider = "prisma-pothos-types"
 }
@@ -182,7 +177,7 @@ additional options:
 
 Example with more options:
 
-```prisma
+```
 generator pothos {
   provider = "prisma-pothos-types"
   clientOutput = "@prisma/client"
@@ -190,7 +185,7 @@ generator pothos {
 }
 ```
 
-#### Set up the builder
+### Set up the builder
 
 ```typescript
 import SchemaBuilder from '@pothos/core';
@@ -216,7 +211,7 @@ It is strongly recommended NOT to put your prisma client into `Context`. This wi
 type-checking and a laggy developer experience in VSCode. See
 https://github.com/microsoft/TypeScript/issues/45405 for more details.
 
-### Creating some types with `builder.prismaObject`
+## Creating some types with `builder.prismaObject`
 
 `builder.prismaObject` takes 2 arguments:
 
@@ -250,7 +245,7 @@ or needing imports from prisma client.
 
 The `findUnique` option is described more below.
 
-### Adding prisma fields to non-prisma objects (including Query and Mutation)
+## Adding prisma fields to non-prisma objects (including Query and Mutation)
 
 There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma
 types:
@@ -286,7 +281,7 @@ The `query` object will contain an object with `include` or `select` options to 
 to resolve nested parts of the current query. The included/selected fields are based on which fields
 are being queried, and the options provided when defining those fields and types.
 
-### Adding relations
+## Adding relations
 
 You can add fields for relations using the `t.relation` method:
 
@@ -362,7 +357,7 @@ impossible to resolve everything in a single query. When this happens the `findU
 used to ensure that everything is still loaded correctly, and split into as few efficient queries as
 possible.
 
-#### Find Unique
+### Find Unique
 
 The `findUnique` function will receive an instance of the prisma model the current type is defining,
 and should return an object that will be passed as a `where` in a `prisma.findUnique`. Generally,
@@ -376,17 +371,17 @@ required for the fields that could not be resolved without an additional query.
 The following are some edge cases that could cause an additional query to be necessary:
 
 - The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
-- The root `prismaField` did not correctly spread the `query` arguments in is prisma call.
-- `t.field` was used instead of `t.prismaField`
-- The query selects multiple fields that use the same relation with different queries
-- The query contains multiple aliases fr the same relation field with different arguments in a way
+- The root `prismaField` did not correctly spread the `query` arguments in is prisma call.`
+- The query selects multiple fields that use the same relation with incompatible options (order,
+  limit, or other filters)
+- The query contains multiple aliases for the same relation field with different arguments in a way
   that results in different query options for the relation.
-- A relation field has a query that is incompatible with default includes of the parent object
+- A relation field has a query that is incompatible with the default includes of the parent object
 
 All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
 types of edge cases are automatically handled when they do occur.
 
-#### Without Find Unique
+### Without Find Unique
 
 This is generally _NOT RECOMMENDED_, but you can set `findUnique` to null for some prisma objects.
 Doing this will prevent the plugin from resolving queries for conflicting relations. Because of
@@ -412,12 +407,13 @@ builder.prismaObject('User', {
 });
 ```
 
-#### Filters, Sorting, and arguments
+### Filters, Sorting, and arguments
 
 So far we have been describing very simple queries without any arguments, filtering, or sorting. For
 `t.prismaField` definitions, you can add arguments to your field like normal, and pass them into
 your prisma query as needed. For `t.relation` the flow is slightly different because we are not
-making a prisma query directly. We do this by adding a `query` option to our field options.
+making a prisma query directly. We do this by adding a `query` option to our field options. Query
+can either be a query object, or a method that returns a query object based on the field arguments.
 
 ```typescript
 builder.prismaObject('User', {
@@ -479,7 +475,7 @@ query method will not be applied correctly. If you have a where in both your que
 resolver, you will need to ensure these are merged correctly. It is generally better NOT to use a
 custom resolver.
 
-### relationCount
+## relationCount
 
 Prisma supports querying for
 [relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
@@ -496,7 +492,7 @@ builder.prismaObject('User', {
 });
 ```
 
-### Includes on types
+## Includes on types
 
 In some cases, you may want to always pre-load certain relations. This can be helpful for defining
 fields directly on type where the underlying data may come from a related table.
@@ -521,7 +517,7 @@ builder.prismaObject('User', {
 });
 ```
 
-### Select mode for types
+## Select mode for types
 
 By default, the prisma plugin will use `include` when including relations, or generating fallback
 queries. This means we are always loading all columns of a table when loading it in a
@@ -572,6 +568,80 @@ builder.prismaObject('User', {
       resolve: (user) => user.profile.bio,
     }),
   }),
+});
+```
+
+## Type variants
+
+The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
+Additional types are called `variants`. You will always need to have a "Primary" variant (defined as
+described above). Additional variants can be defined by providing a `variant` option instead of a
+`name` option when creating the type:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+});
+```
+
+You can define variant fields that reference one variant from another:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // Using the model name ('User') will reference the primary variant
+    user: t.variant('User'),
+  });
+});
+
+const User = builder.prismaNode('User', {
+  // Testing that user is typed correctly
+  authScopes: (user) => !!user.id,
+  interfaces: [Named],
+  id: {
+    resolve: (user) => user.id,
+  },
+  fields: (t) => ({
+    // To reference another variant, use the returned object Ref instead of the model name:
+    viewer: t.variant(Viewer, {}),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+You can also use variants when defining relations by providing a `type` option:
+
+```typescript
+const PostDraft = builder.prismaNode('Post', {
+  variant: 'PostDraft'
+  // This is used to load the node by id
+  findUnique: (id) => ({ id }),
+  // This is used to get the id from a node
+  id: { resolve: (post) => post.id },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    drafts: t.relation('posts', {
+      // This will cause this relation to use the PostDraft variant rather than the default Post variant
+      type: PostDraft,
+      query: { where: { draft: true } },
+    }),
+  });
 });
 ```
 
