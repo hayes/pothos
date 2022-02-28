@@ -1,5 +1,11 @@
 # Change Log
 
+## 0.19.0
+
+### Minor Changes
+
+- cf4a2d14: Add support for using selects instead of includes in queries
+
 ## 0.18.0
 
 ### Minor Changes

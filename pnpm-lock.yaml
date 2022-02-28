@@ -151,7 +151,7 @@ importers:
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^6.0.0-alpha.6
-      '@pothos/core': ^3.2.0
+      '@pothos/core': ^3.3.3
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-relay': workspace:*
       '@prisma/client': ^3.9.2

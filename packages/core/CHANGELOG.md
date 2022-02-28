@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.3.3
+
+### Patch Changes
+
+- cf4a2d14: cleanup style and comments
+
 ## 3.3.2
 
 ### Patch Changes
