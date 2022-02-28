@@ -371,7 +371,7 @@ export class PrismaObjectFieldBuilder<
             {},
             ResolveReturnShape
           >,
-          'resolve'
+          'resolve' | 'select'
         >,
       ]
     >
@@ -411,7 +411,7 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'resolve' | 'type'
+            'resolve' | 'type' | 'select'
           >,
         ]
       >

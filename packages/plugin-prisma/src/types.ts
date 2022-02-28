@@ -99,17 +99,19 @@ interface BaseSelection {
   select?: unknown;
 }
 
+export type SelectedKeys<T> = { [K in keyof T]: T[K] extends false ? never : K }[keyof T];
+
 export type ShapeFromSelection<Model extends PrismaModelTypes, Selection> = Normalize<
-  (Selection extends BaseSelection
+  Selection extends BaseSelection
     ? unknown extends Selection['select']
       ? Model['Shape'] & RelationShapeFromInclude<Model, Selection['include']>
-      : Pick<Model['Shape'], keyof Selection['select']> &
+      : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
           RelationShapeFromInclude<Model, Selection['select']>
-    : Model['Shape']) & { [prismaModelName]?: Model['Name'] }
+    : Model['Shape']
 >;
 
 type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normalize<{
-  [K in keyof Include as K extends Model['RelationName']
+  [K in SelectedKeys<Include> as K extends Model['RelationName']
     ? K
     : never]: K extends keyof Model['Relations']
     ? Model['Relations'][K]['Shape'] extends unknown[]
@@ -136,7 +138,7 @@ export type PrismaObjectTypeOptions<
       Types,
       Model,
       FindUnique extends null ? true : false,
-      Shape,
+      Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
       Select
     >;
   } & (
@@ -191,7 +193,13 @@ export type PrismaNodeOptions<
     > & {
       resolve: (parent: Shape, context: Types['Context']) => MaybePromise<OutputShape<Types, 'ID'>>;
     };
-    fields?: PrismaObjectFieldsShape<Types, Model, false, Shape, Select>;
+    fields?: PrismaObjectFieldsShape<
+      Types,
+      Model,
+      false,
+      Shape & { [prismaModelName]?: Model['Name'] },
+      Select
+    >;
     findUnique: (id: string, context: Types['Context']) => Model['Where'];
   } & (
     | {

@@ -80,7 +80,6 @@ declare global {
         Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
         Include = unknown,
         Select = unknown,
-        Shape extends object = ShapeFromSelection<Model, { select: Select; include: Include }>,
       >(
         name: Name,
         options: PrismaObjectTypeOptions<
@@ -90,9 +89,9 @@ declare global {
           FindUnique,
           Include,
           Select,
-          Shape
+          ShapeFromSelection<Model, { select: Select; include: Include }>
         >,
-      ) => PrismaObjectRef<Model, Shape>;
+      ) => PrismaObjectRef<Model, ShapeFromSelection<Model, { select: Select; include: Include }>>;
 
       prismaNode: 'relay' extends PluginName
         ? <
@@ -100,9 +99,6 @@ declare global {
             Interfaces extends InterfaceParam<Types>[] = [],
             Include = unknown,
             Select = unknown,
-            Shape extends object = Types['PrismaTypes'][Name] extends PrismaModelTypes
-              ? ShapeFromSelection<Types['PrismaTypes'][Name], { select: Select; include: Include }>
-              : never,
           >(
             name: Name,
             options: PrismaNodeOptions<
@@ -111,9 +107,18 @@ declare global {
               Interfaces,
               Include,
               Select,
-              Shape
+              ShapeFromSelection<
+                PrismaModelTypes & Types['PrismaTypes'][Name],
+                { select: Select; include: Include }
+              >
             >,
-          ) => PrismaNodeRef<Types['PrismaTypes'][Name] & PrismaModelTypes, Shape>
+          ) => PrismaNodeRef<
+            Types['PrismaTypes'][Name] & PrismaModelTypes,
+            ShapeFromSelection<
+              PrismaModelTypes & Types['PrismaTypes'][Name],
+              { select: Select; include: Include }
+            >
+          >
         : '@pothos/plugin-relay is required to use this method';
     }
 
