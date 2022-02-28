@@ -10,7 +10,7 @@ prisma.$use((params, next) => {
   return next(params);
 });
 
-describe('prisma', () => {
+describe('prisma counts', () => {
   afterEach(() => {
     queries = [];
   });
@@ -52,99 +52,104 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "me": Object {
-      "anotherPostCount": 250,
-      "oldPosts": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "id": "1",
+      Object {
+        "data": Object {
+          "me": Object {
+            "anotherPostCount": 250,
+            "oldPosts": Object {
+              "edges": Array [
+                Object {
+                  "node": Object {
+                    "id": "1",
+                  },
+                },
+              ],
+              "totalCount": 250,
+            },
+            "postCount": 250,
+            "postsConnection": Object {
+              "edges": Array [
+                Object {
+                  "node": Object {
+                    "id": "250",
+                  },
+                },
+              ],
+              "totalCount": 250,
             },
           },
-        ],
-        "totalCount": 250,
-      },
-      "postCount": 250,
-      "postsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "id": "250",
-            },
-          },
-        ],
-        "totalCount": 250,
-      },
-    },
-  },
-}
-`);
+        },
+      }
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "_count": Object {
-          "select": Object {
-            "posts": true,
-          },
-        },
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "_count": Object {
+                "select": Object {
+                  "posts": true,
+                },
+              },
+              "posts": Object {
+                "include": Object {
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                  },
+                },
+                "orderBy": Object {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
               },
             },
-          },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "skip": 0,
-          "take": 2,
-        },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
+            "where": Object {
+              "id": 1,
             },
           },
-          "orderBy": Object {
-            "createdAt": "asc",
-          },
-          "skip": 0,
-          "take": 2,
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "_count": Object {
+                "select": Object {
+                  "posts": true,
+                },
+              },
+              "posts": Object {
+                "include": Object {
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                  },
+                },
+                "orderBy": Object {
+                  "createdAt": "asc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
   });
 
   it('nested in single item', async () => {
@@ -189,121 +194,117 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "post": Object {
-      "author": Object {
-        "postCount": 250,
-        "postsConnection": Object {
-          "totalCount": 250,
-        },
-        "profile": Object {
-          "user": Object {
-            "postCount": 250,
-          },
-        },
-      },
-      "id": "1",
-    },
-    "users": Array [
       Object {
-        "profile": Object {
-          "user": Object {
-            "profile": Object {
-              "user": Object {
-                "profile": Object {
-                  "user": Object {
-                    "postCount": 250,
-                  },
-                },
+        "data": Object {
+          "post": Object {
+            "author": Object {
+              "postCount": 250,
+              "postsConnection": Object {
+                "totalCount": 250,
               },
-            },
-          },
-        },
-      },
-      Object {
-        "profile": null,
-      },
-    ],
-  },
-}
-`);
-
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "author": Object {
-          "include": Object {
-            "_count": Object {
-              "select": Object {
-                "posts": true,
-              },
-            },
-            "posts": Object {
-              "include": Object {
-                "comments": Object {
-                  "include": Object {
-                    "author": true,
-                  },
-                },
-              },
-              "orderBy": Object {
-                "createdAt": "desc",
-              },
-              "skip": 0,
-              "take": 21,
-            },
-            "profile": Object {
-              "include": Object {
+              "profile": Object {
                 "user": Object {
-                  "include": Object {
-                    "_count": Object {
-                      "select": Object {
-                        "posts": true,
+                  "postCount": 250,
+                },
+              },
+            },
+            "id": "1",
+          },
+          "users": Array [
+            Object {
+              "profile": Object {
+                "user": Object {
+                  "profile": Object {
+                    "user": Object {
+                      "profile": Object {
+                        "user": Object {
+                          "postCount": 250,
+                        },
                       },
                     },
                   },
                 },
               },
             },
-          },
+            Object {
+              "profile": null,
+            },
+          ],
         },
-        "comments": Object {
-          "include": Object {
-            "author": true,
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "author": Object {
+                "include": Object {
+                  "_count": Object {
+                    "select": Object {
+                      "posts": true,
+                    },
+                  },
+                  "posts": Object {
+                    "orderBy": Object {
+                      "createdAt": "desc",
+                    },
+                    "skip": 0,
+                    "take": 21,
+                  },
+                  "profile": Object {
+                    "include": Object {
+                      "user": Object {
+                        "include": Object {
+                          "_count": Object {
+                            "select": Object {
+                              "posts": true,
+                            },
+                          },
+                        },
+                      },
+                    },
+                  },
+                },
+              },
+              "comments": Object {
+                "include": Object {
+                  "author": true,
+                },
+              },
+            },
+            "where": Object {
+              "id": 1,
+            },
           },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "profile": Object {
-          "include": Object {
-            "user": Object {
-              "include": Object {
-                "profile": Object {
-                  "include": Object {
-                    "user": Object {
-                      "include": Object {
-                        "profile": Object {
-                          "include": Object {
-                            "user": Object {
-                              "include": Object {
-                                "_count": Object {
-                                  "select": Object {
-                                    "posts": true,
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "include": Object {
+              "profile": Object {
+                "include": Object {
+                  "user": Object {
+                    "include": Object {
+                      "profile": Object {
+                        "include": Object {
+                          "user": Object {
+                            "include": Object {
+                              "profile": Object {
+                                "include": Object {
+                                  "user": Object {
+                                    "include": Object {
+                                      "_count": Object {
+                                        "select": Object {
+                                          "posts": true,
+                                        },
+                                      },
+                                    },
                                   },
                                 },
                               },
@@ -316,17 +317,14 @@ Array [
                 },
               },
             },
+            "take": 2,
           },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "take": 2,
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 
   it('nested in list of item', async () => {
@@ -357,115 +355,115 @@ Array [
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "posts": Array [
       Object {
-        "author": Object {
-          "postCount": 250,
-          "postsConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
-                  "author": Object {
-                    "postCount": 250,
-                  },
-                },
-              },
-            ],
-            "totalCount": 250,
-          },
-        },
-      },
-      Object {
-        "author": Object {
-          "postCount": 250,
-          "postsConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
-                  "author": Object {
-                    "postCount": 250,
-                  },
-                },
-              },
-            ],
-            "totalCount": 250,
-          },
-        },
-      },
-      Object {
-        "author": Object {
-          "postCount": 250,
-          "postsConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
-                  "author": Object {
-                    "postCount": 250,
-                  },
-                },
-              },
-            ],
-            "totalCount": 250,
-          },
-        },
-      },
-    ],
-  },
-}
-`);
-    expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findMany",
-    "args": Object {
-      "include": Object {
-        "author": Object {
-          "include": Object {
-            "_count": Object {
-              "select": Object {
-                "posts": true,
-              },
-            },
-            "posts": Object {
-              "include": Object {
-                "author": Object {
-                  "include": Object {
-                    "_count": Object {
-                      "select": Object {
-                        "posts": true,
+        "data": Object {
+          "posts": Array [
+            Object {
+              "author": Object {
+                "postCount": 250,
+                "postsConnection": Object {
+                  "edges": Array [
+                    Object {
+                      "node": Object {
+                        "author": Object {
+                          "postCount": 250,
+                        },
                       },
                     },
-                  },
-                },
-                "comments": Object {
-                  "include": Object {
-                    "author": true,
-                  },
+                  ],
+                  "totalCount": 250,
                 },
               },
-              "orderBy": Object {
-                "createdAt": "desc",
-              },
-              "skip": 0,
-              "take": 2,
             },
-          },
+            Object {
+              "author": Object {
+                "postCount": 250,
+                "postsConnection": Object {
+                  "edges": Array [
+                    Object {
+                      "node": Object {
+                        "author": Object {
+                          "postCount": 250,
+                        },
+                      },
+                    },
+                  ],
+                  "totalCount": 250,
+                },
+              },
+            },
+            Object {
+              "author": Object {
+                "postCount": 250,
+                "postsConnection": Object {
+                  "edges": Array [
+                    Object {
+                      "node": Object {
+                        "author": Object {
+                          "postCount": 250,
+                        },
+                      },
+                    },
+                  ],
+                  "totalCount": 250,
+                },
+              },
+            },
+          ],
         },
-        "comments": Object {
-          "include": Object {
-            "author": true,
+      }
+    `);
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "include": Object {
+              "author": Object {
+                "include": Object {
+                  "_count": Object {
+                    "select": Object {
+                      "posts": true,
+                    },
+                  },
+                  "posts": Object {
+                    "include": Object {
+                      "author": Object {
+                        "include": Object {
+                          "_count": Object {
+                            "select": Object {
+                              "posts": true,
+                            },
+                          },
+                        },
+                      },
+                      "comments": Object {
+                        "include": Object {
+                          "author": true,
+                        },
+                      },
+                    },
+                    "orderBy": Object {
+                      "createdAt": "desc",
+                    },
+                    "skip": 0,
+                    "take": 2,
+                  },
+                },
+              },
+              "comments": Object {
+                "include": Object {
+                  "author": true,
+                },
+              },
+            },
+            "take": 3,
           },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
         },
-      },
-      "take": 3,
-    },
-    "dataPath": Array [],
-    "model": "Post",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 });

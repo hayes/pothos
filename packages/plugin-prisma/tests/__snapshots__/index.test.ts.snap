@@ -84,6 +84,8 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   post(id: ID!): Post
   posts: [Post!]!
+  selectMe: SelectUser
+  selectPosts: [SelectPost!]!
   unrelatedConnection(after: ID, before: ID, first: Int, last: Int): QueryUnrelatedConnection!
   userConnection(after: ID, before: ID, first: Int, last: Int): QueryUserConnection!
   userConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): QueryUserConnectionWithErrorsResult!
@@ -134,6 +136,45 @@ union QueryUsersWithErrorResult = BaseError | QueryUsersWithErrorSuccess
 
 type QueryUsersWithErrorSuccess {
   data: [User!]!
+}
+
+type SelectPost implements Node {
+  content: String
+  createdAt: String!
+  id: ID!
+  title: String!
+}
+
+type SelectUser implements Node {
+  email: String!
+  following(after: ID, before: ID, first: Int, last: Int): SelectUserFollowingConnection!
+  id: ID!
+  name: String
+  postCount: Int!
+  posts: [SelectPost!]!
+  postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean): SelectUserPostsConnection!
+  profile: Profile
+}
+
+type SelectUserFollowingConnection {
+  edges: [SelectUserFollowingConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type SelectUserFollowingConnectionEdge {
+  cursor: String!
+  node: Follow!
+}
+
+type SelectUserPostsConnection {
+  edges: [SelectUserPostsConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type SelectUserPostsConnectionEdge {
+  cursor: String!
+  node: SelectPost!
 }
 
 type Unrelated {
@@ -228,6 +269,7 @@ type Viewer {
   bio: String
   id: ID!
   posts: [Post!]!
+  selectUser: SelectUser!
   user: User!
 }
 

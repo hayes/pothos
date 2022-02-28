@@ -10,20 +10,21 @@ import SchemaBuilder, {
   TypeParam,
 } from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
+import { ModelLoader } from './model-loader';
 import PrismaNodeRef from './node-ref';
-import { getDelegateFromModel, getRefFromModel, setFindUniqueForRef } from './refs';
-import { ModelTypes, PrismaDelegate, PrismaNodeOptions } from './types';
-import { queryFromInfo } from './util';
+import { PrismaModelTypes, PrismaNodeOptions } from './types';
+import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
+import { queryFromInfo } from './util/map-query';
+import { getRelationMap } from './util/relation-map';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
 schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
   const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
+  const fieldMap = getRelationMap(this.options.prisma.client).get(type)!;
 
   ref.name = name;
-
-  setFindUniqueForRef(ref, this, findUnique);
 
   this.objectType(ref, {
     ...(options as {} as PothosSchemaTypes.ObjectFieldOptions<
@@ -38,9 +39,29 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
       ...options.extensions,
       pothosPrismaInclude: options.include,
       pothosPrismaModel: type,
+      pothosPrismaFieldMap: fieldMap,
+      pothosPrismaSelect: options.select,
+      pothosPrismaLoader: ModelLoader.forRef(
+        type,
+        (findUnique as never) ||
+          (() => {
+            throw new Error(`Missing findUnique for ${ref.name}`);
+          }),
+        this,
+      ),
     },
     name,
-    fields: fields ? () => fields(new PrismaObjectFieldBuilder(name, this, type)) : undefined,
+    fields: fields
+      ? () =>
+          fields(
+            new PrismaObjectFieldBuilder(
+              name,
+              this,
+              type,
+              getRelationMap(this.options.prisma.client).get(type)!,
+            ),
+          )
+      : undefined,
   });
 
   return ref as never;
@@ -56,7 +77,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     name,
     variant,
     ...options
-  }: PrismaNodeOptions<SchemaTypes, ModelTypes<PrismaDelegate>, [], never, {}>,
+  }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}>,
 ) {
   const interfaceRef = this.nodeInterfaceRef?.();
 

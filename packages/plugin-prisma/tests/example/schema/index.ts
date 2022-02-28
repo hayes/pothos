@@ -21,8 +21,8 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   findUnique: (user) => ({ id: user.id }),
-  include: {
-    profile: true,
+  select: {
+    id: true,
   },
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -32,7 +32,15 @@ const Viewer = builder.prismaObject('User', {
       },
     }),
     user: t.variant('User'),
+    selectUser: t.variant(SelectUser),
     bio: t.string({
+      select: {
+        profile: {
+          select: {
+            bio: true,
+          },
+        },
+      },
       nullable: true,
       resolve: (user) => user.profile?.bio,
     }),
@@ -145,6 +153,71 @@ const User = builder.prismaNode('User', {
     }),
     following: t.relatedConnection('following', {
       cursor: 'compositeID',
+    }),
+  }),
+});
+
+const SelectUser = builder.prismaNode('User', {
+  variant: 'SelectUser',
+  authScopes: (user) => !!user.id,
+  id: {
+    resolve: (user) => user.id,
+  },
+  select: {
+    id: true,
+  },
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    email: t.exposeString('email'),
+    name: t.exposeString('name', { nullable: true }),
+    profile: t.relation('profile', {
+      nullable: true,
+    }),
+    postCount: t.relationCount('posts'),
+    following: t.relatedConnection('following', {
+      cursor: 'compositeID',
+    }),
+    posts: t.relation('posts', {
+      type: SelectPost,
+      query: {
+        take: 5,
+      },
+    }),
+    postsConnection: t.relatedConnection('posts', {
+      type: SelectPost,
+      args: {
+        oldestFirst: t.arg.boolean(),
+      },
+      query: (args) => ({
+        orderBy: {
+          createdAt: args.oldestFirst ? 'asc' : 'desc',
+        },
+      }),
+      cursor: 'id',
+      totalCount: true,
+    }),
+  }),
+});
+
+const SelectPost = builder.prismaNode('Post', {
+  variant: 'SelectPost',
+  id: {
+    resolve: (post) => post.id,
+  },
+  select: {
+    id: true,
+  },
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    content: t.exposeString('content', {
+      nullable: true,
+    }),
+    createdAt: t.string({
+      select: {
+        createdAt: true,
+      },
+      resolve: (post) => post.createdAt.toISOString(),
     }),
   }),
 });
@@ -280,6 +353,15 @@ builder.queryType({
           where: { id: ctx.user.id },
         }),
     }),
+    selectMe: t.prismaField({
+      type: SelectUser,
+      nullable: true,
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findUnique({
+          ...query,
+          where: { id: ctx.user.id },
+        }),
+    }),
     users: t.prismaField({
       type: ['User'],
       resolve: async (query, root, args, ctx, info) =>
@@ -302,6 +384,10 @@ builder.queryType({
     }),
     posts: t.prismaField({
       type: ['Post'],
+      resolve: (query, root, args) => prisma.post.findMany({ ...query, take: 3 }),
+    }),
+    selectPosts: t.prismaField({
+      type: [SelectPost],
       resolve: (query, root, args) => prisma.post.findMany({ ...query, take: 3 }),
     }),
     usersWithError: t.prismaField({

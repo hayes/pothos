@@ -10,6 +10,7 @@ import {
   InterfaceParam,
   ListResolveValue,
   MaybePromise,
+  Normalize,
   ObjectRef,
   OutputShape,
   OutputType,
@@ -26,52 +27,17 @@ export interface PrismaDelegate {
   findUnique: (...args: any[]) => Promise<unknown>;
 }
 
-type RelationKeys<T> = {
-  [K in keyof T]: T[K] extends (args: {}) => {
-    then: (cb: (result: unknown) => unknown) => unknown;
-  }
-    ? K
-    : never;
-}[keyof T];
-
-export type ModelTypes<Model extends {}> = Model extends {
-  findUnique: (
-    options: infer UniqueOptions & {
-      where?: infer Where | null | undefined;
-      select?: infer Select | null | undefined;
-    } & (
-        | {
-            include?: infer Include | null | undefined;
-          }
-        | {}
-      ),
-  ) => infer Chain & {
-    then: (cb: (result: infer Shape | null) => unknown) => unknown;
-  };
-}
-  ? PrismaModelTypes & {
-      Shape: Shape;
-      Include: unknown extends Include ? never : Include;
-      Where: Where;
-      Fields: keyof Select;
-      ListRelation: ListRelationFields<Include> & string;
-      Relations: {
-        [RelationName in RelationKeys<Chain>]: Chain[RelationName] extends (args: {}) => {
-          then: (cb: (result: infer Relation) => unknown) => unknown;
-        }
-          ? { Shape: Relation; Types: PrismaModelTypes }
-          : never;
-      };
-    }
-  : never;
+export const prismaModelName = Symbol.for('Pothos.prismaModelName');
 
 export interface PrismaModelTypes {
   Name: string;
   Shape: {};
   Include: unknown;
+  Select: unknown;
   Where: {};
   Fields: string;
   ListRelations: string;
+  RelationName: string;
   Relations: Record<
     string,
     {
@@ -81,52 +47,86 @@ export interface PrismaModelTypes {
   >;
 }
 
-export type ListRelationFields<T> = {
-  [K in keyof T]: T[K] extends infer Option
-    ? Option extends { orderBy?: unknown }
-      ? K
+type ExtractModel<Types extends SchemaTypes, ParentShape> = ParentShape extends {
+  [prismaModelName]?: infer Name;
+}
+  ? Types['PrismaTypes'][Name & keyof Types['PrismaTypes']] extends infer Model
+    ? Model extends PrismaModelTypes
+      ? Model
       : never
-    : never;
-}[keyof T];
+    : never
+  : never;
 
-export type PrismaObjectFieldsShape<
+export type PrismaObjectFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Select,
+  ResolveReturnShape,
+> = PothosSchemaTypes.ObjectFieldOptions<
+  Types,
+  unknown extends Select
+    ? ParentShape
+    : ParentShape & ShapeFromSelection<ExtractModel<Types, ParentShape>, { select: Select }>,
+  Type,
+  Nullable,
+  Args,
+  ResolveReturnShape
+> & {
+  select?: ExtractModel<Types, ParentShape>['Select'] & Select;
+};
+
+type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
   Shape extends object,
-> = (t: PrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>) => FieldMap;
+  Select,
+> = Model['Select'] extends Select
+  ? (t: PrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>) => FieldMap
+  : (t: PrismaSelectionFieldBuilder<Types, Model, Shape>) => FieldMap;
 
-export type ShapeFromInclude<Model extends PrismaModelTypes, Include> = {} extends Include
-  ? Model['Shape']
-  : {
-      [K in keyof Include &
-        keyof Model['Relations']]: Model['Relations'][K]['Shape'] extends infer RelationShape
-        ? RelationShape extends (infer ItemShape)[]
-          ? (ItemShape &
-              (Include[K] extends { include?: infer NestedInclude & object }
-                ? ShapeFromInclude<Model['Relations'][K]['Types'], NestedInclude>
-                : {}))[]
-          : RelationShape &
-              (
-                | (Include[K] extends { include?: infer NestedInclude & object }
-                    ? ShapeFromInclude<Model['Relations'][K]['Types'], NestedInclude>
-                    : {})
-                | null
-              )
-        : never;
-    };
-
-export type ShapeWithInclude<
+type PrismaSelectionFieldBuilder<
+  Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  Include extends Model['Include'],
-> = Model['Shape'] & ([Include] extends [never] ? {} : ShapeFromInclude<Model, Include>);
+  Shape extends object,
+> = PrismaObjectFieldBuilder<Types, Model, false, Shape>;
+
+interface BaseSelection {
+  include?: unknown;
+  select?: unknown;
+}
+
+export type SelectedKeys<T> = { [K in keyof T]: T[K] extends false ? never : K }[keyof T];
+
+export type ShapeFromSelection<Model extends PrismaModelTypes, Selection> = Normalize<
+  Selection extends BaseSelection
+    ? unknown extends Selection['select']
+      ? Model['Shape'] & RelationShapeFromInclude<Model, Selection['include']>
+      : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
+          RelationShapeFromInclude<Model, Selection['select']>
+    : Model['Shape']
+>;
+
+type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normalize<{
+  [K in SelectedKeys<Include> as K extends Model['RelationName']
+    ? K
+    : never]: K extends keyof Model['Relations']
+    ? Model['Relations'][K]['Shape'] extends unknown[]
+      ? ShapeFromSelection<Model['Relations'][K]['Types'], Include[K]>[]
+      : ShapeFromSelection<Model['Relations'][K]['Types'], Include[K]>
+    : unknown;
+}>;
 
 export type PrismaObjectTypeOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
   FindUnique,
-  Include extends Model['Include'],
+  Include,
+  Select,
   Shape extends object,
 > = NameOrVariant &
   Omit<
@@ -134,13 +134,28 @@ export type PrismaObjectTypeOptions<
     | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
     'fields'
   > & {
-    include?: Include;
-    fields?: PrismaObjectFieldsShape<Types, Model, FindUnique extends null ? true : false, Shape>;
-    findUnique: FindUnique &
-      (((parent: Shape, context: Types['Context']) => Model['Where']) | null);
-  };
+    fields?: PrismaObjectFieldsShape<
+      Types,
+      Model,
+      FindUnique extends null ? true : false,
+      Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
+      Select
+    >;
+  } & (
+    | {
+        include?: Include & Model['Include'];
+        select?: never;
+        findUnique: FindUnique &
+          (((parent: Shape, context: Types['Context']) => Model['Where']) | null);
+      }
+    | {
+        select: Model['Select'] & Select;
+        include?: never;
+        findUnique: (parent: Shape, context: Types['Context']) => Model['Where'];
+      }
+  );
 
-export type NameOrVariant =
+type NameOrVariant =
   | {
       name?: never;
       variant?: string;
@@ -154,7 +169,8 @@ export type PrismaNodeOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Interfaces extends InterfaceParam<Types>[],
-  Include extends Model['Include'],
+  Include,
+  Select,
   Shape extends object,
 > = NameOrVariant &
   Omit<
@@ -162,7 +178,6 @@ export type PrismaNodeOptions<
     | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
     'fields' | 'isTypeOf'
   > & {
-    include?: Include;
     id: Omit<
       FieldOptionsFromKind<
         Types,
@@ -178,11 +193,26 @@ export type PrismaNodeOptions<
     > & {
       resolve: (parent: Shape, context: Types['Context']) => MaybePromise<OutputShape<Types, 'ID'>>;
     };
-    fields?: PrismaObjectFieldsShape<Types, Model, false, Shape>;
+    fields?: PrismaObjectFieldsShape<
+      Types,
+      Model,
+      false,
+      Shape & { [prismaModelName]?: Model['Name'] },
+      Select
+    >;
     findUnique: (id: string, context: Types['Context']) => Model['Where'];
-  };
+  } & (
+    | {
+        include?: Include & Model['Include'];
+        select?: never;
+      }
+    | {
+        select: Model['Select'] & Select;
+        include?: never;
+      }
+  );
 
-export type QueryForField<
+type QueryForField<
   Types extends SchemaTypes,
   Args extends InputFieldMap,
   Include,
@@ -195,18 +225,19 @@ export type QueryForField<
         ) => Omit<Include, 'include' | 'select'>)
   : never;
 
-export type IncludeFromRelation<
+type QueryFromRelation<
   Model extends PrismaModelTypes,
   Field extends keyof Model['Include'],
 > = Model['Include'][Field] extends infer Include
   ? Include extends {
-      include?: infer T;
+      include?: infer I;
+      select?: infer S;
     }
-    ? NonNullable<T>
+    ? { include?: NonNullable<I>; select?: NonNullable<S> }
     : never
   : never;
 
-export type CursorFromRelation<
+type CursorFromRelation<
   Model extends PrismaModelTypes,
   Field extends Model['ListRelations'],
 > = Field extends keyof Model['Include']
@@ -217,7 +248,7 @@ export type CursorFromRelation<
     : never
   : never;
 
-export type RefForRelation<
+type RefForRelation<
   Model extends PrismaModelTypes,
   Field extends keyof Model['Relations'],
 > = Model['Relations'][Field] extends unknown[]
@@ -247,7 +278,7 @@ export type RelatedFieldOptions<
   (NeedsResolve extends false
     ? {
         resolve?: (
-          query: { include?: IncludeFromRelation<Model, Field & keyof Model['Include']> },
+          query: QueryFromRelation<Model, Field & keyof Model['Include']>,
           parent: Shape,
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
@@ -258,7 +289,7 @@ export type RelatedFieldOptions<
       }
     : {
         resolve: (
-          query: { include?: IncludeFromRelation<Model, Field & keyof Model['Include']> },
+          query: QueryFromRelation<Model, Field & keyof Model['Include']>,
           parent: Shape,
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
@@ -472,31 +503,36 @@ export type RelatedConnectionOptions<
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
 
-export type IncludeMap = Record<string, Record<string, unknown> | boolean>;
+export type IncludeMap = Record<string, SelectionMap | boolean>;
 
-export interface IncludeCounts {
-  current: Record<string, boolean>;
-  parent: Record<string, boolean>;
+export interface SelectionMap {
+  select?: Record<string, SelectionMap | boolean>;
+  include?: Record<string, SelectionMap | boolean>;
+  where?: {};
 }
+
+export type FieldSelection =
+  | Record<string, SelectionMap | boolean>
+  | ((
+      args: object,
+      context: object,
+      query: (
+        selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
+      ) => SelectionMap | boolean,
+    ) => SelectionMap);
 
 export type LoaderMappings = Record<
   string,
   {
     field: string;
-    alias?: string;
     mappings: LoaderMappings;
     indirectPath: string[];
-  }[]
+  }
 >;
 
-export interface SubFieldInclude {
-  type?: string;
-  name: string;
-}
-
-export interface IndirectLoadMap {
-  subFields: SubFieldInclude[];
-  path: string[];
+export interface IndirectInclude {
+  getType: () => string;
+  path: { type?: string; name: string }[];
 }
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;

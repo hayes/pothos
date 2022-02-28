@@ -15,8 +15,8 @@
   "dependencies": {
     "@faker-js/faker": "^6.0.0-alpha.6",
     "@graphql-yoga/node": "0.0.1-beta.2",
-    "@pothos/core": "^3.2.0",
-    "@pothos/plugin-relay": "workspace:^3.4.0",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
     "graphql": "16.3.0",
     "prisma": "^3.9.2",
     "ts-node": "^10.5.0"

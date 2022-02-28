@@ -1,46 +1,66 @@
 /* eslint-disable no-underscore-dangle */
 import { GraphQLResolveInfo } from 'graphql';
 import {
+  CompatibleTypes,
+  FieldKind,
   FieldRef,
   InputFieldMap,
   MaybePromise,
   NormalizeArgs,
-  ObjectFieldBuilder,
   ObjectRef,
   PluginName,
+  RootFieldBuilder,
   SchemaTypes,
+  TypeParam,
 } from '@pothos/core';
-import { prismaCursorConnectionQuery, wrapConnectionResult } from './cursors';
-import { getLoaderMapping, setLoaderMappings } from './loader-map';
-import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
 import {
-  getCursorFormatter,
-  getCursorParser,
-  getDelegateFromModel,
-  getFindUniqueForRef,
-  getRefFromModel,
-  getRelation,
-} from './refs';
-import {
-  PrismaDelegate,
   PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
   RelationCountOptions,
   ShapeFromConnection,
+  VariantFieldOptions,
 } from './types';
-import { queryFromInfo, SELF_RELATION } from './util';
-import { VariantFieldOptions } from '.';
+import { prismaCursorConnectionQuery, wrapConnectionResult } from './util/cursors';
+import {
+  getCursorFormatter,
+  getCursorParser,
+  getRefFromModel,
+  getRelation,
+} from './util/datamodel';
+import { FieldMap } from './util/relation-map';
+
+// Workaround for FieldKind not being extended on Builder classes
+const RootBuilder: {
+  // eslint-disable-next-line @typescript-eslint/prefer-function-type
+  new <Types extends SchemaTypes, Shape, Kind extends FieldKind>(
+    name: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    kind: FieldKind,
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
+  ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
+} = RootFieldBuilder as never;
 
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   NeedsResolve extends boolean,
   Shape extends object = Model['Shape'],
-> extends ObjectFieldBuilder<Types, Shape> {
-  delegate: PrismaDelegate;
+> extends RootBuilder<Types, Shape, 'PrismaObject'> {
   model: string;
+  prismaFieldMap: FieldMap;
+
+  exposeBoolean = this.createExpose('Boolean');
+  exposeFloat = this.createExpose('Float');
+  exposeInt = this.createExpose('Int');
+  exposeID = this.createExpose('ID');
+  exposeString = this.createExpose('String');
+  exposeBooleanList = this.createExpose(['Boolean']);
+  exposeFloatList = this.createExpose(['Float']);
+  exposeIntList = this.createExpose(['Int']);
+  exposeIDList = this.createExpose(['ID']);
+  exposeStringList = this.createExpose(['String']);
 
   relatedConnection: 'relay' extends PluginName
     ? <
@@ -97,10 +117,7 @@ export class PrismaObjectFieldBuilder<
     edgeOptions = {},
   ) {
     const relationField = getRelation(this.model, this.builder, name);
-    const parentRef = getRefFromModel(this.model, this.builder);
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
-    const findUnique = getFindUniqueForRef(parentRef, this.builder);
-    const loaderCache = ModelLoader.forModel(this.model, this.builder);
     let typeName: string | undefined;
 
     const formatCursor = getCursorFormatter(relationField.type, this.builder, cursor);
@@ -116,6 +133,24 @@ export class PrismaObjectFieldBuilder<
       }),
     });
 
+    const relationSelect = (
+      args: object,
+      context: object,
+      nestedQuery: (query: unknown) => unknown,
+    ) => ({
+      select: {
+        [name]: nestedQuery({
+          ...((typeof query === 'function' ? query(args, context) : query) as {}),
+          ...prismaCursorConnectionQuery({
+            parseCursor,
+            maxSize,
+            defaultSize,
+            args,
+          }),
+        }),
+      },
+    });
+
     const fieldRef = (
       this as unknown as {
         connection: (...args: unknown[]) => FieldRef<unknown>;
@@ -125,49 +160,40 @@ export class PrismaObjectFieldBuilder<
         ...options,
         extensions: {
           ...extensions,
-          pothosPrismaQuery: getQuery,
-          pothosPrismaRelation: name,
+          pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
+          pothosPrismaFallback:
+            resolve &&
+            ((
+              q: { take: number },
+              parent: unknown,
+              args: PothosSchemaTypes.DefaultConnectionArguments,
+              context: {},
+              info: GraphQLResolveInfo,
+            ) =>
+              Promise.resolve(
+                resolve(
+                  {
+                    ...q,
+                    ...(typeof query === 'function' ? query(args, context) : query),
+                  } as never,
+                  parent,
+                  args,
+                  context,
+                  info,
+                ),
+              ).then((result) => wrapConnectionResult(result, args, q.take, formatCursor))),
         },
         type: ref,
-        resolve: async (
-          parent: object,
+        select: relationSelect as never,
+        resolve: (
+          parent: unknown,
           args: PothosSchemaTypes.DefaultConnectionArguments,
           context: {},
-          info: GraphQLResolveInfo,
         ) => {
           const connectionQuery = getQuery(args, context);
-          const getResult = () => {
-            const mapping = getLoaderMapping(context, info.path);
-            const loadedValue = (parent as Record<string, unknown>)[name];
-
-            if (
-              // if we attempted to load the relation, and its missing it will be null
-              // undefined means that the query was not constructed in a way that requested the relation
-              loadedValue !== undefined &&
-              mapping
-            ) {
-              if (loadedValue !== null && loadedValue !== undefined) {
-                setLoaderMappings(context, info.path, mapping);
-              }
-
-              return loadedValue as {}[];
-            }
-
-            if (!resolve && !findUnique) {
-              throw new Error(`Missing findUnique for Prisma type ${this.model}`);
-            }
-
-            const mergedQuery = { ...queryFromInfo(context, info), ...connectionQuery };
-
-            if (resolve) {
-              return resolve(mergedQuery, parent, args, context, info);
-            }
-
-            return loaderCache(parent).loadRelation(name, mergedQuery, context) as Promise<{}[]>;
-          };
 
           return wrapConnectionResult(
-            await getResult(),
+            (parent as Record<string, never>)[name],
             args,
             connectionQuery.take,
             formatCursor,
@@ -181,17 +207,9 @@ export class PrismaObjectFieldBuilder<
           ? (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
               totalCount: t.int({
                 extensions: {
-                  pothosPrismaRelationCountForParent: name,
+                  pothosPrismaParentSelect: { _count: { select: { [name]: true } } },
                 },
-                resolve: (parent, args, context) => {
-                  const loadedValue = parent.totalCount;
-
-                  if (loadedValue !== undefined) {
-                    return loadedValue;
-                  }
-
-                  return loaderCache(parent).loadCount(name, context);
-                },
+                resolve: (parent, args, context) => parent.totalCount,
               }),
               ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
             })
@@ -215,11 +233,16 @@ export class PrismaObjectFieldBuilder<
     return fieldRef;
   } as never;
 
-  constructor(name: string, builder: PothosSchemaTypes.SchemaBuilder<Types>, model: string) {
-    super(name, builder);
+  constructor(
+    name: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    model: string,
+    fieldMap: FieldMap,
+  ) {
+    super(name, builder, 'PrismaObject', 'Object');
 
     this.model = model;
-    this.delegate = getDelegateFromModel(builder.options.prisma.client, model);
+    this.prismaFieldMap = fieldMap;
   }
 
   relation<
@@ -246,54 +269,35 @@ export class PrismaObjectFieldBuilder<
   ): FieldRef<Model['Relations'][Field]['Shape'], 'Object'> {
     const [name, options = {} as never] = allArgs;
     const relationField = getRelation(this.model, this.builder, name);
-    const parentRef = getRefFromModel(this.model, this.builder);
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
-    const findUnique = getFindUniqueForRef(parentRef, this.builder);
-    const loaderCache = ModelLoader.forModel(this.model, this.builder);
 
-    const { query = {}, resolve, ...rest } = options;
+    const { query = {}, resolve, extensions, ...rest } = options;
+
+    const relationSelect = (
+      args: object,
+      context: object,
+      nestedQuery: (query: unknown) => unknown,
+    ) => ({ select: { [name]: nestedQuery(query) } });
 
     return this.field({
       ...rest,
       type: relationField.isList ? [ref] : ref,
       extensions: {
-        ...options.extensions,
-        pothosPrismaQuery: query,
-        pothosPrismaRelation: name,
+        ...extensions,
+        pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
+        pothosPrismaFallback:
+          resolve &&
+          ((q: {}, parent: Shape, args: {}, context: {}, info: GraphQLResolveInfo) =>
+            resolve(
+              { ...q, ...(typeof query === 'function' ? query(args, context) : query) } as never,
+              parent,
+              args as never,
+              context,
+              info,
+            )),
       },
-      resolve: (parent, args, context, info) => {
-        const mapping = getLoaderMapping(context, info.path);
-
-        const loadedValue = (parent as Record<string, unknown>)[name];
-
-        if (
-          // if we attempted to load the relation, and its missing it will be null
-          // undefined means that the query was not constructed in a way that requested the relation
-          loadedValue !== undefined &&
-          mapping
-        ) {
-          if (loadedValue !== null && loadedValue !== undefined) {
-            setLoaderMappings(context, info.path, mapping);
-          }
-
-          return loadedValue as never;
-        }
-
-        const queryOptions = {
-          ...((typeof query === 'function' ? query(args, context) : query) as {}),
-          ...queryFromInfo(context, info),
-        };
-
-        if (resolve) {
-          return resolve(queryOptions, parent, args as never, context, info) as never;
-        }
-
-        if (!findUnique) {
-          throw new Error(`Missing findUnique for Prisma type ${this.model}`);
-        }
-
-        return loaderCache(parent).loadRelation(name, queryOptions, context) as never;
-      },
+      select: relationSelect as never,
+      resolve: (parent) => (parent as Record<string, never>)[name],
     }) as FieldRef<Model['Relations'][Field]['Shape'], 'Object'>;
   }
 
@@ -303,37 +307,22 @@ export class PrismaObjectFieldBuilder<
     >
   ): FieldRef<number, 'Object'> {
     const [name, options = {} as never] = allArgs;
-    const parentRef = getRefFromModel(this.model, this.builder);
-    const findUnique = getFindUniqueForRef(parentRef, this.builder);
-    const loaderCache = ModelLoader.forModel(this.model, this.builder);
 
     const { resolve, ...rest } = options;
+
+    const countSelect = {
+      _count: {
+        select: { [name]: true },
+      },
+    };
 
     return this.field({
       ...rest,
       type: 'Int',
       nullable: false,
-      extensions: {
-        ...options.extensions,
-        pothosPrismaRelationCount: name,
-      },
-      resolve: (parent, args, context, info) => {
-        const loadedValue = (parent as { _count: Record<string, unknown> })._count?.[name];
-
-        if (loadedValue !== undefined) {
-          return loadedValue as never;
-        }
-
-        if (resolve) {
-          return resolve(parent, args, context, info) as never;
-        }
-
-        if (!findUnique) {
-          throw new Error(`Missing findUnique for Prisma type ${this.model}`);
-        }
-
-        return loaderCache(parent).loadCount(name, context) as never;
-      },
+      select: countSelect as never,
+      resolve: (parent, args, context, info) =>
+        (parent as unknown as { _count: Record<string, never> })._count?.[name],
     }) as FieldRef<number, 'Object'>;
   }
 
@@ -352,34 +341,87 @@ export class PrismaObjectFieldBuilder<
     const [variant, options = {} as never] = allArgs;
     const ref: PrismaObjectRef<PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
-    const parentRef = getRefFromModel(this.model, this.builder);
-    const findUnique = getFindUniqueForRef(parentRef, this.builder);
-    const loaderCache = ModelLoader.forModel(this.model, this.builder);
+
+    const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
+      nestedQuery({});
 
     return this.field({
       ...options,
       type: ref,
+      select: selfSelect as never,
+      resolve: (parent, args, context, info) => parent,
+    }) as FieldRef<Model['Shape'], 'Object'>;
+  }
+
+  expose<
+    Type extends TypeParam<Types>,
+    Nullable extends boolean,
+    ResolveReturnShape,
+    Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+  >(
+    ...args: NormalizeArgs<
+      [
+        name: Name,
+        options?: Omit<
+          PothosSchemaTypes.ObjectFieldOptions<
+            Types,
+            Shape,
+            Type,
+            Nullable,
+            {},
+            ResolveReturnShape
+          >,
+          'resolve' | 'select'
+        >,
+      ]
+    >
+  ) {
+    const [name, options = {} as never] = args;
+
+    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
+    const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
+
+    return this.exposeField(name as never, {
+      ...options,
       extensions: {
         ...options.extensions,
-        pothosPrismaRelation: SELF_RELATION,
+        pothosPrismaVariant: name,
+        pothosPrismaSelect: usingSelect && {
+          [name]: true,
+        },
       },
-      resolve: (parent, args, context, info) => {
-        const mapping = getLoaderMapping(context, info.path);
+    });
+  }
 
-        if (mapping) {
-          setLoaderMappings(context, info.path, mapping);
+  private createExpose<Type extends TypeParam<Types>>(type: Type) {
+    return <
+      Nullable extends boolean,
+      ResolveReturnShape,
+      Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+    >(
+      ...args: NormalizeArgs<
+        [
+          name: Name,
+          options?: Omit<
+            PothosSchemaTypes.ObjectFieldOptions<
+              Types,
+              Shape,
+              Type,
+              Nullable,
+              {},
+              ResolveReturnShape
+            >,
+            'resolve' | 'type' | 'select'
+          >,
+        ]
+      >
+    ) => {
+      const [name, options = {} as never] = args;
 
-          return parent as never;
-        }
-
-        const queryOptions = queryFromInfo(context, info);
-
-        if (!findUnique) {
-          throw new Error(`Missing findUnique for Prisma type ${this.model}`);
-        }
-
-        return loaderCache(parent).loadSelf(queryOptions, context) as never;
-      },
-    }) as FieldRef<Model['Shape'], 'Object'>;
+      return this.expose(name as never, {
+        ...options,
+        type,
+      });
+    };
   }
 }

@@ -174,25 +174,30 @@ describe('variants', () => {
           "runInTransaction": false,
         },
         Object {
-          "action": "findMany",
+          "action": "findUnique",
           "args": Object {
             "include": Object {
-              "comments": Object {
+              "posts": Object {
                 "include": Object {
-                  "author": true,
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                  },
                 },
+                "orderBy": Object {
+                  "createdAt": "desc",
+                },
+                "take": 10,
               },
+              "profile": true,
             },
-            "orderBy": Object {
-              "createdAt": "desc",
-            },
-            "take": 10,
             "where": Object {
-              "authorId": 1,
+              "id": 1,
             },
           },
           "dataPath": Array [],
-          "model": "Post",
+          "model": "User",
           "runInTransaction": false,
         },
       ]
