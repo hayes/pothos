@@ -43,7 +43,7 @@
   "devDependencies": {
     "@apollo/gateway": "^2.0.0-alpha.4",
     "@apollo/subgraph": "^2.0.0-alpha.3",
-    "@graphql-tools/utils": "^8.5.3",
+    "@graphql-tools/utils": "^8.6.2",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",

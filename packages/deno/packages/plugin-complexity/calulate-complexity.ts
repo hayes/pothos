@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { FieldNode, FragmentDefinitionNode, getNamedType, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
+import { FieldNode, FragmentDefinitionNode, getNamedType, GraphQLField, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isInterfaceType, isObjectType, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import { getArgumentValues } from 'https://cdn.skypack.dev/graphql/execution/values?dts';
 import { SchemaTypes } from '../core/index.ts';
 import type { ComplexityResult, FieldComplexity, PothosComplexityPlugin } from './index.ts';
@@ -15,11 +15,8 @@ function isListType(type: GraphQLOutputType): boolean {
 function complexityFromField<Types extends SchemaTypes>(plugin: PothosComplexityPlugin<Types>, ctx: {}, info: GraphQLResolveInfo, selection: FieldNode, type: GraphQLNamedType): ComplexityResult {
     let depth = 1;
     let breadth = 1;
-    if (!(type instanceof GraphQLObjectType || type instanceof GraphQLInterfaceType)) {
-        throw new TypeError(`Expected Type ${type.name} to be an Object or Interface type`);
-    }
     const fieldName = selection.name.value;
-    const field = type.getFields()[fieldName];
+    const field = (isObjectType(type) || isInterfaceType(type)) && type.getFields()[fieldName]!;
     let complexityOption;
     if (field) {
         complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
@@ -28,7 +25,7 @@ function complexityFromField<Types extends SchemaTypes>(plugin: PothosComplexity
         throw new Error(`Unknown field selected (${type.name}.${fieldName})`);
     }
     if (typeof complexityOption === "function") {
-        const args = getArgumentValues(field, selection, info.variableValues) as Record<string, unknown>;
+        const args = getArgumentValues(field as GraphQLField<unknown, unknown>, selection, info.variableValues) as Record<string, unknown>;
         complexityOption = complexityOption(args, ctx);
     }
     let fieldMultiplier;
@@ -39,7 +36,7 @@ function complexityFromField<Types extends SchemaTypes>(plugin: PothosComplexity
         fieldMultiplier = field && isListType(field.type) ? plugin.defaultListMultiplier : 1;
     }
     let complexity = 0;
-    if (selection.selectionSet) {
+    if (field && selection.selectionSet) {
         const subSelection = complexityFromSelectionSet(plugin, ctx, info, selection.selectionSet, getNamedType(field.type));
         complexity += subSelection.complexity * fieldMultiplier;
         depth += subSelection.depth;

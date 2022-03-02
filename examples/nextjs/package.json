@@ -9,9 +9,9 @@
     "start": "next start"
   },
   "dependencies": {
-    "@apollo/client": "^3.5.9",
+    "@apollo/client": "^3.5.10",
     "@boost/module": "^3.1.0",
-    "@faker-js/faker": "^6.0.0-alpha.6",
+    "@faker-js/faker": "^6.0.0-alpha.7",
     "@pothos/core": "workspace:*",
     "graphql": "16.3.0",
     "graphql-helix": "^1.11.0",
@@ -19,7 +19,7 @@
     "next": "12.1.0",
     "react": "17.0.2",
     "react-dom": "17.0.2",
-    "react-query": "^3.34.15"
+    "react-query": "^3.34.16"
   },
   "devDependencies": {
     "@graphql-codegen/cli": "^2.6.2",
@@ -28,10 +28,10 @@
     "@graphql-codegen/typescript": "^2.4.5",
     "@graphql-codegen/typescript-operations": "^2.3.2",
     "@graphql-codegen/typescript-react-apollo": "^3.2.8",
-    "@types/node": "17.0.18",
+    "@types/node": "17.0.21",
     "@types/react": "17.0.39",
     "concurrently": "^7.0.0",
-    "ts-node": "^10.5.0"
+    "ts-node": "^10.6.0"
   },
   "engines": {
     "node": ">=12.0.0"

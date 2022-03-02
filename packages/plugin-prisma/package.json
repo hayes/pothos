@@ -46,7 +46,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^3.9.2"
+    "@prisma/generator-helper": "^3.10.0"
   },
   "prisma": {
     "seed": "pnpm ts-node prisma/seed.ts"
@@ -62,9 +62,9 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^3.9.2",
+    "@prisma/client": "^3.10.0",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^3.9.2"
+    "prisma": "^3.10.0"
   }
 }

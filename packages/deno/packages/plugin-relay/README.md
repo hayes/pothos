@@ -18,6 +18,7 @@ import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relayOptions: {
+    // These will become the defaults in the next major version
     clientMutationId: 'omit',
     cursorType: 'String',
   },
@@ -29,7 +30,7 @@ const builder = new SchemaBuilder({
 The `relayOptions` object passed to builder can contain the following properties:
 
 - `clientMutationId`: `required` (default) | `omit` | `optional`. Determins if clientMutationId
-  fields are created on connections, and if they are required.
+  fields are created on `relayMutationFields`, and if they are required.
 - `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults behavior due to
   legacy reasons is `String` for everything except for connection arguments which use `ID`.
   Overwritting this default is hightly encouraged.
@@ -122,12 +123,18 @@ class NumberThing {
 }
 
 builder.node(NumberThing, {
+  // defiine an id field
   id: {
     resolve: (num) => num.id,
     // other options for id field can be added here
   },
+
+  // Define only one of the following methods for loading nodes by id
   loadOne: (id) => new NumberThing(parseInt(id)),
   loadMany: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
+  loadWithoutCache: (id) => new NumberThing(parseInt(id)),
+  loadManyWithoutCache: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
+
   name: 'Number',
   fields: (t) => ({
     binary: t.exposeString('binary', {}),
@@ -137,10 +144,12 @@ builder.node(NumberThing, {
 
 `builder.node` will create an object type that implements the `Node` interface. It will also create
 the `Node` interface the first time it is used. The `resolve` function for `id` should return a
-number or string, which will be converted to a globalID. The `loadOne` and `loadMany` methods are
-optional, and `loadMany` will be used if both are present. These methods allow a nodes to be loaded
-by id. The relay plugin adds to new query fields `node` and `nodes` which can be used to directly
-fetch nodes using global IDs.
+number or string, which will be converted to a globalID. The relay plugin adds to new query fields
+`node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
+provided `loadOne` or `laodMany` method. Each node will only be loaded once by id, and cached if the
+same node is loaded multiple times inn the same request. You can provide `loadWithoutCache` or
+`loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
+datasource like a dataloader.
 
 Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
 lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
@@ -209,7 +218,7 @@ For limit/offset based apis:
 import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
-  numbers: t.connection({
+  things: t.connection({
     type: SomeThings,
     resolve: (parent, args) => {
       return resolveOffsetConnection({ args }, ({ limit, offset }) => {
@@ -238,10 +247,10 @@ just like `resolveOffsetConnection` and accepts the same options.
 import { resolveArrayConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
-  numbers: t.connection({
+  things: t.connection({
     type: SomeThings,
     resolve: (parent, args) => {
-      return resolveOffsetConnection({ args }, getAllTheThingsAsArray());
+      return resolveArrayConnection({ args }, getAllTheThingsAsArray());
     },
   }),
 }));
@@ -343,7 +352,7 @@ import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 const ThingsConnection = builder.connectionObject(
   {
-    // connection optionss
+    // connection options
     type: SomeThing,
     name: 'ThingsConnection',
   },
@@ -424,7 +433,7 @@ In some cases you may want to encode global ids differently than the build in ID
 this, you can pass a custom encoding and decoding function into the relay options of the builder:
 
 ```typescript
-import '@pothos/plugin-relay';
+import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relayOptions: {
@@ -505,4 +514,67 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+```
+
+### Changing nullability of edges and nodes
+
+If you want to change the nullability of the `edges` field on a `Connection` or the `node` field on
+an `Edge` you can configure this in 2 ways:
+
+#### Globally
+
+```typescript
+import RelayPlugin from '@pothos/plugin-relay';
+const builder = new SchemaBuilder<{
+  DefaultEdgesNullability: false;
+  DefaultNodeNullability: true;
+}>({
+  plugins: [RelayPlugin],
+  relayOptions: {
+    edgesFieldOptions: {
+      nullable: false,
+    },
+    nodeFieldOptions: {
+      nullable: true,
+    },
+  },
+});
+```
+
+The types provided for `DefaultEdgesNullability` and `DefaultNodeNullability` must match the values
+provided in the nullable option of `edgesFieldOptions` and `nodeFieldOptions` respectivly. This will
+set the default nullabilitty for all connections created by your builder.
+
+Nullablity for `edges` fields defaults to `{ list: false, items: true }` and the nullablity of
+`node` fields default to `false`.
+
+#### Per connection
+
+```typescript
+builder.queryFields((t) => ({
+  things: t.connection({
+    type: SomeThings,
+    edgesNullable: {
+      items: true,
+      list: false,
+    },
+    nodeNullable: false,
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        return getThings(offset, limit);
+      });
+    },
+  }),
+}));
+// Or
+
+const ThingsConnection = builder.connectionObject({
+  type: SomeThing,
+  name: 'ThingsConnection',
+  edgesNullable: {
+    items: true,
+    list: false,
+  },
+  nodeNullable: false,
+});
 ```

@@ -15,15 +15,15 @@
     "seed": "pnpm ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^6.0.0-alpha.6",
+    "@faker-js/faker": "^6.0.0-alpha.7",
     "@pothos/core": "^3.3.3",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
-    "@prisma/client": "^3.9.2",
+    "@prisma/client": "^3.10.0",
     "apollo-server": "^3.6.3",
     "graphql": "16.3.0",
-    "prisma": "^3.9.2",
-    "ts-node": "^10.5.0"
+    "prisma": "^3.10.0",
+    "ts-node": "^10.6.0"
   },
   "publishConfig": {
     "access": "public"

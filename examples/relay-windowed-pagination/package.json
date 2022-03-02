@@ -13,13 +13,13 @@
     "seed": "pnpm ts-node prisma/seed.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^6.0.0-alpha.6",
+    "@faker-js/faker": "^6.0.0-alpha.7",
     "@graphql-yoga/node": "0.0.1-beta.2",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "graphql": "16.3.0",
-    "prisma": "^3.9.2",
-    "ts-node": "^10.5.0"
+    "prisma": "^3.10.0",
+    "ts-node": "^10.6.0"
   },
   "publishConfig": {
     "access": "public"

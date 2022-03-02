@@ -72,7 +72,7 @@ describe('validation', () => {
           "maximum": 5,
           "type": "number",
           "inclusive": true,
-          "message": "Value should be less than or equal to 5",
+          "message": "Number must be less than or equal to 5",
           "path": [
             "recursive",
             "recurse",
@@ -123,7 +123,7 @@ describe('validation', () => {
           "minimum": 12,
           "type": "string",
           "inclusive": true,
-          "message": "Should be at least 12 characters",
+          "message": "String must contain at least 12 character(s)",
           "path": [
             "contactInfo",
             "phone"
@@ -235,7 +235,7 @@ describe('validation', () => {
           "maximum": 3,
           "type": "string",
           "inclusive": true,
-          "message": "Should be at most 3 characters long",
+          "message": "String must contain at most 3 character(s)",
           "path": [
             "list",
             0
@@ -248,7 +248,7 @@ describe('validation', () => {
           "maximum": 3,
           "type": "array",
           "inclusive": true,
-          "message": "Should have at most 3 items",
+          "message": "Array must contain at most 3 element(s)",
           "path": [
             "list"
           ]
@@ -307,7 +307,7 @@ describe('validation', () => {
           "minimum": 2,
           "type": "string",
           "inclusive": true,
-          "message": "Should be at least 2 characters",
+          "message": "String must contain at least 2 character(s)",
           "path": [
             0,
             "id"
@@ -320,7 +320,7 @@ describe('validation', () => {
           "minimum": 2,
           "type": "string",
           "inclusive": true,
-          "message": "Should be at least 2 characters",
+          "message": "String must contain at least 2 character(s)",
           "path": [
             "input",
             "nested",
