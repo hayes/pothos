@@ -1,4 +1,5 @@
 // @ts-nocheck
+/* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 /* eslint-disable node/no-callback-literal */
 import { GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLScalarType, GraphQLString, } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types/index.ts';
