@@ -57,7 +57,13 @@
     "typescript-json-schema": "^0.53.0"
   },
   "resolutions": {
-    "graphql": "16.3.0"
+    "graphql": "16.3.0",
+    "@apollo/composition": "2.0.0-alpha.6",
+    "@apollo/query-planner": "2.0.0-alpha.6",
+    "@apollo/composition": "2.0.0-alpha.6",
+    "@apollo/query-graphs": "2.0.0-alpha.6",
+    "@apollo/federation-internals": "2.0.0-alpha.6"
+    
   },
   "repository": {
     "type": "git",

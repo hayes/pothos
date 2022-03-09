@@ -3,7 +3,7 @@
 This example uses the following packages:
 
 - `@pothos/core`: For building the schema
-- `@pothos/plugin-prism`: For prisma based type definitions, and efficient queries
+- `@pothos/plugin-prisma`: For prisma based type definitions, and efficient queries
 - `@pothos/plugin-relay`: For adding relay compatible connections and nodes
 - `@prisma/client`: For querying data from a database
 - `prisma`: For running migrations and generating `@prisma/client`

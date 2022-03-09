@@ -6,7 +6,7 @@ A plugin for building subGraphs that are compatible with
 ## Disclaimer
 
 Apollo federation 2 is still in alpha, and the API of this plugin may change in the future. This is
-an early release intended to allow early adopeters to build federation compatible schemas with
+an early release intended to allow early adopters to build federation compatible schemas with
 pothos, but this plugin may not be as stable as other parts of the Pothos eco-system.
 
 ## Usage
@@ -58,7 +58,7 @@ const UserType = builder.objectRef<User>('User').implement({
 
 builder.asEntity(UserType, {
   key: builder.selection<{ id: string }>('id'),
-  resolveReference: (user) => users.find(({ id }) => user.id === id),
+  resolveReference: (user, users) => users.find(({ id }) => user.id === id),
 });
 ```
 
@@ -68,13 +68,13 @@ that defines the types for any fields that are part of the key. `key` may also b
 
 ### Extending external entities
 
-External enties can be extended by calling `builder.externalRef`, and then calling implement on the
-returned ref.
+External entities can be extended by calling `builder.externalRef`, and then calling implement on
+the returned ref.
 
-`builder.externalRef` takes the name of the entity, a selection (using `builder.selecton`, just like
-a `key` on an entity object), and a resolve method that loads an object given a `key`. The return
-type of the resolver is used as the backing type for the ref, and will be the type of the `parent`
-arg when defining fields for this type.
+`builder.externalRef` takes the name of the entity, a selection (using `builder.selection`, just
+like a `key` on an entity object), and a resolve method that loads an object given a `key`. The
+return type of the resolver is used as the backing type for the ref, and will be the type of the
+`parent` arg when defining fields for this type.
 
 ```typescript
 const ProductRef = builder.externalRef(
@@ -83,7 +83,7 @@ const ProductRef = builder.externalRef(
   (entity) => {
     const product = inventory.find(({ upc }) => upc === entity.upc);
 
-    // estends the enitity ({upc: string}) with other product details available in this service
+    // extends the entity ({upc: string}) with other product details available in this service
     return product && { ...entity, ...product };
   },
 );
@@ -139,7 +139,7 @@ ReviewType.implement({
     id: t.exposeID('id'),
     body: t.exposeString('body'),
     author: t.field({
-      // using UserType.provides<...>(...) instead of just UserType adds the provide anotation
+      // using UserType.provides<...>(...) instead of just UserType adds the provide annotations
       // and ensures the resolved value includes data for the provided field
       // The generic in Type.provides works the same as the `builder.selection` method.
       type: UserType.provides<{ username: string }>('username'),
