@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldBuilder,
   InterfaceParam,
@@ -21,7 +22,11 @@ export class ExternalEntityRef<
 
   private builder: PothosSchemaTypes.SchemaBuilder<Types>;
   private key: Key | Key[];
-  private resolveReference?: (parent: object) => MaybePromise<Shape | null | undefined>;
+  private resolveReference?: (
+    parent: object,
+    context: Types['Context'],
+    info: GraphQLResolveInfo,
+  ) => MaybePromise<Shape | null | undefined>;
 
   constructor(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -29,6 +34,8 @@ export class ExternalEntityRef<
     key: Key | Key[],
     resolveReference?: (
       parent: Key[typeof selectionShapeKey],
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
     ) => MaybePromise<Shape | null | undefined>,
   ) {
     super('Object', name);

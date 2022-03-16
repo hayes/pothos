@@ -160,6 +160,7 @@ export class PrismaObjectFieldBuilder<
         ...options,
         extensions: {
           ...extensions,
+          pothosPrismaSelect: relationSelect,
           pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
           pothosPrismaFallback:
             resolve &&
@@ -184,7 +185,6 @@ export class PrismaObjectFieldBuilder<
               ).then((result) => wrapConnectionResult(result, args, q.take, formatCursor))),
         },
         type: ref,
-        select: relationSelect as never,
         resolve: (
           parent: unknown,
           args: PothosSchemaTypes.DefaultConnectionArguments,
@@ -284,6 +284,7 @@ export class PrismaObjectFieldBuilder<
       type: relationField.isList ? [ref] : ref,
       extensions: {
         ...extensions,
+        pothosPrismaSelect: relationSelect as never,
         pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
         pothosPrismaFallback:
           resolve &&
@@ -296,7 +297,6 @@ export class PrismaObjectFieldBuilder<
               info,
             )),
       },
-      select: relationSelect as never,
       resolve: (parent) => (parent as Record<string, never>)[name],
     }) as FieldRef<Model['Relations'][Field]['Shape'], 'Object'>;
   }

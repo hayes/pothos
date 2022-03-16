@@ -69,13 +69,24 @@ export type PrismaObjectFieldOptions<
   Types,
   unknown extends Select
     ? ParentShape
-    : ParentShape & ShapeFromSelection<ExtractModel<Types, ParentShape>, { select: Select }>,
+    : ParentShape &
+        ShapeFromSelection<
+          ExtractModel<Types, ParentShape>,
+          { select: Select extends (...args: any[]) => infer S ? S : Select }
+        >,
   Type,
   Nullable,
   Args,
   ResolveReturnShape
 > & {
-  select?: ExtractModel<Types, ParentShape>['Select'] & Select;
+  select?: Select &
+    (
+      | ExtractModel<Types, ParentShape>['Select']
+      | ((
+          args: InputShapeFromFields<Args>,
+          ctx: Types['Context'],
+        ) => ExtractModel<Types, ParentShape>['Select'])
+    );
 };
 
 type PrismaObjectFieldsShape<

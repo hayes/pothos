@@ -3,6 +3,7 @@ import {
   GraphQLNamedType,
   GraphQLNonNull,
   GraphQLObjectType,
+  GraphQLResolveInfo,
   GraphQLSchema,
   GraphQLUnionType,
   isObjectType,
@@ -76,6 +77,8 @@ schemaBuilderProto.externalRef = function externalRef<
   key: KeySelection | KeySelection[],
   resolveReference?: (
     parent: KeySelection[typeof selectionShapeKey],
+    context: {},
+    info: GraphQLResolveInfo,
   ) => MaybePromise<Shape | null | undefined>,
 ) {
   return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, key, resolveReference);
@@ -160,7 +163,7 @@ export const entityMapping = new WeakMap<
     string,
     {
       key: Selection<object> | Selection<object>[];
-      resolveReference: (val: object) => unknown;
+      resolveReference: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
     }
   >
 >();

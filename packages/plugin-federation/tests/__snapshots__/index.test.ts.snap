@@ -20,11 +20,15 @@ exports[`federation accounts schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @key(fields: String!) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Query {
   _entities(representations: [_Any!]!): [_Entity]!
@@ -47,7 +51,9 @@ type _Service {
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
   \\"\\"\\"
   sdl: String
-}"
+}
+
+scalar link__Import"
 `;
 
 exports[`federation inventory schema generates expected schema 1`] = `
@@ -71,11 +77,15 @@ exports[`federation inventory schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @key(fields: String!) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product {
   inStock: Boolean
@@ -99,7 +109,9 @@ type _Service {
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
   \\"\\"\\"
   sdl: String
-}"
+}
+
+scalar link__Import"
 `;
 
 exports[`federation products schema generates expected schema 1`] = `
@@ -123,11 +135,15 @@ exports[`federation products schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @key(fields: String!) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product {
   name: String
@@ -151,7 +167,9 @@ type _Service {
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
   \\"\\"\\"
   sdl: String
-}"
+}
+
+scalar link__Import"
 `;
 
 exports[`federation reviews schema generates expected schema 1`] = `
@@ -185,11 +203,15 @@ exports[`federation reviews schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @key(fields: String!) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product {
   reviews: [Review!]
@@ -223,5 +245,7 @@ type _Service {
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
   \\"\\"\\"
   sdl: String
-}"
+}
+
+scalar link__Import"
 `;

@@ -1,3 +1,5 @@
+# THIS IS STILL A WORK IN PROGRESS AND NOT FULLY FUNCTIONAL
+
 # A relay compatible GraphQL API using Apollo federation with prisma
 
 This example uses the following packages:

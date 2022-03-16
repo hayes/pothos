@@ -2,25 +2,15 @@ import SchemaBuilder from '@pothos/core';
 import DirectivesPlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 import PrismaPlugin from '@pothos/plugin-prisma';
-// import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
 import { db } from '../db';
 
 export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
-  plugins: [
-    DirectivesPlugin,
-    PrismaPlugin,
-    FederationPlugin,
-    //   RelayPlugin
-  ],
+  plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],
   prisma: {
     client: db,
   },
   useGraphQLToolsUnorderedDirectives: true,
-  //   relayOptions: {
-  //     clientMutationId: 'omit',
-  //     cursorType: 'String',
-  //   },
 });
 
 const User = builder

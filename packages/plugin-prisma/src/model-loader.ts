@@ -53,27 +53,21 @@ export class ModelLoader {
   }
 
   async initLoad(state: SelectionState, context: {}) {
-    const promise = new Promise<Record<string, unknown>>((resolve, reject) => {
-      setTimeout(() => {
+    const entry = {
+      promise: Promise.resolve().then(() => {
         this.staged.delete(entry);
 
-        resolve(
-          this.delegate.findUnique({
-            rejectOnNotFound: true,
-            ...selectionToQuery(state),
-            where: { ...(this.findUnique(this.model, context) as {}) },
-          } as never) as Promise<Record<string, unknown>>,
-        );
-      }, 0);
-    });
-
-    const entry = {
-      promise,
+        return this.delegate.findUnique({
+          rejectOnNotFound: true,
+          ...selectionToQuery(state),
+          where: { ...(this.findUnique(this.model, context) as {}) },
+        } as never) as Promise<Record<string, unknown>>;
+      }),
       state,
     };
 
     this.staged.add(entry);
 
-    return promise;
+    return entry.promise;
   }
 }

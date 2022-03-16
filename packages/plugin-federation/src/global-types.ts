@@ -1,5 +1,5 @@
 import '@pothos/plugin-directives';
-import { GraphQLSchema } from 'graphql';
+import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
   InputFieldMap,
@@ -72,6 +72,8 @@ declare global {
         key: KeySelection | KeySelection[],
         resolveReference?: (
           parent: KeySelection[typeof selectionShapeKey],
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
         ) => MaybePromise<Shape | null | undefined>,
       ) => ExternalEntityRef<Types, Shape, KeySelection>;
 
@@ -85,6 +87,8 @@ declare global {
           key: KeySelection;
           resolveReference: (
             parent: KeySelection[typeof selectionShapeKey],
+            context: Types['Context'],
+            info: GraphQLResolveInfo,
           ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
         },
       ) => void;
