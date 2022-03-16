@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma",
-  "version": "3.0.0-next",
+  "version": "3.0.0",
   "description": "A Pothos plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",

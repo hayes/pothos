@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.0.0
+
+### Minor Changes
+
+- 9b6353d4: Use Promise.resolve instead of setTimeout to batch fallback operations
+
 ## 0.19.0
 
 ### Minor Changes

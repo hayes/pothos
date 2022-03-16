@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 0.3.0
+
+### Minor Changes
+
+- 9b6353d4: Add support for context and info in resolveReference
+
 ## 0.2.5
 
 ### Patch Changes
