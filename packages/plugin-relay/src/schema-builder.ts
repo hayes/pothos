@@ -409,6 +409,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
       pageInfo: t.field({
         ...pageInfoFieldOptions,
         type: this.pageInfoRef(),
+        nullable: false,
         resolve: (parent) => parent.pageInfo,
       }),
       edges: t.field({
