@@ -22,8 +22,6 @@ This plugin is NOT required to use prisma with Pothos, but does make things a lo
 efficient. See the [Using Prisma without a plugin](#using-prisma-without-a-plugin) section below for
 more details.
 
----
-
 ## Features
 
 - 🎨 Quickly define GraphQL types based on your Prisma models
@@ -731,6 +729,9 @@ builder.queryType({
   connection. The `query` will contain the correct `take`, `skip`, and `cursor` options based on the
   connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
   selections.
+- `totalCount`: A function for loading the total count for the connection. This will add a
+  `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
+  `args`, `context`, `info`) as arguments
 
 The created connection queries currently support the following combinations of connection arguments:
 

@@ -405,6 +405,7 @@ builder.queryType({
       defaultSize: 10,
       maxSize: 15,
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
+      totalCount: (parent, args, context, info) => prisma.user.count(),
     }),
     unrelatedConnection: t.prismaConnection({
       type: 'Unrelated',

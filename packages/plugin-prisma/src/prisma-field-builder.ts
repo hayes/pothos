@@ -206,6 +206,7 @@ export class PrismaObjectFieldBuilder<
         fields: totalCount
           ? (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
               totalCount: t.int({
+                nullable: false,
                 extensions: {
                   pothosPrismaParentSelect: { _count: { select: { [name]: true } } },
                 },

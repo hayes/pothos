@@ -39,40 +39,40 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     PothosSchemaTypes.QueryFieldOptions<
       Types,
       OutputRefShape<GlobalIDShape<Types> | string>,
-      true,
+      boolean,
       { id: InputFieldRef<InputShape<Types, 'ID'>> },
       Promise<unknown>
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'resolve' | 'type'
   >;
   nodesQueryOptions: Omit<
     PothosSchemaTypes.QueryFieldOptions<
       Types,
       [OutputRefShape<GlobalIDShape<Types> | string>],
-      true,
+      FieldNullability<[unknown]>,
       { ids: InputFieldRef<InputShape<Types, 'ID'>[]> },
       Promise<unknown>[]
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'resolve' | 'type'
   >;
   mutationInputArgOptions: Omit<
-    PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
-    'fields' | 'required' | 'type'
+    PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>,
+    'fields' | 'type'
   >;
   clientMutationIdInputOptions: Omit<
-    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID', true>,
-    'required' | 'type'
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID', boolean>,
+    'type'
   >;
   clientMutationIdFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
       Types,
       {},
       'ID',
-      false,
+      boolean,
       {},
       Types['Scalars']['ID']['Output']
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'resolve' | 'type'
   >;
   cursorFieldOptions: Normalize<
     Omit<
@@ -84,7 +84,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         {},
         Types['Scalars']['ID' | 'String']['Output']
       >,
-      'args' | 'nullable' | 'resolve' | 'type'
+      'args' | 'resolve' | 'type'
     > & {
       type?: 'ID' | 'String';
     }
@@ -94,7 +94,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       Types,
       {},
       ObjectRef<{}>,
-      false,
+      Types['DefaultNodeNullability'],
       {},
       GlobalIDShape<Types> | string
     >,
@@ -103,8 +103,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     nullable?: Types['DefaultNodeNullability'];
   };
   edgesFieldOptions: Omit<
-    PothosSchemaTypes.ObjectFieldOptions<Types, {}, [ObjectRef<{}>], false, {}, unknown[]>,
-    'args' | 'nullable' | 'resolve' | 'type'
+    PothosSchemaTypes.ObjectFieldOptions<
+      Types,
+      {},
+      [ObjectRef<{}>],
+      Types['DefaultEdgesNullability'],
+      {},
+      unknown[]
+    >,
+    'args' | 'resolve' | 'nullable' | 'type'
   > & {
     nullable?: Types['DefaultEdgesNullability'];
   };
@@ -113,56 +120,56 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       Types,
       {},
       OutputRef<PageInfoShape>,
-      false,
+      boolean,
       {},
       PageInfoShape
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'resolve' | 'type'
   >;
   hasNextPageFieldOptions: Omit<
-    PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', false, {}, boolean>,
-    'args' | 'nullable' | 'resolve' | 'type'
+    PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', boolean, {}, boolean>,
+    'args' | 'resolve' | 'type'
   >;
   hasPreviousPageFieldOptions: Omit<
-    PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', false, {}, boolean>,
-    'args' | 'nullable' | 'resolve' | 'type'
+    PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', boolean, {}, boolean>,
+    'args' | 'resolve' | 'type'
   >;
   startCursorFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
       Types,
       PageInfoShape,
       'ID' | 'String',
-      false,
+      boolean,
       {},
       string | null
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'resolve' | 'type'
   >;
   endCursorFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
       Types,
       PageInfoShape,
       'ID' | 'String',
-      false,
+      boolean,
       {},
       string | null
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'resolve' | 'type'
   >;
   beforeArgOptions: Omit<
-    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', boolean>,
     'required' | 'type'
   >;
   afterArgOptions: Omit<
-    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', boolean>,
     'required' | 'type'
   >;
   firstArgOptions: Omit<
-    PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', boolean>,
     'required' | 'type'
   >;
   lastArgOptions: Omit<
-    PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', false>,
+    PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', boolean>,
     'required' | 'type'
   >;
   encodeGlobalID?: (typename: string, id: bigint | number | string) => string;

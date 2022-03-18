@@ -2,13 +2,13 @@
 '@pothos/plugin-relay': minor
 ---
 
-Explicitly make `pageInfo` non nullable. Previously `pageInfo` was nullable for
+Explicitly make `cursor` non nullable. Previously `cursor` was nullable for
 `defaultFieldNullability: true`, which is against the Relay spec. You can revert back to previous
 behavior by updating your builder relay options:
 
 ```
 relay: {
-  pageInfoFieldOptions: {
+  cursorFieldOptions: {
     nullable: true,
   },
 },

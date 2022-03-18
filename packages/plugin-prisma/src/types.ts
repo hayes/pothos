@@ -443,6 +443,12 @@ export type PrismaConnectionFieldOptions<
       context: Types['Context'],
       info: GraphQLResolveInfo,
     ) => MaybePromise<Model['Shape'][]>;
+    totalCount?: (
+      parent: ParentShape,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<number>;
   };
 
 export type RelatedConnectionOptions<

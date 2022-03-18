@@ -8,16 +8,14 @@ This plugin is NOT required to use prisma with Pothos, but does make things a lo
 efficient. See the [Using Prisma without a plugin](#using-prisma-without-a-plugin) section below for
 more details.
 
----
-
 ## Features
 
 - 🎨 Quickly define GraphQL types based on your Prisma models
 - 🦺 Strong type-safety throughout the entire API
 - 🤝 Automatically resolve relationships defined in your database
-- 🎣 Automatic Query optimization efficiently load the specific data needed to resolve a query
+- 🎣 Automatic Query optimization to efficiently load the specific data needed to resolve a query
   (solves common N+1 issues)
-- 💅 Types and fields in GraphQL schema are not implicitly tied to the column names or type in your
+- 💅 Types and fields in GraphQL schema are not implicitly tied to the column names or types in your
   database.
 - 🔀 Relay integration for defining nodes and connections that can be efficiently loaded.
 - 📚 Supports multiple GraphQL models based on the same Database model
@@ -29,16 +27,19 @@ Here is a quick example of what an API using this plugin might look like. There 
 breakdown of what the methods and options used in the example below.
 
 ```typescript
-// Create an object type based on a prisma model without providing any custom type information
+// Create an object type based on a prisma model
+// without providing any custom type information
 builder.prismaObject('User', {
-  // findUnique is explained more below, and is required to safely resolve queries in some edge cases
+  // findUnique is explained more below, and is
+  // required to safely resolve queries in some edge cases
   findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     // expose fields from the database
     id: t.exposeID('id'),
     email: t.exposeString('email'),
     bio: t.string({
-      // automatically load the bio from the profile when this field is queried
+      // automatically load the bio from the profile
+      // when this field is queried
       select: {
         profile: {
           select: {
@@ -46,21 +47,25 @@ builder.prismaObject('User', {
           },
         },
       },
-      resolve: (user) => user.profile.bio, // user will be typed correctly to include the selected fields from above
+      // user will be typed correctly to include the
+      // selected fields from above
+      resolve: (user) => user.profile.bio,
     }),
-    // Load posts as list field.  Posts will automatically be included the posts field is queried
+    // Load posts as list field.
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
       },
-      // Define custom query options that are applied when loading the post relation
+      // Define custom query options that are applied when
+      // loading the post relation
       query: (args, context) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
       }),
     }),
-    // creates relay connection that handles pagination using prisma's built in cursor based pagination
+    // creates relay connection that handles pagination
+    // using prisma's built in cursor based pagination
     postsConnection: t.relatedConnection('posts', {
       cursor: 'id',
     }),
@@ -84,7 +89,8 @@ builder.queryType({
       type: 'User',
       resolve: async (query, root, args, ctx, info) =>
         prisma.user.findUnique({
-          // the `query` argument will add in `includes` or `selects` to resolve as much of the request in a single query as possible
+          // the `query` argument will add in `include`s or `select`s to
+          // resolve as much of the request in a single query as possible
           ...query,
           rejectOnNotFound: true,
           where: { id: ctx.userId },
@@ -191,8 +197,10 @@ generator pothos {
 import SchemaBuilder from '@pothos/core';
 import { PrismaClient } from '@prisma/client';
 import PrismaPlugin from '@pothos/plugin-prisma';
-// This is the default location for the generator, but this can be customized as described above
-// Using a type only import will help avoid issues with undeclared exports in esm mode
+// This is the default location for the generator, but this can be
+// customized as described above.
+// Using a type only import will help avoid issues with undeclared
+// exports in esm mode
 import type PrismaTypes from '@pothos/plugin-prisma/generated';
 
 const prisma = new PrismaClient({});
@@ -209,9 +217,9 @@ const builder = new SchemaBuilder<{
 
 It is strongly recommended NOT to put your prisma client into `Context`. This will result in slower
 type-checking and a laggy developer experience in VSCode. See
-https://github.com/microsoft/TypeScript/issues/45405 for more details.
+[this issue](https://github.com/microsoft/TypeScript/issues/45405) for more details.
 
-## Creating some types with `builder.prismaObject`
+## Creating types with `builder.prismaObject`
 
 `builder.prismaObject` takes 2 arguments:
 
@@ -240,8 +248,8 @@ builder.prismaObject('Post', {
 ```
 
 So far, this is just creating some simple object types. They work just like any other object type in
-Pothos. They main advantage of this is that we get the type information without using object refs,
-or needing imports from prisma client.
+Pothos. The main advantage of this is that we get the type information without using object refs, or
+needing imports from prisma client.
 
 The `findUnique` option is described more below.
 
@@ -371,9 +379,8 @@ required for the fields that could not be resolved without an additional query.
 The following are some edge cases that could cause an additional query to be necessary:
 
 - The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
-- The root `prismaField` did not correctly spread the `query` arguments in is prisma call.`
-- The query selects multiple fields that use the same relation with incompatible options (order,
-  limit, or other filters)
+- The root `prismaField` did not correctly spread the `query` arguments in is prisma call.
+- The query selects multiple fields that use the same relation with different queries
 - The query contains multiple aliases for the same relation field with different arguments in a way
   that results in different query options for the relation.
 - A relation field has a query that is incompatible with the default includes of the parent object
@@ -708,6 +715,9 @@ builder.queryType({
   connection. The `query` will contain the correct `take`, `skip`, and `cursor` options based on the
   connection arguments (`before`, `after`, `first`, `last`), along with `include` options for nested
   selections.
+- `totalCount`: A function for loading the total count for the connection. This will add a
+  `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
+  `args`, `context`, `info`) as arguments
 
 The created connection queries currently support the following combinations of connection arguments:
 

@@ -84,7 +84,7 @@ export interface PrismaCursorConnectionQueryOptions {
 
 interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQueryOptions {
   query: {};
-  totalCount?: number;
+  totalCount?: number | (() => MaybePromise<number>);
 }
 
 export function prismaCursorConnectionQuery({
@@ -139,7 +139,7 @@ export function wrapConnectionResult<T extends {}>(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
   cursor: (node: T) => string,
-  totalCount?: number,
+  totalCount?: number | (() => MaybePromise<number>),
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : gotFullResults;

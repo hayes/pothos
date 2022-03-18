@@ -22,6 +22,9 @@ describe('prisma counts', () => {
   it('relationCount and count on connections', async () => {
     const query = gql`
       query {
+        userConnection(first: 1) {
+          totalCount
+        }
         me {
           postCount
           anotherPostCount: postCount
@@ -78,12 +81,25 @@ describe('prisma counts', () => {
               "totalCount": 250,
             },
           },
+          "userConnection": Object {
+            "totalCount": 100,
+          },
         },
       }
     `);
 
     expect(queries).toMatchInlineSnapshot(`
       Array [
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
         Object {
           "action": "findUnique",
           "args": Object {
@@ -110,6 +126,21 @@ describe('prisma counts', () => {
             },
             "where": Object {
               "id": 1,
+            },
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        Object {
+          "action": "aggregate",
+          "args": Object {
+            "select": Object {
+              "_count": Object {
+                "select": Object {
+                  "_all": true,
+                },
+              },
             },
           },
           "dataPath": Array [],

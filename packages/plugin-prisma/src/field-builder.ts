@@ -3,6 +3,7 @@ import {
   FieldKind,
   FieldRef,
   InputFieldMap,
+  MaybePromise,
   ObjectRef,
   RootFieldBuilder,
   SchemaTypes,
@@ -53,6 +54,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
     maxSize,
     defaultSize,
     resolve,
+    totalCount,
     ...options
   }: PrismaConnectionFieldOptions<
     SchemaTypes,
@@ -65,8 +67,8 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
     ResolveReturnShape,
     FieldKind
   >,
-  connectionOptions: {},
-  edgeOptions: {},
+  connectionOptions: {} = {},
+  edgeOptions: {} = {},
 ) {
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
   const typeName = this.builder.configStore.getTypeConfig(ref).name;
@@ -95,6 +97,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             maxSize,
             defaultSize,
             args,
+            totalCount: totalCount && (() => totalCount(parent, args as never, ctx, info)),
           },
           formatCursor,
           (query) => resolve(query as never, parent, args as never, ctx, info),
@@ -102,6 +105,20 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
     },
     {
       ...connectionOptions,
+      fields: totalCount
+        ? (
+            t: PothosSchemaTypes.ObjectFieldBuilder<
+              SchemaTypes,
+              { totalCount?: () => MaybePromise<number> }
+            >,
+          ) => ({
+            totalCount: t.int({
+              nullable: false,
+              resolve: (parent, args, context) => parent.totalCount?.(),
+            }),
+            ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+          })
+        : (connectionOptions as { fields: undefined }).fields,
       extensions: {
         ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
         pothosPrismaIndirectInclude: {

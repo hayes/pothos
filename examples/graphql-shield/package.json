@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "2.0.3",
+  "name": "@pothos-examples/simple-interfaces",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "start": "ts-node --transpile-only src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^6.0.0-alpha.7",
+    "@pothos/core": "workspace:*",
+    "@graphql-yoga/node": "0.0.1-beta.2",
+    "graphql": "16.3.0",
+    "graphql-middleware": "^6.1.18",
+    "graphql-shield": "^7.5.0",
+    "ts-node": "^10.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

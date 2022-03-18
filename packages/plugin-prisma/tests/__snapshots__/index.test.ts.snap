@@ -109,6 +109,7 @@ type QueryUnrelatedConnectionEdge {
 type QueryUserConnection {
   edges: [QueryUserConnectionEdge]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type QueryUserConnectionEdge {
