@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.0
+
+### Minor Changes
+
+- 8add0378: Add `totalCount` option to `prismaConnection`
+
 ## 3.0.0
 
 ### Minor Changes

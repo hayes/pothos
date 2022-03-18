@@ -1,5 +1,36 @@
 # Change Log
 
+## 3.6.0
+
+### Minor Changes
+
+- 8add0378: Allow relay.\*.FieldOptions objects to set `nullable` to change nullability of default
+  relay fields
+- 5294a17f: Explicitly make `pageInfo` non nullable. Previously `pageInfo` was nullable for
+  `defaultFieldNullability: true`, which is against the Relay spec. You can revert back to previous
+  behavior by updating your builder relay options:
+
+  ```
+  relay: {
+    pageInfoFieldOptions: {
+      nullable: true,
+    },
+  },
+  ```
+
+- 8add0378: Explicitly make `id` field on Node interface nullable
+- 8add0378: Explicitly make `cursor` non nullable. Previously `cursor` was nullable for
+  `defaultFieldNullability: true`, which is against the Relay spec. You can revert back to previous
+  behavior by updating your builder relay options:
+
+  ```
+  relay: {
+    cursorFieldOptions: {
+      nullable: true,
+    },
+  },
+  ```
+
 ## 3.5.2
 
 ### Patch Changes
