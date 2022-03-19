@@ -305,11 +305,11 @@ function createStateForType(
 ) {
   const targetType = getIndirectType(type, info);
 
-  const fieldMap = targetType.extensions.pothosPrismaFieldMap as FieldMap;
+  const fieldMap = targetType.extensions?.pothosPrismaFieldMap as FieldMap;
 
   return createState(
     fieldMap,
-    targetType.extensions.pothosPrismaSelect ? 'select' : 'include',
+    targetType.extensions?.pothosPrismaSelect ? 'select' : 'include',
     parent,
   );
 }
@@ -317,9 +317,9 @@ function createStateForType(
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
   let targetType = type;
 
-  while (targetType.extensions.pothosPrismaIndirectInclude) {
+  while (targetType.extensions?.pothosPrismaIndirectInclude) {
     targetType = info.schema.getType(
-      (targetType.extensions.pothosPrismaIndirectInclude as IndirectInclude).getType(),
+      (targetType.extensions?.pothosPrismaIndirectInclude as IndirectInclude).getType(),
     )!;
   }
 

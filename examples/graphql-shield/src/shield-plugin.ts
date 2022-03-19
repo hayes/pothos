@@ -73,7 +73,7 @@ export class ShieldPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       }
 
       const rule = (
-        (type.extensions.pothosOptions ?? {}) as PothosSchemaTypes.ObjectTypeOptions<
+        (type.extensions?.pothosOptions ?? {}) as PothosSchemaTypes.ObjectTypeOptions<
           SchemaTypes,
           {}
         >
@@ -92,7 +92,7 @@ export class ShieldPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       Object.keys(fields).forEach((fieldName) => {
         const field = fields[fieldName];
 
-        const { shield: fieldRule } = (field.extensions.pothosOptions ?? {}) as {
+        const { shield: fieldRule } = (field.extensions?.pothosOptions ?? {}) as {
           shield?: ShieldRule;
         };
 

@@ -48,14 +48,14 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     }
 
     const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType, 'Object');
-    const loadedCheck = fieldConfig.extensions.pothosPrismaLoaded as
+    const loadedCheck = fieldConfig.extensions?.pothosPrismaLoaded as
       | undefined
       | ((val: unknown) => boolean);
     const loaderCache = parentConfig.extensions?.pothosPrismaLoader as (
       model: unknown,
     ) => ModelLoader;
 
-    const fallback = fieldConfig.extensions.pothosPrismaFallback as
+    const fallback = fieldConfig.extensions?.pothosPrismaFallback as
       | undefined
       | ((query: {}, parent: unknown, args: {}, context: {}, info: {}) => unknown);
 
