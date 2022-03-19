@@ -1,0 +1,77 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  output   = "../tests/client"
+}
+
+generator pothos {
+  provider     = "prisma-pothos-types"
+  clientOutput = "./client"
+  output       = "../tests/generated.ts"
+}
+
+generator pothosCrud {
+  provider     = "ts-node --transpile-only src/generator.ts"
+  clientOutput = "./client"
+  output       = "../tests/generated-crud.ts"
+}
+
+model Post {
+  id        Int       @id @default(autoincrement())
+  createdAt DateTime  @unique @default(now())
+  updatedAt DateTime  @updatedAt
+  title     String
+  content   String?
+  published Boolean   @default(false)
+  author    User      @relation(fields: [authorId], references: [id])
+  comments  Comment[]
+  authorId  Int
+}
+
+model Comment {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @unique @default(now())
+  content   String
+  author    User     @relation(fields: [authorId], references: [id])
+  post      Post     @relation(fields: [postId], references: [id])
+  authorId  Int
+  postId    Int
+}
+
+model Profile {
+  id     Int     @id @default(autoincrement())
+  bio    String?
+  user   User    @relation(fields: [userId], references: [id])
+  userId Int     @unique
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  email     String    @unique
+  name      String?
+  posts     Post[]
+  comments  Comment[]
+  profile   Profile?
+  followers Follow[]  @relation("followers")
+  following Follow[]  @relation("following")
+}
+
+model Follow {
+  fromId Int
+  toId   Int
+  from   User @relation("following", fields: [fromId], references: [id])
+  to     User @relation("followers", fields: [toId], references: [id])
+
+  @@id([fromId, toId], name: "compositeID")
+}
+
+model Unrelated {
+  id   Int     @id @default(autoincrement())
+  name String?
+}
