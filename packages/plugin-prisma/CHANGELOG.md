@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.1
+
+### Patch Changes
+
+- 86718e08: Make lookups on extensions objects compatible with older graphql versions
+
 ## 3.1.0
 
 ### Minor Changes

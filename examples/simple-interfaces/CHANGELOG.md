@@ -1,5 +1,11 @@
 # @pothos-examples/simple-interfaces
 
+## 2.0.4
+
+### Patch Changes
+
+- 86718e08: Make lookups on extensions objects compatible with older graphql versions
+
 ## 2.0.3
 
 ### Patch Changes
