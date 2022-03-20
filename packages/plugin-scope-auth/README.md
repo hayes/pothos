@@ -443,7 +443,7 @@ builder.queryField('currentId', (t) =>
   t.authField({
     type: 'ID',
     authScopes: {
-      loggedIn: true,
+      public: true,
     },
     resolve: (parent, args, context) => context.user.id,
   }),
