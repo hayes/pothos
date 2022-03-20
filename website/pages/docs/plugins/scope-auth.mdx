@@ -428,6 +428,42 @@ This will ensure that if a request access a field that requests a `humanPermissi
 request is made by another service or bot, we don't have to run the `hasPermission` check at all for
 those requests, since we know it would return false anyways.
 
+### Change context types based on scopes
+
+Sometimes you need to change your context typings depending on the applied scopes. You can provide
+custom context for your defined scopes and use the `authField` method to access the custom context:
+
+```typescript
+type Context = {
+  user: User | null;
+};
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    public: boolean; 
+  };
+  AuthContexts: {
+    public: Context & { user: User };
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  authScopes: async context => ({
+    public: !!context.user,
+  })
+});
+
+builder.queryField('currentId', (t) =>
+  t.authField({
+    type: 'ID',
+    authScopes: {
+      loggedIn: true,
+    },
+    resolve: (parent, args, context) => context.user.id,
+  }),
+);
+```
+
 ### Logical operations on auth scopes \(any/all\)
 
 By default the the scopes in a scope map are evaluated in parallel, and if the request has any of
