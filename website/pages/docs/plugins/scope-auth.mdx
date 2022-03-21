@@ -441,23 +441,23 @@ type Context = {
 const builder = new SchemaBuilder<{
   Context: Context;
   AuthScopes: {
-    public: boolean; 
+    loggedIn: boolean;
   };
   AuthContexts: {
-    public: Context & { user: User };
+    loggedIn: Context & { user: User };
   };
 }>({
   plugins: [ScopeAuthPlugin],
-  authScopes: async context => ({
-    public: !!context.user,
-  })
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
 });
 
 builder.queryField('currentId', (t) =>
   t.authField({
     type: 'ID',
     authScopes: {
-      public: true,
+      loggedIn: true,
     },
     resolve: (parent, args, context) => context.user.id,
   }),
