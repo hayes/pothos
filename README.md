@@ -105,7 +105,7 @@ new ApolloServer({
 
 ## Sponsors
 
-Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from some generous
+Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from these generous
 people:
 
 - [@kidqueb](https://github.com/kidqueb)
