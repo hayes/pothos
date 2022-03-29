@@ -102,3 +102,11 @@ new ApolloServer({
 - [**Validation**](https://pothos-graphql.dev/docs/plugins/validation)
 
   Validating your inputs and arguments
+
+## Sponsors
+
+Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from some generous
+people:
+
+- [@kidqueb](https://github.com/kidqueb)
+- [@homoky](https://github.com/homoky)
