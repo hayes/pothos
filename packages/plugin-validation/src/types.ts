@@ -69,6 +69,7 @@ export interface ArrayValidationOptions<T extends unknown[] = unknown[]>
 
 export type ValidationOptions<T> =
   | RefineConstraint<T>
+  | RefineConstraint<T>[]
   | (T extends number
       ? NumberValidationOptions<T>
       : T extends bigint

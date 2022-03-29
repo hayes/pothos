@@ -417,4 +417,52 @@ describe('validation', () => {
       }
     `);
   });
+
+  it('schema on field', async () => {
+    const query = gql`
+      query {
+        valid: argsSchema(num: 3, string: "abc")
+        invalid: argsSchema(num: 1, string: "a")
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "invalid": null,
+          "valid": true,
+        },
+        "errors": Array [
+          [GraphQLError: [
+        {
+          "code": "too_small",
+          "minimum": 2,
+          "type": "number",
+          "inclusive": true,
+          "message": "Number must be greater than or equal to 2",
+          "path": [
+            "num"
+          ]
+        },
+        {
+          "code": "too_small",
+          "minimum": 2,
+          "type": "string",
+          "inclusive": true,
+          "message": "String must contain at least 2 character(s)",
+          "path": [
+            "string"
+          ]
+        }
+      ]],
+        ],
+      }
+    `);
+  });
 });

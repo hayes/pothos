@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/no-useless-promise-resolve-reject */
 import * as zod from 'zod';
 import { ValidationOptions } from '../../../src';
 import builder from '../builder';
@@ -227,6 +228,17 @@ builder.queryType({
             refine: () => true,
           },
         }),
+      },
+      resolve: () => true,
+    }),
+    argsSchema: t.boolean({
+      nullable: true,
+      args: {
+        num: t.arg.int(),
+        string: t.arg.string(),
+      },
+      validate: {
+        schema: zod.object({ num: zod.number().min(2), string: zod.string().min(2) }),
       },
       resolve: () => true,
     }),

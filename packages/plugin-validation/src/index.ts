@@ -16,7 +16,7 @@ import createZodSchema, {
   isArrayValidator,
   refine,
 } from './createZodSchema';
-import { RefineConstraint, ValidationOptionUnion } from './types';
+import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types';
 
 export * from './types';
 
@@ -24,8 +24,6 @@ const pluginName = 'validation' as const;
 
 export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
-
-  inputTypeValidators = new Map<string, zod.ZodType<unknown>>();
 
   override onInputFieldConfig(
     fieldConfig: PothosInputFieldConfig<Types>,
@@ -101,9 +99,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
     let validator: zod.ZodTypeAny = zod.object(args).passthrough();
 
     if (fieldConfig.pothosOptions.validate) {
-      validator = refine(validator, {
-        refine: fieldConfig.pothosOptions.validate as RefineConstraint<unknown>,
-      });
+      validator = refine(validator, fieldConfig.pothosOptions.validate as ValidationOptionUnion);
     }
 
     return async (parent, rawArgs, context, info) =>
@@ -131,9 +127,10 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
       );
 
       if (typeConfig.pothosOptions.validate) {
-        fieldValidator = refine(fieldValidator, {
-          refine: typeConfig.pothosOptions.validate as RefineConstraint<unknown>,
-        });
+        fieldValidator = refine(
+          fieldValidator,
+          typeConfig.pothosOptions.validate as ValidationOptions<unknown>,
+        );
       }
 
       return combine([fieldValidator], type.required);

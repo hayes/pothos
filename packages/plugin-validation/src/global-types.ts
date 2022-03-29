@@ -27,14 +27,14 @@ declare global {
       ResolveShape,
       ResolveReturnShape,
     > {
-      validate?: RefineConstraint<InputShapeFromFields<Args>>;
+      validate?: ValidationOptions<InputShapeFromFields<Args>>;
     }
 
     export interface InputObjectTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Fields extends InputFieldMap = InputFieldMap,
     > {
-      validate?: RefineConstraint<InputShapeFromFields<Fields>>;
+      validate?: ValidationOptions<InputShapeFromFields<Fields>>;
     }
 
     export interface InputFieldOptions<

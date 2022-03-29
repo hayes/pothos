@@ -75,14 +75,18 @@ function validatorCreator<T extends BaseValidationOptions<any>>(
 
 export function refine(
   originalValidator: zod.ZodTypeAny,
-  options: ValidationOptionUnion | null | undefined,
-) {
+  options: ValidationOptionUnion | RefineConstraint | null | undefined,
+): zod.ZodTypeAny {
   if (!options) {
     return originalValidator;
   }
 
   if (typeof options === 'function') {
     return originalValidator.refine(options);
+  }
+
+  if (Array.isArray(options)) {
+    return refine(originalValidator, { refine: options });
   }
 
   let validator = originalValidator;
