@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.0
+
+### Minor Changes
+
+- 1ea33235: Allow passing schema directly to an object field definition
+
 ## 3.0.2
 
 ### Patch Changes
