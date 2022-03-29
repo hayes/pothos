@@ -2,6 +2,12 @@
 
 ## null
 
+### Minor Changes
+
+- 1ea33235: Allow passing schema directly to an object field definition
+
+## null
+
 ### Patch Changes
 
 - Updated dependencies [cf4a2d14]
