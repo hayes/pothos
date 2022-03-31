@@ -1,8 +1,28 @@
+/* eslint-disable no-magic-numbers */
 /* eslint-disable no-nested-ternary */
 import { mkdir, writeFile } from 'fs';
 import { dirname } from 'path';
-import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind } from 'typescript';
+import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import { generatorHandler } from '@prisma/generator-helper';
+
+const MIN_TS_VERSION = [4, 5, 2];
+
+function checkTSVersion() {
+  const versionParts = version.split(/[.-]/g);
+
+  for (let i = 0; i < 3; i += 1) {
+    const part = Number.parseInt(versionParts[i], 10);
+    if (part < MIN_TS_VERSION[i]) {
+      throw new Error(
+        `@pothos/plugin-prisma requires typescript version >${MIN_TS_VERSION.join('.')}`,
+      );
+    }
+
+    if (part > MIN_TS_VERSION[i]) {
+      return;
+    }
+  }
+}
 
 generatorHandler({
   onManifest: () => ({
@@ -11,6 +31,7 @@ generatorHandler({
     requiresGenerators: ['prisma-client-js'],
   }),
   onGenerate: async (options) => {
+    checkTSVersion();
     const config = options.generator.config as { clientOutput?: string };
     const prismaLocation =
       config.clientOutput ??

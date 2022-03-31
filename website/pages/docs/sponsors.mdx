@@ -1,0 +1,27 @@
+---
+name: Sponsors
+title: Sponsors
+description: The generous people supporting Pothos development
+---
+
+import { DocsPage } from '../../components/Docs/Page';
+import { buildNav } from '../../util/build-nav';
+
+export default DocsPage;
+
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
+
+## Sponsors
+
+Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from these generous
+people:
+
+- [@kidqueb](https://github.com/kidqueb)
+- [@homoky](https://github.com/homoky)
+
+<iframe
+  src="https://github.com/sponsors/hayes/card"
+  title="Sponsor hayes"
+  height="225"
+  width="600"
+></iframe>

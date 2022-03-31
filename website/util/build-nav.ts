@@ -4,12 +4,12 @@ import matter, { GrayMatterFile } from 'gray-matter';
 import { TableOfContents, TableOfContentsEntry } from '../components/Toc';
 
 const navOrder: Record<string, string[]> = {
-  '@root': ['Overview', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
+  '@root': ['Overview', 'Sponsors', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
   Guide: [
     'Objects',
     'SchemaBuilder',
-    'Args',
     'Fields',
+    'Args',
     'Context',
     'Input Objects',
     'Enums',
