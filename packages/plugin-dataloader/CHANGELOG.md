@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.4.0
+
+### Minor Changes
+
+- c0bdbc1b: Add loadableObjectRef loadableInterfaceRef and loadableNodeRef
+
 ## 3.3.1
 
 ### Patch Changes

@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.5.0
+
+### Minor Changes
+
+- c0bdbc1b: update deno packages
+- c0bdbc1b: Fix type for InputFieldRef.kind
+
 ## 3.4.3
 
 ### Patch Changes

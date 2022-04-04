@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.1.2
+
+### Patch Changes
+
+- 1bf0cd00: Add typescript version check for prisma generator
+
 ## 3.1.1
 
 ### Patch Changes

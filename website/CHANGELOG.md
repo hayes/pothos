@@ -2,6 +2,14 @@
 
 ## null
 
+### Patch Changes
+
+- Updated dependencies [c0bdbc1b]
+- Updated dependencies [cc12c8b3]
+  - @pothos/core@3.4.0
+
+## null
+
 ### Minor Changes
 
 - 1ea33235: Allow passing schema directly to an object field definition
