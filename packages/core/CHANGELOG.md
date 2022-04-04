@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.4.0
+
+### Minor Changes
+
+- c0bdbc1b: Fix type for InputFieldRef.kind
+
+### Patch Changes
+
+- cc12c8b3: Huge thank you to @kidqueb for contributing the first one-time sponsorship for pothos!
+
 ## 3.3.3
 
 ### Patch Changes

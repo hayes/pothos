@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.0
+
+### Minor Changes
+
+- c0bdbc1b: Fix type for InputFieldRef.kind
+
 ## 3.6.0
 
 ### Minor Changes
