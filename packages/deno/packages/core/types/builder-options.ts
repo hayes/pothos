@@ -27,7 +27,7 @@ export type QueryFieldThunk<Types extends SchemaTypes> = (t: PothosSchemaTypes.Q
 export type MutationFieldThunk<Types extends SchemaTypes> = (t: PothosSchemaTypes.MutationFieldBuilder<Types, Types["Root"]>) => FieldRef<unknown>;
 export type SubscriptionFieldThunk<Types extends SchemaTypes> = (t: PothosSchemaTypes.SubscriptionFieldBuilder<Types, Types["Root"]>) => FieldRef<unknown>;
 export type FieldMap = Record<string, FieldRef>;
-export type InputFieldMap = Record<string, InputFieldRef>;
+export type InputFieldMap<Kind extends "Arg" | "InputObject" = "Arg" | "InputObject"> = Record<string, InputFieldRef<unknown, Kind>>;
 export type FieldOptionsFromKind<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, Kind extends FieldKind, ResolveShape, ResolveReturnShape> = PothosSchemaTypes.FieldOptionsByKind<Types, ParentShape, Type, Nullable, Args, ResolveShape, ResolveReturnShape>[Kind];
 export type ObjectTypeOptions<Types extends SchemaTypes, Param extends ObjectParam<Types>, Shape, Interfaces extends InterfaceParam<Types>[]> = Normalize<(Param extends string ? {} : Param extends ObjectRef<unknown> ? {
     name?: string;

@@ -126,6 +126,26 @@ builder.objectField(User, 'posts', (t) =>
 );
 ```
 
+### loadableList fields for one-to-many relations
+
+`loadable` fields can return lists, but do not work for loading a list of records from a single id.
+
+The `loadableList` method can be used to define loadable fields that represent this kind of
+relationship.
+
+```typescript
+// Loading multiple Posts
+builder.objectField(User, 'posts', (t) =>
+  t.loadableList({
+    // type is singular, but will create a list field
+    type: Post,
+    // will be called with ids of all the users, and should return `Post[][]`
+    load: (ids: number[], context) => context.postsByUserIds(ids),
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
 ### dataloader options
 
 You can provide additional options for your dataloaders using `loaderOptions`.
@@ -292,6 +312,60 @@ const UserNode = builder.loadableNode('UserNode', {
   fields: (t) => ({}),
 });
 ```
+
+### Loadable Refs and Circular references
+
+You may run into type errors if you define 2 loadable objects that circularly reference each other
+in their definitions.
+
+There are a some general strategies to avoid this outlined in the
+[circular-references guide](../guide/circular-references).
+
+This plug also has methods for creating refs (similar to `builder.objectRef`) that can be used to
+split the definition and implementation of your types to avoid any issues with circular references.
+
+```typescript
+const User = builder.loadableObjectRef('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+});
+
+User.implement({
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+
+// Or with relay
+const UserNode = builder.loadableNodeRef('UserNode', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  id: {
+    resolve: (user) => user.id,
+  },
+});
+
+UserNode.implement({
+  isTypeOf: (obj) => obj instanceof User,
+  fields: (t) => ({}),
+});
+```
+
+All the plugin specific options should be passed when defining the ref. This allows the ref to be
+used by any method that accepts a ref to implement an object:
+
+```typescript
+const User = builder.loadableObjectRef('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+});
+
+builder.objectType(User, {
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+```
+
+The above example is not useful on its own, but this pattern will allow these refs to be used with
+other that also allow you to define object types with additional behaviors.
 
 ### Caching resources loaded manually in a resolver
 

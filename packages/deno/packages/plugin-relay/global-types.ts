@@ -50,7 +50,7 @@ declare global {
             };
             globalID: <Req extends boolean>(...args: NormalizeArgs<[
                 options?: GlobalIDInputFieldOptions<Types, Req, Kind>
-            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>>;
+            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>, Kind>;
             globalIDList: <Req extends FieldRequiredness<[
                 "ID"
             ]>>(...args: NormalizeArgs<[
@@ -62,7 +62,7 @@ declare global {
                         id: string;
                     };
                 }
-            ], Req>>;
+            ], Req>, Kind>;
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> {
             globalID: <Args extends InputFieldMap, Nullable extends FieldNullability<"ID">, ResolveReturnShape>(options: GlobalIDFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>) => FieldRef<ShapeFromTypeParam<Types, "ID", Nullable>>;
