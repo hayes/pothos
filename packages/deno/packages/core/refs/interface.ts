@@ -12,7 +12,7 @@ export default class InterfaceRef<T, P = T> extends BaseTypeRef implements Outpu
     }
 }
 export class ImplementableInterfaceRef<Types extends SchemaTypes, Shape, Parent = Shape> extends InterfaceRef<Shape, Parent> {
-    private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
         super(name);
         this.builder = builder;

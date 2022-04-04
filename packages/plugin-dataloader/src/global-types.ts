@@ -11,10 +11,17 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { LoadableInterfaceRef } from './refs/interface';
-import { LoadableObjectRef } from './refs/object';
+import { ImplementableLoadableNodeRef } from './refs';
+import { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface';
+import { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
-import { DataloaderObjectTypeOptions, LoadableFieldOptions, LoadableNodeOptions } from './types';
+import {
+  DataloaderObjectTypeOptions,
+  DataLoaderOptions,
+  LoadableFieldOptions,
+  LoadableNodeId,
+  LoadableNodeOptions,
+} from './types';
 import {
   LoadableInterfaceOptions,
   LoadableListFieldOptions,
@@ -54,6 +61,29 @@ declare global {
         nameOrRef: NameOrRef,
         options: LoadableInterfaceOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
       ) => LoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
+
+      loadableObjectRef: <
+        Shape extends object,
+        Key extends bigint | number | string,
+        CacheKey = Key,
+      >(
+        name: string,
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
+      ) => ImplementableLoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
+
+      loadableInterfaceRef: <
+        Shape extends object,
+        Key extends bigint | number | string,
+        CacheKey = Key,
+      >(
+        name: string,
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
+      ) => ImplementableLoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
+
+      loadableNodeRef: <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
+        name: string,
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape>,
+      ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableUnion: <
         Key extends bigint | number | string,

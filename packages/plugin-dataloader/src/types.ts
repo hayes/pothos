@@ -81,6 +81,27 @@ export type LoadableListFieldOptions<
   >;
 };
 
+export type DataLoaderOptions<
+  Types extends SchemaTypes,
+  Shape,
+  Key extends bigint | number | string,
+  CacheKey,
+> = {
+  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
+  loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
+} & (
+  | {
+      toKey: (value: Shape) => Key;
+      cacheResolved?: boolean;
+      sort?: boolean;
+    }
+  | {
+      toKey?: undefined;
+      cacheResolved?: (value: Shape) => Key;
+      sort?: (value: Shape) => Key;
+    }
+);
+
 export type DataloaderObjectTypeOptions<
   Types extends SchemaTypes,
   Shape,
@@ -93,21 +114,8 @@ export type DataloaderObjectTypeOptions<
   NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
   Shape,
   Interfaces
-> & {
-  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
-  loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-} & (
-    | {
-        toKey: (value: Shape) => Key;
-        cacheResolved?: boolean;
-        sort?: boolean;
-      }
-    | {
-        toKey?: undefined;
-        cacheResolved?: (value: Shape) => Key;
-        sort?: (value: Shape) => Key;
-      }
-  );
+> &
+  DataLoaderOptions<Types, Shape, Key, CacheKey>;
 
 export type LoadableInterfaceOptions<
   Types extends SchemaTypes,
@@ -121,21 +129,8 @@ export type LoadableInterfaceOptions<
   NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
   Shape,
   Interfaces
-> & {
-  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
-  loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-} & (
-    | {
-        toKey: (value: Shape) => Key;
-        cacheResolved?: boolean;
-        sort?: boolean;
-      }
-    | {
-        toKey?: undefined;
-        cacheResolved?: (value: Shape) => Key;
-        sort?: (value: Shape) => Key;
-      }
-  );
+> &
+  DataLoaderOptions<Types, Shape, Key, CacheKey>;
 
 export type LoadableUnionOptions<
   Types extends SchemaTypes,
@@ -143,21 +138,8 @@ export type LoadableUnionOptions<
   Member extends ObjectParam<Types>,
   CacheKey,
   Shape,
-> = PothosSchemaTypes.UnionTypeOptions<Types, Member> & {
-  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
-  loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
-} & (
-    | {
-        toKey: (value: Shape) => Key;
-        cacheResolved?: boolean;
-        sort?: boolean;
-      }
-    | {
-        toKey?: undefined;
-        cacheResolved?: (value: Shape) => Key;
-        sort?: (value: Shape) => Key;
-      }
-  );
+> = PothosSchemaTypes.UnionTypeOptions<Types, Member> &
+  DataLoaderOptions<Types, Shape, Key, CacheKey>;
 
 export type LoaderShapeFromType<
   Types extends SchemaTypes,
@@ -171,14 +153,7 @@ export interface LoadableRef<K, V, C> {
   getDataloader: (context: C) => DataLoader<K, V>;
 }
 
-export type LoadableNodeOptions<
-  Types extends SchemaTypes,
-  Shape extends object,
-  Key extends bigint | number | string,
-  Interfaces extends InterfaceParam<Types>[],
-  NameOrRef extends ObjectParam<Types> | string,
-  CacheKey,
-> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> & {
+export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object> {
   id: Omit<
     FieldOptionsFromKind<
       Types,
@@ -192,4 +167,14 @@ export type LoadableNodeOptions<
     >,
     'args' | 'nullable' | 'type'
   >;
-};
+}
+
+export type LoadableNodeOptions<
+  Types extends SchemaTypes,
+  Shape extends object,
+  Key extends bigint | number | string,
+  Interfaces extends InterfaceParam<Types>[],
+  NameOrRef extends ObjectParam<Types> | string,
+  CacheKey,
+> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> &
+  LoadableNodeId<Types, Shape>;
