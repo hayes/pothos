@@ -9,10 +9,10 @@ declare global {
             validation: PothosValidationPlugin<Types>;
         }
         export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
-            validate?: RefineConstraint<InputShapeFromFields<Args>>;
+            validate?: ValidationOptions<InputShapeFromFields<Args>>;
         }
         export interface InputObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Fields extends InputFieldMap = InputFieldMap> {
-            validate?: RefineConstraint<InputShapeFromFields<Fields>>;
+            validate?: ValidationOptions<InputShapeFromFields<Fields>>;
         }
         export interface InputFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
             InputType<Types>

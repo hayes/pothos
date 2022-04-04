@@ -7,37 +7,39 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     brandLoadedObjects?: boolean;
     nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, "fields">;
     pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
-    nodeQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, true, {
+    nodeQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
         id: InputFieldRef<InputShape<Types, "ID">>;
-    }, Promise<unknown>>, "args" | "nullable" | "resolve" | "type">;
+    }, Promise<unknown>>, "args" | "resolve" | "type">;
     nodesQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
-    ], true, {
+    ], FieldNullability<[
+        unknown
+    ]>, {
         ids: InputFieldRef<InputShape<Types, "ID">[]>;
-    }, Promise<unknown>[]>, "args" | "nullable" | "resolve" | "type">;
-    mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>, "fields" | "required" | "type">;
-    clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", true>, "required" | "type">;
-    clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", false, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "nullable" | "resolve" | "type">;
-    cursorFieldOptions: Normalize<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID" | "String", false, {}, Types["Scalars"]["ID" | "String"]["Output"]>, "args" | "nullable" | "resolve" | "type"> & {
+    }, Promise<unknown>[]>, "args" | "resolve" | "type">;
+    mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>, "fields" | "type">;
+    clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", boolean>, "type">;
+    clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "resolve" | "type">;
+    cursorFieldOptions: Normalize<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID" | "String", false, {}, Types["Scalars"]["ID" | "String"]["Output"]>, "args" | "resolve" | "type"> & {
         type?: "ID" | "String";
     }>;
-    nodeFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<{}>, false, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> & {
+    nodeFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> & {
         nullable?: Types["DefaultNodeNullability"];
     };
     edgesFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
         ObjectRef<{}>
-    ], false, {}, unknown[]>, "args" | "nullable" | "resolve" | "type"> & {
+    ], Types["DefaultEdgesNullability"], {}, unknown[]>, "args" | "resolve" | "nullable" | "type"> & {
         nullable?: Types["DefaultEdgesNullability"];
     };
-    pageInfoFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, false, {}, PageInfoShape>, "args" | "nullable" | "resolve" | "type">;
-    hasNextPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", false, {}, boolean>, "args" | "nullable" | "resolve" | "type">;
-    hasPreviousPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", false, {}, boolean>, "args" | "nullable" | "resolve" | "type">;
-    startCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", false, {}, string | null>, "args" | "nullable" | "resolve" | "type">;
-    endCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", false, {}, string | null>, "args" | "nullable" | "resolve" | "type">;
-    beforeArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", false>, "required" | "type">;
-    afterArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", false>, "required" | "type">;
-    firstArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", false>, "required" | "type">;
-    lastArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", false>, "required" | "type">;
+    pageInfoFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, boolean, {}, PageInfoShape>, "args" | "resolve" | "type">;
+    hasNextPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", boolean, {}, boolean>, "args" | "resolve" | "type">;
+    hasPreviousPageFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "Boolean", boolean, {}, boolean>, "args" | "resolve" | "type">;
+    startCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", boolean, {}, string | null>, "args" | "resolve" | "type">;
+    endCursorFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, "ID" | "String", boolean, {}, string | null>, "args" | "resolve" | "type">;
+    beforeArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", boolean>, "required" | "type">;
+    afterArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", boolean>, "required" | "type">;
+    firstArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", boolean>, "required" | "type">;
+    lastArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", boolean>, "required" | "type">;
     encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
     decodeGlobalID?: (globalID: string) => {
         typename: string;

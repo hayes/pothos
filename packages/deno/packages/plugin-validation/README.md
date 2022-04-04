@@ -117,17 +117,17 @@ builder.queryType({
 
 ## API
 
-### On Object fields
+### On Object fields (for validating field arguments)
 
-- `validate`: `Refinement<T>` | `Refinement<T>[]`.
+- `validate`: `Refinement<T>` | `Refinement<T>[]` | `ValidationOptions`.
 
-### On InputObjects
+### On InputObjects (for validating all fields of an input object)
 
-- `validate`: `Refinement<T>` | `Refinement<T>[]`
+- `validate`: `Refinement<T>` | `Refinement<T>[]` | `ValidationOptions`.
 
-### On arguments and fields on InputObjects
+### On arguments or input object fields (for validating a specific input field or argument)
 
-- `validate`: `Refinement` | `ValidationOptions`
+- `validate`: `Refinement<T>` | `Refinement<T>[]` | `ValidationOptions`.
 
 ### `Refinement`
 
