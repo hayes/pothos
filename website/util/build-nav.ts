@@ -24,6 +24,7 @@ const navOrder: Record<string, string[]> = {
     'Changing default nullability',
     'Writing plugins',
     'Deno',
+    'Circular References',
     'Troubleshooting',
   ],
 };

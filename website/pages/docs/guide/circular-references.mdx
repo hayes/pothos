@@ -1,0 +1,131 @@
+---
+title: Circular References
+menu: Guide
+description: Guide for how circular references and dependencies are managed in Pothos
+---
+
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
+
+export default DocsPage;
+
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
+
+# Circular References
+
+Circular references and Circular dependencies are common problem that can appear in a number of
+ways, and cause a variety of different issues.
+
+Pothos has a number of built in mitigations to help avoid these issues, and tries to provide
+additional APIs to help with situations that can't be automatically avoided.
+
+This guide should provide some insight into how to resolve any issues you may run into, but will
+hopefully mot be needed very often.
+
+## imports
+
+Circular imports are something that can cause issues in any javascript or typescript project, but
+can become more common in graphql because of its interconnected nature.
+
+When js/ts files either directly or indirectly import each other, the exports from one file will
+initially be undefined while executing the main body of the other. These issues often result in
+confusing and unrelated errors because the relevant values are often not used until much later.
+
+Pothos mitigates this by deferring a lot of the processing until the `builder.toSchema({})` method
+is called. As long as the file that builds the schema (calls the `toSchema` method) is not imported
+by any other file that defines parts of the schema, this will ensure that all types are properly
+imported, and types are not unexpectedly undefined.
+
+As you can see in the example below, the references to `Post` and `User` when defining fields are
+wrapped inside a the `fields` function. Because this function is not executed until the schema is
+loaded, these types of Circular imports should work without causing any issues.
+
+```ts
+// user.ts
+import { Post } from './post'
+
+export const User = builder.objectType('User', {
+    fields: t => ({ posts: t.t.expose('posts', { type: [Post]}) }),
+})
+
+// post.ts
+import { User } from './user'
+
+export const Post = builder.objectType('Post', {
+    fields: t => ({ author: t.expose('author', {{ type: User }}) }),
+})
+
+// schema.js
+export const schema = builder.toSchema({})
+```
+
+## Defining Circular or Recursive types
+
+A large portion of the Pothos API is designed to work well with circular references, but there are a
+few cases where typescript is unable to resolve circular references correctly. Y
+
+What should work without any issues:
+
+- Objects and interfaces referenced via a class
+- Objects and interfaces referenced via a string (by proving a type mapping when creating the
+  SchemaBuilder)
+- Objects defined by plugins like Prisma that derive type information from an external source
+
+Cases that may require some modification
+
+- Input objects with circular references
+- Object types defined with `builder.objectRef`
+- Objects defined by plugins like `dataloader` that infer the Backing mode type from options passed
+  to the type.
+
+## Input objects
+
+Defining recursive input types is described in the [input Guide](./inputs#recursive-inputs)
+
+## Object refs
+
+Object refs may cause issues with circular references if the refs are implemented before they are
+assigned to a variable. This can easily be avoided by moving the call to `ref.implement` into its
+own statement.
+
+```typescript
+// May cause issues
+export const User = builder.objectRef<IUser>('User').implement({...});
+
+// Should be safe
+export const User = builder.objectRef<IUser>('User')
+
+User.implement({...});
+```
+
+Using object refs is often a great way to avoid issues with circular references because it allows
+you to define the reference before defining any fields for your type. Many of the builder methods in
+Pothos and its plugins can be passed a type ref instead of a name:
+
+```typescript
+export const User = builder.objectRef<IUser>('User');
+
+builder.objectType(User, {
+  field: (t) => ({
+    // Circular references here won't cause issues, because User is already defined above
+  }),
+});
+```
+
+## Defining fields separately
+
+Another easy work around is to define any fields that are causing issues separately
+
+```ts
+export const User = builder.objectRef<UserType>('User').implement({
+  fields: (t) => ({ posts: t.expose('posts', { type: [Post] }) }),
+});
+
+export const Post = builder.objectRef<PostType>('Post').implement({
+  fields: (t) => ({
+    // No more circular reference
+  }),
+});
+
+builder.objectField(Post, 'author', (t) => t.expose({ type: User }));
+```
