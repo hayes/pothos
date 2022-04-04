@@ -23,7 +23,7 @@ export class ImplementableObjectRef<
   Shape,
   Parent = Shape,
 > extends ObjectRef<Shape, Parent> {
-  private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
     super(name);

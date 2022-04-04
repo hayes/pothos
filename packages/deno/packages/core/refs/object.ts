@@ -12,7 +12,7 @@ export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRe
     }
 }
 export class ImplementableObjectRef<Types extends SchemaTypes, Shape, Parent = Shape> extends ObjectRef<Shape, Parent> {
-    private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
         super(name);
         this.builder = builder;

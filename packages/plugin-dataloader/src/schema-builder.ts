@@ -1,19 +1,29 @@
-import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
-  FieldRef,
   InterfaceParam,
-  InterfaceRef,
   ObjectParam,
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@pothos/core';
-import { LoadableInterfaceRef } from './refs/interface';
-import { LoadableObjectRef } from './refs/object';
+import { ImplementableLoadableNodeRef } from './refs';
+import { ImplementableLoadableInterfaceRef } from './refs/interface';
+import { ImplementableLoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from '.';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
+
+schemaBuilderProto.loadableObjectRef = function loadableObjectRef(name, options) {
+  return new ImplementableLoadableObjectRef(this, name, options);
+};
+
+schemaBuilderProto.loadableInterfaceRef = function loadableInterfaceRef(name, options) {
+  return new ImplementableLoadableInterfaceRef(this, name, options);
+};
+
+schemaBuilderProto.loadableNodeRef = function loadableNodeRef(name, options) {
+  return new ImplementableLoadableNodeRef(this, name, options);
+};
 
 schemaBuilderProto.loadableObject = function loadableObject<
   Shape extends NameOrRef extends ObjectParam<SchemaTypes>
@@ -25,31 +35,20 @@ schemaBuilderProto.loadableObject = function loadableObject<
   CacheKey = Key,
 >(
   nameOrRef: NameOrRef,
-  {
-    load,
-    toKey,
-    sort,
-    cacheResolved,
-    loaderOptions,
-    ...options
-  }: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
 ) {
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+  const ref = new ImplementableLoadableObjectRef<SchemaTypes, Shape | Key, Shape, Key, CacheKey>(
+    this,
+    name,
+    options,
+  );
 
-  const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
-
-  this.objectType(ref, {
-    ...options,
-    extensions: {
-      getDataloader,
-      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
-    },
-  } as never);
+  ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
     this.configStore.associateRefWithName(nameOrRef, name);
@@ -68,34 +67,20 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
   CacheKey = Key,
 >(
   nameOrRef: NameOrRef,
-  {
-    load,
-    toKey,
-    sort,
-    cacheResolved,
-    loaderOptions,
-    ...options
-  }: LoadableInterfaceOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: LoadableInterfaceOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
 ) {
   const name =
     typeof nameOrRef === 'string'
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
-
-  const ref = new LoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
+  const ref = new ImplementableLoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
+    this,
     name,
-    getDataloader,
+    options,
   );
 
-  this.interfaceType(ref, {
-    ...options,
-    extensions: {
-      getDataloader,
-      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
-    },
-  });
+  ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
     this.configStore.associateRefWithName(nameOrRef, name);
@@ -150,14 +135,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
 >(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   nameOrRef: NameOrRef,
-  {
-    load,
-    toKey,
-    sort,
-    cacheResolved,
-    loaderOptions,
-    ...options
-  }: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
 ) {
   if (
     typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
@@ -171,56 +149,17 @@ schemaBuilderProto.loadableNode = function loadableNode<
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+  const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
+    this,
+    name,
+    options,
+  );
 
-  const ref = new LoadableObjectRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
-
-  const extendedOptions = {
-    ...options,
-    interfaces: [
-      (
-        this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
-          nodeInterfaceRef: () => InterfaceRef<unknown>;
-        }
-      ).nodeInterfaceRef(),
-      ...(options.interfaces ?? []),
-    ],
-    loadManyWithoutCache: (ids: Key[], context: SchemaTypes['Context']) =>
-      getDataloader(context).loadMany(ids),
-    extensions: {
-      getDataloader,
-      cacheResolved: typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey,
-    },
-  };
-
-  this.objectType(ref, extendedOptions as never);
+  ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
     this.configStore.associateRefWithName(nameOrRef, name);
   }
-
-  this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    this.objectField(ref, 'id', (t) =>
-      (
-        t as unknown as {
-          globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-        }
-      ).globalID({
-        ...options.id,
-        nullable: false,
-        args: {},
-        resolve: async (
-          parent: Shape,
-          args: object,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => ({
-          type: nodeConfig.name,
-          id: await options.id.resolve(parent, args, context, info),
-        }),
-      }),
-    );
-  });
 
   return ref;
 } as unknown as typeof TloadableNode;

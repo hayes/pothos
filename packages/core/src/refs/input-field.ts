@@ -6,7 +6,7 @@ export default class InputFieldRef<
   T = unknown,
   Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject',
 > {
-  kind: 'Arg' | 'InputObject';
+  kind: Kind;
 
   parentTypename: string;
 

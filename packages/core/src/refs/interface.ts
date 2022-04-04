@@ -24,7 +24,7 @@ export class ImplementableInterfaceRef<
   Shape,
   Parent = Shape,
 > extends InterfaceRef<Shape, Parent> {
-  private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
     super(name);

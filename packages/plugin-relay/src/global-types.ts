@@ -158,7 +158,7 @@ declare global {
 
       globalID: <Req extends boolean>(
         ...args: NormalizeArgs<[options?: GlobalIDInputFieldOptions<Types, Req, Kind>]>
-      ) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>>;
+      ) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>, Kind>;
 
       globalIDList: <Req extends FieldRequiredness<['ID']>>(
         ...args: NormalizeArgs<[options?: GlobalIDListInputFieldOptions<Types, Req, Kind>]>
@@ -174,7 +174,8 @@ declare global {
             },
           ],
           Req
-        >
+        >,
+        Kind
       >;
     }
 

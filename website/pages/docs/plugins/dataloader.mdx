@@ -5,12 +5,12 @@ menu: Plugins
 description: Dataloader plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Dataloader Plugin
 
@@ -144,7 +144,8 @@ builder.objectField(User, 'posts', (t) =>
 
 `loadable` fields can return lists, but do not work for loading a list of records from a single id.
 
-The `loadableList` method can be used to define loadable fields that represent this kind of relationship.
+The `loadableList` method can be used to define loadable fields that represent this kind of
+relationship.
 
 ```typescript
 // Loading multiple Posts
@@ -325,6 +326,60 @@ const UserNode = builder.loadableNode('UserNode', {
   fields: (t) => ({}),
 });
 ```
+
+### Loadable Refs and Circular references
+
+You may run into type errors if you define 2 loadable objects that circularly reference each other
+in their definitions.
+
+There are a some general strategies to avoid this outlined in the
+[circular-references guide](../guide/circular-references).
+
+This plug also has methods for creating refs (similar to `builder.objectRef`) that can be used to
+split the definition and implementation of your types to avoid any issues with circular references.
+
+```typescript
+const User = builder.loadableObjectRef('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+});
+
+User.implement({
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+
+// Or with relay
+const UserNode = builder.loadableNodeRef('UserNode', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+  id: {
+    resolve: (user) => user.id,
+  },
+});
+
+UserNode.implement({
+  isTypeOf: (obj) => obj instanceof User,
+  fields: (t) => ({}),
+});
+```
+
+All the plugin specific options should be passed when defining the ref. This allows the ref to be
+used by any method that accepts a ref to implement an object:
+
+```typescript
+const User = builder.loadableObjectRef('User', {
+  load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
+});
+
+builder.objectType(User, {
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
+```
+
+The above example is not useful on its own, but this pattern will allow these refs to be used with
+other that also allow you to define object types with additional behaviors.
 
 ### Caching resources loaded manually in a resolver
 

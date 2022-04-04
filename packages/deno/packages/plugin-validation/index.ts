@@ -4,12 +4,11 @@ import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
 import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, PothosInputFieldType, PothosOutputFieldConfig, resolveInputTypeConfig, SchemaTypes, } from '../core/index.ts';
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
-import { RefineConstraint, ValidationOptionUnion } from './types.ts';
+import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types.ts';
 export * from './types.ts';
 const pluginName = "validation" as const;
 export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
-    inputTypeValidators = new Map<string, zod.ZodType<unknown>>();
     override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>): PothosInputFieldConfig<Types> {
         const fieldType = resolveInputTypeConfig(fieldConfig.type, this.buildCache);
         const validationOptions = fieldConfig.pothosOptions.validate as ValidationOptionUnion | undefined;
@@ -56,9 +55,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
         });
         let validator: zod.ZodTypeAny = zod.object(args).passthrough();
         if (fieldConfig.pothosOptions.validate) {
-            validator = refine(validator, {
-                refine: fieldConfig.pothosOptions.validate as RefineConstraint<unknown>,
-            });
+            validator = refine(validator, fieldConfig.pothosOptions.validate as ValidationOptionUnion);
         }
         return async (parent, rawArgs, context, info) => resolver(parent, (await validator.parseAsync(rawArgs)) as object, context, info);
     }
@@ -70,9 +67,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
             const typeConfig = this.buildCache.getTypeConfig(type.ref, "InputObject");
             let fieldValidator = refine(zod.lazy(() => zod.object(this.inputFieldValidators.get(typeConfig.name) ?? {}).passthrough()), options);
             if (typeConfig.pothosOptions.validate) {
-                fieldValidator = refine(fieldValidator, {
-                    refine: typeConfig.pothosOptions.validate as RefineConstraint<unknown>,
-                });
+                fieldValidator = refine(fieldValidator, typeConfig.pothosOptions.validate as ValidationOptions<unknown>);
             }
             return combine([fieldValidator], type.required);
         }

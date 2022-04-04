@@ -121,20 +121,23 @@ builder.queryField('addOnUser', (t) =>
   }),
 );
 
-const NullableUser = builder.loadableObject('NullableUser', {
-  interfaces: [TestInterface],
-  isTypeOf: (obj) => true,
-  loaderOptions: { maxBatchSize: 20 },
-  load: (keys: string[], context: ContextType) => {
-    countCall(context, nullableUsersCounts, keys.length);
-    return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : (null as never))),
-    );
-  },
-  fields: (t) => ({
-    id: t.exposeID('id', {}),
-  }),
-});
+const NullableUser = builder
+  .loadableObjectRef('NullableUser', {
+    loaderOptions: { maxBatchSize: 20 },
+    load: (keys: string[], context: ContextType) => {
+      countCall(context, nullableUsersCounts, keys.length);
+      return Promise.resolve(
+        keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : (null as never))),
+      );
+    },
+  })
+  .implement({
+    isTypeOf: (obj) => true,
+    interfaces: [TestInterface],
+    fields: (t) => ({
+      id: t.exposeID('id', {}),
+    }),
+  });
 
 builder.queryFields((t) => ({
   user: t.field({

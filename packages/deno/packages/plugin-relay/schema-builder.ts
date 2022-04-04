@@ -21,22 +21,22 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
         ...this.options.relayOptions.pageInfoTypeOptions,
         fields: (t) => ({
             hasNextPage: t.exposeBoolean("hasNextPage", {
-                ...hasNextPageFieldOptions,
                 nullable: false,
+                ...hasNextPageFieldOptions,
             }),
             hasPreviousPage: t.exposeBoolean("hasPreviousPage", {
-                ...hasPreviousPageFieldOptions,
                 nullable: false,
+                ...hasPreviousPageFieldOptions,
             }),
             startCursor: t.expose("startCursor", {
+                nullable: true,
                 ...startCursorFieldOptions,
                 type: cursorType,
-                nullable: true,
             }) as never,
             endCursor: t.expose("endCursor", {
+                nullable: true,
                 ...endCursorFieldOptions,
                 type: cursorType,
-                nullable: true,
             }) as never,
         }),
     });
@@ -52,6 +52,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         ...this.options.relayOptions.nodeTypeOptions,
         fields: (t) => ({
             id: t.globalID({
+                nullable: false,
                 resolve: (parent) => {
                     throw new Error("id field not implemented");
                 },
@@ -59,25 +60,25 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         }),
     });
     this.queryField("node", (t) => t.field({
+        nullable: true,
         ...this.options.relayOptions.nodeQueryOptions,
         type: ref as InterfaceRef<unknown>,
         args: {
             id: t.arg.id({ required: true }),
         },
-        nullable: true,
         resolve: async (root, args, context, info) => (await resolveNodes(this, context, info, [String(args.id)]))[0],
     }) as FieldRef<unknown>);
     this.queryField("nodes", (t) => t.field({
+        nullable: {
+            list: false,
+            items: true,
+        },
         ...this.options.relayOptions.nodesQueryOptions,
         type: [ref],
         args: {
             ids: t.arg.idList({ required: true }),
         },
-        nullable: {
-            list: false,
-            items: true,
-        },
-        resolve: async (root, args, context, info) => (await resolveNodes(this, context, info, args.ids as string[])) as Promise<ObjectParam<SchemaTypes> | null>[],
+        resolve: async (root, args, context, info) => (await resolveNodes(this, context, info, args.ids as string[])) as Promise<ObjectParam<SchemaTypes>>[],
     }));
     return ref;
 };
@@ -143,8 +144,8 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     this.configStore.onTypeConfig(ref, (nodeConfig) => {
         nodeName = nodeConfig.name;
         this.objectField(ref, "id", (t) => t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
-            ...options.id,
             nullable: false,
+            ...options.id,
             args: {},
             resolve: async (parent, args, context, info) => ({
                 type: nodeConfig.name,
@@ -201,8 +202,8 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
             ...(includeClientMutationId
                 ? {
                     clientMutationId: t.id({
-                        ...clientMutationIdFieldOptions,
                         nullable: this.options.relayOptions.clientMutationId === "optional",
+                        ...clientMutationIdFieldOptions,
                         resolve: (parent, args, context, info) => mutationIdCache(context).get(String(info.path.prev!.key))!,
                     }),
                 }
@@ -247,17 +248,18 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
         ...connectionOptions,
         fields: (t) => ({
             pageInfo: t.field({
+                nullable: false,
                 ...pageInfoFieldOptions,
                 type: this.pageInfoRef(),
                 resolve: (parent) => parent.pageInfo,
             }),
             edges: t.field({
-                ...edgesFieldOptions,
-                type: [edgeRef],
                 nullable: (edgesNullableField ?? edgesNullable) as {
                     list: false;
                     items: true;
                 },
+                ...edgesFieldOptions,
+                type: [edgeRef],
                 resolve: (parent) => parent.edges,
             }),
             ...connectionFields?.(t as never),
@@ -267,12 +269,13 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
         ...edgeOptions,
         fields: (t) => ({
             node: t.field({
-                ...nodeFieldOptions,
                 nullable: nodeNullableField ?? nodeNullable,
+                ...nodeFieldOptions,
                 type,
                 resolve: (parent) => parent.node as never,
             }),
             cursor: t.expose("cursor", {
+                nullable: false,
                 type: cursorType,
                 ...cursorFieldOptions,
             }) as never,

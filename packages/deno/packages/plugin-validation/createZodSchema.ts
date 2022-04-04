@@ -52,12 +52,15 @@ function validatorCreator<T extends BaseValidationOptions<any>>(type: NonNullabl
         return null;
     };
 }
-export function refine(originalValidator: zod.ZodTypeAny, options: ValidationOptionUnion | null | undefined) {
+export function refine(originalValidator: zod.ZodTypeAny, options: ValidationOptionUnion | RefineConstraint | null | undefined): zod.ZodTypeAny {
     if (!options) {
         return originalValidator;
     }
     if (typeof options === "function") {
         return originalValidator.refine(options);
+    }
+    if (Array.isArray(options)) {
+        return refine(originalValidator, { refine: options });
     }
     let validator = originalValidator;
     // TODO find a better way to merge array fields
