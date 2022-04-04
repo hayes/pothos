@@ -1,5 +1,7 @@
 import {
+  FieldKind,
   FieldNullability,
+  FieldOptionsFromKind,
   InputFieldMap,
   InputFieldRef,
   InputRef,
@@ -9,10 +11,13 @@ import {
 } from '@pothos/core';
 
 export interface WithInputBuilderOptions<Types extends SchemaTypes> {
-  inputArgOptions: Omit<
+  argOptions?: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
-    'fields' | 'required' | 'type'
-  >;
+    'type' | 'required'
+  > & {
+    required?: boolean;
+  };
+  typeOptions?: Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, 'fields'>;
 }
 
 export type WithInputInputOptions<
@@ -25,108 +30,52 @@ export type WithInputInputOptions<
   inputFields: (t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>) => Fields;
 };
 
-export type QueryFieldWithInputOptions<
-  Types extends SchemaTypes,
-  Fields extends InputFieldMap,
-  Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>,
-  InputName extends string,
-  ResolveReturnShape,
-> = Omit<
-  PothosSchemaTypes.QueryFieldOptions<
-    Types,
-    Type,
-    Nullable,
-    {
-      [K in InputName]: InputFieldRef<InputShapeFromFields<Fields>>;
-    },
-    ResolveReturnShape
-  >,
-  'args'
->;
+export type WithInputTypeOptions<Types extends SchemaTypes, Fields extends InputFieldMap> = Omit<
+  PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>,
+  'fields'
+> & {
+  name?: string;
+};
 
-export type MutationFieldWithInputOptions<
+export type WithInputArgOptions<
   Types extends SchemaTypes,
   Fields extends InputFieldMap,
-  Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>,
-  InputName extends string,
-  ResolveReturnShape,
+  InputName,
 > = Omit<
-  PothosSchemaTypes.MutationFieldOptions<
-    Types,
-    Type,
-    Nullable,
-    {
-      [K in InputName]: InputFieldRef<InputShapeFromFields<Fields>>;
-    },
-    ResolveReturnShape
-  >,
-  'args'
->;
+  PothosSchemaTypes.ArgFieldOptions<Types, InputRef<InputShapeFromFields<Fields>>, true>,
+  'type'
+> & {
+  name?: InputName;
+};
 
-export type SubscriptionFieldWithInputOptions<
+export type FieldWithInputOptions<
   Types extends SchemaTypes,
-  Fields extends InputFieldMap,
+  ParentShape,
+  Kind extends FieldKind,
+  Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
+  Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   InputName extends string,
   ResolveShape,
   ResolveReturnShape,
 > = Omit<
-  PothosSchemaTypes.SubscriptionFieldOptions<
+  FieldOptionsFromKind<
     Types,
+    ParentShape,
     Type,
     Nullable,
     {
       [K in InputName]: InputFieldRef<InputShapeFromFields<Fields>>;
-    },
+    } & Args,
+    Kind,
     ResolveShape,
     ResolveReturnShape
   >,
   'args'
->;
-
-export type ObjectFieldWithInputOptions<
-  Types extends SchemaTypes,
-  ParentShape,
-  Fields extends InputFieldMap,
-  Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>,
-  InputName extends string,
-  ResolveReturnShape,
-> = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<
-    Types,
-    ParentShape,
-    Type,
-    Nullable,
-    {
-      [K in InputName]: InputFieldRef<InputShapeFromFields<Fields>>;
-    },
-    ResolveReturnShape
-  >,
-  'args'
->;
-
-export type InterfaceFieldWithInputOptions<
-  Types extends SchemaTypes,
-  ParentShape,
-  Fields extends InputFieldMap,
-  Type extends TypeParam<Types>,
-  Nullable extends FieldNullability<Type>,
-  InputName extends string,
-  ResolveReturnShape,
-> = Omit<
-  PothosSchemaTypes.InterfaceFieldOptions<
-    Types,
-    ParentShape,
-    Type,
-    Nullable,
-    {
-      [K in InputName]: InputFieldRef<InputShapeFromFields<Fields>>;
-    },
-    ResolveReturnShape
-  >,
-  'args'
->;
+> & {
+  typeOptions?: WithInputTypeOptions<Types, Fields>;
+  argOptions?: WithInputArgOptions<Types, Fields, InputName>;
+  input: Fields;
+  args?: Args;
+};

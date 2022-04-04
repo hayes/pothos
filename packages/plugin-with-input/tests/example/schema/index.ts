@@ -4,47 +4,38 @@ builder.queryType({});
 builder.mutationType({});
 builder.subscriptionType({});
 
-builder.queryFieldWithInput(
-  'exampleQuery',
-  {
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
+builder.queryField('exampleQuery', (t) =>
+  t.fieldWithInput({
+    input: {
+      id: t.input.id({ required: true }),
+    },
     type: 'ID',
     resolve: (root, args) => args.input.id,
-  },
+  }),
 );
 
-builder.mutationFieldWithInput(
-  'exampleMutation',
-  {
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
+builder.mutationField('exampleMutation', (t) =>
+  t.fieldWithInput({
+    input: {
+      id: t.input.id({ required: true }),
+    },
     type: 'ID',
     resolve: (root, args) => args.input.id,
-  },
+  }),
 );
 
-builder.subscriptionFieldWithInput(
-  'exampleSubscription',
-  {
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
+builder.subscriptionField('exampleSubscription', (t) =>
+  t.fieldWithInput({
+    input: {
+      id: t.input.id({ required: true }),
+    },
     type: 'ID',
     resolve: (root, args) => args.input.id,
     async *subscribe() {
       yield await {};
       return {};
     },
-  },
+  }),
 );
 
 const TestObj = builder.objectRef<{ id: number }>('TestObj').implement({
@@ -60,18 +51,14 @@ builder.queryField('obj', (t) =>
   }),
 );
 
-builder.objectFieldWithInput(
-  TestObj,
-  'exampleObjectField',
-  {
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
+builder.objectField(TestObj, 'exampleObjectField', (t) =>
+  t.fieldWithInput({
+    input: {
+      id: t.input.id({ required: true }),
+    },
     type: 'ID',
     resolve: (root, args) => args.input.id,
-  },
+  }),
 );
 
 const TestInterface = builder.interfaceRef<{ id: number }>('TestInterface').implement({
@@ -92,109 +79,113 @@ builder.objectRef<{ id: number }>('ObjWithInterface').implement({
   isTypeOf: () => true,
 });
 
-builder.interfaceFieldWithInput(
-  TestInterface,
-  'exampleInterfaceField',
-  {
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
+builder.interfaceField(TestInterface, 'exampleInterfaceField', (t) =>
+  t.fieldWithInput({
+    input: {
+      id: t.input.id({ required: true }),
+    },
     type: 'ID',
     resolve: (root, args) => args.input.id,
-  },
+  }),
 );
 
-builder.queryFieldWithInput(
-  'withOptions',
-  {
-    name: 'TestQueryInput',
-    argName: 'custom',
-    description: 'input field',
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
-    type: 'ID',
+builder.queryField('withOptions', (t) =>
+  t.fieldWithInput({
+    typeOptions: {
+      name: 'TestQueryInput',
+
+      description: 'input field',
+    },
+    argOptions: {
+      name: 'custom',
+    },
     description: 'query field',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    type: 'ID',
     resolve: (root, args) => args.custom.id,
-  },
+  }),
 );
 
-builder.mutationFieldWithInput(
-  'withOptions',
-  {
-    name: 'TestMutationInput',
-    argName: 'custom',
-    description: 'input field',
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
+builder.mutationField('withOptions', (t) =>
+  t.fieldWithInput({
+    typeOptions: {
+      name: 'TestMutationInput',
+
+      description: 'input field',
+    },
+    argOptions: {
+      name: 'custom',
+    },
     description: 'mutation field',
+    input: {
+      id: t.input.id({ required: true }),
+    },
     type: 'ID',
     resolve: (root, args) => args.custom.id,
-  },
+  }),
 );
 
-builder.subscriptionFieldWithInput(
-  'withOptions',
-  {
-    name: 'TestSubscriptionInput',
-    argName: 'custom',
-    description: 'input field',
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
-    type: 'ID',
+builder.subscriptionField('withOptions', (t) =>
+  t.fieldWithInput({
+    typeOptions: {
+      name: 'TestSubscriptionInput',
+
+      description: 'input field',
+    },
+    argOptions: {
+      name: 'custom',
+    },
     description: 'subscription field',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    type: 'ID',
     resolve: (root, args) => args.custom.id,
     async *subscribe() {
       yield await {};
       return {};
     },
-  },
+  }),
 );
 
-builder.objectFieldWithInput(
-  TestObj,
-  'withOptions',
-  {
-    name: 'TestObjectInput',
-    argName: 'custom',
-    description: 'input field',
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
-    type: 'ID',
+builder.objectField(TestObj, 'withOptions', (t) =>
+  t.fieldWithInput({
+    typeOptions: {
+      name: 'TestObjectInput',
+
+      description: 'input field',
+    },
+    argOptions: {
+      name: 'custom',
+    },
     description: 'object field',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    type: 'ID',
     resolve: (root, args) => args.custom.id,
-  },
+  }),
 );
 
-builder.interfaceFieldWithInput(
-  TestInterface,
-  'withOptions',
-  {
-    name: 'TestInterfaceInput',
-    argName: 'custom',
-    description: 'input field',
-    inputFields: (t) => ({
-      id: t.id({ required: true }),
-    }),
-  },
-  {
-    type: 'ID',
+builder.interfaceField(TestInterface, 'withOptions', (t) =>
+  t.fieldWithInput({
+    typeOptions: {
+      name: 'TestInterfaceInput',
+
+      description: 'input field',
+    },
+    argOptions: {
+      name: 'custom',
+    },
     description: 'interface field',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    type: 'ID',
     resolve: (root, args) => args.custom.id,
-  },
+  }),
 );
 
 export default builder.toSchema({});

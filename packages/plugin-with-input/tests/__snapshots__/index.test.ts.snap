@@ -1,30 +1,10 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`example schema generates expected schema 1`] = `
-"input ExampleInterfaceFieldInput {
-  id: ID!
-}
-
-input ExampleMutationInput {
-  id: ID!
-}
-
-input ExampleObjectFieldInput {
-  id: ID!
-}
-
-input ExampleQueryInput {
-  id: ID!
-}
-
-input ExampleSubscriptionInput {
-  id: ID!
-}
-
-type Mutation {
+"type Mutation {
   exampleMutation(
     \\"\\"\\"input arg\\"\\"\\"
-    input: ExampleMutationInput!
+    input: MutationExampleMutationInput!
   ): ID!
 
   \\"\\"\\"mutation field\\"\\"\\"
@@ -34,10 +14,14 @@ type Mutation {
   ): ID!
 }
 
+input MutationExampleMutationInput {
+  id: ID!
+}
+
 type ObjWithInterface implements TestInterface {
   exampleInterfaceField(
     \\"\\"\\"input arg\\"\\"\\"
-    input: ExampleInterfaceFieldInput!
+    input: TestInterfaceExampleInterfaceFieldInput!
   ): ID!
   id: ID!
 
@@ -51,7 +35,7 @@ type ObjWithInterface implements TestInterface {
 type Query {
   exampleQuery(
     \\"\\"\\"input arg\\"\\"\\"
-    input: ExampleQueryInput!
+    input: QueryExampleQueryInput!
   ): ID!
   iface: TestInterface!
   obj: TestObj!
@@ -63,10 +47,14 @@ type Query {
   ): ID!
 }
 
+input QueryExampleQueryInput {
+  id: ID!
+}
+
 type Subscription {
   exampleSubscription(
     \\"\\"\\"input arg\\"\\"\\"
-    input: ExampleSubscriptionInput!
+    input: SubscriptionExampleSubscriptionInput!
   ): ID!
 
   \\"\\"\\"subscription field\\"\\"\\"
@@ -76,10 +64,14 @@ type Subscription {
   ): ID!
 }
 
+input SubscriptionExampleSubscriptionInput {
+  id: ID!
+}
+
 interface TestInterface {
   exampleInterfaceField(
     \\"\\"\\"input arg\\"\\"\\"
-    input: ExampleInterfaceFieldInput!
+    input: TestInterfaceExampleInterfaceFieldInput!
   ): ID!
   id: ID!
 
@@ -88,6 +80,10 @@ interface TestInterface {
     \\"\\"\\"input arg\\"\\"\\"
     custom: TestInterfaceInput!
   ): ID!
+}
+
+input TestInterfaceExampleInterfaceFieldInput {
+  id: ID!
 }
 
 \\"\\"\\"input field\\"\\"\\"
@@ -103,7 +99,7 @@ input TestMutationInput {
 type TestObj {
   exampleObjectField(
     \\"\\"\\"input arg\\"\\"\\"
-    input: ExampleObjectFieldInput!
+    input: TestObjExampleObjectFieldInput!
   ): ID!
   id: ID!
 
@@ -112,6 +108,10 @@ type TestObj {
     \\"\\"\\"input arg\\"\\"\\"
     custom: TestObjectInput!
   ): ID!
+}
+
+input TestObjExampleObjectFieldInput {
+  id: ID!
 }
 
 \\"\\"\\"input field\\"\\"\\"

@@ -116,7 +116,10 @@ export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
 
 export type FieldMap = Record<string, FieldRef>;
 
-export type InputFieldMap = Record<string, InputFieldRef>;
+export type InputFieldMap<Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject'> = Record<
+  string,
+  InputFieldRef<unknown, Kind>
+>;
 
 export type FieldOptionsFromKind<
   Types extends SchemaTypes,
