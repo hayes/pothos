@@ -103,6 +103,10 @@ new ApolloServer({
 
   Validating your inputs and arguments
 
+- [**With-Input**](https://pothos-graphql.dev/docs/plugins/with-input)
+
+  Define fields with inline input objects
+
 ## Sponsors
 
 Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from these generous
