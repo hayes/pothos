@@ -64,10 +64,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
               </a>
             </li>
             <li className="hidden sm:block hover:underline">
-              <a
-                className="flex space-x-2 hover:underline"
-                href="https://discord.com/channels/625400653321076807/868135255616417834"
-              >
+              <a className="flex space-x-2 hover:underline" href="https://discord.gg/WxpgwTqg">
                 <DiscordLogo height={24} width={24} />
                 <span>Discord</span>
               </a>
