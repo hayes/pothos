@@ -21,12 +21,12 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/giraphql.git"
+    "url": "git+https://github.com/hayes/pothos.git"
   },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
-    "giraphql",
+    "pothos",
     "graphql",
     "schema",
     "typescript",

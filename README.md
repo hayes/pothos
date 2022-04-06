@@ -1,6 +1,6 @@
 ![Pothos](https://pothos-graphql.dev/assets/logo-name-auto.svg)
 
-# Pothos GraphQL ([formerly GiraphQL](https://pothos-graphql.dev/docs/migrations/giraphql-pothos))
+# Pothos GraphQL
 
 Pothos is a plugin based GraphQL schema builder for typescript.
 
