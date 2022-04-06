@@ -17,7 +17,7 @@ function resolveImport(mod: string, source: string) {
   }
 
   if (!mod.startsWith('.')) {
-    return `${mod}${require.resolve(mod).split(mod)[1]}`;
+    return `${mod}${require.resolve(mod, { paths: [process.cwd()] }).split(mod)[1]}`;
   }
 
   const potentialPaths = [
