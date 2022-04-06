@@ -1,13 +1,19 @@
 import { spawn } from 'child_process';
 import { lexicographicSortSchema, printSchema } from 'graphql';
+import { transform } from '@swc/core';
 import PothosConverter from '../src';
 import exampleSchema from './examples/random-stuff';
 import starwarsSchema from './examples/starwars/schema';
 
-function execTS(script: string) {
+async function execTS(script: string) {
+  const compiled = await transform(script, {
+    jsc: { parser: { syntax: 'typescript' }, target: 'es2020' },
+    module: { type: 'commonjs' },
+  });
+
   return new Promise<string>((resolve, reject) => {
     const chunks: Buffer[] = [];
-    const child = spawn('ts-node', {
+    const child = spawn('node', {
       stdio: ['pipe', 'pipe', 'inherit'],
       cwd: __dirname,
     });
@@ -16,7 +22,7 @@ function execTS(script: string) {
     child.stdout.on('data', (chunk) => chunks.push(chunk));
     child.stdout.on('end', () => void resolve(Buffer.concat(chunks).toString()));
 
-    child.stdin.write(script);
+    child.stdin.write(compiled.code);
     child.stdin.end();
   });
 }

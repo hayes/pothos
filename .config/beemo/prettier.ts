@@ -1,7 +1,7 @@
 import { PrettierConfig } from '@beemo/driver-prettier';
 
 const config: PrettierConfig = {
-  ignore: ['deno'],
+  ignore: ['deno/src'],
   useTabs: false,
   tabWidth: 2,
 };

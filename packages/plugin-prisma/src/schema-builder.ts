@@ -2,12 +2,10 @@ import './global-types';
 import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   brandWithType,
-  FieldNullability,
   FieldRef,
   InterfaceRef,
   OutputType,
   SchemaTypes,
-  TypeParam,
 } from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
@@ -27,14 +25,7 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
   ref.name = name;
 
   this.objectType(ref, {
-    ...(options as {} as PothosSchemaTypes.ObjectFieldOptions<
-      SchemaTypes,
-      unknown,
-      TypeParam<SchemaTypes>,
-      FieldNullability<SchemaTypes>,
-      {},
-      unknown
-    >),
+    ...(options as {}),
     extensions: {
       ...options.extensions,
       pothosPrismaInclude: options.include,

@@ -21,6 +21,7 @@ logs/
 coverage/
 dist/
 lib/
+dts/
 node_modules/
 tmp/
 .docz/

@@ -4,7 +4,7 @@ import { schema } from './schema';
 
 const PORT = 3000;
 
-export const server = createServer<Context, unknown>({
+export const server = createServer<Context>({
   port: PORT,
   schema,
   context: (ctx) => ({

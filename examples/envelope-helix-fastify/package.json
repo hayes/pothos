@@ -5,17 +5,16 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "start": "ts-node --transpile-only src/server.ts",
+    "start": "node -r @swc-node/register src/server.ts",
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@envelop/core": "^2.0.0",
-    "@faker-js/faker": "^6.0.0-alpha.7",
+    "@envelop/core": "^2.3.0",
+    "@faker-js/faker": "^6.1.2",
     "@pothos/core": "workspace:*",
-    "fastify": "^3.27.2",
+    "fastify": "^3.28.0",
     "graphql": "16.3.0",
-    "graphql-helix": "^1.11.0",
-    "ts-node": "^10.6.0"
+    "graphql-helix": "^1.11.0"
   },
   "publishConfig": {
     "access": "public"
