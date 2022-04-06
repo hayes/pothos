@@ -14,8 +14,8 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@apollo/gateway": "2.0.0-preview.2",
-    "@apollo/subgraph": "2.0.0-preview.2",
+    "@apollo/gateway": "2.0.0-preview.9",
+    "@apollo/subgraph": "2.0.0-preview.9",
     "@faker-js/faker": "^6.1.2",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",

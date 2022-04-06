@@ -18,7 +18,7 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@prisma/client": "^3.12.0",
-    "apollo-server": "^3.6.7",
+    "@graphql-yoga/node": "^2.0.0",
     "graphql": "16.3.0",
     "prisma": "^3.12.0"
     },

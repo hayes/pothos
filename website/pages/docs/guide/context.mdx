@@ -5,12 +5,12 @@ menu: Guide
 description: Guide for using context object in Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Context object
 
@@ -69,7 +69,7 @@ builder.objectType(User, {
 Finally, we need to actually create our context when a request is created.
 
 ```typescript
-const server = new ApolloServer({
+const server = createServer({
   schema,
   context: async ({ req }) => ({
     // This part is up to you!
@@ -95,8 +95,8 @@ its identity, you can manually initialize the context cache and attach it to the
 ```typescript
 import { initContextCache } from '@pothos/core';
 
-const server = new ApolloServer({
-  schema,
+const server = createServer({
+  schema: builder.toSchema({}),
   context: async ({ req }) => ({
     // Adding this will prevent any issues if you server implementation
     // copies or extends the context object before passing it to your resolvers
@@ -106,5 +106,5 @@ const server = new ApolloServer({
   }),
 });
 
-server.listen(3000);
+server.start();
 ```

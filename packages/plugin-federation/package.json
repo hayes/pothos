@@ -39,12 +39,12 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@apollo/subgraph": "^2.0.0-preview.2",
+    "@apollo/subgraph": "^2.0.0-preview.9",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.0.0-preview.2",
-    "@apollo/subgraph": "^2.0.0-preview.2",
+    "@apollo/gateway": "^2.0.0-preview.9",
+    "@apollo/subgraph": "^2.0.0-preview.9",
     "@graphql-tools/utils": "^8.6.5",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
