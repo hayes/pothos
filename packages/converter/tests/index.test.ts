@@ -7,7 +7,7 @@ import starwarsSchema from './examples/starwars/schema';
 
 async function execTS(script: string) {
   const compiled = await transform(script, {
-    jsc: { parser: { syntax: 'typescript' }, target: 'es2020' },
+    jsc: { parser: { syntax: 'typescript' }, target: 'es2019' },
     module: { type: 'commonjs' },
   });
 
