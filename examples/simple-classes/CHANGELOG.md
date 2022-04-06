@@ -1,5 +1,18 @@
 # @pothos-examples/simple-classes
 
+## 2.1.0
+
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+- Updated dependencies [21a2454e]
+- Updated dependencies [6279235f]
+  - @pothos/core@3.5.0
+
 ## 2.0.4
 
 ### Patch Changes

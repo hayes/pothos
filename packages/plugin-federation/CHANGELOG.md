@@ -1,5 +1,17 @@
 # @pothos/plugin-federation
 
+## 0.4.0
+
+### Minor Changes
+
+- 21a2454e: Update to apollo dependencies to preview.9 which includes some important fixes for
+  prisma and introspection
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+
 ## 0.3.0
 
 ### Minor Changes
