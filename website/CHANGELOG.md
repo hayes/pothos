@@ -2,6 +2,19 @@
 
 ## null
 
+### Minor Changes
+
+- 6279235f: Update build process to use swc and move type definitions to dts directory
+
+### Patch Changes
+
+- 21a2454e: update dev dependencies
+- Updated dependencies [21a2454e]
+- Updated dependencies [6279235f]
+  - @pothos/core@3.5.0
+
+## null
+
 ### Patch Changes
 
 - Updated dependencies [c0bdbc1b]
