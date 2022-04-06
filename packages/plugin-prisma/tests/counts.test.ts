@@ -133,7 +133,7 @@ describe('prisma counts', () => {
           "runInTransaction": false,
         },
         Object {
-          "action": "aggregate",
+          "action": "count",
           "args": Object {
             "select": Object {
               "_count": Object {

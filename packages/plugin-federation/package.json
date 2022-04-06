@@ -3,18 +3,20 @@
   "description": "A Pothos plugin for implementing apollo federation subGraphs",
   "version": "0.3.0",
   "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
     "import": "./esm/index.js",
     "require": "./lib/index.js"
   },
   "scripts": {
-    "type": "tsc --noEmit && tsc --project tests/tsconfig.json",
-    "build": "pnpm build:cjs && pnpm build:esm",
-    "build:cjs": "tsc --module commonjs --outDir lib",
-    "build:esm": "tsc --module es2020 --outDir esm && pnpm esm:extensions",
-    "esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ../../.config/esm-transformer.ts",
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:esm && pnpm build:dts",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
+    "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
     "test": "pnpm jest --runInBand"
   },
   "repository": {
@@ -37,18 +39,18 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@apollo/subgraph": "^2.0.0-preview.2",
+    "@apollo/subgraph": "^2.0.0-preview.9",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.0.0-preview.2",
-    "@apollo/subgraph": "^2.0.0-preview.2",
-    "@graphql-tools/utils": "^8.6.2",
+    "@apollo/gateway": "^2.0.0-preview.9",
+    "@apollo/subgraph": "^2.0.0-preview.9",
+    "@graphql-tools/utils": "^8.6.5",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "apollo-server": "^3.6.3",
-    "apollo-server-core": "^3.6.3",
+    "apollo-server": "^3.6.7",
+    "apollo-server-core": "^3.6.7",
     "axios": "^0.26.0",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.5"

@@ -11,7 +11,7 @@ generator client {
 }
 
 generator pothos {
-  provider     = "ts-node ./src/generator.ts"
+  provider     = "node -r @swc-node/register ./src/generator.ts"
   clientOutput = "../tests/client"
   output       = "../tests/generated.ts"
 }

@@ -21,25 +21,7 @@ information on federation, see the
 You will need to install the plugin, as well as `@apollo/subgraph`
 
 ```bash
-yarn add @pothos/plugin-federation @apollo/subgraph@2.0.0-alpha.6
-```
-
-Currently this plugin works with `alpha.6`, but the beta releases have some issues that prevent this
-plugin from working correctly.
-
-To use `alpha.6` you will need to pin a few additional dependencies to the correct versions using
-"resolutions" with either `yarn` on `pnpm`
-
-```json
-{
-  ...
-  "resolutions": {
-    "@apollo/composition": "2.0.0-alpha.6",
-    "@apollo/query-planner": "2.0.0-alpha.6",
-    "@apollo/composition": "2.0.0-alpha.6",
-    "@apollo/query-graphs": "2.0.0-alpha.6"
-  }
-}
+yarn add @pothos/plugin-federation @apollo/subgraph@2.0.0-latest-2
 ```
 
 You will likely want to install apollo-server as well, but it is not required if you want to use a

@@ -7,29 +7,27 @@
   "scripts": {
     "generate": "prisma generate",
     "seed": "prisma migrate reset -f",
-    "ts-node": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
-    "start": "ts-node --transpile-only src/server.ts",
+    "start": "node -r @swc-node/register src/server.ts",
     "type": "tsc --noEmit"
   },
   "prisma": {
-    "seed": "pnpm ts-node prisma/seed.ts"
+    "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@apollo/gateway": "2.0.0-preview.2",
-    "@apollo/subgraph": "2.0.0-preview.2",
-    "@faker-js/faker": "^6.0.0-alpha.7",
+    "@apollo/gateway": "2.0.0-preview.9",
+    "@apollo/subgraph": "2.0.0-preview.9",
+    "@faker-js/faker": "^6.1.2",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
-    "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@prisma/client": "^3.10.0",
-    "apollo-server": "^3.6.3",
-    "apollo-server-core": "^3.6.3",
+    "@pothos/plugin-relay": "workspace:*",
+    "@prisma/client": "^3.12.0",
+    "apollo-server": "^3.6.7",
+    "apollo-server-core": "^3.6.7",
     "graphql": "16.3.0",
-    "prisma": "^3.10.0",
-    "ts-node": "^10.6.0"
-  },
+    "prisma": "^3.12.0"
+    },
   "publishConfig": {
     "access": "public"
   }

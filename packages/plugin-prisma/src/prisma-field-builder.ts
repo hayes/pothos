@@ -281,7 +281,7 @@ export class PrismaObjectFieldBuilder<
     ) => ({ select: { [name]: nestedQuery(query) } });
 
     return this.field({
-      ...rest,
+      ...(rest as {}),
       type: relationField.isList ? [ref] : ref,
       extensions: {
         ...extensions,
@@ -318,7 +318,7 @@ export class PrismaObjectFieldBuilder<
     };
 
     return this.field({
-      ...rest,
+      ...(rest as {}),
       type: 'Int',
       nullable: false,
       select: countSelect as never,
@@ -347,10 +347,10 @@ export class PrismaObjectFieldBuilder<
       nestedQuery({});
 
     return this.field({
-      ...options,
+      ...(options as {}),
       type: ref,
       select: selfSelect as never,
-      resolve: (parent, args, context, info) => parent,
+      resolve: (parent, args, context, info) => parent as never,
     }) as FieldRef<Model['Shape'], 'Object'>;
   }
 

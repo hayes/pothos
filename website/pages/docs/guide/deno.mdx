@@ -36,9 +36,6 @@ import ScopeAuthPlugin from 'https://deno.land/x/pothos/packages/plugin-scope-au
 
 #### Server
 
-Most of the docs and examples currently use apollo-server, because it is the simplest to set up for
-node. Unfortunately apollo-server does not work in deno. Instead we can use GraphQL Helix:
-
 ```typescript
 import { Application, Router } from 'https://deno.land/x/oak@v7.3.0/mod.ts';
 // Currently the way helix exports graphiql doesn't work in deno, so we import the other parts directly, and import a very simple playground file from a gist.

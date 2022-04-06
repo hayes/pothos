@@ -111,30 +111,24 @@ this case the Giraffe class. `builder.objectType` also returns a `Ref` object th
 
 Pothos schemas build into a plain schema that uses types from the `graphql`package. This means it
 should be compatible with most of the popular GraphQL server implementations for node. In this guide
-we will use `apollo-server` but you can use whatever server you want.
+we will use `@graphql-yoga/node` but you can use whatever server you want.
 
 ```typescript
-// import apollo-server at top of file
-import { ApolloServer } from 'apollo-server';
+import { createServer } from '@graphql-yoga/node';
 
 // Build schema and start server with the types we wrote above
-const schema = builder.toSchema({});
-
-const server = new ApolloServer({ schema });
-
-server.listen(8000, (error: unknown) => {
-  if (error) {
-    throw error;
-  }
-
-  console.log('🚀 Server started at http://127.0.0.1:8000');
+const server = createServer({
+  schema: builder.toSchema({}),
 });
+
+server.start();
 ```
 
 ### Query your data
 
 1. Run your server (either with `ts-node`) by compiling your code and running it with node.
-2. Open [http://127.0.0.1:8000](http://127.0.0.1:8000) to open the playground and query your API:
+2. Open [http://0.0.0.0:3000/graphql](http://0.0.0.0:3000/graphql) to open the playground and query
+   your API:
 
 ```graphql
 query {

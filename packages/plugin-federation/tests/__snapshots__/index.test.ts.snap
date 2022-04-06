@@ -20,15 +20,21 @@ exports[`federation accounts schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
+directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
 
 directive @shareable on FIELD_DEFINITION | OBJECT
+
+directive @tag(name: String!) repeatable on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 type Query {
   _entities(representations: [_Any!]!): [_Entity]!
@@ -77,15 +83,21 @@ exports[`federation inventory schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
+directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
 
 directive @shareable on FIELD_DEFINITION | OBJECT
+
+directive @tag(name: String!) repeatable on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 type Product {
   inStock: Boolean
@@ -135,15 +147,21 @@ exports[`federation products schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
+directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
 
 directive @shareable on FIELD_DEFINITION | OBJECT
+
+directive @tag(name: String!) repeatable on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 type Product {
   name: String
@@ -203,15 +221,21 @@ exports[`federation reviews schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
+directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
 
 directive @provides(fields: String!) on FIELD_DEFINITION
 
 directive @requires(fields: String!) on FIELD_DEFINITION
 
 directive @shareable on FIELD_DEFINITION | OBJECT
+
+directive @tag(name: String!) repeatable on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 type Product {
   reviews: [Review!]

@@ -18,7 +18,7 @@ methods that can take full advantage of the Pothos type system.
 ## Hello, World
 
 ```typescript
-import { ApolloServer } from 'apollo-server';
+import { createServer } from '@graphql-yoga/node';
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
@@ -34,9 +34,11 @@ builder.queryType({
   }),
 });
 
-new ApolloServer({
+const server = createServer({
   schema: builder.toSchema({}),
-}).listen(3000);
+});
+
+server.start();
 ```
 
 ## What sets Pothos apart
@@ -102,3 +104,7 @@ new ApolloServer({
 - [**Validation**](https://pothos-graphql.dev/docs/plugins/validation)
 
   Validating your inputs and arguments
+
+- [**With-Input**](https://pothos-graphql.dev/docs/plugins/with-input)
+
+  Define fields with inline input objects

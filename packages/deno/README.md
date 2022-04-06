@@ -18,7 +18,7 @@ methods that can take full advantage of the Pothos type system.
 ## Hello, World
 
 ```typescript
-import { ApolloServer } from 'apollo-server';
+import { createServer } from '@graphql-yoga/node';
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
@@ -34,9 +34,11 @@ builder.queryType({
   }),
 });
 
-new ApolloServer({
+const server = createServer({
   schema: builder.toSchema({}),
-}).listen(3000);
+});
+
+server.start();
 ```
 
 ## What sets Pothos apart
@@ -121,9 +123,6 @@ import ScopeAuthPlugin from 'https://deno.land/x/pothos/packages/plugin-scope-au
 ```
 
 ### Server
-
-Most of the docs and examples currently use apollo-server, because it is the simplest to set up for
-node. Unfortunately apollo-server does not work in deno. Instead we can use GraphQL Helix:
 
 ```typescript
 import { Application, Router } from 'https://deno.land/x/oak@v7.3.0/mod.ts';

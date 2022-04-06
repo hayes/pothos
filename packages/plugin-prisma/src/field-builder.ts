@@ -30,7 +30,7 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   const typeParam = Array.isArray(type) ? ([typeRef] as [ObjectRef<unknown>]) : typeRef;
 
   return this.field({
-    ...options,
+    ...(options as {}),
     type: typeParam,
     resolve: (parent: unknown, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
       const query = queryFromInfo(ctx, info);
