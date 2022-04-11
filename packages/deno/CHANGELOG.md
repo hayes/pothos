@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.6.1
+
+### Patch Changes
+
+- 7d69b286: Fix field names that match intrinsic object properties (eg constructor)
+
 ## 3.6.0
 
 ### Minor Changes
