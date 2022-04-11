@@ -351,6 +351,8 @@ builder.subscriptionType({
   }),
 });
 
+builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
+
 const schema = builder.toSchema({});
 
 export default schema;

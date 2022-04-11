@@ -1,3 +1,4 @@
+/* eslint-disable no-continue */
 /* eslint-disable unicorn/prefer-object-from-entries */
 import {
   defaultFieldResolver,
@@ -300,13 +301,11 @@ export default class BuildCache<Types extends SchemaTypes> {
   }
 
   private buildFields(
-    fields: Record<string, PothosOutputFieldConfig<Types>>,
+    fields: Map<string, PothosOutputFieldConfig<Types>>,
   ): GraphQLFieldConfigMap<unknown, object> {
     const built: GraphQLFieldConfigMap<unknown, object> = {};
 
-    Object.keys(fields).forEach((fieldName) => {
-      const originalConfig = fields[fieldName];
-
+    for (const [fieldName, originalConfig] of fields) {
       if (!this.outputFieldConfigs.has(originalConfig)) {
         this.outputFieldConfigs.set(
           originalConfig,
@@ -317,14 +316,20 @@ export default class BuildCache<Types extends SchemaTypes> {
       const updatedConfig = this.outputFieldConfigs.get(originalConfig)!;
 
       if (!updatedConfig) {
-        return;
+        continue;
       }
 
       const config = {
         ...updatedConfig,
       };
 
-      const args = this.buildInputFields(config.args);
+      const argMap = new Map<string, PothosInputFieldConfig<Types>>();
+
+      Object.keys(config.args).forEach((argName) => {
+        argMap.set(argName, config.args[argName]);
+      });
+
+      const args = this.buildInputFields(argMap);
       const argConfigs: Record<string, PothosInputFieldConfig<Types>> = {};
 
       Object.keys(config.args).forEach((argName) => {
@@ -345,18 +350,17 @@ export default class BuildCache<Types extends SchemaTypes> {
         resolve: this.plugin.wrapResolve(config.resolve ?? defaultFieldResolver, config),
         subscribe: this.plugin.wrapSubscribe(config.subscribe, config),
       };
-    });
+    }
 
     return built;
   }
 
   private buildInputFields(
-    fields: Record<string, PothosInputFieldConfig<Types>>,
+    fields: Map<string, PothosInputFieldConfig<Types>>,
   ): GraphQLInputFieldConfigMap {
     const built: GraphQLFieldConfigArgumentMap | GraphQLInputFieldConfigMap = {};
 
-    Object.keys(fields).forEach((fieldName) => {
-      const originalConfig = fields[fieldName];
+    for (const [fieldName, originalConfig] of fields) {
       if (!this.inputFieldConfigs.has(originalConfig)) {
         this.inputFieldConfigs.set(originalConfig, this.plugin.onInputFieldConfig(originalConfig));
       }
@@ -374,7 +378,7 @@ export default class BuildCache<Types extends SchemaTypes> {
           },
         };
       }
-    });
+    }
 
     return built;
   }

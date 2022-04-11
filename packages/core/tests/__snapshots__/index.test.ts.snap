@@ -49,6 +49,7 @@ enum MyEnum {
 }
 
 type Query {
+  constructor: Boolean!
   sheep: Sheep!
   stuff: [stuff!]!
   user: User!

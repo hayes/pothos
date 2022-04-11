@@ -23,6 +23,7 @@ const excludedFiles = [
   'CHANGELOG.md',
   '.npmignore',
   'babel.config.js',
+  'jest.config.js',
 ];
 
 const moduleMap: Record<string, string> = {

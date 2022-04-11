@@ -7,7 +7,7 @@ import { BaseTypeRef, BuiltinScalarRef, ConfigurableRef, FieldRef, GraphQLFieldK
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, PothosTypeConfig>();
     private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined) => PothosFieldConfig<Types>>();
-    private fields = new Map<string, Record<string, PothosFieldConfig<Types>>>();
+    private fields = new Map<string, Map<string, PothosFieldConfig<Types>>>();
     private addFieldFns: (() => void)[] = [];
     private refsToName = new Map<ConfigurableRef<Types>, string>();
     private scalarsToRefs = new Map<string, BuiltinScalarRef<unknown, unknown>>();
@@ -214,15 +214,18 @@ export default class ConfigStore<Types extends SchemaTypes> {
             this.fieldRefsToConfigs.get(ref)!.forEach((config) => void cb(config));
         }
     }
-    getFields<T extends GraphQLFieldKind>(name: string, kind?: T): Record<string, Extract<PothosFieldConfig<Types>, {
+    getFields<T extends GraphQLFieldKind>(name: string, kind?: T): Map<string, Extract<PothosFieldConfig<Types>, {
         graphqlKind: T;
     }>> {
         const typeConfig = this.getTypeConfig(name);
-        const fields = this.fields.get(name) ?? [];
+        if (!this.fields.has(name)) {
+            this.fields.set(name, new Map());
+        }
+        const fields = this.fields.get(name)!;
         if (kind && typeConfig.graphqlKind !== kind) {
             throw new TypeError(`Expected ${name} to be a ${kind} type, but found ${typeConfig.graphqlKind}`);
         }
-        return fields as Record<string, Extract<PothosFieldConfig<Types>, {
+        return fields as Map<string, Extract<PothosFieldConfig<Types>, {
             graphqlKind: T;
         }>>;
     }
@@ -267,10 +270,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
         return `<unnamed ref or enum>`;
     }
     private buildFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap) {
-        const typeConfig = this.getTypeConfig(typeRef);
-        if (!this.fields.has(typeConfig.name)) {
-            this.fields.set(typeConfig.name, {});
-        }
         Object.keys(fields).forEach((fieldName) => {
             const fieldRef = fields[fieldName];
             fieldRef.fieldName = fieldName;
@@ -287,14 +286,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
     private buildField(typeRef: ConfigurableRef<Types>, field: FieldRef | InputFieldRef, fieldName: string) {
         const typeConfig = this.getTypeConfig(typeRef);
         const fieldConfig = this.createFieldConfig(field, fieldName);
-        const existingFields = this.fields.get(typeConfig.name)!;
-        if (existingFields[fieldName]) {
+        const existingFields = this.getFields(typeConfig.name);
+        if (existingFields.has(fieldName)) {
             throw new Error(`Duplicate field definition for field ${fieldName} in ${typeConfig.name}`);
         }
         if (fieldConfig.graphqlKind !== typeConfig.graphqlKind) {
             throw new TypeError(`${typeConfig.name}.${fieldName} was defined as a ${fieldConfig.graphqlKind} field but ${typeConfig.name} is a ${typeConfig.graphqlKind}`);
         }
-        existingFields[fieldName] = fieldConfig;
+        existingFields.set(fieldName, fieldConfig);
         if (!this.fieldRefsToConfigs.has(field)) {
             this.fieldRefsToConfigs.set(field, []);
         }
