@@ -15,7 +15,7 @@ export interface WithInputBuilderOptions<Types extends SchemaTypes> {
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
     'type' | 'required'
   > & {
-    required?: boolean;
+    required?: Types['WithInputArgRequired'];
   };
   typeOptions?: Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, 'fields'>;
 }
@@ -41,8 +41,9 @@ export type WithInputArgOptions<
   Types extends SchemaTypes,
   Fields extends InputFieldMap,
   InputName,
+  ArgRequired extends boolean,
 > = Omit<
-  PothosSchemaTypes.ArgFieldOptions<Types, InputRef<InputShapeFromFields<Fields>>, true>,
+  PothosSchemaTypes.ArgFieldOptions<Types, InputRef<InputShapeFromFields<Fields>>, ArgRequired>,
   'type'
 > & {
   name?: InputName;
@@ -59,6 +60,7 @@ export type FieldWithInputOptions<
   InputName extends string,
   ResolveShape,
   ResolveReturnShape,
+  ArgRequired extends boolean,
 > = Omit<
   FieldOptionsFromKind<
     Types,
@@ -66,7 +68,9 @@ export type FieldWithInputOptions<
     Type,
     Nullable,
     {
-      [K in InputName]: InputFieldRef<InputShapeFromFields<Fields>>;
+      [K in InputName]: InputFieldRef<
+        InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
+      >;
     } & Args,
     Kind,
     ResolveShape,
@@ -75,7 +79,7 @@ export type FieldWithInputOptions<
   'args'
 > & {
   typeOptions?: WithInputTypeOptions<Types, Fields>;
-  argOptions?: WithInputArgOptions<Types, Fields, InputName>;
+  argOptions?: WithInputArgOptions<Types, Fields, InputName, ArgRequired>;
   input: Fields;
   args?: Args;
 };

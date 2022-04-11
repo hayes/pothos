@@ -24,7 +24,6 @@ const builder = new SchemaBuilder({
       // default options for Input object types created by this plugin
     },
     argOptions: {
-      // default options for the "input" args
       // set required: false to override default behavior
     },
   },
@@ -86,5 +85,42 @@ builder.queryType({
       resolve: (root, args) => args.customArgName.id,
     }),
   }),
+});
+```
+
+### Changing the nullability of the input arg
+
+You can configure the global default for input args when creating the builder by providing
+`WithInputArgRequired` in the builders `SchemaTypes`, and setting `withInput.argOptions.required`.
+
+```typescript
+const builder = new SchemaBuilder<{ WithInputArgRequired: false }>({
+  plugins: [WithInputPlugin],
+  withInput: {
+    argOptions: {
+      required: false,
+    },
+  },
+});
+```
+
+arg requiredness can also be set on a per field basis by setting `argOptions.required`
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    example: t.fieldWithInput({
+      type: 'Boolean',
+      nulllable: true,
+      argOptions: {
+        required: false,
+      },
+      input: {
+        someInput: t.input.boolean({}),
+      },
+      resolve: (root, args) => {
+        return args.input?.someInput;
+      },
+    }),
 });
 ```

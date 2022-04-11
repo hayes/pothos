@@ -12,6 +12,15 @@ import { PothosWithInputPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
+    export interface UserSchemaTypes {
+      WithInputArgRequired?: boolean;
+    }
+
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+      WithInputArgRequired: undefined extends PartialTypes['WithInputArgRequired']
+        ? true
+        : PartialTypes['WithInputArgRequired'];
+    }
     export interface Plugins<Types extends SchemaTypes> {
       withInput: PothosWithInputPlugin<Types>;
     }
@@ -31,6 +40,7 @@ declare global {
         Type extends TypeParam<Types>,
         ResolveShape,
         ResolveReturnShape,
+        ArgRequired extends boolean,
         Args extends Record<string, InputFieldRef<unknown, 'Arg'>> = {},
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         InputName extends string = 'input',
@@ -45,7 +55,8 @@ declare global {
           Nullable,
           InputName,
           ResolveShape,
-          ResolveReturnShape
+          ResolveReturnShape,
+          boolean extends ArgRequired ? Types['WithInputArgRequired'] & boolean : ArgRequired
         >,
       ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
     }

@@ -11,7 +11,7 @@ function capitalize(s: string) {
 
 rootBuilderProto.fieldWithInput = function fieldWithInput({
   typeOptions: { name: typeName, ...typeOptions } = {},
-  argOptions,
+  argOptions: { name: argName = 'input', ...argOptions } = {},
   args,
   input,
   ...fieldOptions
@@ -21,9 +21,10 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
   const fieldRef = this.field({
     args: {
       ...args,
-      [argOptions?.name ?? 'input']: this.arg({
+      [argName]: this.arg({
         required: true,
         ...this.builder.options.withInput?.argOptions,
+        ...(argOptions as {}),
         type: inputRef,
       }),
     },

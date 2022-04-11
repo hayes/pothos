@@ -4,6 +4,12 @@ import { FieldWithInputOptions, WithInputBuilderOptions } from './types.ts';
 import { PothosWithInputPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
+        export interface UserSchemaTypes {
+            WithInputArgRequired?: boolean;
+        }
+        export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+            WithInputArgRequired: undefined extends PartialTypes["WithInputArgRequired"] ? true : PartialTypes["WithInputArgRequired"];
+        }
         export interface Plugins<Types extends SchemaTypes> {
             withInput: PothosWithInputPlugin<Types>;
         }
@@ -12,7 +18,7 @@ declare global {
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> {
             input: InputFieldBuilder<Types, "InputObject">;
-            fieldWithInput: <Fields extends Record<string, InputFieldRef<unknown, "InputObject">>, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, Args extends Record<string, InputFieldRef<unknown, "Arg">> = {}, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"], InputName extends string = "input">(options: FieldWithInputOptions<Types, ParentShape, Kind, Args, Fields, Type, Nullable, InputName, ResolveShape, ResolveReturnShape>) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
+            fieldWithInput: <Fields extends Record<string, InputFieldRef<unknown, "InputObject">>, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, ArgRequired extends boolean, Args extends Record<string, InputFieldRef<unknown, "Arg">> = {}, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"], InputName extends string = "input">(options: FieldWithInputOptions<Types, ParentShape, Kind, Args, Fields, Type, Nullable, InputName, ResolveShape, ResolveReturnShape, boolean extends ArgRequired ? Types["WithInputArgRequired"] & boolean : ArgRequired>) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
         }
     }
 }

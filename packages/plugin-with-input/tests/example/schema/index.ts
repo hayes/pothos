@@ -97,6 +97,7 @@ builder.queryField('withOptions', (t) =>
       description: 'input field',
     },
     argOptions: {
+      required: false,
       name: 'custom',
     },
     description: 'query field',
@@ -104,6 +105,7 @@ builder.queryField('withOptions', (t) =>
       id: t.input.id({ required: true }),
     },
     type: 'ID',
+    // @ts-expect-error input is not required
     resolve: (root, args) => args.custom.id,
   }),
 );

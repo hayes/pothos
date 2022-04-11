@@ -4,14 +4,15 @@ const rootBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFie
 function capitalize(s: string) {
     return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
-rootBuilderProto.fieldWithInput = function fieldWithInput({ typeOptions: { name: typeName, ...typeOptions } = {}, argOptions, args, input, ...fieldOptions }) {
+rootBuilderProto.fieldWithInput = function fieldWithInput({ typeOptions: { name: typeName, ...typeOptions } = {}, argOptions: { name: argName = "input", ...argOptions } = {}, args, input, ...fieldOptions }) {
     const inputRef = this.builder.inputRef(typeName ?? `UnnamedWithInputOn${this.typename}`);
     const fieldRef = this.field({
         args: {
             ...args,
-            [argOptions?.name ?? "input"]: this.arg({
+            [argName]: this.arg({
                 required: true,
                 ...this.builder.options.withInput?.argOptions,
+                ...(argOptions as {}),
                 type: inputRef,
             }),
         },
