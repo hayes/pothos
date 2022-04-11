@@ -4,6 +4,12 @@
 
 ### Patch Changes
 
+- 8e6a4723: Fix issue with setting input requiredness in with-input plugin
+
+## null
+
+### Patch Changes
+
 - Updated dependencies [7d69b286]
   - @pothos/core@3.5.1
 

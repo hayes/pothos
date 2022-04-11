@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.6.2
+
+### Patch Changes
+
+- 8e6a4723: Fix issue with setting input requiredness in with-input plugin
+
 ## 3.6.1
 
 ### Patch Changes
