@@ -116,3 +116,4 @@ people:
 
 - [@kidqueb](https://github.com/kidqueb)
 - [@homoky](https://github.com/homoky)
+- [@Urigo](https://github.com/Urigo)
