@@ -36,7 +36,7 @@ declare global {
             SubGraphs: string;
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-            SubGraphs: PartialTypes["SubGraphs"] extends string ? PartialTypes["SubGraphs"] : string;
+            SubGraphs: PartialTypes["SubGraphs"] & string;
         }
     }
 }

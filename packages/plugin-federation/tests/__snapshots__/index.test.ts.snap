@@ -20,7 +20,7 @@ exports[`federation accounts schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
@@ -83,7 +83,7 @@ exports[`federation inventory schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
@@ -147,7 +147,7 @@ exports[`federation products schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 
@@ -221,7 +221,7 @@ exports[`federation reviews schema generates expected schema 2`] = `
 
 directive @external on FIELD_DEFINITION | OBJECT
 
-directive @inaccessible on FIELD_DEFINITION | INTERFACE | OBJECT | UNION
+directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
 

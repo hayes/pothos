@@ -2,29 +2,23 @@ import SchemaBuilder from '@pothos/core';
 import DirectivesPlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 import PrismaPlugin from '@pothos/plugin-prisma';
-// import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
 import { db } from '../db';
 
-export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
-  plugins: [
-    DirectivesPlugin,
-    PrismaPlugin,
-    FederationPlugin,
-    //   RelayPlugin
-  ],
+export const builder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Scalars: {
+    ID: { Input: string; Output: string | number };
+  };
+}>({
+  plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],
   prisma: {
     client: db,
   },
-  // useGraphQLToolsUnorderedDirectives: true,
-  // relayOptions: {
-  //   clientMutationId: 'omit',
-  //   cursorType: 'String',
-  // },
 });
 
 const User = builder.prismaObject('User', {
-  findUnique: ({ id }) => ({ id: Number.parseInt(String(id), 10) }),
+  findUnique: ({ id }) => ({ id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     firstName: t.exposeString('firstName'),
@@ -36,9 +30,8 @@ const User = builder.prismaObject('User', {
 });
 
 builder.asEntity(User, {
-  key: builder.selection<{ id: number | string }>('id'),
-  resolveReference: ({ id }) =>
-    db.user.findFirst({ where: { id: Number.parseInt(String(id), 10) } }),
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: ({ id }) => db.user.findFirst({ where: { id: Number.parseInt(id, 10) } }),
 });
 
 builder.queryType({
@@ -52,7 +45,7 @@ builder.queryType({
       resolve: (query, root, args) =>
         db.user.findUnique({
           ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
+          where: { id: Number.parseInt(args.id, 10) },
         }),
     }),
   }),

@@ -9,7 +9,7 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@envelop/core": "^2.3.0",
+    "@envelop/core": "^2.3.1",
     "@faker-js/faker": "^6.1.2",
     "@pothos/core": "workspace:*",
     "fastify": "^3.28.0",

@@ -15,7 +15,7 @@ declare global {
             }>;
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-            Directives: undefined extends PartialTypes["Directives"] ? {} : PartialTypes["Directives"] & {};
+            Directives: PartialTypes["Directives"] & {};
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             useGraphQLToolsUnorderedDirectives?: boolean;

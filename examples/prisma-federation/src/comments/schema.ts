@@ -5,68 +5,67 @@ import PrismaPlugin from '@pothos/plugin-prisma';
 import type PrismaTypes from '../../prisma/generated';
 import { db } from '../db';
 
-export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
+export const builder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Scalars: {
+    ID: { Input: string; Output: string | number };
+  };
+}>({
   plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],
   prisma: {
     client: db,
   },
-  useGraphQLToolsUnorderedDirectives: true,
 });
 
-const User = builder
-  .externalRef('User', builder.selection<{ id: string | number }>('id'))
-  .implement({
-    externalFields: (t) => ({
-      id: t.id(),
+const User = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
+  externalFields: (t) => ({
+    id: t.id(),
+  }),
+  fields: (t) => ({
+    comments: t.prismaField({
+      type: ['Comment'],
+      resolve: (query, user) =>
+        db.user
+          .findUnique({ where: { id: Number.parseInt(user.id, 10) } })
+          .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
     }),
-    fields: (t) => ({
-      comments: t.prismaField({
-        type: ['Comment'],
-        resolve: (query, user) =>
-          db.user
-            .findUnique({ where: { id: Number.parseInt(String(user.id), 10) } })
-            .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
-      }),
-    }),
-  });
+  }),
+});
 
-const Post = builder
-  .externalRef('Post', builder.selection<{ id: string | number }>('id'))
-  .implement({
-    externalFields: (t) => ({
-      id: t.id(),
+const Post = builder.externalRef('Post', builder.selection<{ id: string }>('id')).implement({
+  externalFields: (t) => ({
+    id: t.id(),
+  }),
+  fields: (t) => ({
+    comments: t.prismaField({
+      type: ['Comment'],
+      resolve: (query, post) =>
+        db.post
+          .findUnique({ where: { id: Number.parseInt(post.id, 10) } })
+          .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
     }),
-    fields: (t) => ({
-      comments: t.prismaField({
-        type: ['Comment'],
-        resolve: (query, post) =>
-          db.post
-            .findUnique({ where: { id: Number.parseInt(String(post.id), 10) } })
-            .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
-      }),
-    }),
-  });
+  }),
+});
 
 const Comment = builder.prismaObject('Comment', {
-  findUnique: ({ id }) => ({ id: Number.parseInt(String(id), 10) }),
+  findUnique: ({ id }) => ({ id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     comment: t.exposeString('comment'),
     author: t.field({
       type: User,
-      resolve: (comment) => ({ id: comment.authorId }),
+      resolve: (comment) => ({ id: String(comment.authorId) }),
     }),
     post: t.field({
       type: Post,
-      resolve: (comment) => ({ id: comment.postId }),
+      resolve: (comment) => ({ id: String(comment.id) }),
     }),
   }),
 });
 
 builder.asEntity(Comment, {
-  key: builder.selection<{ id: number | string }>('id'),
-  resolveReference: ({ id }) =>
-    db.comment.findFirst({ where: { id: Number.parseInt(String(id), 10) } }),
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: ({ id }) => db.comment.findFirst({ where: { id: Number.parseInt(id, 10) } }),
 });
 
 builder.queryType({
@@ -79,7 +78,7 @@ builder.queryType({
       resolve: (query, root, { id }) =>
         db.comment.findUnique({
           ...query,
-          where: { id: Number.parseInt(String(id), 10) },
+          where: { id: Number.parseInt(id, 10) },
           rejectOnNotFound: true,
         }),
     }),

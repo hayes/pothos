@@ -5,10 +5,10 @@ import { PothosWithInputPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface UserSchemaTypes {
-            WithInputArgRequired?: boolean;
+            WithInputArgRequired: boolean;
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-            WithInputArgRequired: undefined extends PartialTypes["WithInputArgRequired"] ? true : PartialTypes["WithInputArgRequired"];
+            WithInputArgRequired: boolean extends PartialTypes["WithInputArgRequired"] ? true : PartialTypes["WithInputArgRequired"] & boolean;
         }
         export interface Plugins<Types extends SchemaTypes> {
             withInput: PothosWithInputPlugin<Types>;

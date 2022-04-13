@@ -15,13 +15,7 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 # Federation Plugin
 
 A plugin for building subGraphs that are compatible with
-[Apollo Federation 2](https://www.apollographql.com/blog/announcement/backend/announcing-federation-2/).
-
-## Disclaimer
-
-Apollo federation 2 is still in alpha, and the API of this plugin may change in the future. This is
-an early release intended to allow early adopters to build federation compatible schemas with
-pothos, but this plugin may not be as stable as other parts of the Pothos eco-system.
+[Apollo Federation 2](https://www.apollographql.com/docs/federation/).
 
 ## Usage
 
@@ -35,7 +29,7 @@ information on federation, see the
 You will need to install the plugin, as well as `@apollo/subgraph`
 
 ```bash
-yarn add @pothos/plugin-federation @apollo/subgraph@2.0.0-latest-2
+yarn add @pothos/plugin-federation @apollo/subgraph
 ```
 
 You will likely want to install apollo-server as well, but it is not required if you want to use a
@@ -80,6 +74,12 @@ builder.asEntity(UserType, {
 that defines the types for any fields that are part of the key. `key` may also be an array.
 `resolveReference` will be called with the type used by the `key` selection.
 
+Entities are Object types that may be extended with or returned by fields in other services.
+`builder.asEntity` describes how the Entity will be loaded when used by another services. The `key`
+select (or selection) should use the types of scalars your server will produce for inputs. For
+example, Apollo server will convert all ID fields to `string`s, even if resolvers in other services
+returns IDs as numbers.
+
 ### Extending external entities
 
 External entities can be extended by calling `builder.externalRef`, and then calling implement on
@@ -88,7 +88,9 @@ the returned ref.
 `builder.externalRef` takes the name of the entity, a selection (using `builder.selection`, just
 like a `key` on an entity object), and a resolve method that loads an object given a `key`. The
 return type of the resolver is used as the backing type for the ref, and will be the type of the
-`parent` arg when defining fields for this type.
+`parent` arg when defining fields for this type. The `key` also describes what fields will be
+selected from another service to use as the `parent` object in resolvers for fields added when
+implementing the `externalRef`.
 
 ```typescript
 const ProductRef = builder.externalRef(
@@ -114,7 +116,7 @@ ProductRef.implement({
     inStock: t.exposeBoolean('inStock'),
     shippingEstimate: t.float({
       // fields can add a `requires` directive for any of the externalFields defined above
-      // which will be made available as oart of the first arg in the resolver.
+      // which will be made available as part of the first arg in the resolver.
       requires: builder.selection<{ weight?: number; price?: number }>('price weight'),
       resolve: (data) => {
         // free for expensive items
@@ -190,5 +192,5 @@ server
   });
 ```
 
-For a functional example that combines multiple graphs built with Pothos into a single query see
+For a functional example that combines multiple graphs built with Pothos into a single schema see
 [https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)

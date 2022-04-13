@@ -2,61 +2,52 @@ import SchemaBuilder from '@pothos/core';
 import DirectivesPlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 import PrismaPlugin from '@pothos/plugin-prisma';
-// import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
 import { db } from '../db';
 
-export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
-  plugins: [
-    DirectivesPlugin,
-    PrismaPlugin,
-    FederationPlugin,
-    //   RelayPlugin
-  ],
+export const builder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Scalars: {
+    ID: { Input: string; Output: string | number };
+  };
+}>({
+  plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],
   prisma: {
     client: db,
   },
-  // useGraphQLToolsUnorderedDirectives: true,
-  //   relayOptions: {
-  //     clientMutationId: 'omit',
-  //     cursorType: 'String',
-  //   },
 });
 
-const User = builder
-  .externalRef('User', builder.selection<{ id: number | string }>('id'))
-  .implement({
-    externalFields: (t) => ({
-      id: t.id(),
+const User = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({
+  externalFields: (t) => ({
+    id: t.id(),
+  }),
+  fields: (t) => ({
+    posts: t.prismaField({
+      type: ['Post'],
+      resolve: (query, user) =>
+        db.user
+          .findUnique({ where: { id: Number.parseInt(user.id, 10) } })
+          .posts({ orderBy: { updatedAt: 'desc' }, ...query }),
     }),
-    fields: (t) => ({
-      posts: t.prismaField({
-        type: ['Post'],
-        resolve: (query, user) =>
-          db.user
-            .findUnique({ where: { id: Number.parseInt(String(user.id), 10) } })
-            .posts({ orderBy: { updatedAt: 'desc' }, ...query }),
-      }),
-    }),
-  });
+  }),
+});
 
 const Post = builder.prismaObject('Post', {
-  findUnique: ({ id }) => ({ id: Number.parseInt(String(id), 10) }),
+  findUnique: ({ id }) => ({ id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     title: t.exposeString('title'),
     content: t.exposeString('content'),
     author: t.field({
       type: User,
-      resolve: (post) => ({ id: post.authorId }),
+      resolve: (post) => ({ id: String(post.authorId) }),
     }),
   }),
 });
 
 builder.asEntity(Post, {
-  key: builder.selection<{ id: number | string }>('id'),
-  resolveReference: ({ id }) =>
-    db.post.findFirst({ where: { id: Number.parseInt(String(id), 10) } }),
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: ({ id }) => db.post.findFirst({ where: { id: Number.parseInt(id, 10) } }),
 });
 
 const DEFAULT_PAGE_SIZE = 10;
@@ -72,7 +63,7 @@ builder.queryType({
       resolve: (query, root, args) =>
         db.post.findUnique({
           ...query,
-          where: { id: Number.parseInt(String(args.id), 10) },
+          where: { id: Number.parseInt(args.id, 10) },
         }),
     }),
     posts: t.prismaField({

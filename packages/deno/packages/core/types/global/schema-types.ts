@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { GraphQLDirective } from 'https://cdn.skypack.dev/graphql?dts';
-import { PluginConstructorMap } from '../../index.ts';
+import { IsStrictMode, PluginConstructorMap } from '../../index.ts';
 import { MergedScalars, SchemaTypes } from '../index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -9,6 +9,7 @@ declare global {
             plugins?: (keyof PluginConstructorMap<Types>)[];
             defaultFieldNullability: false extends Types["DefaultFieldNullability"] ? never : Types["DefaultFieldNullability"];
             defaultInputFieldRequiredness: false extends Types["DefaultInputFieldRequiredness"] ? never : Types["DefaultInputFieldRequiredness"];
+            notStrict: IsStrictMode extends true ? never : "Pothos may not work correctly when strict mode is not enabled in tsconfig.json";
         }
         export interface BuildSchemaOptions<Types extends SchemaTypes> {
             directives?: readonly GraphQLDirective[];

@@ -39,7 +39,7 @@
   "dependencies": {
     "graphql": "16.3.0",
     "ts-morph": "^14.0.0",
-    "yargs": "^17.4.0"
+    "yargs": "^17.4.1"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",

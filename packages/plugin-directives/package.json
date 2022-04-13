@@ -43,7 +43,7 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@graphql-tools/utils": "^8.6.5",
+    "@graphql-tools/utils": "^8.6.7",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.3.0",

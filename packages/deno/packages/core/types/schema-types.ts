@@ -69,5 +69,6 @@ export interface DefaultScalars {
     };
 }
 export type BaseScalarNames = "Boolean" | "Float" | "ID" | "Int" | "String";
+// eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
 export type ScalarName<Types extends SchemaTypes> = string & (BaseScalarNames | keyof Types["Scalars"]);
 export type RootName = "Mutation" | "Query" | "Subscription";

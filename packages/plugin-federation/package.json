@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-federation",
   "description": "A Pothos plugin for implementing apollo federation subGraphs",
-  "version": "0.4.0",
+  "version": "3.0.0-next",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -43,9 +43,9 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.0.0-preview.9",
-    "@apollo/subgraph": "^2.0.0-preview.9",
-    "@graphql-tools/utils": "^8.6.5",
+    "@apollo/gateway": "^2.0.1",
+    "@apollo/subgraph": "^2.0.1",
+    "@graphql-tools/utils": "^8.6.7",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
