@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.6.0
+
+### Minor Changes
+
+- 241a385f: Add peer dependency on @pothos/core
+
 ## 3.5.0
 
 ### Minor Changes
