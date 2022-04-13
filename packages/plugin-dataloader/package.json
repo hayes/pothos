@@ -33,6 +33,7 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@pothos/core": "*",
     "dataloader": "2",
     "graphql": ">=15.1.0"
   },

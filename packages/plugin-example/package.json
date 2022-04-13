@@ -36,6 +36,7 @@
     "access": "public"
   },
   "peerDependencies": {
+    "@pothos/core": "*",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
