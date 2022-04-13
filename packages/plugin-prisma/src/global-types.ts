@@ -43,9 +43,7 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      PrismaTypes: undefined extends PartialTypes['PrismaTypes']
-        ? {}
-        : PartialTypes['PrismaTypes'] & {};
+      PrismaTypes: PartialTypes['PrismaTypes'] & {};
     }
 
     export interface PothosKindToGraphQLType {

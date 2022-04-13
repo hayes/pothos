@@ -5,22 +5,23 @@ menu: Guide
 description: Guide for defining Enum types in Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Writing Plugins
 
 Writing plugins for Pothos may seem a little intimidating at first, because the types used by Pothos
 are fairly complex. Fortunately, for many types of plugins, the process is actually pretty easy,
 once you understand the core concepts of how Pothos's type system works. Don't worry if the
-descriptions don't make complete sense at first. Going through the examples in this guide will hopefully
-make things seem a lot easier. This guide aims to cover a lot of the most common use cases for
-creating plugins, but does not contain full API documentation. Exploring the types or source code to
-see what all is available is highly encouraged, but should not be required for most use cases.
+descriptions don't make complete sense at first. Going through the examples in this guide will
+hopefully make things seem a lot easier. This guide aims to cover a lot of the most common use cases
+for creating plugins, but does not contain full API documentation. Exploring the types or source
+code to see what all is available is highly encouraged, but should not be required for most use
+cases.
 
 ## The type system
 
@@ -443,9 +444,7 @@ export interface UserSchemaTypes {
 }
 
 export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-  NewExampleTypes: undefined extends PartialTypes['NewExampleTypes']
-    ? {}
-    : PartialTypes['NewExampleTypes'] & {};
+  NewExampleTypes: PartialTypes['NewExampleTypes'] & {};
 }
 ```
 

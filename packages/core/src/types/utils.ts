@@ -85,3 +85,5 @@ export type NormalizeArgs<T extends unknown[]> = undefined extends T[LastIndex<T
     ? T
     : { [K in keyof T]-?: NonNullable<T[K]> }
   : T;
+
+export type IsStrictMode = undefined extends { t: 1 }['t'] ? false : true;

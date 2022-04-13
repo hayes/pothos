@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { GraphQLDirective } from 'graphql';
-import { PluginConstructorMap } from '../..';
+import { IsStrictMode, PluginConstructorMap } from '../..';
 
 import { MergedScalars, SchemaTypes } from '..';
 
@@ -14,6 +14,9 @@ declare global {
       defaultInputFieldRequiredness: false extends Types['DefaultInputFieldRequiredness']
         ? never
         : Types['DefaultInputFieldRequiredness'];
+      notStrict: IsStrictMode extends true
+        ? never
+        : 'Pothos may not work correctly when strict mode is not enabled in tsconfig.json';
     }
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {

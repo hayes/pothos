@@ -59,12 +59,8 @@ declare global {
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      AuthScopes: undefined extends PartialTypes['AuthScopes']
-        ? {}
-        : PartialTypes['AuthScopes'] & {};
-      AuthContexts: undefined extends PartialTypes['AuthContexts']
-        ? {}
-        : PartialTypes['AuthContexts'] & {};
+      AuthScopes: PartialTypes['AuthScopes'] & {};
+      AuthContexts: PartialTypes['AuthContexts'] & {};
     }
 
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
