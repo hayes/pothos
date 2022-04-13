@@ -1,5 +1,15 @@
 # @pothos/plugin-federation
 
+## 3.0.0
+
+### Major Changes
+
+- 971f1aad: Initial stable release
+
+### Patch Changes
+
+- 971f1aad: Update dev dependencies
+
 ## 0.4.0
 
 ### Minor Changes
