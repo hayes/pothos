@@ -2,6 +2,13 @@
 
 ## null
 
+### Patch Changes
+
+- 971f1aad: Update dev dependencies
+  - @pothos/core@3.6.0
+
+## null
+
 ### Minor Changes
 
 - a8e31a70: Improve user experience when srtict mode is disabled
