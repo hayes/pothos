@@ -24,7 +24,7 @@
     "next": "^12.1.5",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
-    "react-query": "^3.34.19",
+    "react-query": "^4.0.0-beta.3",
     "rehype-highlight": "^5.0.2",
     "rehype-slug": "^5.0.1",
     "rehype-stringify": "^9.0.3",
