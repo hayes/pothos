@@ -114,5 +114,12 @@ server.start();
 Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from these generous
 people:
 
+## Sponsors
+
+Pothos development supported by [sponsorships](https://github.com/sponsors/hayes) from these
+generous people and organizations:
+
+- [![The Guild](https://pothos-graphql.dev/assets/the-guild-logo.svg)](https://www.the-guild.dev/)
 - [@kidqueb](https://github.com/kidqueb)
 - [@homoky](https://github.com/homoky)
+- [@huv1k](https://github.com/https://github.com/huv1k)
