@@ -53,6 +53,7 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "peerDependencies": {
+    "@pothos/core": "*",
     "@prisma/client": "*",
     "graphql": ">=15.1.0",
     "typescript": ">4.5.2"
