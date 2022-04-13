@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.0
+
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
 ## 3.6.0
 
 ### Minor Changes

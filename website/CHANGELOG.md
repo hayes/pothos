@@ -2,6 +2,17 @@
 
 ## null
 
+### Minor Changes
+
+- a8e31a70: Improve user experience when srtict mode is disabled
+
+### Patch Changes
+
+- Updated dependencies [a8e31a70]
+  - @pothos/core@3.6.0
+
+## null
+
 ### Patch Changes
 
 - 8e6a4723: Fix issue with setting input requiredness in with-input plugin
