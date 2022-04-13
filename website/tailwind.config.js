@@ -1,7 +1,6 @@
 // eslint-disable-next-line node/no-unpublished-require
 const colors = require('tailwindcss/colors');
 
-// eslint-disable-next-line import/no-commonjs
 module.exports = {
   mode: 'jit',
   purge: ['./pages/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx}'],
@@ -21,7 +20,24 @@ module.exports = {
       blue: '#0089A4',
       sapphire: '#005670',
     },
-    extend: {},
+    extend: {
+      typography: (theme) => ({
+        DEFAULT: {
+          css: {
+            '--tw-prose-invert-body': '#f5f5f5',
+            img: {
+              marginBottom: '4rem',
+            },
+            li: {
+              img: {
+                display: 'inline-block',
+                margin: 0,
+              },
+            },
+          },
+        },
+      }),
+    },
   },
   variants: {
     extend: {},

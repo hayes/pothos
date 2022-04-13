@@ -17,27 +17,23 @@ export interface BaseProps {
 const components = {
   a: ({ href, ...props }: HTMLProps<HTMLAnchorElement>) => (
     <Link href={href!}>
-      <a {...props} className="dark:!text-white" />
+      <a {...props} className="" />
     </Link>
   ),
-  img: (props: HTMLProps<HTMLElement>) => <img {...(props as {})} className="mb-16" />,
-  p: (props: HTMLProps<HTMLParagraphElement>) => <p {...props} className="dark:!text-white" />,
   h1: (props: HTMLProps<HTMLHeadingElement>) => (
-    <Heading tag="h1" {...props} className="dark:!text-white text-3xl" />
+    <Heading tag="h1" {...props} className="text-3xl dark:!text-gray-200" />
   ),
   h2: (props: HTMLProps<HTMLHeadingElement>) => (
-    <Heading tag="h2" {...props} className="dark:!text-white text-3xl" />
+    <Heading tag="h2" {...props} className="text-3xl" />
   ),
   h3: (props: HTMLProps<HTMLHeadingElement>) => (
-    <Heading tag="h3" {...props} className="dark:!text-white text-3xl" />
+    <Heading tag="h3" {...props} className="text-3xl" />
   ),
   h4: (props: HTMLProps<HTMLHeadingElement>) => (
-    <Heading tag="h4" {...props} className="dark:!text-white text-3xl" />
+    <Heading tag="h4" {...props} className="text-3xl" />
   ),
-  li: (props: HTMLProps<HTMLLIElement>) => <li {...props} className="dark:!text-white" />,
-  strong: (props: HTMLProps<HTMLElement>) => <strong {...props} className="dark:!text-white" />,
-  inlineCode: (props: HTMLProps<HTMLElement>) => <code {...props} className="dark:!text-white" />,
-  pre: (props: HTMLProps<HTMLElement>) => <pre className="">{props.children}</pre>,
+  inlineCode: (props: HTMLProps<HTMLElement>) => <code {...props} />,
+  pre: (props: HTMLProps<HTMLElement>) => <pre>{props.children}</pre>,
   code: (props: HTMLProps<HTMLElement>) => {
     const match = /language-(\w+)/.exec(props.className ?? '');
 
@@ -87,7 +83,7 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
           nav={nav}
           currentPage={currentPage}
         />
-        <div ref={bodyRef} className="prose">
+        <div ref={bodyRef} className="prose dark:prose-invert">
           {children}
           <div className="mt-20 flex justify-center space-x-4">
             {currentPage?.prevPage && (
