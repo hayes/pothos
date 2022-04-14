@@ -122,4 +122,4 @@ generous people and organizations:
 - [![The Guild](https://pothos-graphql.dev/assets/the-guild-logo.svg)](https://www.the-guild.dev/)
 - [@kidqueb](https://github.com/kidqueb)
 - [@homoky](https://github.com/homoky)
-- [@huv1k](https://github.com/https://github.com/huv1k)
+- [@huv1k](https://github.com/huv1k)
