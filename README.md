@@ -123,3 +123,4 @@ generous people and organizations:
 - [@kidqueb](https://github.com/kidqueb)
 - [@homoky](https://github.com/homoky)
 - [@huv1k](https://github.com/huv1k)
+- [@KATT](https://github.com/KATT)
