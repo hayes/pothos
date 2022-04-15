@@ -1,3 +1,4 @@
+import { defaultFieldResolver } from 'graphql';
 import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
 
@@ -48,6 +49,18 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         });
       }
 
+      let resolve =
+        (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
+        (() => {
+          throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+        });
+
+      if (options.extensions?.pothosExposedField === name) {
+        resolve = defaultFieldResolver as typeof resolve;
+      }
+
+      const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
+
       return {
         kind: this.kind as never,
         graphqlKind: this.graphqlKind,
@@ -60,15 +73,15 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
           options.nullable ?? this.builder.defaultFieldNullability,
         ),
         pothosOptions: options as never,
-        extensions: options.extensions,
+        extensions: {
+          pothosOriginalResolve: resolve,
+          pothosOriginalSubscribe: subscribe,
+          ...options.extensions,
+        },
         description: options.description,
         deprecationReason: options.deprecationReason,
-        resolve:
-          (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
-          (() => {
-            throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
-          }),
-        subscribe: (options as { subscribe?: (...argList: unknown[]) => unknown }).subscribe,
+        resolve,
+        subscribe,
       };
     });
 
@@ -81,13 +94,20 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
     Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>,
   >(
     name: Name,
-    options: Omit<
+    {
+      extensions,
+      ...options
+    }: Omit<
       PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
       'resolve'
     >,
   ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
+      extensions: {
+        pothosExposedField: name,
+        ...extensions,
+      },
       resolve: (parent) => (parent as Record<string, never>)[name as string],
     });
   }

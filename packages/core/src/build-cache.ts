@@ -338,17 +338,22 @@ export default class BuildCache<Types extends SchemaTypes> {
 
       config.args = argConfigs;
 
+      const resolve = this.plugin.wrapResolve(config.resolve ?? defaultFieldResolver, config);
+      const subscribe = this.plugin.wrapSubscribe(config.subscribe, config);
+
       built[fieldName] = {
         ...config,
         type: this.buildOutputTypeParam(config.type),
         args,
         extensions: {
           ...config.extensions,
+          pothosResolveWrapped: resolve !== (config.resolve ?? defaultFieldResolver),
+          pothosSubscribeWrapped: subscribe !== config.subscribe,
           pothosOptions: config.pothosOptions,
           pothosConfig: config,
         },
-        resolve: this.plugin.wrapResolve(config.resolve ?? defaultFieldResolver, config),
-        subscribe: this.plugin.wrapSubscribe(config.subscribe, config),
+        resolve: resolve === defaultFieldResolver ? undefined : resolve,
+        subscribe,
       };
     }
 

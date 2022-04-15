@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
 import { typeFromParam } from '../utils/index.ts';
 import { FieldKind, FieldRef, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam } from '../index.ts';
@@ -25,6 +26,18 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
                     args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, name, "Arg");
                 });
             }
+            let resolve = (options as {
+                resolve?: (...argList: unknown[]) => unknown;
+            }).resolve ??
+                (() => {
+                    throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+                });
+            if (options.extensions?.pothosExposedField === name) {
+                resolve = defaultFieldResolver as typeof resolve;
+            }
+            const { subscribe } = options as {
+                subscribe?: (...argList: unknown[]) => unknown;
+            };
             return {
                 kind: this.kind as never,
                 graphqlKind: this.graphqlKind,
@@ -33,25 +46,26 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
                 args,
                 type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? this.builder.defaultFieldNullability),
                 pothosOptions: options as never,
-                extensions: options.extensions,
+                extensions: {
+                    pothosOriginalResolve: resolve,
+                    pothosOriginalSubscribe: subscribe,
+                    ...options.extensions,
+                },
                 description: options.description,
                 deprecationReason: options.deprecationReason,
-                resolve: (options as {
-                    resolve?: (...argList: unknown[]) => unknown;
-                }).resolve ??
-                    (() => {
-                        throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
-                    }),
-                subscribe: (options as {
-                    subscribe?: (...argList: unknown[]) => unknown;
-                }).subscribe,
+                resolve,
+                subscribe,
             };
         });
         return ref;
     }
-    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(name: Name, options: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(name: Name, { extensions, ...options }: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         return this.createField({
             ...options,
+            extensions: {
+                pothosExposedField: name,
+                ...extensions,
+            },
             resolve: (parent) => (parent as Record<string, never>)[name as string],
         });
     }
