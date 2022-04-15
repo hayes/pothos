@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.7.0
+
+### Minor Changes
+
+- 9a0ae33e: Omit resolver for exposed fields with matching names to improve perfomance in
+  graphql-jit
+
 ## 3.6.0
 
 ### Minor Changes
