@@ -19,15 +19,16 @@ yarn add @pothos/plugin-directives
 import DirectivePlugin from '@pothos/plugin-directives';
 import { rateLimitDirective } from 'graphql-rate-limit-directive';
 
-const builder = new SchemaBuilder<
+const builder = new SchemaBuilder<{
   Directives: {
     rateLimit: {
       locations: 'OBJECT' | 'FIELD_DEFINITION';
       args: { limit: number, duration: number };
-    },
-    useGraphQLToolsUnorderedDirectives: true,
->({
+    };
+  };
+}>({
   plugins: [DirectivePlugin],
+  useGraphQLToolsUnorderedDirectives: true,
 });
 
 builder.queryType({
