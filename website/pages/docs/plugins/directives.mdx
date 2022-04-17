@@ -39,9 +39,9 @@ const builder = new SchemaBuilder<
       locations: 'OBJECT' | 'FIELD_DEFINITION';
       args: { limit: number, duration: number };
     },
-    useGraphQLToolsUnorderedDirectives: true,
 >({
   plugins: [DirectivePlugin],
+  useGraphQLToolsUnorderedDirectives: true,
 });
 
 builder.queryType({
