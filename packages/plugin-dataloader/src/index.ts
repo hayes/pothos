@@ -7,11 +7,9 @@ import SchemaBuilder, {
   BasePlugin,
   isThenable,
   MaybePromise,
-  ObjectRef,
   PothosOutputFieldConfig,
   SchemaTypes,
 } from '@pothos/core';
-import { DataloaderObjectTypeOptions } from './types';
 
 export * from './refs';
 export * from './types';
@@ -26,17 +24,9 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
     const isList = fieldConfig.type.kind === 'List';
     const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
 
-    const options = this.buildCache.getTypeConfig(type.ref)
-      .pothosOptions as DataloaderObjectTypeOptions<
-      Types,
-      unknown,
-      bigint | number | string,
-      [],
-      ObjectRef<unknown>,
-      unknown
-    >;
+    const config = this.buildCache.getTypeConfig(type.ref);
 
-    const getDataloader = options.extensions?.getDataloader as (
+    const getDataloader = config.extensions?.getDataloader as (
       context: object,
     ) => DataLoader<unknown, unknown>;
 
@@ -44,7 +34,7 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
       return resolver;
     }
 
-    const cacheResolved = options.extensions?.cacheResolved as
+    const cacheResolved = config.extensions?.cacheResolved as
       | ((val: unknown) => string)
       | undefined;
 

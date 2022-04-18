@@ -3,25 +3,25 @@ import { ContextType } from '../types';
 import { countCall, userNodeCounts } from './counts';
 import { TestInterface } from './interfaces';
 
-const UserNode = builder
-  .loadableNodeRef('UserNode', {
-    id: {
-      resolve: (user) => user.id,
-    },
-    loaderOptions: { maxBatchSize: 20 },
-    load: (keys: string[], context: ContextType) => {
-      countCall(context, userNodeCounts, keys.length);
-      return Promise.resolve(
-        keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
-      );
-    },
-  })
-  .implement({
-    interfaces: [TestInterface],
-    isTypeOf: (obj) =>
-      typeof obj === 'object' && obj !== null && Object.prototype.hasOwnProperty.call(obj, 'id'),
-    fields: (t) => ({}),
-  });
+const UserNode = builder.loadableNodeRef('UserNode', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  loaderOptions: { maxBatchSize: 20 },
+  load: (keys: string[], context: ContextType) => {
+    countCall(context, userNodeCounts, keys.length);
+    return Promise.resolve(
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+    );
+  },
+});
+
+builder.objectType(UserNode, {
+  interfaces: [TestInterface],
+  isTypeOf: (obj) =>
+    typeof obj === 'object' && obj !== null && Object.prototype.hasOwnProperty.call(obj, 'id'),
+  fields: (t) => ({}),
+});
 
 class ClassThing {
   id: number = 123;

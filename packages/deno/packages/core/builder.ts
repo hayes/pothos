@@ -49,7 +49,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             kind: "Object",
             graphqlKind: "Object",
             name,
-            interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
+            interfaces: (options.interfaces ?? []) as InterfaceParam<SchemaTypes>[],
             description: options.description,
             extensions: options.extensions,
             isTypeOf: options.isTypeOf,

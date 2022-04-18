@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldRef, ImplementableObjectRef, InterfaceParam, InterfaceRef, ObjectTypeOptions, SchemaTypes, } from '../../core/index.ts';
+import { FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes } from '../../core/index.ts';
 import { DataLoaderOptions, LoadableNodeId } from '../types.ts';
 import { ImplementableLoadableObjectRef } from './object.ts';
 export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, Shape extends object, Key extends bigint | number | string, CacheKey> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
@@ -8,9 +8,18 @@ export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, S
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { id, ...options }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape>) {
         super(builder, name, options);
         this.idOptions = id;
-    }
-    override implement<Interfaces extends InterfaceParam<Types>[]>(options: Omit<ObjectTypeOptions<Types, ImplementableObjectRef<Types, RefShape, Shape>, Shape, Interfaces>, "name">): PothosSchemaTypes.ObjectRef<RefShape, Shape> {
-        this.builder.configStore.onTypeConfig(this, (nodeConfig) => {
+        this.builder.configStore.onTypeConfig(this, (config) => {
+            const nodeInterface = (this.builder as PothosSchemaTypes.SchemaBuilder<Types> & {
+                nodeInterfaceRef: () => InterfaceRef<unknown>;
+            }).nodeInterfaceRef();
+            // eslint-disable-next-line no-param-reassign
+            (config.pothosOptions as {
+                loadManyWithoutCache: unknown;
+            }).loadManyWithoutCache = (ids: Key[], context: SchemaTypes["Context"]) => this.getDataloader(context).loadMany(ids);
+            const { interfaces } = config as PothosObjectTypeConfig;
+            if (!interfaces.includes(nodeInterface)) {
+                interfaces.push(nodeInterface);
+            }
             this.builder.objectField(this, "id", (t) => (t as unknown as {
                 globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
             }).globalID({
@@ -18,28 +27,10 @@ export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, S
                 nullable: false,
                 args: {},
                 resolve: async (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) => ({
-                    type: nodeConfig.name,
+                    type: config.name,
                     id: await this.idOptions.resolve(parent, args, context, info),
                 }),
             }));
-        });
-        const nodeOptions = {
-            interfaces: [
-                (this.builder as PothosSchemaTypes.SchemaBuilder<Types> & {
-                    nodeInterfaceRef: () => InterfaceRef<unknown>;
-                }).nodeInterfaceRef(),
-                ...(options.interfaces ?? []),
-            ],
-            loadManyWithoutCache: (ids: Key[], context: SchemaTypes["Context"]) => this.getDataloader(context).loadMany(ids),
-        };
-        return super.implement({
-            ...options,
-            ...(nodeOptions as {}),
-            extensions: {
-                ...options.extensions,
-                getDataloader: this.getDataloader,
-                cacheResolved: this.cacheResolved,
-            },
         });
     }
 }

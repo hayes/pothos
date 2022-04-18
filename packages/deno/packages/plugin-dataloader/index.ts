@@ -4,8 +4,7 @@ import './field-builder.ts';
 import './schema-builder.ts';
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, ObjectRef, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
-import { DataloaderObjectTypeOptions } from './types.ts';
+import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
 export * from './refs/index.ts';
 export * from './types.ts';
 export * from './util.ts';
@@ -14,14 +13,12 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";
         const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
-        const options = this.buildCache.getTypeConfig(type.ref)
-            .pothosOptions as DataloaderObjectTypeOptions<Types, unknown, bigint | number | string, [
-        ], ObjectRef<unknown>, unknown>;
-        const getDataloader = options.extensions?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
+        const config = this.buildCache.getTypeConfig(type.ref);
+        const getDataloader = config.extensions?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
         if (!getDataloader) {
             return resolver;
         }
-        const cacheResolved = options.extensions?.cacheResolved as ((val: unknown) => string) | undefined;
+        const cacheResolved = config.extensions?.cacheResolved as ((val: unknown) => string) | undefined;
         function loadIfID(idOrResult: unknown, loader: DataLoader<unknown, unknown>): unknown {
             if (idOrResult == null) {
                 return idOrResult;

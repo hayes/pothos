@@ -1,12 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import {
-  FieldRef,
-  ImplementableObjectRef,
-  InterfaceParam,
-  InterfaceRef,
-  ObjectTypeOptions,
-  SchemaTypes,
-} from '@pothos/core';
+import { FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes } from '@pothos/core';
 import { DataLoaderOptions, LoadableNodeId } from '../types';
 import { ImplementableLoadableObjectRef } from './object';
 
@@ -29,15 +22,26 @@ export class ImplementableLoadableNodeRef<
   ) {
     super(builder, name, options);
     this.idOptions = id;
-  }
 
-  override implement<Interfaces extends InterfaceParam<Types>[]>(
-    options: Omit<
-      ObjectTypeOptions<Types, ImplementableObjectRef<Types, RefShape, Shape>, Shape, Interfaces>,
-      'name'
-    >,
-  ): PothosSchemaTypes.ObjectRef<RefShape, Shape> {
-    this.builder.configStore.onTypeConfig(this, (nodeConfig) => {
+    this.builder.configStore.onTypeConfig(this, (config) => {
+      const nodeInterface = (
+        this.builder as PothosSchemaTypes.SchemaBuilder<Types> & {
+          nodeInterfaceRef: () => InterfaceRef<unknown>;
+        }
+      ).nodeInterfaceRef();
+
+      // eslint-disable-next-line no-param-reassign
+      (config.pothosOptions as { loadManyWithoutCache: unknown }).loadManyWithoutCache = (
+        ids: Key[],
+        context: SchemaTypes['Context'],
+      ) => this.getDataloader(context).loadMany(ids);
+
+      const { interfaces } = config as PothosObjectTypeConfig;
+
+      if (!interfaces.includes(nodeInterface)) {
+        interfaces.push(nodeInterface);
+      }
+
       this.builder.objectField(this, 'id', (t) =>
         (
           t as unknown as {
@@ -53,34 +57,11 @@ export class ImplementableLoadableNodeRef<
             context: object,
             info: GraphQLResolveInfo,
           ) => ({
-            type: nodeConfig.name,
+            type: config.name,
             id: await this.idOptions.resolve(parent, args, context, info),
           }),
         }),
       );
-    });
-
-    const nodeOptions = {
-      interfaces: [
-        (
-          this.builder as PothosSchemaTypes.SchemaBuilder<Types> & {
-            nodeInterfaceRef: () => InterfaceRef<unknown>;
-          }
-        ).nodeInterfaceRef(),
-        ...(options.interfaces ?? []),
-      ],
-      loadManyWithoutCache: (ids: Key[], context: SchemaTypes['Context']) =>
-        this.getDataloader(context).loadMany(ids),
-    };
-
-    return super.implement({
-      ...options,
-      ...(nodeOptions as {}),
-      extensions: {
-        ...options.extensions,
-        getDataloader: this.getDataloader,
-        cacheResolved: this.cacheResolved,
-      },
     });
   }
 }

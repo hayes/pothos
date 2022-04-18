@@ -1,12 +1,6 @@
 /* eslint-disable max-classes-per-file */
 import DataLoader from 'dataloader';
-import {
-  ImplementableObjectRef,
-  InterfaceParam,
-  ObjectRef,
-  ObjectTypeOptions,
-  SchemaTypes,
-} from '@pothos/core';
+import { ImplementableObjectRef, ObjectRef, SchemaTypes } from '@pothos/core';
 import { DataLoaderOptions } from '../types';
 import { dataloaderGetter } from '../util';
 
@@ -56,21 +50,14 @@ export class ImplementableLoadableObjectRef<
     this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
     this.cacheResolved =
       typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
-  }
 
-  override implement<Interfaces extends InterfaceParam<Types>[]>(
-    options: Omit<
-      ObjectTypeOptions<Types, ImplementableObjectRef<Types, RefShape, Shape>, Shape, Interfaces>,
-      'name'
-    >,
-  ): PothosSchemaTypes.ObjectRef<RefShape, Shape> {
-    return super.implement({
-      ...options,
-      extensions: {
-        ...options.extensions,
+    this.builder.configStore.onTypeConfig(this, (config) => {
+      // eslint-disable-next-line no-param-reassign
+      config.extensions = {
+        ...config.extensions,
         getDataloader: this.getDataloader,
         cacheResolved: this.cacheResolved,
-      },
+      };
     });
   }
 }

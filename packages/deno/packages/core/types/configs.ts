@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfig, GraphQLFieldConfig, GraphQLInputFieldConfig, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLUnionType, GraphQLUnionTypeConfig, } from 'https://cdn.skypack.dev/graphql?dts';
 import { Merge } from './utils.ts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputType, InputTypeParam, ObjectParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputType, InputTypeParam, InterfaceParam, ObjectParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
 export interface PothosQueryTypeConfig extends Omit<GraphQLObjectTypeConfig<unknown, object>, "fields" | "interfaces"> {
     kind: "Query";
     graphqlKind: "Object";
@@ -20,7 +20,7 @@ export interface PothosSubscriptionTypeConfig extends Omit<GraphQLObjectTypeConf
 export interface PothosObjectTypeConfig extends Omit<GraphQLObjectTypeConfig<unknown, object>, "fields" | "interfaces"> {
     kind: "Object";
     graphqlKind: "Object";
-    interfaces: ObjectParam<SchemaTypes>[];
+    interfaces: InterfaceParam<SchemaTypes>[];
     pothosOptions: PothosSchemaTypes.ObjectTypeOptions;
 }
 export interface PothosInterfaceTypeConfig extends Omit<GraphQLInterfaceTypeConfig<unknown, object>, "fields" | "interfaces"> {

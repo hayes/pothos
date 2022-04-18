@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable max-classes-per-file */
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { ImplementableObjectRef, InterfaceParam, ObjectRef, ObjectTypeOptions, SchemaTypes, } from '../../core/index.ts';
+import { ImplementableObjectRef, ObjectRef, SchemaTypes } from '../../core/index.ts';
 import { DataLoaderOptions } from '../types.ts';
 import { dataloaderGetter } from '../util.ts';
 export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends ObjectRef<RefShape, Shape> {
@@ -19,15 +19,13 @@ export class ImplementableLoadableObjectRef<Types extends SchemaTypes, RefShape,
         this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
         this.cacheResolved =
             typeof cacheResolved === "function" ? cacheResolved : cacheResolved && toKey;
-    }
-    override implement<Interfaces extends InterfaceParam<Types>[]>(options: Omit<ObjectTypeOptions<Types, ImplementableObjectRef<Types, RefShape, Shape>, Shape, Interfaces>, "name">): PothosSchemaTypes.ObjectRef<RefShape, Shape> {
-        return super.implement({
-            ...options,
-            extensions: {
-                ...options.extensions,
+        this.builder.configStore.onTypeConfig(this, (config) => {
+            // eslint-disable-next-line no-param-reassign
+            config.extensions = {
+                ...config.extensions,
                 getDataloader: this.getDataloader,
                 cacheResolved: this.cacheResolved,
-            },
+            };
         });
     }
 }

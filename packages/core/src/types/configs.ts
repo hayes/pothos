@@ -25,6 +25,7 @@ import {
   InputFieldMap,
   InputType,
   InputTypeParam,
+  InterfaceParam,
   ObjectParam,
   OutputType,
   SchemaTypes,
@@ -55,7 +56,7 @@ export interface PothosObjectTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Object';
   graphqlKind: 'Object';
-  interfaces: ObjectParam<SchemaTypes>[];
+  interfaces: InterfaceParam<SchemaTypes>[];
   pothosOptions: PothosSchemaTypes.ObjectTypeOptions;
 }
 
