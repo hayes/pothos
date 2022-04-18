@@ -116,23 +116,28 @@ export default class InputFieldBuilder<
       this.typename,
     );
 
-    this.builder.configStore.addFieldRef(ref, options.type, {}, (name, parentField) => ({
-      name,
-      parentField,
-      kind: this.kind,
-      graphqlKind: this.kind,
-      parentType: this.typename,
-      type: inputTypeFromParam<Types>(
-        options.type,
-        this.builder.configStore,
-        options.required ?? this.builder.defaultInputFieldRequiredness,
-      ),
-      pothosOptions: options as unknown as PothosSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
-      description: options.description,
-      deprecationReason: options.deprecationReason,
-      defaultValue: options.defaultValue,
-      extensions: options.extensions,
-    }));
+    this.builder.configStore.addFieldRef(
+      ref,
+      options.type,
+      {},
+      (name, parentField, typeConfig) => ({
+        name,
+        parentField,
+        kind: this.kind,
+        graphqlKind: this.kind,
+        parentType: typeConfig.name,
+        type: inputTypeFromParam<Types>(
+          options.type,
+          this.builder.configStore,
+          options.required ?? this.builder.defaultInputFieldRequiredness,
+        ),
+        pothosOptions: options as unknown as PothosSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
+        description: options.description,
+        deprecationReason: options.deprecationReason,
+        defaultValue: options.defaultValue,
+        extensions: options.extensions,
+      }),
+    );
 
     return ref;
   }

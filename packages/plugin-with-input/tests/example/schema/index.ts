@@ -190,4 +190,20 @@ builder.interfaceField(TestInterface, 'withOptions', (t) =>
   }),
 );
 
+builder.queryField('withValidation', (t) =>
+  t.fieldWithInput({
+    nullable: true,
+    input: {
+      email: t.input.string({
+        required: true,
+        validate: {
+          email: true,
+        },
+      }),
+    },
+    type: 'String',
+    resolve: (root, args) => args.input.email,
+  }),
+);
+
 export default builder.toSchema({});

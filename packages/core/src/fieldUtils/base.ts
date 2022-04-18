@@ -38,52 +38,63 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       this.typename,
     );
 
-    this.builder.configStore.addFieldRef(ref, options.type, options.args ?? {}, (name) => {
-      const args: Record<string, PothosInputFieldConfig<Types>> = {};
+    this.builder.configStore.addFieldRef(
+      ref,
+      options.type,
+      options.args ?? {},
+      (name, parentField, typeConfig) => {
+        const args: Record<string, PothosInputFieldConfig<Types>> = {};
 
-      if (options.args) {
-        Object.keys(options.args).forEach((argName) => {
-          const argRef = options.args![argName];
+        if (options.args) {
+          Object.keys(options.args).forEach((argName) => {
+            const argRef = options.args![argName];
 
-          args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, name, 'Arg');
-        });
-      }
+            args[argName] = this.builder.configStore.createFieldConfig(
+              argRef,
+              argName,
+              typeConfig,
+              name,
+              'Arg',
+            );
+          });
+        }
 
-      let resolve =
-        (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
-        (() => {
-          throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
-        });
+        let resolve =
+          (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
+          (() => {
+            throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+          });
 
-      if (options.extensions?.pothosExposedField === name) {
-        resolve = defaultFieldResolver as typeof resolve;
-      }
+        if (options.extensions?.pothosExposedField === name) {
+          resolve = defaultFieldResolver as typeof resolve;
+        }
 
-      const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
+        const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
 
-      return {
-        kind: this.kind as never,
-        graphqlKind: this.graphqlKind,
-        parentType: this.typename,
-        name,
-        args,
-        type: typeFromParam(
-          options.type,
-          this.builder.configStore,
-          options.nullable ?? this.builder.defaultFieldNullability,
-        ),
-        pothosOptions: options as never,
-        extensions: {
-          pothosOriginalResolve: resolve,
-          pothosOriginalSubscribe: subscribe,
-          ...options.extensions,
-        },
-        description: options.description,
-        deprecationReason: options.deprecationReason,
-        resolve,
-        subscribe,
-      };
-    });
+        return {
+          kind: this.kind as never,
+          graphqlKind: this.graphqlKind,
+          parentType: typeConfig.name,
+          name,
+          args,
+          type: typeFromParam(
+            options.type,
+            this.builder.configStore,
+            options.nullable ?? this.builder.defaultFieldNullability,
+          ),
+          pothosOptions: options as never,
+          extensions: {
+            pothosOriginalResolve: resolve,
+            pothosOriginalSubscribe: subscribe,
+            ...options.extensions,
+          },
+          description: options.description,
+          deprecationReason: options.deprecationReason,
+          resolve,
+          subscribe,
+        };
+      },
+    );
 
     return ref;
   }

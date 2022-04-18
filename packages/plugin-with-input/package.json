@@ -42,6 +42,7 @@
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-validation": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql-tag": "^2.12.6"
   }

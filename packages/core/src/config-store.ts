@@ -33,7 +33,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private fieldRefs = new WeakMap<
     FieldRef | InputFieldRef,
-    (name: string, parentField: string | undefined) => PothosFieldConfig<Types>
+    (
+      name: string,
+      parentField: string | undefined,
+      typeConfig: PothosTypeConfig,
+    ) => PothosFieldConfig<Types>
   >();
 
   private fields = new Map<string, Map<string, PothosFieldConfig<Types>>>();
@@ -89,7 +93,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
     // We need to be able to resolve the types kind before configuring the field
     typeParam: InputTypeParam<Types> | TypeParam<Types>,
     args: InputFieldMap,
-    getConfig: (name: string, parentField: string | undefined) => PothosFieldConfig<Types>,
+    getConfig: (
+      name: string,
+      parentField: string | undefined,
+      typeConfig: PothosTypeConfig,
+    ) => PothosFieldConfig<Types>,
   ) {
     if (this.fieldRefs.has(ref)) {
       throw new Error(`FieldRef ${String(ref)} has already been added to config store`);
@@ -138,6 +146,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
   createFieldConfig<T extends GraphQLFieldKind>(
     ref: FieldRef | InputFieldRef,
     name: string,
+    typeConfig: PothosTypeConfig,
     parentField?: string,
     kind?: T,
   ): Extract<PothosFieldConfig<Types>, { graphqlKind: T }> {
@@ -151,7 +160,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
       throw new Error(`Missing definition for for ${String(ref)}`);
     }
 
-    const config = this.fieldRefs.get(ref)!(name, parentField);
+    const config = this.fieldRefs.get(ref)!(name, parentField, typeConfig);
 
     if (kind && config.graphqlKind !== kind) {
       throw new TypeError(
@@ -430,7 +439,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     fieldName: string,
   ) {
     const typeConfig = this.getTypeConfig(typeRef);
-    const fieldConfig = this.createFieldConfig(field, fieldName);
+    const fieldConfig = this.createFieldConfig(field, fieldName, typeConfig);
     const existingFields = this.getFields(typeConfig.name);
 
     if (existingFields.has(fieldName)) {

@@ -45,10 +45,18 @@ type Query {
     \\"\\"\\"input arg\\"\\"\\"
     custom: TestQueryInput
   ): ID!
+  withValidation(
+    \\"\\"\\"input arg\\"\\"\\"
+    input: QueryWithValidationInput!
+  ): String
 }
 
 input QueryExampleQueryInput {
   id: ID!
+}
+
+input QueryWithValidationInput {
+  email: String!
 }
 
 type Subscription {

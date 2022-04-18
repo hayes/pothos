@@ -18,12 +18,12 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(this.kind, this.typename);
-        this.builder.configStore.addFieldRef(ref, options.type, options.args ?? {}, (name) => {
+        this.builder.configStore.addFieldRef(ref, options.type, options.args ?? {}, (name, parentField, typeConfig) => {
             const args: Record<string, PothosInputFieldConfig<Types>> = {};
             if (options.args) {
                 Object.keys(options.args).forEach((argName) => {
                     const argRef = options.args![argName];
-                    args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, name, "Arg");
+                    args[argName] = this.builder.configStore.createFieldConfig(argRef, argName, typeConfig, name, "Arg");
                 });
             }
             let resolve = (options as {
@@ -41,7 +41,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
             return {
                 kind: this.kind as never,
                 graphqlKind: this.graphqlKind,
-                parentType: this.typename,
+                parentType: typeConfig.name,
                 name,
                 args,
                 type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? this.builder.defaultFieldNullability),

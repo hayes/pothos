@@ -79,12 +79,12 @@ export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends k
         InputType<Types>
     ], Req extends FieldRequiredness<Type>>(options: PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind]) {
         const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = new InputFieldRef(this.kind, this.typename);
-        this.builder.configStore.addFieldRef(ref, options.type, {}, (name, parentField) => ({
+        this.builder.configStore.addFieldRef(ref, options.type, {}, (name, parentField, typeConfig) => ({
             name,
             parentField,
             kind: this.kind,
             graphqlKind: this.kind,
-            parentType: this.typename,
+            parentType: typeConfig.name,
             type: inputTypeFromParam<Types>(options.type, this.builder.configStore, options.required ?? this.builder.defaultInputFieldRequiredness),
             pothosOptions: options as unknown as PothosSchemaTypes.InputFieldOptionsByKind<Types>[Kind],
             description: options.description,

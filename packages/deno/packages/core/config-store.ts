@@ -6,7 +6,7 @@ import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types/index.ts';
 import { BaseTypeRef, BuiltinScalarRef, ConfigurableRef, FieldRef, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, InputTypeRef, OutputType, OutputTypeRef, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, TypeParam, } from './index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, PothosTypeConfig>();
-    private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined) => PothosFieldConfig<Types>>();
+    private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined, typeConfig: PothosTypeConfig) => PothosFieldConfig<Types>>();
     private fields = new Map<string, Map<string, PothosFieldConfig<Types>>>();
     private addFieldFns: (() => void)[] = [];
     private refsToName = new Map<ConfigurableRef<Types>, string>();
@@ -38,7 +38,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     addFieldRef(ref: FieldRef | InputFieldRef, 
     // We need to be able to resolve the types kind before configuring the field
-    typeParam: InputTypeParam<Types> | TypeParam<Types>, args: InputFieldMap, getConfig: (name: string, parentField: string | undefined) => PothosFieldConfig<Types>) {
+    typeParam: InputTypeParam<Types> | TypeParam<Types>, args: InputFieldMap, getConfig: (name: string, parentField: string | undefined, typeConfig: PothosTypeConfig) => PothosFieldConfig<Types>) {
         if (this.fieldRefs.has(ref)) {
             throw new Error(`FieldRef ${String(ref)} has already been added to config store`);
         }
@@ -73,7 +73,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             });
         }
     }
-    createFieldConfig<T extends GraphQLFieldKind>(ref: FieldRef | InputFieldRef, name: string, parentField?: string, kind?: T): Extract<PothosFieldConfig<Types>, {
+    createFieldConfig<T extends GraphQLFieldKind>(ref: FieldRef | InputFieldRef, name: string, typeConfig: PothosTypeConfig, parentField?: string, kind?: T): Extract<PothosFieldConfig<Types>, {
         graphqlKind: T;
     }> {
         if (!this.fieldRefs.has(ref)) {
@@ -82,7 +82,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             }
             throw new Error(`Missing definition for for ${String(ref)}`);
         }
-        const config = this.fieldRefs.get(ref)!(name, parentField);
+        const config = this.fieldRefs.get(ref)!(name, parentField, typeConfig);
         if (kind && config.graphqlKind !== kind) {
             throw new TypeError(`Expected ref for field named ${name} to resolve to a ${kind} type, but got ${config.graphqlKind}`);
         }
@@ -285,7 +285,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     private buildField(typeRef: ConfigurableRef<Types>, field: FieldRef | InputFieldRef, fieldName: string) {
         const typeConfig = this.getTypeConfig(typeRef);
-        const fieldConfig = this.createFieldConfig(field, fieldName);
+        const fieldConfig = this.createFieldConfig(field, fieldName, typeConfig);
         const existingFields = this.getFields(typeConfig.name);
         if (existingFields.has(fieldName)) {
             throw new Error(`Duplicate field definition for field ${fieldName} in ${typeConfig.name}`);

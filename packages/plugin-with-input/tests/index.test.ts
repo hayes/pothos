@@ -34,6 +34,12 @@ describe('example schema', () => {
               id
             }
           }
+          withValidation(input: { email: "test@test.com" }) {
+            email
+          }
+          withValidationInvalid: withValidation(input: { email: "test" }) {
+            email
+          }
         }
       `;
 
@@ -57,7 +63,22 @@ describe('example schema', () => {
               "withOptions": "123",
             },
             "withOptions": "123",
+            "withValidation": "test@test.com",
+            "withValidationInvalid": null,
           },
+          "errors": Array [
+            [GraphQLError: [
+          {
+            "validation": "email",
+            "code": "invalid_string",
+            "message": "Invalid email",
+            "path": [
+              "input",
+              "email"
+            ]
+          }
+        ]],
+          ],
         }
       `);
     });

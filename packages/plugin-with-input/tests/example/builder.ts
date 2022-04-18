@@ -1,8 +1,9 @@
 import SchemaBuilder from '@pothos/core';
+import ValidationPlugin from '@pothos/plugin-validation';
 import WithInputPlugin from '../../src';
 
 export default new SchemaBuilder({
-  plugins: [WithInputPlugin],
+  plugins: [ValidationPlugin, WithInputPlugin],
   withInput: {
     argOptions: {
       description: 'input arg',
@@ -11,7 +12,7 @@ export default new SchemaBuilder({
 });
 
 const builderWithNonRequireInputs = new SchemaBuilder<{ WithInputArgRequired: false }>({
-  plugins: [WithInputPlugin],
+  plugins: [ValidationPlugin, WithInputPlugin],
   withInput: {
     argOptions: {
       required: false,
