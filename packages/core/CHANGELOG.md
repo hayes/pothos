@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.0
+
+### Minor Changes
+
+- f0741c42: Set typename on field configs based on usage rather than field builder constructor.
+
 ## 3.7.1
 
 ### Patch Changes
