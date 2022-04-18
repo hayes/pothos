@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.4.0
+
+### Minor Changes
+
+- f0741c42: Set typename on field configs based on usage rather than field builder constructor.
+
 ## 3.3.0
 
 ### Minor Changes
