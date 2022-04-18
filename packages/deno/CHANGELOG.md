@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.1
+
+### Patch Changes
+
+- 6e4ccc7b: Fix loadable refs when used with builder.objectType
+
 ## 3.7.0
 
 ### Minor Changes
