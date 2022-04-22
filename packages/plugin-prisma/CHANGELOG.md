@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.5.0
+
+### Minor Changes
+
+- 05163ca5: Add support for dynamically loading prisma client and selecting counts in field level
+  selects"
+
 ## 3.4.0
 
 ### Minor Changes

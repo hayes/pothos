@@ -2,6 +2,13 @@
 
 ## null
 
+### Minor Changes
+
+- 05163ca5: Add support for dynamically loading prisma client and selecting counts in field level
+  selects"
+
+## null
+
 ### Patch Changes
 
 - Updated dependencies [f0741c42]
