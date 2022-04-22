@@ -29,6 +29,10 @@ export interface PrismaDelegate {
 
 export const prismaModelName = Symbol.for('Pothos.prismaModelName');
 
+export interface PrismaClient {
+  $connect: () => Promise<void>;
+}
+
 export interface PrismaModelTypes {
   Name: string;
   Shape: {};
@@ -117,9 +121,18 @@ export type ShapeFromSelection<Model extends PrismaModelTypes, Selection> = Norm
     ? unknown extends Selection['select']
       ? Model['Shape'] & RelationShapeFromInclude<Model, Selection['include']>
       : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
-          RelationShapeFromInclude<Model, Selection['select']>
+          RelationShapeFromInclude<Model, Selection['select']> &
+          ('_count' extends keyof Selection['select']
+            ? ShapeFromCount<Selection['select']['_count']>
+            : {})
     : Model['Shape']
 >;
+
+export type ShapeFromCount<Selection> = Selection extends true
+  ? { _count: number }
+  : Selection extends { select: infer Counts }
+  ? { _count: { [K in keyof Counts]: number } }
+  : never;
 
 type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normalize<{
   [K in SelectedKeys<Include> as K extends Model['RelationName']

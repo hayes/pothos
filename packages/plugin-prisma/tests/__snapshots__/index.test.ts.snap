@@ -269,6 +269,7 @@ type UserProfileWithErrorsSuccess {
 type Viewer {
   bio: String
   id: ID!
+  postCount: Int!
   posts: [Post!]!
   selectUser: SelectUser!
   user: User!

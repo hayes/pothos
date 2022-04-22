@@ -1,10 +1,11 @@
+/* eslint-disable no-underscore-dangle */
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import AuthPlugin from '@pothos/plugin-scope-auth';
 // eslint-disable-next-line import/no-named-as-default
 import PrismaPlugin from '../../src';
-import { PrismaClient } from '../client';
+import { Prisma, PrismaClient } from '../client';
 import PrismaTypes from '../generated';
 
 export const prisma = new PrismaClient({
@@ -43,7 +44,8 @@ export default new SchemaBuilder<{
     user: true,
   }),
   prisma: {
-    client: prisma,
+    client: () => prisma,
+    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
   },
   errorOptions: {
     defaultTypes: [Error],

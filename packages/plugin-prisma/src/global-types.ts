@@ -22,7 +22,13 @@ import {
   PrismaNodeOptions,
   PrismaObjectTypeOptions,
 } from './types';
-import { PrismaObjectFieldOptions, PrismaPlugin, ShapeFromConnection, ShapeFromSelection } from '.';
+import {
+  PrismaClient,
+  PrismaObjectFieldOptions,
+  PrismaPlugin,
+  ShapeFromConnection,
+  ShapeFromSelection,
+} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -31,11 +37,14 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      prisma: {
-        client: {
-          $connect: () => Promise<void>;
-        };
-      };
+      prisma:
+        | {
+            client: PrismaClient;
+          }
+        | {
+            client: (ctx: Types['Context']) => PrismaClient;
+            dmmf: { datamodel: unknown };
+          };
     }
 
     export interface UserSchemaTypes {

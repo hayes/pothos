@@ -350,7 +350,7 @@ export class PrismaObjectFieldBuilder<
       ...(options as {}),
       type: ref,
       select: selfSelect as never,
-      resolve: (parent, args, context, info) => parent as never,
+      resolve: (parent, args, context, info) => parent,
     }) as FieldRef<Model['Shape'], 'Object'>;
   }
 

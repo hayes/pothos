@@ -1,8 +1,10 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
-import { Prisma } from '../../tests/client';
 import { PrismaObjectRef } from '../object-ref';
 import { PrismaDelegate, PrismaModelTypes } from '../types';
 import { formatCursor, parseCompositeCursor, parseRawCursor } from './cursors';
+import { getDMMF } from './get-client';
+
+import { PrismaClient } from '..';
 
 export const refMap = new WeakMap<object, Map<string, PrismaObjectRef<PrismaModelTypes>>>();
 export const findUniqueMap = new WeakMap<
@@ -55,10 +57,7 @@ export function getModel<Types extends SchemaTypes>(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ) {
-  const { client } = builder.options.prisma;
-  // eslint-disable-next-line no-underscore-dangle
-  const dmmf = (client as unknown as { _dmmf: { modelMap: Record<string, Prisma.DMMF.Model> } })
-    ._dmmf;
+  const dmmf = getDMMF(builder);
   const modelData = dmmf.modelMap[name];
 
   if (!modelData) {
@@ -95,10 +94,11 @@ export function getCursorParser<Types extends SchemaTypes>(
   });
 }
 
-export function getDelegateFromModel(client: Record<string, unknown>, model: string) {
+export function getDelegateFromModel(client: PrismaClient, model: string) {
   const lowerCase = `${model.slice(0, 1).toLowerCase()}${model.slice(1)}`;
 
-  const delegate = lowerCase in client ? client[lowerCase] : null;
+  const delegate =
+    lowerCase in client ? (client as PrismaClient & Record<string, unknown>)[lowerCase] : null;
 
   if (!delegate) {
     throw new Error(`Unable to find delegate for model ${model}`);

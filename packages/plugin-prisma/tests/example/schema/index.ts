@@ -1,3 +1,4 @@
+/* eslint-disable no-underscore-dangle */
 import builder, { prisma } from '../builder';
 
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
@@ -30,6 +31,16 @@ const Viewer = builder.prismaObject('User', {
       query: {
         take: 5,
       },
+    }),
+    postCount: t.int({
+      select: {
+        _count: {
+          select: {
+            posts: true,
+          },
+        },
+      },
+      resolve: (user) => user._count.posts,
     }),
     user: t.variant('User'),
     selectUser: t.variant(SelectUser),

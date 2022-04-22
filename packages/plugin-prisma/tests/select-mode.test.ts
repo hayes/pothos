@@ -24,6 +24,7 @@ describe('select mode', () => {
       query {
         viewer {
           bio
+          postCount
           selectUser {
             name
             postCount
@@ -57,6 +58,7 @@ describe('select mode', () => {
         "data": Object {
           "viewer": Object {
             "bio": "Sequi minus inventore itaque similique et.",
+            "postCount": 250,
             "selectUser": Object {
               "name": "Maurine Rath",
               "postCount": 250,

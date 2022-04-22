@@ -1,6 +1,6 @@
 import { createContextCache, SchemaTypes } from '@pothos/core';
-import { PrismaDelegate } from './types';
 import { getDelegateFromModel } from './util/datamodel';
+import { getClient } from './util/get-client';
 import {
   mergeSelection,
   selectionCompatible,
@@ -10,8 +10,9 @@ import {
 
 export class ModelLoader {
   model: object;
-  delegate: PrismaDelegate;
+  builder: PothosSchemaTypes.SchemaBuilder<never>;
   findUnique: (args: unknown, ctx: {}) => unknown;
+  modelName: string;
 
   staged = new Set<{
     promise: Promise<Record<string, unknown>>;
@@ -20,12 +21,14 @@ export class ModelLoader {
 
   constructor(
     model: object,
-    delegate: PrismaDelegate,
+    builder: PothosSchemaTypes.SchemaBuilder<never>,
+    modelName: string,
     findUnique: (args: unknown, ctx: {}) => unknown,
   ) {
     this.model = model;
-    this.delegate = delegate;
+    this.builder = builder;
     this.findUnique = findUnique;
+    this.modelName = modelName;
   }
 
   static forRef<Types extends SchemaTypes>(
@@ -33,9 +36,9 @@ export class ModelLoader {
     findUnique: (args: unknown, ctx: {}) => unknown,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
-    const delegate = getDelegateFromModel(builder.options.prisma.client, modelName);
-
-    return createContextCache((model) => new ModelLoader(model, delegate, findUnique));
+    return createContextCache(
+      (model) => new ModelLoader(model, builder as never, modelName, findUnique),
+    );
   }
 
   async loadSelection(selection: SelectionState, context: object) {
@@ -57,7 +60,12 @@ export class ModelLoader {
       promise: Promise.resolve().then(() => {
         this.staged.delete(entry);
 
-        return this.delegate.findUnique({
+        const delegate = getDelegateFromModel(
+          getClient(this.builder, context as never),
+          this.modelName,
+        );
+
+        return delegate.findUnique({
           rejectOnNotFound: true,
           ...selectionToQuery(state),
           where: { ...(this.findUnique(this.model, context) as {}) },

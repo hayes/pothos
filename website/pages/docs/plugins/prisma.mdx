@@ -226,12 +226,49 @@ const builder = new SchemaBuilder<{
   prisma: {
     client: prisma,
   },
+  prisma: {
+    client: (ctx) => prisma,
+    // Because the prisma client is loaded dynamically, we need to explicitly pass the builder some information about the prisma schema
+    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
+  },
 });
 ```
 
 It is strongly recommended NOT to put your prisma client into `Context`. This will result in slower
 type-checking and a laggy developer experience in VSCode. See
 [this issue](https://github.com/microsoft/TypeScript/issues/45405) for more details.
+
+You can also load or create the prisma client dynamically for each request. This can be used to
+periodically re-create clients or create read-only clients for certain types of users.
+
+```typescript
+import SchemaBuilder from '@pothos/core';
+import { PrismaClient, Prisma } from '@prisma/client';
+import PrismaPlugin from '@pothos/plugin-prisma';
+import type PrismaTypes from '@pothos/plugin-prisma/generated';
+
+const prisma = new PrismaClient({});
+
+const readOnlyPrisma = new PrismaClient({
+  datasources: {
+    db: {
+      url: process.env.READ_ONLY_REPLICA_URL,
+    },
+  },
+});
+
+const builder = new SchemaBuilder<{
+  Context: { user: { isAdmin: boolean } };
+  PrismaTypes: PrismaTypes;
+}>({
+  plugins: [PrismaPlugin],
+  prisma: {
+    client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
+    // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
+    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
+  },
+});
+```
 
 ## Creating types with `builder.prismaObject`
 

@@ -8,11 +8,8 @@ export interface FieldMap {
 
 export type RelationMap = Map<string, FieldMap>;
 
-export const getRelationMap = createContextCache((client: object) =>
-  createRelationMap(
-    // eslint-disable-next-line no-underscore-dangle
-    (client as unknown as { _dmmf: { datamodel: DMMF.Datamodel } })._dmmf.datamodel,
-  ),
+export const getRelationMap = createContextCache((dmmf: { datamodel: unknown }) =>
+  createRelationMap(dmmf.datamodel as DMMF.Datamodel),
 );
 
 export function createRelationMap({ models }: DMMF.Datamodel) {
