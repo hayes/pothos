@@ -542,6 +542,21 @@ importers:
   packages/plugin-sub-graph/esm:
     specifiers: {}
 
+  packages/plugin-tracing:
+    specifiers:
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
+      graphql: 16.3.0
+      graphql-tag: ^2.12.6
+    devDependencies:
+      '@pothos/core': link:../core
+      '@pothos/test-utils': link:../test-utils
+      graphql: 16.3.0
+      graphql-tag: 2.12.6_graphql@16.3.0
+
+  packages/plugin-tracing/esm:
+    specifiers: {}
+
   packages/plugin-validation:
     specifiers:
       '@pothos/core': workspace:*
