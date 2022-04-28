@@ -1,5 +1,5 @@
 import { GraphQLFieldExtensions } from 'graphql';
-import {
+import type {
   FieldNullability,
   FieldRequiredness,
   InputFieldMap,

@@ -13,8 +13,9 @@ import {
   PothosUnionTypeConfig,
   SchemaTypes,
 } from '../types';
+import { createContextCache } from '../utils/context-cache';
 
-import { BuildCache, createContextCache, PothosObjectTypeConfig } from '..';
+import type { BuildCache, PothosObjectTypeConfig } from '..';
 
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {

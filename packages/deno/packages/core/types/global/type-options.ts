@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GraphQLIsTypeOfFn, GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarValueParser, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
+import type { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
 import { MaybePromise } from '../utils.ts';
 declare global {
     export namespace PothosSchemaTypes {

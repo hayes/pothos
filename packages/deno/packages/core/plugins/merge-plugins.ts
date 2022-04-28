@@ -1,8 +1,8 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
-import { PothosEnumValueConfig, PothosInterfaceTypeConfig, PothosUnionTypeConfig } from '../types/index.ts';
+import BuildCache from '../build-cache.ts';
+import type { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { BasePlugin } from './plugin.ts';
-import { BuildCache, PothosInputFieldConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../index.ts';
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
     plugins;
     constructor(buildCache: BuildCache<Types>, plugins: BasePlugin<Types>[]) {

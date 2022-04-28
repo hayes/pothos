@@ -9,7 +9,7 @@ export const builder = new SchemaBuilder<{
     default: (config) => isRootField(config) || (!isScalarField(config) && !isEnumField(config)),
     wrap: (config, value) =>
       value
-        ? (next, source, args, ctx, info) => {
+        ? (next, options, source, args, ctx, info) => {
             ctx.log(`Executing resolver ${info.parentType.name}.${info.fieldName}`);
 
             return next();

@@ -1,4 +1,4 @@
-import { FieldKind, SchemaTypes } from '../..';
+import type { FieldKind, SchemaTypes } from '../..';
 import Builder from '../../builder';
 import InternalFieldBuilder from '../../fieldUtils/builder';
 import InternalInputFieldBuilder from '../../fieldUtils/input';
