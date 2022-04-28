@@ -1,10 +1,8 @@
+import './tracer';
 import { createTestServer } from '@pothos/test-utils';
 import { schema } from './schema';
 
 const server = createTestServer({
-  contextFactory: () => ({
-    log: console.log,
-  }),
   schema,
 });
 

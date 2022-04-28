@@ -1,7 +1,7 @@
 {
-  "name": "@pothos/plugin-tracing",
+  "name": "@pothos/tracing-opentelemetry",
   "version": "0.0.0",
-  "description": "A Pothos plugin for tracing and logging resolver invocations",
+  "description": "Opentelemetry utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -40,19 +40,25 @@
   "publishConfig": {
     "access": "public"
   },
-  "peerDependencies": {
+  "dependencies": {
     "@opentelemetry/semantic-conventions": "^1.2.0",
-    "@opentelemetry/api": "^1.1.0",
+    "@opentelemetry/api": "^1.1.0"
+  },
+  "peerDependencies": {
     "@pothos/core": "*",
+    "@pothos/plugin-tracing": "*",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@opentelemetry/semantic-conventions": "^1.2.0",
-    "@opentelemetry/api": "^1.1.0",
+    "@opentelemetry/auto-instrumentations-node": "^0.28.0",
+    "@opentelemetry/instrumentation-http": "^0.28.0",
+    "@opentelemetry/sdk-trace-node": "^1.2.0",
+    "@opentelemetry/instrumentation": "^0.28.0",
+    "@opentelemetry/sdk-trace-base": "^1.2.0",
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.6"
-  },
-  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+  }
 }

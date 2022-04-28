@@ -1,7 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
-
-const nextTracer = Symbol.for('Pothos.nextTracer');
+import { PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 
 export type TracingFieldWrapper<Types extends SchemaTypes> = (
   fieldConfig: PothosOutputFieldConfig<Types>,
@@ -9,9 +7,9 @@ export type TracingFieldWrapper<Types extends SchemaTypes> = (
 ) =>
   | null
   | ((
-      next: () => MaybePromise<typeof nextTracer>,
+      next: () => unknown,
       parent: unknown,
       args: Record<string, unknown>,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<typeof nextTracer>);
+    ) => unknown);

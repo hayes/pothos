@@ -24,7 +24,7 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({ typeOptions: { name:
             fields: () => input,
             ...this.builder.options.withInput?.typeOptions,
             ...typeOptions,
-        });
+        } as never);
         this.builder.configStore.associateRefWithName(inputRef, name);
     });
     return fieldRef;

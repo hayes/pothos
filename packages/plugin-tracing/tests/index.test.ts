@@ -1,8 +1,8 @@
-import { lexicographicSortSchema, printSchema } from 'graphql';
-import exampleSchema from './example/schema';
+import { printSchema } from 'graphql';
+import { schema } from './example/schema';
 
 describe('example schema', () => {
   it('generates expected schema', () => {
-    expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
+    expect(printSchema(schema)).toMatchSnapshot();
   });
 });
