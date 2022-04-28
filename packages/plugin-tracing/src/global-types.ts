@@ -1,12 +1,14 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
+import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldNullability,
   InputFieldMap,
+  InputShapeFromFields,
   PothosOutputFieldConfig,
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { TracingFieldWrapper } from './types';
+import { TracingFieldOptions, TracingFieldWrapper } from './types';
 import { PothosTracingPlugin } from '.';
 
 declare global {
@@ -17,7 +19,11 @@ declare global {
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       tracing?: {
-        default: Types['Tracing'] | ((config: PothosOutputFieldConfig<Types>) => Types['Tracing']);
+        default:
+          | Types['Tracing']
+          | ((
+              config: PothosOutputFieldConfig<Types>,
+            ) => TracingFieldOptions<Types, unknown, Record<string, unknown>>);
         wrap: TracingFieldWrapper<Types>;
       };
     }
@@ -39,7 +45,7 @@ declare global {
       ResolveShape,
       ResolveReturnShape,
     > {
-      tracing?: Types['Tracing'];
+      tracing?: TracingFieldOptions<Types, ParentShape, InputShapeFromFields<Args>>;
     }
   }
 }

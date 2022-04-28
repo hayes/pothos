@@ -72,6 +72,11 @@ builder.queryType({
     posts: t.field({
       type: [Post],
       nullable: true,
+      tracing: (parent, args) => ({
+        attributes: {
+          args: JSON.stringify(args),
+        },
+      }),
       args: {
         take: t.arg.int(),
         skip: t.arg.int(),

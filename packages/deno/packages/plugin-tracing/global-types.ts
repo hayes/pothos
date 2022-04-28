@@ -1,7 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, PothosOutputFieldConfig, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { TracingFieldWrapper } from './types.ts';
+import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { FieldNullability, InputFieldMap, InputShapeFromFields, PothosOutputFieldConfig, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { TracingFieldOptions, TracingFieldWrapper } from './types.ts';
 import { PothosTracingPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -10,7 +11,7 @@ declare global {
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
             tracing?: {
-                default: Types["Tracing"] | ((config: PothosOutputFieldConfig<Types>) => Types["Tracing"]);
+                default: Types["Tracing"] | ((config: PothosOutputFieldConfig<Types>) => TracingFieldOptions<Types, unknown, Record<string, unknown>>);
                 wrap: TracingFieldWrapper<Types>;
             };
         }
@@ -21,7 +22,7 @@ declare global {
             Tracing: unknown extends PartialTypes["Tracing"] ? boolean : PartialTypes["Tracing"];
         }
         export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
-            tracing?: Types["Tracing"];
+            tracing?: TracingFieldOptions<Types, ParentShape, InputShapeFromFields<Args>>;
         }
     }
 }

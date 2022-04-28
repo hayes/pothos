@@ -12,9 +12,10 @@ export enum SpanNames {
   RESOLVE = 'graphql.resolve',
 }
 
-interface TracingWrapperOptions {
+export interface TracingWrapperOptions<T> {
   onSpan: (
     span: Span,
+    options: T,
     parent: unknown,
     args: {},
     context: object,
@@ -22,9 +23,13 @@ interface TracingWrapperOptions {
   ) => void;
 }
 
-export function createOpenTelemetryWrapper(tracer: Tracer, options?: TracingWrapperOptions) {
+export function createOpenTelemetryWrapper<T = unknown>(
+  tracer: Tracer,
+  options?: TracingWrapperOptions<T>,
+) {
   return (
     next: () => unknown,
+    fieldOptions: T,
     parent: unknown,
     args: {},
     context: object,
@@ -48,7 +53,7 @@ export function createOpenTelemetryWrapper(tracer: Tracer, options?: TracingWrap
       );
     });
 
-    options?.onSpan(span, parent, args, context, info);
+    options?.onSpan(span, fieldOptions, parent, args, context, info);
 
     return onEnd(next, (error) => {
       if (error) {

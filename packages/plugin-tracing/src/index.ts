@@ -1,6 +1,7 @@
 import './global-types';
-import { GraphQLFieldResolver } from 'graphql';
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
+import { TracingFieldOptions, TracingFieldWrapper } from './types';
 
 const pluginName = 'tracing' as const;
 
@@ -27,21 +28,66 @@ export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<T
           )
         : defaultConfig);
 
-    const tracingFn = wrap(fieldConfig, tracingValue);
+    return wrapResolver(fieldConfig, tracingValue, wrap, resolver);
+  }
+}
 
-    if (!tracingFn) {
-      return resolver;
-    }
+export function wrapResolver<Types extends SchemaTypes>(
+  fieldConfig: PothosOutputFieldConfig<Types>,
+  tracingOptions: TracingFieldOptions<Types, unknown, Record<string, unknown>>,
+  wrap: TracingFieldWrapper<Types>,
+  resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
+): GraphQLFieldResolver<unknown, Types['Context'], object> {
+  if (tracingOptions === false || tracingOptions === null) {
+    return resolver;
+  }
 
-    return (source, args, context, info) =>
-      tracingFn(
-        () => resolver(source, args, context, info) as never,
+  if (typeof tracingOptions === 'function') {
+    return (source, args, ctx, info) => {
+      const options = (
+        tracingOptions as (
+          parent: unknown,
+          Args: object,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => Types['Tracing']
+      )(source, args, ctx, info);
+
+      if (options === null || options === false) {
+        return resolver(source, args, ctx, info);
+      }
+      const wrapper = wrap(fieldConfig, options as never);
+
+      if (!wrapper) {
+        return resolver(source, args, ctx, info);
+      }
+
+      return wrapper(
+        () => resolver(source, args, ctx, info),
+        options as never,
         source,
-        args as {},
-        context,
+        args as Record<string, unknown>,
+        ctx,
         info,
       );
+    };
   }
+
+  const wrapper = wrap(fieldConfig, tracingOptions as never);
+
+  if (!wrapper) {
+    return resolver;
+  }
+
+  return (source, args, context, info) =>
+    wrapper(
+      () => resolver(source, args, context, info),
+      tracingOptions as never,
+      source,
+      args as {},
+      context,
+      info,
+    );
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosTracingPlugin);
