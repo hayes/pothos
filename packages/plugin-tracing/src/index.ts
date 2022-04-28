@@ -34,7 +34,7 @@ export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<T
 
 export function wrapResolver<Types extends SchemaTypes>(
   fieldConfig: PothosOutputFieldConfig<Types>,
-  tracingOptions: TracingFieldOptions<Types, unknown, Record<string, unknown>>,
+  tracingOptions: TracingFieldOptions<Types, unknown, object>,
   wrap: TracingFieldWrapper<Types>,
   resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
 ): GraphQLFieldResolver<unknown, Types['Context'], object> {
@@ -56,38 +56,16 @@ export function wrapResolver<Types extends SchemaTypes>(
       if (options === null || options === false) {
         return resolver(source, args, ctx, info);
       }
-      const wrapper = wrap(fieldConfig, options as never);
 
-      if (!wrapper) {
-        return resolver(source, args, ctx, info);
-      }
-
-      return wrapper(
-        () => resolver(source, args, ctx, info),
-        options as never,
-        source,
-        args as Record<string, unknown>,
-        ctx,
-        info,
-      );
+      return wrap(resolver, options as never, fieldConfig)(source, args as {}, ctx, info);
     };
   }
 
-  const wrapper = wrap(fieldConfig, tracingOptions as never);
-
-  if (!wrapper) {
-    return resolver;
-  }
-
-  return (source, args, context, info) =>
-    wrapper(
-      () => resolver(source, args, context, info),
-      tracingOptions as never,
-      source,
-      args as {},
-      context,
-      info,
-    );
+  return wrap(resolver, tracingOptions as never, fieldConfig) as GraphQLFieldResolver<
+    unknown,
+    Types['Context'],
+    object
+  >;
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosTracingPlugin);

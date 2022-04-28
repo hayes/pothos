@@ -1,19 +1,11 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import { PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 
 export type TracingFieldWrapper<Types extends SchemaTypes> = (
-  fieldConfig: PothosOutputFieldConfig<Types>,
+  resolver: GraphQLFieldResolver<unknown, Types['Context'], Record<string, unknown>>,
   value: Exclude<Types['Tracing'], false | null>,
-) =>
-  | null
-  | ((
-      next: () => unknown,
-      options: Exclude<Types['Tracing'], false | null>,
-      parent: unknown,
-      args: Record<string, unknown>,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => unknown);
+  fieldConfig: PothosOutputFieldConfig<Types>,
+) => GraphQLFieldResolver<unknown, Types['Context'], Record<string, unknown>>;
 
 export type TracingFieldOptions<Types extends SchemaTypes, ParentShape, Args extends object> =
   | Types['Tracing']

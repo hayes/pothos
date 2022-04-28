@@ -1,4 +1,4 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import { context as opentelemetryContext, Span, trace, Tracer } from '@opentelemetry/api';
 import { createSpanWithParent, onEnd } from '@pothos/plugin-tracing';
 
@@ -28,38 +28,38 @@ export function createOpenTelemetryWrapper<T = unknown>(
   options?: TracingWrapperOptions<T>,
 ) {
   return (
-    next: () => unknown,
-    fieldOptions: T,
-    parent: unknown,
-    args: {},
-    context: object,
-    info: GraphQLResolveInfo,
-  ) => {
-    const span = createSpanWithParent<Span>(context, info, (path, parentSpan) => {
-      const spanContext = parentSpan
-        ? trace.setSpan(opentelemetryContext.active(), parentSpan)
-        : undefined;
+      resolver: GraphQLFieldResolver<unknown, object, Record<string, unknown>>,
+      fieldOptions: T,
+    ) =>
+    (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
+      const span = createSpanWithParent<Span>(context, info, (path, parentSpan) => {
+        const spanContext = parentSpan
+          ? trace.setSpan(opentelemetryContext.active(), parentSpan)
+          : undefined;
 
-      return tracer.startSpan(
-        SpanNames.RESOLVE,
-        {
-          attributes: {
-            [AttributeNames.FIELD_NAME]: info.fieldName,
-            [AttributeNames.FIELD_PATH]: path,
-            [AttributeNames.FIELD_TYPE]: info.returnType.toString(),
+        return tracer.startSpan(
+          SpanNames.RESOLVE,
+          {
+            attributes: {
+              [AttributeNames.FIELD_NAME]: info.fieldName,
+              [AttributeNames.FIELD_PATH]: path,
+              [AttributeNames.FIELD_TYPE]: info.returnType.toString(),
+            },
           },
+          spanContext,
+        );
+      });
+
+      options?.onSpan(span, fieldOptions, parent, args, context, info);
+
+      return onEnd(
+        () => resolver(parent, args, context, info),
+        (error) => {
+          if (error) {
+            span.recordException(error as Error);
+          }
+          span.end();
         },
-        spanContext,
       );
-    });
-
-    options?.onSpan(span, fieldOptions, parent, args, context, info);
-
-    return onEnd(next, (error) => {
-      if (error) {
-        span.recordException(error as Error);
-      }
-      span.end();
-    });
-  };
+    };
 }

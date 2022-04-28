@@ -7,13 +7,10 @@ export const builder = new SchemaBuilder<{
   plugins: [TracingPlugin],
   tracing: {
     default: (config) => isRootField(config) || (!isScalarField(config) && !isEnumField(config)),
-    wrap: (config, value) =>
-      value
-        ? (next, options, source, args, ctx, info) => {
-            ctx.log(`Executing resolver ${info.parentType.name}.${info.fieldName}`);
+    wrap: (resolver, config, value) => (source, args, ctx, info) => {
+      ctx.log(`Executing resolver ${info.parentType.name}.${info.fieldName}`);
 
-            return next();
-          }
-        : null,
+      return resolver(source, args, ctx, info);
+    },
   },
 });
