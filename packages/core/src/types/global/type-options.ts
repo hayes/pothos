@@ -6,7 +6,7 @@ import {
   GraphQLScalarValueParser,
   GraphQLUnionType,
 } from 'graphql';
-import {
+import type {
   EnumValues,
   InputFieldMap,
   InterfaceFieldsShape,

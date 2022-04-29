@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { FieldKind, SchemaTypes } from '../../index.ts';
+import type { FieldKind, SchemaTypes } from '../../index.ts';
 import Builder from '../../builder.ts';
 import InternalFieldBuilder from '../../fieldUtils/builder.ts';
 import InternalInputFieldBuilder from '../../fieldUtils/input.ts';

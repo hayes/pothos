@@ -45,13 +45,13 @@ const Viewer = builder.prismaObject('User', {
     user: t.variant('User'),
     selectUser: t.variant(SelectUser),
     bio: t.string({
-      select: {
+      select: () => ({
         profile: {
           select: {
             bio: true,
           },
         },
-      },
+      }),
       nullable: true,
       resolve: (user) => user.profile?.bio,
     }),

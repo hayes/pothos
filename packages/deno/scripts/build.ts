@@ -12,6 +12,9 @@ const excludedPackages = [
   'plugin-prisma',
   'test-utils',
   'plugin-federation',
+  'tracing-opentelemetry',
+  'tracing-sentry',
+  'tracing-newrelic',
 ];
 const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
 const excludedFiles = [

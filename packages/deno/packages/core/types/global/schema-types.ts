@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { GraphQLDirective } from 'https://cdn.skypack.dev/graphql?dts';
-import { IsStrictMode, PluginConstructorMap } from '../../index.ts';
+import type { IsStrictMode, PluginConstructorMap } from '../../index.ts';
 import { MergedScalars, SchemaTypes } from '../index.ts';
 declare global {
     export namespace PothosSchemaTypes {

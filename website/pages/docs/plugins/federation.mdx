@@ -26,10 +26,11 @@ information on federation, see the
 
 ### Install
 
-You will need to install the plugin, as well as `@apollo/subgraph`
+You will need to install the plugin, as well as the directives plugin (`@pothos/plugin-directives`)
+and `@apollo/subgraph`
 
 ```bash
-yarn add @pothos/plugin-federation @apollo/subgraph
+yarn add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
 ```
 
 You will likely want to install apollo-server as well, but it is not required if you want to use a
@@ -42,10 +43,11 @@ yarn add apollo-server
 ### Setup
 
 ```typescript
+import DirectivePlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 const builder = new SchemaBuilder({
   // If you are using other plugins, the federation plugin should be listed after plugins like auth that wrap resolvers
-  plugins: [FederationPlugin],
+  plugins: [DirectivePlugin, FederationPlugin],
 });
 ```
 

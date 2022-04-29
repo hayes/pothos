@@ -4,17 +4,18 @@ import {
   GraphQLSchema,
   GraphQLTypeResolver,
 } from 'graphql';
-import { PothosEnumValueConfig, PothosInterfaceTypeConfig, PothosUnionTypeConfig } from '../types';
-import { BasePlugin } from './plugin';
-
-import {
-  BuildCache,
+import BuildCache from '../build-cache';
+import type {
+  PothosEnumValueConfig,
   PothosInputFieldConfig,
+  PothosInterfaceTypeConfig,
   PothosObjectTypeConfig,
   PothosOutputFieldConfig,
   PothosTypeConfig,
+  PothosUnionTypeConfig,
   SchemaTypes,
-} from '..';
+} from '../types';
+import { BasePlugin } from './plugin';
 
 export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> {
   plugins;

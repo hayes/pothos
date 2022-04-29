@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { GraphQLDirective } from 'graphql';
-import { IsStrictMode, PluginConstructorMap } from '../..';
+import type { IsStrictMode, PluginConstructorMap } from '../..';
 
 import { MergedScalars, SchemaTypes } from '..';
 

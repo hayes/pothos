@@ -349,8 +349,11 @@ export class PrismaObjectFieldBuilder<
     return this.field({
       ...(options as {}),
       type: ref,
-      select: selfSelect as never,
-      resolve: (parent, args, context, info) => parent,
+      extensions: {
+        ...options?.extensions,
+        pothosPrismaSelect: selfSelect,
+      },
+      resolve: (parent, args, context, info) => parent as never,
     }) as FieldRef<Model['Shape'], 'Object'>;
   }
 
