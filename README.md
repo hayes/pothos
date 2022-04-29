@@ -46,8 +46,8 @@ server.start();
 - Pothos was built from the start to leverage typescript for best-in-class type-safety.
 - Pothos has a clear separation between the shape of your external GraphQL API, and the internal
   representation of your data.
-- Pothos comes with a large plugin ecosystem that provides a wide variety of features while maintain
-  great interoperability between plugins.
+- Pothos comes with a large plugin ecosystem that provides a wide variety of features while
+  maintaining great interoperability between plugins.
 - Pothos does not depend on code-generation or experimental decorators for type-safety.
 - Pothos has been designed to work at every scale from small prototypes to huge Enterprise
   applications, and is in use at some of the largest tech companies including Airbnb and Netflix.
@@ -100,6 +100,11 @@ server.start();
 - [**Sub-Graph**](https://pothos-graphql.dev/docs/plugins/sub-graph)
 
   Build multiple subsets of your graph to easily share code between internal and external APIs.
+
+  - [**Tracing**](https://pothos-graphql.dev/docs/plugins/tracing)
+
+  Add tracing for resolver execution, with support for opentelemetry, newrelic, century, logging,
+  and custom tracers
 
 - [**Validation**](https://pothos-graphql.dev/docs/plugins/validation)
 
