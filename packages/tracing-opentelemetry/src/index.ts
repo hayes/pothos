@@ -9,7 +9,7 @@ export interface TracingWrapperOptions<T> {
   includeArgs?: boolean;
   includeSource?: boolean;
   ignoreError?: boolean;
-  onSpan: (
+  onSpan?: (
     span: Span,
     options: T,
     parent: unknown,
@@ -57,7 +57,8 @@ export function createOpenTelemetryWrapper<T = unknown>(
         return newSpan;
       });
 
-      options?.onSpan(span, fieldOptions, parent, args, context, info);
+      tracingOptions?.onSpan?.(span, fieldOptions, parent, args, context, info);
+      options?.onSpan?.(span, fieldOptions, parent, args, context, info);
 
       return runWithSpan(span, !!(tracingOptions?.ignoreError ?? options?.ignoreError), () =>
         resolver(parent, args, context, info),

@@ -11,16 +11,24 @@ import { AttributeNames, SpanNames } from './enums';
 
 export * from './enums';
 
-interface XRayWrapperOptions {
+interface XRayWrapperOptions<T> {
   includeArgs?: boolean;
   includeSource?: boolean;
+  onSegment?: (
+    span: Subsegment,
+    options: T,
+    parent: unknown,
+    args: {},
+    context: object,
+    info: GraphQLResolveInfo,
+  ) => void;
 }
 
-export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions) {
+export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions<T>) {
   return <Context extends object = object>(
       resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
       fieldOptions: T,
-      tracingOptions?: XRayWrapperOptions,
+      tracingOptions?: XRayWrapperOptions<T>,
     ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
     (source: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => {
       const segment = createSpanWithParent<Subsegment | null>(context, info, (path, parent) => {
@@ -45,6 +53,9 @@ export function createXRayWrapper<T = unknown>(options?: XRayWrapperOptions) {
         if (tracingOptions?.includeArgs ?? options?.includeArgs) {
           childSegment.addAttribute(AttributeNames.FIELD_ARGS, JSON.stringify(args, null, 2));
         }
+
+        tracingOptions?.onSegment?.(childSegment, fieldOptions, source, args, context, info);
+        options?.onSegment?.(childSegment, fieldOptions, source, args, context, info);
 
         return childSegment;
       });
