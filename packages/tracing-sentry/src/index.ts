@@ -42,6 +42,7 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions)
 
       const span = transaction.startChild({
         op: 'graphql.resolve',
+        description: info.fieldName,
         tags,
         data,
       });
