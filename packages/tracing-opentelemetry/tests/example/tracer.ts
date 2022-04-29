@@ -7,7 +7,7 @@ import { ConsoleSpanExporter, SimpleSpanProcessor } from '@opentelemetry/sdk-tra
 import { NodeTracerProvider } from '@opentelemetry/sdk-trace-node';
 import { SemanticResourceAttributes } from '@opentelemetry/semantic-conventions';
 
-const provider = new NodeTracerProvider({
+export const provider = new NodeTracerProvider({
   resource: new Resource({
     [SemanticResourceAttributes.SERVICE_NAME]: 'Pothos-OTEL-example',
   }),
@@ -27,4 +27,4 @@ registerInstrumentations({
 
 diag.setLogger(new DiagConsoleLogger(), DiagLogLevel.INFO);
 
-export const tracer = trace.getTracer('example-basic-tracer-node');
+export const tracer = trace.getTracer('graphql');

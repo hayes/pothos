@@ -1,44 +1,41 @@
-/* eslint-disable import/no-duplicates */
-/* eslint-disable @typescript-eslint/no-duplicate-imports */
-import './tracer';
-import { execute, Kind, OperationDefinitionNode, print } from 'graphql';
-import { createTestServer } from '@pothos/test-utils';
+// eslint-disable-next-line simple-import-sort/imports
+import { tracer } from './tracer'; // Tracer must be imported first
+import { print } from 'graphql';
+import { createServer, Plugin } from '@graphql-yoga/node';
 import { AttributeNames, SpanNames } from '../../src';
 import { schema } from './schema';
-import { tracer } from './tracer';
 
-const server = createTestServer({
-  schema,
-  execute: async (options) => {
-    const operation = options.document.definitions.find(
-      (def) => def.kind === Kind.OPERATION_DEFINITION,
-    ) as OperationDefinitionNode;
-
-    return tracer.startActiveSpan(
-      SpanNames.EXECUTE,
-      {
-        attributes: {
-          [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
-          [AttributeNames.OPERATION_TYPE]: operation.operation,
-          [AttributeNames.SOURCE]: print(options.document),
+const tracingPlugin: Plugin = {
+  onExecute: ({ setExecuteFn, executeFn }) => {
+    setExecuteFn((options) =>
+      tracer.startActiveSpan(
+        SpanNames.EXECUTE,
+        {
+          attributes: {
+            [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
+            [AttributeNames.SOURCE]: print(options.document),
+          },
         },
-      },
-      async (span) => {
-        try {
-          const result = await execute(options);
+        async (span) => {
+          try {
+            const result = await executeFn(options);
 
-          return result;
-        } catch (error) {
-          span.recordException(error as Error);
-          throw error;
-        } finally {
-          span.end();
-        }
-      },
+            return result;
+          } catch (error) {
+            span.recordException(error as Error);
+            throw error;
+          } finally {
+            span.end();
+          }
+        },
+      ),
     );
   },
+};
+
+const server = createServer({
+  schema,
+  plugins: [tracingPlugin],
 });
 
-server.listen(3000, () => {
-  console.log('🚀 Server started at http://127.0.0.1:3000');
-});
+server.start().catch(console.error);
