@@ -1,0 +1,33 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`example schema generates expected schema 1`] = `
+"type Comment {
+  author: User
+  comment: String!
+  id: ID!
+  post: Post!
+}
+
+type Post {
+  author: User
+  comments: [Comment!]!
+  content: String!
+  id: ID!
+  title: String!
+}
+
+type Query {
+  post(id: ID!): Post
+  posts(skip: Int, take: Int): [Post!]
+  user(id: ID!): User
+}
+
+type User {
+  comments: [Comment!]!
+  firstName: String!
+  fullName: String!
+  id: ID!
+  lastName: String!
+  posts: [Post!]!
+}"
+`;

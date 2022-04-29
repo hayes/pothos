@@ -764,3 +764,87 @@ const server = createServer({
   ],
 });
 ```
+
+### AWS XRay
+
+#### install
+
+```bash
+yarn add @pothos/tracing-xray aws-xray-sdk-core
+```
+
+#### Basic usage
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import TracingPlugin, { isEnumField, isRootField, isScalarField } from '@pothos/plugin-tracing';
+import { createXRayWrapper } from '@pothos/tracing-xray';
+
+const traceResolver = createXRayWrapper({
+  includeArgs: true,
+  includeSource: true,
+});
+
+export const builder = new SchemaBuilder({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config) || (!isScalarField(config) && !isEnumField(config)),
+    wrap: (resolver, options) => traceResolver(resolver, options),
+  },
+});
+```
+
+#### options
+
+- `includeArgs`: default: `false`
+- `includeSource`: default: `false`
+
+#### Instrumenting the execution phase
+
+The tracing plugin for Pothos only adds spans for resolvers. You may also want to capture additional
+information about other parts of the graphql execution process.
+
+This example uses GraphQL Yoga, by providing a custom envelop plugin that wraps the execution phase.
+Many graphql server implementations have ways to wrap or replace the execution call, but will look
+slightly different.
+
+```ts
+import AWSXRay from 'aws-xray-sdk-core';
+import { print } from 'graphql';
+import { createServer, Plugin } from '@graphql-yoga/node';
+import { AttributeNames, SpanNames } from '@pothos/tracing-xray';
+import { schema } from './schema';
+
+const tracingPlugin: Plugin = {
+  onExecute: ({ setExecuteFn, executeFn }) => {
+    setExecuteFn(async (options) => {
+      const parent = new AWSXRay.Segment('parent');
+
+      return AWSXRay.getNamespace().runAndReturn(() => {
+        AWSXRay.setSegment(parent);
+
+        return AWSXRay.captureAsyncFunc(
+          SpanNames.EXECUTE,
+          (segment) => {
+            if (segment) {
+              segment.addAttribute(
+                AttributeNames.OPERATION_NAME,
+                options.operationName ?? '<unnamed operation>',
+              );
+              segment.addAttribute(AttributeNames.SOURCE, print(options.document));
+            }
+
+            return executeFn(options);
+          },
+          parent,
+        );
+      });
+    });
+  },
+};
+
+const server = createServer({
+  schema,
+  plugins: [tracingPlugin],
+});
+```
