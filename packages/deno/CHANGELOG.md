@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.9.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
+### Patch Changes
+
+- 040d0664: Use direct imports rather than importing from index files where possible
+
 ## 3.8.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
 ## 3.7.0
 
 ### Minor Changes

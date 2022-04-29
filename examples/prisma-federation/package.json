@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.1.8",
+  "version": "2.2.0",
   "name": "@pothos-examples/prisma",
   "main": "src/index.ts",
   "types": "src/index.ts",
