@@ -4,6 +4,18 @@
 
 ### Minor Changes
 
+- ce1063e3: Add new tracinig packages
+
+### Patch Changes
+
+- Updated dependencies [ce1063e3]
+- Updated dependencies [040d0664]
+  - @pothos/core@3.9.0
+
+## null
+
+### Minor Changes
+
 - 05163ca5: Add support for dynamically loading prisma client and selecting counts in field level
   selects"
 

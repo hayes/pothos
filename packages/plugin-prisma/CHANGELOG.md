@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.6.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
+### Patch Changes
+
+- ce1063e3: Fix issue with fields selects when created created with functions
+
 ## 3.5.0
 
 ### Minor Changes

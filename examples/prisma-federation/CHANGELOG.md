@@ -1,5 +1,21 @@
 # @pothos-examples/relay
 
+## 2.2.0
+
+### Minor Changes
+
+- ce1063e3: Add new tracinig packages
+
+### Patch Changes
+
+- Updated dependencies [ce1063e3]
+- Updated dependencies [040d0664]
+- Updated dependencies [ce1063e3]
+  - @pothos/core@3.9.0
+  - @pothos/plugin-prisma@3.6.0
+  - @pothos/plugin-directives@3.3.1
+  - @pothos/plugin-federation@3.0.0
+
 ## 2.1.8
 
 ### Patch Changes
