@@ -15,6 +15,7 @@ const excludedPackages = [
   'tracing-opentelemetry',
   'tracing-sentry',
   'tracing-newrelic',
+  'tracing-xray',
 ];
 const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
 const excludedFiles = [

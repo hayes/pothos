@@ -1,23 +1,28 @@
 // @ts-nocheck
 /* eslint-disable node/no-unsupported-features/es-builtins */
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { defaultFieldResolver, GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, PothosOutputFieldConfig, PothosOutputFieldType, SchemaTypes, } from '../core/index.ts';
 export function isRootField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
     return (config.parentType === "Query" ||
         config.parentType === "Mutation" ||
         config.parentType === "Subscription");
 }
-export function resolveFieldType<Types extends SchemaTypes>(type: PothosOutputFieldType<Types>): "Enum" | "Interface" | "Object" | "Scalar" | "Union" {
-    if (type.kind === "List") {
-        return resolveFieldType(type.type);
-    }
-    return type.kind;
-}
 export function isScalarField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
     return resolveFieldType(config.type) === "Scalar";
 }
 export function isEnumField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
     return resolveFieldType(config.type) === "Enum";
+}
+export function isExposedField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
+    return (!!config.extensions?.pothosExposedField ||
+        !config.resolve ||
+        config.resolve === defaultFieldResolver);
+}
+export function resolveFieldType<Types extends SchemaTypes>(type: PothosOutputFieldType<Types>): "Enum" | "Interface" | "Object" | "Scalar" | "Union" {
+    if (type.kind === "List") {
+        return resolveFieldType(type.type);
+    }
+    return type.kind;
 }
 const spanCacheSymbol = Symbol.for("Pothos.tracing.spanCache");
 interface InternalContext<T> {
