@@ -5,7 +5,6 @@ import TracingPlugin, {
   isRootField,
   isScalarField,
   runFunction,
-  wrapResolver,
 } from '../../src';
 
 export const builder = new SchemaBuilder<{
@@ -35,24 +34,5 @@ export const builder = new SchemaBuilder<{
           }
         },
       ),
-  },
-});
-
-export const builder2 = new SchemaBuilder<{
-  Tracing: boolean | { formatMessage: (duration: number) => string };
-  Context: { log: (message: string) => void };
-}>({
-  plugins: [TracingPlugin],
-  tracing: {
-    default: (config) => isRootField(config) || (!isScalarField(config) && !isEnumField(config)),
-    wrap: (resolver, options, config) =>
-      wrapResolver(resolver, (error, duration) => {
-        const message =
-          typeof options === 'object'
-            ? options.formatMessage(duration)
-            : `Executed resolver ${config.parentType}.${config.name} in ${duration}ms`;
-
-        console.log(message);
-      }),
   },
 });

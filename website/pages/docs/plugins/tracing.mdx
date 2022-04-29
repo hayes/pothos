@@ -108,7 +108,7 @@ builder.queryType({
 });
 ```
 
-## Enabling tracing by default
+### Enabling tracing by default
 
 In most applications you won't want to configure tracing for each field. Instead you can use the
 `tracing.default` to enable tracing for specific types of fields.
@@ -139,8 +139,193 @@ enabled by default.
 - `isExposedField`: Returns true for fields defined with the `t.expose*` field builder methods, or
   fields that use the `defaultFieldResolver`.
 
+### Implementing a tracer
+
+Tracers work by wrapping the execution of resolver calls. The `tracing.wrap` function keeps this
+process as minimal as possible by simply providing the resolver for a field, and expecting a wrapped
+version of the resolver to be returned. Resolvers can throw errors or return promises, and correctly
+handling these edge cases can be a little complicated so the tracing plugin also comes with some
+helpers utilities to simplify this process.
+
+`tracing.wrap` takes 3 arguments:
+
+1. `resolver`: the resolver for a field
+2. `options`: the tracing options for the field (set either on the field, or returned by
+   `tracing.default`).
+3. `fieldConfig`: A config object that describes the field being wrapped
+
+```ts
+export const builder = new SchemaBuilder<{
+  Tracing: boolean | { formatMessage: (duration: number) => string };
+}>({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config),
+    wrap: (resolver, options, config) =>
+      wrapResolver(resolver, (error, duration) => {
+        const message =
+          typeof options === 'object'
+            ? options.formatMessage(duration)
+            : `Executed resolver ${config.parentType}.${config.name} in ${duration}ms`;
+
+        console.log(message);
+      }),
+  },
+});
+```
+
+The `wrapResolver` utility takes a resolver, and a `onEnd` callback, and returns a wrapped version
+of the resolver that will call the callback with an error (or null) and the duration the resolver
+took to complete.
+
+The `runFunction` helper is similar, but rather than wrapping a resolver, will immediately execute a
+function with no arguments. This can be useful for more complex use cases where you need access to
+other resolver arguments, or want to add your own logic before the resolver begins executing.
+
+```ts
+export const builder = new SchemaBuilder<{
+  Tracing: boolean | { formatMessage: (duration: number) => string };
+}>({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config) || (!isScalarField(config) && !isEnumField(config)),
+    wrap: (resolver, options) => (source, args, ctx, info) => {
+      doSomethingFirst(args);
+
+      return runFunction(
+        () => resolver(source, args, ctx, info),
+        (error, duration) => {
+          console.log(
+            `Executed resolver for ${info.parentType}.${info.fieldName} in ${duration}ms`,
+          );
+        },
+      );
+    },
+  },
+});
+```
+
+## Tracing integrations
+
 ### Opentelemetry
+
+#### install
+
+```bash
+yarn add @pothos/tracing-opentelemetry
+```
+
+#### Basic usage
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
+import { createOpenTelemetryWrapper } from '@pothos/tracing-opentelemetry';
+import { tracer } from './tracer';
+
+const createSpan = createOpenTelemetryWrapper(tracer, {
+  includeSource: true,
+});
+
+export const builder = new SchemaBuilder({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config),
+    wrap: (resolver, options) => createSpan(resolver, options),
+  },
+});
+```
+
+#### options
+
+- `includeArgs`: default: `false`
+- `includeSource`: default: `false`
+- `ignoreError`: default: `false`
+- `onSpan`: `(span, tracingOptions, parent, args, context, info) => void`
+
+#### Instrumenting the execution phase
+
+```ts
+
+```
 
 ### New Relic
 
+#### install
+
+```bash
+yarn add @pothos/tracing-newrelic
+```
+
+#### Basic usage
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
+import { createNewrelicWrapper } from '@pothos/tracing-newrelic';
+
+const wrapResolver = createNewrelicWrapper({
+  includeArgs: true,
+  includeSource: true,
+});
+
+export const builder = new SchemaBuilder({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config),
+    wrap: (resolver) => wrapResolver(resolver),
+  },
+});
+```
+
+#### options
+
+- `includeArgs`: default: `false`
+- `includeSource`: default: `false`
+
+#### Instrumenting the execution phase
+
+```ts
+
+```
+
 ### Sentry
+
+#### install
+
+```bash
+yarn add @pothos/tracing-sentry
+```
+
+#### Basic usage
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
+import { createSentryWrapper } from '@pothos/tracing-sentry';
+
+const traceResolver = createSentryWrapper({
+  includeArgs: true,
+  includeSource: true,
+});
+
+export const builder = new SchemaBuilder({
+  plugins: [TracingPlugin],
+  tracing: {
+    default: (config) => isRootField(config),
+    wrap: (resolver, options) => traceResolver(resolver, options),
+  },
+});
+```
+
+#### options
+
+- `includeArgs`: default: `false`
+- `includeSource`: default: `false`
+- `ignoreError`: default: `false`
+
+#### Instrumenting the execution phase
+
+```ts
+
+```
