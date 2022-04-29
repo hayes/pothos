@@ -1,0 +1,146 @@
+---
+name: Tracing plugin
+title: Tracing plugin for Pothos GraphQL
+menu: Plugins
+description: A Pothos plugin for tracing and logging resolver invocations
+---
+
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
+
+export default DocsPage;
+
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
+
+# Tracing Plugin
+
+This plugin adds hooks for tracing and logging resolver invocations. It also comes with a few
+additional packages for integrating with various tracing providers including opentelemetry, New
+Relic and Sentry.
+
+## Usage
+
+### Install
+
+```bash
+yarn add @pothos/plugin-tracing
+```
+
+### Setup
+
+```typescript
+import TracingPlugin, { wrapResolver, isRootField } from '@pothos/plugin-tracing';
+
+const builder = new SchemaBuilder({
+  plugins: [TracingPlugin],
+  tracing: {
+    // Enable tracing for rootFields by default, other fields need to opt in
+    default: (config) => isRootField(config),
+    // Log resolver execution duration
+    wrap: (resolver, options, config) =>
+      wrapResolver(resolver, (error, duration) => {
+        console.log(`Executed resolver ${config.parentType}.${config.name} in ${duration}ms`);
+      }),
+  },
+});
+```
+
+### Overview
+
+The Tracing plugin is designed to have very limited overhead, and uses a modular approach to cover a
+wide variety of use cases.
+
+The tracing plugin comes with a number of utility functions for implementing common patterns, and a
+couple of provider specific modules that can be installed separately (described in more detail
+below).
+
+The primary interface to the tracing plugin consists of 3 parts:
+
+1. A new `tracing` option is added to each field, for enabling or configuring tracing for that field
+2. The `tracing.default` which is used as a fallback for any field that does not explicitly set its
+   `tracing` options.
+3. The `tracing.wrap` function, which takes a resolver, the tracing option for a field, and a field
+   configuration object, and should return a wrapped/traced version of the resolver.
+
+### Enabling tracing for a field
+
+Enabling tracing on a field is as simple as setting the tracing option to `true`
+
+```ts
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      // enable tracing
+      tracing: true,
+      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
+    }),
+  }),
+});
+```
+
+#### Custom tracing options
+
+For more advanced tracing setups, you may want to allow fields to provide additional tracing
+options. You can do this by customizing the `Tracing` generic in the builder.
+
+```ts
+import TracingPlugin, { wrapResolver, isRootField } from '@pothos/plugin-tracing';
+
+export const builder = new SchemaBuilder<{
+  // the `tracing` option can now be a boolean, or an object with a formatMessage function
+  Tracing: boolean | { formatMessage: (duration: number) => string };
+}>({
+  plugins: [TracingPlugin],
+  tracing: {
+    // Using custom options in your tracer will be described below
+    ...
+  },
+});
+
+builder.queryType({
+  fields: (t) => ({
+    hello: t.string({
+      // We can now use custom options when configuring tracing
+      tracing: { formatMessage: (duration) => `It took ${duration}ms to say hello` },
+      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
+    }),
+  }),
+});
+```
+
+## Enabling tracing by default
+
+In most applications you won't want to configure tracing for each field. Instead you can use the
+`tracing.default` to enable tracing for specific types of fields.
+
+```ts
+import TracingPlugin, { wrapResolver, isRootField } from '@pothos/plugin-tracing';
+
+export const builder = new SchemaBuilder<{
+  Tracing: boolean | { formatMessage: (duration: number) => string };
+}>({
+  plugins: [TracingPlugin],
+  tracing: {
+    // Here we enable tracing for root fields
+    default: (config) => isRootField(config)
+    wrap: (resolve) => resolve, // actual tracing wrappers will be described below
+  },
+});
+```
+
+There are a number of utility functions for detecting certain types of fields. For most applications
+tracing every resolver will add significant overhead with very little benefit. The following
+utilities exported by the tracing plugin can be used to determine which fields should have tracing
+enabled by default.
+
+- `isRootField`: Returns true for fields of the `Query`, `Mutation`, and `Subscription` types
+- `isScalarField`: Returns true for fields that return Scalars, or lists of scalars
+- `isEnumField`: Returns true for fields that return an Enum or list of Enums
+- `isExposedField`: Returns true for fields defined with the `t.expose*` field builder methods, or
+  fields that use the `defaultFieldResolver`.
+
+### Opentelemetry
+
+### New Relic
+
+### Sentry

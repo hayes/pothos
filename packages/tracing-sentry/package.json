@@ -1,7 +1,7 @@
 {
-  "name": "@pothos/plugin-tracing",
+  "name": "@pothos/tracing-sentry",
   "version": "0.0.0",
-  "description": "A Pothos plugin for tracing and logging resolver invocations",
+  "description": "Sentry utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -31,10 +31,9 @@
     "schema",
     "typescript",
     "tracing",
-    "telemetry",
-    "opentelemetry",
-    "logging",
     "sentry",
+    "error",
+    "logging",
     "plugin"
   ],
   "publishConfig": {
@@ -42,13 +41,18 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
+    "@pothos/plugin-tracing": "*",
+    "@sentry/node": "*",
+    "@sentry/tracing": "*",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
+    "@sentry/node": "^6.19.7",
+    "@sentry/tracing": "^6.19.7",
     "graphql": "16.3.0",
     "graphql-tag": "^2.12.6"
-  },
-  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+  }
 }

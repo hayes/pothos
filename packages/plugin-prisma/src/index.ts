@@ -27,11 +27,15 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
     if (fieldConfig.kind === 'PrismaObject' && fieldConfig.pothosOptions.select) {
+      const { select } = fieldConfig.pothosOptions;
       return {
         ...fieldConfig,
         extensions: {
           ...fieldConfig.extensions,
-          pothosPrismaSelect: fieldConfig.pothosOptions.select,
+          pothosPrismaSelect:
+            typeof select === 'function'
+              ? (args: {}, ctx: Types['Context']) => ({ select: select(args, ctx) })
+              : select,
         },
       };
     }

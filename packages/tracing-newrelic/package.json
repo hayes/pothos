@@ -1,7 +1,7 @@
 {
-  "name": "@pothos/plugin-tracing",
+  "name": "@pothos/tracing-newrelic",
   "version": "0.0.0",
-  "description": "A Pothos plugin for tracing and logging resolver invocations",
+  "description": "New Relic utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -31,10 +31,8 @@
     "schema",
     "typescript",
     "tracing",
-    "telemetry",
-    "opentelemetry",
-    "logging",
-    "sentry",
+    "new relic",
+    "newrelic",
     "plugin"
   ],
   "publishConfig": {
@@ -42,13 +40,17 @@
   },
   "peerDependencies": {
     "@pothos/core": "*",
+    "@pothos/plugin-tracing": "*",
+    "newrelic": "*",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
+    "@types/newrelic": "^7.0.3",
     "graphql": "16.3.0",
-    "graphql-tag": "^2.12.6"
-  },
-  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+    "graphql-tag": "^2.12.6",
+    "newrelic": "^8.10.0"
+  }
 }

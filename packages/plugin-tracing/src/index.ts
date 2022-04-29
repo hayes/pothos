@@ -32,7 +32,7 @@ export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<T
   }
 }
 
-export function wrapResolver<Types extends SchemaTypes>(
+function wrapResolver<Types extends SchemaTypes>(
   fieldConfig: PothosOutputFieldConfig<Types>,
   tracingOptions: TracingFieldOptions<Types, unknown, object>,
   wrap: TracingFieldWrapper<Types>,

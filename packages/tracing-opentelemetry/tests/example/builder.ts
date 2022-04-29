@@ -10,7 +10,8 @@ type TracingOptions =
       attributes?: Record<string, AttributeValue>;
     };
 
-const creatSpan = createOpenTelemetryWrapper<Exclude<TracingOptions, false>>(tracer, {
+const createSpan = createOpenTelemetryWrapper<Exclude<TracingOptions, false>>(tracer, {
+  includeSource: true,
   onSpan: (span, options) => {
     if (typeof options === 'object') {
       Object.keys(options.attributes ?? {}).forEach((key) => {
@@ -27,6 +28,6 @@ export const builder = new SchemaBuilder<{ Tracing: TracingOptions }>({
       (isRootField(config) || (!isScalarField(config) && !isEnumField(config))) && {
         attributes: {},
       },
-    wrap: (resolver, value) => creatSpan(resolver, value),
+    wrap: (resolver, value) => createSpan(resolver, value),
   },
 });

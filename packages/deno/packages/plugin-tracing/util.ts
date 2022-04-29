@@ -1,5 +1,6 @@
 // @ts-nocheck
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+/* eslint-disable node/no-unsupported-features/es-builtins */
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, PothosOutputFieldConfig, PothosOutputFieldType, SchemaTypes, } from '../core/index.ts';
 export function isRootField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {
     return (config.parentType === "Query" ||
@@ -67,24 +68,54 @@ export function createSpanWithParent<T>(context: object, info: GraphQLResolveInf
     (context as InternalContext<T>)[spanCacheSymbol]![stringPath] = span;
     return span;
 }
-export function onEnd(next: () => unknown, end: (error: unknown) => void) {
+const { performance } = globalThis as unknown as {
+    performance: {
+        now: () => number;
+    };
+};
+export function wrapResolver<C>(resolver: GraphQLFieldResolver<unknown, C, {}>, end: (error: unknown, duration: number) => void): GraphQLFieldResolver<unknown, C, {}> {
+    return (source, args, ctx, info) => {
+        const start = performance.now();
+        let result: unknown;
+        try {
+            result = resolver(source, args, ctx, info);
+        }
+        catch (error: unknown) {
+            end(error, performance.now() - start);
+            throw error;
+        }
+        if (isThenable(result)) {
+            return result.then((value) => {
+                end(null, performance.now() - start);
+                return value;
+            }, (error: Error) => {
+                end(error, performance.now() - start);
+                throw error;
+            });
+        }
+        end(null, performance.now() - start);
+        return result;
+    };
+}
+export function runFunction<T>(next: () => T, end: (error: unknown, duration: number) => void) {
+    const start = performance.now();
     let result: unknown;
     try {
         result = next();
     }
     catch (error: unknown) {
-        end(error);
+        end(error, performance.now() - start);
         throw error;
     }
     if (isThenable(result)) {
         return result.then((value) => {
-            end(null);
+            end(null, performance.now() - start);
             return value;
         }, (error: Error) => {
-            end(error);
+            end(error, performance.now() - start);
             throw error;
         });
     }
-    end(null);
+    end(null, performance.now() - start);
     return result;
 }

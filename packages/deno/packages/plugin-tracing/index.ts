@@ -20,7 +20,7 @@ export class PothosTracingPlugin<Types extends SchemaTypes> extends BasePlugin<T
         return wrapResolver(fieldConfig, tracingValue, wrap, resolver);
     }
 }
-export function wrapResolver<Types extends SchemaTypes>(fieldConfig: PothosOutputFieldConfig<Types>, tracingOptions: TracingFieldOptions<Types, unknown, object>, wrap: TracingFieldWrapper<Types>, resolver: GraphQLFieldResolver<unknown, Types["Context"], object>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+function wrapResolver<Types extends SchemaTypes>(fieldConfig: PothosOutputFieldConfig<Types>, tracingOptions: TracingFieldOptions<Types, unknown, object>, wrap: TracingFieldWrapper<Types>, resolver: GraphQLFieldResolver<unknown, Types["Context"], object>): GraphQLFieldResolver<unknown, Types["Context"], object> {
     if (tracingOptions === false || tracingOptions === null) {
         return resolver;
     }

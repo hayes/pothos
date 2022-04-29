@@ -1,18 +1,14 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import { GraphQLFieldResolver, GraphQLResolveInfo, print } from 'graphql';
 import { context as opentelemetryContext, Span, trace, Tracer } from '@opentelemetry/api';
-import { createSpanWithParent, onEnd } from '@pothos/plugin-tracing';
+import { createSpanWithParent, runFunction } from '@pothos/plugin-tracing';
+import { AttributeNames, SpanNames } from './enums';
 
-export enum AttributeNames {
-  FIELD_NAME = 'graphql.field.name',
-  FIELD_PATH = 'graphql.field.path',
-  FIELD_TYPE = 'graphql.field.type',
-}
-
-export enum SpanNames {
-  RESOLVE = 'graphql.resolve',
-}
+export * from './enums';
 
 export interface TracingWrapperOptions<T> {
+  includeArgs?: boolean;
+  includeSource?: boolean;
+  ignoreError?: boolean;
   onSpan: (
     span: Span,
     options: T,
@@ -27,17 +23,18 @@ export function createOpenTelemetryWrapper<T = unknown>(
   tracer: Tracer,
   options?: TracingWrapperOptions<T>,
 ) {
-  return (
-      resolver: GraphQLFieldResolver<unknown, object, Record<string, unknown>>,
+  return <Context extends object = object>(
+      resolver: GraphQLFieldResolver<unknown, Context, Record<string, unknown>>,
       fieldOptions: T,
+      tracingOptions?: TracingWrapperOptions<T>,
     ) =>
-    (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
+    (parent: unknown, args: {}, context: Context, info: GraphQLResolveInfo) => {
       const span = createSpanWithParent<Span>(context, info, (path, parentSpan) => {
         const spanContext = parentSpan
           ? trace.setSpan(opentelemetryContext.active(), parentSpan)
           : undefined;
 
-        return tracer.startSpan(
+        const newSpan = tracer.startSpan(
           SpanNames.RESOLVE,
           {
             attributes: {
@@ -48,18 +45,35 @@ export function createOpenTelemetryWrapper<T = unknown>(
           },
           spanContext,
         );
+
+        if (tracingOptions?.includeSource ?? options?.includeSource) {
+          newSpan.setAttribute(AttributeNames.SOURCE, print(info.fieldNodes[0]));
+        }
+
+        if (tracingOptions?.includeArgs ?? options?.includeArgs) {
+          newSpan.setAttribute(AttributeNames.FIELD_ARGS, JSON.stringify(args, null, 2));
+        }
+
+        return newSpan;
       });
 
       options?.onSpan(span, fieldOptions, parent, args, context, info);
 
-      return onEnd(
-        () => resolver(parent, args, context, info),
-        (error) => {
-          if (error) {
-            span.recordException(error as Error);
-          }
-          span.end();
-        },
+      return runWithSpan(span, !!(tracingOptions?.ignoreError ?? options?.ignoreError), () =>
+        resolver(parent, args, context, info),
       );
     };
+}
+
+function runWithSpan<T>(span: Span, recordException: boolean, fn: () => T) {
+  const contextWithSpanSet = trace.setSpan(opentelemetryContext.active(), span);
+
+  return opentelemetryContext.with(contextWithSpanSet, () =>
+    runFunction(fn, (error) => {
+      if (error && recordException) {
+        span.recordException(error as Error);
+      }
+      span.end();
+    }),
+  );
 }
