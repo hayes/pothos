@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.10.0
+
+### Minor Changes
+
+- 205a8c73: Add support for lazyloaded interfaces and ref checks for interfaces
+
+### Patch Changes
+
+- 205a8c73: Recactor internal imports to reduce imports from index files
+
 ## 3.9.0
 
 ### Minor Changes

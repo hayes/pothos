@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.1.7",
+  "version": "2.1.8",
   "name": "@pothos-examples/envelope-helix-fastify",
   "main": "src/index.ts",
   "types": "src/index.ts",

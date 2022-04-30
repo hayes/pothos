@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.10.1
+
+### Patch Changes
+
+- 205a8c73: Recactor internal imports to reduce imports from index files
+
 ## 3.10.0
 
 ### Minor Changes

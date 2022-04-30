@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.8.1
+
+### Patch Changes
+
+- 205a8c73: Fix issue with string refs used as interfaces
+- 205a8c73: Recactor internal imports to reduce imports from index files
+
 ## 3.8.0
 
 ### Minor Changes

@@ -2,6 +2,15 @@
 
 ## null
 
+### Patch Changes
+
+- 205a8c73: Recactor internal imports to reduce imports from index files
+- Updated dependencies [205a8c73]
+- Updated dependencies [205a8c73]
+  - @pothos/core@3.10.0
+
+## null
+
 ### Minor Changes
 
 - ce1063e3: Add new tracinig packages
