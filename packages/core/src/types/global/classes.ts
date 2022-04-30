@@ -1,4 +1,3 @@
-import type { FieldKind, SchemaTypes } from '../..';
 import Builder from '../../builder';
 import InternalFieldBuilder from '../../fieldUtils/builder';
 import InternalInputFieldBuilder from '../../fieldUtils/input';
@@ -10,6 +9,8 @@ import InternalInterfaceRef from '../../refs/interface';
 import InternalObjectRef from '../../refs/object';
 import InternalScalarRef from '../../refs/scalar';
 import InternalUnionRef from '../../refs/union';
+import type { FieldKind } from '../builder-options';
+import type { SchemaTypes } from '../schema-types';
 
 declare global {
   export namespace PothosSchemaTypes {

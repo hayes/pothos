@@ -8,7 +8,7 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types';
+import { FieldMap, InputRef, InterfaceParam, OutputRef, SchemaTypes } from './types';
 import {
   BaseTypeRef,
   BuiltinScalarRef,
@@ -52,6 +52,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private pendingFields = new Map<FieldRef | InputFieldRef, InputType<Types> | OutputType<Types>>();
 
+  private pendingInterfaces = new Map<string, (() => InterfaceParam<Types>[])[]>();
+
   private pendingRefResolutions = new Map<
     ConfigurableRef<Types>,
     ((config: PothosTypeConfig) => void)[]
@@ -86,6 +88,37 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     return this.refsToName.has(typeParam);
+  }
+
+  addInterfaces(
+    typeName: string,
+    interfaces: InterfaceParam<Types>[] | (() => InterfaceParam<Types>[]),
+  ) {
+    if (typeof interfaces === 'function' && this.pending) {
+      if (!this.pendingInterfaces.has(typeName)) {
+        this.pendingInterfaces.set(typeName, [interfaces]);
+      } else {
+        this.pendingInterfaces.get(typeName)!.push(interfaces);
+      }
+    } else {
+      const typeConfig = this.getTypeConfig(typeName);
+
+      if (
+        (typeConfig.graphqlKind !== 'Object' && typeConfig.graphqlKind !== 'Interface') ||
+        typeConfig.kind === 'Query' ||
+        typeConfig.kind === 'Mutation' ||
+        typeConfig.kind === 'Subscription'
+      ) {
+        throw new Error(`Can not add interfaces to ${typeName} because it is a ${typeConfig.kind}`);
+      }
+
+      typeConfig.interfaces = [
+        ...typeConfig.interfaces,
+        ...((typeof interfaces === 'function'
+          ? interfaces()
+          : interfaces) as InterfaceParam<SchemaTypes>[]),
+      ];
+    }
   }
 
   addFieldRef(
@@ -369,6 +402,12 @@ export default class ConfigStore<Types extends SchemaTypes> {
           .map((ref) => this.describeRef(ref))
           .join(', ')}).`,
       );
+    }
+
+    for (const [typeName, interfacesFns] of this.pendingInterfaces) {
+      for (const fn of interfacesFns) {
+        this.addInterfaces(typeName, fn);
+      }
     }
   }
 

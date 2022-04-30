@@ -1,13 +1,12 @@
-import { InputType, SchemaTypes } from '../types';
-import { inputTypeFromParam } from '../utils';
-
-import {
+import InputFieldRef from '../refs/input-field';
+import type {
   ArgBuilder,
   FieldRequiredness,
-  InputFieldRef,
   InputShapeFromTypeParam,
   NormalizeArgs,
-} from '..';
+} from '../types';
+import { InputType, SchemaTypes } from '../types';
+import { inputTypeFromParam } from '../utils';
 
 export default class InputFieldBuilder<
   Types extends SchemaTypes,

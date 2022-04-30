@@ -1,6 +1,5 @@
 // @ts-nocheck
-import { PothosEnumValueConfig, SchemaTypes } from '../types/index.ts';
-import { BaseEnum, EnumValues } from '../index.ts';
+import { BaseEnum, EnumValues, PothosEnumValueConfig, SchemaTypes } from '../types/index.ts';
 export function normalizeEnumValues<Types extends SchemaTypes>(values: EnumValues<SchemaTypes>): Record<string, PothosEnumValueConfig<Types>> {
     const result: Record<string, PothosEnumValueConfig<Types>> = {};
     if (Array.isArray(values)) {

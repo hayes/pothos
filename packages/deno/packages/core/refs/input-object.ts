@@ -1,8 +1,7 @@
 // @ts-nocheck
 /* eslint-disable max-classes-per-file */
-import { InputRef, inputShapeKey } from '../types/index.ts';
+import { InputFieldsFromShape, InputRef, inputShapeKey, RecursivelyNormalizeNullableFields, SchemaTypes, } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
-import { InputFieldsFromShape, RecursivelyNormalizeNullableFields, SchemaTypes } from '../index.ts';
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef, PothosSchemaTypes.InputObjectRef<T> {
     override kind = "InputObject" as const;
     [inputShapeKey]: T;

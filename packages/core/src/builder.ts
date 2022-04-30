@@ -36,7 +36,7 @@ import {
   SubscriptionFieldsShape,
   SubscriptionFieldThunk,
 } from './types';
-import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils';
+import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
 import {
   AbstractReturnShape,
   BaseEnum,
@@ -127,6 +127,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
     verifyRef(param);
+    verifyInterfaces(options.interfaces);
+
     const name =
       typeof param === 'string'
         ? param
@@ -145,7 +147,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       kind: 'Object',
       graphqlKind: 'Object',
       name,
-      interfaces: (options.interfaces ?? []) as InterfaceParam<SchemaTypes>[],
+      interfaces: [],
       description: options.description,
       extensions: options.extensions,
       isTypeOf: options.isTypeOf,
@@ -153,6 +155,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     };
 
     this.configStore.addTypeConfig(config, ref);
+
+    if (options.interfaces) {
+      this.configStore.addInterfaces(name, options.interfaces);
+    }
 
     if (typeof param === 'function') {
       this.configStore.associateRefWithName(param, name);
@@ -311,6 +317,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
     verifyRef(param);
+    verifyInterfaces(options.interfaces);
+
     const name =
       typeof param === 'string'
         ? param
@@ -327,13 +335,17 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       kind: 'Interface',
       graphqlKind: 'Interface',
       name: typename,
-      interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
+      interfaces: [],
       description: options.description,
       pothosOptions: options as unknown as PothosSchemaTypes.InterfaceTypeOptions,
       extensions: options.extensions,
     };
 
     this.configStore.addTypeConfig(config, ref);
+
+    if (options.interfaces) {
+      this.configStore.addInterfaces(typename, options.interfaces);
+    }
 
     if (typeof param === 'function') {
       this.configStore.associateRefWithName(param, name);

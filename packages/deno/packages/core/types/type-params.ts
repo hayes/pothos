@@ -1,5 +1,7 @@
 // @ts-nocheck
-import { InterfaceRef, ObjectRef, RootName, SchemaTypes } from '../index.ts';
+import InterfaceRef from '../refs/interface.ts';
+import ObjectRef from '../refs/object.ts';
+import { RootName, SchemaTypes } from './schema-types.ts';
 export const outputShapeKey = Symbol.for("Pothos.outputShapeKey");
 export const parentShapeKey = Symbol.for("Pothos.parentShapeKey");
 export const abstractReturnShapeKey = Symbol.for("Pothos.abstractReturnShapeKey");

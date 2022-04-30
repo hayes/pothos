@@ -59,6 +59,19 @@ export const Post = builder.objectType('Post', {
 export const schema = builder.toSchema({})
 ```
 
+Another best practice is to avoid importing from `index.ts` files by importing from the file that
+defines the value directly. The easiest way to achieve this is by not exporting values from
+`index.ts` files.
+
+```ts
+// bad
+export * from './enums';
+export * from './objects';
+// better
+import './enums';
+import './objects';
+```
+
 ## Defining Circular or Recursive types
 
 A large portion of the Pothos API is designed to work well with circular references, but there are a

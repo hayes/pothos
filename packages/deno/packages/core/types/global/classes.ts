@@ -1,5 +1,4 @@
 // @ts-nocheck
-import type { FieldKind, SchemaTypes } from '../../index.ts';
 import Builder from '../../builder.ts';
 import InternalFieldBuilder from '../../fieldUtils/builder.ts';
 import InternalInputFieldBuilder from '../../fieldUtils/input.ts';
@@ -11,6 +10,8 @@ import InternalInterfaceRef from '../../refs/interface.ts';
 import InternalObjectRef from '../../refs/object.ts';
 import InternalScalarRef from '../../refs/scalar.ts';
 import InternalUnionRef from '../../refs/union.ts';
+import type { FieldKind } from '../builder-options.ts';
+import type { SchemaTypes } from '../schema-types.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface SchemaBuilder<Types extends SchemaTypes> extends Builder<Types> {

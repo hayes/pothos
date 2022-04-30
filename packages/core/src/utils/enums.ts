@@ -1,6 +1,4 @@
-import { PothosEnumValueConfig, SchemaTypes } from '../types';
-
-import { BaseEnum, EnumValues } from '..';
+import { BaseEnum, EnumValues, PothosEnumValueConfig, SchemaTypes } from '../types';
 
 export function normalizeEnumValues<Types extends SchemaTypes>(
   values: EnumValues<SchemaTypes>,

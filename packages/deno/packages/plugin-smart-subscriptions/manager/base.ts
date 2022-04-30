@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { RegisterOptions } from '../types.ts';
-import { SubscriptionManager } from '../index.ts';
+import SubscriptionManager from './index.ts';
 export default class BaseSubscriptionManager {
     manager: SubscriptionManager;
     registrations: RegisterOptions[] = [];

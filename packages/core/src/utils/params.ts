@@ -1,19 +1,18 @@
 import ConfigStore from '../config-store';
-
+import BaseTypeRef from '../refs/base';
 import {
-  BaseTypeRef,
   FieldNullability,
   FieldRequiredness,
+  InputType,
+  InputTypeParam,
+  OutputType,
   PothosInputFieldType,
   PothosNameInputFieldType,
   PothosNameOutputFieldType,
   PothosOutputFieldType,
-  InputType,
-  InputTypeParam,
-  OutputType,
   SchemaTypes,
   TypeParam,
-} from '..';
+} from '../types';
 
 export function typeFromNonListParam<Types extends SchemaTypes>(
   type: OutputType<Types>,

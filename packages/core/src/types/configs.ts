@@ -15,22 +15,19 @@ import {
   GraphQLUnionType,
   GraphQLUnionTypeConfig,
 } from 'graphql';
-import { Merge } from './utils';
-
+import { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options';
+import { SchemaTypes } from './schema-types';
 import {
-  FieldKind,
   FieldNullability,
-  FieldOptionsFromKind,
   FieldRequiredness,
-  InputFieldMap,
   InputType,
   InputTypeParam,
   InterfaceParam,
   ObjectParam,
   OutputType,
-  SchemaTypes,
   TypeParam,
-} from '..';
+} from './type-params';
+import { Merge } from './utils';
 
 export interface PothosQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
@@ -64,7 +61,7 @@ export interface PothosInterfaceTypeConfig
   extends Omit<GraphQLInterfaceTypeConfig<unknown, object>, 'fields' | 'interfaces'> {
   kind: 'Interface';
   graphqlKind: 'Interface';
-  interfaces: ObjectParam<SchemaTypes>[];
+  interfaces: InterfaceParam<SchemaTypes>[];
   pothosOptions: PothosSchemaTypes.InterfaceTypeOptions;
 }
 

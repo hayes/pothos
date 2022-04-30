@@ -1,26 +1,22 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { Merge, RemoveNeverKeys } from './utils';
-
+import FieldRef from '../refs/field';
+import InputFieldRef from '../refs/input-field';
+import InterfaceRef from '../refs/interface';
+import ObjectRef from '../refs/object';
+import { SchemaTypes } from './schema-types';
 import {
   BaseEnum,
   EnumParam,
   FieldNullability,
-  FieldRef,
-  InputFieldRef,
   inputFieldShapeKey,
   InputRef,
   InterfaceParam,
-  InterfaceRef,
-  MaybePromise,
-  Normalize,
-  NormalizeNullableFields,
   ObjectParam,
-  ObjectRef,
   ParentShape,
-  SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
-} from '..';
+} from './type-params';
+import { MaybePromise, Merge, Normalize, NormalizeNullableFields, RemoveNeverKeys } from './utils';
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   PothosSchemaTypes.SchemaBuilderOptions<Types>

@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { OutputType, SchemaTypes, typeBrandKey } from '../index.ts';
+import { OutputType, SchemaTypes, typeBrandKey } from '../types/index.ts';
 export * from './context-cache.ts';
 export * from './enums.ts';
 export * from './input.ts';
@@ -25,8 +25,35 @@ export function verifyRef(ref: unknown) {
         
 This is often caused by a circular import
 If this ref is imported from a file that re-exports it (like index.ts)
-you may be able to resolve this by importing it directly fron the file that defines it.
+you may be able to resolve this by importing it directly from the file that defines it.
 `);
+    }
+}
+export function verifyInterfaces(interfaces: unknown) {
+    if (!interfaces || typeof interfaces === "function") {
+        return;
+    }
+    if (!Array.isArray(interfaces)) {
+        throw new TypeError("interfaces must be an array or function");
+    }
+    for (const iface of interfaces) {
+        if (iface === undefined) {
+            throw new Error(`Received undefined in list of interfaces.
+        
+This is often caused by a circular import
+If this ref is imported from a file that re-exports it (like index.ts)
+you may be able to resolve this by importing it directly from the file that defines it.
+
+Alternatively you can define interfaces with a function that will be lazily evaluated,
+which may resolver issues with circular dependencies:
+
+Example:
+builder.objectType('MyObject', {
+  interface: () => [Interface1, Interface2],
+  ...
+});
+`);
+        }
     }
 }
 export function brandWithType<Types extends SchemaTypes>(val: unknown, type: OutputType<Types>) {

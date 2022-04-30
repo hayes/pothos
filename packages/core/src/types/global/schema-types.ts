@@ -1,8 +1,8 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import { GraphQLDirective } from 'graphql';
-import type { IsStrictMode, PluginConstructorMap } from '../..';
-
-import { MergedScalars, SchemaTypes } from '..';
+import { PluginConstructorMap } from '../plugins';
+import { MergedScalars, SchemaTypes } from '../schema-types';
+import type { IsStrictMode } from '../utils';
 
 declare global {
   export namespace PothosSchemaTypes {

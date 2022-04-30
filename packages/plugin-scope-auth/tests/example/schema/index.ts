@@ -285,9 +285,17 @@ const IfaceBooleanFn = builder.interfaceRef<{ result: boolean }>('IfaceBooleanFn
   }),
 });
 
-const ObjAdminIface = builder.objectRef('ObjAdminIface').implement({
+builder.interfaceType('StringInterface', {
+  fields: (t) => ({
+    stringInterfaceField: t.string({
+      resolve: () => 'test',
+    }),
+  }),
+});
+
+const ObjAdminIface = builder.objectRef<{}>('ObjAdminIface').implement({
   isTypeOf: () => true,
-  interfaces: [IfaceForAdmin],
+  interfaces: [IfaceForAdmin, 'StringInterface'],
   fields: (t) => ({
     field: t.string({
       resolve: () => 'ok',

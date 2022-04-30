@@ -140,9 +140,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     const interfaceConfigs =
       typeConfig.kind === 'Object' || typeConfig.kind === 'Interface'
-        ? typeConfig.interfaces.map((iface) =>
-            this.buildCache.getTypeConfig(iface.name, 'Interface'),
-          )
+        ? typeConfig.interfaces.map((iface) => this.buildCache.getTypeConfig(iface, 'Interface'))
         : [];
 
     const steps: ResolveStep<Types>[] = [];

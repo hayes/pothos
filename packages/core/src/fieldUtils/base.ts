@@ -1,8 +1,13 @@
 import { defaultFieldResolver } from 'graphql';
+import FieldRef from '../refs/field';
+import type {
+  FieldKind,
+  InputFieldMap,
+  PothosInputFieldConfig,
+  ShapeFromTypeParam,
+} from '../types';
 import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
-
-import { FieldKind, FieldRef, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam } from '..';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   typename: string;

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import ConfigStore from '../config-store.ts';
-import { BaseTypeRef, FieldNullability, FieldRequiredness, PothosInputFieldType, PothosNameInputFieldType, PothosNameOutputFieldType, PothosOutputFieldType, InputType, InputTypeParam, OutputType, SchemaTypes, TypeParam, } from '../index.ts';
+import BaseTypeRef from '../refs/base.ts';
+import { FieldNullability, FieldRequiredness, InputType, InputTypeParam, OutputType, PothosInputFieldType, PothosNameInputFieldType, PothosNameOutputFieldType, PothosOutputFieldType, SchemaTypes, TypeParam, } from '../types/index.ts';
 export function typeFromNonListParam<Types extends SchemaTypes>(type: OutputType<Types>, configStore: ConfigStore<Types>, nullable: boolean): PothosNameOutputFieldType<Types> {
     const ref = configStore.getOutputTypeRef(type);
     const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;

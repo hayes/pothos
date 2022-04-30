@@ -1,7 +1,9 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { BasePlugin } from '../plugins';
-
-import { BuildCache, PothosObjectTypeConfig, MaybePromise, SchemaTypes } from '..';
+import BuildCache from '../build-cache';
+import { BasePlugin } from '../plugins/plugin';
+import type { PothosObjectTypeConfig } from './configs';
+import type { SchemaTypes } from './schema-types';
+import type { MaybePromise } from './utils';
 
 /**
  * @deprecated This will be replaced by by wrapResolve, wrapSubscribe, and wrapResolveType

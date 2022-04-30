@@ -279,7 +279,6 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                 type: cursorType,
                 ...cursorFieldOptions,
             }) as never,
-            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
             ...edgeFields?.(t),
         }),
     });

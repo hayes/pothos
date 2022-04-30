@@ -9,8 +9,9 @@ interface IfaceForAdmin {
   field: String!
 }
 
-type ObjAdminIface implements IfaceForAdmin {
+type ObjAdminIface implements IfaceForAdmin & StringInterface {
   field: String!
+  stringInterfaceField: String!
 }
 
 type ObjBooleanFn {
@@ -162,5 +163,9 @@ type Query {
   forSyncPermissionFn(permission: String): String
   grantedFromRoot: String!
   notGrantedFromRoot: String!
+}
+
+interface StringInterface {
+  stringInterfaceField: String!
 }"
 `;

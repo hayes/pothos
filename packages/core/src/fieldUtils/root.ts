@@ -1,3 +1,4 @@
+import type { ArgBuilder, InputFieldMap, NormalizeArgs } from '../types';
 import {
   FieldKind,
   FieldNullability,
@@ -7,8 +8,6 @@ import {
 } from '../types';
 import BaseFieldUtil from './base';
 import InputFieldBuilder from './input';
-
-import { ArgBuilder, InputFieldMap, NormalizeArgs } from '..';
 
 export default class RootFieldBuilder<
   Types extends SchemaTypes,

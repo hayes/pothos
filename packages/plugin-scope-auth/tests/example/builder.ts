@@ -10,6 +10,9 @@ interface Context {
 
 const builder = new SchemaBuilder<{
   Context: Context;
+  Interfaces: {
+    StringInterface: {};
+  };
   AuthScopes: {
     loggedIn: boolean;
     admin: boolean;

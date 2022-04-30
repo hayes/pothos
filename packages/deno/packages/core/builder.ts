@@ -3,7 +3,7 @@ import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, 
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
 import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
-import { normalizeEnumValues, valuesFromEnum, verifyRef } from './utils/index.ts';
+import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.ts';
 import { AbstractReturnShape, BaseEnum, BaseTypeRef, EnumParam, EnumRef, EnumTypeOptions, ImplementableInputObjectRef, ImplementableInterfaceRef, ImplementableObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceRef, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectRef, ObjectTypeOptions, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldBuilder, ScalarRef, SubscriptionFieldBuilder, UnionRef, ValuesFromEnum, } from './index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -32,6 +32,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
     objectType<Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(param: Param, options: ObjectTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) {
         verifyRef(param);
+        verifyInterfaces(options.interfaces);
         const name = typeof param === "string"
             ? param
             : (options as {
@@ -49,13 +50,16 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             kind: "Object",
             graphqlKind: "Object",
             name,
-            interfaces: (options.interfaces ?? []) as InterfaceParam<SchemaTypes>[],
+            interfaces: [],
             description: options.description,
             extensions: options.extensions,
             isTypeOf: options.isTypeOf,
             pothosOptions: options as PothosSchemaTypes.ObjectTypeOptions,
         };
         this.configStore.addTypeConfig(config, ref);
+        if (options.interfaces) {
+            this.configStore.addInterfaces(name, options.interfaces);
+        }
         if (typeof param === "function") {
             this.configStore.associateRefWithName(param, name);
         }
@@ -164,6 +168,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
     interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(param: Param, options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>) {
         verifyRef(param);
+        verifyInterfaces(options.interfaces);
         const name = typeof param === "string"
             ? param
             : (options as {
@@ -179,12 +184,15 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             kind: "Interface",
             graphqlKind: "Interface",
             name: typename,
-            interfaces: (options.interfaces ?? []) as ObjectParam<SchemaTypes>[],
+            interfaces: [],
             description: options.description,
             pothosOptions: options as unknown as PothosSchemaTypes.InterfaceTypeOptions,
             extensions: options.extensions,
         };
         this.configStore.addTypeConfig(config, ref);
+        if (options.interfaces) {
+            this.configStore.addInterfaces(typename, options.interfaces);
+        }
         if (typeof param === "function") {
             this.configStore.associateRefWithName(param, name);
         }

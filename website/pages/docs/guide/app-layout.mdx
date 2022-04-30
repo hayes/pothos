@@ -38,6 +38,12 @@ Here are a few files I create in almost every Pothos schema I have built:
 
 - `src/schema/*.ts`: Actual definitions for your schema types.
 
+## Imports
+
+Import types directly from the files that define them rather than importing from another files like
+`index.ts` that re-exports them. `index.ts` files can still be useful for loading all files in a
+directory, but they should generally NOT export any values.
+
 ## Plugins
 
 Which plugins you use is completely up to you. For my own projects, I will use the `simple-objects`,

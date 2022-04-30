@@ -1,7 +1,9 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { GraphQLIsTypeOfFn, GraphQLResolveInfo, GraphQLScalarLiteralParser, GraphQLScalarValueParser, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import type { EnumValues, InputFieldMap, InterfaceFieldsShape, InterfaceParam, MutationFieldsShape, ObjectFieldsShape, ObjectParam, ParentShape, QueryFieldsShape, RootName, SchemaTypes, SubscriptionFieldsShape, ValidateInterfaces, } from '../../index.ts';
+import { EnumValues, InputFieldMap, InterfaceFieldsShape, MutationFieldsShape, ObjectFieldsShape, QueryFieldsShape, SubscriptionFieldsShape, ValidateInterfaces, } from '../builder-options.ts';
+import { RootName, SchemaTypes } from '../schema-types.ts';
+import type { InterfaceParam, ObjectParam, ParentShape } from '../type-params.ts';
 import { MaybePromise } from '../utils.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -18,7 +20,7 @@ declare global {
             isTypeOf?: GraphQLIsTypeOfFn<unknown, Types["Context"]>;
         }
         export interface ObjectTypeWithInterfaceOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends Omit<ObjectTypeOptions<Types, Shape>, "interfaces"> {
-            interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+            interfaces: (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
         }
         export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> extends BaseTypeOptions<Types> {
         }
@@ -36,7 +38,7 @@ declare global {
         }
         export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends BaseTypeOptions<Types> {
             fields?: InterfaceFieldsShape<Types, Shape>;
-            interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+            interfaces?: (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
             resolveType?: (parent: Shape, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<ObjectParam<Types> | string | null | undefined>;
         }
         export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>> extends BaseTypeOptions<Types> {

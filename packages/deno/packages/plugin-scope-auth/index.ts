@@ -76,7 +76,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         const parentAuthScope = typeConfig.pothosOptions.authScopes;
         const parentGrantScopes = typeConfig.pothosOptions.grantScopes;
         const interfaceConfigs = typeConfig.kind === "Object" || typeConfig.kind === "Interface"
-            ? typeConfig.interfaces.map((iface) => this.buildCache.getTypeConfig(iface.name, "Interface"))
+            ? typeConfig.interfaces.map((iface) => this.buildCache.getTypeConfig(iface, "Interface"))
             : [];
         const steps: ResolveStep<Types>[] = [];
         if (parentAuthScope && !skipTypeScopes) {

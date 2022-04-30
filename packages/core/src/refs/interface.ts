@@ -1,9 +1,14 @@
 /* eslint-disable max-classes-per-file */
 
-import { OutputRef, outputShapeKey } from '../types';
+import {
+  InterfaceParam,
+  InterfaceTypeOptions,
+  OutputRef,
+  outputShapeKey,
+  parentShapeKey,
+  SchemaTypes,
+} from '../types';
 import BaseTypeRef from './base';
-
-import { InterfaceParam, InterfaceTypeOptions, parentShapeKey, SchemaTypes } from '..';
 
 export default class InterfaceRef<T, P = T>
   extends BaseTypeRef

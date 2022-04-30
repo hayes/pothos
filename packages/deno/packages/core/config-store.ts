@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 /* eslint-disable node/no-callback-literal */
 import { GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLScalarType, GraphQLString, } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldMap, InputRef, OutputRef, SchemaTypes } from './types/index.ts';
+import { FieldMap, InputRef, InterfaceParam, OutputRef, SchemaTypes } from './types/index.ts';
 import { BaseTypeRef, BuiltinScalarRef, ConfigurableRef, FieldRef, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, InputTypeRef, OutputType, OutputTypeRef, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, TypeParam, } from './index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, PothosTypeConfig>();
@@ -13,6 +13,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     private scalarsToRefs = new Map<string, BuiltinScalarRef<unknown, unknown>>();
     private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, PothosFieldConfig<Types>[]>();
     private pendingFields = new Map<FieldRef | InputFieldRef, InputType<Types> | OutputType<Types>>();
+    private pendingInterfaces = new Map<string, (() => InterfaceParam<Types>[])[]>();
     private pendingRefResolutions = new Map<ConfigurableRef<Types>, ((config: PothosTypeConfig) => void)[]>();
     private fieldRefCallbacks = new Map<FieldRef | InputFieldRef, ((config: PothosFieldConfig<Types>) => void)[]>();
     private pending = true;
@@ -35,6 +36,31 @@ export default class ConfigStore<Types extends SchemaTypes> {
             return this.typeConfigs.has(typeParam);
         }
         return this.refsToName.has(typeParam);
+    }
+    addInterfaces(typeName: string, interfaces: InterfaceParam<Types>[] | (() => InterfaceParam<Types>[])) {
+        if (typeof interfaces === "function" && this.pending) {
+            if (!this.pendingInterfaces.has(typeName)) {
+                this.pendingInterfaces.set(typeName, [interfaces]);
+            }
+            else {
+                this.pendingInterfaces.get(typeName)!.push(interfaces);
+            }
+        }
+        else {
+            const typeConfig = this.getTypeConfig(typeName);
+            if ((typeConfig.graphqlKind !== "Object" && typeConfig.graphqlKind !== "Interface") ||
+                typeConfig.kind === "Query" ||
+                typeConfig.kind === "Mutation" ||
+                typeConfig.kind === "Subscription") {
+                throw new Error(`Can not add interfaces to ${typeName} because it is a ${typeConfig.kind}`);
+            }
+            typeConfig.interfaces = [
+                ...typeConfig.interfaces,
+                ...((typeof interfaces === "function"
+                    ? interfaces()
+                    : interfaces) as InterfaceParam<SchemaTypes>[]),
+            ];
+        }
     }
     addFieldRef(ref: FieldRef | InputFieldRef, 
     // We need to be able to resolve the types kind before configuring the field
@@ -238,6 +264,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
             throw new Error(`Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
                 .map((ref) => this.describeRef(ref))
                 .join(", ")}).`);
+        }
+        for (const [typeName, interfacesFns] of this.pendingInterfaces) {
+            for (const fn of interfacesFns) {
+                this.addInterfaces(typeName, fn);
+            }
         }
     }
     addFields(typeRef: ConfigurableRef<Types>, fields: FieldMap | InputFieldMap | (() => FieldMap | InputFieldMap)) {

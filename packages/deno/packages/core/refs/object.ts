@@ -1,8 +1,7 @@
 // @ts-nocheck
 /* eslint-disable max-classes-per-file */
-import { OutputRef, outputShapeKey } from '../types/index.ts';
+import { InterfaceParam, ObjectTypeOptions, OutputRef, outputShapeKey, parentShapeKey, SchemaTypes, } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
-import { InterfaceParam, ObjectTypeOptions, parentShapeKey, SchemaTypes } from '../index.ts';
 export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef, PothosSchemaTypes.ObjectRef<T, P> {
     override kind = "Object" as const;
     [outputShapeKey]: T;

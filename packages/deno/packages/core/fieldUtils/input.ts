@@ -1,7 +1,8 @@
 // @ts-nocheck
+import InputFieldRef from '../refs/input-field.ts';
+import type { ArgBuilder, FieldRequiredness, InputShapeFromTypeParam, NormalizeArgs, } from '../types/index.ts';
 import { InputType, SchemaTypes } from '../types/index.ts';
 import { inputTypeFromParam } from '../utils/index.ts';
-import { ArgBuilder, FieldRequiredness, InputFieldRef, InputShapeFromTypeParam, NormalizeArgs, } from '../index.ts';
 export default class InputFieldBuilder<Types extends SchemaTypes, Kind extends keyof PothosSchemaTypes.InputFieldOptionsByKind> {
     builder: PothosSchemaTypes.SchemaBuilder<Types>;
     kind: Kind;

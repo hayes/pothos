@@ -6,21 +6,18 @@ import {
   GraphQLScalarValueParser,
   GraphQLUnionType,
 } from 'graphql';
-import type {
+import {
   EnumValues,
   InputFieldMap,
   InterfaceFieldsShape,
-  InterfaceParam,
   MutationFieldsShape,
   ObjectFieldsShape,
-  ObjectParam,
-  ParentShape,
   QueryFieldsShape,
-  RootName,
-  SchemaTypes,
   SubscriptionFieldsShape,
   ValidateInterfaces,
-} from '../..';
+} from '../builder-options';
+import { RootName, SchemaTypes } from '../schema-types';
+import type { InterfaceParam, ObjectParam, ParentShape } from '../type-params';
 import { MaybePromise } from '../utils';
 
 declare global {
@@ -48,7 +45,9 @@ declare global {
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces'> {
-      interfaces: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+      interfaces:
+        | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
+        | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
     }
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName>
       extends BaseTypeOptions<Types> {}
@@ -81,7 +80,9 @@ declare global {
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
-      interfaces?: Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[];
+      interfaces?:
+        | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
+        | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
       resolveType?: (
         parent: Shape,
         context: Types['Context'],

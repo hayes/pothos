@@ -3,7 +3,7 @@ import { SchemaTypes } from '../../core/index.ts';
 import CacheNode from '../cache-node.ts';
 import { RegisterFieldSubscriptionOptions } from '../types.ts';
 import BaseSubscriptionManager from './base.ts';
-import { SubscriptionManager } from '../index.ts';
+import SubscriptionManager from './index.ts';
 export default class FieldSubscriptionManager<Types extends SchemaTypes> extends BaseSubscriptionManager {
     cacheNode: CacheNode<Types>;
     constructor(manager: SubscriptionManager, cacheNode: CacheNode<Types>) {

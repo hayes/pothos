@@ -13,6 +13,13 @@ import {
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
+import {
+  FieldSelection,
+  IncludeMap,
+  IndirectInclude,
+  LoaderMappings,
+  SelectionMap,
+} from '../types';
 import { setLoaderMappings } from './loader-map';
 import { FieldMap } from './relation-map';
 import {
@@ -22,8 +29,6 @@ import {
   SelectionState,
   selectionToQuery,
 } from './selections';
-
-import { FieldSelection, IncludeMap, IndirectInclude, LoaderMappings, SelectionMap } from '..';
 
 function addTypeSelectionsForField(
   type: GraphQLNamedType,

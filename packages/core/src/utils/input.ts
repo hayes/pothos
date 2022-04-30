@@ -1,10 +1,10 @@
+import BuildCache from '../build-cache';
 import {
-  BuildCache,
   PothosInputFieldConfig,
   PothosInputFieldType,
   PothosTypeConfig,
   SchemaTypes,
-} from '..';
+} from '../types';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
   configs: Record<string, PothosInputFieldConfig<Types>>;

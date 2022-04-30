@@ -1,6 +1,5 @@
 import { inputFieldShapeKey } from '../types';
-
-import { FieldRef } from '..';
+import FieldRef from './field';
 
 export default class InputFieldRef<
   T = unknown,

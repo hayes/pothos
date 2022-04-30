@@ -1,10 +1,8 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
 import { PrismaObjectRef } from '../object-ref';
-import { PrismaDelegate, PrismaModelTypes } from '../types';
+import { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types';
 import { formatCursor, parseCompositeCursor, parseRawCursor } from './cursors';
 import { getDMMF } from './get-client';
-
-import { PrismaClient } from '..';
 
 export const refMap = new WeakMap<object, Map<string, PrismaObjectRef<PrismaModelTypes>>>();
 export const findUniqueMap = new WeakMap<

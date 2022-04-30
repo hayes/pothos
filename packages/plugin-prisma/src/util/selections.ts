@@ -1,9 +1,8 @@
 /* eslint-disable no-param-reassign */
 /* eslint-disable no-underscore-dangle */
+import { LoaderMappings, SelectionMap } from '../types';
 import { deepEqual } from './deep-equal';
 import { FieldMap } from './relation-map';
-
-import { LoaderMappings, SelectionMap } from '..';
 
 export type SelectionMode = 'select' | 'include';
 

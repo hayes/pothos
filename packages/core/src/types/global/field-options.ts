@@ -1,17 +1,14 @@
 import { GraphQLFieldExtensions } from 'graphql';
-import type {
+import type { InputFieldMap, InputShapeFromFields, Resolver, Subscriber } from '../builder-options';
+import { SchemaTypes } from '../schema-types';
+import {
   FieldNullability,
   FieldRequiredness,
-  InputFieldMap,
-  InputShapeFromFields,
   InputShapeFromTypeParam,
   InputType,
-  Resolver,
-  SchemaTypes,
   ShapeFromTypeParam,
-  Subscriber,
   TypeParam,
-} from '../..';
+} from '../type-params';
 
 declare global {
   export namespace PothosSchemaTypes {

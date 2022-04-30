@@ -37,7 +37,7 @@ builder.objectType('Giraffe', {
 
 builder.objectType(GiraffeRef, {
   description: 'Long necks, cool patterns, taller than you.',
-  interfaces: [AnimalRef],
+  interfaces: () => [AnimalRef],
   isTypeOf: (value) => value instanceof Giraffe,
   fields: (t) => ({
     name: t.exposeString('name', {}),

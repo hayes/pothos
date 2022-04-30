@@ -1,6 +1,5 @@
 import { RegisterOptions } from '../types';
-
-import { SubscriptionManager } from '..';
+import SubscriptionManager from '.';
 
 export default class BaseSubscriptionManager {
   manager: SubscriptionManager;
