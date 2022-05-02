@@ -39,6 +39,7 @@ input GlobalIDInput {
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
   idList: [ID!]!
+  otherList: [OtherInput!] = [{someField: \\"abc\\"}]
 }
 
 type Mutation {
@@ -67,6 +68,10 @@ type Number implements Node {
 
 type NumberRef implements Node {
   id: ID!
+}
+
+input OtherInput {
+  someField: String
 }
 
 type PageInfo {

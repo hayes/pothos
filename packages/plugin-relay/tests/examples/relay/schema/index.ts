@@ -23,6 +23,12 @@ interface CircularWithoutGlobalIds {
 const GlobalIDInput = builder.inputRef<GlobalIDInputsShape>('GlobalIDInput');
 const NoGlobalIDInput = builder.inputRef<CircularWithoutGlobalIds>('NoGlobalIDInput');
 
+const OtherInput = builder.inputType('OtherInput', {
+  fields: (t) => ({
+    someField: t.string(),
+  }),
+});
+
 GlobalIDInput.implement({
   fields: (t) => ({
     circularWithoutGlobalIds: t.field({
@@ -33,6 +39,10 @@ GlobalIDInput.implement({
     }),
     id: t.globalID({
       required: true,
+    }),
+    otherList: t.field({
+      type: [OtherInput],
+      defaultValue: [{ someField: 'abc' }],
     }),
     idList: t.globalIDList({
       required: {
@@ -66,31 +76,7 @@ builder.queryType({
         }),
       },
       resolve(parent, args) {
-        return JSON.stringify({
-          normal: args.normalId,
-          inputObj: {
-            circular: {
-              id: {
-                id: args.inputObj.circular?.id.id,
-                typename: args.inputObj.circular?.id.typename,
-              },
-              idList: args.inputObj.circular?.idList,
-              circular: args.inputObj.circular?.circular,
-            },
-            id: {
-              id: args.inputObj.id.id,
-              typename: args.inputObj.id.typename,
-            },
-            idList: args.inputObj.idList?.map((id) => ({
-              id: id.id,
-              typename: id.typename,
-            })),
-          },
-          id: {
-            id: args.id.id,
-            typename: args.id.typename,
-          },
-        });
+        return JSON.stringify(args);
       },
     }),
   }),
