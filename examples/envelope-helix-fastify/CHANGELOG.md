@@ -1,5 +1,12 @@
 # @pothos-examples/envelope-helix-fastify
 
+## 2.1.9
+
+### Patch Changes
+
+- Updated dependencies [89f09498]
+  - @pothos/core@3.10.1
+
 ## 2.1.8
 
 ### Patch Changes

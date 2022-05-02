@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [89f09498]
+  - @pothos/core@3.10.1
+
+## null
+
+### Patch Changes
+
 - 205a8c73: Recactor internal imports to reduce imports from index files
 - Updated dependencies [205a8c73]
 - Updated dependencies [205a8c73]

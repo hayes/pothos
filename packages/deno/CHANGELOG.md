@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.9.2
+
+### Patch Changes
+
+- 89f09498: Fix issue with argument mapping utils that caused nested lists of input objects to be
+  transformed incorrectly in the relay plugin
+
 ## 3.9.1
 
 ### Patch Changes
