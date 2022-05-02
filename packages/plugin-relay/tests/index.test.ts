@@ -362,7 +362,7 @@ describe('relay example schema', () => {
 
       expect(result.data).toMatchInlineSnapshot(`
         Object {
-          "inputGlobalID": "{\\"normal\\":\\"123\\",\\"inputObj\\":{\\"circular\\":{\\"id\\":{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}]},\\"id\\":{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"},\\"idList\\":[{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"}]},\\"id\\":{\\"id\\":\\"123\\",\\"typename\\":\\"abc\\"}}",
+          "inputGlobalID": "{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"inputObj\\":{\\"circular\\":{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"normalId\\":\\"123\\"}",
         }
       `);
     });

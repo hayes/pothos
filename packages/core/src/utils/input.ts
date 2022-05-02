@@ -92,7 +92,7 @@ export function mapInputFields<Types extends SchemaTypes, T>(
         const filteredTypeFields = filterMapped(mapping.fields.map!);
         const mappingForType = {
           ...mapping,
-          typeFields: {
+          fields: {
             configs: mapping.fields.configs,
             map: filteredTypeFields,
           },
@@ -118,9 +118,13 @@ export function mapInputFields<Types extends SchemaTypes, T>(
     let result = false;
 
     map.forEach((mapping) => {
-      if (mapping.value !== null || mapping.kind !== 'InputObject') {
+      if (mapping.value !== null) {
         result = true;
-      } else if (mapping.fields.map && checkForMappings(mapping.fields.map, hasMappings)) {
+      } else if (
+        mapping.kind === 'InputObject' &&
+        mapping.fields.map &&
+        checkForMappings(mapping.fields.map, hasMappings)
+      ) {
         result = true;
       }
     });
@@ -201,7 +205,12 @@ export function createInputValueMapper<Types extends SchemaTypes, T>(
       }
 
       if (field.kind === 'InputObject' && field.fields.map) {
-        fieldVal = mapObject(fieldVal as Record<string, unknown>, field.fields.map);
+        fieldVal = field.isList
+          ? (fieldVal as (Record<string, unknown> | null)[]).map(
+              (val) => val && mapObject(val, field.fields.map!),
+            )
+          : mapObject(fieldVal as Record<string, unknown>, field.fields.map);
+
         mapped[fieldName] = fieldVal;
       }
 
