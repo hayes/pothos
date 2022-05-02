@@ -129,3 +129,4 @@ generous people and organizations:
 - [@homoky](https://github.com/homoky)
 - [@huv1k](https://github.com/huv1k)
 - [@KATT](https://github.com/KATT)
+- [@robmcguinness](https://github.com/robmcguinness)
