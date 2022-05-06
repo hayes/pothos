@@ -226,11 +226,6 @@ const builder = new SchemaBuilder<{
   prisma: {
     client: prisma,
   },
-  prisma: {
-    client: (ctx) => prisma,
-    // Because the prisma client is loaded dynamically, we need to explicitly pass the builder some information about the prisma schema
-    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
-  },
 });
 ```
 
