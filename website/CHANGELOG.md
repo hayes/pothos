@@ -2,6 +2,19 @@
 
 ## null
 
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+### Patch Changes
+
+- Updated dependencies [ecb2714c]
+  - @pothos/core@3.11.0
+
+## null
+
 ### Patch Changes
 
 - Updated dependencies [89f09498]

@@ -1,5 +1,21 @@
 # @pothos-examples/relay
 
+## 2.3.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
+### Patch Changes
+
+- Updated dependencies [ecb2714c]
+  - @pothos/core@3.11.0
+  - @pothos/plugin-directives@3.4.0
+  - @pothos/plugin-federation@3.1.0
+  - @pothos/plugin-prisma@3.7.0
+
 ## 2.2.2
 
 ### Patch Changes

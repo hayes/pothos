@@ -1,5 +1,13 @@
 # @giraphql/test-utils
 
+## 1.2.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
 ## 1.1.1
 
 ### Patch Changes
