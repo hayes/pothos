@@ -1,6 +1,5 @@
 // @ts-nocheck
 /* eslint-disable no-continue */
-/* eslint-disable unicorn/prefer-object-from-entries */
 import { defaultFieldResolver, defaultTypeResolver, GraphQLBoolean, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFloat, GraphQLID, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLScalarType, GraphQLString, GraphQLTypeResolver, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder from './builder.ts';
 import ConfigStore from './config-store.ts';
