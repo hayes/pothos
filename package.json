@@ -72,9 +72,10 @@
   "packageManager": "pnpm@7.0.1",
   "pnpm": {
     "peerDependencyRules": {
-      "ignoreMissing": [
-        "jest"
-      ]
+      "ignoreMissing": ["webpack"],
+      "allowedVersions": {
+        "jest": "^28.1.0"
+      }
     }
   }
 }
