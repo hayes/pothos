@@ -6,6 +6,7 @@
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
+    "types": "./dts/index.d.ts",
     "import": "./esm/index.js",
     "require": "./lib/index.js"
   },
@@ -28,7 +29,7 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "16.3.0",
+    "graphql": "16.5.0",
     "graphql-helix": "^1.11.0",
     "ts-morph": "^14.0.0",
     "yargs": "^17.4.1"

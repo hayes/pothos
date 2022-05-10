@@ -6,6 +6,7 @@
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
+    "types": "./dts/index.d.ts",
     "import": "./esm/index.js",
     "require": "./lib/index.js"
   },
@@ -43,13 +44,13 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@graphql-tools/utils": "^8.6.7",
+    "@graphql-tools/utils": "^8.6.10",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "16.3.0",
+    "graphql": "16.5.0",
     "graphql-rate-limit-directive": "^2.0.2",
     "graphql-tag": "^2.12.6",
-    "rate-limiter-flexible": "^2.3.6"
+    "rate-limiter-flexible": "^2.3.7"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

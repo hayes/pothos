@@ -43,16 +43,16 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.0.1",
+    "@apollo/gateway": "^2.0.2",
     "@apollo/subgraph": "^2.0.1",
-    "@graphql-tools/utils": "^8.6.7",
+    "@graphql-tools/utils": "^8.6.10",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "apollo-server": "^3.6.7",
-    "apollo-server-core": "^3.6.7",
-    "axios": "^0.26.0",
-    "graphql": "16.3.0",
+    "apollo-server": "^3.7.0",
+    "apollo-server-core": "^3.7.0",
+    "axios": "^0.27.2",
+    "graphql": "16.5.0",
     "graphql-tag": "^2.12.5"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

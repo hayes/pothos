@@ -10,10 +10,10 @@
   },
   "dependencies": {
     "@envelop/core": "^2.3.1",
-    "@faker-js/faker": "^6.1.2",
+    "@faker-js/faker": "^6.3.1",
     "@pothos/core": "workspace:*",
-    "fastify": "^3.28.0",
-    "graphql": "16.3.0",
+    "fastify": "^3.29.0",
+    "graphql": "16.5.0",
     "graphql-helix": "^1.11.0"
   },
   "publishConfig": {

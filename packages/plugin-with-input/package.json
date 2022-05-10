@@ -6,6 +6,7 @@
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
+    "types": "./dts/index.d.ts",
     "import": "./esm/index.js",
     "require": "./lib/index.js"
   },
@@ -44,6 +45,7 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
     "@pothos/test-utils": "workspace:*",
+    "graphql": "16.5.0",
     "graphql-tag": "^2.12.6"
   }
 }
