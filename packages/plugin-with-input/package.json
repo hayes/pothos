@@ -47,5 +47,12 @@
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.5.0",
     "graphql-tag": "^2.12.6"
+  },
+  "pnpm": {
+    "peerDependencyRules": {
+      "ignoreMissing": [
+        "graphql"
+      ]
+    }
   }
 }
