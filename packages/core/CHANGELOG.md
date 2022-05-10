@@ -1,5 +1,13 @@
 # Change Log
 
+## 3.11.0
+
+### Minor Changes
+
+- ecb2714c: Add types entry to export map in package.json and update dev dependencies
+
+  This should fix compatibility with typescripts new `"moduleResolution": "node12"`
+
 ## 3.10.1
 
 ### Patch Changes

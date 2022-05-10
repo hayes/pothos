@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-authz",
-  "version": "3.1.0",
+  "version": "3.2.0",
   "description": "A Pothos plugin for applying GraphQL AuthZ rules to fields",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
