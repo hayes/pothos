@@ -74,7 +74,8 @@
     "peerDependencyRules": {
       "ignoreMissing": ["webpack"],
       "allowedVersions": {
-        "jest": "^28.1.0"
+        "jest": "^28.1.0",
+        "graphql": "^16.5.0"
       }
     }
   }

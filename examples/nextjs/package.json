@@ -35,12 +35,5 @@
   },
   "engines": {
     "node": ">=12.0.0"
-  },
-  "pnpm": {
-    "peerDependencyRules": {
-      "ignoreMissing": [
-        "graphql"
-      ]
-    }
   }
 }
