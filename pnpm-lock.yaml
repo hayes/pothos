@@ -522,17 +522,20 @@ importers:
       '@pothos/plugin-prisma': workspace:*
       '@pothos/test-utils': workspace:*
       '@prisma/client': ^3.10.0
-      graphql: 16.3.0
+      '@prisma/generator-helper': ^3.13.0
+      graphql: 16.5.0
       graphql-tag: ^2.12.6
       prisma: ^3.10.0
+    dependencies:
+      '@prisma/generator-helper': 3.15.2
     devDependencies:
       '@pothos/core': link:../core
       '@pothos/plugin-prisma': link:../plugin-prisma
       '@pothos/test-utils': link:../test-utils
-      '@prisma/client': 3.12.0_prisma@3.12.0
-      graphql: 16.3.0
-      graphql-tag: 2.12.6_graphql@16.3.0
-      prisma: 3.12.0
+      '@prisma/client': 3.15.2_prisma@3.15.2
+      graphql: 16.5.0
+      graphql-tag: 2.12.6_graphql@16.5.0
+      prisma: 3.15.2
 
   packages/plugin-prisma-crud/esm:
     specifiers: {}
@@ -5233,6 +5236,20 @@ packages:
       tslib: 2.4.0
       webcrypto-core: 1.7.5
 
+  /@prisma/client/3.15.2_prisma@3.15.2:
+    resolution: {integrity: sha512-ErqtwhX12ubPhU4d++30uFY/rPcyvjk+mdifaZO5SeM21zS3t4jQrscy8+6IyB0GIYshl5ldTq6JSBo1d63i8w==}
+    engines: {node: '>=12.6'}
+    requiresBuild: true
+    peerDependencies:
+      prisma: '*'
+    peerDependenciesMeta:
+      prisma:
+        optional: true
+    dependencies:
+      '@prisma/engines-version': 3.15.1-1.461d6a05159055555eb7dfb337c9fb271cbd4d7e
+      prisma: 3.15.2
+    dev: true
+
   /@prisma/client/4.2.1_prisma@4.2.1:
     resolution: {integrity: sha512-PZBkY60+k5oix+e6IUfl3ub8TbRLNsPLdfWrdy2eh80WcHTaT+/UfvXf/B7gXedH7FRtbPFHZXk1hZenJiJZFQ==}
     engines: {node: '>=14.17'}
@@ -5246,6 +5263,16 @@ packages:
       '@prisma/engines-version': 4.2.0-33.2920a97877e12e055c1333079b8d19cee7f33826
       prisma: 4.2.1
 
+  /@prisma/debug/3.15.2:
+    resolution: {integrity: sha512-Uw6RkJmHolxXNifohIY9TIBRNWR2ciDY9LErPm6jymBs3mevLCUWm4m5AlyWyhKFWl0crUtwbAWE8Z79JiNRcw==}
+    dependencies:
+      '@types/debug': 4.1.7
+      debug: 4.3.4
+      strip-ansi: 6.0.1
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
+
   /@prisma/debug/4.2.1:
     resolution: {integrity: sha512-Cf7FBwZN5dNHD/iboWYbKQHSykpoVP/AmWVCUm74S3av2XbbHE5Eku5oudhpWD8gE55UrpHvO8hzBmD9m+XTQQ==}
     dependencies:
@@ -5256,12 +5283,32 @@ packages:
       - supports-color
     dev: false
 
+  /@prisma/engines-version/3.15.1-1.461d6a05159055555eb7dfb337c9fb271cbd4d7e:
+    resolution: {integrity: sha512-e3k2Vd606efd1ZYy2NQKkT4C/pn31nehyLhVug6To/q8JT8FpiMrDy7zmm3KLF0L98NOQQcutaVtAPhzKhzn9w==}
+    dev: true
+
   /@prisma/engines-version/4.2.0-33.2920a97877e12e055c1333079b8d19cee7f33826:
     resolution: {integrity: sha512-tktkqdiwqE4QhmE088boPt+FwPj1Jub/zk+5F6sEfcRHzO5yz9jyMD5HFVtiwxZPLx/8Xg9ElnuTi8E5lWVQFQ==}
+
+  /@prisma/engines/3.15.1-1.461d6a05159055555eb7dfb337c9fb271cbd4d7e:
+    resolution: {integrity: sha512-NHlojO1DFTsSi3FtEleL9QWXeSF/UjhCW0fgpi7bumnNZ4wj/eQ+BJJ5n2pgoOliTOGv9nX2qXvmHap7rJMNmg==}
+    requiresBuild: true
+    dev: true
 
   /@prisma/engines/4.2.1:
     resolution: {integrity: sha512-0KqBwREUOjBiHwITsQzw2DWfLHjntvbqzGRawj4sBMnIiL5CXwyDUKeHOwXzKMtNr1rEjxEsypM14g0CzLRK3g==}
     requiresBuild: true
+
+  /@prisma/generator-helper/3.15.2:
+    resolution: {integrity: sha512-G6oKBowE+IwBdQUL5pOHuDrOgVQZVcsA3w1E52P5MeUqWhOtvtrewNBlqvsgyX9IiE35bzHQWIwxGfc0gzPUng==}
+    dependencies:
+      '@prisma/debug': 3.15.2
+      '@types/cross-spawn': 6.0.2
+      chalk: 4.1.2
+      cross-spawn: 7.0.3
+    transitivePeerDependencies:
+      - supports-color
+    dev: false
 
   /@prisma/generator-helper/4.2.1:
     resolution: {integrity: sha512-6P3lJMu/he4LcvUBL+1L9IkBGpF2Z8Kgp3Qr9hyjPLbFh4gLRfMC76Wj4vIlWpOyKW/P3tQH7NwU9kH/eq6z1g==}
@@ -14071,6 +14118,15 @@ packages:
     engines: {node: '>=10'}
     dependencies:
       parse-ms: 2.1.0
+    dev: true
+
+  /prisma/3.15.2:
+    resolution: {integrity: sha512-nMNSMZvtwrvoEQ/mui8L/aiCLZRCj5t6L3yujKpcDhIPk7garp8tL4nMx2+oYsN0FWBacevJhazfXAbV1kfBzA==}
+    engines: {node: '>=12.6'}
+    hasBin: true
+    requiresBuild: true
+    dependencies:
+      '@prisma/engines': 3.15.1-1.461d6a05159055555eb7dfb337c9fb271cbd4d7e
     dev: true
 
   /prisma/4.2.1:

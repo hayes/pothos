@@ -50,6 +50,9 @@
   "prisma": {
     "seed": "pnpm ts-node prisma/seed.ts"
   },
+  "dependencies": {
+    "@prisma/generator-helper": "^3.13.0"
+  },
   "peerDependencies": {
     "@pothos/plugin-prisma": "workspace:*",
     "@prisma/client": "*",
