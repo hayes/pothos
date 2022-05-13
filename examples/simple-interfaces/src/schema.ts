@@ -32,7 +32,7 @@ Post.implement({
     author: t.field({
       type: User,
       nullable: true,
-      resolve: (post) => Users.get(post.id),
+      resolve: (post) => [...Users.values()].find((user) => user.id === post.authorId),
     }),
     comments: t.field({
       type: [Comment],
@@ -48,11 +48,11 @@ Comment.implement({
     author: t.field({
       type: User,
       nullable: true,
-      resolve: (comment) => Users.get(comment.id),
+      resolve: (comment) => [...Users.values()].find((user) => user.id === comment.authorId),
     }),
     post: t.field({
       type: Post,
-      resolve: (comment) => Posts.get(comment.id)!,
+      resolve: (comment) => [...Posts.values()].find((post) => post.id === comment.postId)!,
     }),
   }),
 });
@@ -76,8 +76,8 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (root, args) =>
-        [...Posts.values()].slice(args.skip ?? 0, args.take ?? DEFAULT_PAGE_SIZE),
+      resolve: (root, { skip, take }) =>
+        [...Posts.values()].slice(skip ?? 0, (skip ?? 0) + (take ?? DEFAULT_PAGE_SIZE)),
     }),
     user: t.field({
       type: User,
