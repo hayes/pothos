@@ -76,7 +76,7 @@ builder.queryType({
         take: t.arg.int(),
         skip: t.arg.int(),
       },
-      resolve: (root, {skip, take}) =>
+      resolve: (root, { skip, take }) =>
         [...Posts.values()].slice(skip ?? 0, (skip ?? 0) + (take ?? DEFAULT_PAGE_SIZE)),
     }),
     user: t.field({
