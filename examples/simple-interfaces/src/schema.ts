@@ -52,7 +52,7 @@ Comment.implement({
     }),
     post: t.field({
       type: Post,
-      resolve: (comment) => [...Posts.values()].find((post) => post.id === comment.postId),
+      resolve: (comment) => [...Posts.values()].find((post) => post.id === comment.postId)!,
     }),
   }),
 });
