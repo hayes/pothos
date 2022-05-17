@@ -153,6 +153,22 @@ describe('relay example schema', () => {
               }
             }
           }
+          sharedConnectionAndEdge {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
+          sharedEdgeConnection {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
         }
       `;
 

@@ -43,11 +43,11 @@ const builder = new SchemaBuilder({
 
 The `relayOptions` object passed to builder can contain the following properties:
 
-- `clientMutationId`: `required` (default) | `omit` | `optional`. Determins if clientMutationId
+- `clientMutationId`: `required` (default) | `omit` | `optional`. Determines if clientMutationId
   fields are created on `relayMutationFields`, and if they are required.
 - `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults behavior due to
   legacy reasons is `String` for everything except for connection arguments which use `ID`.
-  Overwritting this default is hightly encouraged.
+  Overwriting this default is highly encouraged.
 - `nodeQueryOptions`: Options for the `node` field on the query object
 - `nodesQueryOptions`: Options for the `nodes` field on the query object
 - `nodeTypeOptions`: Options for the `Node` interface type
@@ -137,7 +137,7 @@ class NumberThing {
 }
 
 builder.node(NumberThing, {
-  // defiine an id field
+  // define an id field
   id: {
     resolve: (num) => num.id,
     // other options for id field can be added here
@@ -376,8 +376,9 @@ const ThingsConnection = builder.connectionObject(
   },
 );
 
+// You can use connection object with normal fields
 builder.queryFields((t) => ({
-  things: t.connection({
+  things: t.field({
     type: ThingsConnection,
     args: {
       ...t.arg.connectionArgs(),
@@ -389,6 +390,62 @@ builder.queryFields((t) => ({
     },
   }),
 }));
+
+// Or by providing the connection type when creating a connection field
+builder.queryFields((t) => ({
+  things: t.connection({
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        return getThings(offset, limit);
+      });
+    },
+  }),
+  ThingsConnection,
+}));
+```
+
+`builder.connectionObject` creates the connect object type and the associated Edge type.
+`t.arg.connectionArgs()` will create the default connection args.
+
+### Reusing edge objects
+
+Similarly you can directly create and re-use edge objects
+
+```typescript
+import { resolveOffsetConnection } from '@pothos/plugin-relay';
+
+const ThingsEdge = builder.edgeObject(
+  {
+    name: 'ThingsEdge',
+    type: SomeThing,
+  },
+);
+
+// The edge object can be used when creating a connection object
+const ThingsConnection = builder.connectionObject(
+  {
+    type: SomeThing,
+    name: 'ThingsConnection',
+  },
+  ThingsEdge,
+);
+
+// Or when creating a connection field
+builder.queryFields((t) => ({
+  things: t.connection({
+    resolve: (parent, args) => {
+      return resolveOffsetConnection({ args }, ({ limit, offset }) => {
+        return getThings(offset, limit);
+      });
+    },
+  }),
+  {
+    // connection options
+  },
+  ThingsEdge,
+}));
+
+
 ```
 
 `builder.connectionObject` creates the connect object type and the associated Edge type.
@@ -483,9 +540,9 @@ builder.globalConnectionFields((t) => ({
 }));
 ```
 
-In the above example, we are just returning a static nubmer for our `totalCount` field. To make this
+In the above example, we are just returning a static number for our `totalCount` field. To make this
 more useful, we need to have our resolvers for each connection actually return an object that
-contains a totalCount for us. To guarantee that resolvers correclty implement this behavior, we can
+contains a totalCount for us. To guarantee that resolvers correctly implement this behavior, we can
 define custom properties that must be returned from connection resolvers when we set up our builder:
 
 ```typescript
@@ -514,7 +571,7 @@ builder.globalConnectionField('totalCount', (t) =>
 
 Note that adding additional required properties will make it harder to use the provided connection
 helpers since they will not automatically return your custom properties. You will need to manually
-add in any custom props after gettig the result from the helpers:
+add in any custom props after getting the result from the helpers:
 
 ```typescript
 builder.queryFields((t) => ({
@@ -556,10 +613,10 @@ const builder = new SchemaBuilder<{
 ```
 
 The types provided for `DefaultEdgesNullability` and `DefaultNodeNullability` must match the values
-provided in the nullable option of `edgesFieldOptions` and `nodeFieldOptions` respectivly. This will
-set the default nullabilitty for all connections created by your builder.
+provided in the nullable option of `edgesFieldOptions` and `nodeFieldOptions` respectively. This
+will set the default nullability for all connections created by your builder.
 
-Nullablity for `edges` fields defaults to `{ list: false, items: true }` and the nullablity of
+nullability for `edges` fields defaults to `{ list: false, items: true }` and the nullability of
 `node` fields default to `false`.
 
 #### Per connection

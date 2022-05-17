@@ -230,20 +230,19 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, {
         payloadType: payloadRef,
     } as never;
 };
-schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable: nodeNullableField, ...connectionOptions }, { name: edgeNameFromOptions, ...edgeOptions } = {} as never) {
+schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable, ...connectionOptions }, edgeOptionsOrRef) {
     verifyRef(type);
-    const { cursorType = "String", edgesFieldOptions: { nullable: edgesNullable = { items: true, list: false }, ...edgesFieldOptions } = {} as never, cursorFieldOptions = {} as never, nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
+    const { edgesFieldOptions: { nullable: edgesNullable = { items: true, list: false }, ...edgesFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
     const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
-    const edgeName = edgeNameFromOptions ?? `${connectionName.replace(/Connection$/, "")}Edge`;
-    const edgeRef = this.objectRef<{
-        cursor: string;
-        node: unknown;
-    }>(edgeName);
+    const edgeRef = edgeOptionsOrRef instanceof ObjectRef
+        ? edgeOptionsOrRef
+        : this.edgeObject({
+            name: `${connectionName.replace(/Connection$/, "")}Edge`,
+            ...edgeOptionsOrRef,
+            nodeNullable,
+            type,
+        });
     const connectionFields = connectionOptions.fields as unknown as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>> | undefined;
-    const edgeFields = edgeOptions.fields as ObjectFieldsShape<SchemaTypes, {
-        cursor: string;
-        node: unknown;
-    }> | undefined;
     this.objectType(connectionRef, {
         ...connectionOptions,
         fields: (t) => ({
@@ -260,16 +259,35 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                 },
                 ...edgesFieldOptions,
                 type: [edgeRef],
-                resolve: (parent) => parent.edges,
+                resolve: (parent) => parent.edges as [
+                ],
             }),
             ...connectionFields?.(t as never),
         }),
     });
+    if (!connectionRefs.has(this)) {
+        connectionRefs.set(this, []);
+    }
+    connectionRefs.get(this)!.push(connectionRef);
+    globalConnectionFieldsMap.get(this)?.forEach((fieldFn) => void fieldFn(connectionRef));
+    return connectionRef as never;
+};
+schemaBuilderProto.edgeObject = function edgeObject({ type, name: edgeName, nodeNullable: nodeFieldNullable, ...edgeOptions }) {
+    verifyRef(type);
+    const { cursorType = "String", cursorFieldOptions = {} as never, nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never, } = this.options.relayOptions;
+    const edgeRef = this.objectRef<{
+        cursor: string;
+        node: unknown;
+    }>(edgeName);
+    const edgeFields = edgeOptions.fields as ObjectFieldsShape<SchemaTypes, {
+        cursor: string;
+        node: unknown;
+    }> | undefined;
     this.objectType(edgeRef, {
         ...edgeOptions,
         fields: (t) => ({
             node: t.field({
-                nullable: nodeNullableField ?? nodeNullable,
+                nullable: nodeFieldNullable ?? nodeNullable,
                 ...nodeFieldOptions,
                 type,
                 resolve: (parent) => parent.node as never,
@@ -282,10 +300,5 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
             ...edgeFields?.(t),
         }),
     });
-    if (!connectionRefs.has(this)) {
-        connectionRefs.set(this, []);
-    }
-    connectionRefs.get(this)!.push(connectionRef);
-    globalConnectionFieldsMap.get(this)?.forEach((fieldFn) => void fieldFn(connectionRef));
-    return connectionRef as never;
+    return edgeRef as never;
 };

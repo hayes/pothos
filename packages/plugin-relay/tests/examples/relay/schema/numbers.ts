@@ -119,10 +119,15 @@ builder.queryFields((t) => ({
   }),
 }));
 
-const SharedConnection = builder.connectionObject({
-  name: 'SharedConnection',
-  type: NumberThing,
-});
+const SharedConnection = builder.connectionObject(
+  {
+    name: 'SharedConnection',
+    type: NumberThing,
+  },
+  {
+    name: 'SharedConnectionEdge',
+  },
+);
 
 builder.queryField('sharedConnection', (t) =>
   t.field({
@@ -142,4 +147,56 @@ builder.queryField('sharedConnection', (t) =>
         return items;
       }),
   }),
+);
+
+const SharedEdge = builder.edgeObject({
+  name: 'SharedEdge',
+  type: NumberThing,
+});
+
+const SharedConnectionAndEdge = builder.connectionObject(
+  {
+    name: 'SharedConnectionAndEdge',
+    type: NumberThing,
+  },
+  SharedEdge,
+);
+
+builder.queryField('sharedConnectionAndEdge', (t) =>
+  t.connection(
+    {
+      type: NumberThing,
+      resolve: (root, args) =>
+        resolveOffsetConnection({ args }, ({ limit, offset }) => {
+          const items = [];
+
+          for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+            items.push(new NumberThing(i));
+          }
+
+          return items;
+        }),
+    },
+    SharedConnectionAndEdge,
+  ),
+);
+
+builder.queryField('sharedEdgeConnection', (t) =>
+  t.connection(
+    {
+      type: NumberThing,
+      resolve: (root, args) =>
+        resolveOffsetConnection({ args }, ({ limit, offset }) => {
+          const items = [];
+
+          for (let i = offset; i < Math.min(offset + limit, 200); i += 1) {
+            items.push(new NumberThing(i));
+          }
+
+          return items;
+        }),
+    },
+    {},
+    SharedEdge,
+  ),
 );

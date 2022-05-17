@@ -6,6 +6,7 @@ import {
   InputFieldMap,
   InputShapeFromFields,
   InterfaceRef,
+  ObjectRef,
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
@@ -176,15 +177,19 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
 
 fieldBuilderProto.connection = function connection(
   { type, edgesNullable, nodeNullable, ...fieldOptions },
-  { name: connectionNameFromOptions, ...connectionOptions } = {} as never,
-  { name: edgeNameFromOptions, ...edgeOptions } = {} as never,
+  connectionOptionsOrRef = {} as never,
+  edgeOptionsOrRef = {} as never,
 ) {
-  const placeholderRef =
-    this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>('Unnamed connection');
+  const connectionRef =
+    connectionOptionsOrRef instanceof ObjectRef
+      ? connectionOptionsOrRef
+      : this.builder.objectRef<ConnectionShape<SchemaTypes, unknown, boolean>>(
+          'Unnamed connection',
+        );
 
   const fieldRef = this.field({
     ...fieldOptions,
-    type: placeholderRef,
+    type: connectionRef,
     args: {
       ...fieldOptions.args,
       ...this.arg.connectionArgs(),
@@ -192,30 +197,33 @@ fieldBuilderProto.connection = function connection(
     resolve: fieldOptions.resolve as never,
   });
 
-  this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
-    const connectionName =
-      connectionNameFromOptions ??
-      `${this.typename}${capitalize(fieldConfig.name)}${
-        fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
-      }`;
-    const edgeName = edgeNameFromOptions ?? `${connectionName}Edge`;
+  if (!(connectionOptionsOrRef instanceof ObjectRef)) {
+    this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {
+      const connectionName =
+        connectionOptionsOrRef.name ??
+        `${this.typename}${capitalize(fieldConfig.name)}${
+          fieldConfig.name.toLowerCase().endsWith('connection') ? '' : 'Connection'
+        }`;
 
-    this.builder.connectionObject(
-      {
-        type,
-        edgesNullable,
-        nodeNullable,
-        name: connectionName,
-        ...connectionOptions,
-      },
-      {
-        name: edgeName,
-        ...edgeOptions,
-      },
-    );
+      this.builder.connectionObject(
+        {
+          type,
+          edgesNullable,
+          nodeNullable,
+          ...connectionOptionsOrRef,
+          name: connectionName,
+        },
+        edgeOptionsOrRef instanceof ObjectRef
+          ? edgeOptionsOrRef
+          : {
+              name: `${connectionName}Edge`,
+              ...edgeOptionsOrRef,
+            },
+      );
 
-    this.builder.configStore.associateRefWithName(placeholderRef, connectionName);
-  });
+      this.builder.configStore.associateRefWithName(connectionRef, connectionName);
+    });
+  }
 
   return fieldRef as never;
 };
