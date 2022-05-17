@@ -2,6 +2,12 @@
 
 ## null
 
+### Patch Changes
+
+- 4154edc9: Add isNull option to prisma variant fields
+
+## null
+
 ### Minor Changes
 
 - ecb2714c: Add types entry to export map in package.json and update dev dependencies

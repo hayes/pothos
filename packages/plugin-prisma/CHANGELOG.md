@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.0
+
+### Minor Changes
+
+- 4154edc9: Add isNull option to prisma variant fields
+
 ## 3.7.0
 
 ### Minor Changes
