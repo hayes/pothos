@@ -198,7 +198,7 @@ type User implements Named & Node {
   profile: Profile
   profileThroughManualLookup: Profile
   profileWithErrors: UserProfileWithErrorsResult
-  viewer: Viewer!
+  viewer: Viewer
 }
 
 type UserCommentedPostsConnection {

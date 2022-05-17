@@ -212,11 +212,6 @@ const builder = new SchemaBuilder<{
   prisma: {
     client: prisma,
   },
-  prisma: {
-    client: (ctx) => prisma,
-    // Because the prisma client is loaded dynamically, we need to explicitly pass the builder some information about the prisma schema
-    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
-  },
 });
 ```
 
@@ -653,7 +648,10 @@ const User = builder.prismaNode('User', {
   },
   fields: (t) => ({
     // To reference another variant, use the returned object Ref instead of the model name:
-    viewer: t.variant(Viewer, {}),
+    viewer: t.variant(Viewer, {
+      // return null for viewer if the parent User is not the current user
+      isNull: (user, args, ctx) => user.id !== ctx.user.id,
+    }),
     email: t.exposeString('email'),
   }),
 });

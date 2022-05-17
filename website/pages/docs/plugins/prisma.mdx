@@ -662,7 +662,10 @@ const User = builder.prismaNode('User', {
   },
   fields: (t) => ({
     // To reference another variant, use the returned object Ref instead of the model name:
-    viewer: t.variant(Viewer, {}),
+    viewer: t.variant(Viewer, {
+      // return null for viewer if the parent User is not the current user
+      isNull: (user, args, ctx) => user.id !== ctx.user.id,
+    }),
     email: t.exposeString('email'),
   }),
 });

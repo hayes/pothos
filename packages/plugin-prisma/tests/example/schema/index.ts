@@ -92,7 +92,9 @@ const User = builder.prismaNode('User', {
   },
   findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
-    viewer: t.variant(Viewer, {}),
+    viewer: t.variant(Viewer, {
+      isNull: (user, args, ctx) => user.id !== ctx.user.id,
+    }),
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile', {

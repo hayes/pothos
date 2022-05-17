@@ -5,6 +5,7 @@ import {
   FieldKind,
   FieldRef,
   InputFieldMap,
+  isThenable,
   MaybePromise,
   NormalizeArgs,
   ObjectRef,
@@ -327,19 +328,26 @@ export class PrismaObjectFieldBuilder<
     }) as FieldRef<number, 'Object'>;
   }
 
-  variant<Variant extends Model['Name'] | PrismaObjectRef<Model>>(
+  variant<
+    Variant extends Model['Name'] | PrismaObjectRef<Model>,
+    Args extends InputFieldMap,
+    Nullable,
+  >(
     ...allArgs: NormalizeArgs<
       [
         variant: Variant,
         options?: VariantFieldOptions<
           Types,
           Model,
-          Variant extends PrismaObjectRef<Model> ? Variant : PrismaObjectRef<Model>
+          Variant extends PrismaObjectRef<Model> ? Variant : PrismaObjectRef<Model>,
+          Args,
+          Nullable,
+          Shape
         >,
       ]
     >
   ): FieldRef<Model['Shape'], 'Object'> {
-    const [variant, options = {} as never] = allArgs;
+    const [variant, { isNull, nullable, ...options } = {} as never] = allArgs;
     const ref: PrismaObjectRef<PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
@@ -353,7 +361,19 @@ export class PrismaObjectFieldBuilder<
         ...options?.extensions,
         pothosPrismaSelect: selfSelect,
       },
-      resolve: (parent, args, context, info) => parent as never,
+      nullable: nullable ?? !!isNull,
+      resolve: isNull
+        ? (parent, args, context, info) => {
+            const parentIsNull = isNull(parent, args as never, context, info);
+            if (parentIsNull) {
+              if (isThenable(parentIsNull)) {
+                return parentIsNull.then((resolved) => (resolved ? null : parent)) as never;
+              }
+              return null as never;
+            }
+            return parent as never;
+          }
+        : (parent) => parent as never,
     }) as FieldRef<Model['Shape'], 'Object'>;
   }
 

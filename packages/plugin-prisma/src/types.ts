@@ -330,10 +330,28 @@ export type VariantFieldOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   Variant extends PrismaObjectRef<Model>,
+  Args extends InputFieldMap,
+  isNull,
+  Shape,
 > = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<Types, Model['Shape'], Variant, false, {}, Model['Shape']>,
+  PothosSchemaTypes.ObjectFieldOptions<
+    Types,
+    Shape,
+    Variant,
+    unknown extends isNull ? false : true,
+    Args,
+    Model['Shape']
+  >,
   'resolve' | 'type'
->;
+> & {
+  isNull?: isNull &
+    ((
+      parent: Shape,
+      args: InputShapeFromFields<Args>,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<boolean>);
+};
 
 export type RelationCountOptions<
   Types extends SchemaTypes,
