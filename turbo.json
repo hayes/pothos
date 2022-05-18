@@ -7,13 +7,13 @@
         "^build"
       ],
       "outputs": [
-        "prisma/client/*",
+        "prisma/client/**",
         "prisma/generated.d.ts",
-        "tests/client/*",
+        "tests/client/**",
         "tests/generated.d.ts",
-        "test/client/*",
+        "test/client/**",
         "test/generated.d.ts",
-        "components/__generated__/*"
+        "components/__generated__/**"
       ]
     },
     "build": {
