@@ -2,6 +2,16 @@
 
 ## null
 
+### Minor Changes
+
+- 1735eb40: Add edgeObject method to relay plugin
+
+### Patch Changes
+
+- @pothos/core@3.11.0
+
+## null
+
 ### Patch Changes
 
 - 4154edc9: Add isNull option to prisma variant fields
