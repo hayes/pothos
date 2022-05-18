@@ -13,7 +13,7 @@
   },
   "dependencies": {
     "@faker-js/faker": "^6.3.1",
-    "@graphql-yoga/node": "2.5.0",
+    "@graphql-yoga/node": "2.6.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "graphql": "16.5.0",

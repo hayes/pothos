@@ -32,6 +32,6 @@
     "graphql": "16.5.0",
     "graphql-helix": "^1.11.0",
     "ts-morph": "^14.0.0",
-    "yargs": "^17.4.1"
+    "yargs": "^17.5.1"
   }
 }
