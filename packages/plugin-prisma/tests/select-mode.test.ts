@@ -57,7 +57,7 @@ describe('select mode', () => {
       Object {
         "data": Object {
           "viewer": Object {
-            "bio": "Sequi minus inventore itaque similique et.",
+            "bio": "Saepe deserunt animi quia.",
             "postCount": 250,
             "selectUser": Object {
               "name": "Maurine Rath",
@@ -69,19 +69,19 @@ describe('select mode', () => {
                 },
                 Object {
                   "id": "U2VsZWN0UG9zdDoy",
-                  "title": "Ut exercitationem doloribus harum.",
+                  "title": "Accusantium et quia quos sequi molestiae.",
                 },
                 Object {
                   "id": "U2VsZWN0UG9zdDoz",
-                  "title": "Deleniti dolorem quibusdam.",
+                  "title": "Veniam perspiciatis et nisi aut corporis laboriosam.",
                 },
                 Object {
                   "id": "U2VsZWN0UG9zdDo0",
-                  "title": "Sint est asperiores sit voluptatum mollitia enim iste.",
+                  "title": "Sit voluptatum mollitia enim iste molestias nesciunt minima sequi voluptas.",
                 },
                 Object {
                   "id": "U2VsZWN0UG9zdDo1",
-                  "title": "Omnis inventore deserunt ipsa eligendi officiis voluptatem nostrum.",
+                  "title": "Omnis odit labore magni rerum quia praesentium distinctio.",
                 },
               ],
               "postsConnection": Object {
@@ -90,7 +90,7 @@ describe('select mode', () => {
                     "node": Object {
                       "createdAt": "2012-12-12T00:00:00.249Z",
                       "id": "U2VsZWN0UG9zdDoyNTA=",
-                      "title": "Quidem omnis autem possimus voluptatem qui accusamus.",
+                      "title": "Inventore quas reiciendis.",
                     },
                   },
                 ],
@@ -201,7 +201,7 @@ describe('select mode', () => {
       Object {
         "data": Object {
           "viewer": Object {
-            "bio": "Sequi minus inventore itaque similique et.",
+            "bio": "Saepe deserunt animi quia.",
             "selectUser": Object {
               "postsConnection": Object {
                 "edges": Array [
@@ -330,6 +330,7 @@ describe('select mode', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -431,6 +432,7 @@ describe('select mode', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {

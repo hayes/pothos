@@ -83,15 +83,49 @@ export type PrismaObjectFieldOptions<
   Args,
   ResolveReturnShape
 > & {
-  select?: Select &
-    (
-      | ExtractModel<Types, ParentShape>['Select']
-      | ((
-          args: InputShapeFromFields<Args>,
-          ctx: Types['Context'],
-        ) => ExtractModel<Types, ParentShape>['Select'])
-    );
+  select?: Select & ExtractModel<Types, ParentShape>['Select'];
 };
+
+export type PrismaFieldSelection<
+  Types extends SchemaTypes,
+  ParentShape,
+  Args extends InputFieldMap,
+  Select,
+> = Select &
+  (
+    | ExtractModel<Types, ParentShape>['Select']
+    | ((
+        args: InputShapeFromFields<Args>,
+        ctx: Types['Context'],
+        nestedSelection: <Selection extends boolean | {}>(
+          selection?: Selection,
+          path?: string[],
+        ) => Selection,
+      ) => ExtractModel<Types, ParentShape>['Select'])
+  );
+
+export type PrismaFieldWithSelectionOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  Select,
+  ResolveReturnShape,
+> = PothosSchemaTypes.ObjectFieldOptions<
+  Types,
+  unknown extends Select
+    ? ParentShape
+    : ParentShape &
+        ShapeFromSelection<
+          ExtractModel<Types, ParentShape>,
+          { select: Select extends (...args: any[]) => infer S ? S : Select }
+        >,
+  Type,
+  Nullable,
+  Args,
+  ResolveReturnShape
+>;
 
 type PrismaObjectFieldsShape<
   Types extends SchemaTypes,
@@ -564,8 +598,9 @@ export type FieldSelection =
   | ((
       args: object,
       context: object,
-      query: (
+      mergeNestedSelection: (
         selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
+        path?: string[] | IndirectInclude,
       ) => SelectionMap | boolean,
     ) => SelectionMap);
 
@@ -573,6 +608,7 @@ export type LoaderMappings = Record<
   string,
   {
     field: string;
+    type: string;
     mappings: LoaderMappings;
     indirectPath: string[];
   }

@@ -1,7 +1,6 @@
-import { GraphQLNamedType, GraphQLResolveInfo } from 'graphql';
+import { GraphQLResolveInfo } from 'graphql';
 import { createContextCache } from '@pothos/core';
 import { LoaderMappings } from '../types';
-import { getIndirectType } from './map-query';
 
 const cache = createContextCache((ctx) => new Map<string, LoaderMappings>());
 
@@ -23,18 +22,13 @@ export function cacheKey(type: string, path: GraphQLResolveInfo['path'], subPath
   return `${type}@${key}`;
 }
 
-export function setLoaderMappings(
-  ctx: object,
-  info: GraphQLResolveInfo,
-  value: LoaderMappings,
-  type: GraphQLNamedType,
-) {
+export function setLoaderMappings(ctx: object, info: GraphQLResolveInfo, value: LoaderMappings) {
   Object.keys(value).forEach((field) => {
     const map = cache(ctx);
 
     const mapping = value[field];
     const subPath = [...mapping.indirectPath, field];
-    const key = cacheKey(getIndirectType(type, info).name, info.path, subPath);
+    const key = cacheKey(mapping.type, info.path, subPath);
 
     map.set(key, mapping.mappings);
   });

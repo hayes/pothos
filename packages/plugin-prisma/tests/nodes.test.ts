@@ -55,7 +55,7 @@ describe('prisma', () => {
             "id": "VXNlcjox",
             "name": "Maurine Rath",
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
               "id": "1",
               "user": Object {
                 "id": "VXNlcjox",
@@ -127,7 +127,7 @@ describe('prisma', () => {
               "id": "VXNlcjox",
               "name": "Maurine Rath",
               "profile": Object {
-                "bio": "Sequi minus inventore itaque similique et.",
+                "bio": "Saepe deserunt animi quia.",
                 "id": "1",
                 "user": Object {
                   "id": "VXNlcjox",
@@ -136,9 +136,9 @@ describe('prisma', () => {
             },
             Object {
               "__typename": "User",
-              "email": "Nichole6@hotmail.com",
+              "email": "Kyla_Schoen@yahoo.com",
               "id": "VXNlcjoy",
-              "name": "Nichole Konopelski",
+              "name": "Kyla Schoen",
               "profile": null,
             },
           ],
@@ -272,6 +272,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -433,7 +434,7 @@ describe('prisma', () => {
       Object {
         "data": Object {
           "node": Object {
-            "bio": "Sequi minus inventore itaque similique et.",
+            "bio": "Saepe deserunt animi quia.",
             "id": "Vmlld2VyTm9kZTox",
           },
         },

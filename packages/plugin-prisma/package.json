@@ -51,7 +51,7 @@
     "@prisma/generator-helper": "^3.14.0"
   },
   "prisma": {
-    "seed": "node -r @swc-node/register prisma/seed.ts"
+    "seed": "node prisma/seed.mjs"
   },
   "peerDependencies": {
     "@pothos/core": "*",

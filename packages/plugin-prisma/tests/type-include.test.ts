@@ -60,70 +60,71 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-Array [
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+      Array [
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": Object {
+                    "include": Object {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 2,
+              },
+              "posts": Object {
+                "include": Object {
+                  "comments": Object {
+                    "include": Object {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": Object {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
               },
             },
-          },
-          "skip": 0,
-          "take": 2,
-        },
-        "posts": Object {
-          "include": Object {
-            "comments": Object {
-              "include": Object {
-                "author": true,
-              },
+            "where": Object {
+              "id": 1,
             },
           },
-          "orderBy": Object {
-            "createdAt": "desc",
-          },
-          "skip": 0,
-          "take": 2,
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-  Object {
-    "action": "findUnique",
-    "args": Object {
-      "include": Object {
-        "comments": Object {
-          "include": Object {
-            "author": Object {
-              "include": Object {
-                "profile": true,
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": Object {
+                    "include": Object {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 3,
               },
             },
+            "where": Object {
+              "id": 1,
+            },
           },
-          "skip": 0,
-          "take": 3,
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
         },
-      },
-      "where": Object {
-        "id": 1,
-      },
-    },
-    "dataPath": Array [],
-    "model": "User",
-    "runInTransaction": false,
-  },
-]
-`);
+      ]
+    `);
   });
 });

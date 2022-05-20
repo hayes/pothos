@@ -56,7 +56,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjox",
                   "profile": Object {
-                    "bio": "Sequi minus inventore itaque similique et.",
+                    "bio": "Saepe deserunt animi quia.",
                   },
                 },
               },
@@ -70,7 +70,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjoz",
                   "profile": Object {
-                    "bio": "Tenetur nam ut sed dolorem sit sed dolorem.",
+                    "bio": "Fugit vel voluptas porro qui natus earum.",
                   },
                 },
               },
@@ -78,7 +78,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjo0",
                   "profile": Object {
-                    "bio": "Accusamus reprehenderit possimus cumque nulla eum mollitia possimus placeat architecto.",
+                    "bio": "Doloribus eos quo.",
                   },
                 },
               },
@@ -86,7 +86,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjo1",
                   "profile": Object {
-                    "bio": "Dignissimos tempora magnam error aut neque corrupti ut et.",
+                    "bio": "Iste velit dolorem amet aut nostrum.",
                   },
                 },
               },
@@ -94,7 +94,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjo2",
                   "profile": Object {
-                    "bio": "Itaque eius distinctio provident minus alias tenetur fugiat doloribus repellendus.",
+                    "bio": "Provident dolorum autem fugiat eum quas accusantium corporis cumque explicabo.",
                   },
                 },
               },
@@ -102,7 +102,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjo3",
                   "profile": Object {
-                    "bio": "Minima autem dolorem natus.",
+                    "bio": "Cupiditate totam saepe asperiores eius est culpa odit ea.",
                   },
                 },
               },
@@ -110,7 +110,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjo4",
                   "profile": Object {
-                    "bio": "Porro consequuntur animi vero.",
+                    "bio": "Optio dolor et facilis repellendus dignissimos expedita.",
                   },
                 },
               },
@@ -118,7 +118,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjo5",
                   "profile": Object {
-                    "bio": "Atque enim facilis repellendus officia.",
+                    "bio": "Omnis eum magni ut eveniet maxime.",
                   },
                 },
               },
@@ -126,7 +126,7 @@ describe('prisma', () => {
                 "node": Object {
                   "id": "VXNlcjoxMA==",
                   "profile": Object {
-                    "bio": "Cumque temporibus eum et laboriosam adipisci est odit id.",
+                    "bio": "Mollitia cumque est ullam non qui et beatae recusandae.",
                   },
                 },
               },
@@ -227,6 +227,7 @@ describe('prisma', () => {
       ]
     `);
   });
+
   it('limit', async () => {
     const query = gql`
       query {
@@ -707,6 +708,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -813,6 +815,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -913,6 +916,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -1049,6 +1053,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -1075,6 +1080,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -1168,7 +1174,7 @@ describe('prisma', () => {
                         "node": Object {
                           "author": Object {
                             "profile": Object {
-                              "bio": "Sequi minus inventore itaque similique et.",
+                              "bio": "Saepe deserunt animi quia.",
                             },
                           },
                           "id": "250",
@@ -1179,7 +1185,7 @@ describe('prisma', () => {
                         "node": Object {
                           "author": Object {
                             "profile": Object {
-                              "bio": "Sequi minus inventore itaque similique et.",
+                              "bio": "Saepe deserunt animi quia.",
                             },
                           },
                           "id": "249",
@@ -1200,7 +1206,7 @@ describe('prisma', () => {
                         "node": Object {
                           "author": Object {
                             "profile": Object {
-                              "bio": "Sequi minus inventore itaque similique et.",
+                              "bio": "Saepe deserunt animi quia.",
                             },
                           },
                           "id": "250",
@@ -1242,6 +1248,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -1273,6 +1280,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -1336,7 +1344,7 @@ describe('prisma', () => {
                 Object {
                   "node": Object {
                     "profile": Object {
-                      "bio": "Sequi minus inventore itaque similique et.",
+                      "bio": "Saepe deserunt animi quia.",
                       "user": Object {
                         "id": "VXNlcjox",
                       },
@@ -1418,7 +1426,7 @@ describe('prisma', () => {
                     "node": Object {
                       "author": Object {
                         "profile": Object {
-                          "bio": "Sequi minus inventore itaque similique et.",
+                          "bio": "Saepe deserunt animi quia.",
                         },
                       },
                     },
@@ -1448,6 +1456,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "skip": 0,
@@ -1481,7 +1490,7 @@ describe('prisma', () => {
               }
             }
           }
-          followingAfter: following(first: 3, after: "R1BDOko6WzEsNV0=") {
+          followingAfter: following(first: 3, after: "R1BDOko6WzEsMjFd") {
             edges {
               cursor
               node {
@@ -1509,29 +1518,29 @@ describe('prisma', () => {
             "following": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOko6WzEsMV0=",
+                  "cursor": "R1BDOko6WzEsMl0=",
                   "node": Object {
                     "to": Object {
-                      "id": "VXNlcjox",
-                      "name": "Maurine Rath",
+                      "id": "VXNlcjoy",
+                      "name": "Kyla Schoen",
                     },
                   },
                 },
                 Object {
-                  "cursor": "R1BDOko6WzEsNV0=",
+                  "cursor": "R1BDOko6WzEsMjFd",
                   "node": Object {
                     "to": Object {
-                      "id": "VXNlcjo1",
-                      "name": "Teresa Rosenbaum",
+                      "id": "VXNlcjoyMQ==",
+                      "name": "Eunice Ledner",
                     },
                   },
                 },
                 Object {
-                  "cursor": "R1BDOko6WzEsOF0=",
+                  "cursor": "R1BDOko6WzEsMzBd",
                   "node": Object {
                     "to": Object {
-                      "id": "VXNlcjo4",
-                      "name": "Garret Russel",
+                      "id": "VXNlcjozMA==",
+                      "name": "Sydni Schmitt",
                     },
                   },
                 },
@@ -1540,20 +1549,11 @@ describe('prisma', () => {
             "followingAfter": Object {
               "edges": Array [
                 Object {
-                  "cursor": "R1BDOko6WzEsOF0=",
+                  "cursor": "R1BDOko6WzEsMzBd",
                   "node": Object {
                     "to": Object {
-                      "id": "VXNlcjo4",
-                      "name": "Garret Russel",
-                    },
-                  },
-                },
-                Object {
-                  "cursor": "R1BDOko6WzEsMzdd",
-                  "node": Object {
-                    "to": Object {
-                      "id": "VXNlcjozNw==",
-                      "name": "Tiara O'Connell",
+                      "id": "VXNlcjozMA==",
+                      "name": "Sydni Schmitt",
                     },
                   },
                 },
@@ -1562,7 +1562,16 @@ describe('prisma', () => {
                   "node": Object {
                     "to": Object {
                       "id": "VXNlcjozOQ==",
-                      "name": "Joany Buckridge",
+                      "name": "Estefania Jacobs",
+                    },
+                  },
+                },
+                Object {
+                  "cursor": "R1BDOko6WzEsNDNd",
+                  "node": Object {
+                    "to": Object {
+                      "id": "VXNlcjo0Mw==",
+                      "name": "Renee McGlynn",
                     },
                   },
                 },
@@ -1603,7 +1612,7 @@ describe('prisma', () => {
                 "cursor": Object {
                   "compositeID": Object {
                     "fromId": 1,
-                    "toId": 5,
+                    "toId": 21,
                   },
                 },
                 "include": Object {

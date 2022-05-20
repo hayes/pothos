@@ -63,11 +63,11 @@ describe('variants', () => {
           "me": Object {
             "__typename": "User",
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
             "viewer": Object {
               "__typename": "Viewer",
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
               "posts": Array [
                 Object {
                   "id": "1",
@@ -120,7 +120,7 @@ describe('variants', () => {
                   },
                 ],
                 "profile": Object {
-                  "bio": "Sequi minus inventore itaque similique et.",
+                  "bio": "Saepe deserunt animi quia.",
                 },
               },
             },
@@ -159,6 +159,7 @@ describe('variants', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "take": 5,
@@ -183,6 +184,7 @@ describe('variants', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {

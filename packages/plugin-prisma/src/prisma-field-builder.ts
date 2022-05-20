@@ -3,6 +3,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import {
   CompatibleTypes,
   FieldKind,
+  FieldNullability,
   FieldRef,
   InputFieldMap,
   isThenable,
@@ -12,6 +13,7 @@ import {
   PluginName,
   RootFieldBuilder,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 import { PrismaObjectRef } from './object-ref';
@@ -31,6 +33,7 @@ import {
   getRelation,
 } from './util/datamodel';
 import { FieldMap } from './util/relation-map';
+import { PrismaFieldSelection, PrismaFieldWithSelectionOptions } from '.';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -137,18 +140,29 @@ export class PrismaObjectFieldBuilder<
     const relationSelect = (
       args: object,
       context: object,
-      nestedQuery: (query: unknown) => unknown,
+      nestedQuery: (query: unknown, path: unknown) => unknown,
     ) => ({
       select: {
-        [name]: nestedQuery({
-          ...((typeof query === 'function' ? query(args, context) : query) as {}),
-          ...prismaCursorConnectionQuery({
-            parseCursor,
-            maxSize,
-            defaultSize,
-            args,
-          }),
-        }),
+        [name]: nestedQuery(
+          {
+            ...((typeof query === 'function' ? query(args, context) : query) as {}),
+            ...prismaCursorConnectionQuery({
+              parseCursor,
+              maxSize,
+              defaultSize,
+              args,
+            }),
+          },
+          {
+            getType: () => {
+              if (!typeName) {
+                typeName = this.builder.configStore.getTypeConfig(ref).name;
+              }
+              return typeName;
+            },
+            path: [{ name: 'edges' }, { name: 'node' }],
+          },
+        ),
       },
     });
 
@@ -216,18 +230,6 @@ export class PrismaObjectFieldBuilder<
               ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
             })
           : (connectionOptions as { fields: undefined }).fields,
-        extensions: {
-          ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-          pothosPrismaIndirectInclude: {
-            getType: () => {
-              if (!typeName) {
-                typeName = this.builder.configStore.getTypeConfig(ref).name;
-              }
-              return typeName;
-            },
-            path: [{ name: 'edges' }, { name: 'node' }],
-          },
-        },
       },
       edgeOptions,
     );
@@ -415,6 +417,30 @@ export class PrismaObjectFieldBuilder<
         },
       },
     });
+  }
+
+  fieldWithSelection<
+    Args extends InputFieldMap,
+    Type extends TypeParam<Types>,
+    Select,
+    ResolveReturnShape,
+    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+  >(
+    select: PrismaFieldSelection<Types, Shape, Args, Select>,
+    options: PrismaFieldWithSelectionOptions<
+      Types,
+      Shape,
+      Type,
+      Nullable,
+      Args,
+      Select,
+      ResolveReturnShape
+    >,
+  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> {
+    return this.field({
+      select,
+      ...options,
+    } as never);
   }
 
   private createExpose<Type extends TypeParam<Types>>(type: Type) {
