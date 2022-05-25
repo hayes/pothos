@@ -94,7 +94,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         if (!cache.has(key)) {
             const loader = scopes[name];
             if (typeof loader !== "function") {
-                throw new TypeError(`Attempted to evaluate scope ${name} as scope loader, but it is not a function`);
+                throw new TypeError(`Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`);
             }
             const result = (loader as (param: Types["AuthScopes"][T]) => MaybePromise<boolean>)(arg);
             if (isThenable(result)) {

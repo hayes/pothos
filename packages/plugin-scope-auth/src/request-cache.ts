@@ -144,7 +144,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
       if (typeof loader !== 'function') {
         throw new TypeError(
-          `Attempted to evaluate scope ${name} as scope loader, but it is not a function`,
+          `Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`,
         );
       }
 

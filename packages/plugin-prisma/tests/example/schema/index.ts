@@ -33,18 +33,6 @@ const PostPreview = builder.objectRef<Post>('PostPreview').implement({
   }),
 });
 
-void prisma.post.findFirst({
-  select: {
-    comments: {
-      where: {
-        createdAt: {
-          gt: new Date(),
-        },
-      },
-    },
-  },
-});
-
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   findUnique: (user) => ({ id: user.id }),
@@ -68,20 +56,18 @@ const Viewer = builder.prismaObject('User', {
       },
       resolve: (user) => user._count.posts,
     }),
-    postPreviews: t.fieldWithSelection(
-      (args, ctx, nestedQuery) => ({
-        posts: nestedQuery(
+    postPreviews: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection(
           {
             take: 2,
           },
           ['post'],
         ),
       }),
-      {
-        type: [PostPreview],
-        resolve: (user) => user.posts,
-      },
-    ),
+      type: [PostPreview],
+      resolve: (user) => user.posts,
+    }),
     user: t.variant('User'),
     selectUser: t.variant(SelectUser),
     bio: t.string({
@@ -361,12 +347,12 @@ builder.prismaObject('Post', {
       cursor: 'id',
       query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
     }),
-    media: t.fieldWithSelection(
-      (args, ctx, nestedQuery) => ({
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
         media: {
           select: {
             order: true,
-            media: nestedQuery({
+            media: nestedSelection({
               select: {
                 id: true,
                 posts: true,
@@ -375,11 +361,9 @@ builder.prismaObject('Post', {
           },
         },
       }),
-      {
-        type: [Media],
-        resolve: (post) => post.media.map(({ media }) => media),
-      },
-    ),
+      type: [Media],
+      resolve: (post) => post.media.map(({ media }) => media),
+    }),
   }),
 });
 
@@ -398,19 +382,17 @@ builder.prismaObject('Comment', {
     author: t.relation('author'),
     post: t.relation('post'),
     content: t.exposeString('content'),
-    postAuthor: t.fieldWithSelection(
-      (args, ctx, nestedQuery) => ({
+    postAuthor: t.field({
+      select: (args, ctx, nestedSelection) => ({
         post: {
           select: {
-            author: nestedQuery(true),
+            author: nestedSelection(true),
           },
         },
       }),
-      {
-        type: User,
-        resolve: (comment) => comment.post.author,
-      },
-    ),
+      type: User,
+      resolve: (comment) => comment.post.author,
+    }),
   }),
 });
 

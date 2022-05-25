@@ -634,9 +634,13 @@ const PostDraft = builder.prismaObject('Post', {
   findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     title: t.exposeString('title'),
-    commentsSince: t.fieldWithSelection(
-      (args) => ({
+    commentFromDate: t.string({
+      args: {
+        date: t.arg({ type: 'Date', required: true }),
+      },
+      select: (args) => ({
         comments: {
+          take: 1,
           where: {
             createdAt: {
               gt: args.date,
@@ -644,14 +648,8 @@ const PostDraft = builder.prismaObject('Post', {
           },
         },
       }),
-      {
-        type: 'Int',
-        args: {
-          date: t.arg({ type: 'Date', required: true }),
-        },
-        resolve: (post) => post.comments.length,
-      },
-    ),
+      resolve: (post) => post.comments[0]?.content,
+    }),
   }),
 });
 ```
@@ -660,7 +658,7 @@ const PostDraft = builder.prismaObject('Post', {
 
 If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
 many relations using a custom join table is a common example of this) you can use the
-`t.fieldWithSelection` method to select the appropriate data for this relationship.
+`nestedSelection` function passed to `select`.
 
 Given a prisma schema like the following:
 
@@ -696,13 +694,13 @@ const PostDraft = builder.prismaObject('Post', {
   findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     title: t.exposeString('title'),
-    media: t.fieldWithSelection(
-      (args, ctx, nestedQuery) => ({
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
         media: {
           select: {
             // This will look at what fields are queried on Media
             // and automatically select uploadedBy if that relation is requested
-            media: nestedQuery(
+            media: nestedSelection(
               // This arument is the default query for the media relation
               // It could be something like: `{ select: { id: true } }` instead
               true,
@@ -710,11 +708,9 @@ const PostDraft = builder.prismaObject('Post', {
           },
         },
       }),
-      {
-        type: [Media],
-        resolve: (post) => post.media.map(({ media }) => media),
-      },
-    ),
+      type: [Media],
+      resolve: (post) => post.media.map(({ media }) => media),
+    }),
   }),
 });
 
@@ -732,8 +728,10 @@ const Media = builder.prismaObject('Media', {
 
 ## Selecting fields from a nested GraphQL field
 
-The following example shows how we can hoist selections from a nested graphQL field into a parent
-selection when it is not defined with `t.relation`
+By default, the `nestedSelection` function will return selections based on the type of the current
+field. `nestedSelection` can also be used to get a selection from a field nested deeper inside other
+fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
+inside the returned type is.
 
 ```ts
 const PostRef = builder.prismaObject('Post', {
@@ -762,9 +760,9 @@ builder.prismaObject('User', {
   findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
-    postPreviews: t.fieldWithSelection(
-      (args, ctx, nestedQuery) => ({
-        posts: nestedQuery(
+    postPreviews: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection(
           {
             // limit the number of postPreviews to load
             take: 2,
@@ -773,11 +771,9 @@ builder.prismaObject('User', {
           ['post'],
         ),
       }),
-      {
-        type: [PostPreview],
-        resolve: (user) => user.posts,
-      },
-    ),
+      type: [PostPreview],
+      resolve: (user) => user.posts,
+    }),
   }),
 });
 ```

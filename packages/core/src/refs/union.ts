@@ -7,8 +7,8 @@ export default class UnionRef<T, P = T>
 {
   override kind = 'Union' as const;
 
-  [outputShapeKey]: T;
-  [parentShapeKey]: P;
+  [outputShapeKey]!: T;
+  [parentShapeKey]!: P;
 
   constructor(name: string) {
     super('Union', name);

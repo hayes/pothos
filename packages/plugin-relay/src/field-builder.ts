@@ -48,8 +48,8 @@ fieldBuilderProto.globalIDList = function globalIDList<
     assertArray(result);
 
     if (Array.isArray(result)) {
-      return (await Promise.all(result)).map(
-        (item: GlobalIDShape<SchemaTypes> | null | undefined) =>
+      return ((await Promise.all(result)) as (GlobalIDShape<SchemaTypes> | null | undefined)[]).map(
+        (item) =>
           item == null || typeof item === 'string'
             ? item
             : internalEncodeGlobalID(

@@ -7,9 +7,9 @@ export default class EnumRef<T, U = T>
 {
   override kind = 'Enum' as const;
 
-  [outputShapeKey]: T;
+  [outputShapeKey]!: T;
 
-  [inputShapeKey]: U;
+  [inputShapeKey]!: U;
 
   constructor(name: string) {
     super('Enum', name);

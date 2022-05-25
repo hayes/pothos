@@ -14,7 +14,7 @@ export default class InputObjectRef<T>
 {
   override kind = 'InputObject' as const;
 
-  [inputShapeKey]: T;
+  [inputShapeKey]!: T;
 
   constructor(name: string) {
     super('InputObject', name);

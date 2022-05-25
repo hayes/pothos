@@ -3,7 +3,6 @@ import { GraphQLResolveInfo } from 'graphql';
 import {
   CompatibleTypes,
   FieldKind,
-  FieldNullability,
   FieldRef,
   InputFieldMap,
   isThenable,
@@ -13,7 +12,6 @@ import {
   PluginName,
   RootFieldBuilder,
   SchemaTypes,
-  ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 import { PrismaObjectRef } from './object-ref';
@@ -33,7 +31,6 @@ import {
   getRelation,
 } from './util/datamodel';
 import { FieldMap } from './util/relation-map';
-import { PrismaFieldSelection, PrismaFieldWithSelectionOptions } from '.';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -417,30 +414,6 @@ export class PrismaObjectFieldBuilder<
         },
       },
     });
-  }
-
-  fieldWithSelection<
-    Args extends InputFieldMap,
-    Type extends TypeParam<Types>,
-    Select,
-    ResolveReturnShape,
-    Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
-  >(
-    select: PrismaFieldSelection<Types, Shape, Args, Select>,
-    options: PrismaFieldWithSelectionOptions<
-      Types,
-      Shape,
-      Type,
-      Nullable,
-      Args,
-      Select,
-      ResolveReturnShape
-    >,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> {
-    return this.field({
-      select,
-      ...options,
-    } as never);
   }
 
   private createExpose<Type extends TypeParam<Types>>(type: Type) {

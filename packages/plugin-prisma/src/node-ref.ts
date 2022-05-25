@@ -7,7 +7,7 @@ export default class PrismaNodeRef<Model extends PrismaModelTypes, T> extends Pr
   Model,
   T
 > {
-  [abstractReturnShapeKey]: WithBrand<T>;
+  [abstractReturnShapeKey]!: WithBrand<T>;
 
   addBrand<V extends T | T[]>(
     value: V,
