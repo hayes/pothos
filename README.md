@@ -130,3 +130,4 @@ generous people and organizations:
 - [@huv1k](https://github.com/huv1k)
 - [@KATT](https://github.com/KATT)
 - [@robmcguinness](https://github.com/robmcguinness)
+- [@Gomah](https://github.com/Gomah)
