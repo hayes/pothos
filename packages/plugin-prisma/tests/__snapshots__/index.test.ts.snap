@@ -11,6 +11,7 @@ type Comment {
   content: String!
   id: ID!
   post: Post!
+  postAuthor: User!
 }
 
 interface Error {
@@ -20,6 +21,10 @@ interface Error {
 type Follow {
   from: User!
   to: User!
+}
+
+type Media {
+  url: String!
 }
 
 interface Named {
@@ -45,6 +50,7 @@ type Post {
   content: String
   createdAt: String!
   id: ID!
+  media: [Media!]!
   ownComments: [Comment!]!
   ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
   post: User!
@@ -69,6 +75,11 @@ type PostOwnCommentsConnection {
 type PostOwnCommentsConnectionEdge {
   cursor: String!
   node: Comment!
+}
+
+type PostPreview {
+  post: SelectPost!
+  preview: String
 }
 
 type Profile {
@@ -270,6 +281,7 @@ type Viewer {
   bio: String
   id: ID!
   postCount: Int!
+  postPreviews: [PostPreview!]!
   posts: [Post!]!
   selectUser: SelectUser!
   user: User!
@@ -370,11 +382,11 @@ Object {
           },
         ],
         "profile": Object {
-          "bio": "Sequi minus inventore itaque similique et.",
+          "bio": "Saepe deserunt animi quia.",
         },
       },
       Object {
-        "name": "Nichole Konopelski",
+        "name": "Kyla Schoen",
         "posts": Array [
           Object {
             "author": Object {
@@ -452,70 +464,70 @@ Object {
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },
         Object {
           "author": Object {
             "profile": Object {
-              "bio": "Sequi minus inventore itaque similique et.",
+              "bio": "Saepe deserunt animi quia.",
             },
           },
         },

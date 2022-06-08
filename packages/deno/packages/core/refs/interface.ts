@@ -4,8 +4,8 @@ import { InterfaceParam, InterfaceTypeOptions, OutputRef, outputShapeKey, parent
 import BaseTypeRef from './base.ts';
 export default class InterfaceRef<T, P = T> extends BaseTypeRef implements OutputRef, PothosSchemaTypes.InterfaceRef<T, P> {
     override kind = "Interface" as const;
-    [outputShapeKey]: T;
-    [parentShapeKey]: P;
+    [outputShapeKey]!: T;
+    [parentShapeKey]!: P;
     constructor(name: string) {
         super("Interface", name);
     }

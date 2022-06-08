@@ -15,7 +15,7 @@ fieldBuilderProto.globalIDList = function globalIDList<Args extends InputFieldMa
         }
         assertArray(result);
         if (Array.isArray(result)) {
-            return (await Promise.all(result)).map((item: GlobalIDShape<SchemaTypes> | null | undefined) => item == null || typeof item === "string"
+            return ((await Promise.all(result)) as (GlobalIDShape<SchemaTypes> | null | undefined)[]).map((item) => item == null || typeof item === "string"
                 ? item
                 : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(item.type).name, String(item.id)));
         }

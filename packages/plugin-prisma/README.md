@@ -610,6 +610,160 @@ builder.prismaObject('User', {
 });
 ```
 
+## Using arguments or context in your selections
+
+The following is a slightly contrived example, but shows how arguments can be used when creating a
+selection for a field:
+
+```ts
+const PostDraft = builder.prismaObject('Post', {
+  findUnique: (post) => ({ id: post.id }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    commentFromDate: t.string({
+      args: {
+        date: t.arg({ type: 'Date', required: true }),
+      },
+      select: (args) => ({
+        comments: {
+          take: 1,
+          where: {
+            createdAt: {
+              gt: args.date,
+            },
+          },
+        },
+      }),
+      resolve: (post) => post.comments[0]?.content,
+    }),
+  }),
+});
+```
+
+## Indirect relations (eg. Join tables)
+
+If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
+many relations using a custom join table is a common example of this) you can use the
+`nestedSelection` function passed to `select`.
+
+Given a prisma schema like the following:
+
+```
+model Post {
+  id        Int         @id @default(autoincrement())
+  title     String
+  content   String
+  media     PostMedia[]
+}
+
+model Media {
+  id           Int         @id @default(autoincrement())
+  url          String
+  posts        PostMedia[]
+  uploadedBy   User        @relation(fields: [uoloadedById], references: [id])
+  uoloadedById Int
+}
+
+model PostMedia {
+  id      Int   @id @default(autoincrement())
+  post    Post  @relation(fields: [postId], references: [id])
+  media   Media @relation(fields: [mediaId], references: [id])
+  postId  Int
+  mediaId Int
+}
+```
+
+You can define a media field that can pre-load the correct relations based on the graphql query:
+
+```ts
+const PostDraft = builder.prismaObject('Post', {
+  findUnique: (post) => ({ id: post.id }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          select: {
+            // This will look at what fields are queried on Media
+            // and automatically select uploadedBy if that relation is requested
+            media: nestedSelection(
+              // This arument is the default query for the media relation
+              // It could be something like: `{ select: { id: true } }` instead
+              true,
+            ),
+          },
+        },
+      }),
+      type: [Media],
+      resolve: (post) => post.media.map(({ media }) => media),
+    }),
+  }),
+});
+
+const Media = builder.prismaObject('Media', {
+  findUnique: (media) => ({ id: media.id }),
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+    uploadedBy: t.relation('uploadedBy'),
+  }),
+});
+```
+
+## Selecting fields from a nested GraphQL field
+
+By default, the `nestedSelection` function will return selections based on the type of the current
+field. `nestedSelection` can also be used to get a selection from a field nested deeper inside other
+fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
+inside the returned type is.
+
+```ts
+const PostRef = builder.prismaObject('Post', {
+  findUnique: (post) => ({ id: post.id }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    content: t.exposeString('content'),
+    author: t.relation('author'),
+  }),
+});
+
+const PostPreview = builder.objectRef<Post>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({
+      type: PostRef,
+      resolve: (post) => post,
+    }),
+    preview: t.string({
+      nullable: true,
+      resolve: (post) => post.content?.slice(10),
+    }),
+  }),
+});
+
+builder.prismaObject('User', {
+  findUnique: (user) => ({ id: user.id }),
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    postPreviews: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection(
+          {
+            // limit the number of postPreviews to load
+            take: 2,
+          },
+          // Look at the selections in postPreviews.post to determine what relations/fields to select
+          ['post'],
+        ),
+      }),
+      type: [PostPreview],
+      resolve: (user) => user.posts,
+    }),
+  }),
+});
+```
+
 ## Type variants
 
 The prisma plugin supports defining multiple GraphQL types based on the same prisma model.

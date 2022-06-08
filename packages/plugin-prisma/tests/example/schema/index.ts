@@ -1,4 +1,5 @@
 /* eslint-disable no-underscore-dangle */
+import { Post } from '../../client';
 import builder, { prisma } from '../builder';
 
 const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
@@ -16,6 +17,19 @@ builder.objectType(Error, {
 const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   fields: (t) => ({
     name: t.string({ nullable: true }),
+  }),
+});
+
+const PostPreview = builder.objectRef<Post>('PostPreview').implement({
+  fields: (t) => ({
+    post: t.field({
+      type: SelectPost,
+      resolve: (post) => post,
+    }),
+    preview: t.string({
+      nullable: true,
+      resolve: (post) => post.content?.slice(10),
+    }),
   }),
 });
 
@@ -42,16 +56,28 @@ const Viewer = builder.prismaObject('User', {
       },
       resolve: (user) => user._count.posts,
     }),
+    postPreviews: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        posts: nestedSelection(
+          {
+            take: 2,
+          },
+          ['post'],
+        ),
+      }),
+      type: [PostPreview],
+      resolve: (user) => user.posts,
+    }),
     user: t.variant('User'),
     selectUser: t.variant(SelectUser),
     bio: t.string({
-      select: () => ({
+      select: {
         profile: {
           select: {
             bio: true,
           },
         },
-      }),
+      },
       nullable: true,
       resolve: (user) => user.profile?.bio,
     }),
@@ -170,6 +196,16 @@ const User = builder.prismaNode('User', {
   }),
 });
 
+const Media = builder.prismaObject('Media', {
+  findUnique: (media) => ({ id: media.id }),
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+  }),
+});
+
 const SelectUser = builder.prismaNode('User', {
   variant: 'SelectUser',
   authScopes: (user) => !!user.id,
@@ -276,6 +312,7 @@ builder.prismaObject('Post', {
   findUnique: (post) => ({ id: post.id }),
   include: {
     comments: {
+      take: 3,
       include: {
         author: true,
       },
@@ -297,7 +334,11 @@ builder.prismaObject('Post', {
     commentAuthorIds: t.idList({
       resolve: (post) => [...new Set(post.comments.map((comment) => comment.author.id))],
     }),
-    comments: t.relation('comments'),
+    comments: t.relation('comments', {
+      query: {
+        take: 3,
+      },
+    }),
     commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
     ownComments: t.relation('comments', {
       query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
@@ -305,6 +346,23 @@ builder.prismaObject('Post', {
     ownCommentsConnection: t.relatedConnection('comments', {
       cursor: 'id',
       query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
+    }),
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          select: {
+            order: true,
+            media: nestedSelection({
+              select: {
+                id: true,
+                posts: true,
+              },
+            }),
+          },
+        },
+      }),
+      type: [Media],
+      resolve: (post) => post.media.map(({ media }) => media),
     }),
   }),
 });
@@ -324,6 +382,17 @@ builder.prismaObject('Comment', {
     author: t.relation('author'),
     post: t.relation('post'),
     content: t.exposeString('content'),
+    postAuthor: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        post: {
+          select: {
+            author: nestedSelection(true),
+          },
+        },
+      }),
+      type: User,
+      resolve: (comment) => comment.post.author,
+    }),
   }),
 });
 

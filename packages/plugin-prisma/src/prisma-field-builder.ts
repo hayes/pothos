@@ -137,18 +137,29 @@ export class PrismaObjectFieldBuilder<
     const relationSelect = (
       args: object,
       context: object,
-      nestedQuery: (query: unknown) => unknown,
+      nestedQuery: (query: unknown, path: unknown) => unknown,
     ) => ({
       select: {
-        [name]: nestedQuery({
-          ...((typeof query === 'function' ? query(args, context) : query) as {}),
-          ...prismaCursorConnectionQuery({
-            parseCursor,
-            maxSize,
-            defaultSize,
-            args,
-          }),
-        }),
+        [name]: nestedQuery(
+          {
+            ...((typeof query === 'function' ? query(args, context) : query) as {}),
+            ...prismaCursorConnectionQuery({
+              parseCursor,
+              maxSize,
+              defaultSize,
+              args,
+            }),
+          },
+          {
+            getType: () => {
+              if (!typeName) {
+                typeName = this.builder.configStore.getTypeConfig(ref).name;
+              }
+              return typeName;
+            },
+            path: [{ name: 'edges' }, { name: 'node' }],
+          },
+        ),
       },
     });
 
@@ -216,18 +227,6 @@ export class PrismaObjectFieldBuilder<
               ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
             })
           : (connectionOptions as { fields: undefined }).fields,
-        extensions: {
-          ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-          pothosPrismaIndirectInclude: {
-            getType: () => {
-              if (!typeName) {
-                typeName = this.builder.configStore.getTypeConfig(ref).name;
-              }
-              return typeName;
-            },
-            path: [{ name: 'edges' }, { name: 'node' }],
-          },
-        },
       },
       edgeOptions,
     );

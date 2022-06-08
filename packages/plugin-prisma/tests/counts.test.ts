@@ -115,6 +115,7 @@ describe('prisma counts', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -162,6 +163,7 @@ describe('prisma counts', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -304,6 +306,7 @@ describe('prisma counts', () => {
                 "include": Object {
                   "author": true,
                 },
+                "take": 3,
               },
             },
             "where": Object {
@@ -472,6 +475,7 @@ describe('prisma counts', () => {
                         "include": Object {
                           "author": true,
                         },
+                        "take": 3,
                       },
                     },
                     "orderBy": Object {
@@ -486,6 +490,7 @@ describe('prisma counts', () => {
                 "include": Object {
                   "author": true,
                 },
+                "take": 3,
               },
             },
             "take": 3,

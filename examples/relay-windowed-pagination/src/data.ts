@@ -1,5 +1,5 @@
 /* eslint-disable no-magic-numbers */
-import faker from '@faker-js/faker';
+import { faker } from '@faker-js/faker';
 import { IComment, IPost, IUser } from './types';
 
 export const Users = new Map<string, IUser>();

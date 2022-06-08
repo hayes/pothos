@@ -340,7 +340,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: PothosTypeConfig) => void) {
     if (!ref) {
-      throw new Error(`${ref} is not a valid type ref`);
+      throw new Error(`${String(ref)} is not a valid type ref`);
     }
     if (this.refsToName.has(ref)) {
       cb(this.getTypeConfig(ref));

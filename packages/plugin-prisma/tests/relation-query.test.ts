@@ -82,6 +82,7 @@ describe('query on relations', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "skip": 0,
@@ -168,6 +169,7 @@ describe('query on relations', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "skip": 0,
@@ -217,7 +219,7 @@ describe('query on relations', () => {
           "post": Object {
             "ownComments": Array [
               Object {
-                "content": "Adipisci autem ducimus sunt et expedita consequuntur esse nam.",
+                "content": "Qui praesentium possimus amet amet.",
                 "id": "1",
               },
             ],
@@ -236,6 +238,7 @@ describe('query on relations', () => {
                 "include": Object {
                   "author": true,
                 },
+                "take": 3,
               },
             },
             "where": Object {
@@ -310,7 +313,7 @@ describe('query on relations', () => {
                     "author": Object {
                       "name": "Maurine Rath",
                     },
-                    "content": "Adipisci autem ducimus sunt et expedita consequuntur esse nam.",
+                    "content": "Qui praesentium possimus amet amet.",
                   },
                 },
               ],
@@ -330,6 +333,7 @@ describe('query on relations', () => {
                 "include": Object {
                   "author": true,
                 },
+                "take": 3,
               },
             },
             "where": Object {

@@ -13,7 +13,7 @@ export default class InputFieldRef<
 
   argFor?: FieldRef | InputFieldRef;
 
-  [inputFieldShapeKey]: T;
+  [inputFieldShapeKey]!: T;
 
   constructor(kind: Kind, parentTypename: string) {
     this.kind = kind;

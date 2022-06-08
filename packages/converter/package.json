@@ -39,7 +39,7 @@
   },
   "dependencies": {
     "graphql": "16.5.0",
-    "ts-morph": "^14.0.0",
+    "ts-morph": "^15.0.0",
     "yargs": "^17.5.1"
   },
   "devDependencies": {

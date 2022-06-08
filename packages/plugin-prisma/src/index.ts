@@ -1,7 +1,7 @@
 import './global-types';
 import './field-builder';
 import './schema-builder';
-import { getNamedType, GraphQLFieldResolver } from 'graphql';
+import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   BuildCache,
@@ -34,7 +34,17 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
           ...fieldConfig.extensions,
           pothosPrismaSelect:
             typeof select === 'function'
-              ? (args: {}, ctx: Types['Context']) => ({ select: select(args, ctx) })
+              ? (
+                  args: {},
+                  ctx: Types['Context'],
+                  nestedQuery: (query: unknown, path?: string[]) => never,
+                ) => ({
+                  select: (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {})(
+                    args,
+                    ctx,
+                    nestedQuery,
+                  ),
+                })
               : select,
         },
       };
@@ -67,7 +77,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       const mapping = getLoaderMapping(context, info.path, info.parentType.name);
 
       if ((!loadedCheck || loadedCheck(parent)) && mapping) {
-        setLoaderMappings(context, info, mapping, getNamedType(info.returnType));
+        setLoaderMappings(context, info, mapping);
 
         return resolver(parent, args, context, info);
       }
@@ -84,7 +94,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
           const mappings = selectionState.mappings[info.path.key];
 
           if (mappings) {
-            setLoaderMappings(context, info, mappings.mappings, getNamedType(info.returnType));
+            setLoaderMappings(context, info, mappings.mappings);
           }
 
           return resolver(result, args, context, info);

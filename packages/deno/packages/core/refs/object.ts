@@ -4,8 +4,8 @@ import { InterfaceParam, ObjectTypeOptions, OutputRef, outputShapeKey, parentSha
 import BaseTypeRef from './base.ts';
 export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef, PothosSchemaTypes.ObjectRef<T, P> {
     override kind = "Object" as const;
-    [outputShapeKey]: T;
-    [parentShapeKey]: P;
+    [outputShapeKey]!: T;
+    [parentShapeKey]!: P;
     constructor(name: string) {
         super("Object", name);
     }

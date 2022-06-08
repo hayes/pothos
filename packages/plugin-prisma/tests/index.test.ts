@@ -150,6 +150,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -215,6 +216,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -274,6 +276,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -299,6 +302,7 @@ describe('prisma', () => {
                 "include": Object {
                   "author": true,
                 },
+                "take": 3,
               },
             },
             "orderBy": Object {
@@ -364,6 +368,7 @@ describe('prisma', () => {
                     "include": Object {
                       "author": true,
                     },
+                    "take": 3,
                   },
                 },
                 "orderBy": Object {
@@ -389,6 +394,7 @@ describe('prisma', () => {
                 "include": Object {
                   "author": true,
                 },
+                "take": 3,
               },
             },
             "orderBy": Object {
@@ -438,7 +444,7 @@ describe('prisma', () => {
             "profileThroughManualLookup": Object {
               "user": Object {
                 "profile": Object {
-                  "bio": "Sequi minus inventore itaque similique et.",
+                  "bio": "Saepe deserunt animi quia.",
                 },
               },
             },
@@ -544,7 +550,7 @@ describe('prisma', () => {
                 "name": "Maurine Rath",
                 "profileWithErrors": Object {
                   "data": Object {
-                    "bio": "Sequi minus inventore itaque similique et.",
+                    "bio": "Saepe deserunt animi quia.",
                     "user": Object {
                       "id": "VXNlcjox",
                     },
@@ -552,7 +558,7 @@ describe('prisma', () => {
                 },
               },
               Object {
-                "name": "Nichole Konopelski",
+                "name": "Kyla Schoen",
                 "profileWithErrors": null,
               },
             ],

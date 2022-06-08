@@ -4,6 +4,7 @@ import {
   FieldNode,
   FragmentDefinitionNode,
   getNamedType,
+  GraphQLField,
   GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
@@ -232,14 +233,43 @@ function addFieldSelection(
       unknown
     >;
 
-    fieldSelectionMap = fieldSelect(args, context, (rawQuery) => {
+    fieldSelectionMap = fieldSelect(args, context, (rawQuery, indirectInclude) => {
       const returnType = getNamedType(field.type);
       const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
 
-      const fieldState = createStateForType(returnType, info, state);
+      const normalizedIndirectInclude = Array.isArray(indirectInclude)
+        ? normalizeInclude(indirectInclude, getIndirectType(returnType, info))
+        : indirectInclude;
+
+      const fieldState = createStateForType(
+        getIndirectType(
+          normalizedIndirectInclude
+            ? info.schema.getType(normalizedIndirectInclude.getType())!
+            : returnType,
+          info,
+        ),
+        info,
+        state,
+      );
 
       if (typeof query === 'object' && Object.keys(query).length > 0) {
         mergeSelection(fieldState, { select: {}, ...query });
+      }
+
+      if (normalizedIndirectInclude && normalizedIndirectInclude.path.length > 0) {
+        resolveIndirectInclude(
+          returnType,
+          info,
+          selection,
+          [
+            ...((returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? []),
+            ...normalizedIndirectInclude.path,
+          ],
+          [],
+          (resolvedType, resolvedField, path) => {
+            addTypeSelectionsForField(resolvedType, context, info, fieldState, resolvedField, path);
+          },
+        );
       }
 
       addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
@@ -257,6 +287,7 @@ function addFieldSelection(
     mergeSelection(state, fieldSelectionMap);
     state.mappings[selection.alias?.value ?? selection.name.value] = {
       field: selection.name.value,
+      type: type.name,
       mappings,
       indirectPath,
     };
@@ -268,6 +299,7 @@ function addFieldSelection(
     mergeSelection(state.parent, { select: fieldParentSelect });
     state.mappings[selection.alias?.value ?? selection.name.value] = {
       field: selection.name.value,
+      type: type.name,
       mappings,
       indirectPath,
     };
@@ -280,7 +312,7 @@ export function queryFromInfo(context: object, info: GraphQLResolveInfo, typeNam
 
   addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
 
-  setLoaderMappings(context, info, state.mappings, type);
+  setLoaderMappings(context, info, state.mappings);
 
   return selectionToQuery(state);
 }
@@ -329,4 +361,35 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
   }
 
   return targetType;
+}
+
+function normalizeInclude(path: string[], type: GraphQLNamedType) {
+  let currentType = type;
+
+  const normalized: { name: string; type: string }[] = [];
+
+  if (!isObjectType(currentType)) {
+    throw new Error(`Expected ${currentType} to be an Object type`);
+  }
+
+  for (const fieldName of path) {
+    const field: GraphQLField<unknown, unknown> = currentType.getFields()[fieldName];
+
+    if (!field) {
+      throw new Error(`Expected ${currentType} to have a field ${fieldName}`);
+    }
+
+    currentType = getNamedType(field.type);
+
+    if (!isObjectType(currentType)) {
+      throw new Error(`Expected ${currentType} to be an Object type`);
+    }
+
+    normalized.push({ name: fieldName, type: currentType.name });
+  }
+
+  return {
+    getType: () => (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
+    path: normalized,
+  };
 }

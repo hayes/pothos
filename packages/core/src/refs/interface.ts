@@ -16,8 +16,8 @@ export default class InterfaceRef<T, P = T>
 {
   override kind = 'Interface' as const;
 
-  [outputShapeKey]: T;
-  [parentShapeKey]: P;
+  [outputShapeKey]!: T;
+  [parentShapeKey]!: P;
 
   constructor(name: string) {
     super('Interface', name);

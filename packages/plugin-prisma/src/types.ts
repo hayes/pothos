@@ -89,6 +89,10 @@ export type PrismaObjectFieldOptions<
       | ((
           args: InputShapeFromFields<Args>,
           ctx: Types['Context'],
+          nestedSelection: <Selection extends boolean | {}>(
+            selection?: Selection,
+            path?: string[],
+          ) => Selection,
         ) => ExtractModel<Types, ParentShape>['Select'])
     );
 };
@@ -564,8 +568,9 @@ export type FieldSelection =
   | ((
       args: object,
       context: object,
-      query: (
+      mergeNestedSelection: (
         selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
+        path?: string[] | IndirectInclude,
       ) => SelectionMap | boolean,
     ) => SelectionMap);
 
@@ -573,6 +578,7 @@ export type LoaderMappings = Record<
   string,
   {
     field: string;
+    type: string;
     mappings: LoaderMappings;
     indirectPath: string[];
   }

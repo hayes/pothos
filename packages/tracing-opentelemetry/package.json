@@ -50,7 +50,7 @@
   "devDependencies": {
     "@envelop/core": "^2.3.2",
     "@envelop/opentelemetry": "^3.3.2",
-    "@graphql-yoga/node": "^2.6.0",
+    "@graphql-yoga/node": "^2.7.0",
     "@opentelemetry/api": "^1.1.0",
     "@opentelemetry/exporter-trace-otlp-http": "^0.28.0",
     "@opentelemetry/instrumentation": "^0.28.0",

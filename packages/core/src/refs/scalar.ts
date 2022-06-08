@@ -7,10 +7,10 @@ export default class ScalarRef<T, U, P = T>
 {
   override kind = 'Scalar' as const;
 
-  [outputShapeKey]: T;
-  [parentShapeKey]: P;
+  [outputShapeKey]!: T;
+  [parentShapeKey]!: P;
 
-  [inputShapeKey]: U;
+  [inputShapeKey]!: U;
 
   constructor(name: string) {
     super('Scalar', name);

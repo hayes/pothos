@@ -15,8 +15,8 @@ export default class ObjectRef<T, P = T>
 {
   override kind = 'Object' as const;
 
-  [outputShapeKey]: T;
-  [parentShapeKey]: P;
+  [outputShapeKey]!: T;
+  [parentShapeKey]!: P;
 
   constructor(name: string) {
     super('Object', name);
