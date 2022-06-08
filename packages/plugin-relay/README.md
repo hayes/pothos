@@ -94,7 +94,7 @@ builder.queryType({
         idList: t.arg.globalIDList(),
       },
       resolve(parent, args) {
-        console.log(`Get request for type ${args.id.type} with id ${args.id.typename}`);
+        console.log(`Get request for type ${args.id.typename} with id ${args.id.id}`);
         return true;
       },
     }),
