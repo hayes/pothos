@@ -28,4 +28,5 @@ export default builder.interfaceType('Character', {
       resolve: (o) => o.appearsIn,
     }),
   }),
+  resolveType: (character) => character.type,
 });

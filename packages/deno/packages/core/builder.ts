@@ -188,6 +188,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             description: options.description,
             pothosOptions: options as unknown as PothosSchemaTypes.InterfaceTypeOptions,
             extensions: options.extensions,
+            resolveType: options.resolveType as GraphQLTypeResolver<unknown, unknown>,
         };
         this.configStore.addTypeConfig(config, ref);
         if (options.interfaces) {
