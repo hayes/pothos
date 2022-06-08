@@ -2,6 +2,13 @@
 
 ## null
 
+### Patch Changes
+
+- Updated dependencies [32cb5073]
+  - @pothos/core@3.12.0
+
+## null
+
 ### Minor Changes
 
 - e090a835: Add fieldWithSelection method to support indirect relions
