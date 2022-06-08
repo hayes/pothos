@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.0
+
+### Minor Changes
+
+- 32cb5073: Fix resolveType not being correctly applied for interfaces when isTypeOf is not used
+
 ## 3.11.1
 
 ### Patch Changes
