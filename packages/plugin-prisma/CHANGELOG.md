@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.9.0
+
+### Minor Changes
+
+- e090a835: Add fieldWithSelection method to support indirect relions
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
 ## 3.8.0
 
 ### Minor Changes

@@ -4,6 +4,18 @@
 
 ### Minor Changes
 
+- e090a835: Add fieldWithSelection method to support indirect relions
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+- Updated dependencies [4e5756ca]
+  - @pothos/core@3.11.1
+
+## null
+
+### Minor Changes
+
 - 1735eb40: Add edgeObject method to relay plugin
 
 ### Patch Changes

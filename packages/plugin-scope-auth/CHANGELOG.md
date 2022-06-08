@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.9.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
 ## 3.9.0
 
 ### Minor Changes

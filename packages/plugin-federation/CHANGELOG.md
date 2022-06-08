@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.1.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
 ## 3.1.0
 
 ### Minor Changes
