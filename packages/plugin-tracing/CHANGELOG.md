@@ -1,5 +1,11 @@
 # @pothos/plugin-tracing
 
+## 0.2.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
 ## 0.2.0
 
 ### Minor Changes

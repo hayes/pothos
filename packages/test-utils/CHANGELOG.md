@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.2.2
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
 ## 1.2.1
 
 ### Patch Changes

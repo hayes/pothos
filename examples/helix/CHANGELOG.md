@@ -1,5 +1,13 @@
 # @pothos-examples/helix
 
+## 2.2.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+- Updated dependencies [4e5756ca]
+  - @pothos/core@3.11.1
+
 ## 2.2.0
 
 ### Minor Changes

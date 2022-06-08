@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.4.1
+
+### Patch Changes
+
+- 4e5756ca: Update dev dependencies
+
 ## 3.4.0
 
 ### Minor Changes

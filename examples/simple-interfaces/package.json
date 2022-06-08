@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.2.1",
+  "version": "2.2.2",
   "name": "@pothos-examples/simple-interfaces",
   "main": "src/index.ts",
   "types": "src/index.ts",
