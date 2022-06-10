@@ -2,7 +2,6 @@ import { builder } from './builder';
 import { db } from './db';
 
 builder.prismaObject('User', {
-  findUnique: ({ id }) => ({ id: Number.parseInt(String(id), 10) }),
   fields: (t) => ({
     id: t.exposeID('id'),
     firstName: t.exposeString('firstName'),
@@ -16,8 +15,6 @@ builder.prismaObject('User', {
 });
 
 builder.prismaObject('Post', {
-  findUnique: ({ id }) => ({ id: Number.parseInt(String(id), 10) }),
-
   fields: (t) => ({
     id: t.exposeID('id'),
     title: t.exposeString('title'),
@@ -28,7 +25,6 @@ builder.prismaObject('Post', {
 });
 
 builder.prismaObject('Comment', {
-  findUnique: ({ id }) => ({ id: Number.parseInt(String(id), 10) }),
   fields: (t) => ({
     id: t.exposeID('id'),
     comment: t.exposeString('comment'),

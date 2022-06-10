@@ -105,6 +105,41 @@ async function main() {
       },
     });
   }
+
+  for (let i = 1; i <= 3; i += 1) {
+    await prisma.findUniqueRelations.create({
+      data: {
+        id: String(i),
+
+        withID: {
+          create: {
+            id: String(i),
+          },
+        },
+
+        withUnique: {
+          create: {
+            id: String(i),
+          },
+        },
+
+        withCompositeID: {
+          create: {
+            a: String(i),
+            b: String(i),
+          },
+        },
+
+        withCompositeUnique: {
+          create: {
+            a: String(i),
+            b: String(i),
+            c: String(i),
+          },
+        },
+      },
+    });
+  }
 }
 
 main()

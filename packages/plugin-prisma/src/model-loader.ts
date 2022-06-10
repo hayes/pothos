@@ -1,5 +1,5 @@
-import { createContextCache, SchemaTypes } from '@pothos/core';
-import { getDelegateFromModel } from './util/datamodel';
+import { createContextCache, ObjectRef, SchemaTypes } from '@pothos/core';
+import { getDelegateFromModel, getModel } from './util/datamodel';
 import { getClient } from './util/get-client';
 import {
   mergeSelection,
@@ -32,13 +32,124 @@ export class ModelLoader {
   }
 
   static forRef<Types extends SchemaTypes>(
+    ref: ObjectRef<unknown>,
     modelName: string,
     findUnique: (args: unknown, ctx: {}) => unknown,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     return createContextCache(
-      (model) => new ModelLoader(model, builder as never, modelName, findUnique),
+      (model) =>
+        new ModelLoader(
+          model,
+          builder as never,
+          modelName,
+          findUnique === null
+            ? () => {
+                throw new Error(`Missing findUnique for ${ref.name}`);
+              }
+            : findUnique ?? this.getDefaultFindUnique(ref, modelName, builder),
+        ),
     );
+  }
+
+  static getFindUnique(
+    findBy:
+      | {
+          name: string | null;
+          fields: string[];
+        }
+      | string,
+  ): (model: Record<string, unknown>) => {} {
+    if (typeof findBy === 'string') {
+      return (parent) => ({ [findBy]: parent[findBy] });
+    }
+
+    const { fields, name: primaryKeyName } = findBy;
+
+    return (parent) => {
+      const primaryKey: Record<string, unknown> = {};
+
+      for (const key of fields) {
+        primaryKey[key] = parent[key];
+      }
+
+      return { [primaryKeyName ?? fields.join('_')]: primaryKey };
+    };
+  }
+
+  static getDefaultFindUnique<Types extends SchemaTypes>(
+    ref: ObjectRef<unknown>,
+    modelName: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ): (model: Record<string, unknown>) => {} {
+    const model = getModel(modelName, builder);
+    const idField = model.fields.find((field) => field.isId);
+    const uniqueField = model.fields.find((field) => field.isRequired && field.isUnique);
+    const uniqueIndex = model.uniqueIndexes.find((idx) =>
+      idx.fields.every((field) => model.fields.find((f) => f.name === field)?.isRequired),
+    );
+
+    let findBy:
+      | {
+          name: string | null;
+          fields: string[];
+        }
+      | string
+      | undefined;
+
+    if (model.primaryKey) {
+      findBy = model.primaryKey;
+    } else if (idField) {
+      findBy = idField.name;
+    } else if (uniqueField) {
+      findBy = uniqueField.name;
+    } else if (uniqueIndex) {
+      findBy = uniqueIndex;
+    }
+
+    if (!findBy) {
+      throw new Error(`Missing findUnique for ${ref.name}`);
+    }
+
+    return this.getFindUnique(findBy);
+  }
+
+  static getFindUniqueForField<Types extends SchemaTypes>(
+    ref: ObjectRef<unknown>,
+    modelName: string,
+    fieldName: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ): (model: Record<string, unknown>) => {} {
+    const model = getModel(modelName, builder);
+
+    const uniqueIndex = model.uniqueIndexes.find(
+      (idx) => (idx.name ?? idx.fields.join('_')) === fieldName,
+    );
+
+    let findBy:
+      | {
+          name: string | null;
+          fields: string[];
+        }
+      | string
+      | undefined;
+
+    if (model.fields.some((field) => field.name === fieldName)) {
+      findBy = fieldName;
+    } else if (
+      model.primaryKey &&
+      (model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName
+    ) {
+      findBy = model.primaryKey;
+    } else if (uniqueIndex) {
+      findBy = uniqueIndex;
+    }
+
+    if (!findBy) {
+      throw new Error(`Unable to find field or index for ${fieldName} of ${ref.name}`);
+    }
+
+    return this.getFindUnique(findBy);
   }
 
   async loadSelection(selection: SelectionState, context: object) {

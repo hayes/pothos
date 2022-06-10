@@ -173,13 +173,13 @@ export type PrismaObjectTypeOptions<
     | {
         include?: Include & Model['Include'];
         select?: never;
-        findUnique: FindUnique &
+        findUnique?: FindUnique &
           (((parent: Shape, context: Types['Context']) => Model['Where']) | null);
       }
     | {
         select: Model['Select'] & Select;
         include?: never;
-        findUnique: (parent: Shape, context: Types['Context']) => Model['Where'];
+        findUnique?: (parent: Shape, context: Types['Context']) => Model['Where'];
       }
   );
 
@@ -200,6 +200,7 @@ export type PrismaNodeOptions<
   Include,
   Select,
   Shape extends object,
+  UniqueField,
 > = NameOrVariant &
   Omit<
     | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
@@ -218,9 +219,20 @@ export type PrismaNodeOptions<
         MaybePromise<OutputShape<Types, 'ID'>>
       >,
       'args' | 'nullable' | 'resolve' | 'type'
-    > & {
-      resolve: (parent: Shape, context: Types['Context']) => MaybePromise<OutputShape<Types, 'ID'>>;
-    };
+    > &
+      (
+        | {
+            field?: never;
+            resolve: (
+              parent: Shape,
+              context: Types['Context'],
+            ) => MaybePromise<OutputShape<Types, 'ID'>>;
+          }
+        | {
+            resolve?: never;
+            field: UniqueField extends keyof Model['Where'] ? UniqueField : keyof Model['Where'];
+          }
+      );
     fields?: PrismaObjectFieldsShape<
       Types,
       Model,
@@ -228,8 +240,14 @@ export type PrismaNodeOptions<
       Shape & { [prismaModelName]?: Model['Name'] },
       Select
     >;
-    findUnique: (id: string, context: Types['Context']) => Model['Where'];
-  } & (
+  } & (UniqueField extends string
+    ? {
+        findUnique?: (id: string, context: Types['Context']) => Model['Where'];
+      }
+    : {
+        findUnique: (id: string, context: Types['Context']) => Model['Where'];
+      }) &
+  (
     | {
         include?: Include & Model['Include'];
         select?: never;

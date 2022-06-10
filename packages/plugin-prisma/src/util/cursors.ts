@@ -1,5 +1,7 @@
 /* eslint-disable no-nested-ternary */
-import { MaybePromise } from '@pothos/core';
+import { MaybePromise, SchemaTypes } from '@pothos/core';
+import { getModel } from './datamodel';
+import { DMMFField } from './get-client';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -54,6 +56,120 @@ export function parseRawCursor(cursor: unknown) {
     }
   } catch {
     throw new Error(`Invalid cursor: ${cursor}`);
+  }
+}
+
+export function parseID(id: string, dataType: string): unknown {
+  if (!id) {
+    return id;
+  }
+
+  switch (dataType) {
+    case 'String':
+      return id;
+    case 'Int':
+      return Number.parseInt(id, 10);
+    case 'BigInt':
+      // eslint-disable-next-line node/no-unsupported-features/es-builtins
+      return BigInt(id);
+    case 'Boolean':
+      return id !== 'false';
+    case 'Float':
+    case 'Decimal':
+      return Number.parseFloat(id);
+    case 'DateTime':
+      return new Date(id);
+    case 'Json':
+      return JSON.parse(id) as unknown;
+    case 'Byte':
+      return Buffer.from(id, 'base64');
+    default:
+      return id;
+  }
+}
+
+export function getDefaultIDSerializer<Types extends SchemaTypes>(
+  modelName: string,
+  fieldName: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+): (parent: Record<string, unknown>) => unknown {
+  const model = getModel(modelName, builder);
+
+  const field = model.fields.find((f) => f.name === fieldName);
+
+  if (field) {
+    return (parent) => serializeID(parent[fieldName], field.type);
+  }
+
+  if ((model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName) {
+    const fields = model.primaryKey!.fields.map((n) => model.fields.find((f) => f.name === n)!);
+    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+  }
+
+  const index = model.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === fieldName);
+
+  if (index) {
+    const fields = index.fields.map((n) => model.fields.find((f) => f.name === n)!);
+    return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
+  }
+
+  throw new Error(`Unable to find ${fieldName} for model ${modelName}`);
+}
+
+export function getDefaultIDParser<Types extends SchemaTypes>(
+  modelName: string,
+  fieldName: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+): (id: string) => unknown {
+  if (!fieldName) {
+    throw new Error('Missing field name');
+  }
+  const model = getModel(modelName, builder);
+
+  const field = model.fields.find((f) => f.name === fieldName);
+
+  if (field) {
+    return (id) => parseID(id, field.type);
+  }
+
+  const index = model.uniqueIndexes.find((idx) => (idx.name ?? idx.fields.join('_')) === fieldName);
+
+  let fields: DMMFField[] | undefined;
+  if ((model.primaryKey?.name ?? model.primaryKey?.fields.join('_')) === fieldName) {
+    fields = model.primaryKey!.fields.map((n) => model.fields.find((f) => f.name === n)!);
+  } else if (index) {
+    fields = index.fields.map((n) => model.fields.find((f) => f.name === n)!);
+  }
+
+  if (!fields) {
+    throw new Error(`Unable to find ${fieldName} for model ${modelName}`);
+  }
+
+  return (id) => {
+    const parts = JSON.parse(id) as unknown;
+
+    if (!Array.isArray(parts)) {
+      throw new TypeError(`Invalid id received for ${fieldName} of ${modelName}`);
+    }
+
+    const result: Record<string, unknown> = {};
+
+    for (let i = 0; i < fields!.length; i += 1) {
+      result[fields![i].name] = parseID(parts[i] as string, fields![i].type);
+    }
+
+    return result;
+  };
+}
+
+export function serializeID(id: unknown, dataType: string) {
+  switch (dataType) {
+    case 'Json':
+      return JSON.stringify(id);
+    case 'Byte':
+      return (id as Buffer).toString('base64');
+    default:
+      return String(id);
   }
 }
 

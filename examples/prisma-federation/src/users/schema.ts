@@ -18,7 +18,6 @@ export const builder = new SchemaBuilder<{
 });
 
 const User = builder.prismaObject('User', {
-  findUnique: ({ id }) => ({ id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     firstName: t.exposeString('firstName'),

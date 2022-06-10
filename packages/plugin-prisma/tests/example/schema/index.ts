@@ -35,7 +35,6 @@ const PostPreview = builder.objectRef<Post>('PostPreview').implement({
 
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
-  findUnique: (user) => ({ id: user.id }),
   select: {
     id: true,
   },
@@ -90,9 +89,8 @@ const ViewerNode = builder.prismaNode('User', {
     profile: true,
   },
   id: {
-    resolve: (user) => user.id,
+    field: 'id',
   },
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
     bio: t.string({
       nullable: true,
@@ -102,7 +100,6 @@ const ViewerNode = builder.prismaNode('User', {
 });
 
 builder.prismaObject('Follow', {
-  findUnique: (follow) => ({ compositeID: { fromId: follow.fromId, toId: follow.toId } }),
   fields: (t) => ({
     to: t.relation('to'),
     from: t.relation('from'),
@@ -114,9 +111,8 @@ const User = builder.prismaNode('User', {
   authScopes: (user) => !!user.id,
   interfaces: [Named],
   id: {
-    resolve: (user) => user.id,
+    field: 'id',
   },
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
     viewer: t.variant(Viewer, {
       isNull: (user, args, ctx) => user.id !== ctx.user.id,
@@ -197,7 +193,6 @@ const User = builder.prismaNode('User', {
 });
 
 const Media = builder.prismaObject('Media', {
-  findUnique: (media) => ({ id: media.id }),
   select: {
     id: true,
   },
@@ -210,12 +205,11 @@ const SelectUser = builder.prismaNode('User', {
   variant: 'SelectUser',
   authScopes: (user) => !!user.id,
   id: {
-    resolve: (user) => user.id,
+    field: 'id',
   },
   select: {
     id: true,
   },
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
@@ -251,12 +245,11 @@ const SelectUser = builder.prismaNode('User', {
 const SelectPost = builder.prismaNode('Post', {
   variant: 'SelectPost',
   id: {
-    resolve: (post) => post.id,
+    field: 'id',
   },
   select: {
     id: true,
   },
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
     title: t.exposeString('title'),
     content: t.exposeString('content', {
@@ -309,7 +302,6 @@ const UserOrProfile = builder.unionType('UserOrProfile', {
 });
 
 builder.prismaObject('Post', {
-  findUnique: (post) => ({ id: post.id }),
   include: {
     comments: {
       take: 3,
@@ -368,7 +360,6 @@ builder.prismaObject('Post', {
 });
 
 builder.prismaObject('Comment', {
-  findUnique: (comment) => ({ id: comment.id }),
   include: {
     author: {
       include: {
@@ -397,7 +388,6 @@ builder.prismaObject('Comment', {
 });
 
 builder.prismaObject('Unrelated', {
-  findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.id({
       resolve: (parent) => parent.id,
@@ -531,6 +521,151 @@ builder.queryType({
 
         return [user, profile];
       },
+    }),
+  }),
+});
+
+builder.prismaObject('WithID', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+const WithIDNode = builder.prismaNode('WithID', {
+  variant: 'WithIDNode',
+  id: {
+    field: 'id',
+  },
+  fields: (t) => ({
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+builder.prismaObject('WithUnique', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+const WithUniqueNode = builder.prismaNode('WithUnique', {
+  variant: 'WithUniqueNode',
+  id: {
+    field: 'id',
+  },
+  fields: (t) => ({
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+builder.prismaObject('WithCompositeID', {
+  fields: (t) => ({
+    id: t.exposeID('a'),
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+const WithCompositeIDNode = builder.prismaNode('WithCompositeID', {
+  variant: 'WithCompositeIDNode',
+  id: {
+    field: 'a_b',
+  },
+  fields: (t) => ({
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+builder.prismaObject('WithCompositeUnique', {
+  fields: (t) => ({
+    id: t.exposeID('a'),
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+const WithCompositeUniqueNode = builder.prismaNode('WithCompositeUnique', {
+  variant: 'WithCompositeUniqueNode',
+  id: {
+    field: 'a_b',
+  },
+  fields: (t) => ({
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+const WithCompositeUniqueCustom = builder.prismaObject('WithCompositeUnique', {
+  variant: 'WithCompositeUniqueCustom',
+  findUnique: (obj) => ({
+    a_c: {
+      a: obj.a,
+      c: obj.c!,
+    },
+  }),
+  fields: (t) => ({
+    id: t.exposeID('a'),
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+const WithCompositeUniqueNodeCustom = builder.prismaNode('WithCompositeUnique', {
+  variant: 'WithCompositeUniqueNodeCustom',
+  id: {
+    resolve: (obj) => obj.a,
+  },
+  findUnique: (id) => ({
+    a_c: {
+      a: id,
+      c: id,
+    },
+  }),
+  fields: (t) => ({
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
+builder.queryFields((t) => ({
+  findUniqueRelations: t.prismaField({
+    type: 'FindUniqueRelations',
+    resolve: () =>
+      prisma.findUniqueRelations.findUnique({
+        rejectOnNotFound: true,
+        where: {
+          id: '1',
+        },
+        include: {
+          withID: true,
+          withUnique: true,
+          withCompositeID: true,
+          withCompositeUnique: true,
+        },
+      }),
+  }),
+}));
+
+builder.prismaObject('FindUniqueRelations', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    withID: t.relation('withID'),
+    withUnique: t.relation('withUnique'),
+    withCompositeID: t.relation('withCompositeID'),
+    withCompositeUnique: t.relation('withCompositeUnique'),
+    withIDNode: t.relation('withID', {
+      type: WithIDNode,
+    }),
+    withUniqueNode: t.relation('withUnique', {
+      type: WithUniqueNode,
+    }),
+    withCompositeIDNode: t.relation('withCompositeID', {
+      type: WithCompositeIDNode,
+    }),
+    withCompositeUniqueNode: t.relation('withCompositeUnique', {
+      type: WithCompositeUniqueNode,
+    }),
+    withCompositeUniqueCustom: t.relation('withCompositeUnique', {
+      type: WithCompositeUniqueCustom,
+    }),
+    withCompositeUniqueNodeCustom: t.relation('withCompositeUnique', {
+      type: WithCompositeUniqueNodeCustom,
     }),
   }),
 });
