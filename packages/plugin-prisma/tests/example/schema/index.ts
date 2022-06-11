@@ -532,6 +532,15 @@ builder.prismaObject('WithID', {
   }),
 });
 
+const WithIDSelect = builder.prismaObject('WithID', {
+  variant: 'WithIDSelect',
+  select: {},
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
 const WithIDNode = builder.prismaNode('WithID', {
   variant: 'WithIDNode',
   id: {
@@ -593,6 +602,17 @@ const WithCompositeUniqueNode = builder.prismaNode('WithCompositeUnique', {
   }),
 });
 
+const WithCompositeUniqueNodeSelect = builder.prismaNode('WithCompositeUnique', {
+  variant: 'WithCompositeUniqueNodeSelect',
+  id: {
+    field: 'a_b',
+  },
+  select: {},
+  fields: (t) => ({
+    relations: t.relation('FindUniqueRelations'),
+  }),
+});
+
 const WithCompositeUniqueCustom = builder.prismaObject('WithCompositeUnique', {
   variant: 'WithCompositeUniqueCustom',
   findUnique: (obj) => ({
@@ -640,12 +660,24 @@ builder.queryFields((t) => ({
         },
       }),
   }),
+  findUniqueRelationsSelect: t.prismaField({
+    type: 'FindUniqueRelations',
+    resolve: (query) =>
+      prisma.findUniqueRelations.findUnique({
+        ...query,
+        rejectOnNotFound: true,
+        where: {
+          id: '1',
+        },
+      }),
+  }),
 }));
 
 builder.prismaObject('FindUniqueRelations', {
   fields: (t) => ({
     id: t.exposeID('id'),
     withID: t.relation('withID'),
+    withIDSelect: t.relation('withID', { type: WithIDSelect }),
     withUnique: t.relation('withUnique'),
     withCompositeID: t.relation('withCompositeID'),
     withCompositeUnique: t.relation('withCompositeUnique'),
@@ -660,6 +692,9 @@ builder.prismaObject('FindUniqueRelations', {
     }),
     withCompositeUniqueNode: t.relation('withCompositeUnique', {
       type: WithCompositeUniqueNode,
+    }),
+    withCompositeUniqueNodeSelect: t.relation('withCompositeUnique', {
+      type: WithCompositeUniqueNodeSelect,
     }),
     withCompositeUniqueCustom: t.relation('withCompositeUnique', {
       type: WithCompositeUniqueCustom,

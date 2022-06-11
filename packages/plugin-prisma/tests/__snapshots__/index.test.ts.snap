@@ -26,8 +26,10 @@ type FindUniqueRelations {
   withCompositeUniqueCustom: WithCompositeUniqueCustom!
   withCompositeUniqueNode: WithCompositeUniqueNode!
   withCompositeUniqueNodeCustom: WithCompositeUniqueNodeCustom!
+  withCompositeUniqueNodeSelect: WithCompositeUniqueNodeSelect!
   withID: WithID!
   withIDNode: WithIDNode!
+  withIDSelect: WithIDSelect!
   withUnique: WithUnique!
   withUniqueNode: WithUniqueNode!
 }
@@ -104,6 +106,7 @@ type Profile {
 
 type Query {
   findUniqueRelations: FindUniqueRelations!
+  findUniqueRelationsSelect: FindUniqueRelations!
   me: User
   named: [Named]
   node(id: ID!): Node
@@ -337,12 +340,22 @@ type WithCompositeUniqueNodeCustom implements Node {
   relations: [FindUniqueRelations!]!
 }
 
+type WithCompositeUniqueNodeSelect implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
 type WithID {
   id: ID!
   relations: [FindUniqueRelations!]!
 }
 
 type WithIDNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithIDSelect {
   id: ID!
   relations: [FindUniqueRelations!]!
 }

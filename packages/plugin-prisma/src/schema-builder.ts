@@ -19,10 +19,14 @@ import { getRelationMap } from './util/relation-map';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
+schemaBuilderProto.prismaObject = function prismaObject(
+  type,
+  { fields, findUnique, select, include, ...options },
+) {
   const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
+  const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
 
   ref.name = name;
 
@@ -30,10 +34,10 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
     ...(options as {}),
     extensions: {
       ...options.extensions,
-      pothosPrismaInclude: options.include,
+      pothosPrismaInclude: include,
       pothosPrismaModel: type,
       pothosPrismaFieldMap: fieldMap,
-      pothosPrismaSelect: options.select,
+      pothosPrismaSelect: select && { ...idSelection, ...(select as {}) },
       pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique as never, this),
     },
     name,

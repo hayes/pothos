@@ -84,6 +84,18 @@ describe('findUnique', () => {
             }
           }
         }
+        findUniqueRelationsSelect {
+          withIDSelect {
+            relations {
+              id
+            }
+          }
+          withCompositeUniqueNodeSelect {
+            relations {
+              id
+            }
+          }
+        }
         nodes(
           ids: [
             "V2l0aElETm9kZTox"
@@ -219,6 +231,22 @@ describe('findUnique', () => {
               ],
             },
           },
+          "findUniqueRelationsSelect": Object {
+            "withCompositeUniqueNodeSelect": Object {
+              "relations": Array [
+                Object {
+                  "id": "1",
+                },
+              ],
+            },
+            "withIDSelect": Object {
+              "relations": Array [
+                Object {
+                  "id": "1",
+                },
+              ],
+            },
+          },
           "nodes": Array [
             Object {
               "__typename": "WithIDNode",
@@ -280,6 +308,32 @@ describe('findUnique', () => {
               "withCompositeUnique": true,
               "withID": true,
               "withUnique": true,
+            },
+            "where": Object {
+              "id": "1",
+            },
+          },
+          "dataPath": Array [],
+          "model": "FindUniqueRelations",
+          "runInTransaction": false,
+        },
+        Object {
+          "action": "findUnique",
+          "args": Object {
+            "include": Object {
+              "withCompositeUnique": Object {
+                "select": Object {
+                  "FindUniqueRelations": true,
+                  "a": true,
+                  "b": true,
+                },
+              },
+              "withID": Object {
+                "select": Object {
+                  "FindUniqueRelations": true,
+                  "id": true,
+                },
+              },
             },
             "where": Object {
               "id": "1",

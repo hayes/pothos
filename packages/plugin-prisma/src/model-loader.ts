@@ -77,11 +77,11 @@ export class ModelLoader {
     };
   }
 
-  static getDefaultFindUnique<Types extends SchemaTypes>(
+  static getDefaultFindBy<Types extends SchemaTypes>(
     ref: ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  ): (model: Record<string, unknown>) => {} {
+  ) {
     const model = getModel(modelName, builder);
     const idField = model.fields.find((field) => field.isId);
     const uniqueField = model.fields.find((field) => field.isRequired && field.isUnique);
@@ -111,7 +111,37 @@ export class ModelLoader {
       throw new Error(`Missing findUnique for ${ref.name}`);
     }
 
+    return findBy;
+  }
+
+  static getDefaultFindUnique<Types extends SchemaTypes>(
+    ref: ObjectRef<unknown>,
+    modelName: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ): (model: Record<string, unknown>) => {} {
+    const findBy = this.getDefaultFindBy(ref, modelName, builder);
+
     return this.getFindUnique(findBy);
+  }
+
+  static getDefaultIDSelection<Types extends SchemaTypes>(
+    ref: ObjectRef<unknown>,
+    modelName: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ): Record<string, boolean> {
+    const findBy = this.getDefaultFindBy(ref, modelName, builder);
+
+    if (typeof findBy === 'string') {
+      return { [findBy]: true };
+    }
+
+    const result: Record<string, boolean> = {};
+
+    for (const field of findBy.fields) {
+      result[field] = true;
+    }
+
+    return result;
   }
 
   static getFindUniqueForField<Types extends SchemaTypes>(
