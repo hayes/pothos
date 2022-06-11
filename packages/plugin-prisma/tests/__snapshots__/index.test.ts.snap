@@ -18,6 +18,22 @@ interface Error {
   message: String!
 }
 
+type FindUniqueRelations {
+  id: ID!
+  withCompositeID: WithCompositeID!
+  withCompositeIDNode: WithCompositeIDNode!
+  withCompositeUnique: WithCompositeUnique!
+  withCompositeUniqueCustom: WithCompositeUniqueCustom!
+  withCompositeUniqueNode: WithCompositeUniqueNode!
+  withCompositeUniqueNodeCustom: WithCompositeUniqueNodeCustom!
+  withCompositeUniqueNodeSelect: WithCompositeUniqueNodeSelect!
+  withID: WithID!
+  withIDNode: WithIDNode!
+  withIDSelect: WithIDSelect!
+  withUnique: WithUnique!
+  withUniqueNode: WithUniqueNode!
+}
+
 type Follow {
   from: User!
   to: User!
@@ -89,6 +105,8 @@ type Profile {
 }
 
 type Query {
+  findUniqueRelations: FindUniqueRelations!
+  findUniqueRelationsSelect: FindUniqueRelations!
   me: User
   named: [Named]
   node(id: ID!): Node
@@ -290,6 +308,66 @@ type Viewer {
 type ViewerNode implements Node {
   bio: String
   id: ID!
+}
+
+type WithCompositeID {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeIDNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUnique {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueCustom {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueNodeCustom implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueNodeSelect implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithID {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithIDNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithIDSelect {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithUnique {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithUniqueNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
 }"
 `;
 

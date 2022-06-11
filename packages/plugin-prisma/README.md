@@ -30,9 +30,6 @@ breakdown of what the methods and options used in the example below.
 // Create an object type based on a prisma model
 // without providing any custom type information
 builder.prismaObject('User', {
-  // findUnique is explained more below, and is
-  // required to safely resolve queries in some edge cases
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     // expose fields from the database
     id: t.exposeID('id'),
@@ -74,8 +71,7 @@ builder.prismaObject('User', {
 
 // Create a relay node based a prisma model
 builder.prismaNode('Post', {
-  findUnique: (id) => ({ id }),
-  id: { resolve: (post) => post.id },
+  id: { field: 'id' },
   fields: (t) => ({
     title: t.exposeString('title'),
     author: t.relation('author'),
@@ -141,9 +137,7 @@ query {
 
 Will result in 2 calls to prisma, one to resolve everything except `oldPosts`, and a second to
 resolve everything inside `oldPosts`. Prisma can only resolve each relation once in a single query,
-so we need a separate to handle the second `posts` relation. These additional queries will use the
-`findUnique` defined for the parent type to create a new efficient query to load any conflicting
-relations.
+so we need a separate to handle the second `posts` relation.
 
 ## Install
 
@@ -263,7 +257,6 @@ const builder = new SchemaBuilder<{
 builder.prismaObject('User', {
   // Optional name for the object, defaults to the name of the prisma model
   name: 'PostAuthor',
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -271,7 +264,6 @@ builder.prismaObject('User', {
 });
 
 builder.prismaObject('Post', {
-  findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     title: t.exposeString('title'),
@@ -282,8 +274,6 @@ builder.prismaObject('Post', {
 So far, this is just creating some simple object types. They work just like any other object type in
 Pothos. The main advantage of this is that we get the type information without using object refs, or
 needing imports from prisma client.
-
-The `findUnique` option is described more below.
 
 ## Adding prisma fields to non-prisma objects (including Query and Mutation)
 
@@ -341,7 +331,6 @@ builder.queryType({
 });
 
 builder.prismaObject('User', {
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -350,7 +339,6 @@ builder.prismaObject('User', {
 });
 
 builder.prismaObject('Post', {
-  findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     title: t.exposeString('title'),
@@ -393,58 +381,30 @@ the `me` `prismaField` would receive something like the following as its query p
 ```
 
 This will work perfectly for the majority of queries. There are a number of edge cases that make it
-impossible to resolve everything in a single query. When this happens the `findUnique` option is
-used to ensure that everything is still loaded correctly, and split into as few efficient queries as
-possible.
+impossible to resolve everything in a single query. When this happens Pothos will automatically
+construct an additional query to ensure that everything is still loaded correctly, and split into as
+few efficient queries as possible. This process is described in more detail below
 
-### Find Unique
+### Fallback queryies
 
-The `findUnique` function will receive an instance of the prisma model the current type is defining,
-and should return an object that will be passed as a `where` in a `prisma.findUnique`. Generally,
-this will just be something like: `user => { id: user.id }` where `id` is the primary key for the
-table.
-
-When the prisma plugin encounters a query where the requirements for a field can not be satisfied,
-it will call findUnique for the current prisma model, and include or select all properties that are
-required for the fields that could not be resolved without an additional query.
+There are some cases where data can not be pre-loaded by a prisma field. In these cases, pothos will
+issue a `findUnique` query for the parent of any fields that were not pre-loaded, and select the
+missing relations so those fields can be resolved with the correct data. These queries should be
+very efficient, are batched by pothos to combine requirements for multiple fields into one query,
+and batched by Prisma to combine multiple queries (in an n+1 situation) to a single sql query.
 
 The following are some edge cases that could cause an additional query to be necessary:
 
 - The parent object was not loaded through a field defined with `t.prismaField`, or `t.relation`
 - The root `prismaField` did not correctly spread the `query` arguments in is prisma call.
-- The query selects multiple fields that use the same relation with different queries
+- The query selects multiple fields that use the same relation with different filters, sorting, or
+  limits
 - The query contains multiple aliases for the same relation field with different arguments in a way
   that results in different query options for the relation.
 - A relation field has a query that is incompatible with the default includes of the parent object
 
 All of the above should be relatively uncommon in normal usage, but the plugin ensures that these
 types of edge cases are automatically handled when they do occur.
-
-### Without Find Unique
-
-This is generally _NOT RECOMMENDED_, but you can set `findUnique` to null for some prisma objects.
-Doing this will prevent the plugin from resolving queries for conflicting relations. Because of
-this, you will need to provide a `resolve` method when defining relations, and some other options
-(like field level selects, described below) will not be available. This `resolve` method is _ONLY
-CALLED AS A FALLBACK_ when the relation has not already been loaded. This means that you should not
-apply any sorting or filtering to the relation queried in the resolve method. Instead used the
-`query` option described in the next section
-
-```typescript
-builder.prismaObject('User', {
-  findUnique: null,
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    posts: t.relation('posts', {
-      resolve: (query, user) =>
-        db.post.findMany({
-          ...query,
-          where: { authorId: user.id },
-        }),
-    }),
-  }),
-});
-```
 
 ### Filters, Sorting, and arguments
 
@@ -456,7 +416,6 @@ can either be a query object, or a method that returns a query object based on t
 
 ```typescript
 builder.prismaObject('User', {
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     posts: t.relation('posts', {
@@ -481,12 +440,8 @@ passed into the first argument of the parent `t.prismaField`, and can include th
 the context for the current request. Because it is used for pre-loading data, and solving n+1
 issues, it can not be passed the `parent` object because it may not be loaded yet.
 
-If your field has a `resolve` method the generated `query` will be passed in as part of the first
-arg to your resolve function
-
 ```typescript
 builder.prismaObject('User', {
-  findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -501,18 +456,10 @@ builder.prismaObject('User', {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
       }),
-      // optional: query here will contain the orderBy (and any other properties returned by the query method)
-      resolve: (query, post) => db.post.findMany({ ...query, where: { id: post.authorId } }),
     }),
   }),
 });
 ```
-
-It is _VERY IMPORTANT_ to put all your filtering and sorting into the query method rather than your
-resolver because the resolver is only used as fallback, and any filtering that does not exist in the
-query method will not be applied correctly. If you have a where in both your query and your
-resolver, you will need to ensure these are merged correctly. It is generally better NOT to use a
-custom resolver.
 
 ## relationCount
 
@@ -523,7 +470,6 @@ support any filters on the counts, but can give a total count for a relation.
 
 ```typescript
 builder.prismaObject('User', {
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     postCount: t.relationCount('posts'),
@@ -543,7 +489,6 @@ builder.prismaObject('User', {
   include: {
     profile: true,
   },
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -571,7 +516,6 @@ builder.prismaObject('User', {
   select: {
     id: true,
   },
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -579,7 +523,6 @@ builder.prismaObject('User', {
 });
 ```
 
-At the very least, you will need to `select` the properties required by your `findUnique` function.
 The `t.expose*` and `t.relation` methods will all automatically add selections for the exposed
 fields _WHEN THEY ARE QUERIED_, ensuring that only the requested columns will be loaded from the
 database.
@@ -591,7 +534,6 @@ builder.prismaObject('User', {
   select: {
     id: true,
   },
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     email: t.exposeString('email'),
@@ -617,7 +559,6 @@ selection for a field:
 
 ```ts
 const PostDraft = builder.prismaObject('Post', {
-  findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     title: t.exposeString('title'),
     commentFromDate: t.string({
@@ -660,8 +601,8 @@ model Media {
   id           Int         @id @default(autoincrement())
   url          String
   posts        PostMedia[]
-  uploadedBy   User        @relation(fields: [uoloadedById], references: [id])
-  uoloadedById Int
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
 }
 
 model PostMedia {
@@ -677,7 +618,6 @@ You can define a media field that can pre-load the correct relations based on th
 
 ```ts
 const PostDraft = builder.prismaObject('Post', {
-  findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     title: t.exposeString('title'),
     media: t.field({
@@ -701,7 +641,6 @@ const PostDraft = builder.prismaObject('Post', {
 });
 
 const Media = builder.prismaObject('Media', {
-  findUnique: (media) => ({ id: media.id }),
   select: {
     id: true,
   },
@@ -721,7 +660,6 @@ inside the returned type is.
 
 ```ts
 const PostRef = builder.prismaObject('Post', {
-  findUnique: (post) => ({ id: post.id }),
   fields: (t) => ({
     title: t.exposeString('title'),
     content: t.exposeString('content'),
@@ -743,7 +681,6 @@ const PostPreview = builder.objectRef<Post>('PostPreview').implement({
 });
 
 builder.prismaObject('User', {
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     postPreviews: t.field({
@@ -774,7 +711,6 @@ described above). Additional variants can be defined by providing a `variant` op
 ```typescript
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
 });
@@ -785,7 +721,6 @@ You can define variant fields that reference one variant from another:
 ```typescript
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     // Using the model name ('User') will reference the primary variant
@@ -816,10 +751,8 @@ You can also use variants when defining relations by providing a `type` option:
 ```typescript
 const PostDraft = builder.prismaNode('Post', {
   variant: 'PostDraft'
-  // This is used to load the node by id
-  findUnique: (id) => ({ id }),
-  // This is used to get the id from a node
-  id: { resolve: (post) => post.id },
+  // This set's what database field to use for the nodes id field
+  id: { field: 'id' },
   // fields work just like they do for builder.prismaObject
   fields: (t) => ({
     title: t.exposeString('title'),
@@ -829,7 +762,6 @@ const PostDraft = builder.prismaNode('Post', {
 
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
-  findUnique: (user) => ({ id: user.id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     drafts: t.relation('posts', {
@@ -852,18 +784,31 @@ connections very easy.
 The `prismaNode` method works just like the `prismaObject` method with a couple of small
 differences:
 
-- the `findUnique` function now only receives an id. This is to support relays ability to load nodes
-  by id.
 - there is a new `id` option that mirrors the `id` option from `node` method of the relay plugin,
-  and must contain a resolve function that returns the id from an instance of the node.
+  and must contain a resolve function that returns the id from an instance of the node. Rather than
+  defining a resolver for the id field, you can set the `field` option to the name of a unique
+  column or index.
 
 ```typescript
 builder.prismaNode('Post', {
-  // This is used to load the node by id
-  findUnique: (id) => ({ id }),
-  // This is used to get the id from a node
-  id: { resolve: (post) => post.id },
+  // This set's what database field to use for the nodes id field
+  id: { field: 'id' },
   // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
+`findUnique` option that can be used to load the node by it's id. This is generally not necissary.
+
+```typescript
+builder.prismaNode('Post', {
+  id: { resolve: (post) => String(post.id) },
+  // The return value will be passed as the `where` of a `prisma.post.findUnique`
+  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
   fields: (t) => ({
     title: t.exposeString('title'),
     author: t.relation('author'),
@@ -926,8 +871,7 @@ of the current model.
 
 ```typescript
 builder.prismaNode('User', {
-  findUnique: (id) => ({ id }),
-  id: { resolve: (user) => user.id },
+  id: { field: 'id' },
   fields: (t) => ({
     // Connections can be very simple to define
     simplePosts: t.relatedConnection('posts', {
@@ -962,11 +906,6 @@ builder.prismaNode('User', {
 - `maxSize`: (default: 100) The maximum number of nodes returned for a connection.
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
   filtering and sorting logic that will be merged into the query for the relation.
-- `resolve`: (optional) Used as a fallback when a connection is not pre-loaded. It is optional, and
-  generally should NOT be defined manually. If used it works like a combination of the `resolve`
-  method of `relation` and `prismaConnection`. The default will use the `findUnique` of the current
-  model, with an `include` for the current relation. It is also batched together with other
-  relationships to improve query efficiency.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   `relationCount` above for more details.
 
@@ -1098,5 +1037,5 @@ PostObject.implement({
 With this setup, a parent resolver has the option to include the author, but we have a fallback
 incase it does not.
 
-There are other patterns like dataloaders than can be used to reduce n+1 issues, and make your graph
-more efficient, but they are too complex to describe here.
+There are other patterns like data loaders than can be used to reduce n+1 issues, and make your
+graph more efficient, but they are too complex to describe here.

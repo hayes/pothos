@@ -33,8 +33,8 @@ model Media {
   id           Int         @id @default(autoincrement())
   url          String
   posts        PostMedia[]
-  uploadedBy   User        @relation(fields: [uoloadedById], references: [id])
-  uoloadedById Int
+  uploadedBy   User?       @relation(fields: [uploadedById], references: [id])
+  uploadedById Int?
 }
 
 model PostMedia {
@@ -87,4 +87,51 @@ model Follow {
 model Unrelated {
   id   Int     @id @default(autoincrement())
   name String?
+}
+
+model WithID {
+  id                  String                @id
+  FindUniqueRelations FindUniqueRelations[]
+}
+
+model WithUnique {
+  id                  String                @unique
+  FindUniqueRelations FindUniqueRelations[]
+}
+
+model WithCompositeID {
+  a String
+  b String
+
+
+  FindUniqueRelations FindUniqueRelations[]
+  @@id([a, b])
+}
+
+model WithCompositeUnique {
+  a String
+  c String? @unique
+  b String
+
+  FindUniqueRelations FindUniqueRelations[]
+  @@unique([a, c])
+  @@unique([a, b])
+}
+
+model FindUniqueRelations {
+  id String @id
+
+  withID_id String
+  withID    WithID @relation(fields: [withID_id], references: [id])
+
+  withUnique_id String
+  withUnique    WithUnique @relation(fields: [withUnique_id], references: [id])
+
+  withCompositeID_a String
+  withCompositeID_b String
+  withCompositeID   WithCompositeID @relation(fields: [withCompositeID_a, withCompositeID_b], references: [a, b])
+
+  withCompositeUnique_a String
+  withCompositeUnique_b String
+  withCompositeUnique   WithCompositeUnique @relation(fields: [withCompositeUnique_a, withCompositeUnique_b], references: [a, b])
 }

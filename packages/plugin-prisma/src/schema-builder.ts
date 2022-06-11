@@ -11,6 +11,7 @@ import { PrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
 import PrismaNodeRef from './node-ref';
 import { PrismaModelTypes, PrismaNodeOptions } from './types';
+import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
 import { getClient, getDMMF } from './util/get-client';
 import { queryFromInfo } from './util/map-query';
@@ -18,10 +19,14 @@ import { getRelationMap } from './util/relation-map';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUnique, ...options }) {
+schemaBuilderProto.prismaObject = function prismaObject(
+  type,
+  { fields, findUnique, select, include, ...options },
+) {
   const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
+  const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
 
   ref.name = name;
 
@@ -29,18 +34,11 @@ schemaBuilderProto.prismaObject = function prismaObject(type, { fields, findUniq
     ...(options as {}),
     extensions: {
       ...options.extensions,
-      pothosPrismaInclude: options.include,
+      pothosPrismaInclude: include,
       pothosPrismaModel: type,
       pothosPrismaFieldMap: fieldMap,
-      pothosPrismaSelect: options.select,
-      pothosPrismaLoader: ModelLoader.forRef(
-        type,
-        (findUnique as never) ||
-          (() => {
-            throw new Error(`Missing findUnique for ${ref.name}`);
-          }),
-        this,
-      ),
+      pothosPrismaSelect: select && { ...idSelection, ...(select as {}) },
+      pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique as never, this),
     },
     name,
     fields: fields
@@ -65,26 +63,33 @@ schemaBuilderProto.prismaNode = function prismaNode(
   },
   type: keyof SchemaTypes['PrismaTypes'],
   {
-    findUnique,
+    id: { field, resolve: rawResolve, ...idOptions },
+    findUnique: rawFindUnique,
     name,
     variant,
     ...options
-  }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}>,
+  }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}, undefined>,
 ) {
+  const fieldName = field as unknown as string;
   const interfaceRef = this.nodeInterfaceRef?.();
+  const resolve = rawResolve ?? getDefaultIDSerializer(type, fieldName, this);
+  const idParser = fieldName ? getDefaultIDParser(type, fieldName, this) : undefined;
+  const typeName = variant ?? name ?? type;
+  const nodeRef = new PrismaNodeRef(typeName);
+  const findUnique = rawFindUnique
+    ? (parent: unknown, context: {}) =>
+        rawFindUnique(resolve(parent as never, context) as string, context)
+    : ModelLoader.getFindUniqueForField(nodeRef, type, fieldName, this);
 
   if (!interfaceRef) {
     throw new TypeError('builder.prismaNode requires @pothos/plugin-relay to be installed');
   }
 
-  const typeName = variant ?? name ?? type;
-  const nodeRef = new PrismaNodeRef(typeName);
   const extendedOptions = {
     ...options,
     variant,
     interfaces: [interfaceRef],
-    findUnique: (parent: unknown, context: {}) =>
-      findUnique(options.id.resolve(parent as never, context) as string, context),
+    findUnique,
     loadWithoutCache: async (
       id: string,
       context: SchemaTypes['Context'],
@@ -95,7 +100,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       const record = await delegate.findUnique({
         ...query,
         rejectOnNotFound: true,
-        where: findUnique(id, context),
+        where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
       } as never);
 
       brandWithType(record, typeName as OutputType<SchemaTypes>);
@@ -117,7 +122,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
           globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
         }
       ).globalID({
-        ...options.id,
+        ...idOptions,
         nullable: false,
         args: {},
         resolve: async (
@@ -127,7 +132,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
           info: GraphQLResolveInfo,
         ) => ({
           type: nodeConfig.name,
-          id: await options.id.resolve(parent, context),
+          id: await resolve(parent, context),
         }),
       }),
     );

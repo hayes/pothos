@@ -2,8 +2,7 @@ import { builder } from './builder';
 import { db } from './db';
 
 builder.prismaNode('User', {
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
-  id: { resolve: (user) => user.id },
+  id: { field: 'id' },
   fields: (t) => ({
     firstName: t.exposeString('firstName'),
     lastName: t.exposeString('lastName'),
@@ -16,8 +15,7 @@ builder.prismaNode('User', {
 });
 
 builder.prismaNode('Post', {
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
-  id: { resolve: (post) => post.id },
+  id: { field: 'id' },
   fields: (t) => ({
     title: t.exposeString('title'),
     content: t.exposeString('content'),
@@ -27,8 +25,7 @@ builder.prismaNode('Post', {
 });
 
 builder.prismaNode('Comment', {
-  findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
-  id: { resolve: (post) => post.id },
+  id: { field: 'id' },
   fields: (t) => ({
     comment: t.exposeString('comment'),
     author: t.relation('author'),

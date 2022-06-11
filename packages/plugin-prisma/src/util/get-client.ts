@@ -20,7 +20,8 @@ interface DMMF {
       name: string;
       fields: DMMFField[];
       fieldMap?: Record<string, DMMFField>;
-      primaryKey: { name: string; fields: string[] } | null;
+      primaryKey: { name: string | null; fields: string[] } | null;
+      uniqueIndexes: { name: string | null; fields: string[] }[];
     }
   >;
 }

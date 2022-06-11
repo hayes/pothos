@@ -101,7 +101,7 @@ server.start();
 
   Build multiple subsets of your graph to easily share code between internal and external APIs.
 
-  - [**Tracing**](https://pothos-graphql.dev/docs/plugins/tracing)
+- [**Tracing**](https://pothos-graphql.dev/docs/plugins/tracing)
 
   Add tracing for resolver execution, with support for opentelemetry, newrelic, century, logging,
   and custom tracers

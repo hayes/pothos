@@ -33,7 +33,6 @@ const User = builder.externalRef('User', builder.selection<{ id: string }>('id')
 });
 
 const Post = builder.prismaObject('Post', {
-  findUnique: ({ id }) => ({ id }),
   fields: (t) => ({
     id: t.exposeID('id'),
     title: t.exposeString('title'),

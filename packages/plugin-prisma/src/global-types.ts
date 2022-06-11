@@ -106,6 +106,7 @@ declare global {
             Interfaces extends InterfaceParam<Types>[] = [],
             Include = unknown,
             Select = unknown,
+            UniqueField = unknown,
           >(
             name: Name,
             options: PrismaNodeOptions<
@@ -117,7 +118,8 @@ declare global {
               ShapeFromSelection<
                 PrismaModelTypes & Types['PrismaTypes'][Name],
                 { select: Select; include: Include }
-              >
+              >,
+              UniqueField
             >,
           ) => PrismaNodeRef<
             Types['PrismaTypes'][Name] & PrismaModelTypes,
