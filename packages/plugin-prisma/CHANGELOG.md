@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.10.0
+
+### Minor Changes
+
+- 384b0fb6: Make findUnique optional by defaulting to id/unique fields defined in prisma schema
+
 ## 3.9.0
 
 ### Minor Changes
