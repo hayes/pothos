@@ -49,11 +49,14 @@ export function getClient<Types extends SchemaTypes>(
 export function getDMMF<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ): DMMF {
-  return 'dmmf' in builder.options.prisma
-    ? (builder.options.prisma.dmmf as DMMF)
-    : (
-        builder.options.prisma.client as unknown as {
-          _dmmf: DMMF;
-        }
-      )._dmmf;
+  if ('dmmf' in builder.options.prisma && builder.options.prisma.dmmf) {
+    return builder.options.prisma.dmmf as DMMF;
+  }
+
+  const client = builder.options.prisma.client as unknown as {
+    _baseDmmf?: DMMF;
+    _dmmf: DMMF;
+  };
+
+  return client._baseDmmf ?? client._dmmf;
 }

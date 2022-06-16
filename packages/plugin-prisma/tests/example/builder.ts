@@ -45,7 +45,9 @@ export default new SchemaBuilder<{
   }),
   prisma: {
     client: () => prisma,
-    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
+    dmmf:
+      (prisma as unknown as { _baseDmmf: Prisma.DMMF.Document })._baseDmmf ||
+      (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
   },
   errorOptions: {
     defaultTypes: [Error],
