@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.0
+
+### Minor Changes
+
+- 4d414fb5: Add support for prisma@4
+
 ## 3.11.0
 
 ### Minor Changes
