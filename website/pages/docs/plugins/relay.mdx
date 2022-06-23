@@ -185,23 +185,25 @@ builder.queryFields((t) => ({
     {
       type: NumberThing,
       resolve: (parent, { first, last, before, after }) => {
-        return resolveOffsetConnection({ args }, ({ limit, offset }) => {
-          return {
-            pageInfo: {
-              hasNextPage: false,
-              hasPreviousPage: false,
-              startCursor: 'abc',
-              endCursor: 'def',
+        return {
+          pageInfo: {
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: 'abc',
+            endCursor: 'def',
+          },
+          edges: [
+            {
+              cursor: 'abc',
+              node: new NumberThing(123),
             },
-            edges: [
-              {
-                cursor: 'xyz',
-                node: new NumberThing(123),
-              },
-            ],
-          };
-        });
-      },
+            {
+              cursor: 'def',
+              node: new NumberThing(123),
+            },
+          ]
+        }
+      }),
     },
     {
       name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
@@ -270,7 +272,41 @@ builder.queryFields((t) => ({
 }));
 ```
 
-I am planning to add more helpers in the future.
+Cursor based pagination can be implemented using the `resolveCursorConnection` method. The following
+example uses prisma, but a similar solution should work with any data store that supports limits,
+ordering, and filtering.
+
+```typescript
+import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
+
+builder.queryField('posts', (t) =>
+  t.connection({
+    type: Post,
+    resolve: (_, args) =>
+      resolveCursorConnection(
+        {
+          args,
+          toCursor: (post) => post.createdAt.toISOString(),
+        },
+        // Manually defining the arg type here is required
+        // so that typescript can correctly infer the return value
+        ({ before, after, limit, inverted }: ResolveCursorConnectionArgs) =>
+          prisma.post.findMany({
+            take: limit,
+            where: {
+              createdAt: {
+                lt: before,
+                gt: after,
+              },
+            },
+            orderBy: {
+              createdAt: inverted ? 'desc' : 'asc',
+            },
+          }),
+      ),
+  }),
+);
+```
 
 ### Relay Mutations
 

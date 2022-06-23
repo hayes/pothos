@@ -107,6 +107,7 @@ type Profile {
 type Query {
   findUniqueRelations: FindUniqueRelations!
   findUniqueRelationsSelect: FindUniqueRelations!
+  manualConnection(after: ID, before: ID, first: Int, last: Int): QueryManualConnection!
   me: User
   named: [Named]
   node(id: ID!): Node
@@ -123,6 +124,16 @@ type Query {
   usersWithError: QueryUsersWithErrorResult!
   viewer: Viewer!
   viewerNode: ViewerNode!
+}
+
+type QueryManualConnection {
+  edges: [QueryManualConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryManualConnectionEdge {
+  cursor: String!
+  node: Post!
 }
 
 type QueryUnrelatedConnection {

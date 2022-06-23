@@ -6,6 +6,11 @@ interface ResolveOffsetConnectionOptions {
     defaultSize?: number;
     maxSize?: number;
 }
+interface ResolveCursorConnectionOptions {
+    args: DefaultConnectionArguments;
+    defaultSize?: number;
+    maxSize?: number;
+}
 interface ResolveArrayConnectionOptions {
     args: DefaultConnectionArguments;
     defaultSize?: number;
@@ -113,6 +118,63 @@ export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions
             startCursor: offsetToCursor(offset),
             endCursor: offsetToCursor(offset + trimmed.length - 1),
             hasPreviousPage,
+            hasNextPage: hasNextPage(nodes.length),
+        },
+    };
+}
+function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
+    const { before, after, first, last } = options.args;
+    const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
+    const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
+    if (first != null && first < 0) {
+        throw new TypeError("Argument \"first\" must be a non-negative integer");
+    }
+    if (last != null && last < 0) {
+        throw new Error("Argument \"last\" must be a non-negative integer");
+    }
+    const limit = Math.min(first ?? last ?? defaultSize, maxSize) + 1;
+    const inverted = after ? !!last && !first : (!!before && !first) || (!first && !!last);
+    return {
+        before: before ?? void 0,
+        after: after ?? void 0,
+        limit,
+        expectedSize: limit - 1,
+        inverted,
+        hasPreviousPage: (resultSize: number) => !!after || (resultSize >= limit && !first),
+        hasNextPage: (resultSize: number) => !!before || (!last && resultSize >= limit),
+    };
+}
+export async function resolveCursorConnection<T>(options: ResolveCursorConnectionOptions, resolve: (params: {
+    before?: string;
+    after?: string;
+    limit: number;
+    inverted: boolean;
+}) => MaybePromise<T[] | null> | T[] | null, toCursor: (value: T) => string): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, false, false, false>> {
+    const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } = parseCurserArgs(options);
+    const nodes = await resolve({ before, after, limit, inverted });
+    if (!nodes) {
+        return nodes as never;
+    }
+    const trimmed = nodes.slice(0, expectedSize);
+    if (inverted) {
+        trimmed.reverse();
+    }
+    const edges = trimmed.map((value) => value == null
+        ? null
+        : {
+            cursor: toCursor(value),
+            node: value as NonNullable<T>,
+        });
+    const startCursor = trimmed.length > 0 ? toCursor(trimmed[0]) : options.args.after ?? options.args.before ?? "";
+    const endCursor = trimmed.length > 0
+        ? toCursor(trimmed[trimmed.length - 1])
+        : options.args.after ?? options.args.before ?? "";
+    return {
+        edges: edges as never,
+        pageInfo: {
+            startCursor,
+            endCursor,
+            hasPreviousPage: hasPreviousPage(nodes.length),
             hasNextPage: hasNextPage(nodes.length),
         },
     };

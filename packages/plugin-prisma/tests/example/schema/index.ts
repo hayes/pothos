@@ -1,4 +1,5 @@
 /* eslint-disable no-underscore-dangle */
+import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
 import { Post } from '../../client';
 import builder, { prisma } from '../builder';
 
@@ -301,7 +302,7 @@ const UserOrProfile = builder.unionType('UserOrProfile', {
   },
 });
 
-builder.prismaObject('Post', {
+const PostRef = builder.prismaObject('Post', {
   include: {
     comments: {
       take: 3,
@@ -704,5 +705,38 @@ builder.prismaObject('FindUniqueRelations', {
     }),
   }),
 });
+
+builder.queryField('manualConnection', (t) =>
+  t.connection({
+    type: PostRef,
+    resolve: (_, args) =>
+      resolveCursorConnection(
+        {
+          args,
+          toCursor: (media) => media.createdAt.toISOString(),
+        },
+        ({ before, after, limit, inverted }: ResolveCursorConnectionArgs) =>
+          prisma.post.findMany({
+            take: limit,
+            include: {
+              comments: {
+                include: {
+                  author: true,
+                },
+              },
+            },
+            where: {
+              createdAt: {
+                lt: before,
+                gt: after,
+              },
+            },
+            orderBy: {
+              createdAt: inverted ? 'desc' : 'asc',
+            },
+          }),
+      ),
+  }),
+);
 
 export default builder.toSchema({});

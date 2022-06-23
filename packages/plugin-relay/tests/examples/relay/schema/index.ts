@@ -1,6 +1,7 @@
 /* eslint-disable unicorn/no-useless-promise-resolve-reject */
 import './poll';
 import './numbers';
+import './cursors';
 import builder from '../builder';
 
 interface GlobalIDInputsShape {

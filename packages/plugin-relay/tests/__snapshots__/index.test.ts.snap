@@ -12,6 +12,10 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+type CursorObject {
+  id: ID!
+}
+
 \\"\\"\\"input type\\"\\"\\"
 input CustomInputName {
   clientMutationId: ID!
@@ -123,6 +127,7 @@ type PollAnswersUsingOffsetConnectionEdge {
 
 type Query {
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  cursorConnection(after: ID, before: ID, first: Int, last: Int): QueryCursorConnection!
   extraNode: Node
   inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
@@ -150,6 +155,16 @@ type QueryBatchNumbersConnectionEdge {
   cursor: String!
   edgeField: Int
   node: BatchNumber!
+}
+
+type QueryCursorConnection {
+  edges: [QueryCursorConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryCursorConnectionEdge {
+  cursor: String!
+  node: CursorObject!
 }
 
 type QueryNumbersConnection {

@@ -1,0 +1,273 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`cursor based connection queries 1`] = `
+Object {
+  "data": Object {
+    "after": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "99",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "100",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "100",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "99",
+      },
+    },
+    "afterFirst": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "96",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "97",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "97",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "96",
+      },
+    },
+    "afterFull": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "41",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "42",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "43",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "44",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "45",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "45",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "41",
+      },
+    },
+    "afterFullFirst": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "41",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "42",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "42",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "41",
+      },
+    },
+    "afterLast": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "99",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "100",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "100",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "99",
+      },
+    },
+    "afterLastFull": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "99",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "100",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "100",
+        "hasNextPage": false,
+        "hasPreviousPage": true,
+        "startCursor": "99",
+      },
+    },
+    "before": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "1",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "1",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+    "beforeFirst": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "1",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "2",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "2",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+    "beforeFull": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "35",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "36",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "37",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "38",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "39",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "39",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "35",
+      },
+    },
+    "beforeFullFirst": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "1",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "2",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "2",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
+    "beforeLast": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "3",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "4",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "4",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "3",
+      },
+    },
+    "beforeLastFull": Object {
+      "edges": Array [
+        Object {
+          "node": Object {
+            "id": "38",
+          },
+        },
+        Object {
+          "node": Object {
+            "id": "39",
+          },
+        },
+      ],
+      "pageInfo": Object {
+        "endCursor": "39",
+        "hasNextPage": true,
+        "hasPreviousPage": true,
+        "startCursor": "38",
+      },
+    },
+  },
+}
+`;
