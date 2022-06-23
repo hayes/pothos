@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.11.0
+
+### Minor Changes
+
+- 79e69c2b: Add resolveCursorConnection helper for relay plugin
+
 ## 3.10.0
 
 ### Minor Changes

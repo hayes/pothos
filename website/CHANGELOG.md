@@ -2,6 +2,12 @@
 
 ## null
 
+### Minor Changes
+
+- 79e69c2b: Add resolveCursorConnection helper for relay plugin
+
+## null
+
 ### Patch Changes
 
 - Updated dependencies [32cb5073]
