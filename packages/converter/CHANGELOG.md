@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.3.3
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
 ## 3.3.2
 
 ### Patch Changes

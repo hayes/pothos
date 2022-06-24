@@ -2,6 +2,13 @@
 
 ## null
 
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+  - @pothos/core@3.12.0
+
+## null
+
 ### Minor Changes
 
 - 79e69c2b: Add resolveCursorConnection helper for relay plugin
