@@ -1,18 +1,27 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`federation accounts schema generates expected schema 1`] = `
-"type Query {
-  _entities(representations: [_Any!]!): [_Entity]!
-  _service: _Service!
+"directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
+
+type Query {
   me: User
 }
 
-type User @key(fields: \\"id\\") {
+type User
+  @key(fields: \\"id\\")
+{
   id: ID
   name: String
   username: String
 }
-"
+
+scalar link__Import"
 `;
 
 exports[`federation accounts schema generates expected schema 2`] = `
@@ -22,7 +31,7 @@ directive @external on FIELD_DEFINITION | OBJECT
 
 directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
-directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) repeatable on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
 
@@ -63,19 +72,26 @@ scalar link__Import"
 `;
 
 exports[`federation inventory schema generates expected schema 1`] = `
-"type Product @key(fields: \\"upc\\") @extends {
-  inStock: Boolean
+"directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
+
+type Product
+  @key(fields: \\"upc\\")
+  @extends
+{
   price: Float @external
-  shippingEstimate: Float @requires(fields: \\"price weight\\")
-  upc: String
   weight: Float @external
+  upc: String
+  inStock: Boolean
+  shippingEstimate: Float @requires(fields: \\"price weight\\")
 }
 
-type Query {
-  _entities(representations: [_Any!]!): [_Entity]!
-  _service: _Service!
-}
-"
+scalar link__Import"
 `;
 
 exports[`federation inventory schema generates expected schema 2`] = `
@@ -85,7 +101,7 @@ directive @external on FIELD_DEFINITION | OBJECT
 
 directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
-directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) repeatable on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
 
@@ -127,19 +143,28 @@ scalar link__Import"
 `;
 
 exports[`federation products schema generates expected schema 1`] = `
-"type Product @key(fields: \\"upc\\") {
+"directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
+
+type Product
+  @key(fields: \\"upc\\")
+{
+  upc: String
   name: String
   price: Float
-  upc: String
   weight: Float
 }
 
 type Query {
-  _entities(representations: [_Any!]!): [_Entity]!
-  _service: _Service!
-  topProducts(first: Int = 5): [Product!]
+  topProducts(first: Int): [Product!]
 }
-"
+
+scalar link__Import"
 `;
 
 exports[`federation products schema generates expected schema 2`] = `
@@ -149,7 +174,7 @@ directive @external on FIELD_DEFINITION | OBJECT
 
 directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
-directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) repeatable on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
 
@@ -191,29 +216,41 @@ scalar link__Import"
 `;
 
 exports[`federation reviews schema generates expected schema 1`] = `
-"type Product @key(fields: \\"upc\\") @extends {
-  reviews: [Review!]
+"directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
+
+directive @link(import: [link__Import], url: String!) on SCHEMA
+
+directive @override(from: String!) on FIELD_DEFINITION
+
+directive @shareable on FIELD_DEFINITION | OBJECT
+
+type Product
+  @key(fields: \\"upc\\")
+  @extends
+{
   upc: String
+  reviews: [Review!]
 }
 
-type Query {
-  _entities(representations: [_Any!]!): [_Entity]!
-  _service: _Service!
-}
-
-type Review @key(fields: \\"id\\") {
-  author: User @provides(fields: \\"username\\")
-  body: String
+type Review
+  @key(fields: \\"id\\")
+{
   id: ID
+  body: String
+  author: User @provides(fields: \\"username\\")
   product: Product
 }
 
-type User @key(fields: \\"id\\") @extends {
+type User
+  @key(fields: \\"id\\")
+  @extends
+{
+  username: String @external
   id: ID
   reviews: [Review!]
-  username: String @external
 }
-"
+
+scalar link__Import"
 `;
 
 exports[`federation reviews schema generates expected schema 2`] = `
@@ -223,7 +260,7 @@ directive @external on FIELD_DEFINITION | OBJECT
 
 directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
-directive @key(fields: String!, resolvable: Boolean = true) on INTERFACE | OBJECT
+directive @key(fields: String!, resolvable: Boolean = true) repeatable on INTERFACE | OBJECT
 
 directive @link(import: [link__Import], url: String!) on SCHEMA
 

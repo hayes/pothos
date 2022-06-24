@@ -66,7 +66,13 @@ export class ExternalEntityRef<
       }),
       extensions: {
         ...options.extensions,
-        resolveReference: this.resolveReference,
+        apollo: {
+          ...(options.extensions?.apollo as {}),
+          subgraph: {
+            ...(options.extensions?.apollo as { subgraph: {} })?.subgraph,
+            resolveReference: this.resolveReference,
+          },
+        },
       },
     });
 

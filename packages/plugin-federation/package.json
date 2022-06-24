@@ -39,18 +39,18 @@
     "access": "public"
   },
   "peerDependencies": {
-    "@apollo/subgraph": "^2.0.0-preview.9",
+    "@apollo/subgraph": "^2.0.0",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.0.2",
-    "@apollo/subgraph": "^2.0.1",
-    "@graphql-tools/utils": "^8.6.12",
+    "@apollo/gateway": "^2.0.5",
+    "@apollo/subgraph": "2.0.5",
+    "@graphql-tools/utils": "^8.7.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "apollo-server": "^3.8.1",
-    "apollo-server-core": "^3.8.1",
+    "apollo-server": "^3.9.0",
+    "apollo-server-core": "^3.9.0",
     "axios": "^0.27.2",
     "graphql": "16.5.0",
     "graphql-tag": "^2.12.5"

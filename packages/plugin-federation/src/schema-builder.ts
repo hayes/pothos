@@ -101,13 +101,6 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
     types: entityTypes.filter(isObjectType),
   });
 
-  entityTypes.forEach((type) => {
-    // eslint-disable-next-line no-param-reassign
-    (type as GraphQLObjectType & { resolveReference?: unknown }).resolveReference = (
-      type.extensions?.pothosOptions as { resolveReference: unknown }
-    )?.resolveReference;
-  });
-
   const newQuery = new GraphQLObjectType({
     name: 'Query',
     description: queryType?.description,
@@ -144,14 +137,6 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
   const sorted = lexicographicSortSchema(subGraphSchema);
 
   const sdl = printSubgraphSchema(sorted);
-
-  entityTypes.forEach((type) => {
-    const newType = sorted.getType(type.name) as GraphQLObjectType & {
-      resolveReference?: unknown;
-    };
-
-    newType.resolveReference = newType.extensions?.resolveReference;
-  });
 
   return sorted;
 };

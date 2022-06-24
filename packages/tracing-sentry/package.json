@@ -48,12 +48,12 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@graphql-yoga/node": "^2.7.0",
+    "@graphql-yoga/node": "^2.9.2",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@sentry/node": "^6.19.7",
-    "@sentry/tracing": "^6.19.7",
+    "@sentry/node": "^7.2.0",
+    "@sentry/tracing": "^7.2.0",
     "graphql": "16.5.0",
     "graphql-tag": "^2.12.6"
   }

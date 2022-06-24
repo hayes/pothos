@@ -27,8 +27,14 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
     return {
       ...typeConfig,
       extensions: {
-        resolveReference: entityConfig.resolveReference,
         ...typeConfig.extensions,
+        apollo: {
+          ...(typeConfig.extensions?.apollo as {}),
+          subgraph: {
+            ...(typeConfig.extensions?.apollo as { subgraph: {} })?.subgraph,
+            resolveReference: entityConfig.resolveReference,
+          },
+        },
         directives: mergeDirectives(typeConfig.extensions?.directives as [], [
           ...keyDirective(entityConfig.key),
         ]),

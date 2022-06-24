@@ -54,7 +54,7 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
         description: info.fieldName,
         tags,
         data,
-      });
+      }) as Span;
 
       tracingOptions?.onSpan?.(span, fieldOptions, source, args, ctx, info);
       options?.onSpan?.(span, fieldOptions, source, args, ctx, info);
