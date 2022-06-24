@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.1
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
 ## 3.12.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @pothos/tracing-xray
 
+## 0.2.3
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
 ## 0.2.2
 
 ### Patch Changes

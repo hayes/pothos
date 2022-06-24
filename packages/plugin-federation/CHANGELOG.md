@@ -1,5 +1,15 @@
 # @pothos/plugin-federation
 
+## 3.2.0
+
+### Minor Changes
+
+- c8f75aa1: Fix compatibility with latest @apollo/subgraph
+
+### Patch Changes
+
+- c8f75aa1: Update dev dependencies
+
 ## 3.1.1
 
 ### Patch Changes
