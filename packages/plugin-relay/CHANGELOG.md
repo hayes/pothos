@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.14.0
+
+### Minor Changes
+
+- e79b3ce5: Pass node list to toCursor option of resolveCursorConnection
+
 ## 3.13.0
 
 ### Minor Changes
