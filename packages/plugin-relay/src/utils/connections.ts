@@ -11,7 +11,7 @@ export interface ResolveCursorConnectionOptions<T> {
   args: DefaultConnectionArguments;
   defaultSize?: number;
   maxSize?: number;
-  toCursor: (value: T) => string;
+  toCursor: (value: T, nodes: T[]) => string;
 }
 
 export interface ResolveCursorConnectionArgs {
@@ -232,7 +232,7 @@ export async function resolveCursorConnection<
     value == null
       ? null
       : {
-          cursor: options.toCursor(value),
+          cursor: options.toCursor(value, trimmed),
           node: value,
         },
   );
