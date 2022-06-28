@@ -8,6 +8,7 @@ import {
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
+import { ModelLoader } from './model-loader';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
 import { resolvePrismaCursorConnection } from './util/cursors';
 import { getCursorFormatter, getCursorParser, getRefFromModel } from './util/datamodel';
@@ -77,6 +78,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
 
   const formatCursor = getCursorFormatter(model, this.builder, cursor);
   const parseCursor = getCursorParser(model, this.builder, cursor);
+  const cursorSelection = ModelLoader.getCursorSelection(ref, model, cursor, this.builder);
 
   const fieldRef = (
     this as typeof fieldBuilderProto & { connection: (...args: unknown[]) => FieldRef<unknown> }
@@ -92,7 +94,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       ) =>
         resolvePrismaCursorConnection(
           {
-            query: queryFromInfo(ctx, info),
+            query: queryFromInfo(ctx, info, undefined, { select: cursorSelection as {} }),
             parseCursor,
             maxSize,
             defaultSize,

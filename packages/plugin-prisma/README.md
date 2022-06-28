@@ -84,11 +84,10 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUnique({
+        prisma.user.findUniqueOrThrow({
           // the `query` argument will add in `include`s or `select`s to
           // resolve as much of the request in a single query as possible
           ...query,
-          rejectOnNotFound: true,
           where: { id: ctx.userId },
         }),
     }),
@@ -240,7 +239,7 @@ const builder = new SchemaBuilder<{
   prisma: {
     client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
     // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
-    dmmf: (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
+    dmmf: (prisma as unknown as { _baseDmmf: Prisma.DMMF.Document })._baseDmmf,
   },
 });
 ```
@@ -286,9 +285,8 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUnique({
+        prisma.user.findUniqueOrThrow({
           ...query,
-          rejectOnNotFound: true,
           where: { id: ctx.userId },
         }),
     }),
@@ -321,9 +319,8 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUnique({
+        prisma.user.findUniqueOrThrow({
           ...query,
-          rejectOnNotFound: true,
           where: { id: ctx.userId },
         }),
     }),
@@ -942,8 +939,7 @@ PostObject.implement({
     title: t.exposeString('title'),
     author: t.field({
       type: UserObject,
-      resolve: (post) =>
-        db.user.findUnique({ rejectOnNotFound: true, where: { id: post.authorId } }),
+      resolve: (post) => db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
     }),
   }),
 });
@@ -952,8 +948,7 @@ builder.queryType({
   fields: (t) => ({
     me: t.field({
       type: UserObject,
-      resolve: (root, args, ctx) =>
-        db.user.findUnique({ rejectOnNotFound: true, where: { id: ctx.userId } }),
+      resolve: (root, args, ctx) => db.user.findUniqueOrThrow({ where: { id: ctx.userId } }),
     }),
   }),
 });
@@ -965,9 +960,9 @@ user. There are a few things to note in this setup:
 1. We split up the `builder.objectRef` and the `implement` calls, rather than calling
    `builder.objectRef(...).implement(...)`. This prevents typescript from getting tripped up by the
    circular references between posts and users.
-2. We use rejectOnNotFound with our `findUnique` calls because those fields are not nullable.
-   Without this option, prisma will return a null if the object is not found. An alternative is to
-   mark these fields as nullable.
+2. We use `findUniqueOrThrow` because those fields are not nullable. Without this option, prisma
+   will return a null if the object is not found. An alternative is to mark these fields as
+   nullable.
 3. The refs to our object types are called `UserObject` and `PostObject`, this is because `User` and
    `Post` are the names of the types imported from prisma. We could instead alias the types when we
    import them so we can name the refs to our GraphQL types after the models.
@@ -1027,8 +1022,7 @@ PostObject.implement({
     title: t.exposeString('title'),
     author: t.field({
       type: UserObject,
-      resolve: (post) =>
-        post.author ?? db.user.findUnique({ rejectOnNotFound: true, where: { id: post.authorId } }),
+      resolve: (post) => post.author ?? db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
     }),
   }),
 });

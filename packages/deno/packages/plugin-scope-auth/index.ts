@@ -1,6 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import './schema-builder.ts';
+import './field-builders.ts';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, FieldKind, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosQueryTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
 import { isTypeOfHelper } from './is-type-of-helper.ts';

@@ -9,6 +9,10 @@ interface IfaceForAdmin {
   field: String!
 }
 
+type Mutation {
+  withAuth: Boolean
+}
+
 type ObjAdminIface implements IfaceForAdmin & StringInterface {
   field: String!
   stringInterfaceField: String!
@@ -163,9 +167,30 @@ type Query {
   forSyncPermissionFn(permission: String): String
   grantedFromRoot: String!
   notGrantedFromRoot: String!
+  withAuth: Boolean
+  withAuthObject: WithAuthObject
+  withAuthPrismaUser: User
 }
 
 interface StringInterface {
   stringInterfaceField: String!
+}
+
+type Subscription {
+  withAuth: Boolean
+}
+
+type User {
+  firstName: String!
+  id: ID!
+}
+
+interface WithAuthInterface {
+  withAuthFromInterface: Boolean
+}
+
+type WithAuthObject implements WithAuthInterface {
+  withAuth: Boolean
+  withAuthFromInterface: Boolean
 }"
 `;

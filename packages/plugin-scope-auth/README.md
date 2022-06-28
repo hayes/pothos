@@ -1,4 +1,4 @@
-# Scope Auth Plugin for Pothos
+# Auth Plugin
 
 The scope auth plugin aims to be a general purpose authorization plugin that can handle a wide
 variety of authorization use cases, while incurring a minimal performance overhead.
@@ -447,6 +447,46 @@ builder.queryField('currentId', (t) =>
     },
     resolve: (parent, args, context) => context.user.id,
   }),
+);
+```
+
+Some plugins contribute field builder methods with additional functionality that may not work with
+`t.authField`. In order to work with those methods, there is also a `t.withAuth` method that can be
+used to return a field builder with authScopes predefined.
+
+```typescript
+type Context = {
+  user: User | null;
+};
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+  AuthContexts: {
+    loggedIn: Context & { user: User };
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
+});
+
+builder.queryField('viewer', (t) =>
+  t
+    .withAuth({
+      loggedIn: true,
+    })
+    .prismaField({
+      type: User,
+      resolve: (query, root, args, ctx) =>
+        prisma.findUniqueOrThrow({
+          ...query,
+          where: { id: ctx.user.id },
+        }),
+    }),
 );
 ```
 

@@ -144,6 +144,35 @@ export class ModelLoader {
     return result;
   }
 
+  static getCursorSelection<Types extends SchemaTypes>(
+    ref: ObjectRef<unknown>,
+    modelName: string,
+    cursor: string,
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  ): Record<string, boolean> {
+    const model = getModel(modelName, builder);
+    const field = model.fields.find((field) => field.name === cursor);
+
+    if (field) {
+      return { [field.name]: true };
+    }
+    const index = [model.primaryKey, ...model.uniqueIndexes]
+      .filter(Boolean)
+      .find((idx) => (idx!.name ?? idx!.fields.join('_')) === cursor);
+
+    if (!index) {
+      throw new Error(`Can't find "${cursor}" field or index for ${ref.name}`);
+    }
+
+    const selection: Record<string, boolean> = {};
+
+    for (const column of index.fields) {
+      selection[column] = true;
+    }
+
+    return selection;
+  }
+
   static getFindUniqueForField<Types extends SchemaTypes>(
     ref: ObjectRef<unknown>,
     modelName: string,
@@ -205,6 +234,13 @@ export class ModelLoader {
           getClient(this.builder, context as never),
           this.modelName,
         );
+
+        if (delegate.findUniqueOrThrow) {
+          return delegate.findUniqueOrThrow({
+            ...selectionToQuery(state),
+            where: { ...(this.findUnique(this.model, context) as {}) },
+          } as never) as Promise<Record<string, unknown>>;
+        }
 
         return delegate.findUnique({
           rejectOnNotFound: true,

@@ -17,7 +17,7 @@ const excludedPackages = [
   'tracing-newrelic',
   'tracing-xray',
 ];
-const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules'];
+const excludedDirs = ['esm', 'lib', 'test', 'tests', 'node_modules', 'prisma'];
 const excludedFiles = [
   'package.json',
   'tsconfig.json',

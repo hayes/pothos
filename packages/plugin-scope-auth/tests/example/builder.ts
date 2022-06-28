@@ -1,6 +1,9 @@
 /* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
+import PrismaPlugin from '@pothos/plugin-prisma';
+import type PrismaTypes from '../../prisma/generated';
 import ScopeAuthPlugin from '../../src';
+import { db } from './db';
 import User from './user';
 
 interface Context {
@@ -20,10 +23,14 @@ const builder = new SchemaBuilder<{
     asyncPermission: string;
   };
   AuthContexts: {
-    loggedIn: Context & { User: User };
+    loggedIn: Context & { user: User };
   };
+  PrismaTypes: PrismaTypes;
 }>({
-  plugins: [ScopeAuthPlugin],
+  plugins: [ScopeAuthPlugin, PrismaPlugin],
+  prisma: {
+    client: db,
+  },
   authScopes: async (context) => ({
     loggedIn: !!context.user,
     admin: !!context.user?.roles.includes('admin'),

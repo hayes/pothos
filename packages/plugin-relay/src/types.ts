@@ -33,7 +33,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   brandLoadedObjects?: boolean;
-  nodeTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, unknown>, 'fields'>;
+  nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, 'fields'>;
   pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
   nodeQueryOptions: Omit<
     PothosSchemaTypes.QueryFieldOptions<

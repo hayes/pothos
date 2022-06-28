@@ -24,6 +24,7 @@ import { PrismaObjectFieldBuilder } from './field-builder';
 import { PrismaObjectRef } from './object-ref';
 
 export interface PrismaDelegate {
+  findUniqueOrThrow?: (...args: any[]) => Promise<unknown>;
   findUnique: (...args: any[]) => Promise<unknown>;
 }
 
@@ -517,10 +518,10 @@ export type RelatedConnectionOptions<
     Model['Shape'],
     ObjectRef<unknown>,
     Nullable,
-    Args,
+    Args & InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
     unknown
   >,
-  'resolve' | 'type'
+  'resolve' | 'type' | 'args'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<

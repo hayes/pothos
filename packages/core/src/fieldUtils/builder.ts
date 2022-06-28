@@ -361,7 +361,7 @@ export default class FieldBuilder<
    */
   expose<
     Type extends TypeParam<Types>,
-    Nullable extends boolean,
+    Nullable extends FieldNullability<Type>,
     ResolveReturnShape,
     Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>,
   >(

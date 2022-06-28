@@ -99,7 +99,7 @@ declare global {
         InputName extends string = 'input',
       >(
         name: string,
-        inputOptions: RelayMutationInputOptions<Types, Fields, InputName>,
+        inputOptions: InputObjectRef<unknown> | RelayMutationInputOptions<Types, Fields, InputName>,
         fieldOptions: RelayMutationFieldOptions<
           Types,
           Fields,

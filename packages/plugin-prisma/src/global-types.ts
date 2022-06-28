@@ -15,6 +15,7 @@ import {
 } from '@pothos/core';
 import PrismaNodeRef from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
+import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import {
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
@@ -248,5 +249,20 @@ declare global {
     }
 
     export interface ConnectionShapeHelper<Types extends SchemaTypes, T, Nullable> {}
+
+    export interface ScopeAuthFieldAuthScopes<
+      Types extends SchemaTypes,
+      Parent,
+      Args extends {} = {},
+    > {}
+    export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {}
+
+    export interface PrismaObjectFieldBuilder<
+      Types extends SchemaTypes,
+      Model extends PrismaModelTypes,
+      NeedsResolve extends boolean,
+      Shape extends object = Model['Shape'],
+    > extends InternalPrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>,
+        RootFieldBuilder<Types, Shape, 'PrismaObject'> {}
   }
 }

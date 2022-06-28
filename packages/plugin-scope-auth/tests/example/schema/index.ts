@@ -1,4 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
+import './custom-errors';
+import './with-auth';
 import builder from '../builder';
 
 builder.queryField('currentId', (t) =>
@@ -7,9 +9,12 @@ builder.queryField('currentId', (t) =>
     authScopes: {
       loggedIn: true,
     },
-    resolve: (parent, args, context) => context.User.id,
+    resolve: (parent, args, context) => context.user.id,
   }),
 );
+
+builder.mutationType({});
+builder.subscriptionType({});
 
 const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
   authScopes: {

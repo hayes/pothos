@@ -9,10 +9,10 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@envelop/core": "^2.3.3",
+    "@envelop/core": "^2.4.0",
     "@faker-js/faker": "^7.3.0",
     "@pothos/core": "workspace:*",
-    "fastify": "^4.1.0",
+    "fastify": "^4.2.0",
     "graphql": "16.5.0",
     "graphql-helix": "^1.11.0"
   },

@@ -174,7 +174,7 @@ export function serializeID(id: unknown, dataType: string) {
 }
 
 export function parseCompositeCursor(fields: string[]) {
-  return (cursor: string) => {
+  return (cursor: unknown) => {
     const parsed = parseRawCursor(cursor) as unknown[];
 
     if (!Array.isArray(parsed)) {

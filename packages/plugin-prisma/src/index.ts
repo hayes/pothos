@@ -1,5 +1,4 @@
 import './global-types';
-import './field-builder';
 import './schema-builder';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
@@ -8,7 +7,9 @@ import SchemaBuilder, {
   PothosOutputFieldConfig,
   SchemaTypes,
 } from '@pothos/core';
+import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
+import { PrismaModelTypes } from './types';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
 
@@ -17,6 +18,21 @@ export * from './types';
 const pluginName = 'prisma' as const;
 
 export default pluginName;
+
+export type PrismaObjectFieldBuilder<
+  Types extends SchemaTypes,
+  ParentShape,
+> = PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
+
+export const ObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  NeedsResolve extends boolean,
+  Shape extends object = Model['Shape'],
+>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>;
 
 export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   constructor(cache: BuildCache<Types>) {

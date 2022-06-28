@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
 import ScopeAuthPlugin from '../../../src';
+import { db } from '../db';
 import User from '../user';
 
 interface Context {
@@ -26,6 +27,9 @@ const builder = new SchemaBuilder<{
     unauthorizedError: (parent, context, info, result) =>
       new Error(`${result.failure.kind}: ${result.message}`),
     runScopesOnType: true,
+  },
+  prisma: {
+    client: db,
   },
   plugins: [ScopeAuthPlugin],
   authScopes: (context) => ({

@@ -17,6 +17,7 @@ import {
 import {
   FieldAuthScopes,
   FieldGrantScopes,
+  ReplaceContext,
   ScopeAuthInitializer,
   ScopeAuthPluginOptions,
   TypeAuthScopes,
@@ -171,6 +172,62 @@ declare global {
           }
         >,
       ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
+    }
+
+    export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => QueryFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface MutationFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => MutationFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface SubscriptionFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => SubscriptionFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface ObjectFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => ObjectFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape> {
+      withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => InterfaceFieldBuilder<
+        ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>,
+        ParentShape
+      >;
+    }
+
+    export interface ScopeAuthFieldAuthScopes<
+      Types extends SchemaTypes,
+      Parent,
+      Args extends {} = {},
+    > {
+      Scopes: FieldAuthScopes<Types, Parent, Args>;
+    }
+    export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {
+      Context: ContextForAuth<Types, Scopes>;
     }
   }
 }
