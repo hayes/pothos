@@ -5,6 +5,7 @@ import SchemaBuilder, {
   createContextCache,
   FieldRef,
   getTypeBrand,
+  InputObjectRef,
   InterfaceParam,
   InterfaceRef,
   ObjectFieldsShape,
@@ -271,12 +272,7 @@ const mutationIdCache = createContextCache(() => new Map<string, string>());
 
 schemaBuilderProto.relayMutationField = function relayMutationField(
   fieldName,
-  {
-    name: inputName = `${capitalize(fieldName)}Input`,
-    argName = 'input',
-    inputFields,
-    ...inputOptions
-  },
+  inputOptionsOrRef,
   { resolve, ...fieldOptions },
   {
     name: payloadName = `${capitalize(fieldName)}Payload`,
@@ -295,20 +291,35 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 
   const includeClientMutationId = this.options.relayOptions.clientMutationId !== 'omit';
 
-  const inputRef = this.inputType(inputName, {
-    ...inputOptions,
-    fields: (t) => ({
-      ...inputFields(t),
-      ...(includeClientMutationId
-        ? {
-            clientMutationId: t.id({
-              ...clientMutationIdInputOptions,
-              required: this.options.relayOptions.clientMutationId !== 'optional',
-            }),
-          }
-        : {}),
-    }),
-  });
+  let inputRef: InputObjectRef<unknown>;
+  let argName = 'input';
+
+  if (inputOptionsOrRef instanceof InputObjectRef) {
+    inputRef = inputOptionsOrRef;
+  } else {
+    const {
+      name: inputName = `${capitalize(fieldName)}Input`,
+      argName: argNameFromOptions = 'input',
+      inputFields,
+      ...inputOptions
+    } = inputOptionsOrRef;
+    argName = argNameFromOptions;
+
+    inputRef = this.inputType(inputName, {
+      ...inputOptions,
+      fields: (t) => ({
+        ...inputFields(t),
+        ...(includeClientMutationId
+          ? {
+              clientMutationId: t.id({
+                ...clientMutationIdInputOptions,
+                required: this.options.relayOptions.clientMutationId !== 'optional',
+              }),
+            }
+          : {}),
+      }),
+    });
+  }
 
   const payloadRef = this.objectRef<unknown>(payloadName).implement({
     ...paylaodOptions,

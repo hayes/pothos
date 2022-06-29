@@ -1,5 +1,6 @@
 import './global-types';
 import './schema-builder';
+import './field-builders';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,

@@ -75,10 +75,9 @@ builder.queryType({
         id: t.arg.id({ required: true }),
       },
       resolve: (query, root, { id }) =>
-        db.comment.findUnique({
+        db.comment.findUniqueOrThrow({
           ...query,
           where: { id: Number.parseInt(id, 10) },
-          rejectOnNotFound: true,
         }),
     }),
   }),

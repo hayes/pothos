@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import { FieldAuthScopes, FieldGrantScopes, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
+import { FieldAuthScopes, FieldGrantScopes, ReplaceContext, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
 import { AuthScopeMap, ContextForAuth, ForbiddenResult, PothosScopeAuthPlugin, UnauthorizedOptions, } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -57,6 +57,27 @@ declare global {
                 authScopes: Scopes;
                 resolve: Resolver<Types["Root"], InputShapeFromFields<Args>, ContextForAuth<Types, Scopes>, ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
             }>) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind>;
+        }
+        export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape> {
+            withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(scopes: Scopes) => QueryFieldBuilder<ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>, ParentShape>;
+        }
+        export interface MutationFieldBuilder<Types extends SchemaTypes, ParentShape> {
+            withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(scopes: Scopes) => MutationFieldBuilder<ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>, ParentShape>;
+        }
+        export interface SubscriptionFieldBuilder<Types extends SchemaTypes, ParentShape> {
+            withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(scopes: Scopes) => SubscriptionFieldBuilder<ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>, ParentShape>;
+        }
+        export interface ObjectFieldBuilder<Types extends SchemaTypes, ParentShape> {
+            withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(scopes: Scopes) => ObjectFieldBuilder<ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>, ParentShape>;
+        }
+        export interface InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape> {
+            withAuth: <Scopes extends FieldAuthScopes<Types, ParentShape, Record<string, unknown>>>(scopes: Scopes) => InterfaceFieldBuilder<ReplaceContext<Types, ContextForAuth<Types, Scopes> & object>, ParentShape>;
+        }
+        export interface ScopeAuthFieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> {
+            Scopes: FieldAuthScopes<Types, Parent, Args>;
+        }
+        export interface ScopeAuthContextForAuth<Types extends SchemaTypes, Scopes extends {}> {
+            Context: ContextForAuth<Types, Scopes>;
         }
     }
 }

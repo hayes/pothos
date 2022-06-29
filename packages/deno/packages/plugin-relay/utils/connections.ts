@@ -6,10 +6,17 @@ interface ResolveOffsetConnectionOptions {
     defaultSize?: number;
     maxSize?: number;
 }
-interface ResolveCursorConnectionOptions {
+export interface ResolveCursorConnectionOptions<T> {
     args: DefaultConnectionArguments;
     defaultSize?: number;
     maxSize?: number;
+    toCursor: (value: T, nodes: T[]) => string;
+}
+export interface ResolveCursorConnectionArgs {
+    before?: string;
+    after?: string;
+    limit: number;
+    inverted: boolean;
 }
 interface ResolveArrayConnectionOptions {
     args: DefaultConnectionArguments;
@@ -144,14 +151,10 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
         hasNextPage: (resultSize: number) => !!before || (!last && resultSize >= limit),
     };
 }
-export async function resolveCursorConnection<T>(options: ResolveCursorConnectionOptions, resolve: (params: {
-    before?: string;
-    after?: string;
-    limit: number;
-    inverted: boolean;
-}) => MaybePromise<T[] | null> | T[] | null, toCursor: (value: T) => string): Promise<ConnectionShape<SchemaTypes, NonNullable<T>, false, false, false>> {
+type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;
+export async function resolveCursorConnection<U extends Promise<unknown[] | null> | unknown[] | null>(options: ResolveCursorConnectionOptions<NodeType<U>>, resolve: (params: ResolveCursorConnectionArgs) => U): Promise<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>> {
     const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } = parseCurserArgs(options);
-    const nodes = await resolve({ before, after, limit, inverted });
+    const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
     if (!nodes) {
         return nodes as never;
     }
@@ -162,12 +165,12 @@ export async function resolveCursorConnection<T>(options: ResolveCursorConnectio
     const edges = trimmed.map((value) => value == null
         ? null
         : {
-            cursor: toCursor(value),
-            node: value as NonNullable<T>,
+            cursor: options.toCursor(value, trimmed),
+            node: value,
         });
-    const startCursor = trimmed.length > 0 ? toCursor(trimmed[0]) : options.args.after ?? options.args.before ?? "";
-    const endCursor = trimmed.length > 0
-        ? toCursor(trimmed[trimmed.length - 1])
+    const startCursor = edges.length > 0 ? edges[0]?.cursor : options.args.after ?? options.args.before ?? "";
+    const endCursor = edges.length > 0
+        ? edges[edges.length - 1]?.cursor
         : options.args.after ?? options.args.before ?? "";
     return {
         edges: edges as never,

@@ -382,9 +382,8 @@
       me: t.prismaField({
         type: prisma.user,
         resolve: async (query, root, args, ctx, info) =>
-          prisma.user.findUnique({
+          prisma.user.findUniqueOrThrow({
             ...query,
-            rejectOnNotFound: true,
             where: { id: ctx.userId },
           }),
       }),

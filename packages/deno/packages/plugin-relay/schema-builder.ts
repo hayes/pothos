@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
+import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -177,23 +177,32 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
     globalConnectionFieldsMap.get(this)!.push(onRef);
 };
 const mutationIdCache = createContextCache(() => new Map<string, string>());
-schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, { name: inputName = `${capitalize(fieldName)}Input`, argName = "input", inputFields, ...inputOptions }, { resolve, ...fieldOptions }, { name: payloadName = `${capitalize(fieldName)}Payload`, outputFields, interfaces, ...paylaodOptions }) {
+schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, inputOptionsOrRef, { resolve, ...fieldOptions }, { name: payloadName = `${capitalize(fieldName)}Payload`, outputFields, interfaces, ...paylaodOptions }) {
     const { relayOptions: { clientMutationIdInputOptions = {} as never, clientMutationIdFieldOptions = {} as never, mutationInputArgOptions = {} as never, }, } = this.options;
     const includeClientMutationId = this.options.relayOptions.clientMutationId !== "omit";
-    const inputRef = this.inputType(inputName, {
-        ...inputOptions,
-        fields: (t) => ({
-            ...inputFields(t),
-            ...(includeClientMutationId
-                ? {
-                    clientMutationId: t.id({
-                        ...clientMutationIdInputOptions,
-                        required: this.options.relayOptions.clientMutationId !== "optional",
-                    }),
-                }
-                : {}),
-        }),
-    });
+    let inputRef: InputObjectRef<unknown>;
+    let argName = "input";
+    if (inputOptionsOrRef instanceof InputObjectRef) {
+        inputRef = inputOptionsOrRef;
+    }
+    else {
+        const { name: inputName = `${capitalize(fieldName)}Input`, argName: argNameFromOptions = "input", inputFields, ...inputOptions } = inputOptionsOrRef;
+        argName = argNameFromOptions;
+        inputRef = this.inputType(inputName, {
+            ...inputOptions,
+            fields: (t) => ({
+                ...inputFields(t),
+                ...(includeClientMutationId
+                    ? {
+                        clientMutationId: t.id({
+                            ...clientMutationIdInputOptions,
+                            required: this.options.relayOptions.clientMutationId !== "optional",
+                        }),
+                    }
+                    : {}),
+            }),
+        });
+    }
     const payloadRef = this.objectRef<unknown>(payloadName).implement({
         ...paylaodOptions,
         interfaces: interfaces as never,

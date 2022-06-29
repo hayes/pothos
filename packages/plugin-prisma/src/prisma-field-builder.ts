@@ -14,12 +14,14 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
+import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
 import {
   PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
   RelationCountOptions,
+  SelectionMap,
   ShapeFromConnection,
   VariantFieldOptions,
 } from './types';
@@ -43,6 +45,25 @@ const RootBuilder: {
   ): PothosSchemaTypes.RootFieldBuilder<Types, Shape, Kind>;
 } = RootFieldBuilder as never;
 
+type ContextForAuth<
+  Types extends SchemaTypes,
+  Scopes extends {} = {},
+> = PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
+  Context: infer T;
+}
+  ? T
+  : never;
+
+type FieldAuthScopes<
+  Types extends SchemaTypes,
+  Parent,
+  Args extends {} = {},
+> = PothosSchemaTypes.ScopeAuthFieldAuthScopes<Types, Parent, Args> extends {
+  Scopes: infer T;
+}
+  ? T
+  : never;
+
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
@@ -62,6 +83,17 @@ export class PrismaObjectFieldBuilder<
   exposeIntList = this.createExpose(['Int']);
   exposeIDList = this.createExpose(['ID']);
   exposeStringList = this.createExpose(['String']);
+
+  withAuth: 'scopeAuth' extends PluginName
+    ? <Scopes extends FieldAuthScopes<Types, Shape, Record<string, unknown>>>(
+        scopes: Scopes,
+      ) => PothosSchemaTypes.PrismaObjectFieldBuilder<
+        Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> },
+        Model,
+        NeedsResolve,
+        Shape
+      >
+    : '@pothos/plugin-scope-auth is required to use this method' = (() => {}) as never;
 
   relatedConnection: 'relay' extends PluginName
     ? <
@@ -133,35 +165,53 @@ export class PrismaObjectFieldBuilder<
         args,
       }),
     });
+    const cursorSelection = ModelLoader.getCursorSelection(
+      ref,
+      relationField.type,
+      cursor,
+      this.builder,
+    );
 
     const relationSelect = (
       args: object,
       context: object,
       nestedQuery: (query: unknown, path: unknown) => unknown,
-    ) => ({
-      select: {
-        [name]: nestedQuery(
-          {
-            ...((typeof query === 'function' ? query(args, context) : query) as {}),
-            ...prismaCursorConnectionQuery({
-              parseCursor,
-              maxSize,
-              defaultSize,
-              args,
-            }),
+    ) => {
+      const nested = nestedQuery(
+        {
+          ...((typeof query === 'function' ? query(args, context) : query) as {}),
+          ...prismaCursorConnectionQuery({
+            parseCursor,
+            maxSize,
+            defaultSize,
+            args,
+          }),
+        },
+        {
+          getType: () => {
+            if (!typeName) {
+              typeName = this.builder.configStore.getTypeConfig(ref).name;
+            }
+            return typeName;
           },
-          {
-            getType: () => {
-              if (!typeName) {
-                typeName = this.builder.configStore.getTypeConfig(ref).name;
+          path: [{ name: 'edges' }, { name: 'node' }],
+        },
+      ) as SelectionMap;
+
+      return {
+        select: {
+          [name]: nested?.select
+            ? {
+                ...nested,
+                select: {
+                  ...cursorSelection,
+                  ...nested.select,
+                },
               }
-              return typeName;
-            },
-            path: [{ name: 'edges' }, { name: 'node' }],
-          },
-        ),
-      },
-    });
+            : nested,
+        },
+      };
+    };
 
     const fieldRef = (
       this as unknown as {
@@ -447,4 +497,40 @@ export class PrismaObjectFieldBuilder<
       });
     };
   }
+}
+
+const prismaFieldBuilderProto = PrismaObjectFieldBuilder.prototype as {} as Omit<
+  PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, false, {}>,
+  'withAuth'
+> & {
+  withAuth: (scopes: {}) => unknown;
+};
+
+prismaFieldBuilderProto.withAuth = function withAuth(scopes) {
+  return addScopes(
+    scopes,
+    new PrismaObjectFieldBuilder(
+      this.typename,
+      this.builder,
+      this.model,
+      this.prismaFieldMap,
+    ) as never,
+  );
+};
+
+function addScopes(
+  scopes: unknown,
+  builder: { createField: (options: Record<string, unknown>) => unknown },
+) {
+  const originalCreateField = builder.createField;
+
+  // eslint-disable-next-line no-param-reassign
+  builder.createField = function createField(options) {
+    return originalCreateField.call(this, {
+      authScopes: scopes,
+      ...options,
+    });
+  };
+
+  return builder as never;
 }

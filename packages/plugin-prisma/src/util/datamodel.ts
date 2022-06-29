@@ -72,8 +72,15 @@ export function getCursorFormatter<Types extends SchemaTypes>(
 ) {
   const modelData = getModel(name, builder);
   const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+  if (primaryKey === cursor) {
+    return formatCursor(modelData.primaryKey!.fields);
+  }
 
-  return formatCursor(cursor === primaryKey ? modelData.primaryKey!.fields : cursor);
+  const uniqueIndex = modelData.uniqueIndexes.find(
+    (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
+  );
+
+  return formatCursor(uniqueIndex?.fields ?? cursor);
 }
 
 export function getCursorParser<Types extends SchemaTypes>(
@@ -84,8 +91,19 @@ export function getCursorParser<Types extends SchemaTypes>(
   const modelData = getModel(name, builder);
   const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
 
-  const parser =
-    cursor === primaryKey ? parseCompositeCursor(modelData.primaryKey!.fields) : parseRawCursor;
+  let parser = parseRawCursor;
+
+  if (primaryKey === cursor) {
+    parser = parseCompositeCursor(modelData.primaryKey!.fields);
+  } else {
+    const uniqueIndex = modelData.uniqueIndexes.find(
+      (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
+    );
+
+    if (uniqueIndex) {
+      parser = parseCompositeCursor(uniqueIndex.fields);
+    }
+  }
 
   return (rawCursor: string) => ({
     [cursor]: parser(rawCursor),

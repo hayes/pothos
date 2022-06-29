@@ -32,7 +32,7 @@ declare global {
             node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) => ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>;
             globalConnectionFields: (fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>) => void;
             globalConnectionField: (name: string, field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>) => void;
-            relayMutationField: <Fields extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, Interfaces extends InterfaceParam<Types>[], InputName extends string = "input">(name: string, inputOptions: RelayMutationInputOptions<Types, Fields, InputName>, fieldOptions: RelayMutationFieldOptions<Types, Fields, Nullable, InputName, ResolveShape, ResolveReturnShape>, payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>) => {
+            relayMutationField: <Fields extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, Interfaces extends InterfaceParam<Types>[], InputName extends string = "input">(name: string, inputOptions: InputObjectRef<unknown> | RelayMutationInputOptions<Types, Fields, InputName>, fieldOptions: RelayMutationFieldOptions<Types, Fields, Nullable, InputName, ResolveShape, ResolveReturnShape>, payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>) => {
                 inputType: InputObjectRef<InputShapeWithClientMutationId<Types, Fields>>;
                 payloadType: ObjectRef<ResolveShape>;
             };

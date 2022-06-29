@@ -186,3 +186,10 @@ export interface UnauthorizedOptions<
   unauthorizedError?: UnauthorizedErrorFn<Types, ParentShape, Args>;
   unauthorizedResolver?: UnauthorizedResolver<Types, ParentShape, Type, Nullable, Args>;
 }
+
+export type ReplaceContext<Types extends SchemaTypes, Context extends object> = Omit<
+  Types,
+  'Context'
+> & {
+  Context: Context;
+};

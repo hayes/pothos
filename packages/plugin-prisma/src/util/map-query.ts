@@ -306,9 +306,18 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo(context: object, info: GraphQLResolveInfo, typeName?: string): {} {
+export function queryFromInfo(
+  context: object,
+  info: GraphQLResolveInfo,
+  typeName?: string,
+  initialSelection?: SelectionMap,
+): {} {
   const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
   const state = createStateForType(type, info);
+
+  if (initialSelection) {
+    mergeSelection(state, initialSelection);
+  }
 
   addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
 

@@ -124,6 +124,8 @@ type Query {
   usersWithError: QueryUsersWithErrorResult!
   viewer: Viewer!
   viewerNode: ViewerNode!
+  withCompositeConnection(after: ID, before: ID, first: Int, last: Int): QueryWithCompositeConnection!
+  withIDSelectConnection(after: ID, before: ID, first: Int, last: Int): QueryWithIDSelectConnection!
 }
 
 type QueryManualConnection {
@@ -177,6 +179,26 @@ union QueryUsersWithErrorResult = BaseError | QueryUsersWithErrorSuccess
 
 type QueryUsersWithErrorSuccess {
   data: [User!]!
+}
+
+type QueryWithCompositeConnection {
+  edges: [QueryWithCompositeConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryWithCompositeConnectionEdge {
+  cursor: String!
+  node: WithCompositeUniqueNodeSelect!
+}
+
+type QueryWithIDSelectConnection {
+  edges: [QueryWithIDSelectConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryWithIDSelectConnectionEdge {
+  cursor: String!
+  node: WithIDSelect!
 }
 
 type SelectPost implements Node {

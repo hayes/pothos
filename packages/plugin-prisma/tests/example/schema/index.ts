@@ -108,8 +108,6 @@ builder.prismaObject('Follow', {
 });
 
 const User = builder.prismaNode('User', {
-  // Testing that user is typed correctly
-  authScopes: (user) => !!user.id,
   interfaces: [Named],
   id: {
     field: 'id',
@@ -204,7 +202,6 @@ const Media = builder.prismaObject('Media', {
 
 const SelectUser = builder.prismaNode('User', {
   variant: 'SelectUser',
-  authScopes: (user) => !!user.id,
   id: {
     field: 'id',
   },
@@ -267,7 +264,6 @@ const SelectPost = builder.prismaNode('Post', {
 
 const Profile = builder.prismaObject('Profile', {
   // Testing that user is typed correctly
-  authScopes: (user) => !!user.id,
   findUnique: null,
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -402,19 +398,17 @@ builder.queryType({
     viewer: t.prismaField({
       type: Viewer,
       resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUnique({
+        prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
-          rejectOnNotFound: true,
         }),
     }),
     viewerNode: t.prismaField({
       type: ViewerNode,
       resolve: async (query, root, args, ctx, info) =>
-        prisma.user.findUnique({
+        prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
-          rejectOnNotFound: true,
         }),
     }),
     me: t.prismaField({
@@ -500,7 +494,7 @@ builder.queryType({
         list: true,
       },
       resolve: async () => {
-        const user = await prisma.user.findFirst({ rejectOnNotFound: true, where: { id: 1 } });
+        const user = await prisma.user.findFirstOrThrow({ where: { id: 1 } });
         return [User.addBrand({ ...user }), user];
       },
     }),
@@ -511,12 +505,9 @@ builder.queryType({
         list: true,
       },
       resolve: async () => {
-        const user = User.addBrand(
-          await prisma.user.findFirst({ rejectOnNotFound: true, where: { id: 1 } }),
-        );
+        const user = User.addBrand(await prisma.user.findFirstOrThrow({ where: { id: 1 } }));
 
-        const profile = await prisma.profile.findUnique({
-          rejectOnNotFound: true,
+        const profile = await prisma.profile.findUniqueOrThrow({
           where: { id: 1 },
         });
 
@@ -541,6 +532,14 @@ const WithIDSelect = builder.prismaObject('WithID', {
     relations: t.relation('FindUniqueRelations'),
   }),
 });
+
+builder.queryField('withIDSelectConnection', (t) =>
+  t.prismaConnection({
+    type: WithIDSelect,
+    cursor: 'id',
+    resolve: (query, parent, args) => prisma.withID.findMany({ ...query }),
+  }),
+);
 
 const WithIDNode = builder.prismaNode('WithID', {
   variant: 'WithIDNode',
@@ -614,6 +613,14 @@ const WithCompositeUniqueNodeSelect = builder.prismaNode('WithCompositeUnique', 
   }),
 });
 
+builder.queryField('withCompositeConnection', (t) =>
+  t.prismaConnection({
+    type: WithCompositeUniqueNodeSelect,
+    cursor: 'a_b',
+    resolve: (query, parent, args) => prisma.withCompositeUnique.findMany({ ...query }),
+  }),
+);
+
 const WithCompositeUniqueCustom = builder.prismaObject('WithCompositeUnique', {
   variant: 'WithCompositeUniqueCustom',
   findUnique: (obj) => ({
@@ -648,8 +655,7 @@ builder.queryFields((t) => ({
   findUniqueRelations: t.prismaField({
     type: 'FindUniqueRelations',
     resolve: () =>
-      prisma.findUniqueRelations.findUnique({
-        rejectOnNotFound: true,
+      prisma.findUniqueRelations.findUniqueOrThrow({
         where: {
           id: '1',
         },
@@ -664,9 +670,8 @@ builder.queryFields((t) => ({
   findUniqueRelationsSelect: t.prismaField({
     type: 'FindUniqueRelations',
     resolve: (query) =>
-      prisma.findUniqueRelations.findUnique({
+      prisma.findUniqueRelations.findUniqueOrThrow({
         ...query,
-        rejectOnNotFound: true,
         where: {
           id: '1',
         },
