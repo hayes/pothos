@@ -1,5 +1,18 @@
 # Change Log
 
+## 3.14.0
+
+### Minor Changes
+
+- 7311904e: Add ability to accept an inputTypeRef for builder.mutationField
+- 7311904e: Add withAuth method to return a field builder to allow custom auth context with other
+  plugin methods
+
+### Patch Changes
+
+- 7311904e: Fix nullability option when using t.expose with a list type
+- 7311904e: Update dev deps
+
 ## 3.13.1
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.1
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+
 ## 3.7.0
 
 ### Minor Changes

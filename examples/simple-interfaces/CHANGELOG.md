@@ -1,5 +1,13 @@
 # @pothos-examples/simple-interfaces
 
+## 2.2.5
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+- Updated dependencies [7311904e]
+  - @pothos/core@3.12.1
+
 ## 2.2.4
 
 ### Patch Changes

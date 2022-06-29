@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.10.0
+
+### Minor Changes
+
+- 7311904e: Add withAuth method to return a field builder to allow custom auth context with other
+  plugin methods
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+
 ## 3.9.1
 
 ### Patch Changes

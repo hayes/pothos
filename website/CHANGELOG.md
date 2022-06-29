@@ -4,6 +4,14 @@
 
 ### Patch Changes
 
+- 7311904e: Update dev deps
+- Updated dependencies [7311904e]
+  - @pothos/core@3.12.1
+
+## null
+
+### Patch Changes
+
 - c8f75aa1: Update dev dependencies
   - @pothos/core@3.12.0
 

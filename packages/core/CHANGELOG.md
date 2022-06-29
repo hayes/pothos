@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.1
+
+### Patch Changes
+
+- 7311904e: Fix nullability option when using t.expose with a list type
+
 ## 3.12.0
 
 ### Minor Changes
