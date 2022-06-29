@@ -1,5 +1,19 @@
 # Change Log
 
+## 3.13.0
+
+### Minor Changes
+
+- 7311904e: Support uniqueIndexes as connection cursors
+- 7311904e: Add withAuth method to return a field builder to allow custom auth context with other
+  plugin methods
+- 7311904e: Use findUniqueOrThrow rather than rejectOnNotFound if available
+
+### Patch Changes
+
+- 7311904e: Fix connection with empty select
+- 7311904e: Update dev deps
+
 ## 3.12.1
 
 ### Patch Changes

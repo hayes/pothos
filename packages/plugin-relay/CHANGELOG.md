@@ -1,5 +1,17 @@
 # Change Log
 
+## 3.15.0
+
+### Minor Changes
+
+- 7311904e: Add ability to accept an inputTypeRef for builder.mutationField
+
+### Patch Changes
+
+- 7311904e: Update dev deps
+- 7311904e: Fix nodeType option, which was incorrectly acceptiong options for an object type rather
+  than an interface
+
 ## 3.14.0
 
 ### Minor Changes
