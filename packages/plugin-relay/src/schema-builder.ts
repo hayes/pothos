@@ -403,6 +403,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
     | undefined;
 
   this.objectType(connectionRef, {
+    ...(this.options.relayOptions?.defaultConnectionTypeOptions as {}),
     ...connectionOptions,
     fields: (t) => ({
       pageInfo: t.field({
@@ -462,6 +463,7 @@ schemaBuilderProto.edgeObject = function edgeObject({
     | undefined;
 
   this.objectType(edgeRef, {
+    ...(this.options.relayOptions?.defaultEdgeTypeOptions as {}),
     ...edgeOptions,
     fields: (t) => ({
       node: t.field({

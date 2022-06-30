@@ -54,6 +54,8 @@ The `relayOptions` object passed to builder can contain the following properties
 - `afterArgOptions`: Options for the `after` arg on a connection field.
 - `firstArgOptions`: Options for the `first` arg on a connection field.
 - `lastArgOptions`: Options for the `last` arg on a connection field.
+- `defaultConnectionTypeOptions`: Options for the `Connection` Object type.
+- `defaultEdgeTypeOptions`: Options for the `Edge` Object type.
 
 ### Global IDs
 

@@ -253,6 +253,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
         });
     const connectionFields = connectionOptions.fields as unknown as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>> | undefined;
     this.objectType(connectionRef, {
+        ...(this.options.relayOptions?.defaultConnectionTypeOptions as {}),
         ...connectionOptions,
         fields: (t) => ({
             pageInfo: t.field({
@@ -293,6 +294,7 @@ schemaBuilderProto.edgeObject = function edgeObject({ type, name: edgeName, node
         node: unknown;
     }> | undefined;
     this.objectType(edgeRef, {
+        ...(this.options.relayOptions?.defaultEdgeTypeOptions as {}),
         ...edgeOptions,
         fields: (t) => ({
             node: t.field({

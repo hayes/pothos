@@ -354,7 +354,7 @@ type Mutation {
 The `relayMutationField` has 4 arguments:
 
 - `name`: Name of the mutation field
-- `inputOptions`: Options for the `input` object
+- `inputOptions`: Options for the `input` object or a ref to an existing input object
 - `fieldOptions`: Options for the mutation field
 - `payloadOptions`: Options for the Payload object
 

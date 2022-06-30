@@ -167,7 +167,7 @@ export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind e
      * @param {string} name - the name of the property on the source object (does not need to match the field name).
      * @param {object} [options={}] - Options for this field
      */
-    expose<Type extends TypeParam<Types>, Nullable extends boolean, ResolveReturnShape, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(...args: NormalizeArgs<[
+    expose<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, ResolveReturnShape, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(...args: NormalizeArgs<[
         name: Name,
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, {}, Kind, ParentShape, ResolveReturnShape>, "resolve">
     ]>) {
