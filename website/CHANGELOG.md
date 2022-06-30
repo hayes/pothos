@@ -2,6 +2,12 @@
 
 ## null
 
+### Minor Changes
+
+- ad928594: Add defaultConnectionTypeOptions and defaultEdgeTypeOptions
+
+## null
+
 ### Patch Changes
 
 - 7311904e: Update dev deps

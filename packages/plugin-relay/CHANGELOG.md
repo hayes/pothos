@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.16.0
+
+### Minor Changes
+
+- ad928594: Add defaultConnectionTypeOptions and defaultEdgeTypeOptions
+
+### Patch Changes
+
+- 04ed2b0c: Fix args in plugin methods on connection fields sometimes not being typed correctly
+
 ## 3.15.0
 
 ### Minor Changes
