@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.13.1
+
+### Patch Changes
+
+- 04ed2b0c: Fix args in plugin methods on connection fields sometimes not being typed correctly
+
 ## 3.13.0
 
 ### Minor Changes
