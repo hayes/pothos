@@ -474,7 +474,8 @@ export type PrismaConnectionFieldOptions<
       ParentShape,
       Param,
       Nullable,
-      Args & InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
+      (InputFieldMap extends Args ? {} : Args) &
+        InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
       Kind,
       ParentShape,
       ResolveReturnShape
@@ -518,7 +519,8 @@ export type RelatedConnectionOptions<
     Model['Shape'],
     ObjectRef<unknown>,
     Nullable,
-    Args & InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
+    (InputFieldMap extends Args ? {} : Args) &
+      InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
     unknown
   >,
   'resolve' | 'type' | 'args'

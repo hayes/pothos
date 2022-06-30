@@ -165,6 +165,10 @@ const SharedConnectionAndEdge = builder.connectionObject(
 builder.queryField('sharedConnectionAndEdge', (t) =>
   t.connection(
     {
+      args: {
+        complexity: t.arg.int(),
+      },
+      complexity: (args) => args.complexity ?? 1,
       type: NumberThing,
       resolve: (root, args) =>
         resolveOffsetConnection({ args }, ({ limit, offset }) => {
@@ -184,6 +188,7 @@ builder.queryField('sharedConnectionAndEdge', (t) =>
 builder.queryField('sharedEdgeConnection', (t) =>
   t.connection(
     {
+      complexity: (args, ctx) => args.first ?? 20,
       type: NumberThing,
       resolve: (root, args) =>
         resolveOffsetConnection({ args }, ({ limit, offset }) => {

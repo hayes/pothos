@@ -48,6 +48,7 @@
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-complexity": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.5.0",
     "graphql-subscriptions": "^2.0.0",

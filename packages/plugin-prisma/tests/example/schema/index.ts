@@ -216,6 +216,7 @@ const SelectUser = builder.prismaNode('User', {
     }),
     postCount: t.relationCount('posts'),
     following: t.relatedConnection('following', {
+      complexity: (args) => args.first ?? 1,
       cursor: 'compositeID',
     }),
     posts: t.relation('posts', {
@@ -229,6 +230,7 @@ const SelectUser = builder.prismaNode('User', {
       args: {
         oldestFirst: t.arg.boolean(),
       },
+      complexity: (args) => (args.oldestFirst ? 1 : 0),
       query: (args) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
@@ -471,6 +473,10 @@ builder.queryType({
       cursor: 'id',
       defaultSize: 10,
       maxSize: 15,
+      args: {
+        test: t.arg.boolean({}),
+      },
+      complexity: (args) => (args.test ? 1 : 0),
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
       totalCount: (parent, args, context, info) => prisma.user.count(),
     }),
@@ -617,6 +623,7 @@ builder.queryField('withCompositeConnection', (t) =>
   t.prismaConnection({
     type: WithCompositeUniqueNodeSelect,
     cursor: 'a_b',
+    complexity: (args) => args.first ?? 1,
     resolve: (query, parent, args) => prisma.withCompositeUnique.findMany({ ...query }),
   }),
 );

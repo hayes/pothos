@@ -108,7 +108,7 @@ fieldBuilderProto.globalID = function globalID<
 
 fieldBuilderProto.node = function node({ id, ...options }) {
   return this.field<{}, InterfaceRef<unknown>, unknown, Promise<unknown>, true>({
-    ...options,
+    ...(options as {}),
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
@@ -193,9 +193,9 @@ fieldBuilderProto.connection = function connection(
     args: {
       ...fieldOptions.args,
       ...this.arg.connectionArgs(),
-    } as unknown as {},
+    },
     resolve: fieldOptions.resolve as never,
-  });
+  } as never);
 
   if (!(connectionOptionsOrRef instanceof ObjectRef)) {
     this.builder.configStore.onFieldUse(fieldRef, (fieldConfig) => {

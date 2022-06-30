@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import ComplexityPlugin from '@pothos/plugin-complexity';
 import RelayPlugin from '../../../src';
 import { Poll } from './data';
 import { ContextType } from './types';
@@ -10,6 +11,6 @@ export default new SchemaBuilder<{
   };
   Context: ContextType;
 }>({
-  plugins: [RelayPlugin],
+  plugins: [RelayPlugin, ComplexityPlugin],
   relayOptions: {},
 });

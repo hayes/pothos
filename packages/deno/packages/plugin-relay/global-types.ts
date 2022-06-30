@@ -91,7 +91,7 @@ declare global {
             connection: <Type extends OutputType<Types>, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, EdgeNullability extends FieldNullability<[
                 unknown
             ]> = Types["DefaultEdgesNullability"], NodeNullability extends boolean = Types["DefaultNodeNullability"]>(...args: NormalizeArgs<[
-                options: ConnectionFieldOptions<Types, ParentShape, Type, Nullable, EdgeNullability, NodeNullability, Args, ResolveReturnShape> & Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args & InputFieldsFromShape<DefaultConnectionArguments>, Kind, ParentShape, ResolveReturnShape>, "args" | "resolve" | "type">,
+                options: ConnectionFieldOptions<Types, ParentShape, Type, Nullable, EdgeNullability, NodeNullability, Args, ResolveReturnShape> & Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, (InputFieldMap extends Args ? {} : Args) & InputFieldsFromShape<DefaultConnectionArguments>, Kind, ParentShape, ResolveReturnShape>, "args" | "resolve" | "type">,
                 connectionOptions?: ObjectRef<ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability>> | Omit<ConnectionObjectOptions<Types, Type, EdgeNullability, NodeNullability, ResolveReturnShape>, "edgesNullable">,
                 edgeOptions?: ObjectRef<{
                     cursor: string;

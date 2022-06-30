@@ -1,5 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 import SchemaBuilder from '@pothos/core';
+import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 // eslint-disable-next-line import/no-named-as-default
@@ -37,7 +38,7 @@ export default new SchemaBuilder<{
     user: boolean;
   };
 }>({
-  plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin],
+  plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin, ComplexityPlugin],
   relayOptions: {},
   prisma: {
     client: () => prisma,

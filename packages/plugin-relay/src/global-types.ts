@@ -256,7 +256,8 @@ declare global {
                   ParentShape,
                   Type,
                   Nullable,
-                  Args & InputFieldsFromShape<DefaultConnectionArguments>,
+                  (InputFieldMap extends Args ? {} : Args) &
+                    InputFieldsFromShape<DefaultConnectionArguments>,
                   Kind,
                   ParentShape,
                   ResolveReturnShape

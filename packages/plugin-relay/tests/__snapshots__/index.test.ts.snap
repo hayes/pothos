@@ -141,7 +141,7 @@ type Query {
   polls: [Poll!]!
   pollsConnection(after: ID, before: ID, first: Int, last: Int): QueryPollsConnection!
   sharedConnection(after: ID, before: ID, first: Int, last: Int): SharedConnection
-  sharedConnectionAndEdge(after: ID, before: ID, first: Int, last: Int): SharedConnectionAndEdge!
+  sharedConnectionAndEdge(after: ID, before: ID, complexity: Int, first: Int, last: Int): SharedConnectionAndEdge!
   sharedEdgeConnection(after: ID, before: ID, first: Int, last: Int): QuerySharedEdgeConnection!
 }
 
