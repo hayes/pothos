@@ -132,3 +132,5 @@ generous people and organizations:
 - [@KATT](https://github.com/KATT)
 - [@robmcguinness](https://github.com/robmcguinness)
 - [@Gomah](https://github.com/Gomah)
+- [@IPS-Hosting](https://github.com/IPS-Hosting)
+- [@smartvokat](https://github.com/smartvokat)
