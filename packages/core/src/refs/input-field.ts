@@ -28,7 +28,7 @@ export default class InputFieldRef<
 
       return this.parentTypename;
     }
-    const fieldName = this.argFor?.fieldName ?? '[unnamed filed]';
+    const fieldName = this.argFor?.fieldName ?? '[unnamed field]';
     const argName = this.fieldName ?? '[unnamed argument]';
 
     return `${this.parentTypename}.${fieldName}(${argName})`;
