@@ -22,6 +22,7 @@ yarn start
 
 ### 4. Run a query
 
+Open [http://localhost:4000/graphql](http://localhost:4000/graphql) and send this query:
 ```graphql
 {
   fastHello: hello(delay: 10)
