@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.2
+
+### Patch Changes
+
+- 784777c4: Fixed typo in input-field types
+
 ## 3.12.1
 
 ### Patch Changes
