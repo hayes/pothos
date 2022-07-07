@@ -116,11 +116,6 @@ server.start();
 
 ## Sponsors
 
-Pothos development supported by [sponsors](https://github.com/sponsors/hayes) from these generous
-people:
-
-## Sponsors
-
 Pothos development supported by [sponsorships](https://github.com/sponsors/hayes) from these
 generous people and organizations:
 
