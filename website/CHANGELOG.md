@@ -2,6 +2,13 @@
 
 ## null
 
+### Patch Changes
+
+- Updated dependencies [784777c4]
+  - @pothos/core@3.12.2
+
+## null
+
 ### Minor Changes
 
 - ad928594: Add defaultConnectionTypeOptions and defaultEdgeTypeOptions
