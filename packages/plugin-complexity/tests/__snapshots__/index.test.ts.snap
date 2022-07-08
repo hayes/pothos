@@ -1,5 +1,13 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`simple objects example schema complexity from query as string 1`] = `
+Object {
+  "breadth": 7,
+  "complexity": 66,
+  "depth": 5,
+}
+`;
+
 exports[`simple objects example schema generates expected schema 1`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"

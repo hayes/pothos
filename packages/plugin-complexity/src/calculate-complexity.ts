@@ -16,9 +16,9 @@ import {
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
-import { SchemaTypes } from '@pothos/core';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './util';
 
-import type { ComplexityResult, FieldComplexity, PothosComplexityPlugin } from '.';
+import type { ComplexityResult, FieldComplexity } from '.';
 
 function isListType(type: GraphQLOutputType): boolean {
   if (type instanceof GraphQLList) {
@@ -32,10 +32,9 @@ function isListType(type: GraphQLOutputType): boolean {
   return false;
 }
 
-function complexityFromField<Types extends SchemaTypes>(
-  plugin: PothosComplexityPlugin<Types>,
+function complexityFromField(
   ctx: {},
-  info: GraphQLResolveInfo,
+  info: PartialInfo,
   selection: FieldNode,
   type: GraphQLNamedType,
 ): ComplexityResult {
@@ -67,14 +66,13 @@ function complexityFromField<Types extends SchemaTypes>(
   if (typeof complexityOption === 'object' && complexityOption.multiplier !== undefined) {
     fieldMultiplier = complexityOption.multiplier;
   } else {
-    fieldMultiplier = field && isListType(field.type) ? plugin.defaultListMultiplier : 1;
+    fieldMultiplier = field && isListType(field.type) ? DEFAULT_LIST_MULTIPLIER : 1;
   }
 
   let complexity = 0;
 
   if (field && selection.selectionSet) {
     const subSelection = complexityFromSelectionSet(
-      plugin,
       ctx,
       info,
       selection.selectionSet,
@@ -89,16 +87,12 @@ function complexityFromField<Types extends SchemaTypes>(
   complexity +=
     typeof complexityOption === 'number'
       ? complexityOption
-      : complexityOption?.field ?? plugin.defaultComplexity;
+      : complexityOption?.field ?? DEFAULT_COMPLEXITY;
 
   return { complexity, depth, breadth };
 }
 
-export function calculateComplexity<Types extends SchemaTypes>(
-  plugin: PothosComplexityPlugin<Types>,
-  ctx: {},
-  info: GraphQLResolveInfo,
-) {
+export function calculateComplexity(ctx: {}, info: GraphQLResolveInfo) {
   const operationName = `${info.operation.operation
     .slice(0, 1)
     .toUpperCase()}${info.operation.operation.slice(1)}`;
@@ -109,13 +103,18 @@ export function calculateComplexity<Types extends SchemaTypes>(
     throw new Error(`Unsupported operation ${operationName}`);
   }
 
-  return complexityFromSelectionSet(plugin, ctx, info, info.operation.selectionSet, operationType);
+  return complexityFromSelectionSet(ctx, info, info.operation.selectionSet, operationType);
 }
 
-function complexityFromFragment<Types extends SchemaTypes>(
-  plugin: PothosComplexityPlugin<Types>,
+interface PartialInfo {
+  fragments: GraphQLResolveInfo['fragments'];
+  variableValues: GraphQLResolveInfo['variableValues'];
+  schema: GraphQLResolveInfo['schema'];
+}
+
+function complexityFromFragment(
   ctx: {},
-  info: GraphQLResolveInfo,
+  info: PartialInfo,
   fragment: FragmentDefinitionNode | InlineFragmentNode,
   type: GraphQLNamedType,
 ): ComplexityResult {
@@ -131,13 +130,12 @@ function complexityFromFragment<Types extends SchemaTypes>(
     throw new Error(`Missing type from fragment ${fragment.typeCondition?.name.value}`);
   }
 
-  return complexityFromSelectionSet(plugin, ctx, info, fragment.selectionSet, fragmentType);
+  return complexityFromSelectionSet(ctx, info, fragment.selectionSet, fragmentType);
 }
 
-function complexityFromSelectionSet<Types extends SchemaTypes>(
-  plugin: PothosComplexityPlugin<Types>,
+export function complexityFromSelectionSet(
   ctx: {},
-  info: GraphQLResolveInfo,
+  info: PartialInfo,
   selectionSet: SelectionSetNode,
   type: GraphQLNamedType,
 ): ComplexityResult {
@@ -150,7 +148,7 @@ function complexityFromSelectionSet<Types extends SchemaTypes>(
   for (const selection of selectionSet.selections) {
     let selectionResult;
     if (selection.kind === Kind.FIELD) {
-      selectionResult = complexityFromField(plugin, ctx, info, selection, type);
+      selectionResult = complexityFromField(ctx, info, selection, type);
     } else if (selection.kind === Kind.FRAGMENT_SPREAD) {
       const fragment = info.fragments[selection.name.value];
 
@@ -158,9 +156,9 @@ function complexityFromSelectionSet<Types extends SchemaTypes>(
         throw new Error(`Missing fragment ${selection.name.value}`);
       }
 
-      selectionResult = complexityFromFragment(plugin, ctx, info, fragment, type);
+      selectionResult = complexityFromFragment(ctx, info, fragment, type);
     } else {
-      selectionResult = complexityFromFragment(plugin, ctx, info, selection, type);
+      selectionResult = complexityFromFragment(ctx, info, selection, type);
     }
 
     result.complexity += selectionResult.complexity;

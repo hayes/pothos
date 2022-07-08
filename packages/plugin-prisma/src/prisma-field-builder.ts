@@ -51,8 +51,10 @@ type ContextForAuth<
 > = PothosSchemaTypes.ScopeAuthContextForAuth<Types, Scopes> extends {
   Context: infer T;
 }
-  ? T
-  : never;
+  ? T extends object
+    ? T
+    : object
+  : object;
 
 type FieldAuthScopes<
   Types extends SchemaTypes,

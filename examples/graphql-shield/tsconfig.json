@@ -3,12 +3,12 @@
   "compilerOptions": {
     "rootDir": "src",
     "strict": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "target": "es2019",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
   },
   "include": [
     "src/**/*"
-  ]  
+  ]
 }

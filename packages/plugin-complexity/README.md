@@ -67,6 +67,10 @@ const schema = builder.toSchema({
   - complexity: defines the maximum complexity allowed for queries
   - depth: defines the maximum depth of selections in a query
   - breadth: defines the maximum total selections in a query
+- complexityError: (optional `function`) defines the error to throw when the query complexity
+  exceeds the limit. The function is passed the errorKind (depth, breadth, or complexity), the
+  result (with the depth, breadth, complext, and max values), and a GraphQL `info` object. It should
+  return (or throw) an error, or a an error message as a string
 
 ### How complexity is calculated
 
@@ -136,4 +140,21 @@ builder.queryFields((t) => ({
     complexity: (args, ctx) => ({ field: 5, multiplier: args.limit ?? 5 }),
   }),
 }));
+```
+
+## Utilities
+
+### `complexityFromQuery(query, options)`
+
+Returns the query complexity for a given GraphQL query.
+
+```typescript
+const complexity = complexityFromQuery(query, {
+  schema: schema,
+  // Complexity can be calculated based on the context and arguments,
+  // so you may need to provide valid values for the context and arguments.
+  // Both are optional, and will default to empty objects.
+  context: {},
+  variables: {},
+});
 ```
