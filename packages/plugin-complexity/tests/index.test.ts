@@ -1,5 +1,6 @@
 import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
+import { complexityFromQuery } from '../src/util';
 import exampleSchema from './example/schema';
 
 describe('simple objects example schema', () => {
@@ -208,6 +209,33 @@ describe('simple objects example schema', () => {
         },
       });
 
+      expect(result).toMatchSnapshot();
+    });
+  });
+
+  describe('complexity from query', () => {
+    it('as string', () => {
+      const query = /* graphql */ `
+        query {
+          hero(episode: EMPIRE) {
+            friends(limit: 2) {
+              ...CharacterFields
+            }
+          }
+        }
+
+        fragment CharacterFields on Character {
+          name
+          friends(limit: 10) {
+            friends(limit: 1) {
+              appearsIn
+              name
+            }
+          }
+        }
+      `;
+
+      const result = complexityFromQuery(query, { schema: exampleSchema });
       expect(result).toMatchSnapshot();
     });
   });

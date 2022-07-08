@@ -2,7 +2,7 @@
   "$schema": "https://json.schemastore.org/tsconfig.json",
   "compilerOptions": {
     "strict": true,
-    "skipLibCheck": true,
+    "skipLibCheck": false,
     "target": "es2019",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true
@@ -10,5 +10,5 @@
   "include": [
     "prisma/*.ts",
     "src/**/*"
-  ]  
+  ]
 }

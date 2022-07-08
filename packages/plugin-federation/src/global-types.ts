@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import '@pothos/plugin-directives';
 import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
+  FieldRequiredness,
   InputFieldMap,
+  InputType,
   MaybePromise,
   Resolver,
   SchemaTypes,
@@ -84,7 +87,7 @@ declare global {
       asEntity: <Param extends ObjectRef<unknown>, KeySelection extends Selection<object>>(
         param: Param,
         options: {
-          key: KeySelection;
+          key: KeySelection | KeySelection[];
           resolveReference: (
             parent: KeySelection[typeof selectionShapeKey],
             context: Types['Context'],
@@ -92,6 +95,43 @@ declare global {
           ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
         },
       ) => void;
+    }
+
+    export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
+      shareable?: boolean;
+      tag?: string | string[];
+    }
+
+    export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
+      inaccessible?: boolean;
+    }
+
+    export interface EnumValueConfig<Types extends SchemaTypes> {
+      inaccessible?: boolean;
+    }
+
+    export interface FieldOptions<
+      Types extends SchemaTypes,
+      ParentShape,
+      Type extends TypeParam<Types>,
+      Nullable extends FieldNullability<Type>,
+      Args extends InputFieldMap,
+      ResolveShape,
+      ResolveReturnShape,
+    > {
+      shareable?: boolean;
+      inaccessible?: boolean;
+      override?: { from: string };
+      tag?: string | string[];
+    }
+
+    export interface InputFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
+    > {
+      inaccessible?: boolean;
+      tag?: string | string[];
     }
   }
 }
