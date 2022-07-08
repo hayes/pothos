@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.13.2
+
+### Patch Changes
+
+- f58ad8fa: Fix type error introduced by withAuth helper
+
 ## 3.13.1
 
 ### Patch Changes

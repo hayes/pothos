@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.3.0
+
+### Minor Changes
+
+- c8ed6b03: Add @shareable @tag @inaccessible and @override directives
+
 ## 3.2.1
 
 ### Patch Changes

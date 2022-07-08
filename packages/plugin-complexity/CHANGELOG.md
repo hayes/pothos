@@ -1,5 +1,13 @@
 # @giraphql/plugin-complexity
 
+## 3.5.0
+
+### Minor Changes
+
+- f58ad8fa: Add complexityFromQuery util for calculating complexity without running a request
+- f58ad8fa: Add complexityError option for customizing errors thrown when query exceeds complixity
+  limits
+
 ## 3.4.0
 
 ### Minor Changes
