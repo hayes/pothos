@@ -35,7 +35,7 @@ type ProductVariation {
 }
 
 type Query {
-  produce(id: ID!): Product
+  product(id: ID!): Product
 }
 
 type User
@@ -94,7 +94,7 @@ type ProductVariation {
 type Query {
   _entities(representations: [_Any!]!): [_Entity]!
   _service: _Service!
-  produce(id: ID!): Product
+  product(id: ID!): Product
 }
 
 type User {

@@ -121,7 +121,7 @@ builder.asEntity(ProductType, {
 
 builder.queryType({
   fields: (t) => ({
-    produce: t.field({
+    product: t.field({
       type: ProductType,
       nullable: true,
       args: {
