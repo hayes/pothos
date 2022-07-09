@@ -11,18 +11,19 @@ docker run -d -p 9411:9411 openzipkin/zipkin
 ### 2. Install dependencies
 
 ```bash
-yarn install
+pnpm install
 ```
 
 ### 3. Start server
 
 ```bash
-yarn start
+pnpm start
 ```
 
 ### 4. Run a query
 
 Open [http://localhost:4000/graphql](http://localhost:4000/graphql) and send this query:
+
 ```graphql
 {
   fastHello: hello(delay: 10)
