@@ -1,5 +1,5 @@
 {
-  "name": "open-telemetry",
+  "name": "@pothos-examples/open-telemetry",
   "version": "1.0.0",
   "main": "index.js",
   "license": "MIT",
