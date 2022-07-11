@@ -1,5 +1,5 @@
-import { SchemaTypes } from '@pothos/core';
-import { ResolverMap } from './types';
+import { ObjectParam, Resolver, SchemaTypes, ShapeFromTypeParam } from '@pothos/core';
+import { Mock, ResolverMap } from './types';
 import { MocksPlugin } from '.';
 
 declare global {
@@ -10,6 +10,19 @@ declare global {
 
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
       mocks?: ResolverMap<Types>;
+      typeMocks?: Mock<Types>[];
+    }
+
+    export interface SchemaBuilder<Types extends SchemaTypes> {
+      createObjectMock: <
+        Shape extends NameOrRef extends ObjectParam<Types>
+          ? ShapeFromTypeParam<Types, NameOrRef, false>
+          : object,
+        NameOrRef extends ObjectParam<Types> | string,
+      >(
+        nameOrRef: NameOrRef,
+        resolver: Resolver<unknown, unknown, Types['Context'], Partial<Shape>>,
+      ) => Mock<Types>;
     }
   }
 }
