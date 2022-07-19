@@ -63,20 +63,8 @@ your resolver functions \(among other things\).
 Now that we covered what backing models are, lets go over where they come from. There are currently
 3 ways that Pothos gets a backing model for an object or interface:
 
-1. Classes: If you use classes when defining you object types, Pothos can infer that any field
+1. Classes: If you use classes when defining you object types, Pothos can infer that any field that resolves to that type should resolve to an instance of that class
 
-   that resolves to that type should resolve to an instance of that class
+2. TypeRefs: Every time you create a type with the schema builder, it returns a `TypeRef` object, which contains the backing model type for that type. Object Refs can also be created explicitly with the `builder.objectRef` method.
 
-2. TypeRefs: Every time you create a type with the schema builder, it returns a `TypeRef` object,
-
-   which contains the backing model type for that type. Object Refs can also be created explicitly
-
-   with the `builder.objectRef` method.
-
-3. SchemaTypes: The `SchemaTypes` type that is passed into the generic parameter of the
-
-   `SchemaBuilder` can also be used to provide backing models for various types. When you reference
-
-   a type in your schema by name \(as a string\), Pothos checks the SchemaTypes to see if there is a
-
-   backing model defined for that type.
+3. SchemaTypes: The `SchemaTypes` type that is passed into the generic parameter of the `SchemaBuilder` can also be used to provide backing models for various types. When you reference a type in your schema by name \(as a string\), Pothos checks the SchemaTypes to see if there is a backing model defined for that type.
