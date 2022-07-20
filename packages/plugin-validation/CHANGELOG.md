@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.5.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
 ## 3.4.2
 
 ### Patch Changes

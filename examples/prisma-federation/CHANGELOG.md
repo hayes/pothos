@@ -1,5 +1,21 @@
 # @pothos-examples/relay
 
+## 2.4.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+- Updated dependencies [3a7ff291]
+- Updated dependencies [3a7ff291]
+  - @pothos/core@3.13.0
+  - @pothos/plugin-directives@3.5.0
+  - @pothos/plugin-federation@3.4.0
+  - @pothos/plugin-prisma@3.14.0
+
 ## 2.3.12
 
 ### Patch Changes
