@@ -1,5 +1,15 @@
 # @pothos/tracing-sentry
 
+## 0.5.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
 ## 0.4.4
 
 ### Patch Changes

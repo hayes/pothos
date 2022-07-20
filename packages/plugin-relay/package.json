@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-relay",
-  "version": "3.16.0",
+  "version": "3.17.0",
   "description": "A Pothos plugin for adding relay style connections, nodes, and cursor based pagination to your GraphQL schema",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

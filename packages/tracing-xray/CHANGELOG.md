@@ -1,5 +1,15 @@
 # @pothos/tracing-xray
 
+## 0.3.0
+
+### Minor Changes
+
+- 3a7ff291: Refactor internal imports to remove import cycles
+
+### Patch Changes
+
+- 3a7ff291: Update dev dependencies
+
 ## 0.2.4
 
 ### Patch Changes
