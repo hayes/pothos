@@ -1,9 +1,16 @@
-// eslint-disable-next-line node/no-unpublished-require
-const colors = require('tailwindcss/colors');
+const {
+  lightBlue,
+  warnGray,
+  trueGray,
+  coolGray,
+  blueGray,
+  ...colors
+  // eslint-disable-next-line node/no-unpublished-require
+} = require('tailwindcss/colors');
 
 module.exports = {
   mode: 'jit',
-  purge: ['./pages/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx}'],
+  content: ['./pages/**/*.{js,ts,jsx,tsx,mdx}', './components/**/*.{js,ts,jsx,tsx}'],
   darkMode: 'media',
   theme: {
     colors: {

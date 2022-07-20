@@ -110,8 +110,10 @@ importers:
       '@graphql-codegen/typescript-operations': ^2.5.2
       '@graphql-codegen/typescript-react-apollo': ^3.3.2
       '@pothos/core': workspace:*
+      '@tanstack/react-query': ^4.0.8
       '@types/node': 18.0.6
       '@types/react': 18.0.15
+      '@types/react-dom': 18.0.6
       concurrently: ^7.3.0
       graphql: 16.5.0
       graphql-helix: ^1.13.0
@@ -119,20 +121,19 @@ importers:
       next: 12.2.2
       react: 18.2.0
       react-dom: 18.2.0
-      react-query: ^4.0.0
       typescript: ^4.7.4
     dependencies:
       '@apollo/client': 3.6.9_aez2jvt6lsvokp3l4ousdbdxf4
       '@boost/module': 3.1.0_typescript@4.7.4
       '@faker-js/faker': 7.3.0
       '@pothos/core': link:../../packages/core
+      '@tanstack/react-query': 4.0.8_biqbaboplfbrettd7655fr4n2y
       graphql: 16.5.0
       graphql-helix: 1.13.0_graphql@16.5.0
       graphql-tag: 2.12.6_graphql@16.5.0
       next: 12.2.2_biqbaboplfbrettd7655fr4n2y
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
-      react-query: 4.0.0_biqbaboplfbrettd7655fr4n2y
     devDependencies:
       '@graphql-codegen/cli': 2.9.0_p7o4yzurmquff3dtfslv7p2xx4
       '@graphql-codegen/near-operation-file-preset': 2.4.0_graphql@16.5.0
@@ -142,6 +143,7 @@ importers:
       '@graphql-codegen/typescript-react-apollo': 3.3.2_ubrtutz2urcxyhwqr2zvlqjzha
       '@types/node': 18.0.6
       '@types/react': 18.0.15
+      '@types/react-dom': 18.0.6
       concurrently: 7.3.0
       typescript: 4.7.4
 
@@ -221,6 +223,9 @@ importers:
       graphql: 16.5.0
       prisma: 4.1.0
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.3.0
@@ -240,6 +245,12 @@ importers:
       '@prisma/client': 4.1.0_prisma@4.1.0
       graphql: 16.5.0
       prisma: 4.1.0
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -504,6 +515,9 @@ importers:
   packages/plugin-prisma/esm:
     specifiers: {}
 
+  packages/plugin-prisma/tests/client:
+    specifiers: {}
+
   packages/plugin-relay:
     specifiers:
       '@pothos/core': workspace:*
@@ -542,6 +556,9 @@ importers:
       prisma: 4.1.0
 
   packages/plugin-scope-auth/esm:
+    specifiers: {}
+
+  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -772,6 +789,7 @@ importers:
       '@next/mdx': ^12.2.2
       '@pothos/core': workspace:*
       '@tailwindcss/typography': ^0.5.4
+      '@tanstack/react-query': ^4.0.8
       '@types/mdast': ^3.0.10
       '@types/react': ^18.0.15
       '@types/tailwindcss': ^3.1.0
@@ -785,7 +803,6 @@ importers:
       postcss: ^8.4.14
       react: ^18.2.0
       react-dom: ^18.2.0
-      react-query: ^4.0.0
       rehype-highlight: ^5.0.2
       rehype-slug: ^5.0.1
       rehype-stringify: ^9.0.3
@@ -806,6 +823,7 @@ importers:
       '@next/mdx': 12.2.2_todqhrvd7cvbb36hzi2r6xttgq
       '@pothos/core': link:../packages/core
       '@tailwindcss/typography': 0.5.4_tailwindcss@3.1.6
+      '@tanstack/react-query': 4.0.8_biqbaboplfbrettd7655fr4n2y
       dotenv: 16.0.1
       gray-matter: 4.0.3
       highlight.js: 11.6.0
@@ -814,7 +832,6 @@ importers:
       next: 12.2.2_biqbaboplfbrettd7655fr4n2y
       react: 18.2.0
       react-dom: 18.2.0_react@18.2.0
-      react-query: 4.0.0_biqbaboplfbrettd7655fr4n2y
       rehype-highlight: 5.0.2
       rehype-slug: 5.0.1
       rehype-stringify: 9.0.3
@@ -5271,6 +5288,25 @@ packages:
     resolution: {integrity: sha512-QOJ2gLbwlf8p0487pMey6vv8EF5X2ib1zINayaD7mb9/LibUtXmZ12uJgTqcnjgNY/4tWZn5qJnEk2ePG5AVGA==}
     dev: false
 
+  /@tanstack/react-query/4.0.8_biqbaboplfbrettd7655fr4n2y:
+    resolution: {integrity: sha512-BC7lWRG1ulla6HrPYgu5EeTemNLpUDRJCuWDIGeDo5eeiD5sVB9ccd4ICR///Vaj9YMCmbNZpQlLgm1OaaovWg==}
+    peerDependencies:
+      react: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
+      react-native: '*'
+    peerDependenciesMeta:
+      react-dom:
+        optional: true
+      react-native:
+        optional: true
+    dependencies:
+      '@tanstack/query-core': 4.0.5
+      '@types/use-sync-external-store': 0.0.3
+      react: 18.2.0
+      react-dom: 18.2.0_react@18.2.0
+      use-sync-external-store: 1.2.0_react@18.2.0
+    dev: false
+
   /@tootallnate/once/2.0.0:
     resolution: {integrity: sha512-XCuKFP5PS55gnMVu3dty8KPatLqUoy/ZYzDzAGCQ8JNFCkLXzmI7vNHCR+XpbZaMWQK/vQubr7PkYq8g470J/A==}
     engines: {node: '>= 10'}
@@ -5601,6 +5637,12 @@ packages:
 
   /@types/range-parser/1.2.4:
     resolution: {integrity: sha512-EEhsLsD6UsDM1yFhAvy0Cjr6VwmpMWqFBCb9w07wVugF7w9nfajxLuVmngTIpgS6svCnm6Vaw+MZhoDCKnOfsw==}
+
+  /@types/react-dom/18.0.6:
+    resolution: {integrity: sha512-/5OFZgfIPSwy+YuIBP/FgJnQnsxhZhjjrnxudMddeblOouIodEQ75X14Rr4wGSG/bknL+Omy9iWlLo1u/9GzAA==}
+    dependencies:
+      '@types/react': 18.0.15
+    dev: true
 
   /@types/react/18.0.15:
     resolution: {integrity: sha512-iz3BtLuIYH1uWdsv6wXYdhozhqj20oD4/Hk2DNXIn1kFsmp9x8d9QB6FnPhfkbhd2PgEONt9Q1x/ebkwjfFLow==}
@@ -13852,26 +13894,6 @@ packages:
   /react-is/18.2.0:
     resolution: {integrity: sha512-xWGDIW6x921xtzPkhiULtthJHoJvBbF3q26fzloPCK0hsvxtPVelvftw3zjbHWSkR2km9Z+4uxbDDK/6Zw9B8w==}
     dev: true
-
-  /react-query/4.0.0_biqbaboplfbrettd7655fr4n2y:
-    resolution: {integrity: sha512-qiW+Yvbl+EK8iwPDJAj4qWAKceh+g8Up8jxoNxJbzhV3bNheeyHF3EyynnkDO3S+CYgSwtCUFaP8vOjB62j7xQ==}
-    deprecated: Please use @tanstack/react-query for v4+
-    peerDependencies:
-      react: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0
-      react-native: '*'
-    peerDependenciesMeta:
-      react-dom:
-        optional: true
-      react-native:
-        optional: true
-    dependencies:
-      '@tanstack/query-core': 4.0.5
-      '@types/use-sync-external-store': 0.0.3
-      react: 18.2.0
-      react-dom: 18.2.0_react@18.2.0
-      use-sync-external-store: 1.2.0_react@18.2.0
-    dev: false
 
   /react-reconciler/0.26.2_react@17.0.2:
     resolution: {integrity: sha512-nK6kgY28HwrMNwDnMui3dvm3rCFjZrcGiuwLc5COUipBK5hWHLOxMJhSnSomirqWwjPBJKV1QcbkI0VJr7Gl1Q==}

@@ -1,8 +1,8 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
-import { useQuery } from 'react-query';
 import debounce from 'just-debounce';
 import Link from 'next/link';
 import SearchIcon from '@heroicons/react/outline/SearchIcon';
+import { useQuery } from '@tanstack/react-query';
 import { useClickOutside } from '../util/useClickOutside';
 
 const searchQuery = /* graphql */ `
@@ -12,7 +12,7 @@ const searchQuery = /* graphql */ `
         title
         link
         description
-      }    
+      }
       matches {
         kind
         section {

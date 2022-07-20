@@ -18,6 +18,9 @@
     "graphql": "^16.5.0",
     "tsm": "^2.2.2"
   },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "start": "tsm src/server.ts"
   }

@@ -4,7 +4,7 @@ import graphql from 'highlightjs-graphql';
 import highlight from 'rehype-highlight';
 import slug from 'rehype-slug';
 import frontmatter from 'remark-frontmatter';
-import { remarkMdxFrontmatter } from 'remark-mdx-frontmatter';
+import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
 import withMDX from '@next/mdx';
 
 dotenv.config();
