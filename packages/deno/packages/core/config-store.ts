@@ -2,8 +2,13 @@
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 /* eslint-disable node/no-callback-literal */
 import { GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLScalarType, GraphQLString, } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldMap, InputRef, InterfaceParam, OutputRef, SchemaTypes } from './types/index.ts';
-import { BaseTypeRef, BuiltinScalarRef, ConfigurableRef, FieldRef, GraphQLFieldKind, InputFieldMap, InputFieldRef, InputType, InputTypeParam, InputTypeRef, OutputType, OutputTypeRef, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, TypeParam, } from './index.ts';
+import BaseTypeRef from './refs/base.ts';
+import BuiltinScalarRef from './refs/builtin-scalar.ts';
+import FieldRef from './refs/field.ts';
+import InputTypeRef from './refs/input.ts';
+import InputFieldRef from './refs/input-field.ts';
+import OutputTypeRef from './refs/output.ts';
+import type { ConfigurableRef, FieldMap, GraphQLFieldKind, InputFieldMap, InputRef, InputType, InputTypeParam, InterfaceParam, OutputRef, OutputType, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, SchemaTypes, TypeParam, } from './types/index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, PothosTypeConfig>();
     private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined, typeConfig: PothosTypeConfig) => PothosFieldConfig<Types>>();

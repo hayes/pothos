@@ -8,9 +8,6 @@ import {
 } from 'graphql';
 import { complexityFromSelectionSet } from './calculate-complexity';
 
-export const DEFAULT_COMPLEXITY = 1;
-export const DEFAULT_LIST_MULTIPLIER = 10;
-
 export function complexityFromQuery(
   query: string | DocumentNode,
   options: {

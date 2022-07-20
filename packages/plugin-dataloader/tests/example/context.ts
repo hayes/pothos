@@ -13,7 +13,6 @@ export const createContext = (): ContextType => {
     ...initContextCache(),
 
     get userLoader() {
-      console.log(this);
       return User.getDataloader(context);
     },
 

@@ -1,7 +1,8 @@
 import './global-types';
 import { PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
-import { FieldSubscriber } from './types';
-import { PothosSmartSubscriptionsPlugin } from '.';
+import type { FieldSubscriber } from './types';
+
+import type { PothosSmartSubscriptionsPlugin } from '.';
 
 export function getFieldSubscribe<Types extends SchemaTypes>(
   field: PothosOutputFieldConfig<Types>,

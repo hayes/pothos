@@ -1,9 +1,9 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldKind, FieldNullability, FieldRef, InputFieldMap, InputShapeFromFields, OutputType, RootFieldBuilder, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import type { LoadableListFieldOptions } from './types.ts';
 import { LoadableFieldOptions, LoaderShapeFromType } from './types.ts';
-import { rejectErrors } from './util.ts';
-import { dataloaderGetter, LoadableListFieldOptions } from './index.ts';
+import { dataloaderGetter, rejectErrors } from './util.ts';
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
 fieldBuilderProto.loadable = function loadable<Args extends InputFieldMap, Type extends TypeParam<SchemaTypes>, Key, CacheKey, ResolveReturnShape, Nullable extends FieldNullability<Type> = SchemaTypes["DefaultFieldNullability"]>({ load, sort, loaderOptions, resolve, type, ...options }: LoadableFieldOptions<SchemaTypes, unknown, Type, Nullable, Args, ResolveReturnShape, Key, CacheKey, FieldKind>): FieldRef<unknown> {
     const getLoader = dataloaderGetter<Key, LoaderShapeFromType<SchemaTypes, Type, Nullable>, CacheKey>(loaderOptions, load, undefined, sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key);

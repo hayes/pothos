@@ -4,8 +4,9 @@ import { ImplementableLoadableNodeRef } from './refs/index.ts';
 import { ImplementableLoadableInterfaceRef } from './refs/interface.ts';
 import { ImplementableLoadableObjectRef } from './refs/object.ts';
 import { LoadableUnionRef } from './refs/union.ts';
+import type { DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from './types.ts';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types.ts';
-import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from './index.ts';
+import { dataloaderGetter } from './util.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 schemaBuilderProto.loadableObjectRef = function loadableObjectRef(name, options) {
     return new ImplementableLoadableObjectRef(this, name, options);

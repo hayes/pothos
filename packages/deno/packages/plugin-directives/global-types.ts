@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { EnumValues, FieldNullability, FieldRequiredness, InputFieldMap, InputType, InterfaceParam, ObjectParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { DirectiveLocation, Directives } from './types.ts';
-import { PothosDirectivesPlugin } from './index.ts';
+import type { PothosDirectivesPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

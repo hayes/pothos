@@ -12,6 +12,7 @@ const config: ESLintConfig = {
     '*.generated.tsx',
   ],
   rules: {
+    'import/no-cycle': 2,
     'import/no-unresolved': 'off',
     'import/no-default-export': 'off',
     'prettier/prettier': 'error',

@@ -1,5 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldNullability,
   InputFieldMap,
@@ -9,7 +8,8 @@ import {
   TypeParam,
 } from '@pothos/core';
 import { TracingFieldOptions, TracingFieldWrapper } from './types';
-import { PothosTracingPlugin } from '.';
+
+import type { PothosTracingPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

@@ -3,7 +3,7 @@
 /* eslint-disable no-param-reassign */
 import './global-types.ts';
 import { ArgumentNode, DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
-import { DirectiveList } from './types.ts';
+import type { DirectiveList } from './types.ts';
 export default function mockAst(schema: GraphQLSchema) {
     const types = schema.getTypeMap();
     Object.keys(types).forEach((typeName) => {

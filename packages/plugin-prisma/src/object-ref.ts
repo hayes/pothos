@@ -1,5 +1,5 @@
 import { ObjectRef } from '@pothos/core';
-import { PrismaModelTypes } from '.';
+import type { PrismaModelTypes } from './types';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 

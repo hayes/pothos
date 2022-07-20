@@ -31,7 +31,7 @@ import {
   TypeNode,
   ValueNode,
 } from 'graphql';
-import { DirectiveList } from './types';
+import type { DirectiveList } from './types';
 
 export default function mockAst(schema: GraphQLSchema) {
   const types = schema.getTypeMap();

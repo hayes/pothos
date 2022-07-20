@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldNullability, InputFieldMap, InputShapeFromFields, MaybePromise, Merge, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import RequestCache from './request-cache.ts';
+import type RequestCache from './request-cache.ts';
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
     unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;
     cacheKey?: (value: unknown) => unknown;

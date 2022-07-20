@@ -4,12 +4,12 @@ import {
   GraphQLSchema,
   GraphQLTypeResolver,
 } from 'graphql';
-import BuildCache from '../build-cache';
-import type { PothosObjectTypeConfig } from '../types';
-import {
+import type BuildCache from '../build-cache';
+import type {
   PothosEnumValueConfig,
   PothosInputFieldConfig,
   PothosInterfaceTypeConfig,
+  PothosObjectTypeConfig,
   PothosOutputFieldConfig,
   PothosTypeConfig,
   PothosUnionTypeConfig,

@@ -5,7 +5,7 @@ import { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/
 import { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object.ts';
 import { LoadableUnionRef } from './refs/union.ts';
 import { DataloaderObjectTypeOptions, DataLoaderOptions, LoadableFieldOptions, LoadableNodeId, LoadableNodeOptions, } from './types.ts';
-import { LoadableInterfaceOptions, LoadableListFieldOptions, LoadableUnionOptions, PothosDataloaderPlugin, } from './index.ts';
+import type { LoadableInterfaceOptions, LoadableListFieldOptions, LoadableUnionOptions, PothosDataloaderPlugin, } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

@@ -1,4 +1,4 @@
-import { OutputRef, outputShapeKey, parentShapeKey } from '../types';
+import { OutputRef, outputShapeKey, parentShapeKey } from '../types/type-params';
 import BaseTypeRef from './base';
 
 export default class UnionRef<T, P = T>

@@ -2,12 +2,11 @@
 import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, ContextCache, createContextCache, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
-import { calculateComplexity } from './calulate-complexity.ts';
-import type { ComplexityResult } from './types.ts';
+import { calculateComplexity } from './calculate-complexity.ts';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
+import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types.ts';
 export * from './types.ts';
 const pluginName = "complexity" as const;
-const DEFAULT_COMPLEXITY = 1;
-const DEFAULT_LIST_MULTIPLIER = 10;
 export default pluginName;
 export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     defaultComplexity: number = this.options.complexity?.defaultComplexity ??
@@ -16,15 +15,34 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     defaultListMultiplier: number = this.options.complexity?.defaultListMultiplier ??
         this.builder.options.complexity?.defaultListMultiplier ??
         DEFAULT_LIST_MULTIPLIER;
+    complexityError: ComplexityErrorFn = this.builder.options.complexity?.complexityError ??
+        ((kind, { depth, breadth, complexity, maxBreadth, maxComplexity, maxDepth }) => {
+            if (kind === ComplexityErrorKind.Depth) {
+                return new Error(`Query exceeds maximum depth (depth: ${depth}, max: ${maxDepth})`);
+            }
+            if (kind === ComplexityErrorKind.Breadth) {
+                return new Error(`Query exceeds maximum breadth (breadth: ${breadth}, max: ${maxBreadth})`);
+            }
+            if (kind === ComplexityErrorKind.Complexity) {
+                return new Error(`Query exceeds maximum complexity (complexity: ${complexity}, max: ${maxComplexity})`);
+            }
+            throw new Error("Unexpected complexity error kind");
+        });
     complexityCache: ContextCache<ComplexityResult, Types["Context"], [
         GraphQLResolveInfo
-    ]> = createContextCache((ctx: Types["Context"], info: GraphQLResolveInfo) => calculateComplexity(this, ctx, info));
+    ]> = createContextCache((ctx: Types["Context"], info: GraphQLResolveInfo) => calculateComplexity(ctx, info));
     override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
         return {
             ...fieldConfig,
             extensions: {
                 ...fieldConfig.extensions,
-                complexity: fieldConfig.pothosOptions.complexity,
+                complexity: fieldConfig.pothosOptions.complexity ??
+                    (fieldConfig.type.kind === "List"
+                        ? {
+                            field: this.defaultComplexity,
+                            multiplier: this.defaultListMultiplier,
+                        }
+                        : this.defaultComplexity),
             },
         };
     }
@@ -45,14 +63,26 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
             return;
         }
         const { complexity, depth, breadth } = this.complexityCache(ctx, info);
+        let errorKind: ComplexityErrorKind | null = null;
         if (max.depth && max.depth < depth) {
-            throw new Error(`Query exceeds maximum depth (depth: ${depth}, max: ${max.depth})`);
+            errorKind = ComplexityErrorKind.Depth;
         }
-        if (max.breadth && max.breadth < breadth) {
-            throw new Error(`Query exceeds maximum breadth (breadth: ${breadth}, max: ${max.breadth})`);
+        else if (max.breadth && max.breadth < breadth) {
+            errorKind = ComplexityErrorKind.Breadth;
         }
-        if (max.complexity && max.complexity < complexity) {
-            throw new Error(`Query exceeds maximum complexity (complexity: ${complexity}, max: ${max.complexity})`);
+        else if (max.complexity && max.complexity < complexity) {
+            errorKind = ComplexityErrorKind.Complexity;
+        }
+        if (errorKind) {
+            const error = this.complexityError(errorKind, {
+                complexity,
+                depth,
+                breadth,
+                maxComplexity: max.complexity,
+                maxDepth: max.depth,
+                maxBreadth: max.breadth,
+            }, info);
+            throw typeof error === "string" ? new Error(error) : error;
         }
     }
     getMax(ctx: Types["Context"]) {

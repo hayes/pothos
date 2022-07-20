@@ -1,6 +1,7 @@
 import SchemaBuilder, { isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
+import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
-import { AuthFailure, ForbiddenError } from '.';
+import { AuthFailure } from './types';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 

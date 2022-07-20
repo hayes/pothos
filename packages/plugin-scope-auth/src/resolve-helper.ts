@@ -3,7 +3,8 @@ import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
 import { ResolveStep, UnauthorizedResolver } from './types';
-import { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
+
+import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 
 const defaultUnauthorizedResolver: UnauthorizedResolver<never, never, never, never, never> = (
   _root,

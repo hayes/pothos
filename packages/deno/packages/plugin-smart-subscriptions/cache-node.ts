@@ -1,7 +1,8 @@
 // @ts-nocheck
 import { MaybePromise, SchemaTypes } from '../core/index.ts';
-import SubscriptionCache from './cache.ts';
-import { FieldSubscriptionManager, TypeSubscriptionManager } from './index.ts';
+import type SubscriptionCache from './cache.ts';
+import FieldSubscriptionManager from './manager/field.ts';
+import TypeSubscriptionManager from './manager/type.ts';
 export default class CacheNode<Types extends SchemaTypes> {
     path: string;
     value: unknown;

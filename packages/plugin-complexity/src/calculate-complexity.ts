@@ -16,7 +16,7 @@ import {
   SelectionSetNode,
 } from 'graphql';
 import { getArgumentValues } from 'graphql/execution/values';
-import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './util';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 
 import type { ComplexityResult, FieldComplexity } from '.';
 

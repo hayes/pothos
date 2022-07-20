@@ -1,4 +1,6 @@
-import { AuthFailure, AuthScopeFailureType } from '.';
+import { AuthScopeFailureType } from './types';
+
+import type { AuthFailure } from '.';
 
 export class ForbiddenError extends Error {
   code = 'FORBIDDEN';

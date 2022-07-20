@@ -23,18 +23,16 @@ import {
   GraphQLTypeResolver,
   GraphQLUnionType,
 } from 'graphql';
+// eslint-disable-next-line import/no-cycle
 import SchemaBuilder from './builder';
 import ConfigStore from './config-store';
-import { MergedPlugins } from './plugins';
+import { BasePlugin, MergedPlugins } from './plugins';
 import BuiltinScalarRef from './refs/builtin-scalar';
-import { PluginMap } from './types';
-import { getTypeBrand, isThenable } from './utils';
+import { ImplementableInputObjectRef } from './refs/input-object';
 import {
-  assertNever,
-  BasePlugin,
-  ImplementableInputObjectRef,
   InputType,
   OutputType,
+  PluginMap,
   PothosEnumTypeConfig,
   PothosEnumValueConfig,
   PothosInputFieldConfig,
@@ -54,7 +52,8 @@ import {
   PothosUnionTypeConfig,
   SchemaTypes,
   typeBrandKey,
-} from '.';
+} from './types';
+import { assertNever, getTypeBrand, isThenable } from './utils';
 
 export default class BuildCache<Types extends SchemaTypes> {
   types = new Map<string, GraphQLNamedType>();

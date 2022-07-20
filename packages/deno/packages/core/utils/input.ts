@@ -1,5 +1,5 @@
 // @ts-nocheck
-import BuildCache from '../build-cache.ts';
+import type BuildCache from '../build-cache.ts';
 import { PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
     configs: Record<string, PothosInputFieldConfig<Types>>;

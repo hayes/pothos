@@ -7,7 +7,8 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { PothosSubGraphPlugin } from '.';
+
+import type { PothosSubGraphPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

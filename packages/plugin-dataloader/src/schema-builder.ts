@@ -8,8 +8,9 @@ import { ImplementableLoadableNodeRef } from './refs';
 import { ImplementableLoadableInterfaceRef } from './refs/interface';
 import { ImplementableLoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
+import type { DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from './types';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
-import { dataloaderGetter, DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from '.';
+import { dataloaderGetter } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 

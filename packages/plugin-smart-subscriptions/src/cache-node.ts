@@ -1,6 +1,7 @@
 import { MaybePromise, SchemaTypes } from '@pothos/core';
-import SubscriptionCache from './cache';
-import { FieldSubscriptionManager, TypeSubscriptionManager } from '.';
+import type SubscriptionCache from './cache';
+import FieldSubscriptionManager from './manager/field';
+import TypeSubscriptionManager from './manager/type';
 
 export default class CacheNode<Types extends SchemaTypes> {
   path: string;

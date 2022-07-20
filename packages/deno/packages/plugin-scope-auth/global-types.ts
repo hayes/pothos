@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
-import { FieldAuthScopes, FieldGrantScopes, ReplaceContext, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, } from './types.ts';
-import { AuthScopeMap, ContextForAuth, ForbiddenResult, PothosScopeAuthPlugin, UnauthorizedOptions, } from './index.ts';
+import type { AuthScopeMap, ContextForAuth, FieldAuthScopes, FieldGrantScopes, ForbiddenResult, ReplaceContext, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, UnauthorizedOptions, } from './types.ts';
+import type { PothosScopeAuthPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

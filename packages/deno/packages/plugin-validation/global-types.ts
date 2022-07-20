@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { RefineConstraint, ValidationOptions } from './types.ts';
-import { PothosValidationPlugin } from './index.ts';
+import type { PothosValidationPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

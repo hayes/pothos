@@ -1,5 +1,5 @@
 // @ts-nocheck
-import ConfigStore from '../config-store.ts';
+import type ConfigStore from '../config-store.ts';
 import BaseTypeRef from '../refs/base.ts';
 import { FieldNullability, FieldRequiredness, InputType, InputTypeParam, OutputType, PothosInputFieldType, PothosNameInputFieldType, PothosNameOutputFieldType, PothosOutputFieldType, SchemaTypes, TypeParam, } from '../types/index.ts';
 export function typeFromNonListParam<Types extends SchemaTypes>(type: OutputType<Types>, configStore: ConfigStore<Types>, nullable: boolean): PothosNameOutputFieldType<Types> {

@@ -17,19 +17,18 @@ import PrismaNodeRef from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import {
+  PrismaClient,
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
   PrismaModelTypes,
   PrismaNodeOptions,
-  PrismaObjectTypeOptions,
-} from './types';
-import {
-  PrismaClient,
   PrismaObjectFieldOptions,
-  PrismaPlugin,
+  PrismaObjectTypeOptions,
   ShapeFromConnection,
   ShapeFromSelection,
-} from '.';
+} from './types';
+
+import type { PrismaPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

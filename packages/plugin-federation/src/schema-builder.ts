@@ -14,12 +14,9 @@ import { federationDirectives } from '@apollo/subgraph/dist/directives';
 import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/types';
 import SchemaBuilder, { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ExternalEntityRef } from './external-ref';
-import { Selection, SelectionFromShape, selectionShapeKey } from '.';
+import { Selection, SelectionFromShape, selectionShapeKey } from './types';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-
-type DirectiveList = { name: string; args?: {} }[];
-type DirectiveOption = DirectiveList | Record<string, {}>;
 
 export function hasDirective(type: GraphQLNamedType, directive: string) {
   if (Array.isArray(type.extensions?.directives)) {
@@ -27,40 +24,6 @@ export function hasDirective(type: GraphQLNamedType, directive: string) {
   }
 
   return directive in ((type.extensions?.directives ?? {}) as {});
-}
-
-export function keyDirective(key: Selection<object> | Selection<object>[]): {
-  name: string;
-  args?: {};
-}[] {
-  if (Array.isArray(key)) {
-    return key.map(({ selection }) => ({
-      name: 'key',
-      args: { fields: selection },
-    }));
-  }
-
-  return [
-    {
-      name: 'key',
-      args: { fields: key.selection },
-    },
-  ];
-}
-
-export function mergeDirectives(
-  existing: DirectiveOption | undefined,
-  add: DirectiveList,
-): DirectiveList {
-  if (!existing) {
-    return [...add];
-  }
-
-  if (Array.isArray(existing)) {
-    return [...existing, ...add];
-  }
-
-  return [...Object.keys(existing).map((name) => ({ name, args: existing[name] })), ...add];
 }
 
 schemaBuilderProto.selection = <Shape extends object>(selection: SelectionFromShape<Shape>) => ({

@@ -15,12 +15,12 @@
   },
   "dependencies": {
     "@faker-js/faker": "^7.3.0",
-    "@graphql-yoga/node": "^2.11.1",
+    "@graphql-yoga/node": "^2.13.4",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@prisma/client": "^4.0.0",
+    "@prisma/client": "^4.1.0",
     "graphql": "16.5.0",
-    "prisma": "^4.0.0"
+    "prisma": "^4.1.0"
   },
   "publishConfig": {
     "access": "public"

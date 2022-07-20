@@ -6,7 +6,8 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { AuthZOption, PothosAuthZPlugin } from '.';
+
+import type { AuthZOption, PothosAuthZPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

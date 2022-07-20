@@ -12,8 +12,9 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { ExternalEntityRef } from './external-ref';
-import { PothosFederationPlugin, Selection, SelectionFromShape, selectionShapeKey } from '.';
+import type { ExternalEntityRef } from './external-ref';
+
+import type { PothosFederationPlugin, Selection, SelectionFromShape, selectionShapeKey } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

@@ -52,12 +52,12 @@
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
-    "@pothos/test-utils": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@prisma/client": "^4.0.0",
+    "@pothos/test-utils": "workspace:*",
+    "@prisma/client": "^4.1.0",
     "graphql": "16.5.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.0.0"
+    "prisma": "^4.1.0"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

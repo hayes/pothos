@@ -7,8 +7,9 @@ import {
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
-import { SmartSubscriptionOptions } from './types';
-import {
+import type { SmartSubscriptionOptions } from './types';
+
+import type {
   FieldSubscriptionManager,
   PothosSmartSubscriptionsPlugin,
   TypeSubscriptionManager,

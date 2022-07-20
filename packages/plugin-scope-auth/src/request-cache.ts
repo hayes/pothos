@@ -1,9 +1,14 @@
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, Path, SchemaTypes } from '@pothos/core';
-import { ScopeLoaderMap } from './types';
+import {
+  AuthFailure,
+  AuthScopeFailureType,
+  AuthScopeMap,
+  ScopeLoaderMap,
+  TypeAuthScopesFunction,
+} from './types';
 import { cacheKey, canCache } from './util';
-import { AuthFailure, AuthScopeFailureType, AuthScopeMap, TypeAuthScopesFunction } from '.';
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const requestCache = new WeakMap<{}, RequestCache<any>>();

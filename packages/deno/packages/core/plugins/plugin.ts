@@ -1,8 +1,7 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
-import BuildCache from '../build-cache.ts';
-import type { PothosObjectTypeConfig } from '../types/index.ts';
-import { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
+import type BuildCache from '../build-cache.ts';
+import type { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { createContextCache } from '../utils/context-cache.ts';
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
 export class BasePlugin<Types extends SchemaTypes, T extends object = object> {

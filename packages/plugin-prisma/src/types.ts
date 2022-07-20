@@ -20,7 +20,7 @@ import {
   typeBrandKey,
   TypeParam,
 } from '@pothos/core';
-import { PrismaObjectFieldBuilder } from './field-builder';
+import type { PrismaObjectFieldBuilder } from './field-builder';
 import { PrismaObjectRef } from './object-ref';
 
 export interface PrismaDelegate {

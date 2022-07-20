@@ -1,5 +1,5 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import BuildCache from '../build-cache';
+import type BuildCache from '../build-cache';
 import { BasePlugin } from '../plugins/plugin';
 import type { PothosObjectTypeConfig } from './configs';
 import type { SchemaTypes } from './schema-types';

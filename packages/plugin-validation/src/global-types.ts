@@ -10,7 +10,8 @@ import {
   TypeParam,
 } from '@pothos/core';
 import { RefineConstraint, ValidationOptions } from './types';
-import { PothosValidationPlugin } from '.';
+
+import type { PothosValidationPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

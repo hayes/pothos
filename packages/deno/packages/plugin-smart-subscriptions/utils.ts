@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { createContextCache } from '../core/index.ts';
-import { SmartSubscriptionOptions } from './types.ts';
+import type { SmartSubscriptionOptions } from './types.ts';
 export function rootName(path: GraphQLResolveInfo["path"]): string {
     if (path.prev) {
         return rootName(path.prev);

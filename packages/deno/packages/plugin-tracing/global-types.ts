@@ -1,9 +1,8 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldNullability, InputFieldMap, InputShapeFromFields, PothosOutputFieldConfig, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { TracingFieldOptions, TracingFieldWrapper } from './types.ts';
-import { PothosTracingPlugin } from './index.ts';
+import type { PothosTracingPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

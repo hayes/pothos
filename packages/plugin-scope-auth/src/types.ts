@@ -9,7 +9,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import RequestCache from './request-cache';
+import type RequestCache from './request-cache';
 
 export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;

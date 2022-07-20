@@ -8,8 +8,8 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@pothos/core';
 import { calculateComplexity } from './calculate-complexity';
+import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types';
-import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './util';
 
 export * from './types';
 

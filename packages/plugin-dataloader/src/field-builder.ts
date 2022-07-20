@@ -11,9 +11,9 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import type { LoadableListFieldOptions } from './types';
 import { LoadableFieldOptions, LoaderShapeFromType } from './types';
-import { rejectErrors } from './util';
-import { dataloaderGetter, LoadableListFieldOptions } from '.';
+import { dataloaderGetter, rejectErrors } from './util';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,

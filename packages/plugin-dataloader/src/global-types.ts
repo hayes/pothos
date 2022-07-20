@@ -22,7 +22,8 @@ import {
   LoadableNodeId,
   LoadableNodeOptions,
 } from './types';
-import {
+
+import type {
   LoadableInterfaceOptions,
   LoadableListFieldOptions,
   LoadableUnionOptions,

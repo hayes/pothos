@@ -12,9 +12,9 @@
     "@envelop/core": "^2.4.0",
     "@faker-js/faker": "^7.3.0",
     "@pothos/core": "workspace:*",
-    "fastify": "^4.2.0",
+    "fastify": "^4.2.1",
     "graphql": "16.5.0",
-    "graphql-helix": "^1.11.0"
+    "graphql-helix": "^1.13.0"
   },
   "publishConfig": {
     "access": "public"

@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, InterfaceParam, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { AuthZOption, PothosAuthZPlugin } from './index.ts';
+import type { AuthZOption, PothosAuthZPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

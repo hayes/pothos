@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 import { ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
-import { DefaultEdgesNullability, PothosRelayPlugin } from './index.ts';
+import type { DefaultEdgesNullability, PothosRelayPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {

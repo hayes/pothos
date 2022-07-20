@@ -16,7 +16,7 @@ import InternalInterfaceRef from './refs/interface';
 import InternalObjectRef from './refs/object';
 import InternalScalarRef from './refs/scalar';
 import InternalUnionRef from './refs/union';
-import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
+import type { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
 
 export * from './plugins';
 export * from './types';

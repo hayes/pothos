@@ -8,7 +8,8 @@ import {
   TypeParam,
 } from '@pothos/core';
 import { FieldWithInputOptions, WithInputBuilderOptions } from './types';
-import { PothosWithInputPlugin } from '.';
+
+import type { PothosWithInputPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

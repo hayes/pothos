@@ -1,4 +1,4 @@
-import BuildCache from '../build-cache';
+import type BuildCache from '../build-cache';
 import {
   PothosInputFieldConfig,
   PothosInputFieldType,

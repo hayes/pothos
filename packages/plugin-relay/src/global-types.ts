@@ -41,7 +41,8 @@ import {
   RelayMutationPayloadOptions,
   RelayPluginOptions,
 } from './types';
-import { DefaultEdgesNullability, PothosRelayPlugin } from '.';
+
+import type { DefaultEdgesNullability, PothosRelayPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

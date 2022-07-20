@@ -8,8 +8,13 @@ import {
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
-import { keyDirective, mergeDirectives } from './schema-builder';
-import { ExternalEntityOptions, Selection, SelectionFromShape, selectionShapeKey } from '.';
+import type {
+  ExternalEntityOptions,
+  Selection,
+  SelectionFromShape,
+  selectionShapeKey,
+} from './types';
+import { keyDirective, mergeDirectives } from './util';
 
 export const providesMap = new WeakMap<{}, string>();
 

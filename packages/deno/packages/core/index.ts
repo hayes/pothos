@@ -17,7 +17,7 @@ import InternalInterfaceRef from './refs/interface.ts';
 import InternalObjectRef from './refs/object.ts';
 import InternalScalarRef from './refs/scalar.ts';
 import InternalUnionRef from './refs/union.ts';
-import { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types/index.ts';
+import type { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types/index.ts';
 export * from './plugins/index.ts';
 export * from './types/index.ts';
 export * from './utils/index.ts';

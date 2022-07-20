@@ -12,53 +12,45 @@ import {
   GraphQLTypeResolver,
   lexicographicSortSchema,
 } from 'graphql';
+// eslint-disable-next-line import/no-cycle
 import BuildCache from './build-cache';
 import ConfigStore from './config-store';
-import {
+import InputFieldBuilder from './fieldUtils/input';
+import InterfaceFieldBuilder from './fieldUtils/interface';
+import MutationFieldBuilder from './fieldUtils/mutation';
+import ObjectFieldBuilder from './fieldUtils/object';
+import QueryFieldBuilder from './fieldUtils/query';
+import SubscriptionFieldBuilder from './fieldUtils/subscription';
+import BaseTypeRef from './refs/base';
+import EnumRef from './refs/enum';
+import InputObjectRef, { ImplementableInputObjectRef } from './refs/input-object';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
+import ObjectRef, { ImplementableObjectRef } from './refs/object';
+import ScalarRef from './refs/scalar';
+import UnionRef from './refs/union';
+import type {
+  AbstractReturnShape,
+  BaseEnum,
+  EnumParam,
+  EnumTypeOptions,
   EnumValues,
+  InputFieldMap,
+  InputFieldsFromShape,
   InputShape,
+  InputShapeFromFields,
   InterfaceFieldsShape,
   InterfaceFieldThunk,
   InterfaceParam,
+  InterfaceTypeOptions,
   MutationFieldsShape,
   MutationFieldThunk,
   NormalizeSchemeBuilderOptions,
   ObjectFieldsShape,
   ObjectFieldThunk,
   ObjectParam,
+  ObjectTypeOptions,
   OutputShape,
   OutputType,
-  QueryFieldsShape,
-  QueryFieldThunk,
-  ScalarName,
-  SchemaTypes,
-  ShapeFromEnumValues,
-  SubscriptionFieldsShape,
-  SubscriptionFieldThunk,
-} from './types';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
-import {
-  AbstractReturnShape,
-  BaseEnum,
-  BaseTypeRef,
-  EnumParam,
-  EnumRef,
-  EnumTypeOptions,
-  ImplementableInputObjectRef,
-  ImplementableInterfaceRef,
-  ImplementableObjectRef,
-  InputFieldBuilder,
-  InputFieldMap,
-  InputFieldsFromShape,
-  InputObjectRef,
-  InputShapeFromFields,
-  InterfaceFieldBuilder,
-  InterfaceRef,
-  InterfaceTypeOptions,
-  MutationFieldBuilder,
-  ObjectFieldBuilder,
-  ObjectRef,
-  ObjectTypeOptions,
   ParentShape,
   PluginConstructorMap,
   PothosEnumTypeConfig,
@@ -70,12 +62,16 @@ import {
   PothosScalarTypeConfig,
   PothosSubscriptionTypeConfig,
   PothosUnionTypeConfig,
-  QueryFieldBuilder,
-  ScalarRef,
-  SubscriptionFieldBuilder,
-  UnionRef,
+  QueryFieldsShape,
+  QueryFieldThunk,
+  ScalarName,
+  SchemaTypes,
+  ShapeFromEnumValues,
+  SubscriptionFieldsShape,
+  SubscriptionFieldThunk,
   ValuesFromEnum,
-} from '.';
+} from './types';
+import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};

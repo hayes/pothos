@@ -8,25 +8,29 @@ import {
   GraphQLScalarType,
   GraphQLString,
 } from 'graphql';
-import { FieldMap, InputRef, InterfaceParam, OutputRef, SchemaTypes } from './types';
-import {
-  BaseTypeRef,
-  BuiltinScalarRef,
+import BaseTypeRef from './refs/base';
+import BuiltinScalarRef from './refs/builtin-scalar';
+import FieldRef from './refs/field';
+import InputTypeRef from './refs/input';
+import InputFieldRef from './refs/input-field';
+import OutputTypeRef from './refs/output';
+import type {
   ConfigurableRef,
-  FieldRef,
+  FieldMap,
   GraphQLFieldKind,
   InputFieldMap,
-  InputFieldRef,
+  InputRef,
   InputType,
   InputTypeParam,
-  InputTypeRef,
+  InterfaceParam,
+  OutputRef,
   OutputType,
-  OutputTypeRef,
   PothosFieldConfig,
   PothosObjectTypeConfig,
   PothosTypeConfig,
+  SchemaTypes,
   TypeParam,
-} from '.';
+} from './types';
 
 export default class ConfigStore<Types extends SchemaTypes> {
   typeConfigs = new Map<string, PothosTypeConfig>();

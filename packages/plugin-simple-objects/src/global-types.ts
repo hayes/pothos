@@ -4,15 +4,14 @@ import {
   FieldNullability,
   InputFieldMap,
   InterfaceParam,
-  InterfaceRef,
   Normalize,
-  ObjectRef,
   ParentShape,
   SchemaTypes,
   TypeParam,
 } from '@pothos/core';
 import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
-import { PothosSimpleObjectsPlugin } from '.';
+
+import type { PothosSimpleObjectsPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

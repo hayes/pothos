@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { Path, PothosFieldConfig, SchemaTypes } from '../core/index.ts';
-import { AuthScopeMap } from './index.ts';
+import type { AuthScopeMap } from './index.ts';
 export function canCache<Types extends SchemaTypes>(map: AuthScopeMap<Types>): boolean {
     if (map.$granted) {
         return false;

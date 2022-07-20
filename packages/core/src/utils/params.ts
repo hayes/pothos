@@ -1,4 +1,4 @@
-import ConfigStore from '../config-store';
+import type ConfigStore from '../config-store';
 import BaseTypeRef from '../refs/base';
 import {
   FieldNullability,

@@ -1,7 +1,7 @@
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
-import { MaybePromise, SchemaTypes } from '@pothos/core';
-import SubscriptionManager from './manager';
-import { FieldSubscriptionManager } from '.';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
+import type { MaybePromise, SchemaTypes } from '@pothos/core';
+import type SubscriptionManager from './manager';
+import type FieldSubscriptionManager from './manager/field';
 
 export interface SmartSubscriptionOptions<Context extends object> {
   debounceDelay?: number | null;

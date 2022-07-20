@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { FieldKind, FieldNullability, FieldRef, InputFieldRef, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import { FieldWithInputOptions, WithInputBuilderOptions } from './types.ts';
-import { PothosWithInputPlugin } from './index.ts';
+import type { PothosWithInputPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface UserSchemaTypes {

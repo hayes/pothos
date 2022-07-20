@@ -1,10 +1,23 @@
 // @ts-nocheck
 import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLObjectType, GraphQLScalarSerializer, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
+// eslint-disable-next-line import/no-cycle
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
-import { EnumValues, InputShape, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, } from './types/index.ts';
+import InputFieldBuilder from './fieldUtils/input.ts';
+import InterfaceFieldBuilder from './fieldUtils/interface.ts';
+import MutationFieldBuilder from './fieldUtils/mutation.ts';
+import ObjectFieldBuilder from './fieldUtils/object.ts';
+import QueryFieldBuilder from './fieldUtils/query.ts';
+import SubscriptionFieldBuilder from './fieldUtils/subscription.ts';
+import BaseTypeRef from './refs/base.ts';
+import EnumRef from './refs/enum.ts';
+import InputObjectRef, { ImplementableInputObjectRef } from './refs/input-object.ts';
+import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.ts';
+import ObjectRef, { ImplementableObjectRef } from './refs/object.ts';
+import ScalarRef from './refs/scalar.ts';
+import UnionRef from './refs/union.ts';
+import type { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, OutputType, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.ts';
-import { AbstractReturnShape, BaseEnum, BaseTypeRef, EnumParam, EnumRef, EnumTypeOptions, ImplementableInputObjectRef, ImplementableInterfaceRef, ImplementableObjectRef, InputFieldBuilder, InputFieldMap, InputFieldsFromShape, InputObjectRef, InputShapeFromFields, InterfaceFieldBuilder, InterfaceRef, InterfaceTypeOptions, MutationFieldBuilder, ObjectFieldBuilder, ObjectRef, ObjectTypeOptions, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldBuilder, ScalarRef, SubscriptionFieldBuilder, UnionRef, ValuesFromEnum, } from './index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
     static allowPluginReRegistration = false;

@@ -1,7 +1,9 @@
 import { GraphQLIsTypeOfFn, GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
+import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
-import { ForbiddenError, PothosScopeAuthPlugin, ResolveStep, UnauthorizedForTypeErrorFn } from '.';
+
+import type { PothosScopeAuthPlugin, ResolveStep, UnauthorizedForTypeErrorFn } from '.';
 
 export function isTypeOfHelper<Types extends SchemaTypes>(
   steps: ResolveStep<Types>[],

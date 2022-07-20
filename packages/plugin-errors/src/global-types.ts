@@ -7,7 +7,8 @@ import {
   TypeParam,
 } from '@pothos/core';
 import { ErrorFieldOptions, ErrorsPluginOptions } from './types';
-import { PothosErrorsPlugin } from '.';
+
+import type { PothosErrorsPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {

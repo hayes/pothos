@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, InputFieldMap, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
-import { PothosSubGraphPlugin } from './index.ts';
+import type { PothosSubGraphPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
