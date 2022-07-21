@@ -382,7 +382,7 @@ impossible to resolve everything in a single query. When this happens Pothos wil
 construct an additional query to ensure that everything is still loaded correctly, and split into as
 few efficient queries as possible. This process is described in more detail below
 
-### Fallback queryies
+### Fallback queries
 
 There are some cases where data can not be pre-loaded by a prisma field. In these cases, pothos will
 issue a `findUnique` query for the parent of any fields that were not pre-loaded, and select the
