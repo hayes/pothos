@@ -58,7 +58,7 @@ const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 
 ### Object and Interface types:
 
-- `defaultSubGraphsForFields`: Default sub-graph for fields of the type to be included in.
+- `defaultForFields`: Default sub-graph for fields of the type to be included in.
 
 ## Options on Fields
 
@@ -66,7 +66,7 @@ const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 
   fallback to:
 
-  - `defaultSubGraphsForFields` if set on type
+  - `defaultForFields` if set on type
   - `subGraphs` of the type if `subGraphs.fieldsInheritFromTypes` was set in the builder
   - an empty array
 
@@ -77,7 +77,7 @@ const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 
   to being part of the same sub-graph as their parent type. Only applies when type does not have
 
-  `defaultSubGraphsForFields` set.
+  `defaultForFields` set.
 
 You can mock any field by adding a mock in the options passed to `builder.buildSchema` under
 `mocks.{typeName}.{fieldName}`.
@@ -89,7 +89,7 @@ builder.queryType({
   // Query type will be available in default, Public, and Internal schemas
   subGraphs: ['Public', 'Internal'],
   // Fields on the Query object will now default to not being a part of any subgraph
-  defaultSubGraphsForFields: [];
+  defaultForFields: [];
   fields: (t) => ({
     someField: t.string({
       // someField will be in the default schema and "Internal" sub graph, but
