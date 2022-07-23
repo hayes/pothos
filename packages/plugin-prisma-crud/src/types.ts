@@ -1,7 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // Type map: https://github.com/prisma/prisma/blob/main/packages/client/src/runtime/utils/common.ts#L63
 
-import { BaseEnum, InputRef, InputTypeParam, SchemaTypes } from '@pothos/core';
+import { BaseEnum, InputRef, InputType, InputTypeParam, SchemaTypes } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
 
 export type ScalarFilters<T> = T extends { equals?: unknown }
@@ -51,6 +51,7 @@ export type PrismaOrderByFields<Types extends SchemaTypes, Model extends PrismaM
 };
 
 export interface PrismaOrderByOptions<Types extends SchemaTypes, Model extends PrismaModelTypes> {
+  name?: string;
   fields: PrismaOrderByFields<Types, Model>;
 }
 
@@ -75,3 +76,21 @@ type InputWithShape<Types extends SchemaTypes, T> =
           : never
         : never
       : never);
+
+export interface PrismaFilterOptions<
+  Types extends SchemaTypes,
+  Type extends InputType<Types>,
+  Ops extends FilterOps,
+> {
+  name?: string;
+  ops: Ops[];
+}
+
+export interface PrismaListFilterOptions<
+  Types extends SchemaTypes,
+  Type extends InputType<Types>,
+  Ops extends FilterListOps,
+> {
+  name?: string;
+  ops: Ops[];
+}

@@ -4,6 +4,8 @@ import {
   FilterListOps,
   FilterOps,
   FilterShape,
+  PrismaFilterOptions,
+  PrismaListFilterOptions,
   PrismaOrderByOptions,
   PrismaWhereOptions,
 } from './types';
@@ -19,17 +21,13 @@ declare global {
     export interface SchemaBuilder<Types extends SchemaTypes> {
       prismaListFilter: <Type extends InputType<Types>, Ops extends FilterListOps>(
         type: Type,
-        options: {
-          ops: Ops[];
-        },
+        options: PrismaListFilterOptions<Types, Type, Ops>,
       ) => InputRef<{
         [K in Ops]: InputShapeFromTypeParam<Types, Type, true>;
       }>;
       prismaFilter: <Type extends InputType<Types>, Ops extends FilterOps>(
         type: Type,
-        options: {
-          ops: Ops[];
-        },
+        options: PrismaFilterOptions<Types, Type, Ops>,
       ) => InputRef<Pick<FilterShape<InputShapeFromTypeParam<Types, Type, true>>, Ops>>;
 
       prismaOrderBy: <
@@ -42,13 +40,15 @@ declare global {
         options: PrismaOrderByOptions<Types, Model>,
       ) => InputRef<Model['OrderBy']>;
 
+      orderByEnum: () => EnumRef<'asc' | 'desc'>;
+
       prismaWhere: <
         Name extends keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
       >(
-        name: Name,
+        type: Name,
         options: PrismaWhereOptions<Types, Model>,
       ) => InputRef<Model['Where']>;
     }

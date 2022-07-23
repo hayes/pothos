@@ -1,0 +1,51 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`prisma crud generates schema 1`] = `
+"input IntFilter {
+  equals: Int
+  not: IntFilter
+}
+
+enum OrderBy {
+  asc
+  desc
+}
+
+type Post {
+  id: ID!
+}
+
+input PostOrderBy {
+  author: UserOrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  title: OrderBy
+}
+
+input ProfileOrderBy {
+  bio: OrderBy
+  user: UserOrderBy
+}
+
+type Query {
+  post(list: StringListFilter, title: StringFilter): Post
+}
+
+input StringFilter {
+  contains: String
+  equals: String
+  not: StringFilter
+  startsWith: String
+}
+
+input StringListFilter {
+  every: StringFilter
+  none: StringFilter
+  some: StringFilter
+}
+
+input UserOrderBy {
+  name: OrderBy
+  profile: ProfileOrderBy
+}"
+`;

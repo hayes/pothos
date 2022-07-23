@@ -6,13 +6,15 @@ import { db } from '../db';
 const StringFilter = builder.prismaFilter('String', {
   ops: ['contains', 'equals', 'startsWith', 'not', 'equals'],
 });
-const IDFilter = builder.prismaFilter('Int', {
+export const IDFilter = builder.prismaFilter('Int', {
   ops: ['equals', 'not'],
 });
 
 const StringListFilter = builder.prismaListFilter(StringFilter, {
   ops: ['every', 'some', 'none'],
 });
+
+builder.queryType({});
 
 builder.queryField('post', (t) =>
   t.prismaField({
@@ -33,6 +35,12 @@ builder.queryField('post', (t) =>
       }),
   }),
 );
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
 
 const ProfileOrderBy: InputRef<Prisma.ProfileOrderByWithRelationInput> = builder.prismaOrderBy(
   'Profile',
@@ -60,26 +68,26 @@ export const PostOrderBy = builder.prismaOrderBy('Post', {
   },
 });
 
-const CommentWhere = builder.prismaWhere('Comment', {
-  fields: {
-    createdAt: 'DateTime',
-  },
-});
+// const CommentWhere = builder.prismaWhere('Comment', {
+//   fields: {
+//     createdAt: 'DateTime',
+//   },
+// });
 
-const UserWhere = builder.prismaWhere('User', {
-  fields: {
-    id: IDFilter,
-  },
-});
+// const UserWhere = builder.prismaWhere('User', {
+//   fields: {
+//     id: IDFilter,
+//   },
+// });
 
-builder.prismaWhere('Post', {
-  fields: {
-    id: IDFilter,
-    title: 'String',
-    createdAt: 'DateTime',
-    author: UserWhere,
-    comments: builder.prismaListFilter(CommentWhere, { ops: ['some'] }),
-  },
-});
+// builder.prismaWhere('Post', {
+//   fields: {
+//     id: IDFilter,
+//     title: 'String',
+//     createdAt: 'DateTime',
+//     author: UserWhere,
+//     comments: builder.prismaListFilter(CommentWhere, { ops: ['some'] }),
+//   },
+// });
 
 export default builder.toSchema({});
