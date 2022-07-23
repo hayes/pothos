@@ -87,6 +87,12 @@ generatorHandler({
           ),
           ts.factory.createPropertySignature(
             [],
+            'Select',
+            undefined,
+            ts.factory.createTypeReferenceNode(`Prisma.${model.name}Select`),
+          ),
+          ts.factory.createPropertySignature(
+            [],
             'WhereUnique',
             undefined,
             ts.factory.createTypeReferenceNode(`Prisma.${model.name}WhereUniqueInput`),

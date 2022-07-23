@@ -10,12 +10,14 @@
     "require": "./lib/index.js"
   },
   "scripts": {
-    "ts-node": "ts-node --transpile-only --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\"",
-    "type": "tsc --noEmit && tsc --project tests/tsconfig.json",
-    "build": "prisma generate && pnpm build:cjs && pnpm build:esm",
-    "build:cjs": "tsc --module commonjs --outDir lib",
-    "build:esm": "tsc --module es2020 --outDir esm && pnpm esm:extensions",
-    "esm:extensions": "ts-node --compiler-options \"{\\\"module\\\":\\\"commonjs\\\"}\" ../../.config/esm-transformer.ts",
+    "generate": "prisma generate",
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:esm && pnpm build:dts",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
+    "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
     "test": "pnpm jest --runInBand"
   },
   "bin": {
@@ -48,7 +50,7 @@
     "access": "public"
   },
   "prisma": {
-    "seed": "pnpm ts-node prisma/seed.ts"
+    "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
     "@prisma/generator-helper": "^3.13.0"

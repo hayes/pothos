@@ -39,7 +39,9 @@ export interface PrismaModelTypes {
   Shape: {};
   Include: unknown;
   Select: unknown;
+  OrderBy: unknown;
   Where: {};
+  WhereUnique: {};
   ListRelations: string;
   RelationName: string;
   Relations: Record<
@@ -175,12 +177,12 @@ export type PrismaObjectTypeOptions<
         include?: Include & Model['Include'];
         select?: never;
         findUnique?: FindUnique &
-          (((parent: Shape, context: Types['Context']) => Model['Where']) | null);
+          (((parent: Shape, context: Types['Context']) => Model['WhereUnique']) | null);
       }
     | {
         select: Model['Select'] & Select;
         include?: never;
-        findUnique?: (parent: Shape, context: Types['Context']) => Model['Where'];
+        findUnique?: (parent: Shape, context: Types['Context']) => Model['WhereUnique'];
       }
   );
 
@@ -231,7 +233,9 @@ export type PrismaNodeOptions<
           }
         | {
             resolve?: never;
-            field: UniqueField extends keyof Model['Where'] ? UniqueField : keyof Model['Where'];
+            field: UniqueField extends keyof Model['WhereUnique']
+              ? UniqueField
+              : keyof Model['WhereUnique'];
           }
       );
     fields?: PrismaObjectFieldsShape<
@@ -243,10 +247,10 @@ export type PrismaNodeOptions<
     >;
   } & (UniqueField extends string
     ? {
-        findUnique?: (id: string, context: Types['Context']) => Model['Where'];
+        findUnique?: (id: string, context: Types['Context']) => Model['WhereUnique'];
       }
     : {
-        findUnique: (id: string, context: Types['Context']) => Model['Where'];
+        findUnique: (id: string, context: Types['Context']) => Model['WhereUnique'];
       }) &
   (
     | {
@@ -494,6 +498,7 @@ export type PrismaConnectionFieldOptions<
       ResolveReturnShape
     >,
     'args' | 'resolve' | 'type'
+<<<<<<< HEAD
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
@@ -522,6 +527,32 @@ export type PrismaConnectionFieldOptions<
         ) => MaybePromise<number>;
       }
     : never);
+=======
+  > & {
+    type: Type;
+    cursor: string & keyof Model['WhereUnique'];
+    defaultSize?: number;
+    maxSize?: number;
+    resolve: (
+      query: {
+        include?: Model['Include'];
+        cursor?: {};
+        take: number;
+        skip: number;
+      },
+      parent: ParentShape,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<Model['Shape'][]>;
+    totalCount?: (
+      parent: ParentShape,
+      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+    ) => MaybePromise<number>;
+  };
+>>>>>>> 67bda837 (wip)
 
 export type RelatedConnectionOptions<
   Types extends SchemaTypes,

@@ -12,26 +12,38 @@ generator client {
 
 generator pothos {
   provider     = "prisma-pothos-types"
-  clientOutput = "./client"
+  clientOutput = "../tests/client"
   output       = "../tests/generated.ts"
 }
 
-generator pothosCrud {
-  provider     = "ts-node --transpile-only src/generator.ts"
-  clientOutput = "./client"
-  output       = "../tests/generated-crud.ts"
-}
-
 model Post {
-  id        Int       @id @default(autoincrement())
-  createdAt DateTime  @unique @default(now())
-  updatedAt DateTime  @updatedAt
+  id        Int         @id @default(autoincrement())
+  createdAt DateTime    @unique @default(now())
+  updatedAt DateTime    @updatedAt
   title     String
   content   String?
-  published Boolean   @default(false)
-  author    User      @relation(fields: [authorId], references: [id])
+  published Boolean     @default(false)
+  author    User        @relation(fields: [authorId], references: [id])
   comments  Comment[]
   authorId  Int
+  media     PostMedia[]
+}
+
+model Media {
+  id           Int         @id @default(autoincrement())
+  url          String
+  posts        PostMedia[]
+  uploadedBy   User?       @relation(fields: [uploadedById], references: [id])
+  uploadedById Int?
+}
+
+model PostMedia {
+  id      Int   @id @default(autoincrement())
+  post    Post  @relation(fields: [postId], references: [id])
+  media   Media @relation(fields: [mediaId], references: [id])
+  postId  Int
+  mediaId Int
+  order   Int
 }
 
 model Comment {
@@ -60,6 +72,7 @@ model User {
   profile   Profile?
   followers Follow[]  @relation("followers")
   following Follow[]  @relation("following")
+  Media     Media[]
 }
 
 model Follow {
@@ -74,4 +87,52 @@ model Follow {
 model Unrelated {
   id   Int     @id @default(autoincrement())
   name String?
+}
+
+model WithID {
+  id                  String                @id
+  FindUniqueRelations FindUniqueRelations[]
+}
+
+model WithUnique {
+  id                  String                @unique
+  FindUniqueRelations FindUniqueRelations[]
+}
+
+model WithCompositeID {
+  a String
+  b String
+
+  FindUniqueRelations FindUniqueRelations[]
+
+  @@id([a, b])
+}
+
+model WithCompositeUnique {
+  a String
+  c String? @unique
+  b String
+
+  FindUniqueRelations FindUniqueRelations[]
+
+  @@unique([a, c])
+  @@unique([a, b])
+}
+
+model FindUniqueRelations {
+  id String @id
+
+  withID_id String
+  withID    WithID @relation(fields: [withID_id], references: [id])
+
+  withUnique_id String
+  withUnique    WithUnique @relation(fields: [withUnique_id], references: [id])
+
+  withCompositeID_a String
+  withCompositeID_b String
+  withCompositeID   WithCompositeID @relation(fields: [withCompositeID_a, withCompositeID_b], references: [a, b])
+
+  withCompositeUnique_a String
+  withCompositeUnique_b String
+  withCompositeUnique   WithCompositeUnique @relation(fields: [withCompositeUnique_a, withCompositeUnique_b], references: [a, b])
 }

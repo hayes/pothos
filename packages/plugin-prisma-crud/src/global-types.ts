@@ -1,7 +1,14 @@
-import { InputRef, SchemaTypes } from '@pothos/core';
+import { InputRef, InputShapeFromTypeParam, InputType, SchemaTypes } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
-import { GetPrismaCrud, PrismaWhereOptions, ScalarFilterName } from './types';
-import { PrismaCrudPlugin } from '.';
+import {
+  FilterListOps,
+  FilterOps,
+  FilterShape,
+  PrismaOrderByOptions,
+  PrismaWhereOptions,
+} from './types';
+
+import type { PrismaCrudPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -9,21 +16,31 @@ declare global {
       prismaCrud: PrismaCrudPlugin<Types>;
     }
 
-    export interface UserSchemaTypes {
-      PrismaCrudTypes: {};
-    }
-
-    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
-      PrismaCrudTypes: undefined extends PartialTypes['PrismaCrudTypes']
-        ? {}
-        : PartialTypes['PrismaCrudTypes'] & {};
-    }
-
     export interface SchemaBuilder<Types extends SchemaTypes> {
-      prismaScalarFilter: <Name extends ScalarFilterName<Types>>(
+      prismaListFilter: <Type extends InputType<Types>, Ops extends FilterListOps>(
+        type: Type,
+        options: {
+          ops: Ops[];
+        },
+      ) => InputRef<{
+        [K in Ops]: InputShapeFromTypeParam<Types, Type, true>;
+      }>;
+      prismaFilter: <Type extends InputType<Types>, Ops extends FilterOps>(
+        type: Type,
+        options: {
+          ops: Ops[];
+        },
+      ) => InputRef<Pick<FilterShape<InputShapeFromTypeParam<Types, Type, true>>, Ops>>;
+
+      prismaOrderBy: <
+        Name extends keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+      >(
         name: Name,
-        options?: {},
-      ) => InputRef<GetPrismaCrud<Types>['ScalarFilters'][Name]>;
+        options: PrismaOrderByOptions<Types, Model>,
+      ) => InputRef<Model['OrderBy']>;
 
       prismaWhere: <
         Name extends keyof Types['PrismaTypes'],

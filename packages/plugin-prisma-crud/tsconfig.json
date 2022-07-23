@@ -1,21 +1,14 @@
 {
   "compilerOptions": {
-    "outDir": "lib",
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dts",
     "rootDir": "src"
   },
-  "exclude": [
-    "lib",
-    "tests"
-  ],
-  "extends": "../../tsconfig.options.json",
   "include": [
-    "src/**/*",
-    "types/**/*",
-    "../../types/**/*"
+    "src/**/*"
   ],
-  "references": [
-    {
-      "path": "../test-utils"
-    }
-  ]
+  "extends": "../../tsconfig.options.json"
 }

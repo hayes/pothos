@@ -96,9 +96,21 @@ generatorHandler({
           ),
           ts.factory.createPropertySignature(
             [],
-            'Where',
+            'OrderBy',
+            undefined,
+            ts.factory.createTypeReferenceNode(`Prisma.${model.name}OrderByWithRelationInput`),
+          ),
+          ts.factory.createPropertySignature(
+            [],
+            'WhereUnique',
             undefined,
             ts.factory.createTypeReferenceNode(`Prisma.${model.name}WhereUniqueInput`),
+          ),
+          ts.factory.createPropertySignature(
+            [],
+            'Where',
+            undefined,
+            ts.factory.createTypeReferenceNode(`Prisma.${model.name}WhereInput`),
           ),
           ts.factory.createPropertySignature(
             [],
