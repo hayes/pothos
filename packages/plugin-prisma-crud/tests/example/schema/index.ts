@@ -6,7 +6,7 @@ import { db } from '../db';
 const StringFilter = builder.prismaFilter('String', {
   ops: ['contains', 'equals', 'startsWith', 'not', 'equals'],
 });
-const IDFilter = builder.prismaFilter('String', {
+const IDFilter = builder.prismaFilter('Int', {
   ops: ['equals', 'not'],
 });
 
@@ -51,7 +51,7 @@ const UserOrderBy = builder.prismaOrderBy('User', {
   },
 });
 
-const PostOrderBy = builder.prismaOrderBy('Post', {
+export const PostOrderBy = builder.prismaOrderBy('Post', {
   fields: {
     id: true,
     title: true,
@@ -62,13 +62,13 @@ const PostOrderBy = builder.prismaOrderBy('Post', {
 
 const CommentWhere = builder.prismaWhere('Comment', {
   fields: {
-    createdAt: true,
+    createdAt: 'DateTime',
   },
 });
 
 const UserWhere = builder.prismaWhere('User', {
   fields: {
-    id: 'equals',
+    id: IDFilter,
   },
 });
 
@@ -76,14 +76,10 @@ builder.prismaWhere('Post', {
   fields: {
     id: IDFilter,
     title: 'String',
-    createdAt: {},
+    createdAt: 'DateTime',
     author: UserWhere,
-    comments: {
-      some: CommentWhere,
-    },
+    comments: builder.prismaListFilter(CommentWhere, { ops: ['some'] }),
   },
 });
-
-db.post.fin;
 
 export default builder.toSchema({});

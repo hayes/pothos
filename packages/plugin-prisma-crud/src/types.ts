@@ -68,8 +68,10 @@ type InputWithShape<Types extends SchemaTypes, T> =
   | InputRef<T>
   | (BaseEnum & Record<string, T>)
   | (new (...args: any[]) => T)
-  | (Types['inputShapes'][keyof Types['inputShapes']] extends infer Input extends T
-      ? Input
+  | (keyof Types['inputShapes'] extends infer U extends string
+      ? U extends string
+        ? Types['inputShapes'][U & keyof Types['inputShapes']] extends T
+          ? U
+          : never
+        : never
       : never);
-
-type SI = InputWithShape<PothosSchemaTypes.ExtendDefaultTypes<{}>, string>;
