@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.16.0
+
+### Minor Changes
+
+- 86c16787: Allow dmmf to be passed from Prisma.dmmf
+
 ## 3.15.0
 
 ### Minor Changes

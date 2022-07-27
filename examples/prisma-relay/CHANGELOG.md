@@ -1,5 +1,16 @@
 # @pothos-examples/prisma-relay
 
+## 2.4.0
+
+### Minor Changes
+
+- 86c16787: Allow dmmf to be passed from Prisma.dmmf
+
+### Patch Changes
+
+- Updated dependencies [86c16787]
+  - @pothos/plugin-prisma@3.16.0
+
 ## 2.3.1
 
 ### Patch Changes
