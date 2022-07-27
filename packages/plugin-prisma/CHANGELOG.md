@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.15.0
+
+### Minor Changes
+
+- dad7fb43: Fix typing for fallback resolvers on relation fields, and correclty pass all query
+  properties for relatedConnections
+
 ## 3.14.0
 
 ### Minor Changes
