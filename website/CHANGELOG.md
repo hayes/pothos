@@ -4,6 +4,12 @@
 
 ### Minor Changes
 
+- 86c16787: Allow dmmf to be passed from Prisma.dmmf
+
+## null
+
+### Minor Changes
+
 - 3a7ff291: Refactor internal imports to remove import cycles
 
 ### Patch Changes
