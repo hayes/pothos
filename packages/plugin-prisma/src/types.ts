@@ -557,7 +557,7 @@ export type RelatedConnectionOptions<
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]>;
+        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
       }
     : {
         resolve: (
@@ -571,7 +571,7 @@ export type RelatedConnectionOptions<
           args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]>;
+        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
       });
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };

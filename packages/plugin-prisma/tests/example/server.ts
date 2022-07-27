@@ -3,7 +3,7 @@ import { prisma } from './builder';
 import schema from './schema';
 
 prisma.$on('query', (e) => {
-  console.log(`Query: ${e.query}`);
+  console.log(`Query: ${e.query}, ${e.params}`);
   console.log(`Duration: ${e.duration}ms`);
 });
 

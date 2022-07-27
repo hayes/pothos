@@ -105,6 +105,7 @@ type Profile {
 }
 
 type Query {
+  badUser: User!
   findUniqueRelations: FindUniqueRelations!
   findUniqueRelationsSelect: FindUniqueRelations!
   manualConnection(after: ID, before: ID, first: Int, last: Int): QueryManualConnection!

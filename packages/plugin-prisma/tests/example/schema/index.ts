@@ -684,6 +684,10 @@ builder.queryFields((t) => ({
         },
       }),
   }),
+  badUser: t.prismaField({
+    type: 'User',
+    resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }),
+  }),
 }));
 
 builder.prismaObject('FindUniqueRelations', {

@@ -179,26 +179,15 @@ export class PrismaObjectFieldBuilder<
       context: object,
       nestedQuery: (query: unknown, path: unknown) => unknown,
     ) => {
-      const nested = nestedQuery(
-        {
-          ...((typeof query === 'function' ? query(args, context) : query) as {}),
-          ...prismaCursorConnectionQuery({
-            parseCursor,
-            maxSize,
-            defaultSize,
-            args,
-          }),
+      const nested = nestedQuery(getQuery(args, context), {
+        getType: () => {
+          if (!typeName) {
+            typeName = this.builder.configStore.getTypeConfig(ref).name;
+          }
+          return typeName;
         },
-        {
-          getType: () => {
-            if (!typeName) {
-              typeName = this.builder.configStore.getTypeConfig(ref).name;
-            }
-            return typeName;
-          },
-          path: [{ name: 'edges' }, { name: 'node' }],
-        },
-      ) as SelectionMap;
+        path: [{ name: 'edges' }, { name: 'node' }],
+      }) as SelectionMap;
 
       return {
         select: {
@@ -239,7 +228,7 @@ export class PrismaObjectFieldBuilder<
                 resolve(
                   {
                     ...q,
-                    ...(typeof query === 'function' ? query(args, context) : query),
+                    ...getQuery(args, context),
                   } as never,
                   parent,
                   args,
