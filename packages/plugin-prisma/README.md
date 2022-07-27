@@ -239,7 +239,7 @@ const builder = new SchemaBuilder<{
   prisma: {
     client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
     // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
-    dmmf: (prisma as unknown as { _baseDmmf: Prisma.DMMF.Document })._baseDmmf,
+    dmmf: Prisma.dmmf,
   },
 });
 ```

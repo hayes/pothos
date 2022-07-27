@@ -42,9 +42,7 @@ export default new SchemaBuilder<{
   relayOptions: {},
   prisma: {
     client: () => prisma,
-    dmmf:
-      (prisma as unknown as { _baseDmmf: Prisma.DMMF.Document })._baseDmmf ||
-      (prisma as unknown as { _dmmf: Prisma.DMMF.Document })._dmmf,
+    dmmf: Prisma.dmmf,
   },
   errorOptions: {
     defaultTypes: [Error],

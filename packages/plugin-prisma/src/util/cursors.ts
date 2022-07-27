@@ -1,5 +1,6 @@
 /* eslint-disable no-nested-ternary */
 import { MaybePromise, SchemaTypes } from '@pothos/core';
+// eslint-disable-next-line import/no-cycle
 import { getModel } from './datamodel';
 import { DMMFField } from './get-client';
 

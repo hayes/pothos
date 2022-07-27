@@ -1,6 +1,7 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
 import { PrismaObjectRef } from '../object-ref';
 import { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types';
+// eslint-disable-next-line import/no-cycle
 import { formatCursor, parseCompositeCursor, parseRawCursor } from './cursors';
 import { getDMMF } from './get-client';
 
@@ -56,7 +57,7 @@ export function getModel<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ) {
   const dmmf = getDMMF(builder);
-  const modelData = dmmf.modelMap[name];
+  const modelData = dmmf.datamodel.models.find((model) => model.name === name);
 
   if (!modelData) {
     throw new Error(`Model '${name}' not found in DMMF`);

@@ -13,17 +13,14 @@ export interface DMMFField {
 }
 
 interface DMMF {
-  datamodel: unknown;
-  modelMap: Record<
-    string,
-    {
+  datamodel: {
+    models: {
       name: string;
       fields: DMMFField[];
-      fieldMap?: Record<string, DMMFField>;
       primaryKey: { name: string | null; fields: string[] } | null;
       uniqueIndexes: { name: string | null; fields: string[] }[];
-    }
-  >;
+    }[];
+  };
 }
 
 const prismaClientCache = createContextCache(
