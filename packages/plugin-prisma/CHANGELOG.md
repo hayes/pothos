@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.17.0
+
+### Minor Changes
+
+- c50b9197: Support BigInt cursors
+
 ## 3.16.0
 
 ### Minor Changes
