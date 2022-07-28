@@ -18,6 +18,7 @@ generator pothos {
 
 model Post {
   id        Int         @id @default(autoincrement())
+  bigIntId  BigInt      @unique
   createdAt DateTime    @unique @default(now())
   updatedAt DateTime    @updatedAt
   title     String
@@ -103,8 +104,8 @@ model WithCompositeID {
   a String
   b String
 
-
   FindUniqueRelations FindUniqueRelations[]
+
   @@id([a, b])
 }
 
@@ -114,6 +115,7 @@ model WithCompositeUnique {
   b String
 
   FindUniqueRelations FindUniqueRelations[]
+
   @@unique([a, c])
   @@unique([a, b])
 }

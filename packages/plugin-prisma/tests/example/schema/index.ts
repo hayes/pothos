@@ -688,6 +688,11 @@ builder.queryFields((t) => ({
     type: 'User',
     resolve: () => prisma.user.findUniqueOrThrow({ where: { id: 1 } }),
   }),
+  postsBigIntCursor: t.prismaConnection({
+    type: 'Post',
+    cursor: 'bigIntId',
+    resolve: (query) => prisma.post.findMany({ ...query }),
+  }),
 }));
 
 builder.prismaObject('FindUniqueRelations', {

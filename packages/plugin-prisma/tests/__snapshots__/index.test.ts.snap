@@ -115,6 +115,7 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   post(id: ID!): Post
   posts: [Post!]!
+  postsBigIntCursor(after: ID, before: ID, first: Int, last: Int): QueryPostsBigIntCursorConnection!
   selectMe: SelectUser
   selectPosts: [SelectPost!]!
   unrelatedConnection(after: ID, before: ID, first: Int, last: Int): QueryUnrelatedConnection!
@@ -135,6 +136,16 @@ type QueryManualConnection {
 }
 
 type QueryManualConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type QueryPostsBigIntCursorConnection {
+  edges: [QueryPostsBigIntCursorConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryPostsBigIntCursorConnectionEdge {
   cursor: String!
   node: Post!
 }

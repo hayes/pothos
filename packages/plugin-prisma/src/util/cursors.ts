@@ -17,6 +17,8 @@ export function formatCursorChunk(value: unknown) {
       return `N:${value}`;
     case 'string':
       return `S:${value}`;
+    case 'bigint':
+      return `I:${value}`;
     default:
       throw new TypeError(`Unsupported cursor type ${typeof value}`);
   }
@@ -52,6 +54,9 @@ export function parseRawCursor(cursor: unknown) {
         return new Date(Number.parseInt(value, 10));
       case 'J':
         return JSON.parse(value) as unknown;
+      case 'I':
+        // eslint-disable-next-line node/no-unsupported-features/es-builtins
+        return BigInt(value);
       default:
         throw new TypeError(`Invalid cursor type ${type}`);
     }

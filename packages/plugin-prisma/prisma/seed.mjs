@@ -18,6 +18,7 @@ async function main() {
 
     for (let j = 0; j < 250; ++j) {
       posts.push({
+        bigIntId: BigInt(posts.length + 250 * i),
         createdAt: new Date(now + i * 500 + j),
         title: faker.lorem.sentence(),
         content: faker.lorem.paragraph(),

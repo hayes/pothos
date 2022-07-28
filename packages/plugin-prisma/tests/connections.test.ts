@@ -1633,4 +1633,68 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('connections with BigInt cursor', async () => {
+    const query = gql`
+      query {
+        postsBigIntCursor(first: 2) {
+          edges {
+            node {
+              id
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "postsBigIntCursor": Object {
+            "edges": Array [
+              Object {
+                "node": Object {
+                  "id": "1",
+                },
+              },
+              Object {
+                "node": Object {
+                  "id": "2",
+                },
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "include": Object {
+              "comments": Object {
+                "include": Object {
+                  "author": true,
+                },
+                "take": 3,
+              },
+            },
+            "skip": 0,
+            "take": 3,
+          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });
