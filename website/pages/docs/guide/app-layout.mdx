@@ -24,17 +24,12 @@ recommendation and is completely optional.
 Here are a few files I create in almost every Pothos schema I have built:
 
 - `src/server.ts`: Setup and run your server \(This might be @graphql-yoga or apollo-server\)
-- `src/builder.ts`: Setup for your schema builder. Does not contain any definitions for types in
 
-  your schema
+- `src/builder.ts`: Setup for your schema builder. Does not contain any definitions for types in your schema
 
-- `src/schema.ts` or `src/schema/index.ts`: Imports all the files that define part of your schema,
+- `src/schema.ts` or `src/schema/index.ts`: Imports all the files that define part of your schema, but does not define types itself. Exports `builder.toSchema({})`
 
-  but does not define types itself. Exports `builder.toSchema({})`
-
-- `src/types.ts`: Define shared types used across your schema including a type for you context
-
-  object. This should be imported when creating your builder, and may be used by many other files.
+- `src/types.ts`: Define shared types used across your schema including a type for you context object. This should be imported when creating your builder, and may be used by many other files.
 
 - `src/schema/*.ts`: Actual definitions for your schema types.
 
