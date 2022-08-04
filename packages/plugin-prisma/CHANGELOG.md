@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.18.0
+
+### Minor Changes
+
+- 360836e5: Fix issue with prismaField not inferring parent thpe for subscriptions
+
 ## 3.17.0
 
 ### Minor Changes
