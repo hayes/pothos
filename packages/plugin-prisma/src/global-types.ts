@@ -144,6 +144,7 @@ declare global {
           | [keyof Types['PrismaTypes']]
           | [PrismaObjectRef<PrismaModelTypes>],
         Nullable extends FieldNullability<Type>,
+        ResolveShape,
         ResolveReturnShape,
         Type extends TypeParam extends [unknown]
           ? [ObjectRef<Model['Shape']>]
@@ -167,6 +168,7 @@ declare global {
           Type,
           Args,
           Nullable,
+          ResolveShape,
           ResolveReturnShape,
           Kind
         >,

@@ -33,7 +33,7 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   return this.field({
     ...(options as {}),
     type: typeParam,
-    resolve: (parent: unknown, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
+    resolve: (parent: never, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
       const query = queryFromInfo(ctx, info);
 
       return resolve(query, parent, args as never, ctx, info) as never;

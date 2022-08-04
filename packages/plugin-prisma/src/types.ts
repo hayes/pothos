@@ -414,6 +414,7 @@ export type PrismaFieldOptions<
   Param extends TypeParam<Types>,
   Args extends InputFieldMap,
   Nullable extends FieldNullability<Param>,
+  ResolveShape,
   ResolveReturnShape,
   Kind extends FieldKind = FieldKind,
 > = Omit<
@@ -424,7 +425,7 @@ export type PrismaFieldOptions<
     Nullable,
     Args,
     Kind,
-    ParentShape,
+    ResolveShape,
     ResolveReturnShape
   >,
   'resolve' | 'type'
@@ -434,7 +435,7 @@ export type PrismaFieldOptions<
     query: {
       include?: Model['Include'];
     },
-    parent: ParentShape,
+    parent: Kind extends 'Subscription' ? ResolveShape : ParentShape,
     args: InputShapeFromFields<Args>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
