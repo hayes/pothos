@@ -322,7 +322,6 @@ BEFORE the validation plugin in your plugin list.
 If a field with `errors` returns a `loadableObject`, or `loadableNode` the errors plugin will now
 catch errors thrown when loading ids returned by the `resolve` function.
 
-plugin. This is because if items are nullable, the items in the list may be set to null rather that
 If the field is a `List` field, errors that occur when resolving objects from `ids` will not be
 handled by the errors plugin. This is because those errors are associated with each item in the list
 rather than the list field itself. In the future, the dataloader plugin may have an option to throw
