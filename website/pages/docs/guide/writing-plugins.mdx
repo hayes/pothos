@@ -29,7 +29,6 @@ Pothos has 2 main pieces to it's type system:
 
 1. `PothosSchemaTypes`: A global namespace for shared types
 2. `SchemaTypes`: A collection of types passed around through Generics specific to each instance of
-
    `SchemaBuilder`
 
 ### `PothosSchemaTypes`
@@ -60,7 +59,6 @@ The general structure of a plugin has 3 main parts:
 1. `index.ts` which contains a plugins actual implementation
 2. `global-types.ts` which contains any additions to `Pothos`s built in types.
 3. `types.ts` which should contain any types that do NOT belong to the global `PothosSchemaTypes`
-
    namespace.
 
 To get set up quickly, you can copy these files from the example plugin to suite your needs. The
@@ -111,26 +109,21 @@ file that define the types that make up `PothosSchemaTypes` namespace.
 1. [`type-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/type-options.ts):
 
    Contains the interfaces that define the options objects for the various types \(Object,
-   Interface,
-
-   Enum, etc\).
+   Interface, Enum, etc\).
 
 2. [`field-options.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/field-options.ts):
 
    Contains the interfaces that define the options objects for creating fields
 
-3. [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts)
+3. [`schema-types.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/schema-types.ts):
 
    Contains the interfaces for SchemaBuilder options, SchemaTypes, options for `toSchema`, and other
-
    utility interfaces that may be useful for plugins to extend that do not fall into one of the
-
    other categories.
 
-4. [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts)
+4. [`classes.ts`](https://github.com/hayes/pothos/blob/main/packages/core/src/types/global/classes.ts):
 
    Contains interfaces that describe the classes used by Pothos, include `SchemaBuilder` and the
-
    various field builder classes.
 
 Once you have identified a type you wish to extend, copy it into the `PothosSchemaTypes` namespace
@@ -150,7 +143,7 @@ optional \(`newProp?: TypeOfProp`\) is recommended for most use cases.
 
 3. A default export of the plugin name `export default pluginName`
 4. A class that extends BasePlugin:
-   `export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}`.
+   `export class PothosExamplePlugin<Types extends SchemaTypes> extends BasePlugin<Types> {}`
 
    `BasePlugin` and `SchemaTypes` can both be imported from `@pothos/core`
 
@@ -168,15 +161,12 @@ To hook into each lifecycle event, simply define the corresponding function in y
 For the exact function signature, see the `index.ts` of the example plugin.
 
 - `onTypeConfig`: Invoked for each type, with the config object that will be used to construct the
-
   underlying GraphQL type.
 
 - `onOutputFieldConfig`: Invoked for each Object, or Interface field, with the config object
-
   describing the field.
 
 - `onInputFieldConfig`: Invoked for each InputObject field, or field argument, with the config
-
   object describing the field.
 
 - `onEnumValueConfig`: Invoked for each value in an enum
@@ -601,14 +591,10 @@ Removing whole types from the schema needs to be done by transforming the schema
 ## Useful methods:
 
 - `builder.configStore.onTypeConfig`: Takes a type ref and a callback, and will invoke the callback
-
   with the config for the referenced type once available.
 
 - `builder.configStore.onFieldUse` Takes a field ref \(returned by a field builder\) and a callback
-  to
-
-  invoke once the config for the field is available.
+  to invoke once the config for the field is available.
 
 - `buildCache.getTypeConfig` Gets the config for a given type after it has been passed through any
-
   modifications applied by plugins.
