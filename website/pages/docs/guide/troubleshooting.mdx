@@ -36,6 +36,14 @@ Ensure that there is only 1 version of each pothos package, and that they are bo
 node_modules directly. Pothos plugins import classes from `@pothos/core` to add plugin specific
 methods to the class prototypes
 
+### Recieved multiple implementations for plugin
+
+By default, Pothos doesn't allow multiple plugin registrations with the same name. During development,
+it can be helpful to disable this check by setting `SchemaBuilder.allowPluginReRegistration = true`.
+
+Keep in mind that this not only allows plugins to be updated when for example, using HMR but can also
+lead to unexpected behavior with plugins using the same name.
+
 ### Refs is undefined
 
 If you are running into issues with refs being undefined, it may be due to a circular import. Most
