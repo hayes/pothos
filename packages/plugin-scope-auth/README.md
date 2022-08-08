@@ -51,15 +51,11 @@ In the above setup, We import the `scope-auth` plugin, and include it in the bui
 We also define 2 important things:
 
 1. The `AuthScopes` type in the builder `SchemaTypes`. This is a map of types that define the types
-
    used by each of your scopes. We'll see how this is used in more detail below.
 
 2. The `scope initializer` function, which is the implementation of each of the scopes defined in
-
    the type above. This function returns a map of either booleans \(indicating if the request has
-   the
-
-   scope\) or functions that load the scope \(with an optional parameter\).
+   the scope\) or functions that load the scope \(with an optional parameter\).
 
 The names of the scopes \(`public`, `employee`, `deferredScope`, and `customPerm`\) are all
 arbitrary, and are not part of the plugin. You can use whatever scope names you prefer, and can add
@@ -87,25 +83,19 @@ people. Here is a short list of a few terms used in this document, and how they 
 interpreted:
 
 - `scope`: A scope is unit of authorization that can be used to authorize a request to resolve a
-
   field.
 
 - `scope map`: A map of scope names and scope parameters. This defines the set of scopes that will
-
   be checked for a field or type to authorize the request the resolve a resource.
 
 - `scope loader`: A function for dynamically loading scope given a scope parameter. Scope loaders
-
   are ideal for integrating with a permission service, or creating scopes that can be customized
-
   based in the field or values that they are authorizing.
 
 - `scope parameter`: A parameter that will be passed to a scope loader. These are the values in the
-
   authScopes objects.
 
 - `scope initializer`: The function that creates the scopes or scope loaders for the current
-
   request.
 
 While this plugin uses `scopes` as the term for it's authorization mechanism, this plugin can easily
@@ -551,7 +541,7 @@ called each time the resolve for the field would be called. This means the same 
 could be called multiple time for the same resource if the field is requested multiple times using
 an alias.
 
-returning a boolean from an auth scope function is an easy way to allow or disallow a request from
+Returning a boolean from an auth scope function is an easy way to allow or disallow a request from
 resolving a field without needing to evaluate additional scopes.
 
 ### Setting type level scopes based on the parent value
@@ -715,12 +705,12 @@ its result will be cached for the current request.
 
 ### authScopes functions on fields
 
-when using a function for `authScopes` on a field, the function will be run each time the field is
+When using a function for `authScopes` on a field, the function will be run each time the field is
 resolved, since it has access to all the arguments passed to the resolver
 
 ### authScopes functions on types
 
-when using a function for `authScopes` on a type, the function will be run the once for each
+When using a function for `authScopes` on a type, the function will be run the once for each
 instance of that type in the response. It will be run lazily when the first field for that object is
 resolved, and its result will be cached and reused by all fields for that instance of the type.
 
@@ -744,18 +734,13 @@ resolved. It's result will be cached and reused for each field of the same insta
 ### Types
 
 - `AuthScopes`: `extends {}`. Each property is the name of its scope, each value is the type for the
-
   scopes parameter.
 
 - `ScopeLoaderMap`: Object who's keys are scope names \(from `AuthScopes`\) and whos values are
-  either
-
-  booleans \(indicating whether or not the request has the scope\) or function that take a parameter
-
-  \(type from `AuthScope`\) and return `MaybePromise<boolean>`
+  either booleans \(indicating whether or not the request has the scope\) or function that take a
+  parameter \(type from `AuthScope`\) and return `MaybePromise<boolean>`
 
 - `ScopeMap`: A map of scope names to parameters. Based on `AuthScopes`, may also contain `$all`,
-
   `$any` or `$granted`.
 
 ### Builder
@@ -765,7 +750,6 @@ resolved. It's result will be cached and reused for each field of the same insta
 ### Object and Interface options
 
 - `authScopes`: `ScopeMap` or `function`, accepts `parent` and `context` returns
-
   `MaybePromise<ScopeMap>`
 
 - `grantScopes`: `function`, accepts `parent` and `context` returns `MaybePromise<string[]>`
@@ -773,11 +757,9 @@ resolved. It's result will be cached and reused for each field of the same insta
 ### Field Options
 
 - `authScopes`: `ScopeMap` or `function`, accepts same arguments as resolver, returns
-
   `MaybePromise<ScopeMap>`
 
 - `grantScopes`: `string[]` or `function`, accepts same arguments as resolver, returns
-
   `MaybePromise<string[]>`
 
 - `skipTypeScopes`: `boolean`
