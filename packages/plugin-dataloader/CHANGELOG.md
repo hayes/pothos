@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.9.0
+
+### Minor Changes
+
+- f7f74585: Add option for configuring name of id field for relay nodes
+
 ## 3.8.0
 
 ### Minor Changes
