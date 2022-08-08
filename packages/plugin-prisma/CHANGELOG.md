@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.19.0
+
+### Minor Changes
+
+- 6382f65b: Fix types when using prismaField with `select` on a PrismaObject
+
 ## 3.18.0
 
 ### Minor Changes
