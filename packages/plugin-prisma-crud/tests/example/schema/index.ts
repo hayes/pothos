@@ -45,10 +45,10 @@ builder.prismaObject('Post', {
 const ProfileOrderBy: InputRef<Prisma.ProfileOrderByWithRelationInput> = builder.prismaOrderBy(
   'Profile',
   {
-    fields: {
+    fields: () => ({
       bio: true,
-      user: () => UserOrderBy,
-    },
+      user: UserOrderBy,
+    }),
   },
 );
 
@@ -68,26 +68,27 @@ export const PostOrderBy = builder.prismaOrderBy('Post', {
   },
 });
 
-// const CommentWhere = builder.prismaWhere('Comment', {
-//   fields: {
-//     createdAt: 'DateTime',
-//   },
-// });
+const CommentWhere = builder.prismaWhere('Comment', {
+  fields: {
+    createdAt: 'DateTime',
+  },
+});
 
-// const UserWhere = builder.prismaWhere('User', {
-//   fields: {
-//     id: IDFilter,
-//   },
-// });
+const UserWhere = builder.prismaWhere('User', {
+  fields: {
+    id: IDFilter,
+  },
+});
 
-// builder.prismaWhere('Post', {
-//   fields: {
-//     id: IDFilter,
-//     title: 'String',
-//     createdAt: 'DateTime',
-//     author: UserWhere,
-//     comments: builder.prismaListFilter(CommentWhere, { ops: ['some'] }),
-//   },
-// });
+builder.prismaWhere('Post', {
+  fields: () => ({
+    id: IDFilter,
+    title: 'String',
+    createdAt: 'DateTime',
+    author: UserWhere,
+    comments: builder.prismaListFilter(CommentWhere, { ops: ['some'] }),
+    authorId: () => ({ type: IDFilter, description: 'filter by author id' }),
+  }),
+});
 
 export default builder.toSchema({});

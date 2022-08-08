@@ -15,6 +15,7 @@ import {
   PrismaFilterOptions,
   PrismaListFilterOptions,
   PrismaOrderByOptions,
+  PrismaWhereOptions,
 } from './types';
 
 export const schemaBuilder =
@@ -130,9 +131,22 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
-      Object.keys(fields).forEach((field) => {
-        const fieldOption = fields[field as keyof typeof fields];
-        if (typeof fieldOption === 'boolean') {
+      const fieldMap = typeof fields === 'function' ? fields() : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldOption = fieldMap[field as keyof typeof fieldMap];
+
+        if (typeof fieldOption === 'function') {
+          const { type: fieldType, ...fieldOptions } = (
+            fieldOption as () => PothosSchemaTypes.InputFieldOptions<SchemaTypes>
+          )();
+
+          fieldDefs[field] = t.field({
+            required: false,
+            ...fieldOptions,
+            type: fieldType,
+          });
+        } else if (typeof fieldOption === 'boolean') {
           fieldDefs[field] = t.field({
             required: false,
             type: this.orderByEnum(),
@@ -140,9 +154,7 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
         } else {
           fieldDefs[field] = t.field({
             required: false,
-            type: (typeof fieldOption === 'function'
-              ? fieldOption()
-              : fieldOption) as InputRef<unknown>,
+            type: fieldOption as InputRef<unknown>,
           });
         }
       });
@@ -152,6 +164,55 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
   });
 
   return ref as InputRef<Model['OrderBy']>;
+};
+
+schemaBuilder.prismaWhere = function prismaWhere<
+  Name extends keyof SchemaTypes['PrismaTypes'],
+  Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
+    ? SchemaTypes['PrismaTypes'][Name]
+    : never,
+>(
+  type: Name,
+  { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model>,
+): InputRef<Model['Where']> {
+  const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Where`);
+
+  ref.implement({
+    ...options,
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+
+      const fieldMap = typeof fields === 'function' ? fields() : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        if (typeof fieldOption === 'function') {
+          const { type: fieldType, ...fieldOptions } = (
+            fieldOption as () => PothosSchemaTypes.InputFieldOptions<SchemaTypes>
+          )();
+
+          fieldDefs[field] = t.field({
+            required: false,
+            ...fieldOptions,
+            type: fieldType,
+          });
+        } else {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: fieldOption,
+          });
+        }
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref;
 };
 
 function nameFromType<Types extends SchemaTypes>(
