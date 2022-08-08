@@ -223,9 +223,6 @@ importers:
       graphql: 16.5.0
       prisma: 4.1.0
 
-  examples/prisma-federation/prisma/client:
-    specifiers: {}
-
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.3.0
@@ -245,12 +242,6 @@ importers:
       '@prisma/client': 4.1.0_prisma@4.1.0
       graphql: 16.5.0
       prisma: 4.1.0
-
-  examples/prisma-relay/prisma/client:
-    specifiers: {}
-
-  examples/prisma/prisma/client:
-    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -515,9 +506,6 @@ importers:
   packages/plugin-prisma/esm:
     specifiers: {}
 
-  packages/plugin-prisma/tests/client:
-    specifiers: {}
-
   packages/plugin-relay:
     specifiers:
       '@pothos/core': workspace:*
@@ -556,9 +544,6 @@ importers:
       prisma: 4.1.0
 
   packages/plugin-scope-auth/esm:
-    specifiers: {}
-
-  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
