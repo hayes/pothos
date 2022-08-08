@@ -269,6 +269,7 @@ type User implements Named & Node {
   posts(oldestFirst: Boolean): [Post!]!
   postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean): UserPostsConnection!
   postsConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): UserPostsConnectionWithErrorsResult!
+  prismaFieldComments: [Comment!]!
   profile: Profile
   profileThroughManualLookup: Profile
   profileWithErrors: UserProfileWithErrorsResult

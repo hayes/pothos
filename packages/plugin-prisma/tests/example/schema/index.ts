@@ -188,6 +188,13 @@ const User = builder.prismaNode('User', {
     following: t.relatedConnection('following', {
       cursor: 'compositeID',
     }),
+    prismaFieldComments: t.prismaField({
+      type: ['Comment'],
+      select: {
+        comments: true,
+      },
+      resolve: (query, user) => user.comments,
+    }),
   }),
 });
 
