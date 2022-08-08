@@ -42,25 +42,29 @@ export class ImplementableLoadableNodeRef<
         interfaces.push(nodeInterface);
       }
 
-      this.builder.objectField(this, 'id', (t) =>
-        (
-          t as unknown as {
-            globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-          }
-        ).globalID({
-          ...this.idOptions,
-          nullable: false,
-          args: {},
-          resolve: async (
-            parent: Shape,
-            args: object,
-            context: object,
-            info: GraphQLResolveInfo,
-          ) => ({
-            type: config.name,
-            id: await this.idOptions.resolve(parent, args, context, info),
+      this.builder.objectField(
+        this,
+        (this.builder.options as { relayOptions?: { idFieldName?: string } }).relayOptions
+          ?.idFieldName ?? 'id',
+        (t) =>
+          (
+            t as unknown as {
+              globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
+            }
+          ).globalID({
+            ...this.idOptions,
+            nullable: false,
+            args: {},
+            resolve: async (
+              parent: Shape,
+              args: object,
+              context: object,
+              info: GraphQLResolveInfo,
+            ) => ({
+              type: config.name,
+              id: await this.idOptions.resolve(parent, args, context, info),
+            }),
           }),
-        }),
       );
     });
   }

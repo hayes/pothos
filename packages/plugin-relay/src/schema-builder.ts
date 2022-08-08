@@ -97,7 +97,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   ref.implement({
     ...this.options.relayOptions.nodeTypeOptions,
     fields: (t) => ({
-      id: t.globalID({
+      [this.options.relayOptions?.idFieldName ?? 'id']: t.globalID({
         nullable: false,
         resolve: (parent) => {
           throw new Error('id field not implemented');
@@ -216,7 +216,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
     nodeName = nodeConfig.name;
 
-    this.objectField(ref, 'id', (t) =>
+    this.objectField(ref, this.options.relayOptions.idFieldName ?? 'id', (t) =>
       t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
         nullable: false,
         ...options.id,

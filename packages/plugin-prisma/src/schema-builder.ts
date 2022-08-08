@@ -122,25 +122,29 @@ schemaBuilderProto.prismaNode = function prismaNode(
   }
 
   this.configStore.onTypeConfig(ref, (nodeConfig) => {
-    this.objectField(ref, 'id', (t) =>
-      (
-        t as unknown as {
-          globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-        }
-      ).globalID({
-        ...idOptions,
-        nullable: false,
-        args: {},
-        resolve: async (
-          parent: never,
-          args: object,
-          context: object,
-          info: GraphQLResolveInfo,
-        ) => ({
-          type: nodeConfig.name,
-          id: await resolve(parent, context),
+    this.objectField(
+      ref,
+      (this.options as { relayOptions?: { idFieldName?: string } }).relayOptions?.idFieldName ??
+        'id',
+      (t) =>
+        (
+          t as unknown as {
+            globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
+          }
+        ).globalID({
+          ...idOptions,
+          nullable: false,
+          args: {},
+          resolve: async (
+            parent: never,
+            args: object,
+            context: object,
+            info: GraphQLResolveInfo,
+          ) => ({
+            type: nodeConfig.name,
+            id: await resolve(parent, context),
+          }),
         }),
-      }),
     );
   });
 

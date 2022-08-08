@@ -30,6 +30,7 @@ import {
 } from '@pothos/core';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
+  idFieldName?: string;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   brandLoadedObjects?: boolean;

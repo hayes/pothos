@@ -233,7 +233,7 @@ exports[`relay example schema generates expected schema with globalConnectionFie
 }
 
 type BatchNumber implements Node {
-  id: ID!
+  nodeId: ID!
   number: Int!
 }
 
@@ -284,11 +284,11 @@ input NoGlobalIDInput {
 
 \\"\\"\\"node type\\"\\"\\"
 interface Node {
-  id: ID!
+  nodeId: ID!
 }
 
 type Number implements Node {
-  id: ID!
+  nodeId: ID!
   number: Int!
 }
 
@@ -305,7 +305,7 @@ type Poll implements Node {
   answersConnection(after: String, before: String, first: Int, last: Int): PollAnswersConnection!
   answersUsingOffset(after: String, before: String, first: Int, last: Int): PollAnswersUsingOffsetConnection!
   answersWithoutHelpers(after: String, before: String, first: Int, last: Int): PollAnswersCon!
-  id: ID!
+  nodeId: ID!
   question: String!
   updatedAt: String!
 }
