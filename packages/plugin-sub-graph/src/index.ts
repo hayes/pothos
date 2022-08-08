@@ -1,6 +1,7 @@
 /* eslint-disable prefer-destructuring */
 import './global-types';
 import {
+  getNamedType,
   GraphQLEnumType,
   GraphQLFieldConfigArgumentMap,
   GraphQLFieldConfigMap,
@@ -43,7 +44,6 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
     const newTypes = this.filterTypes(config.types, subGraphs);
 
     return new GraphQLSchema({
-      types: [...newTypes.values()],
       directives: config.directives,
       extensions: config.extensions,
       extensionASTNodes: config.extensionASTNodes,
@@ -147,7 +147,11 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
         const newArguments: GraphQLFieldConfigArgumentMap = {};
 
         if (
-          !intersect((fieldConfig.extensions?.subGraphs as string[] | undefined) || [], subGraphs)
+          !intersect(
+            (fieldConfig.extensions?.subGraphs as string[] | undefined) || [],
+            subGraphs,
+          ) ||
+          !newTypes.has(getNamedType(fieldConfig.type).name)
         ) {
           return;
         }

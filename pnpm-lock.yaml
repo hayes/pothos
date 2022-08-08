@@ -223,6 +223,9 @@ importers:
       graphql: 16.5.0
       prisma: 4.1.0
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.3.0
@@ -242,6 +245,12 @@ importers:
       '@prisma/client': 4.1.0_prisma@4.1.0
       graphql: 16.5.0
       prisma: 4.1.0
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -506,6 +515,9 @@ importers:
   packages/plugin-prisma/esm:
     specifiers: {}
 
+  packages/plugin-prisma/tests/client:
+    specifiers: {}
+
   packages/plugin-relay:
     specifiers:
       '@pothos/core': workspace:*
@@ -546,6 +558,9 @@ importers:
   packages/plugin-scope-auth/esm:
     specifiers: {}
 
+  packages/plugin-scope-auth/prisma/client:
+    specifiers: {}
+
   packages/plugin-simple-objects:
     specifiers:
       '@pothos/core': workspace:*
@@ -581,11 +596,15 @@ importers:
   packages/plugin-sub-graph:
     specifiers:
       '@pothos/core': workspace:*
+      '@pothos/plugin-errors': workspace:*
+      '@pothos/plugin-relay': workspace:*
       '@pothos/test-utils': workspace:*
       graphql: 16.5.0
       graphql-tag: ^2.12.6
     devDependencies:
       '@pothos/core': link:../core
+      '@pothos/plugin-errors': link:../plugin-errors
+      '@pothos/plugin-relay': link:../plugin-relay
       '@pothos/test-utils': link:../test-utils
       graphql: 16.5.0
       graphql-tag: 2.12.6_graphql@16.5.0

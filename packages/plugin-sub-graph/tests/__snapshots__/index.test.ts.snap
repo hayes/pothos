@@ -4,6 +4,7 @@ exports[`subGraphs Private graph 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -12,10 +13,21 @@ exports[`subGraphs Private graph 1`] = `
   name: String!
 }
 
+type CharacterFriendsConnection {
+  edges: [CharacterFriendsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type CharacterFriendsConnectionEdge {
+  cursor: String!
+  node: Character!
+}
+
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -39,10 +51,15 @@ enum Episode {
   NEWHOPE
 }
 
+type Error {
+  message: String!
+}
+
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -52,6 +69,13 @@ type Human implements Character {
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
 }
 
 type Query {
@@ -64,11 +88,17 @@ type Query {
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
-  ): Character!
+  ): QueryHeroResult!
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
+}
+
+union QueryHeroResult = Error | QueryHeroSuccess
+
+type QueryHeroSuccess {
+  data: Character!
 }"
 `;
 
@@ -125,12 +155,23 @@ exports[`subGraphs full graph 1`] = `
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
+}
+
+type CharacterFriendsConnection {
+  edges: [CharacterFriendsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type CharacterFriendsConnectionEdge {
+  cursor: String!
+  node: Character!
 }
 
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
@@ -140,6 +181,7 @@ type Droid implements Character {
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -163,6 +205,10 @@ enum Episode {
   NEWHOPE
 }
 
+type Error {
+  message: String!
+}
+
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
@@ -170,6 +216,7 @@ type Human implements Character {
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -179,6 +226,13 @@ type Human implements Character {
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
 }
 
 type Query {
@@ -191,12 +245,18 @@ type Query {
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
-  ): Character!
+  ): QueryHeroResult!
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
   r2d2: Droid!
+}
+
+union QueryHeroResult = Error | QueryHeroSuccess
+
+type QueryHeroSuccess {
+  data: Character!
 }"
 `;
 
@@ -204,6 +264,7 @@ exports[`subGraphs multiple 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -212,10 +273,21 @@ exports[`subGraphs multiple 1`] = `
   name: String!
 }
 
+type CharacterFriendsConnection {
+  edges: [CharacterFriendsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type CharacterFriendsConnectionEdge {
+  cursor: String!
+  node: Character!
+}
+
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -239,10 +311,15 @@ enum Episode {
   NEWHOPE
 }
 
+type Error {
+  message: String!
+}
+
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
 type Human implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
+  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -252,6 +329,13 @@ type Human implements Character {
 
   \\"\\"\\"The name of the character\\"\\"\\"
   name: String!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
 }
 
 type Query {
@@ -264,11 +348,17 @@ type Query {
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
-  ): Character!
+  ): QueryHeroResult!
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
   r2d2: Droid!
+}
+
+union QueryHeroResult = Error | QueryHeroSuccess
+
+type QueryHeroSuccess {
+  data: Character!
 }"
 `;

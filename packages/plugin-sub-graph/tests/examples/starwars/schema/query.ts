@@ -15,6 +15,9 @@ builder.queryType({
   fields: (t) => ({
     hero: t.field({
       type: 'Character',
+      errors: {
+        types: [Error],
+      },
       args: {
         episode: t.arg({
           type: Episode,
@@ -47,3 +50,10 @@ builder.queryFields((t) => ({
     resolve: () => getDroid(2001),
   }),
 }));
+
+builder.objectType(Error, {
+  name: 'Error',
+  fields: (t) => ({
+    message: t.exposeString('message'),
+  }),
+});
