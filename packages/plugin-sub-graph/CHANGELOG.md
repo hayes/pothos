@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.0
+
+### Minor Changes
+
+- 1769afd1: Fix compatibility with Errors and Relay plugins
+
 ## 3.6.0
 
 ### Minor Changes
