@@ -4,6 +4,12 @@
 
 ### Minor Changes
 
+- f7f74585: Add option for configuring name of id field for relay nodes
+
+## null
+
+### Minor Changes
+
 - 86c16787: Allow dmmf to be passed from Prisma.dmmf
 
 ## null
