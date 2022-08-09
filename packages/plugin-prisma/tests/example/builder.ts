@@ -43,6 +43,7 @@ export default new SchemaBuilder<{
   prisma: {
     client: () => prisma,
     dmmf: Prisma.dmmf,
+    exposeDescriptions: true,
   },
   errorOptions: {
     defaultTypes: [Error],

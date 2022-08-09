@@ -12,6 +12,7 @@ import {
   PluginName,
   RootFieldBuilder,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 import { ModelLoader } from './model-loader';
@@ -32,6 +33,7 @@ import {
   getRefFromModel,
   getRelation,
 } from './util/datamodel';
+import { getFieldDescription } from './util/description';
 import { FieldMap } from './util/relation-map';
 
 // Workaround for FieldKind not being extended on Builder classes
@@ -137,6 +139,7 @@ export class PrismaObjectFieldBuilder<
       resolve,
       extensions,
       totalCount,
+      description,
       ...options
     }: {
       type?: ObjectRef<unknown, unknown>;
@@ -145,6 +148,7 @@ export class PrismaObjectFieldBuilder<
       defaultSize?: number;
       cursor: string;
       extensions: {};
+      description?: string;
       query: ((args: {}, ctx: {}) => {}) | {};
       resolve: (query: {}, parent: unknown, args: {}, ctx: {}, info: {}) => MaybePromise<{}[]>;
     },
@@ -211,6 +215,7 @@ export class PrismaObjectFieldBuilder<
     ).connection(
       {
         ...options,
+        description: getFieldDescription(this.model, this.builder, name, description),
         extensions: {
           ...extensions,
           pothosPrismaSelect: relationSelect,
@@ -309,7 +314,7 @@ export class PrismaObjectFieldBuilder<
       ]
     >
   ): FieldRef<Model['Relations'][Field]['Shape'], 'Object'> {
-    const [name, options = {} as never] = allArgs;
+    const [name, { description, ...options } = {} as never] = allArgs;
     const relationField = getRelation(this.model, this.builder, name);
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
 
@@ -324,6 +329,7 @@ export class PrismaObjectFieldBuilder<
     return this.field({
       ...(rest as {}),
       type: relationField.isList ? [ref] : ref,
+      description: getFieldDescription(this.model, this.builder, name, description),
       extensions: {
         ...extensions,
         pothosPrismaSelect: relationSelect as never,
@@ -475,15 +481,21 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'resolve' | 'type' | 'select'
-          >,
+            'resolve' | 'type' | 'select' | 'description'
+          > & { description?: string | false },
         ]
       >
-    ) => {
-      const [name, options = {} as never] = args;
+    ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
+      const [name, { description, ...options } = {} as never] = args;
 
       return this.expose(name as never, {
         ...options,
+        description: getFieldDescription(
+          this.model,
+          this.builder,
+          name as string,
+          description,
+        ) as never,
         type,
       });
     };

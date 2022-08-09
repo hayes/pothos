@@ -218,6 +218,10 @@ const builder = new SchemaBuilder<{
   plugins: [PrismaPlugin],
   prisma: {
     client: prisma,
+    // defaults to false, uses /// comments from prisma schema as descriptions
+    // for object types, relations and exposed fields.
+    // descriptions can be omitted by setting description to false
+    exposeDescriptions: boolean | { models: boolean, fields: boolean },
   },
 });
 ```

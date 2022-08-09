@@ -58,6 +58,7 @@ type PageInfo {
   startCursor: String
 }
 
+\\"\\"\\"Model for Posts!\\"\\"\\"
 type Post {
   author: User!
   commentAuthorIds: [ID!]!
@@ -70,6 +71,8 @@ type Post {
   ownComments: [Comment!]!
   ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
   post: User!
+
+  \\"\\"\\"Title for the post\\"\\"\\"
   title: String!
 }
 
@@ -213,10 +216,13 @@ type QueryWithIDSelectConnectionEdge {
   node: WithIDSelect!
 }
 
+\\"\\"\\"Model for Posts!\\"\\"\\"
 type SelectPost implements Node {
   content: String
   createdAt: String!
   id: ID!
+
+  \\"\\"\\"Title for the post\\"\\"\\"
   title: String!
 }
 

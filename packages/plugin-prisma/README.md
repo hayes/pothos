@@ -204,6 +204,10 @@ const builder = new SchemaBuilder<{
   plugins: [PrismaPlugin],
   prisma: {
     client: prisma,
+    // defaults to false, uses /// comments from prisma schema as descriptions
+    // for object types, relations and exposed fields.
+    // descriptions can be omitted by setting description to false
+    exposeDescriptions: boolean | { models: boolean, fields: boolean },
   },
 });
 ```
@@ -960,9 +964,8 @@ user. There are a few things to note in this setup:
 1. We split up the `builder.objectRef` and the `implement` calls, rather than calling
    `builder.objectRef(...).implement(...)`. This prevents typescript from getting tripped up by the
    circular references between posts and users.
-2. We use `findUniqueOrThrow` because those fields are not nullable. Without this option, prisma
-   will return a null if the object is not found. An alternative is to mark these fields as
-   nullable.
+2. We use `findUniqueOrThrow` because those fields are not nullable. Using `findUnique`, prisma will
+   return a null if the object is not found. An alternative is to mark these fields as nullable.
 3. The refs to our object types are called `UserObject` and `PostObject`, this is because `User` and
    `Post` are the names of the types imported from prisma. We could instead alias the types when we
    import them so we can name the refs to our GraphQL types after the models.
@@ -1022,7 +1025,8 @@ PostObject.implement({
     title: t.exposeString('title'),
     author: t.field({
       type: UserObject,
-      resolve: (post) => post.author ?? db.user.findUniqueOrThrow({ where: { id: post.authorId } }),
+      resolve: (post) =>
+        post.author ?? db.user.findUnique({ rejectOnNotFound: true, where: { id: post.authorId } }),
     }),
   }),
 });

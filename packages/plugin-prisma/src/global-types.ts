@@ -40,10 +40,22 @@ declare global {
       prisma:
         | {
             client: PrismaClient;
+            exposeDescriptions?:
+              | boolean
+              | {
+                  models?: boolean;
+                  fields?: boolean;
+                };
           }
         | {
             client: (ctx: Types['Context']) => PrismaClient;
             dmmf: { datamodel: unknown };
+            exposeDescriptions?:
+              | boolean
+              | {
+                  models?: boolean;
+                  fields?: boolean;
+                };
           };
     }
 

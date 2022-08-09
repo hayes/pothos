@@ -16,13 +16,17 @@ generator pothos {
   output       = "../tests/generated.ts"
 }
 
+/// Model for Posts!
 model Post {
   id        Int         @id @default(autoincrement())
   bigIntId  BigInt      @unique
   createdAt DateTime    @unique @default(now())
   updatedAt DateTime    @updatedAt
+  /// Title for the post
   title     String
+  /// Content for the post
   content   String?
+  /// Has this post been published?
   published Boolean     @default(false)
   author    User        @relation(fields: [authorId], references: [id])
   comments  Comment[]

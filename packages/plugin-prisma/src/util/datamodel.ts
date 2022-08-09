@@ -37,16 +37,26 @@ export function getRelation<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   relation: string,
 ) {
-  const modelData = getModel(name, builder);
-
-  const fieldData = modelData.fields.find((field) => field.name === relation);
-
-  if (!fieldData) {
-    throw new Error(`Field '${relation}' not found in model '${name}'`);
-  }
+  const fieldData = getFieldData(name, builder, relation);
 
   if (fieldData.kind !== 'object') {
     throw new Error(`Field ${relation} of model '${name}' is not a relation (${fieldData.kind})`);
+  }
+
+  return fieldData;
+}
+
+export function getFieldData<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  fieldName: string,
+) {
+  const modelData = getModel(name, builder);
+
+  const fieldData = modelData.fields.find((field) => field.name === fieldName);
+
+  if (!fieldData) {
+    throw new Error(`Field '${fieldName}' not found in model '${name}'`);
   }
 
   return fieldData;

@@ -260,6 +260,7 @@ const SelectPost = builder.prismaNode('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
     content: t.exposeString('content', {
+      description: false,
       nullable: true,
     }),
     createdAt: t.string({
@@ -322,6 +323,7 @@ const PostRef = builder.prismaObject('Post', {
     }),
     title: t.exposeString('title'),
     content: t.exposeString('content', {
+      description: false,
       nullable: true,
     }),
     createdAt: t.string({

@@ -48,7 +48,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^4.1.0"
+    "@prisma/generator-helper": "^4.1.1"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -65,9 +65,9 @@
     "@pothos/plugin-errors": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.1.0",
+    "@prisma/client": "^4.1.1",
     "graphql": "16.5.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.1.0"
+    "prisma": "^4.1.1"
   }
 }

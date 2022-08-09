@@ -10,6 +10,7 @@ export interface DMMFField {
   isList: boolean;
   isUnique: boolean;
   isId: boolean;
+  documentation?: string;
 }
 
 interface DMMF {
@@ -19,6 +20,7 @@ interface DMMF {
       fields: DMMFField[];
       primaryKey: { name: string | null; fields: string[] } | null;
       uniqueIndexes: { name: string | null; fields: string[] }[];
+      documentation?: string;
     }[];
   };
 }

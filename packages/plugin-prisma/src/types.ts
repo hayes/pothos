@@ -161,8 +161,9 @@ export type PrismaObjectTypeOptions<
   Omit<
     | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
     | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
-    'fields'
+    'fields' | 'description'
   > & {
+    description?: string | false;
     fields?: PrismaObjectFieldsShape<
       Types,
       Model,
@@ -320,7 +321,7 @@ export type RelatedFieldOptions<
     Args,
     ResolveReturnShape
   >,
-  'resolve' | 'type'
+  'resolve' | 'type' | 'description'
 > &
   (NeedsResolve extends false
     ? {
@@ -345,6 +346,7 @@ export type RelatedFieldOptions<
           ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>
         >;
       }) & {
+    description?: string | false;
     type?: PrismaObjectRef<Model['Relations'][Field]['Types']>;
     query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
   };
@@ -525,7 +527,7 @@ export type RelatedConnectionOptions<
       InputFieldsFromShape<PothosSchemaTypes.DefaultConnectionArguments>,
     unknown
   >,
-  'resolve' | 'type' | 'args'
+  'resolve' | 'type' | 'args' | 'description'
 > &
   Omit<
     PothosSchemaTypes.ConnectionFieldOptions<
@@ -540,6 +542,7 @@ export type RelatedConnectionOptions<
     >,
     'resolve' | 'type'
   > & {
+    description?: string | false;
     query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
     type?: PrismaObjectRef<Model['Relations'][Field]['Types']>;
     cursor: CursorFromRelation<Model, Field>;

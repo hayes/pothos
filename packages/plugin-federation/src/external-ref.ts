@@ -23,7 +23,7 @@ export class ExternalEntityRef<
   Shape extends object,
   Key extends Selection<object>,
 > extends OutputTypeRef<Shape> {
-  override kind: 'Object' = 'Object';
+  override kind = 'Object' as const;
 
   private builder: PothosSchemaTypes.SchemaBuilder<Types>;
   private key: Key | Key[];

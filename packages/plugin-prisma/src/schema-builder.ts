@@ -13,6 +13,7 @@ import PrismaNodeRef from './node-ref';
 import { PrismaModelTypes, PrismaNodeOptions } from './types';
 import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
+import { getModelDescription } from './util/description';
 import { getClient, getDMMF } from './util/get-client';
 import { queryFromInfo } from './util/map-query';
 import { getRelationMap } from './util/relation-map';
@@ -21,7 +22,7 @@ const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBu
 
 schemaBuilderProto.prismaObject = function prismaObject(
   type,
-  { fields, findUnique, select, include, ...options },
+  { fields, findUnique, select, include, description, ...options },
 ) {
   const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
@@ -32,6 +33,7 @@ schemaBuilderProto.prismaObject = function prismaObject(
 
   this.objectType(ref, {
     ...(options as {}),
+    description: getModelDescription(type, this, description),
     extensions: {
       ...options.extensions,
       pothosPrismaInclude: include,
