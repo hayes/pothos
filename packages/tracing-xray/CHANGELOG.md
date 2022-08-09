@@ -1,5 +1,11 @@
 # @pothos/tracing-xray
 
+## 0.3.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 0.3.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.4.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 3.4.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 0.4.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 0.4.0
 
 ### Minor Changes

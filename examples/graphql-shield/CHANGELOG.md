@@ -1,5 +1,11 @@
 # @pothos-examples/graphql-shield
 
+## 2.1.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 2.1.0
 
 ### Minor Changes

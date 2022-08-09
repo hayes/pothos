@@ -4,6 +4,12 @@
 
 ### Minor Changes
 
+- 3ead60ae: Add option to use comments from prisma schema as graphql descriptions
+
+## null
+
+### Minor Changes
+
 - f7f74585: Add option for configuring name of id field for relay nodes
 
 ## null

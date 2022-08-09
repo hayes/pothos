@@ -1,5 +1,11 @@
 # @pothos-examples/prisma-relay
 
+## 2.3.2
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 2.3.1
 
 ### Patch Changes

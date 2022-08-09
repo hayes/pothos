@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.3.4
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 3.3.3
 
 ### Patch Changes

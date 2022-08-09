@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.11.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 3.11.0
 
 ### Minor Changes

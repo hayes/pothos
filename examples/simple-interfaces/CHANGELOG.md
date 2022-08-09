@@ -1,5 +1,11 @@
 # @pothos-examples/simple-interfaces
 
+## 2.3.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 2.3.0
 
 ### Minor Changes
