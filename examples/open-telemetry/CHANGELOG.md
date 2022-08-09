@@ -1,5 +1,13 @@
 # @pothos-examples/open-telemetry
 
+## 1.1.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+- Updated dependencies [3ead60ae]
+  - @pothos/tracing-opentelemetry@0.4.1
+
 ## 1.1.0
 
 ### Minor Changes

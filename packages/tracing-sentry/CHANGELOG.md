@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.5.1
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 0.5.0
 
 ### Minor Changes

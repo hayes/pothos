@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.21.0
+
+### Minor Changes
+
+- 3ead60ae: Add option to use comments from prisma schema as graphql descriptions
+
+### Patch Changes
+
+- 3ead60ae: update dev deps
+
 ## 3.20.0
 
 ### Minor Changes
