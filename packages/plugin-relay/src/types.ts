@@ -179,30 +179,10 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     id: string;
   };
   defaultConnectionTypeOptions: Partial<
-    Omit<
-      PothosSchemaTypes.ObjectFieldOptions<
-        Types,
-        {},
-        OutputRef<ConnectionShape<Types, unknown, false, true, true>>,
-        boolean,
-        {},
-        ConnectionShape<Types, unknown, false, true, true>
-      >,
-      'args' | 'resolve' | 'type'
-    >
+    PothosSchemaTypes.ObjectTypeOptions<Types, ConnectionShape<Types, unknown, false, true, true>>
   >;
   defaultEdgeTypeOptions: Partial<
-    Omit<
-      PothosSchemaTypes.ObjectFieldOptions<
-        Types,
-        {},
-        OutputRef<{ cursor: string; node: unknown }>,
-        boolean,
-        {},
-        { cursor: string; node: unknown }
-      >,
-      'args' | 'resolve' | 'type'
-    >
+    PothosSchemaTypes.ObjectTypeOptions<Types, { cursor: string; node: unknown }>
   >;
 }>;
 

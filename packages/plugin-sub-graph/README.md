@@ -23,8 +23,8 @@ const builder = new SchemaBuilder<{
 }>({
   plugins: [SubGraphPlugin],
   subGraphs: {
-    defaultsForTypes: [],
-    inheritFieldGraphsFromType: true,
+    defaultForTypes: [],
+    fieldsInheritFromTypes: true,
   },
 });
 
