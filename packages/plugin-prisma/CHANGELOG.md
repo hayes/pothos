@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.21.2
+
+### Patch Changes
+
+- c102f522: Fix withAuth on prismaObject fields builders
+
 ## 3.21.1
 
 ### Patch Changes
