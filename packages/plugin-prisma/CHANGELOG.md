@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.21.1
+
+### Patch Changes
+
+- a02b25c2: Fix regression in compatibility between prisma and simple objects plugins"
+
 ## 3.21.0
 
 ### Minor Changes
