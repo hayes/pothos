@@ -2,6 +2,7 @@
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
+    idFieldName?: string;
     clientMutationId?: "omit" | "optional" | "required";
     cursorType?: "ID" | "String";
     brandLoadedObjects?: boolean;

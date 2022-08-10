@@ -20,7 +20,12 @@ export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, S
             if (!interfaces.includes(nodeInterface)) {
                 interfaces.push(nodeInterface);
             }
-            this.builder.objectField(this, "id", (t) => (t as unknown as {
+            this.builder.objectField(this, (this.builder.options as {
+                relayOptions?: {
+                    idFieldName?: string;
+                };
+            }).relayOptions
+                ?.idFieldName ?? "id", (t) => (t as unknown as {
                 globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
             }).globalID({
                 ...this.idOptions,

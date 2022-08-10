@@ -61,6 +61,23 @@ builder.prismaObject('User', {
   }),
 });
 
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    withAUthOnPrismaObject: t.withAuth({ loggedIn: true }).boolean({
+      nullable: true,
+      resolve: () => true,
+    }),
+  }),
+});
+
+builder.queryField('post', (t) =>
+  t.prismaField({
+    type: 'Post',
+    resolve: () => db.post.findFirstOrThrow({}),
+  }),
+);
+
 builder.queryField('withAuthPrismaUser', (t) =>
   t.withAuth({ loggedIn: true }).prismaField({
     type: 'User',

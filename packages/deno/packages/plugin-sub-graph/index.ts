@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable prefer-destructuring */
 import './global-types.ts';
-import { GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
+import { getNamedType, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
 import { replaceType } from './util.ts';
 const pluginName = "subGraph" as const;
@@ -20,7 +20,6 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
         const config = schema.toConfig();
         const newTypes = this.filterTypes(config.types, subGraphs);
         return new GraphQLSchema({
-            types: [...newTypes.values()],
             directives: config.directives,
             extensions: config.extensions,
             extensionASTNodes: config.extensionASTNodes,
@@ -89,7 +88,8 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
             Object.keys(oldFields).forEach((fieldName) => {
                 const fieldConfig = oldFields[fieldName];
                 const newArguments: GraphQLFieldConfigArgumentMap = {};
-                if (!intersect((fieldConfig.extensions?.subGraphs as string[] | undefined) || [], subGraphs)) {
+                if (!intersect((fieldConfig.extensions?.subGraphs as string[] | undefined) || [], subGraphs) ||
+                    !newTypes.has(getNamedType(fieldConfig.type).name)) {
                     return;
                 }
                 fieldConfig.args.forEach((argConfig) => {

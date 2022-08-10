@@ -97,7 +97,7 @@ export class PrismaObjectFieldBuilder<
         NeedsResolve,
         Shape
       >
-    : '@pothos/plugin-scope-auth is required to use this method' = (() => {}) as never;
+    : '@pothos/plugin-scope-auth is required to use this method' = withAuth as never;
 
   relatedConnection: 'relay' extends PluginName
     ? <
@@ -502,25 +502,6 @@ export class PrismaObjectFieldBuilder<
   }
 }
 
-const prismaFieldBuilderProto = PrismaObjectFieldBuilder.prototype as {} as Omit<
-  PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, false, {}>,
-  'withAuth'
-> & {
-  withAuth: (scopes: {}) => unknown;
-};
-
-prismaFieldBuilderProto.withAuth = function withAuth(scopes) {
-  return addScopes(
-    scopes,
-    new PrismaObjectFieldBuilder(
-      this.typename,
-      this.builder,
-      this.model,
-      this.prismaFieldMap,
-    ) as never,
-  );
-};
-
 function addScopes(
   scopes: unknown,
   builder: { createField: (options: Record<string, unknown>) => unknown },
@@ -536,4 +517,19 @@ function addScopes(
   };
 
   return builder as never;
+}
+
+function withAuth(
+  this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, false, {}>,
+  scopes: {},
+) {
+  return addScopes(
+    scopes,
+    new PrismaObjectFieldBuilder(
+      this.typename,
+      this.builder,
+      this.model,
+      this.prismaFieldMap,
+    ) as never,
+  );
 }

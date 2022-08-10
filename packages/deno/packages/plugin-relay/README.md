@@ -29,6 +29,7 @@ const builder = new SchemaBuilder({
 
 The `relayOptions` object passed to builder can contain the following properties:
 
+- `idFieldName`: The name of the field that contains the global id for the node. Defaults to `id`.
 - `clientMutationId`: `required` (default) | `omit` | `optional`. Determines if clientMutationId
   fields are created on `relayMutationFields`, and if they are required.
 - `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults behavior due to

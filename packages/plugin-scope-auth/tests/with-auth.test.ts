@@ -16,6 +16,10 @@ describe('withAuth', () => {
           withAuth
           withAuthFromInterface
         }
+        post {
+          id
+          withAUthOnPrismaObject
+        }
       }
     `;
 
@@ -32,6 +36,10 @@ describe('withAuth', () => {
     expect(result).toMatchInlineSnapshot(`
       Object {
         "data": Object {
+          "post": Object {
+            "id": "1",
+            "withAUthOnPrismaObject": true,
+          },
           "withAuth": true,
           "withAuthObject": Object {
             "withAuth": true,
@@ -57,6 +65,10 @@ describe('withAuth', () => {
           withAuth
           withAuthFromInterface
         }
+        post {
+          id
+          withAUthOnPrismaObject
+        }
       }
     `;
 
@@ -69,6 +81,10 @@ describe('withAuth', () => {
     expect(result).toMatchInlineSnapshot(`
       Object {
         "data": Object {
+          "post": Object {
+            "id": "1",
+            "withAUthOnPrismaObject": null,
+          },
           "withAuth": null,
           "withAuthObject": Object {
             "withAuth": null,
@@ -81,6 +97,7 @@ describe('withAuth', () => {
           [GraphQLError: Not authorized to resolve Query.withAuthPrismaUser],
           [GraphQLError: Not authorized to resolve WithAuthObject.withAuth],
           [GraphQLError: Not authorized to resolve WithAuthObject.withAuthFromInterface],
+          [GraphQLError: Not authorized to resolve Post.withAUthOnPrismaObject],
         ],
       }
     `);

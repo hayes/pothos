@@ -60,9 +60,7 @@ const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
 
 - `subGraphs.defaultForTypes`: Specifies what sub-graph a type is part of by default.
 - `subGraphs.fieldsInheritFromTypes`: defaults to `false`. When true, fields on a type will default
-
   to being part of the same sub-graph as their parent type. Only applies when type does not have
-
   `defaultSubGraphsForFields` set.
 
 You can mock any field by adding a mock in the options passed to `builder.buildSchema` under

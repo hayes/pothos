@@ -105,6 +105,11 @@ type ObjWithSkipFields {
   skip: String
 }
 
+type Post {
+  id: ID!
+  withAUthOnPrismaObject: Boolean
+}
+
 type Query {
   IfaceBooleanFn(result: Boolean!): IfaceBooleanFn
   IfaceForAdmin: IfaceForAdmin
@@ -167,6 +172,7 @@ type Query {
   forSyncPermissionFn(permission: String): String
   grantedFromRoot: String!
   notGrantedFromRoot: String!
+  post: Post!
   withAuth: Boolean
   withAuthObject: WithAuthObject
   withAuthPrismaUser: User
