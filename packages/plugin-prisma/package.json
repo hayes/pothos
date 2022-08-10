@@ -64,6 +64,7 @@
     "@pothos/plugin-complexity": "workspace:*",
     "@pothos/plugin-errors": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^4.1.1",
     "graphql": "16.5.0",

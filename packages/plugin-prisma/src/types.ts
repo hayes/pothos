@@ -432,21 +432,31 @@ export type PrismaFieldOptions<
   ? Omit<FieldOptions, 'resolve' | 'type'> & {
       type: Type;
       resolve: FieldOptions extends { resolve?: (parent: infer Parent, ...args: any[]) => unknown }
-        ? (
-            query: {
-              include?: Model['Include'];
-            },
-            parent: Parent,
-            args: InputShapeFromFields<Args>,
-            context: Types['Context'],
-            info: GraphQLResolveInfo,
-          ) => ShapeFromTypeParam<Types, Param, Nullable> extends infer Shape
-            ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
-              ? ListResolveValue<Shape, Item, ResolveReturnShape>
-              : MaybePromise<Shape>
-            : never
-        : never;
+        ? PrismaFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
+        : PrismaFieldResolver<Types, Model, ParentShape, Param, Args, Nullable, ResolveReturnShape>;
     }
+  : never;
+
+export type PrismaFieldResolver<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Parent,
+  Param extends TypeParam<Types>,
+  Args extends InputFieldMap,
+  Nullable extends FieldNullability<Param>,
+  ResolveReturnShape,
+> = (
+  query: {
+    include?: Model['Include'];
+  },
+  parent: Parent,
+  args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+) => ShapeFromTypeParam<Types, Param, Nullable> extends infer Shape
+  ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
+    ? ListResolveValue<Shape, Item, ResolveReturnShape>
+    : MaybePromise<Shape>
   : never;
 
 export type PrismaConnectionFieldOptions<

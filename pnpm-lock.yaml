@@ -223,6 +223,9 @@ importers:
       graphql: 16.5.0
       prisma: 4.1.1
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.4.0
@@ -242,6 +245,12 @@ importers:
       '@prisma/client': 4.1.1_prisma@4.1.1
       graphql: 16.5.0
       prisma: 4.1.1
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -484,6 +493,7 @@ importers:
       '@pothos/plugin-complexity': workspace:*
       '@pothos/plugin-errors': workspace:*
       '@pothos/plugin-relay': workspace:*
+      '@pothos/plugin-simple-objects': workspace:*
       '@pothos/test-utils': workspace:*
       '@prisma/client': ^4.1.1
       '@prisma/generator-helper': ^4.1.1
@@ -497,6 +507,7 @@ importers:
       '@pothos/plugin-complexity': link:../plugin-complexity
       '@pothos/plugin-errors': link:../plugin-errors
       '@pothos/plugin-relay': link:../plugin-relay
+      '@pothos/plugin-simple-objects': link:../plugin-simple-objects
       '@pothos/test-utils': link:../test-utils
       '@prisma/client': 4.1.1_prisma@4.1.1
       graphql: 16.5.0
@@ -504,6 +515,9 @@ importers:
       prisma: 4.1.1
 
   packages/plugin-prisma/esm:
+    specifiers: {}
+
+  packages/plugin-prisma/tests/client:
     specifiers: {}
 
   packages/plugin-relay:
@@ -544,6 +558,9 @@ importers:
       prisma: 4.1.1
 
   packages/plugin-scope-auth/esm:
+    specifiers: {}
+
+  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
