@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.18.1
+
+### Patch Changes
+
+- 84a77af5: Fix incorrect types for relayOptions.default(Connection|Edge)ObjectOptions
+
 ## 3.18.0
 
 ### Minor Changes
