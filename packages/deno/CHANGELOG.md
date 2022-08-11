@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.18.0
+
+### Minor Changes
+
+- 2bb5db96: Added new nodesOnConnections option for adding a nodes field on connections
+
 ## 3.17.0
 
 ### Minor Changes
