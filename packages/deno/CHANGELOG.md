@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.17.0
+
+### Minor Changes
+
+- 09572175: Add builder options for default union and result type options
+
 ## 3.16.1
 
 ### Patch Changes

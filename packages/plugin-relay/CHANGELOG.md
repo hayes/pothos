@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.19.0
+
+### Minor Changes
+
+- 09572175: Add options for default payload and mutation type options
+
 ## 3.18.1
 
 ### Patch Changes
