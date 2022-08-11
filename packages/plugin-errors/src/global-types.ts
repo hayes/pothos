@@ -17,7 +17,7 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-      errorOptions?: ErrorsPluginOptions;
+      errorOptions?: ErrorsPluginOptions<Types>;
     }
 
     export interface FieldOptions<

@@ -51,6 +51,7 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-errors": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-with-input": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.5.0",
     "graphql-tag": "^2.12.6"

@@ -79,6 +79,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
             else {
                 resultType = this.builder.objectRef<unknown>(resultName);
                 resultType.implement({
+                    ...errorBuilderOptions?.defaultResultOptions,
                     ...resultObjectOptions,
                     fields: (t) => ({
                         ...resultFieldOptions?.(t),
@@ -98,6 +99,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
             return this.builder.unionType(unionName, {
                 types: [...errorTypes, resultType],
                 resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,
+                ...errorBuilderOptions?.defaultUnionOptions,
                 ...unionOptions,
                 extensions: {
                     ...unionOptions.extensions,

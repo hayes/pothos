@@ -46,14 +46,13 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         typename: string;
         id: string;
     };
-    defaultConnectionTypeOptions: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<ConnectionShape<Types, unknown, false, true, true>>, boolean, {}, ConnectionShape<Types, unknown, false, true, true>>, "args" | "resolve" | "type">>;
-    defaultEdgeTypeOptions: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<{
+    defaultConnectionTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, ConnectionShape<Types, unknown, false, true, true>>>;
+    defaultEdgeTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {
         cursor: string;
         node: unknown;
-    }>, boolean, {}, {
-        cursor: string;
-        node: unknown;
-    }>, "args" | "resolve" | "type">>;
+    }>>;
+    defaultPayloadTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {}>>;
+    defaultMutationInputTypeOptions: Partial<Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, "fields">>;
 }>;
 export interface DefaultEdgesNullability {
     // TODO(breaking) according to the spec, this should be nullable

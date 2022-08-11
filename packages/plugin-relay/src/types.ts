@@ -184,6 +184,10 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   defaultEdgeTypeOptions: Partial<
     PothosSchemaTypes.ObjectTypeOptions<Types, { cursor: string; node: unknown }>
   >;
+  defaultPayloadTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {}>>;
+  defaultMutationInputTypeOptions: Partial<
+    Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, 'fields'>
+  >;
 }>;
 
 export interface DefaultEdgesNullability {

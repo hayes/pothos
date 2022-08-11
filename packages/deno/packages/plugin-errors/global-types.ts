@@ -9,7 +9,7 @@ declare global {
             errors: PothosErrorsPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-            errorOptions?: ErrorsPluginOptions;
+            errorOptions?: ErrorsPluginOptions<Types>;
         }
         export interface FieldOptions<Types extends SchemaTypes = SchemaTypes, ParentShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveShape = unknown, ResolveReturnShape = unknown> {
             errors?: ErrorFieldOptions<Types, Type, ShapeFromTypeParam<Types, Type, false>, Nullable>;

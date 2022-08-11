@@ -306,6 +306,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
     argName = argNameFromOptions;
 
     inputRef = this.inputType(inputName, {
+      ...this.options.relayOptions?.defaultMutationInputTypeOptions,
       ...inputOptions,
       fields: (t) => ({
         ...inputFields(t),
@@ -322,6 +323,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
   }
 
   const payloadRef = this.objectRef<unknown>(payloadName).implement({
+    ...this.options.relayOptions?.defaultPayloadTypeOptions,
     ...paylaodOptions,
     interfaces: interfaces as never,
     fields: (t) => ({

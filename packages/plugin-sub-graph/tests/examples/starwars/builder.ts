@@ -1,6 +1,7 @@
 import SchemaBuilder from '@pothos/core';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
+import WithInputPlugin from '@pothos/plugin-with-input';
 import SubGraphPlugin from '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
@@ -12,16 +13,45 @@ interface Types {
 }
 
 export default new SchemaBuilder<Types>({
-  plugins: [ErrorsPlugin, SubGraphPlugin, RelayPlugin],
+  plugins: [ErrorsPlugin, SubGraphPlugin, RelayPlugin, WithInputPlugin],
+  subGraphs: {
+    fieldsInheritFromTypes: true,
+    defaultForTypes: ['Private'],
+  },
   errorOptions: {
     defaultTypes: [],
+    defaultUnionOptions: {
+      subGraphs: ['Private', 'Public'],
+    },
+    defaultResultOptions: {
+      subGraphs: ['Private', 'Public'],
+      defaultSubGraphsForFields: ['Private', 'Public'],
+    },
   },
   relayOptions: {
     clientMutationId: 'omit',
     cursorType: 'String',
+    defaultConnectionTypeOptions: {
+      subGraphs: ['Private', 'Public'],
+      defaultSubGraphsForFields: ['Private', 'Public'],
+    },
+    defaultEdgeTypeOptions: {
+      subGraphs: ['Private', 'Public'],
+      defaultSubGraphsForFields: ['Private', 'Public'],
+    },
+    pageInfoTypeOptions: {
+      subGraphs: ['Private', 'Public'],
+      defaultSubGraphsForFields: ['Private', 'Public'],
+    },
+    defaultPayloadTypeOptions: {
+      subGraphs: ['Private', 'Public'],
+      defaultSubGraphsForFields: ['Private', 'Public'],
+    },
+    defaultMutationInputTypeOptions: {
+      subGraphs: ['Private', 'Public'],
+    },
   },
-  subGraphs: {
-    fieldsInheritFromTypes: true,
-    defaultForTypes: ['Private'],
+  withInput: {
+    typeOptions: { subGraphs: ['Private', 'Public'] },
   },
 });
