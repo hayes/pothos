@@ -122,6 +122,7 @@ generous people and organizations:
 - [![The Guild](https://pothos-graphql.dev/assets/the-guild-logo.svg)](https://www.the-guild.dev/)
 - [![Prisma](https://pothos-graphql.dev/assets/prisma-logo.svg)](https://www.prisma.io/)
 - [@kidqueb](https://github.com/kidqueb)
+- [@localticketing](https://github.com/localticketing)
 - [@homoky](https://github.com/homoky)
 - [@huv1k](https://github.com/huv1k)
 - [@KATT](https://github.com/KATT)
