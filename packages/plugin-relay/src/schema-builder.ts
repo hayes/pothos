@@ -404,6 +404,15 @@ schemaBuilderProto.connectionObject = function connectionObject(
     | ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, false>>
     | undefined;
 
+  const { nodesOnConnection } = this.options.relayOptions;
+  const edgesNullableOption = edgesNullableField ?? edgesNullable;
+  const edgeListNullable =
+    typeof edgesNullableOption === 'object' ? edgesNullableOption.list : !!edgesNullableOption;
+  const edgeItemsNullable =
+    typeof edgesNullableOption === 'object' && 'items' in (edgesNullableOption as {})
+      ? edgesNullableOption.items
+      : false;
+
   this.objectType(connectionRef, {
     ...(this.options.relayOptions?.defaultConnectionTypeOptions as {}),
     ...connectionOptions,
@@ -420,6 +429,24 @@ schemaBuilderProto.connectionObject = function connectionObject(
         type: [edgeRef],
         resolve: (parent) => parent.edges as [],
       }),
+      ...(nodesOnConnection
+        ? {
+            nodes: t.field({
+              ...(typeof nodesOnConnection === 'object' ? nodesOnConnection : {}),
+              type: [type],
+              nullable: {
+                list: edgeListNullable,
+                items:
+                  edgeItemsNullable ??
+                  nodeNullable ??
+                  this.options.relayOptions?.nodeFieldOptions?.nullable ??
+                  false,
+              },
+              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
+              resolve: (con) => (con.edges?.map((edge) => edge?.node) ?? []) as never,
+            }),
+          }
+        : {}),
       ...connectionFields?.(t as never),
     }),
   });

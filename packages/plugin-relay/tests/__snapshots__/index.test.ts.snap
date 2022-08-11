@@ -312,6 +312,7 @@ type Poll implements Node {
 
 type PollAnswersCon {
   edges: [PollAnswersConEdge!]!
+  nodes: [Answer!]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -324,6 +325,7 @@ type PollAnswersConEdge {
 
 type PollAnswersConnection {
   edges: [PollAnswersConnectionEdge!]!
+  nodes: [Answer!]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -336,6 +338,7 @@ type PollAnswersConnectionEdge {
 
 type PollAnswersUsingOffsetConnection {
   edges: [PollAnswersUsingOffsetConnectionEdge!]!
+  nodes: [Answer!]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -369,6 +372,7 @@ type Query {
 
 type QueryBatchNumbersConnection {
   edges: [QueryBatchNumbersConnectionEdge!]!
+  nodes: [BatchNumber!]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -381,6 +385,7 @@ type QueryBatchNumbersConnectionEdge {
 
 type QueryNullableNumbersConnection {
   edges: [QueryNullableNumbersConnectionEdge!]!
+  nodes: [Number!]!
   other: String!
   pageInfo: PageInfo!
   totalCount: Int!
@@ -394,6 +399,7 @@ type QueryNullableNumbersConnectionEdge {
 
 type QueryNumbersConnection {
   edges: [QueryNumbersConnectionEdge!]!
+  nodes: [Number!]!
   other: String!
   pageInfo: PageInfo!
   totalCount: Int!
@@ -407,6 +413,7 @@ type QueryNumbersConnectionEdge {
 
 type QueryOddNumbersConnection {
   edges: [QueryOddNumbersConnectionEdge]!
+  nodes: [Number]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -420,6 +427,7 @@ type QueryOddNumbersConnectionEdge {
 type QueryPollsConnection {
   edges: [QueryPollsConnectionEdge!]!
   extraConnectionField: String!
+  nodes: [Poll!]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!
@@ -433,6 +441,7 @@ type QueryPollsConnectionEdge {
 
 type SharedConnection {
   edges: [SharedEdge!]!
+  nodes: [Number!]!
   pageInfo: PageInfo!
   totalCount: Int!
   totalCount2: Int!

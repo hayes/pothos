@@ -455,4 +455,52 @@ describe('relay example schema', () => {
       `);
     });
   });
+
+  describe('connection.nodes', () => {
+    it('can query nodes on connection', async () => {
+      const query = gql`
+        query {
+          oddNumbers(first: 2) {
+            edges {
+              node {
+                nodeId
+              }
+            }
+            nodes {
+              nodeId
+            }
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema: schemaWithGlobalConnectionFields,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        Object {
+          "data": Object {
+            "oddNumbers": Object {
+              "edges": Array [
+                Object {
+                  "node": Object {
+                    "nodeId": "TnVtYmVyOjE=",
+                  },
+                },
+                null,
+              ],
+              "nodes": Array [
+                Object {
+                  "nodeId": "TnVtYmVyOjE=",
+                },
+                null,
+              ],
+            },
+          },
+        }
+      `);
+    });
+  });
 });
