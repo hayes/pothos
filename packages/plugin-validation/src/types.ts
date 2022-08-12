@@ -1,5 +1,17 @@
-import { ZodSchema } from 'zod';
-import { MaybePromise } from '@pothos/core';
+import { GraphQLResolveInfo } from 'graphql';
+import { ZodError, ZodSchema } from 'zod';
+import { MaybePromise, SchemaTypes } from '@pothos/core';
+
+export interface ValidationPluginOptions<Types extends SchemaTypes> {
+  validationError?: ValidationErrorFn<Types>;
+}
+
+export type ValidationErrorFn<Types extends SchemaTypes> = (
+  error: ZodError,
+  args: Record<string, unknown>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+) => Error | string;
 
 export type Constraint<T> =
   | T

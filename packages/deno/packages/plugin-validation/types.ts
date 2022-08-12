@@ -1,6 +1,11 @@
 // @ts-nocheck
-import { ZodSchema } from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
-import { MaybePromise } from '../core/index.ts';
+import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { ZodError, ZodSchema } from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
+import { MaybePromise, SchemaTypes } from '../core/index.ts';
+export interface ValidationPluginOptions<Types extends SchemaTypes> {
+    validationError?: ValidationErrorFn<Types>;
+}
+export type ValidationErrorFn<Types extends SchemaTypes> = (error: ZodError, args: Record<string, unknown>, context: Types["Context"], info: GraphQLResolveInfo) => Error | string;
 export type Constraint<T> = T | (T extends object ? [
     value: T,
     options: {

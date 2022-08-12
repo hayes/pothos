@@ -1,8 +1,8 @@
 // @ts-nocheck
-import { GraphQLFieldExtensions } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GraphQLFieldExtensions } from 'https://cdn.skypack.dev/graphql?dts';
 import type { InputFieldMap, InputShapeFromFields, Resolver, Subscriber } from '../builder-options.ts';
-import { SchemaTypes } from '../schema-types.ts';
-import { FieldNullability, FieldRequiredness, InputShapeFromTypeParam, InputType, ShapeFromTypeParam, TypeParam, } from '../type-params.ts';
+import type { SchemaTypes } from '../schema-types.ts';
+import type { FieldNullability, FieldRequiredness, InputShapeFromTypeParam, InputType, ShapeFromTypeParam, TypeParam, } from '../type-params.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface FieldOptions<Types extends SchemaTypes = SchemaTypes, ParentShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveShape = unknown, ResolveReturnShape = unknown> {

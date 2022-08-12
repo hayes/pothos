@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLObjectType, GraphQLScalarSerializer, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
-// eslint-disable-next-line import/no-cycle
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
 import InputFieldBuilder from './fieldUtils/input.ts';

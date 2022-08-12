@@ -1,8 +1,7 @@
 // @ts-nocheck
 /* eslint-disable no-continue */
 import { defaultFieldResolver, defaultTypeResolver, GraphQLBoolean, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFloat, GraphQLID, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLScalarType, GraphQLString, GraphQLTypeResolver, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-// eslint-disable-next-line import/no-cycle
-import SchemaBuilder from './builder.ts';
+import type SchemaBuilder from './builder.ts';
 import ConfigStore from './config-store.ts';
 import { BasePlugin, MergedPlugins } from './plugins/index.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
@@ -28,7 +27,11 @@ export default class BuildCache<Types extends SchemaTypes> {
         this.options = options;
         const plugins: Record<string, unknown> = {};
         this.pluginList = (builder.options.plugins ?? []).map((pluginName) => {
-            const Plugin = SchemaBuilder.plugins[pluginName] as typeof BasePlugin;
+            const Plugin = (this.builder as unknown as {
+                constructor: {
+                    plugins: Record<string, typeof BasePlugin>;
+                };
+            }).constructor.plugins[pluginName];
             if (!Plugin) {
                 throw new Error(`No plugin named ${pluginName} was registered`);
             }

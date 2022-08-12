@@ -1,9 +1,9 @@
 // @ts-nocheck
-import { GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfig, GraphQLFieldConfig, GraphQLInputFieldConfig, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLUnionType, GraphQLUnionTypeConfig, } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options.ts';
-import { SchemaTypes } from './schema-types.ts';
-import { FieldNullability, FieldRequiredness, InputType, InputTypeParam, InterfaceParam, ObjectParam, OutputType, TypeParam, } from './type-params.ts';
-import { Merge } from './utils.ts';
+import type { GraphQLEnumType, GraphQLEnumTypeConfig, GraphQLEnumValueConfig, GraphQLFieldConfig, GraphQLInputFieldConfig, GraphQLInputObjectType, GraphQLInputObjectTypeConfig, GraphQLInterfaceType, GraphQLInterfaceTypeConfig, GraphQLObjectType, GraphQLObjectTypeConfig, GraphQLScalarType, GraphQLScalarTypeConfig, GraphQLUnionType, GraphQLUnionTypeConfig, } from 'https://cdn.skypack.dev/graphql?dts';
+import type { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options.ts';
+import type { SchemaTypes } from './schema-types.ts';
+import type { FieldNullability, FieldRequiredness, InputType, InputTypeParam, InterfaceParam, ObjectParam, OutputType, TypeParam, } from './type-params.ts';
+import type { Merge } from './utils.ts';
 export interface PothosQueryTypeConfig extends Omit<GraphQLObjectTypeConfig<unknown, object>, "fields" | "interfaces"> {
     kind: "Query";
     graphqlKind: "Object";

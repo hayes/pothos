@@ -121,6 +121,8 @@ generous people and organizations:
 
 - [![The Guild](https://pothos-graphql.dev/assets/the-guild-logo.svg)](https://www.the-guild.dev/)
 - [![Prisma](https://pothos-graphql.dev/assets/prisma-logo.svg)](https://www.prisma.io/)
+- [![GitHub](https://pothos-graphql.dev/assets/github-logo.svg)](https://github.com/)
+- [![Stellate](https://pothos-graphql.dev/assets/stellate-logo.svg)](https://stellate.co/)
 - [@kidqueb](https://github.com/kidqueb)
 - [@localticketing](https://github.com/localticketing)
 - [@homoky](https://github.com/homoky)
@@ -128,5 +130,5 @@ generous people and organizations:
 - [@KATT](https://github.com/KATT)
 - [@robmcguinness](https://github.com/robmcguinness)
 - [@Gomah](https://github.com/Gomah)
-- [@IPS-Hosting](https://github.com/IPS-Hosting)
+- [![@IPS-Hosting](https://pothos-graphql.dev/assets/ips-logo.svg)](https://github.com/IPS-Hosting)
 - [@smartvokat](https://github.com/smartvokat)

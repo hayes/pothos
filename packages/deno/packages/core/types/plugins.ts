@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import type { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import type BuildCache from '../build-cache.ts';
-import { BasePlugin } from '../plugins/plugin.ts';
+import type { BasePlugin } from '../plugins/plugin.ts';
 import type { PothosObjectTypeConfig } from './configs.ts';
 import type { SchemaTypes } from './schema-types.ts';
 import type { MaybePromise } from './utils.ts';

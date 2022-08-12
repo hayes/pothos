@@ -1,4 +1,4 @@
-# Validation Plugin for Pothos
+# Validation Plugin
 
 A plugin for adding validation for field arguments based on
 [zod](https://github.com/colinhacks/zod). This plugin does not expose zod directly, but most of the
@@ -20,6 +20,13 @@ yarn add zod @pothos/plugin-validation
 import ValidationPlugin from '@pothos/plugin-validation';
 const builder = new SchemaBuilder({
   plugins: [ValidationPlugin],
+  validationOptions: {
+    // optionally customize how errors are formatted
+    validationError: (zodError, args, context, info) => {
+      // the default behavior is to just throw the zod error directly
+      return zodError;
+    },
+  },
 });
 
 builder.queryType({
@@ -42,6 +49,12 @@ builder.queryType({
   }),
 });
 ```
+
+## Options
+
+`validationError`: (optional) A function that will be called when validation fails. The function
+will be passed the the zod validation error, as well as the args, context and info objects. It can
+throw an error, or return an error message or custom Error instance.
 
 ### Examples
 

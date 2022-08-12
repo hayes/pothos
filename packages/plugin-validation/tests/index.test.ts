@@ -66,112 +66,7 @@ describe('validation', () => {
       Object {
         "data": null,
         "errors": Array [
-          [GraphQLError: [
-        {
-          "code": "too_big",
-          "maximum": 5,
-          "type": "number",
-          "inclusive": true,
-          "message": "Number must be less than or equal to 5",
-          "path": [
-            "recursive",
-            "recurse",
-            "number"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": [
-            "recursive",
-            "float"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": [
-            "recursive",
-            "recurse",
-            "float"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "number must be odd",
-          "path": [
-            "odd"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "no example.com email addresses",
-          "path": [
-            "contactInfo",
-            "email"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": [
-            "enum1"
-          ]
-        },
-        {
-          "code": "too_small",
-          "minimum": 12,
-          "type": "string",
-          "inclusive": true,
-          "message": "String must contain at least 12 character(s)",
-          "path": [
-            "contactInfo",
-            "phone"
-          ]
-        },
-        {
-          "validation": "regex",
-          "code": "invalid_string",
-          "message": "Invalid",
-          "path": [
-            "contactInfo",
-            "phone"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Aliases should be capitalized",
-          "path": [
-            "contactInfo",
-            "aliases"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Name should be capitalized",
-          "path": [
-            "contactInfo",
-            "name"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "number must not be 3",
-          "path": [
-            "recursive",
-            "recurse",
-            "recurse"
-          ]
-        },
-        {
-          "code": "custom",
-          "path": [
-            "contactInfo",
-            "aliases"
-          ],
-          "message": "contactInfo should include at least 2 aliases"
-        }
-      ]],
+          [GraphQLError: recursive.recurse.number: Number must be less than or equal to 5, recursive.float: Invalid input, recursive.recurse.float: Invalid input, odd: number must be odd, contactInfo.email: no example.com email addresses, enum1: Invalid input, contactInfo.phone: String must contain at least 12 character(s), contactInfo.phone: Invalid, contactInfo.aliases: Aliases should be capitalized, contactInfo.name: Name should be capitalized, recursive.recurse.recurse: number must not be 3, contactInfo.aliases: contactInfo should include at least 2 aliases],
         ],
       }
     `);
@@ -212,65 +107,12 @@ describe('validation', () => {
           "simpleValid": true,
         },
         "errors": Array [
-          [GraphQLError: [
-        {
-          "validation": "email",
-          "code": "invalid_string",
-          "message": "invalid email address",
-          "path": [
-            "email"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "custom",
-          "message": "Must provide either phone number or email address",
-          "path": []
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "too_big",
-          "maximum": 3,
-          "type": "string",
-          "inclusive": true,
-          "message": "String must contain at most 3 character(s)",
-          "path": [
-            "list",
-            0
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "too_big",
-          "maximum": 3,
-          "type": "array",
-          "inclusive": true,
-          "message": "Array must contain at most 3 element(s)",
-          "path": [
-            "list"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "validation": "email",
-          "code": "invalid_string",
-          "message": "Invalid email",
-          "path": [
-            "email"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "custom",
-          "message": "Invalid input",
-          "path": []
-        }
-      ]],
+          [GraphQLError: email: invalid email address],
+          [GraphQLError: : Must provide either phone number or email address],
+          [GraphQLError: list.0: String must contain at most 3 character(s)],
+          [GraphQLError: list: Array must contain at most 3 element(s)],
+          [GraphQLError: email: Invalid email],
+          [GraphQLError: : Invalid input],
         ],
       }
     `);
@@ -301,33 +143,8 @@ describe('validation', () => {
           "validList": true,
         },
         "errors": Array [
-          [GraphQLError: [
-        {
-          "code": "too_small",
-          "minimum": 2,
-          "type": "string",
-          "inclusive": true,
-          "message": "String must contain at least 2 character(s)",
-          "path": [
-            0,
-            "id"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "too_small",
-          "minimum": 2,
-          "type": "string",
-          "inclusive": true,
-          "message": "String must contain at least 2 character(s)",
-          "path": [
-            "input",
-            "nested",
-            "id"
-          ]
-        }
-      ]],
+          [GraphQLError: 0.id: String must contain at least 2 character(s)],
+          [GraphQLError: input.nested.id: String must contain at least 2 character(s)],
         ],
       }
     `);
@@ -363,56 +180,10 @@ describe('validation', () => {
           "withValidationInputInvalid3": null,
         },
         "errors": Array [
-          [GraphQLError: [
-        {
-          "code": "custom",
-          "message": "Incorrect name given",
-          "path": [
-            "input"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Incorrect age given",
-          "path": [
-            "input"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "custom",
-          "message": "Incorrect name given",
-          "path": [
-            "input"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "custom",
-          "message": "Incorrect age given",
-          "path": [
-            "input"
-          ]
-        }
-      ]],
-          [GraphQLError: [
-        {
-          "code": "custom",
-          "message": "Incorrect name given",
-          "path": [
-            "input"
-          ]
-        },
-        {
-          "code": "custom",
-          "message": "Incorrect age given",
-          "path": [
-            "input"
-          ]
-        }
-      ]],
+          [GraphQLError: input: Incorrect name given, input: Incorrect age given],
+          [GraphQLError: input: Incorrect name given],
+          [GraphQLError: input: Incorrect age given],
+          [GraphQLError: input: Incorrect name given, input: Incorrect age given],
         ],
       }
     `);
@@ -439,28 +210,7 @@ describe('validation', () => {
           "valid": true,
         },
         "errors": Array [
-          [GraphQLError: [
-        {
-          "code": "too_small",
-          "minimum": 2,
-          "type": "number",
-          "inclusive": true,
-          "message": "Number must be greater than or equal to 2",
-          "path": [
-            "num"
-          ]
-        },
-        {
-          "code": "too_small",
-          "minimum": 2,
-          "type": "string",
-          "inclusive": true,
-          "message": "String must contain at least 2 character(s)",
-          "path": [
-            "string"
-          ]
-        }
-      ]],
+          [GraphQLError: num: Number must be greater than or equal to 2, string: String must contain at least 2 character(s)],
         ],
       }
     `);

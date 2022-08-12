@@ -15,7 +15,8 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     defaultListMultiplier: number = this.options.complexity?.defaultListMultiplier ??
         this.builder.options.complexity?.defaultListMultiplier ??
         DEFAULT_LIST_MULTIPLIER;
-    complexityError: ComplexityErrorFn = this.builder.options.complexity?.complexityError ??
+    complexityError: ComplexityErrorFn = this.options.complexity?.complexityError ??
+        this.builder.options.complexity?.complexityError ??
         ((kind, { depth, breadth, complexity, maxBreadth, maxComplexity, maxDepth }) => {
             if (kind === ComplexityErrorKind.Depth) {
                 return new Error(`Query exceeds maximum depth (depth: ${depth}, max: ${maxDepth})`);

@@ -1,15 +1,15 @@
 // @ts-nocheck
-import Builder from '../../builder.ts';
-import InternalFieldBuilder from '../../fieldUtils/builder.ts';
-import InternalInputFieldBuilder from '../../fieldUtils/input.ts';
-import InternalRootFieldBuilder from '../../fieldUtils/root.ts';
-import InternalBaseRef from '../../refs/base.ts';
-import InternalEnumRef from '../../refs/enum.ts';
-import InternalInputObjectRef from '../../refs/input-object.ts';
-import InternalInterfaceRef from '../../refs/interface.ts';
-import InternalObjectRef from '../../refs/object.ts';
-import InternalScalarRef from '../../refs/scalar.ts';
-import InternalUnionRef from '../../refs/union.ts';
+import type Builder from '../../builder.ts';
+import type InternalFieldBuilder from '../../fieldUtils/builder.ts';
+import type InternalInputFieldBuilder from '../../fieldUtils/input.ts';
+import type InternalRootFieldBuilder from '../../fieldUtils/root.ts';
+import type InternalBaseRef from '../../refs/base.ts';
+import type InternalEnumRef from '../../refs/enum.ts';
+import type InternalInputObjectRef from '../../refs/input-object.ts';
+import type InternalInterfaceRef from '../../refs/interface.ts';
+import type InternalObjectRef from '../../refs/object.ts';
+import type InternalScalarRef from '../../refs/scalar.ts';
+import type InternalUnionRef from '../../refs/union.ts';
 import type { FieldKind } from '../builder-options.ts';
 import type { SchemaTypes } from '../schema-types.ts';
 declare global {
