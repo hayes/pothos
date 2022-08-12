@@ -2,6 +2,13 @@
 
 ## null
 
+### Patch Changes
+
+- Updated dependencies [13216a3d]
+  - @pothos/core@3.14.0
+
+## null
+
 ### Minor Changes
 
 - 3ead60ae: Add option to use comments from prisma schema as graphql descriptions

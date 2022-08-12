@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.14.0
+
+### Minor Changes
+
+- 13216a3d: remove all remaining circular imports
+
 ## 3.13.0
 
 ### Minor Changes
