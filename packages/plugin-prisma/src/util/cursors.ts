@@ -304,3 +304,48 @@ export async function resolvePrismaCursorConnection<T extends {}>(
 
   return wrapConnectionResult(results, options.args, query.take, cursor, options.totalCount);
 }
+
+export function getCursorFormatter<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  cursor: string,
+) {
+  const modelData = getModel(name, builder);
+  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+  if (primaryKey === cursor) {
+    return formatCursor(modelData.primaryKey!.fields);
+  }
+
+  const uniqueIndex = modelData.uniqueIndexes.find(
+    (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
+  );
+
+  return formatCursor(uniqueIndex?.fields ?? cursor);
+}
+
+export function getCursorParser<Types extends SchemaTypes>(
+  name: string,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  cursor: string,
+) {
+  const modelData = getModel(name, builder);
+  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
+
+  let parser = parseRawCursor;
+
+  if (primaryKey === cursor) {
+    parser = parseCompositeCursor(modelData.primaryKey!.fields);
+  } else {
+    const uniqueIndex = modelData.uniqueIndexes.find(
+      (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
+    );
+
+    if (uniqueIndex) {
+      parser = parseCompositeCursor(uniqueIndex.fields);
+    }
+  }
+
+  return (rawCursor: string) => ({
+    [cursor]: parser(rawCursor),
+  });
+}

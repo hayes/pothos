@@ -1,7 +1,7 @@
-import { GraphQLFieldExtensions } from 'graphql';
+import type { GraphQLFieldExtensions } from 'graphql';
 import type { InputFieldMap, InputShapeFromFields, Resolver, Subscriber } from '../builder-options';
-import { SchemaTypes } from '../schema-types';
-import {
+import type { SchemaTypes } from '../schema-types';
+import type {
   FieldNullability,
   FieldRequiredness,
   InputShapeFromTypeParam,

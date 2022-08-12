@@ -26,13 +26,13 @@ import {
   ShapeFromConnection,
   VariantFieldOptions,
 } from './types';
-import { prismaCursorConnectionQuery, wrapConnectionResult } from './util/cursors';
 import {
   getCursorFormatter,
   getCursorParser,
-  getRefFromModel,
-  getRelation,
-} from './util/datamodel';
+  prismaCursorConnectionQuery,
+  wrapConnectionResult,
+} from './util/cursors';
+import { getRefFromModel, getRelation } from './util/datamodel';
 import { getFieldDescription } from './util/description';
 import { FieldMap } from './util/relation-map';
 

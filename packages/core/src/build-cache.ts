@@ -23,8 +23,7 @@ import {
   GraphQLTypeResolver,
   GraphQLUnionType,
 } from 'graphql';
-// eslint-disable-next-line import/no-cycle
-import SchemaBuilder from './builder';
+import type SchemaBuilder from './builder';
 import ConfigStore from './config-store';
 import { BasePlugin, MergedPlugins } from './plugins';
 import BuiltinScalarRef from './refs/builtin-scalar';
@@ -97,7 +96,9 @@ export default class BuildCache<Types extends SchemaTypes> {
     const plugins: Record<string, unknown> = {};
 
     this.pluginList = (builder.options.plugins ?? []).map((pluginName) => {
-      const Plugin = SchemaBuilder.plugins[pluginName] as typeof BasePlugin;
+      const Plugin = (
+        this.builder as unknown as { constructor: { plugins: Record<string, typeof BasePlugin> } }
+      ).constructor.plugins[pluginName];
 
       if (!Plugin) {
         throw new Error(`No plugin named ${pluginName} was registered`);

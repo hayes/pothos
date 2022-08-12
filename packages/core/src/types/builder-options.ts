@@ -1,10 +1,10 @@
-import { GraphQLResolveInfo } from 'graphql';
-import FieldRef from '../refs/field';
-import InputFieldRef from '../refs/input-field';
-import InterfaceRef from '../refs/interface';
-import ObjectRef from '../refs/object';
-import { SchemaTypes } from './schema-types';
-import {
+import type { GraphQLResolveInfo } from 'graphql';
+import type FieldRef from '../refs/field';
+import type InputFieldRef from '../refs/input-field';
+import type InterfaceRef from '../refs/interface';
+import type ObjectRef from '../refs/object';
+import type { SchemaTypes } from './schema-types';
+import type {
   BaseEnum,
   EnumParam,
   FieldNullability,
@@ -12,11 +12,17 @@ import {
   InputRef,
   InterfaceParam,
   ObjectParam,
-  ParentShape,
+  ParentShape as GetParentShape,
   ShapeFromTypeParam,
   TypeParam,
 } from './type-params';
-import { MaybePromise, Merge, Normalize, NormalizeNullableFields, RemoveNeverKeys } from './utils';
+import type {
+  MaybePromise,
+  Merge,
+  Normalize,
+  NormalizeNullableFields,
+  RemoveNeverKeys,
+} from './utils';
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   PothosSchemaTypes.SchemaBuilderOptions<Types>
@@ -188,7 +194,7 @@ export type ValidateInterfaces<
   Types extends SchemaTypes,
   Interfaces extends InterfaceParam<Types>,
 > = Interfaces extends InterfaceParam<Types>
-  ? Shape extends ParentShape<Types, Interfaces>
+  ? Shape extends GetParentShape<Types, Interfaces>
     ? Interfaces
     : 'Object shape must extends interface shape'
   : never;

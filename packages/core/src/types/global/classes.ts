@@ -1,14 +1,14 @@
-import Builder from '../../builder';
-import InternalFieldBuilder from '../../fieldUtils/builder';
-import InternalInputFieldBuilder from '../../fieldUtils/input';
-import InternalRootFieldBuilder from '../../fieldUtils/root';
-import InternalBaseRef from '../../refs/base';
-import InternalEnumRef from '../../refs/enum';
-import InternalInputObjectRef from '../../refs/input-object';
-import InternalInterfaceRef from '../../refs/interface';
-import InternalObjectRef from '../../refs/object';
-import InternalScalarRef from '../../refs/scalar';
-import InternalUnionRef from '../../refs/union';
+import type Builder from '../../builder';
+import type InternalFieldBuilder from '../../fieldUtils/builder';
+import type InternalInputFieldBuilder from '../../fieldUtils/input';
+import type InternalRootFieldBuilder from '../../fieldUtils/root';
+import type InternalBaseRef from '../../refs/base';
+import type InternalEnumRef from '../../refs/enum';
+import type InternalInputObjectRef from '../../refs/input-object';
+import type InternalInterfaceRef from '../../refs/interface';
+import type InternalObjectRef from '../../refs/object';
+import type InternalScalarRef from '../../refs/scalar';
+import type InternalUnionRef from '../../refs/union';
 import type { FieldKind } from '../builder-options';
 import type { SchemaTypes } from '../schema-types';
 

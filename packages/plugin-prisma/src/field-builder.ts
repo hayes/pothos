@@ -10,8 +10,8 @@ import {
 } from '@pothos/core';
 import { ModelLoader } from './model-loader';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
-import { resolvePrismaCursorConnection } from './util/cursors';
-import { getCursorFormatter, getCursorParser, getRefFromModel } from './util/datamodel';
+import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
+import { getRefFromModel } from './util/datamodel';
 import { queryFromInfo } from './util/map-query';
 
 export * from './prisma-field-builder';

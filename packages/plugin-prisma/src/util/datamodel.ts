@@ -1,8 +1,6 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
 import { PrismaObjectRef } from '../object-ref';
 import { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types';
-// eslint-disable-next-line import/no-cycle
-import { formatCursor, parseCompositeCursor, parseRawCursor } from './cursors';
 import { getDMMF } from './get-client';
 
 export const refMap = new WeakMap<object, Map<string, PrismaObjectRef<PrismaModelTypes>>>();
@@ -74,51 +72,6 @@ export function getModel<Types extends SchemaTypes>(
   }
 
   return modelData;
-}
-
-export function getCursorFormatter<Types extends SchemaTypes>(
-  name: string,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  cursor: string,
-) {
-  const modelData = getModel(name, builder);
-  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
-  if (primaryKey === cursor) {
-    return formatCursor(modelData.primaryKey!.fields);
-  }
-
-  const uniqueIndex = modelData.uniqueIndexes.find(
-    (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
-  );
-
-  return formatCursor(uniqueIndex?.fields ?? cursor);
-}
-
-export function getCursorParser<Types extends SchemaTypes>(
-  name: string,
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  cursor: string,
-) {
-  const modelData = getModel(name, builder);
-  const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
-
-  let parser = parseRawCursor;
-
-  if (primaryKey === cursor) {
-    parser = parseCompositeCursor(modelData.primaryKey!.fields);
-  } else {
-    const uniqueIndex = modelData.uniqueIndexes.find(
-      (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
-    );
-
-    if (uniqueIndex) {
-      parser = parseCompositeCursor(uniqueIndex.fields);
-    }
-  }
-
-  return (rawCursor: string) => ({
-    [cursor]: parser(rawCursor),
-  });
 }
 
 export function getDelegateFromModel(client: PrismaClient, model: string) {

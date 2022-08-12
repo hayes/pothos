@@ -12,7 +12,6 @@ import {
   GraphQLTypeResolver,
   lexicographicSortSchema,
 } from 'graphql';
-// eslint-disable-next-line import/no-cycle
 import BuildCache from './build-cache';
 import ConfigStore from './config-store';
 import InputFieldBuilder from './fieldUtils/input';

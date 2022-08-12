@@ -1,4 +1,4 @@
-import {
+import type {
   GraphQLEnumType,
   GraphQLEnumTypeConfig,
   GraphQLEnumValueConfig,
@@ -15,9 +15,9 @@ import {
   GraphQLUnionType,
   GraphQLUnionTypeConfig,
 } from 'graphql';
-import { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options';
-import { SchemaTypes } from './schema-types';
-import {
+import type { FieldKind, FieldOptionsFromKind, InputFieldMap } from './builder-options';
+import type { SchemaTypes } from './schema-types';
+import type {
   FieldNullability,
   FieldRequiredness,
   InputType,
@@ -27,7 +27,7 @@ import {
   OutputType,
   TypeParam,
 } from './type-params';
-import { Merge } from './utils';
+import type { Merge } from './utils';
 
 export interface PothosQueryTypeConfig
   extends Omit<GraphQLObjectTypeConfig<unknown, object>, 'fields' | 'interfaces'> {

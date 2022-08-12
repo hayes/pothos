@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import {
+import type {
   GraphQLIsTypeOfFn,
   GraphQLResolveInfo,
   GraphQLScalarLiteralParser,
   GraphQLScalarValueParser,
   GraphQLUnionType,
 } from 'graphql';
-import {
+import type {
   EnumValues,
   InputFieldMap,
   InterfaceFieldsShape,
@@ -16,9 +16,9 @@ import {
   SubscriptionFieldsShape,
   ValidateInterfaces,
 } from '../builder-options';
-import { RootName, SchemaTypes } from '../schema-types';
+import type { RootName, SchemaTypes } from '../schema-types';
 import type { InterfaceParam, ObjectParam, ParentShape } from '../type-params';
-import { MaybePromise } from '../utils';
+import type { MaybePromise } from '../utils';
 
 declare global {
   export namespace PothosSchemaTypes {
