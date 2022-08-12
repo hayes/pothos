@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.6.0
+
+### Minor Changes
+
+- 77a1da77: Add option for customizing validation errors
+
 ## 3.5.1
 
 ### Patch Changes
