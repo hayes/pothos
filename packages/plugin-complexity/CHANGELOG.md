@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.6.1
+
+### Patch Changes
+
+- 4bcc04b6: Allow to configure `complexityError` via options.
+
 ## 3.6.0
 
 ### Minor Changes
