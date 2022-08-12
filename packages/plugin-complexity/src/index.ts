@@ -28,6 +28,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     DEFAULT_LIST_MULTIPLIER;
 
   complexityError: ComplexityErrorFn =
+    this.options.complexity?.complexityError ??
     this.builder.options.complexity?.complexityError ??
     ((kind, { depth, breadth, complexity, maxBreadth, maxComplexity, maxDepth }) => {
       if (kind === ComplexityErrorKind.Depth) {
