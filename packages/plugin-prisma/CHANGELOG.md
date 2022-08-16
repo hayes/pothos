@@ -1,5 +1,13 @@
 # Change Log
 
+## 3.23.0
+
+### Minor Changes
+
+- 33789284: Update cursor encoding to work in deno
+- 33789284: Fix default connection size when using "before"
+- 33789284: Support setting max and default cursor sizes based in args or context
+
 ## 3.22.0
 
 ### Minor Changes

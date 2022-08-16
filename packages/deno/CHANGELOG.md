@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.19.0
+
+### Minor Changes
+
+- 33789284: Update cursor encoding to work in deno
+
 ## 3.18.0
 
 ### Minor Changes
