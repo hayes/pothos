@@ -95,6 +95,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
         resolvePrismaCursorConnection(
           {
             query: queryFromInfo(ctx, info, undefined, { select: cursorSelection as {} }),
+            ctx,
             parseCursor,
             maxSize,
             defaultSize,

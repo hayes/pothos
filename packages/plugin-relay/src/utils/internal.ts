@@ -1,5 +1,5 @@
 import { SchemaTypes } from '@pothos/core';
-import { decodeGlobalID, encodeGlobalID } from '.';
+import { decodeGlobalID, encodeGlobalID } from './global-ids';
 
 export function internalEncodeGlobalID<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,

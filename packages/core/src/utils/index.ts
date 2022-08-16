@@ -1,5 +1,6 @@
 import { OutputType, SchemaTypes, typeBrandKey } from '../types';
 
+export * from './base64';
 export * from './context-cache';
 export * from './enums';
 export * from './input';

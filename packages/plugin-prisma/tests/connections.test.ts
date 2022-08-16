@@ -379,6 +379,7 @@ describe('prisma', () => {
       ]
     `);
   });
+
   it('before', async () => {
     const query = gql`
       query {
@@ -458,6 +459,87 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('before without last', async () => {
+    const query = gql`
+      query {
+        userConnection(before: "R1BDOk46NA==") {
+          pageInfo {
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+          }
+          edges {
+            cursor
+            node {
+              id
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "userConnection": Object {
+            "edges": Array [
+              Object {
+                "cursor": "R1BDOk46MQ==",
+                "node": Object {
+                  "id": "VXNlcjox",
+                },
+              },
+              Object {
+                "cursor": "R1BDOk46Mg==",
+                "node": Object {
+                  "id": "VXNlcjoy",
+                },
+              },
+              Object {
+                "cursor": "R1BDOk46Mw==",
+                "node": Object {
+                  "id": "VXNlcjoz",
+                },
+              },
+            ],
+            "pageInfo": Object {
+              "endCursor": "R1BDOk46Mw==",
+              "hasNextPage": true,
+              "hasPreviousPage": false,
+              "startCursor": "R1BDOk46MQ==",
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "cursor": Object {
+              "id": 4,
+            },
+            "skip": 1,
+            "take": -11,
+          },
+          "dataPath": Array [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
   it('end', async () => {
     const query = gql`
       query {

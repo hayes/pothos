@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { MaybePromise, SchemaTypes } from '../../core/index.ts';
+import { decodeBase64, encodeBase64, MaybePromise, SchemaTypes } from '../../core/index.ts';
 import { ConnectionShape, DefaultConnectionArguments } from '../types.ts';
 interface ResolveOffsetConnectionOptions {
     args: DefaultConnectionArguments;
@@ -97,14 +97,14 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
     };
 }
 export function cursorToOffset(cursor: string): number {
-    const string = Buffer.from(cursor, "base64").toString();
+    const string = decodeBase64(cursor);
     if (!string.startsWith(OFFSET_CURSOR_PREFIX)) {
         throw new Error(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
     }
     return Number.parseInt(string.slice(OFFSET_CURSOR_PREFIX.length), 10);
 }
 export function offsetToCursor(offset: number): string {
-    return Buffer.from(`${OFFSET_CURSOR_PREFIX}${offset}`).toString("base64");
+    return encodeBase64(`${OFFSET_CURSOR_PREFIX}${offset}`);
 }
 export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, NonNullable<T>, boolean, T extends NonNullable<T> ? false : {
     list: false;

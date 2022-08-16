@@ -1,4 +1,4 @@
-import { MaybePromise, SchemaTypes } from '@pothos/core';
+import { decodeBase64, encodeBase64, MaybePromise, SchemaTypes } from '@pothos/core';
 import { ConnectionShape, DefaultConnectionArguments } from '../types';
 
 interface ResolveOffsetConnectionOptions {
@@ -128,7 +128,7 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
 }
 
 export function cursorToOffset(cursor: string): number {
-  const string = Buffer.from(cursor, 'base64').toString();
+  const string = decodeBase64(cursor);
 
   if (!string.startsWith(OFFSET_CURSOR_PREFIX)) {
     throw new Error(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
@@ -138,7 +138,7 @@ export function cursorToOffset(cursor: string): number {
 }
 
 export function offsetToCursor(offset: number): string {
-  return Buffer.from(`${OFFSET_CURSOR_PREFIX}${offset}`).toString('base64');
+  return encodeBase64(`${OFFSET_CURSOR_PREFIX}${offset}`);
 }
 
 export function resolveArrayConnection<T>(

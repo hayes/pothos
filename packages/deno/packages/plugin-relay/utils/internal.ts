@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { SchemaTypes } from '../../core/index.ts';
-import { decodeGlobalID, encodeGlobalID } from './index.ts';
+import { decodeGlobalID, encodeGlobalID } from './global-ids.ts';
 export function internalEncodeGlobalID<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, typename: string, id: bigint | number | string) {
     if (builder.options.relayOptions.encodeGlobalID) {
         return builder.options.relayOptions.encodeGlobalID(typename, id);

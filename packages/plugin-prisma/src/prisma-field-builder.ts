@@ -144,8 +144,8 @@ export class PrismaObjectFieldBuilder<
     }: {
       type?: ObjectRef<unknown, unknown>;
       totalCount?: boolean;
-      maxSize?: number;
-      defaultSize?: number;
+      maxSize?: number | ((args: {}, ctx: {}) => number);
+      defaultSize?: number | ((args: {}, ctx: {}) => number);
       cursor: string;
       extensions: {};
       description?: string;
@@ -166,6 +166,7 @@ export class PrismaObjectFieldBuilder<
       ...((typeof query === 'function' ? query(args, ctx) : query) as {}),
       ...prismaCursorConnectionQuery({
         parseCursor,
+        ctx,
         maxSize,
         defaultSize,
         args,

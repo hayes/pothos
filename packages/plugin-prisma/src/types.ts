@@ -495,30 +495,34 @@ export type PrismaConnectionFieldOptions<
       ResolveReturnShape
     >,
     'args' | 'resolve' | 'type'
-  > & {
-    type: Type;
-    cursor: string & keyof Model['Where'];
-    defaultSize?: number;
-    maxSize?: number;
-    resolve: (
-      query: {
-        include?: Model['Include'];
-        cursor?: {};
-        take: number;
-        skip: number;
-      },
-      parent: ParentShape,
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<Model['Shape'][]>;
-    totalCount?: (
-      parent: ParentShape,
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<number>;
-  };
+  > &
+  (InputShapeFromFields<Args> &
+    PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
+    ? {
+        type: Type;
+        cursor: string & keyof Model['Where'];
+        defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
+        maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
+        resolve: (
+          query: {
+            include?: Model['Include'];
+            cursor?: {};
+            take: number;
+            skip: number;
+          },
+          parent: ParentShape,
+          args: ConnectionArgs,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => MaybePromise<Model['Shape'][]>;
+        totalCount?: (
+          parent: ParentShape,
+          args: ConnectionArgs,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+        ) => MaybePromise<number>;
+      }
+    : never);
 
 export type RelatedConnectionOptions<
   Types extends SchemaTypes,
@@ -551,43 +555,47 @@ export type RelatedConnectionOptions<
       unknown
     >,
     'resolve' | 'type'
-  > & {
-    description?: string | false;
-    query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-    type?: PrismaObjectRef<Model['Relations'][Field]['Types']>;
-    cursor: CursorFromRelation<Model, Field>;
-    defaultSize?: number;
-    maxSize?: number;
-    totalCount?: NeedsResolve extends false ? boolean : false;
-  } & (NeedsResolve extends false
+  > &
+  (InputShapeFromFields<Args> &
+    PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
-        resolve?: (
-          query: {
-            include?: Model['Include'];
-            cursor?: {};
-            take: number;
-            skip: number;
-          },
-          parent: Model['Shape'],
-          args: InputShapeFromFields<Args>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
-      }
-    : {
-        resolve: (
-          query: {
-            include?: Model['Include'];
-            cursor?: {};
-            take: number;
-            skip: number;
-          },
-          parent: Model['Shape'],
-          args: InputShapeFromFields<Args>,
-          context: Types['Context'],
-          info: GraphQLResolveInfo,
-        ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
-      });
+        description?: string | false;
+        query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
+        type?: PrismaObjectRef<Model['Relations'][Field]['Types']>;
+        cursor: CursorFromRelation<Model, Field>;
+        defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
+        maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
+        totalCount?: NeedsResolve extends false ? boolean : false;
+      } & (NeedsResolve extends false
+        ? {
+            resolve?: (
+              query: {
+                include?: Model['Include'];
+                cursor?: {};
+                take: number;
+                skip: number;
+              },
+              parent: Model['Shape'],
+              args: ConnectionArgs,
+              context: Types['Context'],
+              info: GraphQLResolveInfo,
+            ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
+          }
+        : {
+            resolve: (
+              query: {
+                include?: Model['Include'];
+                cursor?: {};
+                take: number;
+                skip: number;
+              },
+              parent: Model['Shape'],
+              args: ConnectionArgs,
+              context: Types['Context'],
+              info: GraphQLResolveInfo,
+            ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
+          })
+    : never);
 
 export type WithBrand<T> = T & { [typeBrandKey]: string };
 

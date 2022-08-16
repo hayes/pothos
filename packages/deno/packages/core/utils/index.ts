@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { OutputType, SchemaTypes, typeBrandKey } from '../types/index.ts';
+export * from './base64.ts';
 export * from './context-cache.ts';
 export * from './enums.ts';
 export * from './input.ts';

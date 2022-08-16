@@ -1,5 +1,5 @@
 /* eslint-disable no-nested-ternary */
-import { MaybePromise, SchemaTypes } from '@pothos/core';
+import { decodeBase64, encodeBase64, MaybePromise, SchemaTypes } from '@pothos/core';
 import { getModel } from './datamodel';
 import { DMMFField } from './get-client';
 
@@ -26,12 +26,10 @@ export function formatCursorChunk(value: unknown) {
 export function formatCursor(fields: string | string[]) {
   return (value: Record<string, unknown>) => {
     if (typeof fields === 'string') {
-      return Buffer.from(`GPC:${formatCursorChunk(value[fields])}`).toString('base64');
+      return encodeBase64(`GPC:${formatCursorChunk(value[fields])}`);
     }
 
-    return Buffer.from(`GPC:J:${JSON.stringify(fields.map((name) => value[name]))}`).toString(
-      'base64',
-    );
+    return encodeBase64(`GPC:J:${JSON.stringify(fields.map((name) => value[name]))}`);
   };
 }
 
@@ -41,7 +39,7 @@ export function parseRawCursor(cursor: unknown) {
   }
 
   try {
-    const decoded = Buffer.from(cursor, 'base64').toString();
+    const decoded = decodeBase64(cursor);
     const [, type, value] = decoded.match(/^GPC:(\w):(.*)/) as [string, string, string];
 
     switch (type) {
@@ -198,8 +196,9 @@ export function parseCompositeCursor(fields: string[]) {
 
 export interface PrismaCursorConnectionQueryOptions {
   args: PothosSchemaTypes.DefaultConnectionArguments;
-  defaultSize?: number;
-  maxSize?: number;
+  ctx: {};
+  defaultSize?: number | ((args: {}, ctx: {}) => number);
+  maxSize?: number | ((args: {}, ctx: {}) => number);
   parseCursor: (cursor: string) => Record<string, unknown>;
 }
 
@@ -209,11 +208,13 @@ interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQue
 }
 
 export function prismaCursorConnectionQuery({
-  args: { before, after, first, last },
+  args,
+  ctx,
   maxSize = DEFAULT_MAX_SIZE,
   defaultSize = DEFAULT_SIZE,
   parseCursor,
 }: PrismaCursorConnectionQueryOptions) {
+  const { before, after, first, last } = args;
   if (first != null && first < 0) {
     throw new TypeError('Argument "first" must be a non-negative integer');
   }
@@ -226,10 +227,6 @@ export function prismaCursorConnectionQuery({
     throw new Error('Arguments "before" and "after" are not supported at the same time');
   }
 
-  if (before != null && last == null) {
-    throw new Error('Argument "last" must be provided when using "before"');
-  }
-
   if (before != null && first != null) {
     throw new Error('Arguments "before" and "first" are not supported at the same time');
   }
@@ -240,7 +237,11 @@ export function prismaCursorConnectionQuery({
 
   const cursor = before ?? after;
 
-  let take = Math.min(first ?? last ?? defaultSize, maxSize) + 1;
+  const maxSizeForConnection = typeof maxSize === 'function' ? maxSize(args, ctx) : maxSize;
+  const defaultSizeForConnection =
+    typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize;
+
+  let take = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
 
   if (before) {
     take = -take;
