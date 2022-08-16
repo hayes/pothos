@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.15.0
+
+### Minor Changes
+
+- 33789284: Add utils for base64 encoding that works across environments
+
 ## 3.14.0
 
 ### Minor Changes
