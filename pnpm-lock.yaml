@@ -223,6 +223,9 @@ importers:
       graphql: 16.5.0
       prisma: 4.1.1
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.4.0
@@ -242,6 +245,12 @@ importers:
       '@prisma/client': 4.1.1_prisma@4.1.1
       graphql: 16.5.0
       prisma: 4.1.1
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -400,6 +409,31 @@ importers:
   packages/plugin-directives/esm:
     specifiers: {}
 
+  packages/plugin-edgedb:
+    specifiers:
+      '@pothos/core': workspace:*
+      '@pothos/plugin-complexity': workspace:*
+      '@pothos/plugin-errors': workspace:*
+      '@pothos/plugin-relay': workspace:*
+      '@pothos/plugin-simple-objects': workspace:*
+      '@pothos/test-utils': workspace:*
+      edgedb: ^0.21.3
+      graphql: 16.5.0
+      graphql-tag: ^2.12.6
+    devDependencies:
+      '@pothos/core': link:../core
+      '@pothos/plugin-complexity': link:../plugin-complexity
+      '@pothos/plugin-errors': link:../plugin-errors
+      '@pothos/plugin-relay': link:../plugin-relay
+      '@pothos/plugin-simple-objects': link:../plugin-simple-objects
+      '@pothos/test-utils': link:../test-utils
+      edgedb: 0.21.3
+      graphql: 16.5.0
+      graphql-tag: 2.12.6_graphql@16.5.0
+
+  packages/plugin-edgedb/esm:
+    specifiers: {}
+
   packages/plugin-errors:
     specifiers:
       '@pothos/core': workspace:*
@@ -508,6 +542,9 @@ importers:
   packages/plugin-prisma/esm:
     specifiers: {}
 
+  packages/plugin-prisma/tests/client:
+    specifiers: {}
+
   packages/plugin-relay:
     specifiers:
       '@pothos/core': workspace:*
@@ -546,6 +583,9 @@ importers:
       prisma: 4.1.1
 
   packages/plugin-scope-auth/esm:
+    specifiers: {}
+
+  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -8471,6 +8511,12 @@ packages:
     resolution: {integrity: sha512-nagl3RYrbNv6kQkeJIpt6NJZy8twLB/2vtz6yN9Z4vRKHN4/QZJIEbqohALSgwKdnksuY3k5Addp5lg8sVoVcQ==}
     dependencies:
       safe-buffer: 5.2.1
+    dev: true
+
+  /edgedb/0.21.3:
+    resolution: {integrity: sha512-iFSvVRFpVVRaiMCFo3Cslol7C6xLD3mGM8MUWQYd8nSFvR2nsnyA2KjVmZw5MY0qZjdlm+8aJiCZffhjdtnLDw==}
+    engines: {node: '>= 10.0.0'}
+    hasBin: true
     dev: true
 
   /ee-first/1.1.1:
