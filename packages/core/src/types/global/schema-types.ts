@@ -22,6 +22,7 @@ declare global {
     export interface BuildSchemaOptions<Types extends SchemaTypes> {
       directives?: readonly GraphQLDirective[];
       extensions?: Record<string, unknown>;
+      sortSchema?: boolean;
     }
 
     export interface Plugins<Types extends SchemaTypes> {}
