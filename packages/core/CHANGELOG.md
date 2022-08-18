@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.16.0
+
+### Minor Changes
+
+- 679baa83: Add option to disable schema sorting
+
 ## 3.15.0
 
 ### Minor Changes
