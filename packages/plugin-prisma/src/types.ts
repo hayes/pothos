@@ -498,13 +498,12 @@ export type PrismaConnectionFieldOptions<
       ResolveReturnShape
     >,
     'args' | 'resolve' | 'type'
-<<<<<<< HEAD
   > &
   (InputShapeFromFields<Args> &
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        cursor: string & keyof Model['Where'];
+        cursor: string & keyof Model['WhereUnique'];
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         resolve: (
@@ -527,32 +526,6 @@ export type PrismaConnectionFieldOptions<
         ) => MaybePromise<number>;
       }
     : never);
-=======
-  > & {
-    type: Type;
-    cursor: string & keyof Model['WhereUnique'];
-    defaultSize?: number;
-    maxSize?: number;
-    resolve: (
-      query: {
-        include?: Model['Include'];
-        cursor?: {};
-        take: number;
-        skip: number;
-      },
-      parent: ParentShape,
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<Model['Shape'][]>;
-    totalCount?: (
-      parent: ParentShape,
-      args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments,
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<number>;
-  };
->>>>>>> 67bda837 (wip)
 
 export type RelatedConnectionOptions<
   Types extends SchemaTypes,

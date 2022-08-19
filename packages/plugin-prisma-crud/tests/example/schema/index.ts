@@ -14,6 +14,11 @@ const StringListFilter = builder.prismaListFilter(StringFilter, {
   ops: ['every', 'some', 'none'],
 });
 
+builder.scalarType('DateTime', {
+  serialize: (value) => value.toISOString(),
+  parseValue: (value) => (typeof value === 'number' ? new Date(value) : new Date(String(value))),
+});
+
 builder.queryType({});
 
 builder.queryField('post', (t) =>

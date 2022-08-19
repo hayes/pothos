@@ -1,14 +1,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 // Type map: https://github.com/prisma/prisma/blob/main/packages/client/src/runtime/utils/common.ts#L63
 
-import {
-  BaseEnum,
-  InputRef,
-  InputShapeFromTypeParam,
-  InputType,
-  InputTypeParam,
-  SchemaTypes,
-} from '@pothos/core';
+import { BaseEnum, InputRef, InputType, SchemaTypes } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
 
 export type ScalarFilters<T> = T extends { equals?: unknown }

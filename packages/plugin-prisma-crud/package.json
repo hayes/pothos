@@ -18,7 +18,7 @@
     "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
-    "test": "pnpm jest --runInBand"
+    "test": "pnpm vitest --run"
   },
   "bin": {
     "prisma-pothos-crud-types": "./bin/generator.js"

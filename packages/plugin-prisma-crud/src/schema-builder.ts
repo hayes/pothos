@@ -12,6 +12,7 @@ import {
   FilterListOps,
   FilterOps,
   FilterShape,
+  OpsOptions,
   PrismaFilterOptions,
   PrismaListFilterOptions,
   PrismaOrderByOptions,
@@ -28,20 +29,31 @@ const OrderByRefMap = new WeakMap<
 
 schemaBuilder.prismaFilter = function prismaFilter<
   Type extends InputType<SchemaTypes>,
-  Ops extends FilterOps,
+  Ops extends OpsOptions<SchemaTypes, Type, FilterOps>,
 >(type: Type, { ops, name, ...options }: PrismaFilterOptions<SchemaTypes, Type, Ops>) {
   const filterName = name ?? `${nameFromType(type, this)}Filter`;
   const ref =
-    this.inputRef<Pick<FilterShape<InputShapeFromTypeParam<SchemaTypes, Type, true>>, Ops>>(
-      filterName,
-    );
+    this.inputRef<
+      Pick<
+        FilterShape<InputShapeFromTypeParam<SchemaTypes, Type, true>>,
+        Ops extends string[] ? Ops[number] : keyof Ops
+      >
+    >(filterName);
+
+  const opsOptions: Record<string, unknown> = Array.isArray(ops)
+    ? ops.reduce<Record<string, {}>>((map, op) => {
+        // eslint-disable-next-line no-param-reassign
+        map[op] = {};
+        return map;
+      }, {})
+    : ops;
 
   ref.implement({
     ...options,
     fields: (t) => {
       const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
-      for (const op of ops) {
+      for (const op of Object.keys(opsOptions)) {
         const isList = op === 'in' || op === 'notIn';
         let fieldType: InputType<SchemaTypes> | [InputType<SchemaTypes>] = type;
 
@@ -54,6 +66,7 @@ schemaBuilder.prismaFilter = function prismaFilter<
         fields[op] = t.field({
           required: isList ? { list: false, items: true } : false,
           type: fieldType,
+          ...(opsOptions[op] as {}),
         });
       }
 
@@ -61,12 +74,12 @@ schemaBuilder.prismaFilter = function prismaFilter<
     },
   });
 
-  return ref as InputRef<Pick<FilterShape<InputShapeFromTypeParam<SchemaTypes, Type, true>>, Ops>>;
+  return ref as never;
 };
 
 schemaBuilder.prismaListFilter = function prismaListFilter<
   Type extends InputType<SchemaTypes>,
-  Ops extends FilterListOps,
+  Ops extends OpsOptions<SchemaTypes, Type, FilterListOps>,
 >(type: Type, { name, ops, ...options }: PrismaListFilterOptions<SchemaTypes, Type, Ops>) {
   let filterName = name;
 
@@ -78,19 +91,25 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
       : `List${typeName}`;
   }
 
-  const ref = this.inputRef<{
-    [K in Ops]: InputShapeFromTypeParam<SchemaTypes, Type, true>;
-  }>(filterName);
+  const ref = this.inputRef(filterName);
+  const opsOptions: Record<string, unknown> = Array.isArray(ops)
+    ? ops.reduce<Record<string, {}>>((map, op) => {
+        // eslint-disable-next-line no-param-reassign
+        map[op] = {};
+        return map;
+      }, {})
+    : ops;
 
   ref.implement({
     ...options,
     fields: (t) => {
       const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
-      for (const op of ops) {
+      for (const op of Object.keys(opsOptions)) {
         fields[op] = t.field({
           required: false,
           type,
+          ...(opsOptions[op] as {}),
         });
       }
 
@@ -98,9 +117,7 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
     },
   });
 
-  return ref as InputRef<{
-    [K in Ops]: InputShapeFromTypeParam<SchemaTypes, Type, true>;
-  }>;
+  return ref as never;
 };
 
 schemaBuilder.orderByEnum = function orderByEnum() {

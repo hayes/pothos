@@ -1,9 +1,19 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`prisma crud generates schema 1`] = `
-"input IntFilter {
+exports[`prisma crud > generates schema 1`] = `
+"input CommentWhere {
+  createdAt: DateTime
+}
+
+scalar DateTime
+
+input IntFilter {
   equals: Int
   not: IntFilter
+}
+
+input ListCommentWhere {
+  some: CommentWhere
 }
 
 enum OrderBy {
@@ -20,6 +30,17 @@ input PostOrderBy {
   createdAt: OrderBy
   id: OrderBy
   title: OrderBy
+}
+
+input PostWhere {
+  author: UserWhere
+
+  \\"\\"\\"filter by author id\\"\\"\\"
+  authorId: IntFilter
+  comments: ListCommentWhere
+  createdAt: DateTime
+  id: IntFilter
+  title: String
 }
 
 input ProfileOrderBy {
@@ -47,5 +68,9 @@ input StringListFilter {
 input UserOrderBy {
   name: OrderBy
   profile: ProfileOrderBy
+}
+
+input UserWhere {
+  id: IntFilter
 }"
 `;
