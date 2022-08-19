@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.25.0
+
+### Minor Changes
+
+- 82596ec2: remove duplicate Fields from generated prisma types
+
 ## 3.24.0
 
 ### Minor Changes
