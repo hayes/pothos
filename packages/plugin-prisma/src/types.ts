@@ -40,7 +40,6 @@ export interface PrismaModelTypes {
   Include: unknown;
   Select: unknown;
   Where: {};
-  Fields: string;
   ListRelations: string;
   RelationName: string;
   Relations: Record<

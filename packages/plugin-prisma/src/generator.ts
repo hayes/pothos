@@ -102,18 +102,6 @@ generatorHandler({
           ),
           ts.factory.createPropertySignature(
             [],
-            'Fields',
-            undefined,
-            relations.length > 0
-              ? ts.factory.createUnionTypeNode(
-                  relations.map((field) =>
-                    ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(field.name)),
-                  ),
-                )
-              : ts.factory.createTypeReferenceNode('never'),
-          ),
-          ts.factory.createPropertySignature(
-            [],
             'RelationName',
             undefined,
             relations.length > 0
