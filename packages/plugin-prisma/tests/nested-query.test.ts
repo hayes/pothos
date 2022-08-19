@@ -194,4 +194,83 @@ describe('nested query', () => {
       ]
     `);
   });
+
+  it('queryFromInfo with nested path', async () => {
+    const query = gql`
+      query {
+        blog {
+          posts {
+            id
+            author {
+              name
+            }
+          }
+          pages
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      Object {
+        "data": Object {
+          "blog": Object {
+            "pages": Array [
+              1,
+              2,
+              3,
+            ],
+            "posts": Array [
+              Object {
+                "author": Object {
+                  "name": "Maurine Rath",
+                },
+                "id": "1",
+              },
+              Object {
+                "author": Object {
+                  "name": "Maurine Rath",
+                },
+                "id": "2",
+              },
+              Object {
+                "author": Object {
+                  "name": "Maurine Rath",
+                },
+                "id": "3",
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "action": "findMany",
+          "args": Object {
+            "include": Object {
+              "author": true,
+              "comments": Object {
+                "include": Object {
+                  "author": true,
+                },
+                "take": 3,
+              },
+            },
+            "take": 3,
+          },
+          "dataPath": Array [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

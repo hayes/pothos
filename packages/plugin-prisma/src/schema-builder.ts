@@ -97,7 +97,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
       context: SchemaTypes['Context'],
       info: GraphQLResolveInfo,
     ) => {
-      const query = queryFromInfo(context, info, typeName);
+      const query = queryFromInfo({ context, info, typeName });
       const delegate = getDelegateFromModel(getClient(this, context), type);
 
       const record = await (delegate.findUniqueOrThrow

@@ -1,5 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
+import { queryFromInfo } from '../../../src/util/map-query';
 import { Post } from '../../client';
 import builder, { prisma } from '../builder';
 
@@ -766,6 +767,29 @@ builder.queryField('manualConnection', (t) =>
             },
           }),
       ),
+  }),
+);
+
+const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').implement({
+  fields: (t) => ({
+    posts: t.prismaField({
+      type: ['Post'],
+      resolve: (_, blog) => blog.posts,
+    }),
+    pages: t.exposeIntList('pages'),
+  }),
+});
+
+builder.queryField('blog', (t) =>
+  t.field({
+    type: Blog,
+    resolve: async (_, args, context, info) => ({
+      posts: await prisma.post.findMany({
+        ...queryFromInfo({ context, info, typeName: 'Post', path: ['posts'] }),
+        take: 3,
+      }),
+      pages: [1, 2, 3],
+    }),
   }),
 );
 

@@ -33,10 +33,10 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   return this.field({
     ...(options as {}),
     type: typeParam,
-    resolve: (parent: never, args: unknown, ctx: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo(ctx, info);
+    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      const query = queryFromInfo({ context, info });
 
-      return resolve(query, parent, args as never, ctx, info) as never;
+      return resolve(query, parent, args as never, context, info) as never;
     },
   }) as never;
 };
@@ -89,21 +89,25 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       resolve: (
         parent: unknown,
         args: PothosSchemaTypes.DefaultConnectionArguments,
-        ctx: {},
+        context: {},
         info: GraphQLResolveInfo,
       ) =>
         resolvePrismaCursorConnection(
           {
-            query: queryFromInfo(ctx, info, undefined, { select: cursorSelection as {} }),
-            ctx,
+            query: queryFromInfo({
+              context,
+              info,
+              select: cursorSelection as {},
+            }),
+            ctx: context,
             parseCursor,
             maxSize,
             defaultSize,
             args,
-            totalCount: totalCount && (() => totalCount(parent, args as never, ctx, info)),
+            totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
           formatCursor,
-          (query) => resolve(query as never, parent, args as never, ctx, info),
+          (query) => resolve(query as never, parent, args as never, context, info),
         ),
     },
     {

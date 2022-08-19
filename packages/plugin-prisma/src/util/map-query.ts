@@ -306,20 +306,40 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo(
-  context: object,
-  info: GraphQLResolveInfo,
-  typeName?: string,
-  initialSelection?: SelectionMap,
-): {} {
+export function queryFromInfo({
+  context,
+  info,
+  typeName,
+  select,
+  path = [],
+}: {
+  context: object;
+  info: GraphQLResolveInfo;
+  typeName?: string;
+  select?: SelectionMap['select'];
+  path?: string[];
+}): {} {
   const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
   const state = createStateForType(type, info);
 
-  if (initialSelection) {
-    mergeSelection(state, initialSelection);
+  if (select) {
+    mergeSelection(state, { select });
   }
 
-  addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
+  if (path.length > 0) {
+    resolveIndirectInclude(
+      getNamedType(info.returnType),
+      info,
+      info.fieldNodes[0],
+      path.map((n) => (typeof n === 'string' ? { name: n } : n)),
+      [],
+      (resolvedType, resolvedField, nested) => {
+        addTypeSelectionsForField(resolvedType, context, info, state, resolvedField, nested);
+      },
+    );
+  } else {
+    addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
+  }
 
   setLoaderMappings(context, info, state.mappings);
 

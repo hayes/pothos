@@ -5,6 +5,11 @@ exports[`prisma generates schema 1`] = `
   message: String!
 }
 
+type Blog {
+  pages: [Int!]!
+  posts: [Post!]!
+}
+
 type Comment {
   author: User!
   authorBio: String
@@ -109,6 +114,7 @@ type Profile {
 
 type Query {
   badUser: User!
+  blog: Blog!
   findUniqueRelations: FindUniqueRelations!
   findUniqueRelationsSelect: FindUniqueRelations!
   manualConnection(after: ID, before: ID, first: Int, last: Int): QueryManualConnection!
