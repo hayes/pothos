@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.24.0
+
+### Minor Changes
+
+- 5e71c283: update queryFromInfo to support indirect paths
+
 ## 3.23.0
 
 ### Minor Changes
