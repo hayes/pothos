@@ -11,7 +11,8 @@ describe('edgedb', () => {
   });
 
   it('generates schema', () => {
-    expect(printSchema(schema)).toMatchSnapshot();
+    const graphqlSchema = printSchema(schema);
+    expect(graphqlSchema).toMatchSnapshot();
   });
 
   it('queries for single item', async () => {
@@ -29,16 +30,13 @@ describe('edgedb', () => {
       contextValue: { user: { id: 'a04bf8b8-1bfd-11ed-93f8-836b78753212' } },
     });
 
-    console.log('result::', result);
-
     expect(result).toMatchInlineSnapshot(`
       Object {
         "data": Object {
-          "me": null,
+          "me": Object {
+            "id": "a04bf8b8-1bfd-11ed-93f8-836b78753212",
+          },
         },
-        "errors": Array [
-          [GraphQLError: Cannot return null for non-nullable field ExplicitEdgeDBUser.id.],
-        ],
       }
     `);
   });

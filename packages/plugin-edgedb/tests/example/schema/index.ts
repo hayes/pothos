@@ -28,7 +28,7 @@ builder.edgeDBObject('Post', {
     title: t.exposeString('title'),
     content: t.exposeString('content', { nullable: true }),
     published: t.exposeBoolean('published'),
-    // createdAt: t.expose('created_at'),
+    createdAt: t.expose('created_at', { type: 'DateTime' }),
     author: t.link('author'),
   }),
 });
@@ -46,18 +46,17 @@ builder.queryType({
     me: t.field({
       type: UserRef,
       nullable: true,
-      //@ts-ignore
+      // Temporarily since `User` doesnt have the links defined yet.
+      // @ts-ignore
       resolve: async (root, args, ctx, info) => {
         const user = await e
           .select(e.User, (user) => ({
-            email: user.email,
+            id: true,
+            email: true,
+            name: true,
             filter: e.op(user.id, '=', e.uuid(ctx.user.id)),
           }))
           .run(db);
-
-        console.log(await e.count(e.User).run(db));
-
-        console.log('[query] user: ', user);
 
         return user;
       },

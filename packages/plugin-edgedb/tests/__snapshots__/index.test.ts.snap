@@ -12,6 +12,7 @@ type ExplicitEdgeDBUser {
 type Post {
   author: User!
   content: String
+  createdAt: DateTime!
   id: ID!
   published: Boolean!
   title: String!

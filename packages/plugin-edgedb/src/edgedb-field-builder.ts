@@ -37,7 +37,7 @@ export class EdgeDBObjectFieldBuilder<
         };
       })
     | never,
-  Shape extends object = Model,
+  Shape extends object = Exclude<Model, 'Links' & 'Fields'>,
 > extends RootBuilder<Types, Model, 'EdgeDBObject'> {
   model: string;
   edgeDBFieldMap: FieldMap;
@@ -119,7 +119,7 @@ export class EdgeDBObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, Shape, Type, Nullable>,
+    Name extends CompatibleTypes<Types, Model, Type, Nullable>,
   >(
     ...args: NormalizeArgs<
       [
@@ -127,7 +127,7 @@ export class EdgeDBObjectFieldBuilder<
         options?: Omit<
           PothosSchemaTypes.ObjectFieldOptions<
             Types,
-            Shape, // TODO Rename to model?
+            Shape,
             Type,
             Nullable,
             {},
@@ -141,17 +141,10 @@ export class EdgeDBObjectFieldBuilder<
     const [name, options = {} as never] = args;
 
     const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
-    const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
+    const usingSelect = false;
 
     return this.exposeField(name as never, {
       ...options,
-      extensions: {
-        ...options.extensions,
-        pothosPrismaVariant: name,
-        pothosPrismaSelect: usingSelect && {
-          [name]: true,
-        },
-      },
     });
   }
 
