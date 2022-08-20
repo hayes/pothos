@@ -1,0 +1,59 @@
+{
+  "name": "@pothos/plugin-prisma-utils",
+  "version": "0.0.0",
+  "description": "A Pothos plugin containing utility functions for building prisma inputs",
+  "main": "./lib/index.js",
+  "types": "./lib/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": "./esm/index.js",
+    "require": "./lib/index.js"
+  },
+  "scripts": {
+    "generate": "prisma generate",
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:esm && pnpm build:dts",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
+    "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
+    "test": "pnpm vitest --run"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "prisma"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.mjs"
+  },
+  "dependencies": {
+    "@prisma/generator-helper": "^4.1.0"
+  },
+  "peerDependencies": {
+    "@pothos/plugin-prisma": "workspace:*",
+    "@prisma/client": "*",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-prisma": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "@prisma/client": "^4.1.0",
+    "graphql": "16.3.0",
+    "graphql-tag": "^2.12.6",
+    "prisma": "^4.1.0"
+  }
+}

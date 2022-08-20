@@ -1,0 +1,77 @@
+// Vitest Snapshot v1
+
+exports[`prisma utils > generates schema 1`] = `
+"input CommentWhere {
+  createdAt: DateTime
+}
+
+scalar DateTime
+
+input IntFilter {
+  equals: Int
+  not: IntFilter
+}
+
+input ListCommentWhere {
+  some: CommentWhere
+}
+
+enum OrderBy {
+  Asc
+  Desc
+}
+
+type Post {
+  id: ID!
+}
+
+input PostOrderBy {
+  author: UserOrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  title: OrderBy
+}
+
+input PostWhere {
+  author: UserWhere
+
+  \\"\\"\\"filter by author id\\"\\"\\"
+  authorId: IntFilter
+  comments: ListCommentWhere
+  createdAt: DateTime
+  id: IntFilter
+  title: String
+}
+
+input ProfileOrderBy {
+  bio: OrderBy
+  user: UserOrderBy
+}
+
+type Query {
+  post(list: StringListFilter, title: StringFilter): Post
+  posts(filter: PostWhere, order: PostOrderBy): [Post!]!
+}
+
+input StringFilter {
+  contains: String
+  equals: String
+  not: StringFilter
+  startsWith: String
+}
+
+input StringListFilter {
+  every: StringFilter
+  none: StringFilter
+  some: StringFilter
+}
+
+input UserOrderBy {
+  name: OrderBy
+  profile: ProfileOrderBy
+}
+
+input UserWhere {
+  id: IntFilter
+}"
+`;

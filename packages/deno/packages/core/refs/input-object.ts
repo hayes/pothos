@@ -2,7 +2,7 @@
 /* eslint-disable max-classes-per-file */
 import { InputFieldsFromShape, InputRef, inputShapeKey, RecursivelyNormalizeNullableFields, SchemaTypes, } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
-export default class InputObjectRef<T> extends BaseTypeRef implements InputRef, PothosSchemaTypes.InputObjectRef<T> {
+export default class InputObjectRef<T> extends BaseTypeRef implements InputRef<T>, PothosSchemaTypes.InputObjectRef<T> {
     override kind = "InputObject" as const;
     [inputShapeKey]!: T;
     constructor(name: string) {

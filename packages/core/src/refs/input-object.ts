@@ -10,7 +10,7 @@ import BaseTypeRef from './base';
 
 export default class InputObjectRef<T>
   extends BaseTypeRef
-  implements InputRef, PothosSchemaTypes.InputObjectRef<T>
+  implements InputRef<T>, PothosSchemaTypes.InputObjectRef<T>
 {
   override kind = 'InputObject' as const;
 
