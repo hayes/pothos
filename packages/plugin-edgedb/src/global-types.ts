@@ -102,7 +102,19 @@ declare global {
         Type extends TypeParam extends [unknown]
           ? [ObjectRef<Model['Shape']>]
           : ObjectRef<Model['Shape']>,
-        Model extends EdgeDBModelTypes = EdgeDBModelTypes &
+        Model extends EdgeDBModelTypes = EdgeDBModelShape<
+          Types,
+          // @ts-expect-error -> string | number | symbol not assignable to ..
+          TypeParam extends [keyof Types['EdgeDBTypes']['default']]
+            ? keyof Types['EdgeDBTypes']['default'][TypeParam[0]]
+            : TypeParam extends [EdgeDBObjectRef<EdgeDBModelTypes>]
+            ? TypeParam[0][typeof edgeDBModelKey]
+            : TypeParam extends EdgeDBObjectRef<EdgeDBModelTypes>
+            ? TypeParam[typeof edgeDBModelKey]
+            : TypeParam extends keyof Types['EdgeDBTypes']['default']
+            ? TypeParam
+            : never
+        > &
           (TypeParam extends [keyof Types['EdgeDBTypes']['default']]
             ? Types['EdgeDBTypes']['default'][TypeParam[0]]
             : TypeParam extends [EdgeDBObjectRef<EdgeDBModelTypes>]

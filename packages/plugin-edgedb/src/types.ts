@@ -42,7 +42,7 @@ export type EdgeDBDefaultExportKeyTypes<DefaultExports> = {
     : never;
 }[keyof DefaultExports];
 
-type EdgeDBDefaultExportKey<
+type EdgeDBModelKeyAsString<
   DefaultExports,
   KeyType extends string | number | symbol = EdgeDBDefaultExportKeyTypes<DefaultExports>,
 > = Extract<keyof DefaultExports, KeyType>;
@@ -394,8 +394,8 @@ export type EdgeDBFieldResolver<
   info: GraphQLResolveInfo,
 ) => ShapeFromTypeParam<Types, Param, Nullable> extends infer Shape
   ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
-    ? ListResolveValue<Shape, Item, ResolveReturnShape>
-    : MaybePromise<Shape>
+    ? ListResolveValue<Partial<Shape>, Item, ResolveReturnShape>
+    : MaybePromise<Partial<Shape>>
   : never;
 
 export type EdgeDBFieldOptions<
@@ -403,8 +403,8 @@ export type EdgeDBFieldOptions<
   ParentShape,
   Type extends
     | EdgeDBObjectRef<EdgeDBModelTypes>
-    | keyof Types['EdgeDBTypes']
-    | [keyof Types['EdgeDBTypes']]
+    | keyof Types['EdgeDBTypes']['default']
+    | [keyof Types['EdgeDBTypes']['default']]
     | [EdgeDBObjectRef<EdgeDBModelTypes>],
   Model extends EdgeDBModelTypes,
   Param extends TypeParam<Types>,

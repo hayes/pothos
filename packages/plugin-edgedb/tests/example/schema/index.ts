@@ -1,7 +1,6 @@
 import e, { Post, User } from '../../client';
 import { db } from '../db';
 import builder from '../builder';
-import { getNamedType } from 'graphql';
 
 const PostPreview = builder.objectRef<Post>('PostPreview');
 PostPreview.implement({
@@ -51,9 +50,6 @@ builder.queryType({
       // Temporarily since `User` doesnt have the links defined yet.
       // @ts-ignore
       resolve: async (root, args, ctx, info) => {
-        console.log(info.returnType);
-        console.log(getNamedType(info.returnType));
-
         const user = await e
           .select(e.User, (user) => ({
             id: true,
@@ -67,13 +63,15 @@ builder.queryType({
       },
     }),
     users: t.edgeDBField({
-      type: ['User'],
+      type: 'User',
       nullable: true,
-      resolve: async (_query, _, __, ctx) => {
+      resolve: async (_query, _parent, _args, ctx) => {
         const user = await e
-          .select(e.User, () => ({
+          .select(e.User, (user) => ({
+            id: true,
             email: true,
-            title: true,
+            name: true,
+            filter: e.op(user.id, '=', e.uuid(ctx.user.id)),
           }))
           .run(db);
 
