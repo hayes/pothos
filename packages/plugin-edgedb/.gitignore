@@ -1,4 +1,3 @@
-edgedb.toml
 dbschema/edgeql-js/*
 TODO.md
 api-design.md
