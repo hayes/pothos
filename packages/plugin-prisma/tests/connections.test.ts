@@ -48,90 +48,90 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
+                "node": {
                   "id": "VXNlcjox",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Saepe deserunt animi quia.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjoy",
                   "profile": null,
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjoz",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Fugit vel voluptas porro qui natus earum.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjo0",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Doloribus eos quo.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjo1",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Iste velit dolorem amet aut nostrum.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjo2",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Provident dolorum autem fugiat eum quas accusantium corporis cumque explicabo.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjo3",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Cupiditate totam saepe asperiores eius est culpa odit ea.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjo4",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Optio dolor et facilis repellendus dignissimos expedita.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjo5",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Omnis eum magni ut eveniet maxime.",
                   },
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "VXNlcjoxMA==",
-                  "profile": Object {
+                  "profile": {
                     "bio": "Mollitia cumque est ullam non qui et beatae recusandae.",
                   },
                 },
               },
             ],
-            "pageInfo": Object {
+            "pageInfo": {
               "endCursor": "R1BDOk46MTA=",
               "hasNextPage": true,
               "hasPreviousPage": false,
@@ -143,17 +143,17 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "profile": true,
             },
             "skip": 0,
             "take": 11,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -187,18 +187,18 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46Mg==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoy",
                 },
               },
             ],
-            "pageInfo": Object {
+            "pageInfo": {
               "endCursor": "R1BDOk46Mg==",
               "hasNextPage": true,
               "hasPreviousPage": true,
@@ -210,17 +210,17 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
+          "args": {
+            "cursor": {
               "id": 1,
             },
             "skip": 1,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -255,102 +255,102 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46Mg==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoy",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Mw==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoz",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46NA==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo0",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46NQ==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo1",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Ng==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo2",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Nw==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo3",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46OA==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo4",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46OQ==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo5",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTA=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxMA==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTE=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxMQ==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTI=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxMg==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTM=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxMw==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTQ=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxNA==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTU=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxNQ==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTY=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxNg==",
                 },
               },
             ],
-            "pageInfo": Object {
+            "pageInfo": {
               "endCursor": "R1BDOk46MTY=",
               "hasNextPage": true,
               "hasPreviousPage": true,
@@ -362,17 +362,17 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
+          "args": {
+            "cursor": {
               "id": 1,
             },
             "skip": 1,
             "take": 16,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -407,30 +407,30 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjox",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Mg==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoy",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Mw==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoz",
                 },
               },
             ],
-            "pageInfo": Object {
+            "pageInfo": {
               "endCursor": "R1BDOk46Mw==",
               "hasNextPage": true,
               "hasPreviousPage": false,
@@ -442,17 +442,17 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
+          "args": {
+            "cursor": {
               "id": 4,
             },
             "skip": 1,
             "take": -16,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -487,30 +487,30 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjox",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Mg==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoy",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46Mw==",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoz",
                 },
               },
             ],
-            "pageInfo": Object {
+            "pageInfo": {
               "endCursor": "R1BDOk46Mw==",
               "hasNextPage": true,
               "hasPreviousPage": false,
@@ -522,17 +522,17 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
+          "args": {
+            "cursor": {
               "id": 4,
             },
             "skip": 1,
             "take": -11,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -567,30 +567,30 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46OTg=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo5OA==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46OTk=",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjo5OQ==",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOk46MTAw",
-                "node": Object {
+                "node": {
                   "id": "VXNlcjoxMDA=",
                 },
               },
             ],
-            "pageInfo": Object {
+            "pageInfo": {
               "endCursor": "R1BDOk46MTAw",
               "hasNextPage": false,
               "hasPreviousPage": true,
@@ -602,17 +602,17 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
+          "args": {
+            "cursor": {
               "id": 97,
             },
             "skip": 1,
             "take": 11,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -653,117 +653,117 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
-                  "postsConnection": Object {
-                    "edges": Array [
-                      Object {
-                        "node": Object {
+                "node": {
+                  "postsConnection": {
+                    "edges": [
+                      {
+                        "node": {
                           "id": "250",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "249",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "248",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "247",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "246",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "245",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "244",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "243",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "242",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "241",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "240",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "239",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "238",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "237",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "236",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "235",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "234",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "233",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "232",
                         },
                       },
-                      Object {
-                        "node": Object {
+                      {
+                        "node": {
                           "id": "231",
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDIzMA==",
                       "hasNextPage": true,
                       "hasPreviousPage": false,
@@ -779,21 +779,21 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
@@ -803,7 +803,7 @@ describe('prisma', () => {
             "skip": 0,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -845,29 +845,29 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
-                  "postsConnection": Object {
-                    "edges": Array [
-                      Object {
+                "node": {
+                  "postsConnection": {
+                    "edges": [
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0NA==",
-                        "node": Object {
+                        "node": {
                           "id": "245",
                         },
                       },
-                      Object {
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0Mw==",
-                        "node": Object {
+                        "node": {
                           "id": "244",
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0Mw==",
                       "hasNextPage": true,
                       "hasPreviousPage": true,
@@ -883,24 +883,24 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "cursor": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "cursor": {
                   "createdAt": 2012-12-12T00:00:00.245Z,
                 },
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 1,
@@ -910,7 +910,7 @@ describe('prisma', () => {
             "skip": 0,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -952,23 +952,23 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
-                  "postsConnection": Object {
-                    "edges": Array [
-                      Object {
+                "node": {
+                  "postsConnection": {
+                    "edges": [
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
-                        "node": Object {
+                        "node": {
                           "id": "250",
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                       "hasNextPage": false,
                       "hasPreviousPage": true,
@@ -984,24 +984,24 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "cursor": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "cursor": {
                   "createdAt": 2012-12-12T00:00:00.248Z,
                 },
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "asc",
                 },
                 "skip": 1,
@@ -1011,7 +1011,7 @@ describe('prisma', () => {
             "skip": 0,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -1067,45 +1067,45 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
-                  "newPosts": Object {
-                    "edges": Array [
-                      Object {
+                "node": {
+                  "newPosts": {
+                    "edges": [
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
-                        "node": Object {
+                        "node": {
                           "id": "250",
                         },
                       },
-                      Object {
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
-                        "node": Object {
+                        "node": {
                           "id": "249",
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
                       "hasNextPage": true,
                       "hasPreviousPage": false,
                       "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                     },
                   },
-                  "postsConnection": Object {
-                    "edges": Array [
-                      Object {
+                  "postsConnection": {
+                    "edges": [
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
-                        "node": Object {
+                        "node": {
                           "id": "250",
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                       "hasNextPage": false,
                       "hasPreviousPage": true,
@@ -1121,24 +1121,24 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "cursor": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "cursor": {
                   "createdAt": 2012-12-12T00:00:00.248Z,
                 },
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "asc",
                 },
                 "skip": 1,
@@ -1148,35 +1148,35 @@ describe('prisma', () => {
             "skip": 0,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -1242,31 +1242,31 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnection": Object {
-            "edges": Array [
-              Object {
+      {
+        "data": {
+          "userConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOk46MQ==",
-                "node": Object {
-                  "newPosts": Object {
-                    "edges": Array [
-                      Object {
+                "node": {
+                  "newPosts": {
+                    "edges": [
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
-                        "node": Object {
-                          "author": Object {
-                            "profile": Object {
+                        "node": {
+                          "author": {
+                            "profile": {
                               "bio": "Saepe deserunt animi quia.",
                             },
                           },
                           "id": "250",
                         },
                       },
-                      Object {
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
-                        "node": Object {
-                          "author": Object {
-                            "profile": Object {
+                        "node": {
+                          "author": {
+                            "profile": {
                               "bio": "Saepe deserunt animi quia.",
                             },
                           },
@@ -1274,20 +1274,20 @@ describe('prisma', () => {
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OA==",
                       "hasNextPage": true,
                       "hasPreviousPage": false,
                       "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                     },
                   },
-                  "postsConnection": Object {
-                    "edges": Array [
-                      Object {
+                  "postsConnection": {
+                    "edges": [
+                      {
                         "cursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
-                        "node": Object {
-                          "author": Object {
-                            "profile": Object {
+                        "node": {
+                          "author": {
+                            "profile": {
                               "bio": "Saepe deserunt animi quia.",
                             },
                           },
@@ -1295,7 +1295,7 @@ describe('prisma', () => {
                         },
                       },
                     ],
-                    "pageInfo": Object {
+                    "pageInfo": {
                       "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                       "hasNextPage": false,
                       "hasPreviousPage": true,
@@ -1311,29 +1311,29 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "cursor": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "cursor": {
                   "createdAt": 2012-12-12T00:00:00.248Z,
                 },
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "asc",
                 },
                 "skip": 1,
@@ -1343,40 +1343,40 @@ describe('prisma', () => {
             "skip": 0,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -1417,17 +1417,17 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "userConnectionWithErrors": Object {
+      {
+        "data": {
+          "userConnectionWithErrors": {
             "__typename": "QueryUserConnectionWithErrorsSuccess",
-            "data": Object {
-              "edges": Array [
-                Object {
-                  "node": Object {
-                    "profile": Object {
+            "data": {
+              "edges": [
+                {
+                  "node": {
+                    "profile": {
                       "bio": "Saepe deserunt animi quia.",
-                      "user": Object {
+                      "user": {
                         "id": "VXNlcjox",
                       },
                     },
@@ -1441,13 +1441,13 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "profile": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
                   "user": true,
                 },
               },
@@ -1455,7 +1455,7 @@ describe('prisma', () => {
             "skip": 0,
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -1497,17 +1497,17 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "postsConnectionWithErrors": Object {
+      {
+        "data": {
+          "me": {
+            "postsConnectionWithErrors": {
               "__typename": "UserPostsConnectionWithErrorsSuccess",
-              "data": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
-                      "author": Object {
-                        "profile": Object {
+              "data": {
+                "edges": [
+                  {
+                    "node": {
+                      "author": {
+                        "profile": {
                           "bio": "Saepe deserunt animi quia.",
                         },
                       },
@@ -1522,20 +1522,20 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
@@ -1545,11 +1545,11 @@ describe('prisma', () => {
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -1594,33 +1594,33 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "following": Object {
-              "edges": Array [
-                Object {
+      {
+        "data": {
+          "me": {
+            "following": {
+              "edges": [
+                {
                   "cursor": "R1BDOko6WzEsMl0=",
-                  "node": Object {
-                    "to": Object {
+                  "node": {
+                    "to": {
                       "id": "VXNlcjoy",
                       "name": "Kyla Schoen",
                     },
                   },
                 },
-                Object {
+                {
                   "cursor": "R1BDOko6WzEsMjFd",
-                  "node": Object {
-                    "to": Object {
+                  "node": {
+                    "to": {
                       "id": "VXNlcjoyMQ==",
                       "name": "Eunice Ledner",
                     },
                   },
                 },
-                Object {
+                {
                   "cursor": "R1BDOko6WzEsMzBd",
-                  "node": Object {
-                    "to": Object {
+                  "node": {
+                    "to": {
                       "id": "VXNlcjozMA==",
                       "name": "Sydni Schmitt",
                     },
@@ -1628,30 +1628,30 @@ describe('prisma', () => {
                 },
               ],
             },
-            "followingAfter": Object {
-              "edges": Array [
-                Object {
+            "followingAfter": {
+              "edges": [
+                {
                   "cursor": "R1BDOko6WzEsMzBd",
-                  "node": Object {
-                    "to": Object {
+                  "node": {
+                    "to": {
                       "id": "VXNlcjozMA==",
                       "name": "Sydni Schmitt",
                     },
                   },
                 },
-                Object {
+                {
                   "cursor": "R1BDOko6WzEsMzld",
-                  "node": Object {
-                    "to": Object {
+                  "node": {
+                    "to": {
                       "id": "VXNlcjozOQ==",
                       "name": "Estefania Jacobs",
                     },
                   },
                 },
-                Object {
+                {
                   "cursor": "R1BDOko6WzEsNDNd",
-                  "node": Object {
-                    "to": Object {
+                  "node": {
+                    "to": {
                       "id": "VXNlcjo0Mw==",
                       "name": "Renee McGlynn",
                     },
@@ -1665,50 +1665,50 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "following": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "following": {
+                "include": {
                   "to": true,
                 },
                 "skip": 0,
                 "take": 4,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "following": Object {
-                "cursor": Object {
-                  "compositeID": Object {
+          "args": {
+            "include": {
+              "following": {
+                "cursor": {
+                  "compositeID": {
                     "fromId": 1,
                     "toId": 21,
                   },
                 },
-                "include": Object {
+                "include": {
                   "to": true,
                 },
                 "skip": 1,
                 "take": 4,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -1736,17 +1736,17 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "postsBigIntCursor": Object {
-            "edges": Array [
-              Object {
-                "node": Object {
+      {
+        "data": {
+          "postsBigIntCursor": {
+            "edges": [
+              {
+                "node": {
                   "id": "1",
                 },
               },
-              Object {
-                "node": Object {
+              {
+                "node": {
                   "id": "2",
                 },
               },
@@ -1757,13 +1757,13 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
                   "author": true,
                 },
                 "take": 3,
@@ -1772,7 +1772,7 @@ describe('prisma', () => {
             "skip": 0,
             "take": 3,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },

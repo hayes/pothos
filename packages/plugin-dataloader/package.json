@@ -18,7 +18,7 @@
     "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
-    "test": "pnpm jest --runInBand"
+    "test": "pnpm vitest --run"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -44,7 +44,7 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "dataloader": "^2.1.0",
-    "graphql": "16.5.0",
+    "graphql": "16.6.0",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`giraffe example generates expected schema 1`] = `
+exports[`giraffe example > generates expected schema 1`] = `
 "interface Animal {
   diet: Diet!
 }
@@ -110,21 +110,21 @@ input RecursiveGiraffeInput {
 }"
 `;
 
-exports[`giraffe example mutations mutate some stuff 1`] = `
-Object {
-  "data": Object {
-    "createGiraffe": Object {
+exports[`giraffe example > mutations > mutate some stuff 1`] = `
+{
+  "data": {
+    "createGiraffe": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "createGiraffeWithFriends": Array [
-      Object {
+    "createGiraffeWithFriends": [
+      {
         "age": 5,
         "diet": "HERBIVOROUS",
         "name": "James",
       },
-      Object {
+      {
         "age": 5,
         "diet": "HERBIVOROUS",
         "name": "James",
@@ -134,46 +134,46 @@ Object {
 }
 `;
 
-exports[`giraffe example queries query some stuff 1`] = `
-Object {
-  "data": Object {
-    "animal": Object {
+exports[`giraffe example > queries > query some stuff 1`] = `
+{
+  "data": {
+    "animal": {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "animalClass": Object {
+    "animalClass": {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "animalRef": Object {
+    "animalRef": {
       "diet": "HERBIVOROUS",
       "name": "James",
     },
     "date": "2012-12-12",
-    "giraffe": Object {
+    "giraffe": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "height": 5.2,
       "heightInFeet": 17.061200000000003,
       "name": "James",
     },
-    "giraffeClass": Object {
+    "giraffeClass": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",
     },
-    "giraffeFacts": Array [
-      Object {
+    "giraffeFacts": [
+      {
         "__typename": "GiraffeStringFact",
         "fact": "A giraffe’s spots are much like human fingerprints. No two individual giraffes have exactly the same pattern",
       },
-      Object {
+      {
         "__typename": "GiraffeNumericFact",
         "fact": "Top speed (MPH)",
         "value": 35,
       },
     ],
-    "giraffeRef": Object {
+    "giraffeRef": {
       "age": 5,
       "diet": "HERBIVOROUS",
       "name": "James",

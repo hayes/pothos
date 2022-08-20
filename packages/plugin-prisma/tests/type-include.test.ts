@@ -60,15 +60,15 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
@@ -76,38 +76,38 @@ describe('prisma', () => {
                 "skip": 0,
                 "take": 2,
               },
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
@@ -116,11 +116,11 @@ describe('prisma', () => {
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },

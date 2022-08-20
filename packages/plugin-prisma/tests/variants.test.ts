@@ -58,74 +58,74 @@ describe('variants', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
+      {
+        "data": {
+          "me": {
             "__typename": "User",
-            "profile": Object {
+            "profile": {
               "bio": "Saepe deserunt animi quia.",
             },
-            "viewer": Object {
+            "viewer": {
               "__typename": "Viewer",
               "bio": "Saepe deserunt animi quia.",
-              "posts": Array [
-                Object {
+              "posts": [
+                {
                   "id": "1",
                 },
-                Object {
+                {
                   "id": "2",
                 },
-                Object {
+                {
                   "id": "3",
                 },
-                Object {
+                {
                   "id": "4",
                 },
-                Object {
+                {
                   "id": "5",
                 },
               ],
-              "user": Object {
+              "user": {
                 "__typename": "User",
-                "posts": Array [
-                  Object {
+                "posts": [
+                  {
                     "id": "250",
                   },
-                  Object {
+                  {
                     "id": "249",
                   },
-                  Object {
+                  {
                     "id": "248",
                   },
-                  Object {
+                  {
                     "id": "247",
                   },
-                  Object {
+                  {
                     "id": "246",
                   },
-                  Object {
+                  {
                     "id": "245",
                   },
-                  Object {
+                  {
                     "id": "244",
                   },
-                  Object {
+                  {
                     "id": "243",
                   },
-                  Object {
+                  {
                     "id": "242",
                   },
-                  Object {
+                  {
                     "id": "241",
                   },
                 ],
-                "profile": Object {
+                "profile": {
                   "bio": "Saepe deserunt animi quia.",
                 },
               },
             },
           },
-          "viewerNode": Object {
+          "viewerNode": {
             "__typename": "ViewerNode",
             "id": "Vmlld2VyTm9kZTox",
           },
@@ -134,29 +134,29 @@ describe('variants', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
@@ -166,39 +166,39 @@ describe('variants', () => {
               },
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "take": 10,
               },
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },

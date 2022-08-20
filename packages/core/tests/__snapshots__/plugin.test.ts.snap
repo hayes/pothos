@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`plugin example generates expected schema 1`] = `
+exports[`plugin example > generates expected schema 1`] = `
 "type Query {
   args(input: TestInput, notRemoved: Boolean, testEnum: TestEnum): Boolean!
   notRemoved: Boolean!

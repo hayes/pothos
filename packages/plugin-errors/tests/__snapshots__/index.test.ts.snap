@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`errors plugin generates expected schema 1`] = `
+exports[`errors plugin > generates expected schema 1`] = `
 "type BaseError implements Error {
   message: String!
 }

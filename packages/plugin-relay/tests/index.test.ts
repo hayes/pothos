@@ -377,7 +377,7 @@ describe('relay example schema', () => {
       });
 
       expect(result.data).toMatchInlineSnapshot(`
-        Object {
+        {
           "inputGlobalID": "{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"inputObj\\":{\\"circular\\":{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"normalId\\":\\"123\\"}",
         }
       `);
@@ -401,8 +401,8 @@ describe('relay example schema', () => {
     });
 
     expect(result.data).toMatchInlineSnapshot(`
-      Object {
-        "node": Object {
+      {
+        "node": {
           "__typename": "NumberRef",
           "id": "TnVtYmVyUmVmOjEyMw==",
         },
@@ -436,17 +436,17 @@ describe('relay example schema', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
-            "a": Object {
+        {
+          "data": {
+            "a": {
               "clientMutationId": "a",
               "itWorked": true,
             },
-            "b": Object {
+            "b": {
               "clientMutationId": "b",
               "itWorked": false,
             },
-            "exampleWithDescriptions": Object {
+            "exampleWithDescriptions": {
               "clientMutationId": "c",
               "itWorked": true,
             },
@@ -480,19 +480,19 @@ describe('relay example schema', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
-            "oddNumbers": Object {
-              "edges": Array [
-                Object {
-                  "node": Object {
+        {
+          "data": {
+            "oddNumbers": {
+              "edges": [
+                {
+                  "node": {
                     "nodeId": "TnVtYmVyOjE=",
                   },
                 },
                 null,
               ],
-              "nodes": Array [
-                Object {
+              "nodes": [
+                {
                   "nodeId": "TnVtYmVyOjE=",
                 },
                 null,

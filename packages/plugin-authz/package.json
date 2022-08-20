@@ -41,7 +41,7 @@
     "@graphql-authz/core": "^1.2.1",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "^16.5.0",
+    "graphql": "16.6.0",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

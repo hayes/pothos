@@ -23,8 +23,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdmin": "ok",
         },
       }
@@ -49,9 +49,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdmin],
         ],
       }
@@ -76,9 +76,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "forAdminUnauthorizedResolve": Array [],
+      {
+        "data": {
+          "forAdminUnauthorizedResolve": [],
         },
       }
     `);
@@ -103,8 +103,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forSyncPermission": "ok",
         },
       }
@@ -129,9 +129,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forSyncPermission],
         ],
       }
@@ -157,8 +157,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAsyncPermission": "ok",
         },
       }
@@ -183,9 +183,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAsyncPermission],
         ],
       }
@@ -211,8 +211,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAny": "ok",
         },
       }
@@ -238,8 +238,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAny": "ok",
         },
       }
@@ -265,8 +265,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAny": "ok",
         },
       }
@@ -291,9 +291,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAny],
         ],
       }
@@ -320,8 +320,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAll": "ok",
         },
       }
@@ -347,9 +347,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
       }
@@ -376,9 +376,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
       }
@@ -405,9 +405,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAll],
         ],
       }
@@ -430,9 +430,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.emptyAny],
         ],
       }
@@ -455,8 +455,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "emptyAll": "ok",
         },
       }
@@ -482,8 +482,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdminFn": "ok",
         },
       }
@@ -508,9 +508,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdminFn],
         ],
       }
@@ -536,8 +536,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdminAsyncFn": "ok",
         },
       }
@@ -562,9 +562,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAdminAsyncFn],
         ],
       }
@@ -590,8 +590,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forSyncPermissionFn": "ok",
         },
       }
@@ -617,11 +617,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forSyncPermissionFn": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forSyncPermissionFn],
         ],
       }
@@ -647,8 +647,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAsyncPermissionFn": "ok",
         },
       }
@@ -674,11 +674,11 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAsyncPermissionFn": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
         ],
       }
@@ -704,8 +704,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAnyFn": "ok",
         },
       }
@@ -731,8 +731,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAnyFn": "ok",
         },
       }
@@ -758,8 +758,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAnyFn": "ok",
         },
       }
@@ -784,9 +784,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAnyFn],
         ],
       }
@@ -813,8 +813,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAllFn": "ok",
         },
       }
@@ -840,9 +840,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
       }
@@ -869,9 +869,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
       }
@@ -898,9 +898,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forAllFn],
         ],
       }
@@ -923,9 +923,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.emptyAnyFn],
         ],
       }
@@ -948,8 +948,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "emptyAllFn": "ok",
         },
       }
@@ -972,8 +972,8 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forBooleanFn": "ok",
         },
       }
@@ -996,9 +996,9 @@ describe('queries for field authScopes with', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.forBooleanFn],
         ],
       }

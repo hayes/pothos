@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`Example schema generates expected schema 1`] = `
+exports[`Example schema > generates expected schema 1`] = `
 "interface Animal {
   species: String
 }

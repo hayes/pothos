@@ -92,35 +92,35 @@ describe('errors plugin', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "extendedError": Object {
+      {
+        "data": {
+          "extendedError": {
             "__typename": "QueryExtendedErrorSuccess",
             "data": "ok",
           },
-          "extendedErrorError": Object {
+          "extendedErrorError": {
             "__typename": "BaseError",
             "message": "Error from extendedError",
           },
-          "extendedErrorExtended": Object {
+          "extendedErrorExtended": {
             "__typename": "ExtendedError",
             "message": "Error from extendedError",
           },
-          "extendedErrorExtended2": Object {
+          "extendedErrorExtended2": {
             "__typename": "Extended2Error",
             "message": "Error from extendedError",
           },
           "extendedErrorOther": null,
-          "simpleError": Object {
+          "simpleError": {
             "__typename": "QuerySimpleErrorSuccess",
             "data": "ok",
           },
-          "simpleErrorError": Object {
+          "simpleErrorError": {
             "__typename": "BaseError",
             "message": "Error from simpleError field",
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Unexpected error value: { message: "Error from extendedError" }],
         ],
       }
@@ -152,18 +152,18 @@ describe('errors plugin', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "directResult": Object {
-      "__typename": "DirectResult",
-      "id": "123",
-    },
-    "withError": Object {
-      "__typename": "BaseError",
-      "message": "Boom",
-    },
-  },
-}
-`);
+      {
+        "data": {
+          "directResult": {
+            "__typename": "DirectResult",
+            "id": "123",
+          },
+          "withError": {
+            "__typename": "BaseError",
+            "message": "Boom",
+          },
+        },
+      }
+    `);
   });
 });

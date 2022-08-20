@@ -28,12 +28,12 @@ describe('runScopesOnType', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
+      {
+        "data": {
+          "me": {
             "id": "1",
           },
-          "me2": Object {
+          "me2": {
             "id": "1",
           },
         },
@@ -64,14 +64,14 @@ describe('runScopesOnType', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "me": null,
-          "me2": Object {
+          "me2": {
             "id": null,
           },
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: AnyAuthScopes: Not authorized to read fields for User],
           [GraphQLError: AnyAuthScopes: Not authorized to read fields for User2],
         ],

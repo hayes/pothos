@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`starwars example generates expected schema 1`] = `
+exports[`starwars example > generates expected schema 1`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn: [Episode!]!
@@ -82,13 +82,13 @@ type Query {
 }"
 `;
 
-exports[`starwars example queries query some stuff 1`] = `
-Object {
-  "data": Object {
-    "droid": Object {
-      "friends": Array [
-        Object {
-          "appearsIn": Array [
+exports[`starwars example > queries > query some stuff 1`] = `
+{
+  "data": {
+    "droid": {
+      "friends": [
+        {
+          "appearsIn": [
             "NEWHOPE",
             "EMPIRE",
             "JEDI",
@@ -96,8 +96,8 @@ Object {
           "homePlanet": "Tatooine",
           "name": "Luke Skywalker",
         },
-        Object {
-          "appearsIn": Array [
+        {
+          "appearsIn": [
             "NEWHOPE",
             "EMPIRE",
             "JEDI",
@@ -105,8 +105,8 @@ Object {
           "homePlanet": null,
           "name": "Han Solo",
         },
-        Object {
-          "appearsIn": Array [
+        {
+          "appearsIn": [
             "NEWHOPE",
             "EMPIRE",
             "JEDI",
@@ -118,13 +118,13 @@ Object {
       "name": "R2-D2",
       "primaryFunction": "Astromech",
     },
-    "hero": Object {
+    "hero": {
       "name": "R2-D2",
     },
-    "human": Object {
-      "friends": Array [
-        Object {
-          "appearsIn": Array [
+    "human": {
+      "friends": [
+        {
+          "appearsIn": [
             "NEWHOPE",
           ],
           "name": "Wilhuff Tarkin",
@@ -133,7 +133,7 @@ Object {
       "homePlanet": "Tatooine",
       "name": "Darth Vader",
     },
-    "r2d2": Object {
+    "r2d2": {
       "name": "R2-D2",
     },
   },

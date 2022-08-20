@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`simple objects example schema generates expected schema 1`] = `
+exports[`simple objects example schema > generates expected schema 1`] = `
 "type ContactInfo {
   email: String!
   phoneNumber: String
@@ -22,11 +22,11 @@ type User implements Node {
 }"
 `;
 
-exports[`simple objects example schema queries query some stuff 1`] = `
-Object {
-  "data": Object {
-    "user": Object {
-      "contactInfo": Object {
+exports[`simple objects example schema > queries > query some stuff 1`] = `
+{
+  "data": {
+    "user": {
+      "contactInfo": {
         "email": "michael.hayes@example.com",
         "phoneNumber": null,
       },

@@ -50,15 +50,15 @@ describe('example schema', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
+        {
+          "data": {
             "exampleQuery": "123",
-            "iface": Object {
+            "iface": {
               "__typename": "ObjWithInterface",
               "exampleInterfaceField": "123",
               "withOptions": "123",
             },
-            "obj": Object {
+            "obj": {
               "exampleObjectField": "123",
               "withOptions": "123",
             },
@@ -66,7 +66,7 @@ describe('example schema', () => {
             "withValidation": "test@test.com",
             "withValidationInvalid": null,
           },
-          "errors": Array [
+          "errors": [
             [GraphQLError: [
           {
             "validation": "email",
@@ -104,8 +104,8 @@ describe('example schema', () => {
       });
 
       expect(result).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
+        {
+          "data": {
             "exampleMutation": "123",
             "withOptions": "123",
           },

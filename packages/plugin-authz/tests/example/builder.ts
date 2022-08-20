@@ -1,6 +1,6 @@
 import '../../src';
-import SchemaBuilder from '@pothos/core';
 import { postExecRule, preExecRule } from '@graphql-authz/core';
+import SchemaBuilder from '@pothos/core';
 import { posts } from './data';
 
 interface IContext {

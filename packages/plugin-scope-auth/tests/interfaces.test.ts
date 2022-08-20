@@ -25,9 +25,9 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjAdminIface": Object {
+      {
+        "data": {
+          "ObjAdminIface": {
             "field": "ok",
           },
         },
@@ -53,11 +53,11 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "ObjAdminIface": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for IfaceForAdmin],
         ],
       }
@@ -85,9 +85,9 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjBooleanIface": Object {
+      {
+        "data": {
+          "ObjBooleanIface": {
             "field": "ok",
           },
         },
@@ -113,11 +113,11 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "ObjBooleanIface": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for IfaceBooleanFn],
         ],
       }
@@ -145,9 +145,9 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "IfaceForAdmin": Object {
+      {
+        "data": {
+          "IfaceForAdmin": {
             "field": "ok",
           },
         },
@@ -173,11 +173,11 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "IfaceForAdmin": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for IfaceForAdmin],
         ],
       }
@@ -205,9 +205,9 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "IfaceBooleanFn": Object {
+      {
+        "data": {
+          "IfaceBooleanFn": {
             "field": "ok",
           },
         },
@@ -233,11 +233,11 @@ describe('interfaces', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "IfaceBooleanFn": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for IfaceBooleanFn],
         ],
       }

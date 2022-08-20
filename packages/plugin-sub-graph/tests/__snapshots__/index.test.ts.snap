@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`subGraphs Private graph 1`] = `
+exports[`subGraphs > Private graph 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
@@ -102,7 +102,7 @@ type QueryHeroSuccess {
 }"
 `;
 
-exports[`subGraphs Public graph 1`] = `
+exports[`subGraphs > Public graph 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
@@ -148,7 +148,7 @@ type Query {
 }"
 `;
 
-exports[`subGraphs full graph 1`] = `
+exports[`subGraphs > full graph 1`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn: [Episode!]!
@@ -260,7 +260,7 @@ type QueryHeroSuccess {
 }"
 `;
 
-exports[`subGraphs multiple 1`] = `
+exports[`subGraphs > multiple 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!

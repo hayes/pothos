@@ -1,6 +1,6 @@
 import { execute } from 'graphql';
-import { createTestServer } from '@pothos/test-utils';
 import { wrapExecuteFn } from '@graphql-authz/core';
+import { createTestServer } from '@pothos/test-utils';
 import { rules } from './builder';
 import { users } from './data';
 import schema from './schema';

@@ -6,7 +6,7 @@ import rehypeStringify from 'rehype-stringify';
 import { remark } from 'remark';
 import remarkMDX from 'remark-mdx';
 import remarkRehype from 'remark-rehype';
-import boostModule from '@boost/module';
+import { requireModule } from '@boost/module';
 
 const docsProcessor = remark().use(remarkMDX).use(removeMdx);
 const chunkProcessor = remark().use(remarkRehype).use(slug).use(rehypeStringify);
@@ -20,7 +20,7 @@ function removeMdx() {
 
 const dirName = path.dirname(url.fileURLToPath(import.meta.url));
 
-const docs = boostModule.requireModule(path.resolve(dirName, './build-nav.ts')).loadDocsFiles();
+const docs = requireModule(path.resolve(dirName, './build-nav.ts')).loadDocsFiles();
 
 const docsIndex = docs.map((doc) => {
   const ast = docsProcessor.runSync(docsProcessor.parse(doc.content));

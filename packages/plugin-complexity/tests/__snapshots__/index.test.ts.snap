@@ -1,14 +1,14 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`simple objects example schema complexity from query as string 1`] = `
-Object {
+exports[`simple objects example schema > complexity from query > as string 1`] = `
+{
   "breadth": 7,
   "complexity": 66,
   "depth": 5,
 }
 `;
 
-exports[`simple objects example schema generates expected schema 1`] = `
+exports[`simple objects example schema > generates expected schema 1`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn: [Episode!]!
@@ -101,17 +101,17 @@ type Query {
 }"
 `;
 
-exports[`simple objects example schema queries complexity based on args 1`] = `
-Object {
-  "data": Object {
-    "hero": Object {
-      "friends": Array [
-        Object {
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
-                  "appearsIn": Array [
+exports[`simple objects example schema > queries > complexity based on args 1`] = `
+{
+  "data": {
+    "hero": {
+      "friends": [
+        {
+          "friends": [
+            {
+              "friends": [
+                {
+                  "appearsIn": [
                     "NEWHOPE",
                     "EMPIRE",
                     "JEDI",
@@ -129,91 +129,91 @@ Object {
 }
 `;
 
-exports[`simple objects example schema queries complexity based options 1`] = `
-Object {
+exports[`simple objects example schema > queries > complexity based options 1`] = `
+{
   "data": null,
-  "errors": Array [
+  "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 501, max: 200)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries too complex 1`] = `
-Object {
+exports[`simple objects example schema > queries > too complex 1`] = `
+{
   "data": null,
-  "errors": Array [
+  "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 287, max: 200)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries too deep 1`] = `
-Object {
+exports[`simple objects example schema > queries > too deep 1`] = `
+{
   "data": null,
-  "errors": Array [
+  "errors": [
     [GraphQLError: Query exceeds maximum depth (depth: 6, max: 5)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries too wide 1`] = `
-Object {
+exports[`simple objects example schema > queries > too wide 1`] = `
+{
   "data": null,
-  "errors": Array [
+  "errors": [
     [GraphQLError: Query exceeds maximum breadth (breadth: 13, max: 10)],
   ],
 }
 `;
 
-exports[`simple objects example schema queries valid query 1`] = `
-Object {
-  "data": Object {
-    "hero": Object {
-      "friends": Array [
-        Object {
+exports[`simple objects example schema > queries > valid query 1`] = `
+{
+  "data": {
+    "hero": {
+      "friends": [
+        {
           "__typename": "Human",
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
               ],
@@ -221,63 +221,63 @@ Object {
           ],
           "name": "Han Solo",
         },
-        Object {
+        {
           "__typename": "Human",
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
               ],
@@ -285,63 +285,63 @@ Object {
           ],
           "name": "Leia Organa",
         },
-        Object {
+        {
           "__typename": "Droid",
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
               ],
@@ -349,50 +349,50 @@ Object {
           ],
           "name": "C-3PO",
         },
-        Object {
+        {
           "__typename": "Droid",
-          "friends": Array [
-            Object {
-              "friends": Array [
-                Object {
+          "friends": [
+            {
+              "friends": [
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Leia Organa",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
             },
-            Object {
-              "friends": Array [
-                Object {
+            {
+              "friends": [
+                {
                   "name": "Luke Skywalker",
                 },
-                Object {
+                {
                   "name": "Han Solo",
                 },
-                Object {
+                {
                   "name": "C-3PO",
                 },
-                Object {
+                {
                   "name": "R2-D2",
                 },
               ],
@@ -401,17 +401,17 @@ Object {
           "name": "R2-D2",
         },
       ],
-      "friendsUnion": Array [
-        Object {
+      "friendsUnion": [
+        {
           "__typename": "Human",
         },
-        Object {
+        {
           "__typename": "Human",
         },
-        Object {
+        {
           "__typename": "Droid",
         },
-        Object {
+        {
           "__typename": "Droid",
         },
       ],
