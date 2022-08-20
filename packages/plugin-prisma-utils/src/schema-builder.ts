@@ -50,6 +50,10 @@ schemaBuilder.prismaFilter = function prismaFilter<
 
   ref.implement({
     ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
     fields: (t) => {
       const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
@@ -102,6 +106,10 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
 
   ref.implement({
     ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
     fields: (t) => {
       const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
@@ -126,7 +134,10 @@ schemaBuilder.orderByEnum = function orderByEnum() {
   }
 
   const ref = this.enumType('OrderBy', {
-    values: ['asc', 'desc'] as const,
+    values: {
+      Asc: { value: 'asc' as const },
+      Desc: { value: 'desc' as const },
+    },
   });
 
   OrderByRefMap.set(this, ref);
@@ -145,6 +156,10 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
 
   ref.implement({
     ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
@@ -196,10 +211,13 @@ schemaBuilder.prismaWhere = function prismaWhere<
 
   ref.implement({
     ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
-
-      const fieldMap = typeof fields === 'function' ? fields() : fields;
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
 
       Object.keys(fieldMap).forEach((field) => {
         const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
@@ -207,20 +225,12 @@ schemaBuilder.prismaWhere = function prismaWhere<
           return;
         }
 
-        if (typeof fieldOption === 'function') {
-          const { type: fieldType, ...fieldOptions } = (
-            fieldOption as () => PothosSchemaTypes.InputFieldOptions<SchemaTypes>
-          )();
-
-          fieldDefs[field] = t.field({
-            required: false,
-            ...fieldOptions,
-            type: fieldType,
-          });
+        if (fieldOption instanceof InputFieldRef) {
+          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
         } else {
           fieldDefs[field] = t.field({
             required: false,
-            type: fieldOption,
+            type: fieldOption as InputRef<unknown>,
           });
         }
       });

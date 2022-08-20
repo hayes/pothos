@@ -11,12 +11,12 @@ import {
   PrismaWhereOptions,
 } from './types';
 
-import type { PrismaCrudPlugin } from '.';
+import type { PrismaUtilsPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      prismaCrud: PrismaCrudPlugin<Types>;
+      prismaUtils: PrismaUtilsPlugin<Types>;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {

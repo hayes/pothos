@@ -109,7 +109,7 @@ export default class InputFieldBuilder<
    */
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
     options: PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
-  ) {
+  ): InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> {
     const ref: InputFieldRef<InputShapeFromTypeParam<Types, Type, Req>, Kind> = new InputFieldRef(
       this.kind,
       this.typename,

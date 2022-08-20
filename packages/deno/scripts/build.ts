@@ -10,7 +10,7 @@ const excludedPackages = [
   'deno',
   'plugin-example',
   'plugin-prisma',
-  'plugin-prisma-crud',
+  'plugin-prisma-utils',
   'test-utils',
   'plugin-federation',
   'tracing-opentelemetry',

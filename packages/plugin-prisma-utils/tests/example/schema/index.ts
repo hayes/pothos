@@ -1,7 +1,6 @@
 import { InputRef } from '@pothos/core';
 import { Prisma } from '../../client';
-import builder from '../builder';
-import { db } from '../db';
+import builder, { prisma } from '../builder';
 
 const StringFilter = builder.prismaFilter('String', {
   ops: ['contains', 'equals', 'startsWith', 'not', 'equals'],
@@ -32,7 +31,7 @@ builder.queryField('post', (t) =>
       list: t.arg({ type: StringListFilter }),
     },
     resolve: (query, _, args) =>
-      db.post.findFirst({
+      prisma.post.findFirst({
         where: {
           title: args.title ?? undefined,
           comments: {},
@@ -85,15 +84,29 @@ const UserWhere = builder.prismaWhere('User', {
   },
 });
 
-builder.prismaWhere('Post', {
-  fields: () => ({
+const PostFilter = builder.prismaWhere('Post', {
+  fields: (t) => ({
     id: IDFilter,
     title: 'String',
     createdAt: 'DateTime',
     author: UserWhere,
     comments: builder.prismaListFilter(CommentWhere, { ops: ['some'] }),
-    authorId: () => ({ type: IDFilter, description: 'filter by author id' }),
+    authorId: t.field({ type: IDFilter, description: 'filter by author id' }),
   }),
 });
+
+builder.queryField('posts', (t) =>
+  t.prismaField({
+    type: ['Post'],
+    args: { filter: t.arg({ type: PostFilter }), order: t.arg({ type: PostOrderBy }) },
+    resolve: (query, _, args) =>
+      prisma.post.findMany({
+        ...query,
+        where: args.filter ?? undefined,
+        orderBy: args.order ?? undefined,
+        take: 3,
+      }),
+  }),
+);
 
 export default builder.toSchema({});

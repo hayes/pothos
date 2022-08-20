@@ -1,24 +1,14 @@
-/* eslint-disable @typescript-eslint/no-unused-vars */
 // Type map: https://github.com/prisma/prisma/blob/main/packages/client/src/runtime/utils/common.ts#L63
 
-import { BaseEnum, InputRef, InputType, SchemaTypes } from '@pothos/core';
+import {
+  BaseEnum,
+  InputFieldMap,
+  InputFieldRef,
+  InputRef,
+  InputType,
+  SchemaTypes,
+} from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
-
-export type ScalarFilters<T> = T extends { equals?: unknown }
-  ? keyof T | { [K in keyof T]: boolean }
-  : never;
-
-export type ScalarWhereFilterOptions<
-  Types extends SchemaTypes,
-  Model extends PrismaModelTypes,
-  Field extends keyof Model['Where'],
-> =
-  | boolean
-  | ScalarFilters<Model['Where'][Field]>
-  | {
-      alias?: string;
-      filters: ScalarFilters<Model['Where'][Field]>;
-    };
 
 export type FilterListOps = 'every' | 'some' | 'none';
 
@@ -53,20 +43,24 @@ export type PrismaOrderByFields<Types extends SchemaTypes, Model extends PrismaM
     : boolean | (() => Omit<PothosSchemaTypes.InputFieldOptions<Types>, 'type'>);
 };
 
-export interface PrismaOrderByOptions<Types extends SchemaTypes, Model extends PrismaModelTypes> {
+export interface PrismaOrderByOptions<Types extends SchemaTypes, Model extends PrismaModelTypes>
+  extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
   fields: PrismaOrderByFields<Types, Model> | (() => PrismaOrderByFields<Types, Model>);
 }
 
-export interface PrismaWhereOptions<Types extends SchemaTypes, Model extends PrismaModelTypes> {
+export interface PrismaWhereOptions<Types extends SchemaTypes, Model extends PrismaModelTypes>
+  extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
-  fields: PrismaWhereFields<Types, Model> | (() => PrismaWhereFields<Types, Model>);
+  fields:
+    | PrismaWhereFields<Types, Model>
+    | ((
+        t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
+      ) => PrismaWhereFields<Types, Model>);
 }
 
 export type PrismaWhereFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
-  [K in keyof Model['Where']]?:
-    | PrismaWhereFieldType<Types, Model, K>
-    | (() => PrismaWhereFieldOptions<Types, Model, K>);
+  [K in keyof Model['Where']]?: PrismaWhereFieldType<Types, Model, K>;
 };
 
 export interface PrismaWhereFieldOptions<
@@ -82,11 +76,15 @@ export type PrismaWhereFieldType<
   Model extends PrismaModelTypes,
   K extends keyof Model['Where'],
 > = K extends Model['RelationName']
-  ? InputRef<Model['Where'][K]>
-  : InputWithShape<Types, Model['Shape'][K]> | InputRef<Model['Where'][K]>;
+  ? InputRef<Model['Where'][K]> | InputFieldRef<Model['Where'][K]>
+  :
+      | InputWithShape<Types, Model['Shape'][K]>
+      | InputRef<Model['Where'][K]>
+      | InputFieldRef<Model['Where'][K] | null | undefined>;
 
 type InputWithShape<Types extends SchemaTypes, T> =
   | InputRef<T>
+  | InputFieldRef<T | null | undefined>
   | (BaseEnum & Record<string, T>)
   | (new (...args: any[]) => T)
   | (keyof Types['inputShapes'] extends infer U extends string
@@ -102,11 +100,12 @@ export type OpsOptions<
   Type extends InputType<Types>,
   Ops extends string,
 > = Ops[] | Record<Ops, Omit<PothosSchemaTypes.InputFieldOptions<Types, Type>, 'type'>>;
+
 export interface PrismaFilterOptions<
   Types extends SchemaTypes,
   Type extends InputType<Types>,
   Ops extends OpsOptions<Types, Type, FilterOps>,
-> {
+> extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
   ops: Ops;
 }
@@ -115,7 +114,7 @@ export interface PrismaListFilterOptions<
   Types extends SchemaTypes,
   Type extends InputType<Types>,
   Ops extends OpsOptions<Types, Type, FilterListOps>,
-> {
+> extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
   ops: Ops;
 }

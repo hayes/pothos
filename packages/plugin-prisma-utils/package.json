@@ -1,7 +1,7 @@
 {
-  "name": "@pothos/plugin-prisma-crud",
+  "name": "@pothos/plugin-prisma-utils",
   "version": "0.0.0",
-  "description": "A Pothos plugin for quickly defining input types based on your prisma schema",
+  "description": "A Pothos plugin containing utility functions for building prisma inputs",
   "main": "./lib/index.js",
   "types": "./lib/index.d.ts",
   "module": "./esm/index.js",
@@ -20,9 +20,6 @@
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
     "test": "pnpm vitest --run"
   },
-  "bin": {
-    "prisma-pothos-crud-types": "./bin/generator.js"
-  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hayes/pothos.git"
@@ -30,21 +27,11 @@
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
-    "giraphql",
     "pothos",
     "graphql",
     "schema",
     "typescript",
-    "prisma",
-    "db",
-    "postgres",
-    "mysql",
-    "sql",
-    "sqlite",
-    "mongo",
-    "crud",
-    "input",
-    "filter"
+    "prisma"
   ],
   "publishConfig": {
     "access": "public"

@@ -27,7 +27,6 @@
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
-    "giraphql",
     "pothos",
     "graphql",
     "schema",
