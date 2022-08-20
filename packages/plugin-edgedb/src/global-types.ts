@@ -1,22 +1,28 @@
 /* eslint-disable @typescript-eslint/no-unud-vars */
 import {
+  FieldKind,
   FieldNullability,
+  FieldRef,
   InputFieldMap,
   InterfaceParam,
+  PluginName,
   SchemaTypes,
+  ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
 import {
   EdgeDBDriver,
+  EdgeDBFieldOptions,
+  EdgeDBSchemaTypeKeys,
   EdgeDBModelShape,
+  EdgeDBModelTypes,
   EdgeDBObjectFieldOptions,
   EdgeDBObjectTypeOptions,
   EdgeDBQueryBuilder,
-  EdgeDBTypeKeys,
 } from './types';
 import type { EdgeDBPlugin } from '.';
 import { EdgeDBObjectFieldBuilder as InternalEdgeDBObjectFieldBuilder } from './edgedb-field-builder';
-import { EdgeDBObjectRef } from './object-ref';
+import { edgeDBModelKey, EdgeDBObjectRef } from './object-ref';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -78,31 +84,67 @@ declare global {
       >;
     }
 
+    export interface RootFieldBuilder<
+      Types extends SchemaTypes,
+      ParentShape,
+      Kind extends FieldKind = FieldKind,
+    > {
+      edgeDBField: <
+        Args extends InputFieldMap,
+        TypeParam extends
+          | EdgeDBObjectRef<EdgeDBModelTypes>
+          | keyof Types['EdgeDBTypes']['default']
+          | [keyof Types['EdgeDBTypes']['default']]
+          | [EdgeDBObjectRef<EdgeDBModelTypes>],
+        Nullable extends FieldNullability<Type>,
+        ResolveShape,
+        ResolveReturnShape,
+        Type extends TypeParam extends [unknown]
+          ? [ObjectRef<Model['Shape']>]
+          : ObjectRef<Model['Shape']>,
+        Model extends EdgeDBModelTypes = EdgeDBModelTypes &
+          (TypeParam extends [keyof Types['EdgeDBTypes']['default']]
+            ? Types['EdgeDBTypes']['default'][TypeParam[0]]
+            : TypeParam extends [EdgeDBObjectRef<EdgeDBModelTypes>]
+            ? TypeParam[0][typeof edgeDBModelKey]
+            : TypeParam extends EdgeDBObjectRef<EdgeDBModelTypes>
+            ? TypeParam[typeof edgeDBModelKey]
+            : TypeParam extends keyof Types['EdgeDBTypes']['default']
+            ? Types['EdgeDBTypes']['default'][TypeParam]
+            : never),
+      >(
+        options: EdgeDBFieldOptions<
+          Types,
+          ParentShape,
+          TypeParam,
+          Model,
+          Type,
+          Args,
+          Nullable,
+          ResolveShape,
+          ResolveReturnShape,
+          Kind
+        >,
+      ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
+    }
+
     export interface SchemaBuilder<Types extends SchemaTypes> {
       edgeDBObject: <
-        Name extends EdgeDBTypeKeys<Types>,
+        Name extends EdgeDBSchemaTypeKeys<Types>,
         Interfaces extends InterfaceParam<Types>[],
-        Model extends EdgeDBModelShape<Types, Name>,
+        Model extends EdgeDBModelShape<Types, Name> & Types['EdgeDBTypes']['default'][Name],
+        Shape extends object = Model['Shape'],
       >(
         name: Name,
-        options: EdgeDBObjectTypeOptions<Types, Interfaces, Model>,
-      ) => EdgeDBObjectRef<Types, Model>;
+        options: EdgeDBObjectTypeOptions<Types, Interfaces, Model, Shape>,
+      ) => EdgeDBObjectRef<Model, Shape>;
     }
 
     export interface EdgeDBObjectFieldBuilder<
       Types extends SchemaTypes,
-      Model extends
-        | ({ [ModelKey in keyof Model]: Model[ModelKey] extends infer U ? U : never } & {
-            Fields: string | never;
-            Links: {
-              [Key in Model['Fields']]: {
-                Shape: Model['Links'][Key];
-              };
-            };
-          })
-        | never,
-      Shape extends object = Model,
+      Model extends EdgeDBModelTypes,
+      Shape extends object = Model['Shape'],
     > extends InternalEdgeDBObjectFieldBuilder<Types, Model, Shape>,
-        RootFieldBuilder<Types, Model, 'EdgeDBObject'> {}
+        RootFieldBuilder<Types, Shape, 'EdgeDBObject'> {}
   }
 }

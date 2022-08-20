@@ -14,7 +14,7 @@ import { FieldMap } from './util/relation-map';
 import { getLink, getRefFromModel } from './util/datamodel';
 import { extractTargetTypeName } from './util/target';
 import { isMultiLink } from './util/links';
-import { RelatedFieldOptions } from './types';
+import { EdgeDBModelTypes, RelatedFieldOptions } from './types';
 
 // Workaround for FieldKind not being extended on Builder classes
 const RootBuilder: {
@@ -29,16 +29,9 @@ const RootBuilder: {
 
 export class EdgeDBObjectFieldBuilder<
   Types extends SchemaTypes,
-  Model extends
-    | ({ [ModelKey in keyof Model]: Model[ModelKey] extends infer U ? U : never } & {
-        Fields: string | never;
-        Links: {
-          [Key in Model['Fields']]: { Shape: Model['Links'][Key] };
-        };
-      })
-    | never,
-  Shape extends object = Exclude<Model, 'Links' & 'Fields'>,
-> extends RootBuilder<Types, Model, 'EdgeDBObject'> {
+  Model extends EdgeDBModelTypes,
+  Shape extends object = Model['Shape'],
+> extends RootBuilder<Types, Shape, 'EdgeDBObject'> {
   model: string;
   edgeDBFieldMap: FieldMap;
 
@@ -66,7 +59,7 @@ export class EdgeDBObjectFieldBuilder<
   }
 
   link<
-    Field extends Model['Fields'],
+    Field extends Model['LinkName'],
     Nullable extends boolean,
     Args extends InputFieldMap,
     ResolveReturnShape,
@@ -119,7 +112,7 @@ export class EdgeDBObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, Model, Type, Nullable>,
+    Name extends CompatibleTypes<Types, Shape, Type, Nullable>,
   >(
     ...args: NormalizeArgs<
       [
@@ -152,7 +145,7 @@ export class EdgeDBObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      Name extends CompatibleTypes<Types, Model, Type, Nullable>,
+      Name extends CompatibleTypes<Types, Shape, Type, Nullable>,
     >(
       ...args: NormalizeArgs<
         [

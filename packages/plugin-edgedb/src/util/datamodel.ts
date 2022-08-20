@@ -3,15 +3,12 @@ import { EdgeDBObjectRef } from '../object-ref';
 import { EdgeDBModelTypes } from '../types';
 import { getObjectsTypes } from './get-client';
 
-export const refMap = new WeakMap<
-  object,
-  Map<string, EdgeDBObjectRef<any, EdgeDBModelTypes<any>>>
->();
+export const refMap = new WeakMap<object, Map<string, EdgeDBObjectRef<EdgeDBModelTypes>>>();
 
 export function getRefFromModel<Types extends SchemaTypes>(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-): EdgeDBObjectRef<Types, EdgeDBModelTypes<Types>> {
+): EdgeDBObjectRef<EdgeDBModelTypes> {
   if (!refMap.has(builder)) {
     refMap.set(builder, new Map());
   }

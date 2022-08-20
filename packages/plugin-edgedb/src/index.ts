@@ -11,6 +11,7 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@pothos/core';
 import { EdgeDBObjectFieldBuilder as InternalEdgeDBObjectFieldBuilder } from './field-builder';
+import { EdgeDBModelTypes } from './types';
 
 export * from './types';
 
@@ -25,17 +26,8 @@ export type EdgeDBObjectFieldBuilder<
 
 export const ObjectFieldBuilder = InternalEdgeDBObjectFieldBuilder as new <
   Types extends SchemaTypes,
-  Model extends
-    | ({ [ModelKey in keyof Model]: Model[ModelKey] extends infer U ? U : never } & {
-        Fields: string | never;
-        Links: {
-          [Key in Model['Fields']]: {
-            Shape: Model['Links'][Key];
-          };
-        };
-      })
-    | never,
-  Shape extends object = Model,
+  Model extends EdgeDBModelTypes,
+  Shape extends object = Model['Shape'],
 >(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,

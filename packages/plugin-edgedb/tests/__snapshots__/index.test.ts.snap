@@ -25,10 +25,12 @@ type PostPreview {
 
 type Query {
   me: ExplicitEdgeDBUser
+  users: [User!]
 }
 
 type User {
   email: String!
+  id: ID!
   name: String
   posts: [Post!]!
 }"

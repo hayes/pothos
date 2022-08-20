@@ -1,31 +1,31 @@
 import type { Client } from 'edgedb';
 import {
+  FieldKind,
   FieldMap,
   FieldNullability,
+  FieldOptionsFromKind,
   InputFieldMap,
   InputShapeFromFields,
   InterfaceParam,
+  ListResolveValue,
   MaybePromise,
   Normalize,
   ObjectRef,
   SchemaTypes,
+  ShapeFromTypeParam,
   ShapeWithNullability,
   TypeParam,
 } from '@pothos/core';
 import type { EdgeDBObjectFieldBuilder } from './edgedb-field-builder';
 import { GraphQLResolveInfo } from 'graphql';
+import { EdgeDBObjectRef } from './object-ref';
 
 export interface EdgeDBQueryBuilder {
   default: unknown;
 }
 export interface EdgeDBDriver extends Client {}
 
-export type EdgeDBModels<
-  Name extends EdgeDBTypeKeys,
-  Types extends SchemaTypes = SchemaTypes,
-> = Types['EdgeDBTypes']['default'][Name] extends infer T ? T : never;
-
-export type EdgeDBTypeKeys<Types extends SchemaTypes = SchemaTypes> =
+export type EdgeDBSchemaTypeKeys<Types extends SchemaTypes = SchemaTypes> =
   keyof Types['EdgeDBTypes']['default'] extends infer Key
     ? Key extends string
       ? Key
@@ -47,36 +47,58 @@ type EdgeDBDefaultExportKey<
   KeyType extends string | number | symbol = EdgeDBDefaultExportKeyTypes<DefaultExports>,
 > = Extract<keyof DefaultExports, KeyType>;
 
-export type EdgeDBModelTypes<Types extends SchemaTypes> =
+export type EdgeDBSchemaTypes<Types extends SchemaTypes> =
   Types['EdgeDBTypes']['default'] extends infer ObjectTypeMap
     ? ObjectTypeMap extends object
       ? ObjectTypeMap
       : never
     : never;
 
+export interface EdgeDBModelTypes {
+  Name: string;
+  Shape: {};
+  MultiLinks: string;
+  LinkName: string;
+  Links: Record<
+    string,
+    {
+      Shape: unknown;
+      Types: EdgeDBModelTypes;
+    }
+  >;
+}
+
 export type EdgeDBModelShape<
   Types extends SchemaTypes,
-  Name extends EdgeDBTypeKeys<Types>,
-> = EdgeDBModelTypes<Types>[Name] extends infer Property
-  ? Property extends BaseObject & EdgeDBModelTypes<Types>[Name]
-    ? Property & {
-        Fields: extractLinks<Property> extends infer Field
-          ? Field extends string
-            ? SplitLT<Field>
-            : null
+  Name extends EdgeDBSchemaTypeKeys<Types>,
+> = EdgeDBSchemaTypes<Types>[Name] extends infer Property
+  ? Property extends BaseObject
+    ? {
+        Name: Name;
+        Shape: Property;
+        MultiLinks: '';
+        LinkName: extractLinks<Property> extends infer Link
+          ? Link extends string
+            ? SplitLT<Link>
+            : never
           : never;
-        Links: {
-          [Key in Property['Fields']]: {
-            Shape: Property['Fields'][Key] extends infer Shape
-              ? Shape extends BaseObject
-                ? Shape
-                : Shape extends Array<BaseObject>
-                ? Shape[0]
-                : never
-              : never;
-          };
-        };
-      }
+      } extends infer ModelTypesWithoutLinks
+      ? ModelTypesWithoutLinks extends { LinkName: string; Shape: Record<string, unknown> }
+        ? ModelTypesWithoutLinks & {
+            Links: {
+              [Key in ModelTypesWithoutLinks['LinkName']]: {
+                Shape: ModelTypesWithoutLinks['Shape'][Key] extends infer Shape
+                  ? Shape extends BaseObject
+                    ? Shape
+                    : Shape extends Array<BaseObject>
+                    ? Shape[0]
+                    : never
+                  : never;
+              };
+            };
+          }
+        : ModelTypesWithoutLinks & { Links: {} }
+      : never
     : never
   : never;
 
@@ -104,17 +126,14 @@ export enum TypeKind {
   range = 'range',
 }
 export type tupleOf<T> = [T, ...T[]] | [];
-export type cardinalityAssignable<C extends Cardinality> = C extends Cardinality.Empty
-  ? Cardinality.Empty
-  : C extends Cardinality.One
-  ? Cardinality.One
-  : C extends Cardinality.AtMostOne
-  ? Cardinality.One | Cardinality.AtMostOne | Cardinality.Empty
-  : C extends Cardinality.AtLeastOne
-  ? Cardinality.One | Cardinality.AtLeastOne | Cardinality.Many
-  : C extends Cardinality.Many
-  ? Cardinality
-  : never;
+
+export type CardinalityAssignable<Card extends Cardinality> = {
+  Empty: Cardinality.Empty;
+  One: Cardinality.One;
+  AtLeastOne: Cardinality.One | Cardinality.Many | Cardinality.AtLeastOne;
+  AtMostOne: Cardinality.One | Cardinality.AtMostOne | Cardinality.Empty;
+  Many: Cardinality.Many;
+}[Card];
 
 export interface BaseObject {
   id: any;
@@ -216,7 +235,7 @@ export namespace EdgeDB {
   }
 }
 
-type pointersToObjectType<P extends ObjectTypePointers> = ObjectType<string, P, {}>;
+type PointersToObjectType<P extends ObjectTypePointers> = ObjectType<string, P, {}>;
 
 export type SelectModifiers = {
   filter?: TypeSet<ScalarType<'std::bool', boolean>, Cardinality>;
@@ -237,7 +256,7 @@ export type extractObjectShapeToSelectShape<TObject extends ObjectType = ObjectT
         | boolean
         | TypeSet<
             TObject['__pointers__'][k]['target'],
-            cardinalityAssignable<TObject['__pointers__'][k]['cardinality']>
+            CardinalityAssignable<TObject['__pointers__'][k]['cardinality']>
           >
     : TObject['__pointers__'][k] extends LinkDesc
     ? {} // as link, currently no type
@@ -304,50 +323,26 @@ export type EdgeDBObjectFieldOptions<
 
 type EdgeDBObjectFieldsShape<
   Types extends SchemaTypes,
-  Model extends
-    | ({
-        [key: string]: Model[keyof Model] extends infer U ? U : never;
-      } & {
-        Fields: string | never;
-        Links: {
-          [Key in Model['Fields']]: { Shape: Model['Links'][Key] };
-        };
-      })
-    | never,
-  Shape extends object = Extract<Model, 'Links' & 'Fields'>,
+  Model extends EdgeDBModelTypes,
+  Shape extends object,
 > = (t: EdgeDBObjectFieldBuilder<Types, Model, Shape>) => FieldMap;
 
 export type EdgeDBObjectTypeOptions<
   Types extends SchemaTypes,
   Interfaces extends InterfaceParam<Types>[],
-  Model extends
-    | ({
-        [key: string]: Model[keyof Model] extends infer U ? U : never;
-      } & {
-        Fields: string | never;
-        Links: {
-          [Key in Model['Fields']]: { Shape: Model['Links'][Key] };
-        };
-      })
-    | never,
+  Model extends EdgeDBModelTypes,
+  Shape extends object,
 > = Omit<
-  | PothosSchemaTypes.ObjectTypeOptions<Types, Model>
-  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Model, Interfaces>,
+  | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
   'fields' | 'description'
 > & {
   description?: string | false;
-  fields?: EdgeDBObjectFieldsShape<Types, Model>;
+  fields?: EdgeDBObjectFieldsShape<Types, Model, Shape>;
 };
 
 type RefForLink<
-  Model extends
-    | ({ [ModelKey in keyof Model]: Model[ModelKey] extends infer U ? U : never } & {
-        Fields: string | never;
-        Links: {
-          [Key in Model['Fields']]: { Shape: Model['Links'][Key] };
-        };
-      })
-    | never,
+  Model extends EdgeDBModelTypes,
   Field extends keyof Model['Links'],
 > = Model['Links'][Field] extends unknown[]
   ? [ObjectRef<Model['Links'][Field]>]
@@ -355,14 +350,7 @@ type RefForLink<
 
 export type RelatedFieldOptions<
   Types extends SchemaTypes,
-  Model extends
-    | ({ [ModelKey in keyof Model]: Model[ModelKey] extends infer U ? U : never } & {
-        Fields: string | never;
-        Links: {
-          [Key in Model['Fields']]: { Shape: Model['Links'][Key] };
-        };
-      })
-    | never,
+  Model extends EdgeDBModelTypes,
   Field extends keyof Model['Links'],
   Nullable extends boolean,
   Args extends InputFieldMap,
@@ -385,5 +373,60 @@ export type RelatedFieldOptions<
     args: InputShapeFromFields<Args>,
     context: Types['Context'],
     info: GraphQLResolveInfo,
-  ) => MaybePromise<ShapeWithNullability<Types, Field, Nullable>>;
+  ) => MaybePromise<ShapeWithNullability<Types, Model['Links'][Field]['Shape'], Nullable>> & {
+    type?: EdgeDBObjectRef<Model['Links'][Field]['Types']>;
+  };
 };
+
+export type EdgeDBFieldResolver<
+  Types extends SchemaTypes,
+  Model extends EdgeDBModelTypes,
+  Parent,
+  Param extends TypeParam<Types>,
+  Args extends InputFieldMap,
+  Nullable extends FieldNullability<Param>,
+  ResolveReturnShape,
+> = (
+  query: {},
+  parent: Parent,
+  args: InputShapeFromFields<Args>,
+  context: Types['Context'],
+  info: GraphQLResolveInfo,
+) => ShapeFromTypeParam<Types, Param, Nullable> extends infer Shape
+  ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
+    ? ListResolveValue<Shape, Item, ResolveReturnShape>
+    : MaybePromise<Shape>
+  : never;
+
+export type EdgeDBFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends
+    | EdgeDBObjectRef<EdgeDBModelTypes>
+    | keyof Types['EdgeDBTypes']
+    | [keyof Types['EdgeDBTypes']]
+    | [EdgeDBObjectRef<EdgeDBModelTypes>],
+  Model extends EdgeDBModelTypes,
+  Param extends TypeParam<Types>,
+  Args extends InputFieldMap,
+  Nullable extends FieldNullability<Param>,
+  ResolveShape,
+  ResolveReturnShape,
+  Kind extends FieldKind = FieldKind,
+> = FieldOptionsFromKind<
+  Types,
+  ParentShape,
+  Param,
+  Nullable,
+  Args,
+  Kind,
+  ResolveShape,
+  ResolveReturnShape
+> extends infer FieldOptions
+  ? Omit<FieldOptions, 'resolve' | 'type'> & {
+      type: Type;
+      resolve: FieldOptions extends { resolve?: (parent: infer Parent, ...args: any[]) => unknown }
+        ? EdgeDBFieldResolver<Types, Model, Parent, Param, Args, Nullable, ResolveReturnShape>
+        : EdgeDBFieldResolver<Types, Model, ParentShape, Param, Args, Nullable, ResolveReturnShape>;
+    }
+  : never;
