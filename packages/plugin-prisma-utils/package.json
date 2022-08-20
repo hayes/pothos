@@ -3,9 +3,10 @@
   "version": "0.1.0",
   "description": "A Pothos plugin containing utility functions for building prisma inputs",
   "main": "./lib/index.js",
-  "types": "./lib/index.d.ts",
+  "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
+    "types": "./dts/index.d.ts",
     "import": "./esm/index.js",
     "require": "./lib/index.js"
   },
