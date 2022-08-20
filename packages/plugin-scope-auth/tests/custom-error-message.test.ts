@@ -19,12 +19,12 @@ describe('custom error messages', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "customError": null,
           "customErrorMessage": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: AuthScopeFunction: Not authorized to resolve Query.customError],
           [GraphQLError: AuthScopeFunction: Not authorized to resolve Query.customErrorMessage],
         ],
@@ -46,11 +46,11 @@ describe('custom error messages', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "test": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: AuthScopeFunction: Not authorized to resolve Query.test],
         ],
       }

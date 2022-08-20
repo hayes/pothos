@@ -19,8 +19,6 @@ describe('query on relations', () => {
     await prisma.$disconnect();
   });
 
-  describe('with context', () => {});
-
   it('queries relations', async () => {
     const query = gql`
       query {
@@ -43,23 +41,23 @@ describe('query on relations', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "commentedPostsConnection": Object {
-              "edges": Array [
-                Object {
-                  "node": Object {
+      {
+        "data": {
+          "me": {
+            "commentedPostsConnection": {
+              "edges": [
+                {
+                  "node": {
                     "id": "1",
                   },
                 },
-                Object {
-                  "node": Object {
+                {
+                  "node": {
                     "id": "2",
                   },
                 },
-                Object {
-                  "node": Object {
+                {
+                  "node": {
                     "id": "3",
                   },
                 },
@@ -71,15 +69,15 @@ describe('query on relations', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
@@ -87,20 +85,20 @@ describe('query on relations', () => {
                 },
                 "skip": 0,
                 "take": 4,
-                "where": Object {
-                  "comments": Object {
-                    "some": Object {
+                "where": {
+                  "comments": {
+                    "some": {
                       "authorId": 1,
                     },
                   },
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -130,23 +128,23 @@ describe('query on relations', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "commentedPostsConnection": Object {
-              "edges": Array [
-                Object {
-                  "node": Object {
+      {
+        "data": {
+          "me": {
+            "commentedPostsConnection": {
+              "edges": [
+                {
+                  "node": {
                     "id": "1",
                   },
                 },
-                Object {
-                  "node": Object {
+                {
+                  "node": {
                     "id": "2",
                   },
                 },
-                Object {
-                  "node": Object {
+                {
+                  "node": {
                     "id": "3",
                   },
                 },
@@ -158,15 +156,15 @@ describe('query on relations', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
@@ -174,20 +172,20 @@ describe('query on relations', () => {
                 },
                 "skip": 0,
                 "take": 4,
-                "where": Object {
-                  "comments": Object {
-                    "some": Object {
+                "where": {
+                  "comments": {
+                    "some": {
                       "authorId": 1,
                     },
                   },
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -214,11 +212,11 @@ describe('query on relations', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "post": Object {
-            "ownComments": Array [
-              Object {
+      {
+        "data": {
+          "post": {
+            "ownComments": [
+              {
                 "content": "Qui praesentium possimus amet amet.",
                 "id": "1",
               },
@@ -229,48 +227,48 @@ describe('query on relations', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
                   "author": true,
                 },
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
                 },
-                "where": Object {
+                "where": {
                   "authorId": 1,
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },
@@ -303,14 +301,14 @@ describe('query on relations', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "post": Object {
-            "ownCommentsConnection": Object {
-              "edges": Array [
-                Object {
-                  "node": Object {
-                    "author": Object {
+      {
+        "data": {
+          "post": {
+            "ownCommentsConnection": {
+              "edges": [
+                {
+                  "node": {
+                    "author": {
                       "name": "Maurine Rath",
                     },
                     "content": "Qui praesentium possimus amet amet.",
@@ -324,50 +322,50 @@ describe('query on relations', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
                   "author": true,
                 },
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "comments": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
                 },
                 "skip": 0,
                 "take": 21,
-                "where": Object {
+                "where": {
                   "authorId": 1,
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },

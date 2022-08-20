@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`Code generator example schema 1`] = `
+exports[`Code generator > example schema 1`] = `
 "import SchemaBuilder from \\"@pothos/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
@@ -356,7 +356,7 @@ export const schema = builder.toSchema({});
 "
 `;
 
-exports[`Code generator example schema 2`] = `
+exports[`Code generator > example schema 2`] = `
 "interface Animal {
   species: String
 }
@@ -458,7 +458,7 @@ enum stuff {
 "
 `;
 
-exports[`Code generator starwars schema 1`] = `
+exports[`Code generator > starwars schema 1`] = `
 "import SchemaBuilder from \\"@pothos/core\\";
 const builder = new SchemaBuilder<{
     Context: {};
@@ -582,7 +582,7 @@ export const schema = builder.toSchema({});
 "
 `;
 
-exports[`Code generator starwars schema 2`] = `
+exports[`Code generator > starwars schema 2`] = `
 "interface Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
   appearsIn: [Episode!]!

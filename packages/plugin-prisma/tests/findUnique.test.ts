@@ -147,148 +147,148 @@ describe('findUnique', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "findUniqueRelations": Object {
-            "withCompositeID": Object {
+      {
+        "data": {
+          "findUniqueRelations": {
+            "withCompositeID": {
               "id": "1",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withCompositeIDNode": Object {
+            "withCompositeIDNode": {
               "id": "V2l0aENvbXBvc2l0ZUlETm9kZTpbIjEiLCIxIl0=",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withCompositeUnique": Object {
+            "withCompositeUnique": {
               "id": "1",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withCompositeUniqueCustom": Object {
+            "withCompositeUniqueCustom": {
               "id": "1",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withCompositeUniqueNode": Object {
+            "withCompositeUniqueNode": {
               "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGU6WyIxIiwiMSJd",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withCompositeUniqueNodeCustom": Object {
+            "withCompositeUniqueNodeCustom": {
               "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGVDdXN0b206MQ==",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withID": Object {
+            "withID": {
               "id": "1",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withIDNode": Object {
+            "withIDNode": {
               "id": "V2l0aElETm9kZTox",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withUnique": Object {
+            "withUnique": {
               "id": "1",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withUniqueNode": Object {
+            "withUniqueNode": {
               "id": "V2l0aFVuaXF1ZU5vZGU6MQ==",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
           },
-          "findUniqueRelationsSelect": Object {
-            "withCompositeUniqueNodeSelect": Object {
-              "relations": Array [
-                Object {
+          "findUniqueRelationsSelect": {
+            "withCompositeUniqueNodeSelect": {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            "withIDSelect": Object {
-              "relations": Array [
-                Object {
+            "withIDSelect": {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
           },
-          "nodes": Array [
-            Object {
+          "nodes": [
+            {
               "__typename": "WithIDNode",
               "id": "V2l0aElETm9kZTox",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            Object {
+            {
               "__typename": "WithUniqueNode",
               "id": "V2l0aFVuaXF1ZU5vZGU6MQ==",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            Object {
+            {
               "__typename": "WithCompositeIDNode",
               "id": "V2l0aENvbXBvc2l0ZUlETm9kZTpbIjEiLCIxIl0=",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            Object {
+            {
               "__typename": "WithCompositeUniqueNode",
               "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGU6WyIxIiwiMSJd",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
             },
-            Object {
+            {
               "__typename": "WithCompositeUniqueNodeCustom",
               "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGVDdXN0b206MQ==",
-              "relations": Array [
-                Object {
+              "relations": [
+                {
                   "id": "1",
                 },
               ],
@@ -299,284 +299,284 @@ describe('findUnique', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "withCompositeID": true,
               "withCompositeUnique": true,
               "withID": true,
               "withUnique": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "FindUniqueRelations",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "withCompositeUnique": Object {
-                "select": Object {
+          "args": {
+            "include": {
+              "withCompositeUnique": {
+                "select": {
                   "FindUniqueRelations": true,
                   "a": true,
                   "b": true,
                 },
               },
-              "withID": Object {
-                "select": Object {
+              "withID": {
+                "select": {
                   "FindUniqueRelations": true,
                   "id": true,
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "FindUniqueRelations",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_b": Object {
+            "where": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_b": Object {
+            "where": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_c": Object {
+            "where": {
+              "a_c": {
                 "a": "1",
                 "c": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_b": Object {
+            "where": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_b": Object {
+            "where": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
+            "where": {
               "id": "1",
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_b": Object {
+            "where": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_b": Object {
+            "where": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_c": Object {
+            "where": {
+              "a_c": {
                 "a": "1",
                 "c": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "FindUniqueRelations": true,
             },
-            "where": Object {
-              "a_c": Object {
+            "where": {
+              "a_c": {
                 "a": "1",
                 "c": "1",
               },
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },

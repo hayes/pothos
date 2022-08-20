@@ -58,36 +58,36 @@ describe('nested query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "postsConnection": Object {
-              "edges": Array [
-                Object {
-                  "node": Object {
-                    "comments": Array [
-                      Object {
-                        "postAuthor": Object {
+      {
+        "data": {
+          "me": {
+            "postsConnection": {
+              "edges": [
+                {
+                  "node": {
+                    "comments": [
+                      {
+                        "postAuthor": {
                           "name": "Maurine Rath",
                         },
                       },
-                      Object {
-                        "postAuthor": Object {
+                      {
+                        "postAuthor": {
                           "name": "Maurine Rath",
                         },
                       },
-                      Object {
-                        "postAuthor": Object {
+                      {
+                        "postAuthor": {
                           "name": "Maurine Rath",
                         },
                       },
                     ],
                     "id": "250",
-                    "media": Array [
-                      Object {
+                    "media": [
+                      {
                         "url": "http://misty-dilapidation.org",
                       },
-                      Object {
+                      {
                         "url": "https://fumbling-jack.net",
                       },
                     ],
@@ -96,17 +96,17 @@ describe('nested query', () => {
               ],
             },
           },
-          "viewer": Object {
-            "postPreviews": Array [
-              Object {
-                "post": Object {
+          "viewer": {
+            "postPreviews": [
+              {
+                "post": {
                   "content": "Deleniti eos reprehenderit in nisi et qui. Odio et inventore eligendi in. Id harum sit odio quia vitae provident. Provident molestiae harum ullam pariatur quos est quod. Ea quisquam esse quia expedita commodi autem.",
                   "createdAt": "2012-12-12T00:00:00.000Z",
                 },
                 "preview": "os reprehenderit in nisi et qui. Odio et inventore eligendi in. Id harum sit odio quia vitae provident. Provident molestiae harum ullam pariatur quos est quod. Ea quisquam esse quia expedita commodi autem.",
               },
-              Object {
-                "post": Object {
+              {
+                "post": {
                   "content": "Necessitatibus molestiae placeat saepe eligendi. Excepturi et laudantium fuga similique fugit corporis voluptatem dolores esse. Et sint magnam aut atque dolores maiores incidunt.",
                   "createdAt": "2012-12-12T00:00:00.001Z",
                 },
@@ -119,14 +119,14 @@ describe('nested query', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
+          "args": {
+            "select": {
               "id": true,
-              "posts": Object {
-                "select": Object {
+              "posts": {
+                "select": {
                   "content": true,
                   "createdAt": true,
                   "id": true,
@@ -134,39 +134,39 @@ describe('nested query', () => {
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
-                      "author": Object {
-                        "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": {
+                        "include": {
                           "profile": true,
                         },
                       },
-                      "post": Object {
-                        "select": Object {
+                      "post": {
+                        "select": {
                           "author": true,
                         },
                       },
                     },
                     "take": 3,
                   },
-                  "media": Object {
-                    "select": Object {
-                      "media": Object {
-                        "select": Object {
+                  "media": {
+                    "select": {
+                      "media": {
+                        "select": {
                           "id": true,
                           "posts": true,
                           "url": true,
@@ -176,18 +176,18 @@ describe('nested query', () => {
                     },
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -217,29 +217,29 @@ describe('nested query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "blog": Object {
-            "pages": Array [
+      {
+        "data": {
+          "blog": {
+            "pages": [
               1,
               2,
               3,
             ],
-            "posts": Array [
-              Object {
-                "author": Object {
+            "posts": [
+              {
+                "author": {
                   "name": "Maurine Rath",
                 },
                 "id": "1",
               },
-              Object {
-                "author": Object {
+              {
+                "author": {
                   "name": "Maurine Rath",
                 },
                 "id": "2",
               },
-              Object {
-                "author": Object {
+              {
+                "author": {
                   "name": "Maurine Rath",
                 },
                 "id": "3",
@@ -251,14 +251,14 @@ describe('nested query', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "author": true,
-              "comments": Object {
-                "include": Object {
+              "comments": {
+                "include": {
                   "author": true,
                 },
                 "take": 3,
@@ -266,7 +266,7 @@ describe('nested query', () => {
             },
             "take": 3,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },

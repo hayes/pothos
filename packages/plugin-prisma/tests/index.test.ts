@@ -39,25 +39,25 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
+      {
+        "data": {
+          "me": {
             "id": "VXNlcjox",
           },
         },
       }
-      `);
+    `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "where": Object {
+          "args": {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -81,13 +81,13 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "users": Array [
-            Object {
+      {
+        "data": {
+          "users": [
+            {
               "id": "VXNlcjox",
             },
-            Object {
+            {
               "id": "VXNlcjoy",
             },
           ],
@@ -96,13 +96,13 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
+          "args": {
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -134,36 +134,36 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "take": 10,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -200,26 +200,26 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "author": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "author": {
+                    "include": {
                       "profile": true,
                     },
                   },
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "take": 10,
@@ -228,7 +228,7 @@ describe('prisma', () => {
             },
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -264,56 +264,56 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
                   "author": true,
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "take": 10,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "author": true,
-              "comments": Object {
-                "include": Object {
+              "comments": {
+                "include": {
                   "author": true,
                 },
                 "take": 3,
               },
             },
-            "orderBy": Object {
+            "orderBy": {
               "createdAt": "asc",
             },
             "take": 10,
-            "where": Object {
+            "where": {
               "authorId": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },
@@ -356,56 +356,56 @@ describe('prisma', () => {
     expect(result).toMatchSnapshot();
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
                   "author": true,
-                  "comments": Object {
-                    "include": Object {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "take": 10,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "author": true,
-              "comments": Object {
-                "include": Object {
+              "comments": {
+                "include": {
                   "author": true,
                 },
                 "take": 3,
               },
             },
-            "orderBy": Object {
+            "orderBy": {
               "createdAt": "asc",
             },
             "take": 10,
-            "where": Object {
+            "where": {
               "authorId": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "Post",
           "runInTransaction": false,
         },
@@ -438,12 +438,12 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "me": Object {
-            "profileThroughManualLookup": Object {
-              "user": Object {
-                "profile": Object {
+      {
+        "data": {
+          "me": {
+            "profileThroughManualLookup": {
+              "user": {
+                "profile": {
                   "bio": "Saepe deserunt animi quia.",
                 },
               },
@@ -454,46 +454,46 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "where": Object {
+          "args": {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
+          "args": {
+            "select": {
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [
+          "dataPath": [
             "select",
             "profile",
           ],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
+          "args": {
+            "include": {
               "profile": true,
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -541,23 +541,23 @@ describe('prisma', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "usersWithError": Object {
+      {
+        "data": {
+          "usersWithError": {
             "__typename": "QueryUsersWithErrorSuccess",
-            "data": Array [
-              Object {
+            "data": [
+              {
                 "name": "Maurine Rath",
-                "profileWithErrors": Object {
-                  "data": Object {
+                "profileWithErrors": {
+                  "data": {
                     "bio": "Saepe deserunt animi quia.",
-                    "user": Object {
+                    "user": {
                       "id": "VXNlcjox",
                     },
                   },
                 },
               },
-              Object {
+              {
                 "name": "Kyla Schoen",
                 "profileWithErrors": null,
               },
@@ -568,20 +568,20 @@ describe('prisma', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "include": Object {
-              "profile": Object {
-                "include": Object {
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
                   "user": true,
                 },
               },
             },
             "take": 2,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },

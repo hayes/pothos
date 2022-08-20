@@ -10,9 +10,9 @@
   },
   "dependencies": {
     "@faker-js/faker": "^7.4.0",
-    "@graphql-yoga/node": "^2.13.6",
+    "@graphql-yoga/node": "^2.13.8",
     "@pothos/core": "workspace:*",
-    "graphql": "16.5.0"
+    "graphql": "16.6.0"
   },
   "publishConfig": {
     "access": "public"

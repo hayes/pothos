@@ -16,7 +16,7 @@ const getGlobalThis = () => {
     if (typeof global !== "undefined")
         return global;
     if (typeof this !== "undefined")
-        return this;
+        return this!;
     throw new Error("Unable to locate global `this`");
 };
 export function encodeBase64(value: string): string {

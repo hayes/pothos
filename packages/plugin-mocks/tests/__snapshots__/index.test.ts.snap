@@ -1,9 +1,9 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`mocked query some stuff 1`] = `
-Object {
-  "data": Object {
-    "r2d2": Object {
+exports[`mocked > query some stuff 1`] = `
+{
+  "data": {
+    "r2d2": {
       "name": "C-3PO",
     },
   },

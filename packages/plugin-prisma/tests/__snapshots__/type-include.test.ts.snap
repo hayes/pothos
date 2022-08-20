@@ -1,23 +1,23 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`prisma loads type-level includes directly, indirectly and merges with relations 1`] = `
-Object {
-  "data": Object {
-    "me": Object {
-      "commentsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
+exports[`prisma > loads type-level includes directly, indirectly and merges with relations 1`] = `
+{
+  "data": {
+    "me": {
+      "commentsConnection": {
+        "edges": [
+          {
+            "node": {
               "authorBio": "Saepe deserunt animi quia.",
             },
           },
         ],
       },
-      "postsConnection": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "commentAuthorIds": Array [
+      "postsConnection": {
+        "edges": [
+          {
+            "node": {
+              "commentAuthorIds": [
                 "1",
                 "2",
                 "3",
@@ -26,19 +26,19 @@ Object {
           },
         ],
       },
-      "twoComments": Object {
-        "edges": Array [
-          Object {
-            "node": Object {
-              "author": Object {
+      "twoComments": {
+        "edges": [
+          {
+            "node": {
+              "author": {
                 "id": "VXNlcjox",
               },
               "authorBio": "Saepe deserunt animi quia.",
             },
           },
-          Object {
-            "node": Object {
-              "author": Object {
+          {
+            "node": {
+              "author": {
                 "id": "VXNlcjox",
               },
               "authorBio": "Saepe deserunt animi quia.",

@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`patterns example generates expected schema 1`] = `
+exports[`patterns example > generates expected schema 1`] = `
 "type A {
   b: B!
 }

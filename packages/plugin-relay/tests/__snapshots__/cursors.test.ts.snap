@@ -1,267 +1,267 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`cursor based connection queries 1`] = `
-Object {
-  "data": Object {
-    "after": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+exports[`cursor based connection > queries 1`] = `
+{
+  "data": {
+    "after": {
+      "edges": [
+        {
+          "node": {
             "id": "99",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "100",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "100",
         "hasNextPage": false,
         "hasPreviousPage": true,
         "startCursor": "99",
       },
     },
-    "afterFirst": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "afterFirst": {
+      "edges": [
+        {
+          "node": {
             "id": "96",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "97",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "97",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "96",
       },
     },
-    "afterFull": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "afterFull": {
+      "edges": [
+        {
+          "node": {
             "id": "41",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "42",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "43",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "44",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "45",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "45",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "41",
       },
     },
-    "afterFullFirst": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "afterFullFirst": {
+      "edges": [
+        {
+          "node": {
             "id": "41",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "42",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "42",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "41",
       },
     },
-    "afterLast": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "afterLast": {
+      "edges": [
+        {
+          "node": {
             "id": "99",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "100",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "100",
         "hasNextPage": false,
         "hasPreviousPage": true,
         "startCursor": "99",
       },
     },
-    "afterLastFull": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "afterLastFull": {
+      "edges": [
+        {
+          "node": {
             "id": "99",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "100",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "100",
         "hasNextPage": false,
         "hasPreviousPage": true,
         "startCursor": "99",
       },
     },
-    "before": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "before": {
+      "edges": [
+        {
+          "node": {
             "id": "1",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "1",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "1",
       },
     },
-    "beforeFirst": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "beforeFirst": {
+      "edges": [
+        {
+          "node": {
             "id": "1",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "2",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "2",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "1",
       },
     },
-    "beforeFull": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "beforeFull": {
+      "edges": [
+        {
+          "node": {
             "id": "35",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "36",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "37",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "38",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "39",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "39",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "35",
       },
     },
-    "beforeFullFirst": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "beforeFullFirst": {
+      "edges": [
+        {
+          "node": {
             "id": "1",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "2",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "2",
         "hasNextPage": true,
         "hasPreviousPage": false,
         "startCursor": "1",
       },
     },
-    "beforeLast": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "beforeLast": {
+      "edges": [
+        {
+          "node": {
             "id": "3",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "4",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "4",
         "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "3",
       },
     },
-    "beforeLastFull": Object {
-      "edges": Array [
-        Object {
-          "node": Object {
+    "beforeLastFull": {
+      "edges": [
+        {
+          "node": {
             "id": "38",
           },
         },
-        Object {
-          "node": Object {
+        {
+          "node": {
             "id": "39",
           },
         },
       ],
-      "pageInfo": Object {
+      "pageInfo": {
         "endCursor": "39",
         "hasNextPage": true,
         "hasPreviousPage": true,

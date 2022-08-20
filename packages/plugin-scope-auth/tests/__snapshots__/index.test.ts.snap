@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`example schema generates expected schema 1`] = `
+exports[`example schema > generates expected schema 1`] = `
 "interface IfaceBooleanFn {
   field: String!
 }

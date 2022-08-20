@@ -23,6 +23,7 @@
     "website/**/*.tsx",
     "website/**/*.ts",
     "website/**/*.js",
-    "website/**/*.mjs"
+    "website/**/*.mjs",
+    "*.js"
   ]
 }

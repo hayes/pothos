@@ -74,52 +74,52 @@ describe('select mode', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "selectMe": Object {
-            "postsConnection": Object {
-              "edges": Array [
-                Object {
+      {
+        "data": {
+          "selectMe": {
+            "postsConnection": {
+              "edges": [
+                {
                   "cursor": "R1BDOk46MjUw",
                 },
-                Object {
+                {
                   "cursor": "R1BDOk46MjQ5",
                 },
               ],
             },
           },
-          "viewer": Object {
+          "viewer": {
             "bio": "Saepe deserunt animi quia.",
             "postCount": 250,
-            "selectUser": Object {
+            "selectUser": {
               "name": "Maurine Rath",
               "postCount": 250,
-              "posts": Array [
-                Object {
+              "posts": [
+                {
                   "id": "U2VsZWN0UG9zdDox",
                   "title": "Omnis quisquam quisquam quos nihil dolor voluptatibus velit.",
                 },
-                Object {
+                {
                   "id": "U2VsZWN0UG9zdDoy",
                   "title": "Accusantium et quia quos sequi molestiae.",
                 },
-                Object {
+                {
                   "id": "U2VsZWN0UG9zdDoz",
                   "title": "Veniam perspiciatis et nisi aut corporis laboriosam.",
                 },
-                Object {
+                {
                   "id": "U2VsZWN0UG9zdDo0",
                   "title": "Sit voluptatum mollitia enim iste molestias nesciunt minima sequi voluptas.",
                 },
-                Object {
+                {
                   "id": "U2VsZWN0UG9zdDo1",
                   "title": "Omnis odit labore magni rerum quia praesentium distinctio.",
                 },
               ],
-              "postsConnection": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
+              "postsConnection": {
+                "edges": [
+                  {
+                    "node": {
                       "createdAt": "2012-12-12T00:00:00.249Z",
                       "id": "U2VsZWN0UG9zdDoyNTA=",
                       "title": "Inventore quas reiciendis.",
@@ -130,28 +130,28 @@ describe('select mode', () => {
               },
             },
           },
-          "withCompositeConnection": Object {
-            "edges": Array [
-              Object {
+          "withCompositeConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOko6WyIyIiwiMiJd",
-                "node": Object {
+                "node": {
                   "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGVTZWxlY3Q6WyIyIiwiMiJd",
                 },
               },
-              Object {
+              {
                 "cursor": "R1BDOko6WyIzIiwiMyJd",
-                "node": Object {
+                "node": {
                   "id": "V2l0aENvbXBvc2l0ZVVuaXF1ZU5vZGVTZWxlY3Q6WyIzIiwiMyJd",
                 },
               },
             ],
           },
-          "withIDSelectConnection": Object {
-            "edges": Array [
-              Object {
+          "withIDSelectConnection": {
+            "edges": [
+              {
                 "cursor": "R1BDOlM6Mg==",
               },
-              Object {
+              {
                 "cursor": "R1BDOlM6Mw==",
               },
             ],
@@ -161,113 +161,113 @@ describe('select mode', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
+          "args": {
+            "cursor": {
               "id": "1",
             },
-            "select": Object {
+            "select": {
               "id": true,
             },
             "skip": 1,
             "take": 3,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithID",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findMany",
-          "args": Object {
-            "cursor": Object {
-              "a_b": Object {
+          "args": {
+            "cursor": {
+              "a_b": {
                 "a": "1",
                 "b": "1",
               },
             },
-            "select": Object {
+            "select": {
               "a": true,
               "b": true,
             },
             "skip": 1,
             "take": 3,
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
+          "args": {
+            "select": {
               "id": true,
-              "posts": Object {
-                "orderBy": Object {
+              "posts": {
+                "orderBy": {
                   "createdAt": "desc",
                 },
-                "select": Object {
+                "select": {
                   "id": true,
                 },
                 "skip": 0,
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
-              "_count": Object {
-                "select": Object {
+          "args": {
+            "select": {
+              "_count": {
+                "select": {
                   "posts": true,
                 },
               },
               "id": true,
               "name": true,
-              "posts": Object {
-                "select": Object {
+              "posts": {
+                "select": {
                   "id": true,
                   "title": true,
                 },
                 "take": 5,
               },
-              "profile": Object {
-                "select": Object {
+              "profile": {
+                "select": {
                   "bio": true,
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
-              "_count": Object {
-                "select": Object {
+          "args": {
+            "select": {
+              "_count": {
+                "select": {
                   "posts": true,
                 },
               },
-              "posts": Object {
-                "orderBy": Object {
+              "posts": {
+                "orderBy": {
                   "createdAt": "desc",
                 },
-                "select": Object {
+                "select": {
                   "createdAt": true,
                   "id": true,
                   "title": true,
@@ -276,11 +276,11 @@ describe('select mode', () => {
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -316,22 +316,22 @@ describe('select mode', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "viewer": Object {
+      {
+        "data": {
+          "viewer": {
             "bio": "Saepe deserunt animi quia.",
-            "selectUser": Object {
-              "postsConnection": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
+            "selectUser": {
+              "postsConnection": {
+                "edges": [
+                  {
+                    "node": {
                       "id": "U2VsZWN0UG9zdDoyNTA=",
                     },
                   },
                 ],
               },
             },
-            "user": Object {
+            "user": {
               "id": "VXNlcjox",
             },
           },
@@ -340,32 +340,32 @@ describe('select mode', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "orderBy": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "orderBy": {
                   "createdAt": "desc",
                 },
-                "select": Object {
+                "select": {
                   "id": true,
                 },
                 "skip": 0,
                 "take": 2,
               },
-              "profile": Object {
-                "select": Object {
+              "profile": {
+                "select": {
                   "bio": true,
                 },
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -406,25 +406,25 @@ describe('select mode', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "viewer": Object {
-            "selectUser": Object {
-              "postsConnection": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
+      {
+        "data": {
+          "viewer": {
+            "selectUser": {
+              "postsConnection": {
+                "edges": [
+                  {
+                    "node": {
                       "id": "U2VsZWN0UG9zdDoyNTA=",
                     },
                   },
                 ],
               },
             },
-            "user": Object {
-              "postsConnection": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
+            "user": {
+              "postsConnection": {
+                "edges": [
+                  {
+                    "node": {
                       "id": "250",
                     },
                   },
@@ -437,32 +437,32 @@ describe('select mode', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
@@ -503,30 +503,30 @@ describe('select mode', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "viewer": Object {
-            "selectUser": Object {
-              "postsConnection": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
+      {
+        "data": {
+          "viewer": {
+            "selectUser": {
+              "postsConnection": {
+                "edges": [
+                  {
+                    "node": {
                       "id": "U2VsZWN0UG9zdDoyNTA=",
                     },
                   },
                 ],
               },
             },
-            "user": Object {
-              "postsConnection": Object {
-                "edges": Array [
-                  Object {
-                    "node": Object {
+            "user": {
+              "postsConnection": {
+                "edges": [
+                  {
+                    "node": {
                       "id": "250",
                     },
                   },
-                  Object {
-                    "node": Object {
+                  {
+                    "node": {
                       "id": "249",
                     },
                   },
@@ -539,56 +539,56 @@ describe('select mode', () => {
     `);
 
     expect(queries).toMatchInlineSnapshot(`
-      Array [
-        Object {
+      [
+        {
           "action": "findUnique",
-          "args": Object {
-            "include": Object {
-              "posts": Object {
-                "include": Object {
-                  "comments": Object {
-                    "include": Object {
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
                       "author": true,
                     },
                     "take": 3,
                   },
                 },
-                "orderBy": Object {
+                "orderBy": {
                   "createdAt": "desc",
                 },
                 "skip": 0,
                 "take": 3,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
-        Object {
+        {
           "action": "findUnique",
-          "args": Object {
-            "select": Object {
+          "args": {
+            "select": {
               "id": true,
-              "posts": Object {
-                "orderBy": Object {
+              "posts": {
+                "orderBy": {
                   "createdAt": "desc",
                 },
-                "select": Object {
+                "select": {
                   "id": true,
                 },
                 "skip": 0,
                 "take": 2,
               },
             },
-            "where": Object {
+            "where": {
               "id": 1,
             },
           },
-          "dataPath": Array [],
+          "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },

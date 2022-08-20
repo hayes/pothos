@@ -353,6 +353,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             directives: directives as GraphQLDirective[],
             types: builtTypes,
         });
-        return lexicographicSortSchema(buildCache.plugin.afterBuild(schema));
+        const processedSchema = buildCache.plugin.afterBuild(schema);
+        return options.sortSchema === false
+            ? processedSchema
+            : lexicographicSortSchema(processedSchema);
     }
 }

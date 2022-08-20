@@ -45,9 +45,9 @@ describe('smart subscriptions', () => {
     })) as AsyncIterableIterator<ExecutionResult>;
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [],
+      {
+        "data": {
+          "polls": [],
         },
       }
     `);
@@ -69,15 +69,15 @@ describe('smart subscriptions', () => {
     });
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "answers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "answers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 0,
                 },
               ],
@@ -89,7 +89,7 @@ describe('smart subscriptions', () => {
     `);
 
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls",
         "polls",
         "polls.0.id",
@@ -117,15 +117,15 @@ describe('smart subscriptions', () => {
     });
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "answers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "answers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 1,
                 },
               ],
@@ -138,7 +138,7 @@ describe('smart subscriptions', () => {
 
     // Expect only affected poll field to refetch
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls.0.id",
         "polls.0.answers",
         "polls.0.answers.0.count",
@@ -165,15 +165,15 @@ describe('smart subscriptions', () => {
     });
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "answers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "answers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 2,
                 },
               ],
@@ -186,7 +186,7 @@ describe('smart subscriptions', () => {
 
     // Expect only affected poll field to refetch
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls.0.answers",
         "polls.0.answers.0.count",
         "polls.0.answers.1.count",
@@ -212,26 +212,26 @@ describe('smart subscriptions', () => {
     });
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "answers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "answers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 2,
                 },
               ],
               "id": "1",
             },
-            Object {
-              "answers": Array [
-                Object {
+            {
+              "answers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 0,
                 },
               ],
@@ -243,7 +243,7 @@ describe('smart subscriptions', () => {
     `);
 
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls",
         "polls.0.id",
         "polls.0.answers",
@@ -304,15 +304,15 @@ describe('smart subscriptions', () => {
     });
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "refetchableAnswers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "refetchableAnswers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 0,
                 },
               ],
@@ -323,7 +323,7 @@ describe('smart subscriptions', () => {
     `);
 
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls",
         "polls.0.refetchableAnswers",
         "polls.0.refetchableAnswers.0.count",
@@ -351,15 +351,15 @@ describe('smart subscriptions', () => {
     log = [];
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "refetchableAnswers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "refetchableAnswers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 1,
                 },
               ],
@@ -371,7 +371,7 @@ describe('smart subscriptions', () => {
 
     // Expect only affected poll field to refetch
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls.0.refetchableAnswers.1.count",
       ]
     `);
@@ -395,25 +395,25 @@ describe('smart subscriptions', () => {
     });
 
     expect((await iter.next()).value).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "polls": Array [
-            Object {
-              "refetchableAnswers": Array [
-                Object {
+      {
+        "data": {
+          "polls": [
+            {
+              "refetchableAnswers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 1,
                 },
               ],
             },
-            Object {
-              "refetchableAnswers": Array [
-                Object {
+            {
+              "refetchableAnswers": [
+                {
                   "count": 0,
                 },
-                Object {
+                {
                   "count": 0,
                 },
               ],
@@ -424,7 +424,7 @@ describe('smart subscriptions', () => {
     `);
 
     expect(log).toMatchInlineSnapshot(`
-      Array [
+      [
         "polls",
         "polls.0.refetchableAnswers",
         "polls.0.refetchableAnswers.0.count",

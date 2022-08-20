@@ -27,8 +27,8 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "exampleField": 1,
         },
       }
@@ -63,9 +63,9 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: recursive.recurse.number: Number must be less than or equal to 5, recursive.float: Invalid input, recursive.recurse.float: Invalid input, odd: number must be odd, contactInfo.email: no example.com email addresses, enum1: Invalid input, contactInfo.phone: String must contain at least 12 character(s), contactInfo.phone: Invalid, contactInfo.aliases: Aliases should be capitalized, contactInfo.name: Name should be capitalized, recursive.recurse.recurse: number must not be 3, contactInfo.aliases: contactInfo should include at least 2 aliases],
         ],
       }
@@ -94,8 +94,8 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "listInvalid": null,
           "listInvalid2": null,
           "listValid": true,
@@ -106,7 +106,7 @@ describe('validation', () => {
           "simpleInvalid2": null,
           "simpleValid": true,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: email: invalid email address],
           [GraphQLError: : Must provide either phone number or email address],
           [GraphQLError: list.0: String must contain at most 3 character(s)],
@@ -135,14 +135,14 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "invalid": null,
           "invalidList": null,
           "valid": true,
           "validList": true,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: 0.id: String must contain at least 2 character(s)],
           [GraphQLError: input.nested.id: String must contain at least 2 character(s)],
         ],
@@ -170,8 +170,8 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "withValidationAndFieldValidator": true,
           "withValidationAndFieldValidatorInvalid": null,
           "withValidationInput": true,
@@ -179,7 +179,7 @@ describe('validation', () => {
           "withValidationInputInvalid2": null,
           "withValidationInputInvalid3": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: input: Incorrect name given, input: Incorrect age given],
           [GraphQLError: input: Incorrect name given],
           [GraphQLError: input: Incorrect age given],
@@ -204,12 +204,12 @@ describe('validation', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "invalid": null,
           "valid": true,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: num: Number must be greater than or equal to 2, string: String must contain at least 2 character(s)],
         ],
       }

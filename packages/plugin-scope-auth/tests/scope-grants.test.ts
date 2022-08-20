@@ -40,22 +40,22 @@ describe('query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjExpectsGrants": Object {
+      {
+        "data": {
+          "ObjExpectsGrants": {
             "field": "ok",
           },
-          "ObjExpectsGrantsAsyncFn": Object {
+          "ObjExpectsGrantsAsyncFn": {
             "field": "ok",
           },
           "ObjExpectsGrantsAsyncFnMissing": null,
-          "ObjExpectsGrantsFn": Object {
+          "ObjExpectsGrantsFn": {
             "field": "ok",
           },
           "ObjExpectsGrantsFnMissing": null,
           "ObjExpectsGrantsMissing": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
@@ -100,22 +100,22 @@ describe('query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjFieldExpectsGrants": Object {
+      {
+        "data": {
+          "ObjFieldExpectsGrants": {
             "field": "ok",
           },
-          "ObjFieldExpectsGrantsAsyncFn": Object {
+          "ObjFieldExpectsGrantsAsyncFn": {
             "field": "ok",
           },
           "ObjFieldExpectsGrantsAsyncFnMissing": null,
-          "ObjFieldExpectsGrantsFn": Object {
+          "ObjFieldExpectsGrantsFn": {
             "field": "ok",
           },
           "ObjFieldExpectsGrantsFnMissing": null,
           "ObjFieldExpectsGrantsMissing": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],
@@ -160,46 +160,46 @@ describe('query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjExpectsGrantsList": Array [
-            Object {
+      {
+        "data": {
+          "ObjExpectsGrantsList": [
+            {
               "field": "ok",
             },
-            Object {
-              "field": "ok",
-            },
-          ],
-          "ObjExpectsGrantsListAsyncFn": Array [
-            Object {
-              "field": "ok",
-            },
-            Object {
+            {
               "field": "ok",
             },
           ],
-          "ObjExpectsGrantsListAsyncFnMissing": Array [
+          "ObjExpectsGrantsListAsyncFn": [
+            {
+              "field": "ok",
+            },
+            {
+              "field": "ok",
+            },
+          ],
+          "ObjExpectsGrantsListAsyncFnMissing": [
             null,
             null,
           ],
-          "ObjExpectsGrantsListFn": Array [
-            Object {
+          "ObjExpectsGrantsListFn": [
+            {
               "field": "ok",
             },
-            Object {
+            {
               "field": "ok",
             },
           ],
-          "ObjExpectsGrantsListFnMissing": Array [
+          "ObjExpectsGrantsListFnMissing": [
             null,
             null,
           ],
-          "ObjExpectsGrantsListMissing": Array [
+          "ObjExpectsGrantsListMissing": [
             null,
             null,
           ],
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
@@ -247,46 +247,46 @@ describe('query', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "ObjFieldExpectsGrantsList": Array [
-            Object {
+      {
+        "data": {
+          "ObjFieldExpectsGrantsList": [
+            {
               "field": "ok",
             },
-            Object {
-              "field": "ok",
-            },
-          ],
-          "ObjFieldExpectsGrantsListAsyncFn": Array [
-            Object {
-              "field": "ok",
-            },
-            Object {
+            {
               "field": "ok",
             },
           ],
-          "ObjFieldExpectsGrantsListAsyncFnMissing": Array [
+          "ObjFieldExpectsGrantsListAsyncFn": [
+            {
+              "field": "ok",
+            },
+            {
+              "field": "ok",
+            },
+          ],
+          "ObjFieldExpectsGrantsListAsyncFnMissing": [
             null,
             null,
           ],
-          "ObjFieldExpectsGrantsListFn": Array [
-            Object {
+          "ObjFieldExpectsGrantsListFn": [
+            {
               "field": "ok",
             },
-            Object {
+            {
               "field": "ok",
             },
           ],
-          "ObjFieldExpectsGrantsListFnMissing": Array [
+          "ObjFieldExpectsGrantsListFnMissing": [
             null,
             null,
           ],
-          "ObjFieldExpectsGrantsListMissing": Array [
+          "ObjFieldExpectsGrantsListMissing": [
             null,
             null,
           ],
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],

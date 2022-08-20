@@ -209,7 +209,7 @@ describe('dataloader', () => {
 
       expect(result.data).toMatchSnapshot();
       expect(result.errors).toMatchInlineSnapshot(`
-        Array [
+        [
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -456],
           [GraphQLError: Invalid ID -123],

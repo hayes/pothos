@@ -31,51 +31,51 @@ describe('loadableInterface', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "counts": Array [
-      Object {
-        "calls": 1,
-        "loaded": 4,
-        "name": "pets",
-      },
-    ],
-    "pets": Array [
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-      },
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-      },
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-      },
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-      },
-    ],
-  },
-}
-`);
+      {
+        "data": {
+          "counts": [
+            {
+              "calls": 1,
+              "loaded": 4,
+              "name": "pets",
+            },
+          ],
+          "pets": [
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+            },
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+            },
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+            },
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+            },
+          ],
+        },
+      }
+    `);
   });
 });

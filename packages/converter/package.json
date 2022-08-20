@@ -18,7 +18,7 @@
     "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
-    "test": "pnpm jest --runInBand"
+    "test": "pnpm vitest --run"
   },
   "repository": {
     "type": "git",
@@ -38,7 +38,7 @@
     "access": "public"
   },
   "dependencies": {
-    "graphql": "16.5.0",
+    "graphql": "16.6.0",
     "ts-morph": "^15.1.0",
     "yargs": "^17.5.1"
   },

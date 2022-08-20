@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`dataloader generates expected schema 1`] = `
+exports[`dataloader > generates expected schema 1`] = `
 "interface Animal {
   type: String!
 }
@@ -136,415 +136,415 @@ type UserNode implements Node & TestInterface {
 }"
 `;
 
-exports[`dataloader queries primes the dataloader 1`] = `
-Object {
-  "counts": Array [
-    Object {
+exports[`dataloader > queries > primes the dataloader 1`] = `
+{
+  "counts": [
+    {
       "calls": 1,
       "loaded": 1,
       "name": "preloadedUsers",
     },
   ],
-  "preloadedUsers": Array [
-    Object {
+  "preloadedUsers": [
+    {
       "id": "123",
     },
-    Object {
+    {
       "id": "456",
     },
-    Object {
+    {
       "id": "789",
     },
   ],
-  "user1": Object {
+  "user1": {
     "id": "123",
   },
-  "user2": Object {
+  "user2": {
     "id": "999",
   },
 }
 `;
 
-exports[`dataloader queries primes the dataloader with toKey 1`] = `
-Object {
-  "counts": Array [
-    Object {
+exports[`dataloader > queries > primes the dataloader with toKey 1`] = `
+{
+  "counts": [
+    {
       "calls": 1,
       "loaded": 1,
       "name": "preloadedUsersToKey",
     },
   ],
-  "preloadedUsersToKey": Array [
-    Object {
+  "preloadedUsersToKey": [
+    {
       "id": "123",
     },
-    Object {
+    {
       "id": "456",
     },
-    Object {
+    {
       "id": "789",
     },
   ],
-  "user1": Object {
+  "user1": {
     "id": "123",
   },
-  "user2": Object {
+  "user2": {
     "id": "999",
   },
 }
 `;
 
-exports[`dataloader queries query with errors 1`] = `
-Object {
-  "counts": Array [
-    Object {
+exports[`dataloader > queries > query with errors 1`] = `
+{
+  "counts": [
+    {
       "calls": 1,
       "loaded": 4,
       "name": "users",
     },
-    Object {
+    {
       "calls": 1,
       "loaded": 3,
       "name": "userNodes",
     },
-    Object {
+    {
       "calls": 1,
       "loaded": 3,
       "name": "posts",
     },
-    Object {
+    {
       "calls": 1,
       "loaded": 2,
       "name": "post",
     },
   ],
   "post": null,
-  "post2": Object {
+  "post2": {
     "id": "2",
   },
-  "posts": Array [
+  "posts": [
     null,
     null,
-    Object {
+    {
       "content": "780 title",
       "id": "780",
       "title": "780 title",
     },
   ],
   "user": null,
-  "user2": Object {
+  "user2": {
     "id": "2",
   },
   "userNode": null,
-  "userNodes": Array [
+  "userNodes": [
     null,
     null,
-    Object {
+    {
       "id": "VXNlck5vZGU6Nzg5",
     },
   ],
-  "users": Array [
+  "users": [
     null,
     null,
-    Object {
+    {
       "id": "789",
     },
   ],
 }
 `;
 
-exports[`dataloader queries sorts loaded results 1`] = `
-Object {
-  "counts": Array [
-    Object {
+exports[`dataloader > queries > sorts loaded results 1`] = `
+{
+  "counts": [
+    {
       "calls": 1,
       "loaded": 2,
       "name": "sortedUsers",
     },
   ],
-  "sortedUsers": Array [
-    Object {
+  "sortedUsers": [
+    {
       "id": "123",
     },
-    Object {
+    {
       "id": "456",
     },
-    Object {
+    {
       "id": "789",
     },
   ],
-  "user1": Object {
+  "user1": {
     "id": "123",
   },
-  "user2": Object {
+  "user2": {
     "id": "999",
   },
 }
 `;
 
-exports[`dataloader queries sorts loaded results with toKey 1`] = `
-Object {
-  "counts": Array [
-    Object {
+exports[`dataloader > queries > sorts loaded results with toKey 1`] = `
+{
+  "counts": [
+    {
       "calls": 1,
       "loaded": 2,
       "name": "sortedUsersToKey",
     },
   ],
-  "sortedUsersToKey": Array [
-    Object {
+  "sortedUsersToKey": [
+    {
       "id": "123",
     },
-    Object {
+    {
       "id": "456",
     },
-    Object {
+    {
       "id": "789",
     },
   ],
-  "user1": Object {
+  "user1": {
     "id": "123",
   },
-  "user2": Object {
+  "user2": {
     "id": "999",
   },
 }
 `;
 
-exports[`dataloader queries valid queries 1`] = `
-Object {
-  "data": Object {
-    "classThing": Object {
+exports[`dataloader > queries > valid queries 1`] = `
+{
+  "data": {
+    "classThing": {
       "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjEyMw==",
     },
-    "classThingRef": Object {
+    "classThingRef": {
       "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjEyMw==",
     },
-    "counts": Array [
-      Object {
+    "counts": [
+      {
         "calls": 1,
         "loaded": 6,
         "name": "users",
       },
-      Object {
+      {
         "calls": 1,
         "loaded": 4,
         "name": "userNodes",
       },
-      Object {
+      {
         "calls": 1,
         "loaded": 4,
         "name": "nullableUsers",
       },
-      Object {
+      {
         "calls": 1,
         "loaded": 3,
         "name": "posts",
       },
-      Object {
+      {
         "calls": 1,
         "loaded": 2,
         "name": "post",
       },
-      Object {
+      {
         "calls": 1,
         "loaded": 3,
         "name": "postsSorted",
       },
-      Object {
+      {
         "calls": 1,
         "loaded": 2,
         "name": "postSorted",
       },
     ],
-    "fromContext1": Object {
+    "fromContext1": {
       "id": "123",
     },
-    "fromContext2": Object {
+    "fromContext2": {
       "id": "456",
     },
-    "fromContext3": Object {
+    "fromContext3": {
       "id": "789",
     },
-    "fromContext4": Array [
-      Object {
+    "fromContext4": [
+      {
         "id": "123",
       },
-      Object {
+      {
         "id": "456",
       },
     ],
-    "nodes": Array [
-      Object {
+    "nodes": [
+      {
         "id": "VXNlck5vZGU6MTIz",
       },
-      Object {
+      {
         "id": "VXNlck5vZGU6NDU2",
       },
     ],
     "nullableUser": null,
-    "nullableUsers": Array [
-      Object {
+    "nullableUsers": [
+      {
         "id": "123",
       },
       null,
-      Object {
+      {
         "id": "789",
       },
     ],
-    "oneToMany": Array [
-      Object {
+    "oneToMany": [
+      {
         "id": "11",
       },
-      Object {
+      {
         "id": "12",
       },
-      Object {
+      {
         "id": "13",
       },
       null,
     ],
-    "post": Object {
+    "post": {
       "id": "1",
     },
-    "post2": Object {
+    "post2": {
       "id": "2",
     },
-    "postSorted": Object {
+    "postSorted": {
       "id": "1",
     },
-    "postSorted2": Object {
+    "postSorted2": {
       "id": "2",
     },
-    "posts": Array [
-      Object {
+    "posts": [
+      {
         "content": "123 title",
         "id": "123",
         "title": "123 title",
       },
-      Object {
+      {
         "content": "456 title",
         "id": "456",
         "title": "456 title",
       },
     ],
-    "posts2": Array [
-      Object {
+    "posts2": [
+      {
         "content": "123 title",
         "id": "123",
         "title": "123 title",
       },
-      Object {
+      {
         "content": "789 title",
         "id": "789",
         "title": "789 title",
       },
     ],
-    "postsSorted": Array [
-      Object {
+    "postsSorted": [
+      {
         "content": "123 title",
         "id": "123",
         "title": "123 title",
       },
-      Object {
+      {
         "content": "456 title",
         "id": "456",
         "title": "456 title",
       },
     ],
-    "postsSorted2": Array [
-      Object {
+    "postsSorted2": [
+      {
         "content": "123 title",
         "id": "123",
         "title": "123 title",
       },
-      Object {
+      {
         "content": "789 title",
         "id": "789",
         "title": "789 title",
       },
     ],
-    "threeToMany": Array [
-      Object {
+    "threeToMany": [
+      {
         "id": "31",
       },
-      Object {
+      {
         "id": "32",
       },
-      Object {
+      {
         "id": "33",
       },
       null,
     ],
     "twoToMany": null,
-    "user": Object {
+    "user": {
       "id": "1",
       "idFromInterface": "1",
     },
-    "user2": Object {
+    "user2": {
       "id": "2",
     },
-    "userNode": Object {
+    "userNode": {
       "id": "VXNlck5vZGU6MQ==",
       "idFromInterface": "1",
     },
-    "userNode2": Object {
+    "userNode2": {
       "id": "VXNlck5vZGU6MQ==",
     },
-    "userNodes": Array [
-      Object {
+    "userNodes": [
+      {
         "id": "VXNlck5vZGU6MTIz",
       },
-      Object {
+      {
         "id": "VXNlck5vZGU6NDU2",
       },
-      Object {
+      {
         "id": "VXNlck5vZGU6Nzg5",
       },
     ],
-    "userNodes2": Array [
-      Object {
+    "userNodes2": [
+      {
         "id": "VXNlck5vZGU6MTIz",
       },
-      Object {
+      {
         "id": "VXNlck5vZGU6NDU2",
       },
-      Object {
+      {
         "id": "VXNlck5vZGU6Nzg5",
       },
     ],
-    "userWithErrors": Object {
+    "userWithErrors": {
       "__typename": "BaseError",
       "message": "Invalid ID -1",
     },
-    "userWithoutError": Object {
+    "userWithoutError": {
       "__typename": "QueryUserWithErrorsSuccess",
-      "data": Object {
+      "data": {
         "id": "1",
       },
     },
-    "users": Array [
-      Object {
+    "users": [
+      {
         "id": "123",
       },
-      Object {
+      {
         "id": "456",
       },
-      Object {
+      {
         "id": "789",
       },
     ],
-    "usersWithErrors": Object {
+    "usersWithErrors": {
       "__typename": "BaseError",
       "message": "Ids required",
     },
-    "usersWithoutError": Object {
+    "usersWithoutError": {
       "__typename": "QueryUsersWithErrorsSuccess",
-      "data": Array [
-        Object {
+      "data": [
+        {
           "id": "1",
         },
-        Object {
+        {
           "id": "2",
         },
       ],

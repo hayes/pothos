@@ -9,7 +9,8 @@
     "forceConsistentCasingInFileNames": true,
     "isolatedModules": true,
     "lib": [
-      "esnext"
+      "esnext",
+      "dom"
     ],
     "module": "commonjs",
     "moduleResolution": "node",
@@ -23,6 +24,10 @@
     "sourceMap": true,
     "strict": true,
     "target": "es2019",
-    "composite": true
+    "composite": true,
+    "typeRoots": [],
+    "types": [
+      "vitest/globals"
+    ]
   }
 }

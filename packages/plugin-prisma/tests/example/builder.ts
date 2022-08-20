@@ -5,7 +5,8 @@ import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
 // eslint-disable-next-line import/no-named-as-default
 import PrismaPlugin from '../../src';
-import { Prisma, PrismaClient } from '../client';
+// eslint-disable-next-line import/no-useless-path-segments
+import { Prisma, PrismaClient } from '../client/index';
 import PrismaTypes from '../generated';
 
 export const prisma = new PrismaClient({

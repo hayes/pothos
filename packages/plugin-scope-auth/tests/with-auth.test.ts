@@ -34,18 +34,18 @@ describe('withAuth', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "post": Object {
+      {
+        "data": {
+          "post": {
             "id": "1",
             "withAUthOnPrismaObject": true,
           },
           "withAuth": true,
-          "withAuthObject": Object {
+          "withAuthObject": {
             "withAuth": true,
             "withAuthFromInterface": true,
           },
-          "withAuthPrismaUser": Object {
+          "withAuthPrismaUser": {
             "firstName": "Maurine",
             "id": "1",
           },
@@ -79,20 +79,20 @@ describe('withAuth', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "post": Object {
+      {
+        "data": {
+          "post": {
             "id": "1",
             "withAUthOnPrismaObject": null,
           },
           "withAuth": null,
-          "withAuthObject": Object {
+          "withAuthObject": {
             "withAuth": null,
             "withAuthFromInterface": null,
           },
           "withAuthPrismaUser": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Query.withAuth],
           [GraphQLError: Not authorized to resolve Query.withAuthPrismaUser],
           [GraphQLError: Not authorized to resolve WithAuthObject.withAuth],
@@ -121,8 +121,8 @@ describe('withAuth', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "withAuth": true,
         },
       }
@@ -143,11 +143,11 @@ describe('withAuth', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "withAuth": null,
         },
-        "errors": Array [
+        "errors": [
           [GraphQLError: Not authorized to resolve Mutation.withAuth],
         ],
       }

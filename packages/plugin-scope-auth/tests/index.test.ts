@@ -27,8 +27,8 @@ describe('example schema', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "forAdmin": "ok",
         },
       }

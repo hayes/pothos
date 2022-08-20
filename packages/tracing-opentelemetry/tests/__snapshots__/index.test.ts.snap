@@ -1,6 +1,6 @@
-// Jest Snapshot v1, https://goo.gl/fbAQLP
+// Vitest Snapshot v1
 
-exports[`example schema generates expected schema 1`] = `
+exports[`example schema > generates expected schema 1`] = `
 "type Comment {
   author: User
   comment: String!

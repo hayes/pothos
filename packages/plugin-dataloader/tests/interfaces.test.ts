@@ -32,59 +32,59 @@ describe('loadableInterface', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-Object {
-  "data": Object {
-    "animals": Array [
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-        "type": "Cat",
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-        "type": "Dog",
-      },
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-        "type": "Cat",
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-        "type": "Dog",
-      },
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-        "type": "Cat",
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-        "type": "Dog",
-      },
-      Object {
-        "__typename": "Cat",
-        "chasingMouse": false,
-        "type": "Cat",
-      },
-      Object {
-        "__typename": "Dog",
-        "chasingTail": true,
-        "type": "Dog",
-      },
-    ],
-    "counts": Array [
-      Object {
-        "calls": 1,
-        "loaded": 4,
-        "name": "animals",
-      },
-    ],
-  },
-}
-`);
+      {
+        "data": {
+          "animals": [
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+              "type": "Cat",
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+              "type": "Dog",
+            },
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+              "type": "Cat",
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+              "type": "Dog",
+            },
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+              "type": "Cat",
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+              "type": "Dog",
+            },
+            {
+              "__typename": "Cat",
+              "chasingMouse": false,
+              "type": "Cat",
+            },
+            {
+              "__typename": "Dog",
+              "chasingTail": true,
+              "type": "Dog",
+            },
+          ],
+          "counts": [
+            {
+              "calls": 1,
+              "loaded": 4,
+              "name": "animals",
+            },
+          ],
+        },
+      }
+    `);
   });
 });
