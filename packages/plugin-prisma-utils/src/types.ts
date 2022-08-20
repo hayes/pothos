@@ -99,7 +99,7 @@ export type OpsOptions<
   Types extends SchemaTypes,
   Type extends InputType<Types>,
   Ops extends string,
-> = Ops[] | Record<Ops, Omit<PothosSchemaTypes.InputFieldOptions<Types, Type>, 'type'>>;
+> = readonly Ops[] | Record<Ops, Omit<PothosSchemaTypes.InputFieldOptions<Types, Type>, 'type'>>;
 
 export interface PrismaFilterOptions<
   Types extends SchemaTypes,

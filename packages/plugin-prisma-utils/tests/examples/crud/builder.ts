@@ -1,9 +1,9 @@
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
-import PrismaUtils from '../../src';
+import PrismaUtils from '../../../src';
 // eslint-disable-next-line import/no-useless-path-segments
-import { PrismaClient } from '../client/index';
-import PrismaTypes from '../generated';
+import { PrismaClient } from '../../client/index';
+import PrismaTypes from '../../generated';
 
 export const prisma = new PrismaClient({
   log: [

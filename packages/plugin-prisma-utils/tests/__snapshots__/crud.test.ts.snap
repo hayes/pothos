@@ -1,0 +1,186 @@
+// Vitest Snapshot v1
+
+exports[`generate crud > generates schema 1`] = `
+"type Comment {
+  author: User!
+  content: String!
+  id: ID!
+  post: Post!
+}
+
+input CommentFilter {
+  author: UserFilter
+  authorId: IntFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input CommentListFilter {
+  every: CommentFilter
+  none: CommentFilter
+  some: CommentFilter
+}
+
+input CommentOrderBy {
+  author: UserOrderBy
+  authorId: OrderBy
+  content: OrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  post: PostOrderBy
+  postId: OrderBy
+}
+
+scalar DateTime
+
+input DateTimeFilter {
+  equals: DateTime
+  gt: DateTime
+  gte: DateTime
+  in: [DateTime!]
+  is: DateTime
+  isNot: DateTime
+  lt: DateTime
+  lte: DateTime
+  not: DateTimeFilter
+  notIn: [DateTime!]
+}
+
+input IntFilter {
+  equals: Int
+  gt: Int
+  gte: Int
+  in: [Int!]
+  is: Int
+  isNot: Int
+  lt: Int
+  lte: Int
+  not: IntFilter
+  notIn: [Int!]
+}
+
+enum OrderBy {
+  Asc
+  Desc
+}
+
+type Post {
+  author: User!
+  comments(filter: CommentFilter, orderBy: CommentOrderBy): [Comment!]!
+  id: ID!
+}
+
+input PostFilter {
+  author: UserFilter
+  authorId: IntFilter
+  comments: CommentListFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  media: PostMediaListFilter
+  title: StringFilter
+  updatedAt: DateTimeFilter
+}
+
+input PostListFilter {
+  every: PostFilter
+  none: PostFilter
+  some: PostFilter
+}
+
+input PostMediaFilter {
+  id: IntFilter
+  mediaId: IntFilter
+  order: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input PostMediaListFilter {
+  every: PostMediaFilter
+  none: PostMediaFilter
+  some: PostMediaFilter
+}
+
+input PostMediaOrderBy {
+  id: OrderBy
+  mediaId: OrderBy
+  order: OrderBy
+  post: PostOrderBy
+  postId: OrderBy
+}
+
+input PostOrderBy {
+  author: UserOrderBy
+  authorId: OrderBy
+  comments: CommentOrderBy
+  content: OrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  media: PostMediaOrderBy
+  published: OrderBy
+  title: OrderBy
+  updatedAt: OrderBy
+}
+
+input ProfileFilter {
+  bio: StringFilter
+  id: IntFilter
+  user: UserFilter
+  userId: IntFilter
+}
+
+input ProfileOrderBy {
+  bio: OrderBy
+  id: OrderBy
+  user: UserOrderBy
+  userId: OrderBy
+}
+
+type Query {
+  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
+}
+
+input StringFilter {
+  contains: String
+  endsWith: String
+  equals: String
+  gt: String
+  gte: String
+  in: [String!]
+  is: String
+  isNot: String
+  lt: String
+  lte: String
+  not: StringFilter
+  notIn: [String!]
+  startsWith: String
+}
+
+type User {
+  id: ID!
+  name: String
+  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
+}
+
+input UserFilter {
+  comments: CommentListFilter
+  email: StringFilter
+  id: IntFilter
+  name: StringFilter
+  posts: PostListFilter
+  profile: ProfileFilter
+}
+
+input UserOrderBy {
+  comments: CommentOrderBy
+  email: OrderBy
+  id: OrderBy
+  name: OrderBy
+  posts: PostOrderBy
+  profile: ProfileOrderBy
+}"
+`;

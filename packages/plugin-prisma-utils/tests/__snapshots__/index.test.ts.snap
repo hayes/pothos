@@ -1,8 +1,12 @@
 // Vitest Snapshot v1
 
 exports[`prisma utils > generates schema 1`] = `
-"input CommentWhere {
+"input CommentFilter {
   createdAt: DateTime
+}
+
+input CommentListFilter {
+  some: CommentFilter
 }
 
 scalar DateTime
@@ -10,10 +14,6 @@ scalar DateTime
 input IntFilter {
   equals: Int
   not: IntFilter
-}
-
-input ListCommentWhere {
-  some: CommentWhere
 }
 
 enum OrderBy {
@@ -25,22 +25,22 @@ type Post {
   id: ID!
 }
 
+input PostFilter {
+  author: UserFilter
+
+  \\"\\"\\"filter by author id\\"\\"\\"
+  authorId: IntFilter
+  comments: CommentListFilter
+  createdAt: DateTime
+  id: IntFilter
+  title: String
+}
+
 input PostOrderBy {
   author: UserOrderBy
   createdAt: OrderBy
   id: OrderBy
   title: OrderBy
-}
-
-input PostWhere {
-  author: UserWhere
-
-  \\"\\"\\"filter by author id\\"\\"\\"
-  authorId: IntFilter
-  comments: ListCommentWhere
-  createdAt: DateTime
-  id: IntFilter
-  title: String
 }
 
 input ProfileOrderBy {
@@ -50,7 +50,7 @@ input ProfileOrderBy {
 
 type Query {
   post(list: StringListFilter, title: StringFilter): Post
-  posts(filter: PostWhere, order: PostOrderBy): [Post!]!
+  posts(filter: PostFilter, order: PostOrderBy): [Post!]!
 }
 
 input StringFilter {
@@ -66,12 +66,12 @@ input StringListFilter {
   some: StringFilter
 }
 
+input UserFilter {
+  id: IntFilter
+}
+
 input UserOrderBy {
   name: OrderBy
   profile: ProfileOrderBy
-}
-
-input UserWhere {
-  id: IntFilter
 }"
 `;

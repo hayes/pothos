@@ -36,16 +36,16 @@ schemaBuilder.prismaFilter = function prismaFilter<
     this.inputRef<
       Pick<
         FilterShape<InputShapeFromTypeParam<SchemaTypes, Type, true>>,
-        Ops extends string[] ? Ops[number] : keyof Ops
+        Ops extends readonly string[] ? Ops[number] : keyof Ops
       >
     >(filterName);
 
   const opsOptions: Record<string, unknown> = Array.isArray(ops)
-    ? ops.reduce<Record<string, {}>>((map, op) => {
+    ? ((ops as string[]).reduce<Record<string, {}>>((map, op) => {
         // eslint-disable-next-line no-param-reassign
         map[op] = {};
         return map;
-      }, {})
+      }, {}) as {})
     : ops;
 
   ref.implement({
@@ -97,11 +97,11 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
 
   const ref = this.inputRef(filterName);
   const opsOptions: Record<string, unknown> = Array.isArray(ops)
-    ? ops.reduce<Record<string, {}>>((map, op) => {
+    ? ((ops as readonly string[]).reduce<Record<string, {}>>((map, op) => {
         // eslint-disable-next-line no-param-reassign
         map[op] = {};
         return map;
-      }, {})
+      }, {}) as {})
     : ops;
 
   ref.implement({
@@ -207,7 +207,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
   type: Name,
   { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model>,
 ): InputRef<Model['Where']> {
-  const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Where`);
+  const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Filter`);
 
   ref.implement({
     ...options,

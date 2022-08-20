@@ -1,5 +1,5 @@
 import { InputRef } from '@pothos/core';
-import { Prisma } from '../../client';
+import { Prisma } from '../../../client';
 import builder, { prisma } from '../builder';
 
 const StringFilter = builder.prismaFilter('String', {

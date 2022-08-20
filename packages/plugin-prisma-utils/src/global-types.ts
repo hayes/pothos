@@ -39,7 +39,7 @@ declare global {
       ) => InputRef<
         Pick<
           FilterShape<InputShapeFromTypeParam<Types, Type, true>>,
-          Ops extends string[] ? Ops[number] : keyof Ops
+          Ops extends readonly string[] ? Ops[number] : keyof Ops
         >
       >;
 

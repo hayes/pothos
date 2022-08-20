@@ -1,7 +1,7 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
-import { prisma } from './example/builder';
-import schema from './example/schema';
+import { prisma } from './examples/simple/builder';
+import schema from './examples/simple/schema';
 
 let queries: unknown[] = [];
 prisma.$use((params, next) => {
