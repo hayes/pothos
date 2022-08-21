@@ -49,6 +49,10 @@ const config: ESLintConfig = {
       files: ['packages/*/tests/examples?/**/*', 'examples/**/*'],
       rules: {
         'no-console': 'off',
+        '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-unsafe-argument': 'off',
+        '@typescript-eslint/no-unsafe-member-access': 'off',
+        '@typescript-eslint/no-unsafe-call': 'off',
       },
     },
   ],

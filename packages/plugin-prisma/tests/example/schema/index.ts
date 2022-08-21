@@ -783,13 +783,23 @@ const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').imple
 builder.queryField('blog', (t) =>
   t.field({
     type: Blog,
-    resolve: async (_, args, context, info) => ({
-      posts: await prisma.post.findMany({
-        ...queryFromInfo({ context, info, typeName: 'Post', path: ['posts'] }),
-        take: 3,
-      }),
-      pages: [1, 2, 3],
-    }),
+    resolve: async (_, args, context, info) => {
+      const query = queryFromInfo({
+        context,
+        info,
+        typeName: 'Post',
+        path: ['posts'],
+        select: { author: true },
+      });
+
+      return {
+        posts: await prisma.post.findMany({
+          ...query,
+          take: 3,
+        }),
+        pages: [1, 2, 3],
+      };
+    },
   }),
 );
 

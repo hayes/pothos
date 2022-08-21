@@ -1,0 +1,95 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // Generate into custom location because this repo has multiple prisma schemas
+  output   = "./client"
+}
+
+generator pothos {
+  provider     = "prisma-pothos-types"
+  // Match client output location from above
+  clientOutput = "./client"
+  output       = "./generated.d.ts"
+}
+
+model User {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  email String
+  name  String
+
+  teams TeamRole[]
+}
+
+model TeamRole {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user   User @relation(fields: [userId], references: [id])
+  userId Int
+
+  team   Team @relation(fields: [teamId], references: [id])
+  teamId Int
+
+  role String
+}
+
+model Team {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name    String
+  players Player[]
+  users   TeamRole[]
+  games   Game[]
+  points  Point[]
+}
+
+model Player {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  name   String
+  number Int
+  points Point[]
+
+  team   Team @relation(fields: [teamId], references: [id])
+  teamId Int
+}
+
+model Game {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  opponentName String
+  complete     Boolean
+  points       Point[]
+  team         Team    @relation(fields: [teamId], references: [id])
+  teamId       Int
+}
+
+model Point {
+  id        Int      @id @default(autoincrement())
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  startedOnOffense Boolean
+  scored           Boolean
+  players          Player[]
+
+  game   Game @relation(fields: [gameId], references: [id])
+  gameId Int
+
+  team   Team @relation(fields: [teamId], references: [id])
+  teamId Int
+}
