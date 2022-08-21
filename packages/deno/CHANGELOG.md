@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.20.0
+
+### Minor Changes
+
+- c5b1e2d3: Only use abstractReturnShapeKey when resolveType is not provided
+
 ## 3.19.0
 
 ### Minor Changes

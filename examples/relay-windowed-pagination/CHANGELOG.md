@@ -1,5 +1,17 @@
 # @pothos-examples/prisma-relay
 
+## 2.4.0
+
+### Minor Changes
+
+- c5b1e2d3: Only use abstractReturnShapeKey when resolveType is not provided
+
+### Patch Changes
+
+- Updated dependencies [c5b1e2d3]
+  - @pothos/core@3.17.0
+  - @pothos/plugin-relay@3.21.0
+
 ## 2.3.8
 
 ### Patch Changes

@@ -1,5 +1,17 @@
 # @pothos/plugin-prisma-utils
 
+## 2.0.0
+
+### Minor Changes
+
+- c5b1e2d3: Only use abstractReturnShapeKey when resolveType is not provided
+
+### Patch Changes
+
+- Updated dependencies [c5b1e2d3]
+- Updated dependencies [c5b1e2d3]
+  - @pothos/plugin-prisma@3.27.0
+
 ## 1.0.0
 
 ### Patch Changes
