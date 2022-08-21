@@ -306,7 +306,7 @@ function addFieldSelection(
   }
 }
 
-export function queryFromInfo({
+export function queryFromInfo<T extends SelectionMap['select'] | undefined = undefined>({
   context,
   info,
   typeName,
@@ -316,9 +316,9 @@ export function queryFromInfo({
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
-  select?: SelectionMap['select'];
+  select?: T;
   path?: string[];
-}): {} {
+}): { select: T } | { include?: {} } {
   const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
   const state = createStateForType(type, info);
 
@@ -343,7 +343,7 @@ export function queryFromInfo({
 
   setLoaderMappings(context, info, state.mappings);
 
-  return selectionToQuery(state);
+  return selectionToQuery(state) as { select: T };
 }
 
 export function selectionStateFromInfo(

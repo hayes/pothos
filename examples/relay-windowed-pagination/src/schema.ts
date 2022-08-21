@@ -1,6 +1,4 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-argument */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { builder } from './builder';
 import { Comments, Posts, Users } from './data';
 import { IComment, IPost, IUser, PageCursor, PageCursors } from './types';

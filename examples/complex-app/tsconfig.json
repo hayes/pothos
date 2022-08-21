@@ -5,10 +5,12 @@
     "skipLibCheck": false,
     "target": "es2019",
     "moduleResolution": "node",
-    "allowSyntheticDefaultImports": true
+    "allowSyntheticDefaultImports": true,
+    "module": "ESNext"
   },
   "include": [
     "prisma/*.ts",
-    "src/**/*"
+    "src/**/*",
+    "scripts/**/*"
   ]
 }

@@ -451,6 +451,7 @@ export type PrismaFieldResolver<
 > = (
   query: {
     include?: Model['Include'];
+    select?: Model['Select'];
   },
   parent: Parent,
   args: InputShapeFromFields<Args>,

@@ -19,7 +19,7 @@ generator pothos {
 model User {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   email String
   name  String
@@ -30,7 +30,7 @@ model User {
 model TeamRole {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   user   User @relation(fields: [userId], references: [id])
   userId Int
@@ -44,8 +44,9 @@ model TeamRole {
 model Team {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
+  name    String
   players Player[]
   users   TeamRole[]
   games   Game[]
@@ -55,9 +56,10 @@ model Team {
 model Player {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   name   String
+  number Int
   points Point[]
 
   team   Team @relation(fields: [teamId], references: [id])
@@ -67,17 +69,19 @@ model Player {
 model Game {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
-  team   Team    @relation(fields: [teamId], references: [id])
-  points Point[]
-  teamId Int
+  opponentName String
+  complete     Boolean
+  points       Point[]
+  team         Team    @relation(fields: [teamId], references: [id])
+  teamId       Int
 }
 
 model Point {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @default(now())
-  updateAt  DateTime @updatedAt
+  updatedAt DateTime @updatedAt
 
   startedOnOffense Boolean
   scored           Boolean

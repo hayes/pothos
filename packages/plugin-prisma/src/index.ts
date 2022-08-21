@@ -19,6 +19,8 @@ const pluginName = 'prisma' as const;
 
 export default pluginName;
 
+export { queryFromInfo };
+
 export type PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,

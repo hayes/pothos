@@ -5,7 +5,8 @@
   "main": "src/index.ts",
   "types": "src/index.ts",
   "scripts": {
-    "generate": "prisma generate",
+    "generate": "prisma generate && pnpm run schema",
+    "schema": "node -r @swc-node/register scripts/build-schema.ts",
     "seed": "prisma migrate reset -f",
     "start": "node -r @swc-node/register src/server.ts",
     "type": "tsc --noEmit"
@@ -26,6 +27,7 @@
     "@pothos/plugin-validation": "workspace:*",
     "@prisma/client": "^4.2.1",
     "graphql": "16.6.0",
+    "graphql-scalars": "^1.18.0",
     "prisma": "^4.2.1"
   },
   "publishConfig": {

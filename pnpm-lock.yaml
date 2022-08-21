@@ -70,6 +70,7 @@ importers:
       '@pothos/plugin-validation': workspace:*
       '@prisma/client': ^4.2.1
       graphql: 16.5.0
+      graphql-scalars: ^1.18.0
       prisma: ^4.2.1
     dependencies:
       '@faker-js/faker': 7.4.0
@@ -84,7 +85,11 @@ importers:
       '@pothos/plugin-validation': link:../../packages/plugin-validation
       '@prisma/client': 4.2.1_prisma@4.2.1
       graphql: 16.5.0
+      graphql-scalars: 1.18.0_graphql@16.5.0
       prisma: 4.2.1
+
+  examples/complex-app/prisma/client:
+    specifiers: {}
 
   examples/envelope-helix-fastify:
     specifiers:
@@ -255,6 +260,9 @@ importers:
       graphql: 16.5.0
       prisma: 4.2.1
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.4.0
@@ -274,6 +282,12 @@ importers:
       '@prisma/client': 4.2.1_prisma@4.2.1
       graphql: 16.5.0
       prisma: 4.2.1
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -561,7 +575,13 @@ importers:
   packages/plugin-prisma-utils/esm:
     specifiers: {}
 
+  packages/plugin-prisma-utils/tests/client:
+    specifiers: {}
+
   packages/plugin-prisma/esm:
+    specifiers: {}
+
+  packages/plugin-prisma/tests/client:
     specifiers: {}
 
   packages/plugin-relay:
@@ -602,6 +622,9 @@ importers:
       prisma: 4.2.1
 
   packages/plugin-scope-auth/esm:
+    specifiers: {}
+
+  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -10336,7 +10359,6 @@ packages:
     dependencies:
       graphql: 16.5.0
       tslib: 2.4.0
-    dev: true
 
   /graphql-shield/7.5.0_fde5rply7obbokhiljj3civ4s4:
     resolution: {integrity: sha512-T1A6OreOe/dHDk/1Qg3AHCrKLmTkDJ3fPFGYpSOmUbYXyDnjubK4J5ab5FjHdKHK5fWQRZNTvA0SrBObYsyfaw==}
