@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.26.0
+
+### Minor Changes
+
+- 5423703a: expose queryFromInfo from prisma plugin
+
 ## 3.25.0
 
 ### Minor Changes
