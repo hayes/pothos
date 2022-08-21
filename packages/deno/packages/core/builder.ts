@@ -178,7 +178,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     args<Shape extends InputFieldMap>(fields: (t: PothosSchemaTypes.InputFieldBuilder<Types, "Arg">) => Shape): Shape {
         return fields(new InputFieldBuilder<Types, "Arg">(this, "Arg", "[unknown]"));
     }
-    interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(param: Param, options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>, fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>) {
+    interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[], ResolveType>(param: Param, options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces, ResolveType>, fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>) {
         verifyRef(param);
         verifyInterfaces(options.interfaces);
         const name = typeof param === "string"
@@ -189,8 +189,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
                 name: string;
             }).name;
         const ref = param instanceof BaseTypeRef
-            ? (param as InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>)
-            : new InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>(name);
+            ? (param as InterfaceRef<AbstractReturnShape<Types, Param, ResolveType>, ParentShape<Types, Param>>)
+            : new InterfaceRef<AbstractReturnShape<Types, Param, ResolveType>, ParentShape<Types, Param>>(name);
         const typename = ref.name;
         const config: PothosInterfaceTypeConfig = {
             kind: "Interface",
@@ -231,8 +231,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             }));
         });
     }
-    unionType<Member extends ObjectParam<Types>>(name: string, options: PothosSchemaTypes.UnionTypeOptions<Types, Member>) {
-        const ref = new UnionRef<AbstractReturnShape<Types, Member>, ParentShape<Types, Member>>(name);
+    unionType<Member extends ObjectParam<Types>, ResolveType>(name: string, options: PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>) {
+        const ref = new UnionRef<AbstractReturnShape<Types, Member, ResolveType>, ParentShape<Types, Member>>(name);
         options.types.forEach((type) => {
             verifyRef(type);
         });

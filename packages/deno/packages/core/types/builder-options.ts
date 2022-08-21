@@ -39,7 +39,7 @@ export type ObjectTypeOptions<Types extends SchemaTypes, Param extends ObjectPar
 } : {
     name: string;
 }) & (PothosSchemaTypes.ObjectTypeOptions<Types, Shape> | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>)>;
-export type InterfaceTypeOptions<Types extends SchemaTypes, Param extends InterfaceParam<Types>, Shape, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> = PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> & (Param extends string ? {} : Param extends InterfaceRef<unknown> ? {
+export type InterfaceTypeOptions<Types extends SchemaTypes, Param extends InterfaceParam<Types>, Shape, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[], ResolveType = unknown> = PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces, ResolveType> & (Param extends string ? {} : Param extends InterfaceRef<unknown> ? {
     name?: string;
 } : {
     name: string;

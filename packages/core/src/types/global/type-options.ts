@@ -78,30 +78,34 @@ declare global {
       Types extends SchemaTypes = SchemaTypes,
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
+      ResolveType = unknown,
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
       interfaces?:
         | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
         | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
-      resolveType?: (
-        parent: Shape,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-        type: GraphQLUnionType,
-      ) => MaybePromise<ObjectParam<Types> | string | null | undefined>;
+      resolveType?: ResolveType &
+        ((
+          parent: Shape,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+          type: GraphQLUnionType,
+        ) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
     }
 
     export interface UnionTypeOptions<
       Types extends SchemaTypes = SchemaTypes,
       Member extends ObjectParam<Types> = ObjectParam<Types>,
+      ResolveType = unknown,
     > extends BaseTypeOptions<Types> {
       types: Member[];
-      resolveType?: (
-        parent: ParentShape<Types, Member>,
-        context: Types['Context'],
-        info: GraphQLResolveInfo,
-        type: GraphQLUnionType,
-      ) => MaybePromise<Member | string | null | undefined>;
+      resolveType?: ResolveType &
+        ((
+          parent: ParentShape<Types, Member>,
+          context: Types['Context'],
+          info: GraphQLResolveInfo,
+          type: GraphQLUnionType,
+        ) => MaybePromise<Member | string | null | undefined>);
     }
 
     export interface ScalarTypeOptions<

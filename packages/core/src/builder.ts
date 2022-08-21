@@ -306,9 +306,13 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return fields(new InputFieldBuilder<Types, 'Arg'>(this, 'Arg', '[unknown]'));
   }
 
-  interfaceType<Param extends InterfaceParam<Types>, Interfaces extends InterfaceParam<Types>[]>(
+  interfaceType<
+    Param extends InterfaceParam<Types>,
+    Interfaces extends InterfaceParam<Types>[],
+    ResolveType,
+  >(
     param: Param,
-    options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces>,
+    options: InterfaceTypeOptions<Types, Param, ParentShape<Types, Param>, Interfaces, ResolveType>,
     fields?: InterfaceFieldsShape<Types, ParentShape<Types, Param>>,
   ) {
     verifyRef(param);
@@ -321,8 +325,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
     const ref =
       param instanceof BaseTypeRef
-        ? (param as InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>)
-        : new InterfaceRef<AbstractReturnShape<Types, Param>, ParentShape<Types, Param>>(name);
+        ? (param as InterfaceRef<
+            AbstractReturnShape<Types, Param, ResolveType>,
+            ParentShape<Types, Param>
+          >)
+        : new InterfaceRef<
+            AbstractReturnShape<Types, Param, ResolveType>,
+            ParentShape<Types, Param>
+          >(name);
 
     const typename = ref.name;
 
@@ -383,11 +393,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     });
   }
 
-  unionType<Member extends ObjectParam<Types>>(
+  unionType<Member extends ObjectParam<Types>, ResolveType>(
     name: string,
-    options: PothosSchemaTypes.UnionTypeOptions<Types, Member>,
+    options: PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>,
   ) {
-    const ref = new UnionRef<AbstractReturnShape<Types, Member>, ParentShape<Types, Member>>(name);
+    const ref = new UnionRef<
+      AbstractReturnShape<Types, Member, ResolveType>,
+      ParentShape<Types, Member>
+    >(name);
 
     options.types.forEach((type) => {
       verifyRef(type);

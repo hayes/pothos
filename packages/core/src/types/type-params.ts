@@ -32,10 +32,16 @@ export type ParentShape<Types extends SchemaTypes, T> = T extends {
   ? U
   : OutputShape<Types, T>;
 
-export type AbstractReturnShape<Types extends SchemaTypes, T> = T extends {
-  [abstractReturnShapeKey]: infer U;
-}
-  ? U
+export type AbstractReturnShape<
+  Types extends SchemaTypes,
+  T,
+  ResolveType = unknown,
+> = unknown extends ResolveType
+  ? T extends {
+      [abstractReturnShapeKey]: infer U;
+    }
+    ? U
+    : OutputShape<Types, T>
   : OutputShape<Types, T>;
 
 export type InputShape<Types extends SchemaTypes, T> = T extends {

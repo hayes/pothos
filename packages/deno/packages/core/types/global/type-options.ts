@@ -36,14 +36,14 @@ declare global {
         export interface InputObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Fields extends InputFieldMap = InputFieldMap> extends BaseTypeOptions<Types> {
             fields: (t: InputFieldBuilder<Types, "InputObject">) => Fields;
         }
-        export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends BaseTypeOptions<Types> {
+        export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[], ResolveType = unknown> extends BaseTypeOptions<Types> {
             fields?: InterfaceFieldsShape<Types, Shape>;
             interfaces?: (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
-            resolveType?: (parent: Shape, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<ObjectParam<Types> | string | null | undefined>;
+            resolveType?: ResolveType & ((parent: Shape, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
         }
-        export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>> extends BaseTypeOptions<Types> {
+        export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>, ResolveType = unknown> extends BaseTypeOptions<Types> {
             types: Member[];
-            resolveType?: (parent: ParentShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<Member | string | null | undefined>;
+            resolveType?: ResolveType & ((parent: ParentShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<Member | string | null | undefined>);
         }
         export interface ScalarTypeOptions<Types extends SchemaTypes = SchemaTypes, ScalarInputShape = unknown, ScalarOutputShape = unknown> extends BaseTypeOptions<Types> {
             // Serializes an internal value to include in a response.

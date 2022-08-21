@@ -164,7 +164,8 @@ export type InterfaceTypeOptions<
   Param extends InterfaceParam<Types>,
   Shape,
   Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
-> = PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces> &
+  ResolveType = unknown,
+> = PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces, ResolveType> &
   (Param extends string
     ? {}
     : Param extends InterfaceRef<unknown>
