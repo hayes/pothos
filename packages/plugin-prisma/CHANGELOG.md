@@ -1,5 +1,13 @@
 # Change Log
 
+## 3.27.0
+
+### Minor Changes
+
+- c5b1e2d3: move addBrand and hasBrand from PrismaNodeRef to PrismaObjectRef so it can be used with
+  all prisma objects
+- c5b1e2d3: Only use abstractReturnShapeKey when resolveType is not provided
+
 ## 3.26.0
 
 ### Minor Changes
