@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.27.1
+
+### Patch Changes
+
+- 222298f0: update curor type on query arg of prismaConnections
+
 ## 3.27.0
 
 ### Minor Changes
