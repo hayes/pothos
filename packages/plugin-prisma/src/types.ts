@@ -510,7 +510,7 @@ export type PrismaConnectionFieldOptions<
         resolve: (
           query: {
             include?: Model['Include'];
-            cursor?: {};
+            cursor?: Model['WhereUnique'];
             take: number;
             skip: number;
           },
@@ -575,7 +575,7 @@ export type RelatedConnectionOptions<
             resolve?: (
               query: {
                 include?: Model['Include'];
-                cursor?: {};
+                cursor?: Model['WhereUnique'];
                 take: number;
                 skip: number;
               },
@@ -589,7 +589,7 @@ export type RelatedConnectionOptions<
             resolve: (
               query: {
                 include?: Model['Include'];
-                cursor?: {};
+                cursor?: Model['WhereUnique'];
                 take: number;
                 skip: number;
               },
