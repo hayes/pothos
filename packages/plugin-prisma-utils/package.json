@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma-utils",
-  "version": "0.1.1",
+  "version": "1.0.0",
   "description": "A Pothos plugin containing utility functions for building prisma inputs",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
