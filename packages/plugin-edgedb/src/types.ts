@@ -57,7 +57,8 @@ export type EdgeDBSchemaTypes<Types extends SchemaTypes> =
 export interface EdgeDBModelTypes {
   Name: string;
   Shape: {};
-  MultiLinks: string;
+  ReturnShape: {};
+  MultiLink: string;
   LinkName: string;
   Links: Record<
     string,
@@ -71,29 +72,57 @@ export interface EdgeDBModelTypes {
 export type EdgeDBModelShape<
   Types extends SchemaTypes,
   Name extends EdgeDBSchemaTypeKeys<Types>,
-> = EdgeDBSchemaTypes<Types>[Name] extends infer Property
-  ? Property extends BaseObject
+> = EdgeDBSchemaTypes<Types>[Name] extends infer ModelProperties
+  ? ModelProperties extends BaseObject
     ? {
         Name: Name;
-        Shape: Property;
-        MultiLinks: '';
-        LinkName: extractLinks<Property> extends infer Link
+        Shape: ModelProperties;
+        ReturnShape: {
+          [K in keyof ModelProperties]?: ModelProperties[K] extends ObjectType
+            ? ModelProperties[K] extends infer Link
+              ? { [K in keyof Link]?: Link[K] }
+              : ModelProperties[K]
+            : ModelProperties[K];
+        };
+        MultiLink: extractMultiLinks<ModelProperties> extends infer Link
+          ? Link extends string
+            ? SplitLT<Link>
+            : never
+          : never;
+        LinkName: extractLinks<ModelProperties> extends infer Link
           ? Link extends string
             ? SplitLT<Link>
             : never
           : never;
       } extends infer ModelTypesWithoutLinks
-      ? ModelTypesWithoutLinks extends { LinkName: string; Shape: Record<string, unknown> }
+      ? ModelTypesWithoutLinks extends {
+          LinkName: string;
+          Shape: Record<string, unknown>;
+        }
         ? ModelTypesWithoutLinks & {
             Links: {
               [Key in ModelTypesWithoutLinks['LinkName']]: {
                 Shape: ModelTypesWithoutLinks['Shape'][Key] extends infer Shape
                   ? Shape extends BaseObject
-                    ? Shape
+                    ? { [K in keyof Shape]?: Shape[K] }
                     : Shape extends Array<BaseObject>
-                    ? Shape[0]
+                    ? { [K in keyof Shape[0]]?: Shape[0][K] }
                     : never
                   : never;
+                Types: EdgeDBModelShape<
+                  Types,
+                  ModelTypesWithoutLinks['Shape'][Key] extends infer Base
+                    ? Base extends TypeSet<ObjectType>
+                      ? Base['__element__']['__name__'] extends infer ModelName
+                        ? ModelName extends string
+                          ? SplitDefault<ModelName> extends EdgeDBSchemaTypeKeys<Types>
+                            ? SplitDefault<ModelName>
+                            : never
+                          : never
+                        : never
+                      : never
+                    : never
+                >;
               };
             };
           }
@@ -275,21 +304,30 @@ type extractLinksToPartial<Shape extends { [key: string]: any }> = Shape extends
     : never
   : never;
 
-// Extract links from queryBuilder object, not from type
-// Shape extends infer T
-//  ? T extends TypeSet<ObjectType>
-//   ? {
-//       [K in keyof T['__element__']['__pointers__']]: T['__element__']['__pointers__'][K] extends LinkDesc
-//         ? boolean
-//         : never;
-//     }
-//   : never
-// : never;
+type extractMultiLinksToPartial<Shape extends { [key: string]: any }> = Shape extends infer T
+  ? T extends object
+    ? {
+        [Key in keyof Shape]: Shape[Key] extends infer Link
+          ? Link extends Array<BaseObject>
+            ? boolean
+            : never
+          : never;
+      }
+    : never
+  : never;
 
 // Filter out links from model type
 export type extractLinks<
   Model extends object,
   PartialLinks extends extractLinksToPartial<Model> = extractLinksToPartial<Model>,
+> = PartialLinks extends infer Links
+  ? {
+      [K in keyof Links]: [boolean] extends [Links[K]] ? K : never;
+    }[keyof Links]
+  : null;
+export type extractMultiLinks<
+  Model extends object,
+  PartialLinks extends extractMultiLinksToPartial<Model> = extractMultiLinksToPartial<Model>,
 > = PartialLinks extends infer Links
   ? {
       [K in keyof Links]: [boolean] extends [Links[K]] ? K : never;
@@ -301,8 +339,11 @@ type Split<S extends string, D extends string> = S extends `${infer T}${D}${infe
   : [S][0];
 
 // For removing backlinks from `link` fields
-// eg. fields: "posts" | "comments" | "<author"  -> fields: "posts" | "comments"
+// eg. SplitLT<"posts" | "comments" | "<author">  -> "posts" | "comments"
 export type SplitLT<LinkOptions extends string> = Split<LinkOptions, '<'>;
+// Only way to get models name is to split it on its BaseObject __name__
+// eg. SplitDefault<"default::Post"> -> "Post"
+export type SplitDefault<LinkOptions extends string> = Split<LinkOptions, 'default::'>;
 
 export type EdgeDBObjectFieldOptions<
   Types extends SchemaTypes,
@@ -394,8 +435,8 @@ export type EdgeDBFieldResolver<
   info: GraphQLResolveInfo,
 ) => ShapeFromTypeParam<Types, Param, Nullable> extends infer Shape
   ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
-    ? ListResolveValue<Partial<Shape>, Item, ResolveReturnShape>
-    : MaybePromise<Partial<Shape>>
+    ? ListResolveValue<Shape, Item, ResolveReturnShape>
+    : MaybePromise<Shape>
   : never;
 
 export type EdgeDBFieldOptions<

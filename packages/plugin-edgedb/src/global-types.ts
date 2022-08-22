@@ -100,30 +100,21 @@ declare global {
         ResolveShape,
         ResolveReturnShape,
         Type extends TypeParam extends [unknown]
-          ? [ObjectRef<Model['Shape']>]
-          : ObjectRef<Model['Shape']>,
+          ? [ObjectRef<Model['ReturnShape']>]
+          : ObjectRef<Model['ReturnShape']>,
         Model extends EdgeDBModelTypes = EdgeDBModelShape<
           Types,
           // @ts-expect-error -> string | number | symbol not assignable to ..
           TypeParam extends [keyof Types['EdgeDBTypes']['default']]
-            ? keyof Types['EdgeDBTypes']['default'][TypeParam[0]]
+            ? TypeParam[0]
             : TypeParam extends [EdgeDBObjectRef<EdgeDBModelTypes>]
-            ? TypeParam[0][typeof edgeDBModelKey]
+            ? TypeParam[0][typeof edgeDBModelKey]['Name']
             : TypeParam extends EdgeDBObjectRef<EdgeDBModelTypes>
-            ? TypeParam[typeof edgeDBModelKey]
+            ? TypeParam[typeof edgeDBModelKey]['Name']
             : TypeParam extends keyof Types['EdgeDBTypes']['default']
             ? TypeParam
             : never
-        > &
-          (TypeParam extends [keyof Types['EdgeDBTypes']['default']]
-            ? Types['EdgeDBTypes']['default'][TypeParam[0]]
-            : TypeParam extends [EdgeDBObjectRef<EdgeDBModelTypes>]
-            ? TypeParam[0][typeof edgeDBModelKey]
-            : TypeParam extends EdgeDBObjectRef<EdgeDBModelTypes>
-            ? TypeParam[typeof edgeDBModelKey]
-            : TypeParam extends keyof Types['EdgeDBTypes']['default']
-            ? Types['EdgeDBTypes']['default'][TypeParam]
-            : never),
+        >,
       >(
         options: EdgeDBFieldOptions<
           Types,

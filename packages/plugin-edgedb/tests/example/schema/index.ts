@@ -62,20 +62,34 @@ builder.queryType({
         return user;
       },
     }),
-    users: t.edgeDBField({
+    user: t.edgeDBField({
       type: 'User',
       nullable: true,
       resolve: async (_query, _parent, _args, ctx) => {
         const user = await e
           .select(e.User, (user) => ({
-            id: true,
-            email: true,
-            name: true,
+            ...e.User['*'],
             filter: e.op(user.id, '=', e.uuid(ctx.user.id)),
           }))
           .run(db);
-
         return user;
+        //     ^?
+      },
+    }),
+    users: t.edgeDBField({
+      type: ['User'],
+      nullable: true,
+      resolve: async (_query, _parent, _args, ctx) => {
+        const users = await e
+          .select(e.User, (user) => ({
+            id: true,
+            email: true,
+            name: true,
+          }))
+          .run(db);
+
+        return users;
+        //     ^?
       },
     }),
   }),
