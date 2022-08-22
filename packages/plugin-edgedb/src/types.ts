@@ -69,6 +69,14 @@ export interface EdgeDBModelTypes {
   >;
 }
 
+export type DeepPartial<T> = T extends Promise<infer Y>
+  ? Promise<DeepPartial<Y>>
+  : T extends object
+  ? { [P in keyof T]?: DeepPartial<T[P]> }
+  : T extends (infer U)[]
+  ? DeepPartial<U>[]
+  : T;
+
 export type EdgeDBModelShape<
   Types extends SchemaTypes,
   Name extends EdgeDBSchemaTypeKeys<Types>,
@@ -77,13 +85,7 @@ export type EdgeDBModelShape<
     ? {
         Name: Name;
         Shape: ModelProperties;
-        ReturnShape: {
-          [K in keyof ModelProperties]?: ModelProperties[K] extends ObjectType
-            ? ModelProperties[K] extends infer Link
-              ? { [K in keyof Link]?: Link[K] }
-              : ModelProperties[K]
-            : ModelProperties[K];
-        };
+        ReturnShape: DeepPartial<ModelProperties>;
         MultiLink: extractMultiLinks<ModelProperties> extends infer Link
           ? Link extends string
             ? SplitLT<Link>
@@ -102,13 +104,7 @@ export type EdgeDBModelShape<
         ? ModelTypesWithoutLinks & {
             Links: {
               [Key in ModelTypesWithoutLinks['LinkName']]: {
-                Shape: ModelTypesWithoutLinks['Shape'][Key] extends infer Shape
-                  ? Shape extends BaseObject
-                    ? { [K in keyof Shape]?: Shape[K] }
-                    : Shape extends Array<BaseObject>
-                    ? { [K in keyof Shape[0]]?: Shape[0][K] }
-                    : never
-                  : never;
+                Shape: ModelTypesWithoutLinks['Shape'][Key];
                 Types: EdgeDBModelShape<
                   Types,
                   ModelTypesWithoutLinks['Shape'][Key] extends infer Base
