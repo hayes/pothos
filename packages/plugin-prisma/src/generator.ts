@@ -38,6 +38,11 @@ generatorHandler({
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value;
 
+    // See https://github.com/hayes/pothos/issues/553
+    const hasFullTextSearch = options.otherGenerators
+      .find((gen) => gen.provider.value === 'prisma-client-js')!
+      .previewFeatures.includes('fullTextSearch');
+
     const importStatement = ts.factory.createImportDeclaration(
       [],
       [],
@@ -98,7 +103,11 @@ generatorHandler({
             [],
             'OrderBy',
             undefined,
-            ts.factory.createTypeReferenceNode(`Prisma.${model.name}OrderByWithRelationInput`),
+            ts.factory.createTypeReferenceNode(
+              `Prisma.${model.name}OrderByWithRelation${
+                hasFullTextSearch ? 'AndSearchRelevance' : ''
+              }Input`,
+            ),
           ),
           ts.factory.createPropertySignature(
             [],
