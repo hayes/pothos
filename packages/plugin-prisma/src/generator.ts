@@ -58,6 +58,23 @@ generatorHandler({
       ts.factory.createStringLiteral(prismaLocation),
     );
 
+    function getOrderByTypeName(type: string) {
+      const possibleTypes = [
+        `${type}OrderByWithRelationInput`,
+        `${type}OrderByWithRelationAndSearchRelevanceInput`,
+      ];
+
+      const orderBy = options.dmmf.schema.inputObjectTypes.prisma?.find((inputType) =>
+        possibleTypes.includes(inputType.name),
+      );
+
+      if (!orderBy) {
+        return possibleTypes[0];
+      }
+
+      return orderBy.name;
+    }
+
     const modelTypes = options.dmmf.datamodel.models.map((model) => {
       const relations = model.fields.filter((field) => !!field.relationName);
       const listRelations = model.fields.filter((field) => !!field.relationName && field.isList);
@@ -98,7 +115,7 @@ generatorHandler({
             [],
             'OrderBy',
             undefined,
-            ts.factory.createTypeReferenceNode(`Prisma.${model.name}OrderByWithRelationInput`),
+            ts.factory.createTypeReferenceNode(`Prisma.${getOrderByTypeName(model.name)}`),
           ),
           ts.factory.createPropertySignature(
             [],
