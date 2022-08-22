@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.0
+
+### Minor Changes
+
+- b04a14a3: Support filtering optional arguments and input fields
+
 ## 3.7.0
 
 ### Minor Changes
