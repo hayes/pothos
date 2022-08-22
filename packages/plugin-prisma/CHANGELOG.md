@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.27.2
+
+### Patch Changes
+
+- 193ac71a: Support `fullTextSearch` types (#553)
+
 ## 3.27.1
 
 ### Patch Changes

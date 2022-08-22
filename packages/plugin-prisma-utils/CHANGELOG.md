@@ -1,5 +1,12 @@
 # @pothos/plugin-prisma-utils
 
+## 2.0.2
+
+### Patch Changes
+
+- Updated dependencies [193ac71a]
+  - @pothos/plugin-prisma@3.27.2
+
 ## 2.0.1
 
 ### Patch Changes
