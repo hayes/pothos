@@ -13,9 +13,11 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLUnionType,
+  isNonNullType,
 } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
+  PothosInputFieldConfig,
   PothosOutputFieldConfig,
   PothosTypeConfig,
   SchemaTypes,
@@ -157,6 +159,18 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
         }
 
         fieldConfig.args.forEach((argConfig) => {
+          const argSubGraphs = argConfig.extensions?.subGraphs as string[] | undefined;
+
+          if (argSubGraphs && !intersect(argSubGraphs, subGraphs)) {
+            if (isNonNullType(argConfig.type)) {
+              throw new Error(
+                `argument ${argConfig.name} of ${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}.${fieldName}`,
+              );
+            }
+
+            return;
+          }
+
           newArguments[argConfig.name] = {
             description: argConfig.description,
             defaultValue: argConfig.defaultValue,
@@ -204,6 +218,17 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
 
       Object.keys(oldFields).forEach((fieldName) => {
         const fieldConfig = oldFields[fieldName];
+        const fieldSubGraphs = fieldConfig.extensions?.subGraphs as string[] | undefined;
+
+        if (fieldSubGraphs && !intersect(fieldSubGraphs, subGraphs)) {
+          if (isNonNullType(fieldConfig.type)) {
+            throw new Error(
+              `${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}`,
+            );
+          }
+
+          return;
+        }
 
         newFields[fieldName] = {
           description: fieldConfig.description,
@@ -242,6 +267,20 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           [],
       },
     };
+  }
+
+  override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+    if (fieldConfig.pothosOptions.subGraphs) {
+      return {
+        ...fieldConfig,
+        extensions: {
+          ...fieldConfig.extensions,
+          subGraphs: fieldConfig.pothosOptions.subGraphs,
+        },
+      };
+    }
+
+    return fieldConfig;
   }
 
   override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {

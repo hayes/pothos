@@ -1,7 +1,10 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   FieldNullability,
+  FieldRequiredness,
   InputFieldMap,
+  InputShapeFromTypeParam,
+  InputType,
   InterfaceParam,
   RootName,
   SchemaTypes,
@@ -48,6 +51,26 @@ declare global {
       ResolveReturnShape = unknown,
     > {
       subGraphs?: Types['SubGraphs'][];
+    }
+
+    export interface ArgFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
+    > extends InputFieldOptions<Types, Type, Req> {
+      subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req>
+        ? Types['SubGraphs'][]
+        : never;
+    }
+
+    export interface InputObjectFieldOptions<
+      Types extends SchemaTypes = SchemaTypes,
+      Type extends InputType<Types> | [InputType<Types>] = InputType<Types> | [InputType<Types>],
+      Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
+    > extends InputFieldOptions<Types, Type, Req> {
+      subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req>
+        ? Types['SubGraphs'][]
+        : never;
     }
 
     export interface Plugins<Types extends SchemaTypes> {

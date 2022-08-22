@@ -36,7 +36,12 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The primary function of the droid.\\"\\"\\"
-  primaryFunction: String!
+  primaryFunction(
+    filter: FunctionFilter
+
+    \\"\\"\\"The language to use for localization.\\"\\"\\"
+    language: String
+  ): String!
 }
 
 \\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
@@ -53,6 +58,10 @@ enum Episode {
 
 type Error {
   message: String!
+}
+
+input FunctionFilter {
+  private: Boolean
 }
 
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
@@ -120,7 +129,11 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The primary function of the droid.\\"\\"\\"
-  primaryFunction: String!
+  primaryFunction(filter: FunctionFilter): String!
+}
+
+input FunctionFilter {
+  public: Boolean
 }
 
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
@@ -190,7 +203,12 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The primary function of the droid.\\"\\"\\"
-  primaryFunction: String!
+  primaryFunction(
+    filter: FunctionFilter
+
+    \\"\\"\\"The language to use for localization.\\"\\"\\"
+    language: String
+  ): String!
 }
 
 \\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
@@ -207,6 +225,11 @@ enum Episode {
 
 type Error {
   message: String!
+}
+
+input FunctionFilter {
+  private: Boolean
+  public: Boolean
 }
 
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
@@ -296,7 +319,12 @@ type Droid implements Character {
   name: String!
 
   \\"\\"\\"The primary function of the droid.\\"\\"\\"
-  primaryFunction: String!
+  primaryFunction(
+    filter: FunctionFilter
+
+    \\"\\"\\"The language to use for localization.\\"\\"\\"
+    language: String
+  ): String!
 }
 
 \\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
@@ -313,6 +341,11 @@ enum Episode {
 
 type Error {
   message: String!
+}
+
+input FunctionFilter {
+  private: Boolean
+  public: Boolean
 }
 
 \\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
