@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldNullability, InputFieldMap, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromTypeParam, InputType, InterfaceParam, RootName, SchemaTypes, TypeParam, } from '../core/index.ts';
 import type { PothosSubGraphPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -21,6 +21,20 @@ declare global {
         }
         export interface FieldOptions<Types extends SchemaTypes = SchemaTypes, ParentShape = unknown, Type extends TypeParam<Types> = TypeParam<Types>, Nullable extends FieldNullability<Type> = FieldNullability<Type>, Args extends InputFieldMap = InputFieldMap, ResolveShape = unknown, ResolveReturnShape = unknown> {
             subGraphs?: Types["SubGraphs"][];
+        }
+        export interface ArgFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
+            InputType<Types>
+        ] = InputType<Types> | [
+            InputType<Types>
+        ], Req extends FieldRequiredness<Type> = FieldRequiredness<Type>> extends InputFieldOptions<Types, Type, Req> {
+            subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req> ? Types["SubGraphs"][] : never;
+        }
+        export interface InputObjectFieldOptions<Types extends SchemaTypes = SchemaTypes, Type extends InputType<Types> | [
+            InputType<Types>
+        ] = InputType<Types> | [
+            InputType<Types>
+        ], Req extends FieldRequiredness<Type> = FieldRequiredness<Type>> extends InputFieldOptions<Types, Type, Req> {
+            subGraphs?: undefined extends InputShapeFromTypeParam<Types, Type, Req> ? Types["SubGraphs"][] : never;
         }
         export interface Plugins<Types extends SchemaTypes> {
             subGraph: PothosSubGraphPlugin<Types>;

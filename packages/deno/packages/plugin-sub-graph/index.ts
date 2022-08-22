@@ -1,8 +1,8 @@
 // @ts-nocheck
 /* eslint-disable prefer-destructuring */
 import './global-types.ts';
-import { getNamedType, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
+import { getNamedType, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLUnionType, isNonNullType, } from 'https://cdn.skypack.dev/graphql?dts';
+import SchemaBuilder, { BasePlugin, PothosInputFieldConfig, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
 import { replaceType } from './util.ts';
 const pluginName = "subGraph" as const;
 export default pluginName;
@@ -93,6 +93,13 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
                     return;
                 }
                 fieldConfig.args.forEach((argConfig) => {
+                    const argSubGraphs = argConfig.extensions?.subGraphs as string[] | undefined;
+                    if (argSubGraphs && !intersect(argSubGraphs, subGraphs)) {
+                        if (isNonNullType(argConfig.type)) {
+                            throw new Error(`argument ${argConfig.name} of ${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}.${fieldName}`);
+                        }
+                        return;
+                    }
                     newArguments[argConfig.name] = {
                         description: argConfig.description,
                         defaultValue: argConfig.defaultValue,
@@ -121,6 +128,13 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
             const newFields: GraphQLInputFieldConfigMap = {};
             Object.keys(oldFields).forEach((fieldName) => {
                 const fieldConfig = oldFields[fieldName];
+                const fieldSubGraphs = fieldConfig.extensions?.subGraphs as string[] | undefined;
+                if (fieldSubGraphs && !intersect(fieldSubGraphs, subGraphs)) {
+                    if (isNonNullType(fieldConfig.type)) {
+                        throw new Error(`${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}`);
+                    }
+                    return;
+                }
                 newFields[fieldName] = {
                     description: fieldConfig.description,
                     extensions: fieldConfig.extensions,
@@ -148,6 +162,18 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
                     [],
             },
         };
+    }
+    override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
+        if (fieldConfig.pothosOptions.subGraphs) {
+            return {
+                ...fieldConfig,
+                extensions: {
+                    ...fieldConfig.extensions,
+                    subGraphs: fieldConfig.pothosOptions.subGraphs,
+                },
+            };
+        }
+        return fieldConfig;
     }
     override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {
         const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
