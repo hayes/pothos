@@ -6,8 +6,9 @@ datasource db {
 }
 
 generator client {
-  provider = "prisma-client-js"
-  output   = "../tests/client"
+  provider        = "prisma-client-js"
+  output          = "../tests/client"
+  previewFeatures = ["fullTextSearch"]
 }
 
 generator pothos {

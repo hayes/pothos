@@ -38,11 +38,6 @@ generatorHandler({
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value;
 
-    // See https://github.com/hayes/pothos/issues/553
-    const hasFullTextSearch = options.otherGenerators
-      .find((gen) => gen.provider.value === 'prisma-client-js')!
-      .previewFeatures.includes('fullTextSearch');
-
     const importStatement = ts.factory.createImportDeclaration(
       [],
       [],
@@ -62,6 +57,23 @@ generatorHandler({
       ),
       ts.factory.createStringLiteral(prismaLocation),
     );
+
+    function getOrderByTypeName(type: string) {
+      const possibleTypes = [
+        `${type}OrderByWithRelationInput`,
+        `${type}OrderByWithRelationAndSearchRelevanceInput`,
+      ];
+
+      const orderBy = options.dmmf.schema.inputObjectTypes.prisma?.find((inputType) =>
+        possibleTypes.includes(inputType.name),
+      );
+
+      if (!orderBy) {
+        return possibleTypes[0];
+      }
+
+      return orderBy.name;
+    }
 
     const modelTypes = options.dmmf.datamodel.models.map((model) => {
       const relations = model.fields.filter((field) => !!field.relationName);
@@ -103,11 +115,7 @@ generatorHandler({
             [],
             'OrderBy',
             undefined,
-            ts.factory.createTypeReferenceNode(
-              `Prisma.${model.name}OrderByWithRelation${
-                hasFullTextSearch ? 'AndSearchRelevance' : ''
-              }Input`,
-            ),
+            ts.factory.createTypeReferenceNode(`Prisma.${getOrderByTypeName(model.name)}`),
           ),
           ts.factory.createPropertySignature(
             [],
