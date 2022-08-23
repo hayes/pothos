@@ -56,6 +56,7 @@ fieldBuilderProto.globalIDList = function globalIDList<
                 this.builder,
                 this.builder.configStore.getTypeConfig(item.type).name,
                 String(item.id),
+                context,
               ),
       );
     }
@@ -96,6 +97,7 @@ fieldBuilderProto.globalID = function globalID<
       this.builder,
       this.builder.configStore.getTypeConfig(item.type).name,
       String(item.id),
+      context,
     );
   };
 
@@ -129,6 +131,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
               this.builder,
               this.builder.configStore.getTypeConfig(rawID.type).name,
               String(rawID.id),
+              context,
             );
 
       return (await resolveNodes(this.builder, context, info, [globalID]))[0];
@@ -167,6 +170,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
               this.builder,
               this.builder.configStore.getTypeConfig(id.type).name,
               String(id.id),
+              context,
             ),
       );
 

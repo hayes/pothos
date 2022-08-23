@@ -17,7 +17,7 @@ fieldBuilderProto.globalIDList = function globalIDList<Args extends InputFieldMa
         if (Array.isArray(result)) {
             return ((await Promise.all(result)) as (GlobalIDShape<SchemaTypes> | null | undefined)[]).map((item) => item == null || typeof item === "string"
                 ? item
-                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(item.type).name, String(item.id)));
+                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(item.type).name, String(item.id), context));
         }
         return null;
     };
@@ -34,7 +34,7 @@ fieldBuilderProto.globalID = function globalID<Args extends InputFieldMap, Nulla
             return result;
         }
         const item = result as unknown as GlobalIDShape<SchemaTypes>;
-        return internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(item.type).name, String(item.id));
+        return internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(item.type).name, String(item.id), context);
     };
     return this.field({
         ...options,
@@ -54,7 +54,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
             }
             const globalID = typeof rawID === "string"
                 ? rawID
-                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(rawID.type).name, String(rawID.id));
+                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(rawID.type).name, String(rawID.id), context);
             return (await resolveNodes(this.builder, context, info, [globalID]))[0];
         },
     });
@@ -76,7 +76,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
             const rawIds = (await Promise.all(rawIDList)) as (GlobalIDShape<SchemaTypes> | string | null | undefined)[];
             const globalIds = rawIds.map((id) => !id || typeof id === "string"
                 ? id
-                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(id.type).name, String(id.id)));
+                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(id.type).name, String(id.id), context));
             return resolveNodes(this.builder, context, info, globalIds);
         },
     });

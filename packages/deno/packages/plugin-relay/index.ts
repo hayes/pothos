@@ -21,8 +21,8 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
         if (!argMappings) {
             return resolver;
         }
-        const argMapper = createInputValueMapper(argMappings, (globalID) => internalDecodeGlobalID(this.builder, String(globalID)));
-        return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
+        const argMapper = createInputValueMapper(argMappings, (globalID, mappings, ctx: Types["Context"]) => internalDecodeGlobalID(this.builder, String(globalID), ctx));
+        return (parent, args, context, info) => resolver(parent, argMapper(args, undefined, context), context, info);
     }
     override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
@@ -34,8 +34,8 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
         if (!argMappings || !subscribe) {
             return subscribe;
         }
-        const argMapper = createInputValueMapper(argMappings, (globalID) => internalDecodeGlobalID(this.builder, String(globalID)));
-        return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info);
+        const argMapper = createInputValueMapper(argMappings, (globalID, mappings, ctx: Types["Context"]) => internalDecodeGlobalID(this.builder, String(globalID), ctx));
+        return (parent, args, context, info) => subscribe(parent, argMapper(args, undefined, context), context, info);
     }
 }
 SchemaBuilder.registerPlugin(pluginName, PothosRelayPlugin);

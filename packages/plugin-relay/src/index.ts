@@ -36,11 +36,14 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
       return resolver;
     }
 
-    const argMapper = createInputValueMapper(argMappings, (globalID) =>
-      internalDecodeGlobalID(this.builder, String(globalID)),
+    const argMapper = createInputValueMapper(
+      argMappings,
+      (globalID, mappings, ctx: Types['Context']) =>
+        internalDecodeGlobalID(this.builder, String(globalID), ctx),
     );
 
-    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
+    return (parent, args, context, info) =>
+      resolver(parent, argMapper(args, undefined, context), context, info);
   }
 
   override wrapSubscribe(
@@ -59,11 +62,14 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
       return subscribe;
     }
 
-    const argMapper = createInputValueMapper(argMappings, (globalID) =>
-      internalDecodeGlobalID(this.builder, String(globalID)),
+    const argMapper = createInputValueMapper(
+      argMappings,
+      (globalID, mappings, ctx: Types['Context']) =>
+        internalDecodeGlobalID(this.builder, String(globalID), ctx),
     );
 
-    return (parent, args, context, info) => subscribe(parent, argMapper(args), context, info);
+    return (parent, args, context, info) =>
+      subscribe(parent, argMapper(args, undefined, context), context, info);
   }
 }
 

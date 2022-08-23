@@ -42,8 +42,8 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     afterArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID" | "String", boolean>, "required" | "type">;
     firstArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", boolean>, "required" | "type">;
     lastArgOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "Int", boolean>, "required" | "type">;
-    encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
-    decodeGlobalID?: (globalID: string) => {
+    encodeGlobalID?: (typename: string, id: bigint | number | string, ctx: Types["Context"]) => string;
+    decodeGlobalID?: (globalID: string, ctx: Types["Context"]) => {
         typename: string;
         id: string;
     };

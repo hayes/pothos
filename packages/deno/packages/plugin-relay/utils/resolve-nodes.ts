@@ -16,7 +16,7 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
             results[globalID] = requestCache.get(globalID)!;
             return;
         }
-        const { id, typename } = internalDecodeGlobalID(builder, globalID);
+        const { id, typename } = internalDecodeGlobalID(builder, globalID, context);
         idsByType[typename] = idsByType[typename] || new Map();
         idsByType[typename].set(id, globalID);
     });
@@ -45,7 +45,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(bui
     if (options.loadMany) {
         const loadManyPromise = Promise.resolve(options.loadMany(ids, context));
         return Promise.all(ids.map((id, i) => {
-            const globalID = internalEncodeGlobalID(builder, config.name, id);
+            const globalID = internalEncodeGlobalID(builder, config.name, id, context);
             const entryPromise = loadManyPromise
                 .then((results: unknown[]) => results[i])
                 .then((result: unknown) => {
@@ -58,7 +58,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(bui
     }
     if (options.loadOne) {
         return Promise.all(ids.map((id) => {
-            const globalID = internalEncodeGlobalID(builder, config.name, id);
+            const globalID = internalEncodeGlobalID(builder, config.name, id, context);
             const entryPromise = Promise.resolve(options.loadOne!(id, context)).then((result: unknown) => {
                 requestCache.set(globalID, result);
                 return result;

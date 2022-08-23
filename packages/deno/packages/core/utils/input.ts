@@ -121,8 +121,9 @@ function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<str
     });
     return map;
 }
-export function createInputValueMapper<Types extends SchemaTypes, T>(argMap: InputFieldsMapping<Types, T>, mapValue: (val: unknown, mapping: InputFieldMapping<Types, T>) => unknown) {
-    return function mapObject(obj: object, map: InputFieldsMapping<Types, T> = argMap) {
+export function createInputValueMapper<Types extends SchemaTypes, T, Args extends unknown[] = [
+]>(argMap: InputFieldsMapping<Types, T>, mapValue: (val: unknown, mapping: InputFieldMapping<Types, T>, ...args: Args) => unknown) {
+    return function mapObject(obj: object, map: InputFieldsMapping<Types, T> = argMap, ...args: Args) {
         const mapped: Record<string, unknown> = { ...obj };
         map.forEach((field, fieldName) => {
             let fieldVal = (obj as Record<string, unknown>)[fieldName];
@@ -131,14 +132,14 @@ export function createInputValueMapper<Types extends SchemaTypes, T>(argMap: Inp
             }
             if (field.kind === "InputObject" && field.fields.map) {
                 fieldVal = field.isList
-                    ? (fieldVal as (Record<string, unknown> | null)[]).map((val) => val && mapObject(val, field.fields.map!))
-                    : mapObject(fieldVal as Record<string, unknown>, field.fields.map);
+                    ? (fieldVal as (Record<string, unknown> | null)[]).map((val) => val && mapObject(val, field.fields.map!, ...args))
+                    : mapObject(fieldVal as Record<string, unknown>, field.fields.map, ...args);
                 mapped[fieldName] = fieldVal;
             }
             if (field.kind !== "InputObject" || field.value !== null) {
                 mapped[fieldName] = field.isList
-                    ? (fieldVal as unknown[]).map((val) => mapValue(val, field))
-                    : mapValue(fieldVal, field);
+                    ? (fieldVal as unknown[]).map((val) => mapValue(val, field, ...args))
+                    : mapValue(fieldVal, field, ...args);
             }
         });
         return mapped;

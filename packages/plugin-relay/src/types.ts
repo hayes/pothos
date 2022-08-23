@@ -179,8 +179,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     PothosSchemaTypes.InputObjectFieldOptions<Types, 'Int', boolean>,
     'required' | 'type'
   >;
-  encodeGlobalID?: (typename: string, id: bigint | number | string) => string;
-  decodeGlobalID?: (globalID: string) => {
+  encodeGlobalID?: (
+    typename: string,
+    id: bigint | number | string,
+    ctx: Types['Context'],
+  ) => string;
+  decodeGlobalID?: (
+    globalID: string,
+    ctx: Types['Context'],
+  ) => {
     typename: string;
     id: string;
   };
