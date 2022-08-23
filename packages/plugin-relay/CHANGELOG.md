@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.23.0
+
+### Minor Changes
+
+- c9b02338: Support context when using custom gloablID encoding or decoding
+
 ## 3.22.0
 
 ### Minor Changes
