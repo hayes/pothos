@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.21.0
+
+### Minor Changes
+
+- 390e74a7: Add `idFieldOptions` to relay plugin options
+
 ## 3.20.0
 
 ### Minor Changes
