@@ -219,6 +219,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     this.objectField(ref, this.options.relayOptions.idFieldName ?? 'id', (t) =>
       t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
         nullable: false,
+        ...this.options.relayOptions.idFieldOptions,
         ...options.id,
         args: {},
         resolve: async (parent, args, context, info) => ({

@@ -42,7 +42,6 @@ export class ImplementableObjectRef<
       'name'
     >,
   ): PothosSchemaTypes.ObjectRef<Shape, Parent> {
-    // eslint-disable-next-line @typescript-eslint/no-unsafe-return
     return this.builder.objectType(
       this,
       options as ObjectTypeOptions<

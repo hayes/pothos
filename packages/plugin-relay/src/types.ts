@@ -31,6 +31,12 @@ import {
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldName?: string;
+  idFieldOptions?: Partial<
+    Omit<
+      PothosSchemaTypes.ObjectFieldOptions<Types, {}, 'ID', boolean, {}, PageInfoShape>,
+      'args' | 'resolve' | 'type' | 'nullable'
+    >
+  >;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
   brandLoadedObjects?: boolean;

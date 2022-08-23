@@ -134,6 +134,8 @@ schemaBuilderProto.prismaNode = function prismaNode(
             globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
           }
         ).globalID({
+          ...(this.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
+            ?.idFieldOptions,
           ...idOptions,
           nullable: false,
           args: {},
