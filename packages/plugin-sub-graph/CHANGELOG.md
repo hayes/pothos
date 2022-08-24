@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.9.0
+
+### Minor Changes
+
+- 1ff66576: filter interfaces when building subgraph
+
 ## 3.8.0
 
 ### Minor Changes
