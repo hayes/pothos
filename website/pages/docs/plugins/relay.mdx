@@ -529,7 +529,7 @@ builder.mutationFields((t) => ({
       update: t.args.string({ required: true }),
     },
     resolve(parent, args) {
-      const { type, id } = decodeGlobalId(args.id);
+      const { type, id } = decodeGlobalID(args.id);
 
       const thing = Thing.findById(id);
 
