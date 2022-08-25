@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.10.0
+
+### Minor Changes
+
+- 95fcbaf8: Stop omitting types that implement a returned interface when they should be part of the
+  sub-graph
+
 ## 3.9.0
 
 ### Minor Changes
