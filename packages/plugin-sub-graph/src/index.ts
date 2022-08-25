@@ -13,7 +13,9 @@ import {
   GraphQLScalarType,
   GraphQLSchema,
   GraphQLUnionType,
+  isInterfaceType,
   isNonNullType,
+  isObjectType,
 } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -44,6 +46,35 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
 
     const config = schema.toConfig();
     const newTypes = this.filterTypes(config.types, subGraphs);
+    const returnedInterfaces = new Set<string>();
+
+    for (const type of newTypes.values()) {
+      if (isObjectType(type) || isInterfaceType(type)) {
+        const fields = type.getFields();
+
+        for (const field of Object.values(fields)) {
+          const namedType = getNamedType(field.type);
+
+          if (isInterfaceType(namedType)) {
+            returnedInterfaces.add(namedType.name);
+          }
+        }
+      }
+    }
+
+    function hasReturnedInterface(type: GraphQLObjectType | GraphQLInterfaceType): boolean {
+      for (const iface of type.getInterfaces()) {
+        if (returnedInterfaces.has(iface.name)) {
+          return true;
+        }
+
+        if (hasReturnedInterface(iface)) {
+          return true;
+        }
+      }
+
+      return false;
+    }
 
     return new GraphQLSchema({
       directives: config.directives,
@@ -53,6 +84,10 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
       query: newTypes.get('Query') as GraphQLObjectType,
       mutation: newTypes.get('Mutation') as GraphQLObjectType,
       subscription: newTypes.get('Subscription') as GraphQLObjectType,
+      // Explicitly include types that implement an interface that can be resolved in the subGraph
+      types: [...newTypes.values()].filter(
+        (type) => (isObjectType(type) || isInterfaceType(type)) && hasReturnedInterface(type),
+      ),
     });
   }
 

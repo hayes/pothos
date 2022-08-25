@@ -80,6 +80,19 @@ type Human implements Character {
   name: String!
 }
 
+interface Node {
+  id: ID!
+}
+
+interface Node2 implements Node {
+  id: ID!
+}
+
+type NodeThing implements Node2 {
+  id: ID!
+  name: String!
+}
+
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -102,6 +115,7 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
+  node: Node
 }
 
 union QueryHeroResult = Error | QueryHeroSuccess
@@ -251,6 +265,19 @@ type Human implements Character {
   name: String!
 }
 
+interface Node {
+  id: ID!
+}
+
+interface Node2 implements Node {
+  id: ID!
+}
+
+type NodeThing implements Node2 {
+  id: ID!
+  name: String!
+}
+
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -273,6 +300,7 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
+  node: Node
   r2d2: Droid!
 }
 
@@ -364,6 +392,19 @@ type Human implements Character {
   name: String!
 }
 
+interface Node {
+  id: ID!
+}
+
+interface Node2 implements Node {
+  id: ID!
+}
+
+type NodeThing implements Node2 {
+  id: ID!
+  name: String!
+}
+
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!
@@ -386,6 +427,7 @@ type Query {
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
   ): Human!
+  node: Node
   r2d2: Droid!
 }
 

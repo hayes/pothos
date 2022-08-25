@@ -57,3 +57,34 @@ builder.objectType(Error, {
     message: t.exposeString('message'),
   }),
 });
+
+const Node = builder.interfaceRef<{ id: string }>('Node').implement({
+  subGraphs: ['Private'],
+  fields: (t) => ({
+    id: t.id({
+      nullable: false,
+    }),
+  }),
+});
+
+const Node2 = builder.interfaceRef<{ id: string }>('Node2').implement({
+  interfaces: [Node],
+  subGraphs: ['Private'],
+  fields: (t) => ({}),
+});
+
+builder.objectRef<{ id: string; name: string }>('NodeThing').implement({
+  subGraphs: ['Private'],
+  interfaces: [Node2],
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+
+builder.queryField('node', (t) =>
+  t.field({
+    type: Node,
+    nullable: true,
+    resolve: () => null,
+  }),
+);
