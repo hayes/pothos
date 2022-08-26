@@ -76,6 +76,10 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    if (this.builder.options.complexity?.disabled) {
+      return resolver;
+    }
+
     if (
       fieldConfig.kind !== 'Query' &&
       fieldConfig.kind !== 'Mutation' &&

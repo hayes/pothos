@@ -7,12 +7,17 @@ export function createComplexityRule({
   maxComplexity,
   maxBreadth,
   maxDepth,
+  validate,
 }: {
   context: object;
   variableValues: Record<string, unknown>;
   maxComplexity?: number;
   maxDepth?: number;
   maxBreadth?: number;
+  validate?: (
+    result: { complexity: number; depth: number; breadth: number },
+    reportError: (error: GraphQLError) => void,
+  ) => void;
 }) {
   const complexityValidationRule: ValidationRule = (validationContext) => {
     const state = {
@@ -55,6 +60,14 @@ export function createComplexityRule({
           state.breadth = Math.max(state.breadth, complexity.breadth);
         },
         leave: () => {
+          if (validate) {
+            validate(state, (error) => {
+              validationContext.reportError(error);
+            });
+
+            return;
+          }
+
           if (maxComplexity && state.complexity > maxComplexity) {
             validationContext.reportError(
               new GraphQLError(
