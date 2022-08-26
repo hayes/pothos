@@ -1,5 +1,12 @@
 # @giraphql/plugin-complexity
 
+## 3.7.0
+
+### Minor Changes
+
+- 85da3312: Add createComplexityRule method for creating a standard graphql validator"
+- 94138077: Add option to disable complexity checks
+
 ## 3.6.1
 
 ### Patch Changes
