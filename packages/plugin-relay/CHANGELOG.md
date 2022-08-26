@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.24.0
+
+### Minor Changes
+
+- 69be1873: Add defaultConnectionFieldOptions to relayOptions
+
 ## 3.23.0
 
 ### Minor Changes
