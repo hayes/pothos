@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
+import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     idFieldName?: string;
     idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "resolve" | "type" | "nullable">>;
@@ -54,6 +54,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     }>>;
     defaultPayloadTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {}>>;
     defaultMutationInputTypeOptions: Partial<Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, "fields">>;
+    defaultConnectionFieldOptions?: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<ConnectionShape<Types, unknown, false, true, true>>, boolean, InputFieldsFromShape<DefaultConnectionArguments>, ConnectionShape<Types, unknown, false, true, true>>, "args" | "resolve" | "type">;
     nodesOnConnection?: boolean | Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
         ObjectRef<{}>
     ], {

@@ -7,6 +7,7 @@ import {
   FieldRequiredness,
   InputFieldMap,
   InputFieldRef,
+  InputFieldsFromShape,
   InputRef,
   InputShape,
   InputShapeFromFields,
@@ -200,6 +201,17 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   defaultPayloadTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {}>>;
   defaultMutationInputTypeOptions: Partial<
     Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, 'fields'>
+  >;
+  defaultConnectionFieldOptions?: Omit<
+    PothosSchemaTypes.ObjectFieldOptions<
+      Types,
+      {},
+      OutputRef<ConnectionShape<Types, unknown, false, true, true>>,
+      boolean,
+      InputFieldsFromShape<DefaultConnectionArguments>,
+      ConnectionShape<Types, unknown, false, true, true>
+    >,
+    'args' | 'resolve' | 'type'
   >;
   nodesOnConnection?:
     | boolean

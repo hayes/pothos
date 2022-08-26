@@ -6,6 +6,8 @@ import { calculateComplexity } from './calculate-complexity.ts';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
 import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types.ts';
 export * from './types.ts';
+export * from './util.ts';
+export * from './validator.ts';
 const pluginName = "complexity" as const;
 export default pluginName;
 export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
@@ -48,6 +50,9 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
         };
     }
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
+        if (this.builder.options.complexity?.disabled) {
+            return resolver;
+        }
         if (fieldConfig.kind !== "Query" &&
             fieldConfig.kind !== "Mutation" &&
             fieldConfig.kind !== "Subscription") {

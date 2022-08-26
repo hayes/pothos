@@ -11,6 +11,7 @@ export interface ComplexityPluginOptions<Types extends SchemaTypes> {
     defaultComplexity?: number;
     defaultListMultiplier?: number;
     complexityError?: ComplexityErrorFn;
+    disabled?: boolean;
 }
 export type ComplexityErrorFn = (kind: ComplexityErrorKind, result: ComplexityResult & {
     [K in keyof ComplexityResult as `max${Capitalize<K>}`]?: number;
