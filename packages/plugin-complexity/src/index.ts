@@ -12,6 +12,8 @@ import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types';
 
 export * from './types';
+export * from './util';
+export * from './validator';
 
 const pluginName = 'complexity' as const;
 

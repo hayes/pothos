@@ -1,5 +1,6 @@
-import { execute, lexicographicSortSchema, printSchema } from 'graphql';
+import { execute, lexicographicSortSchema, parse, printSchema, validate } from 'graphql';
 import { gql } from 'graphql-tag';
+import { createComplexityRule } from '../src';
 import { complexityFromQuery } from '../src/util';
 import exampleSchema from './example/schema';
 
@@ -238,5 +239,75 @@ describe('simple objects example schema', () => {
       const result = complexityFromQuery(query, { schema: exampleSchema });
       expect(result).toMatchSnapshot();
     });
+  });
+});
+
+describe('createComplexityRule', () => {
+  it('checks complexity', () => {
+    const results = validate(
+      exampleSchema,
+      parse(/* GraphQL */ `
+        query {
+          hero(episode: EMPIRE) {
+            friends {
+              ...CharacterFields
+            }
+          }
+        }
+
+        fragment CharacterFields on Character {
+          name
+          friends {
+            friends {
+              appearsIn
+              name
+            }
+          }
+        }
+      `),
+      [
+        createComplexityRule({
+          maxDepth: 1,
+          maxBreadth: 1,
+          maxComplexity: 200,
+          variableValues: {},
+          context: {},
+        }),
+      ],
+    );
+
+    expect(results).toMatchInlineSnapshot(`
+      [
+        [GraphQLError: Query complexity of 287 exceeds max complexity of 200],
+        [GraphQLError: Query depth of 5 exceeds max depth of 1],
+        [GraphQLError: Query breadth of 7 exceeds max breadth of 1],
+      ]
+    `);
+
+    expect(results.map((result) => result.extensions)).toMatchInlineSnapshot(`
+      [
+        {
+          "code": "QUERY_COMPLEXITY",
+          "queryComplexity": {
+            "actual": 287,
+            "max": 200,
+          },
+        },
+        {
+          "code": "QUERY_DEPTH",
+          "queryDepth": {
+            "actual": 5,
+            "max": 1,
+          },
+        },
+        {
+          "code": "QUERY_BREADTH",
+          "queryBreadth": {
+            "actual": 7,
+            "max": 1,
+          },
+        },
+      ]
+    `);
   });
 });
