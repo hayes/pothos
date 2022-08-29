@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { FragmentDefinitionNode, GraphQLError, Kind, ValidationRule } from 'https://cdn.skypack.dev/graphql?dts';
 import { complexityFromSelectionSet } from './calculate-complexity.ts';
-export function createComplexityRule({ variableValues, context, maxComplexity, maxBreadth, maxDepth, validate, }: {
+export function createComplexityRule({ variableValues, context, maxComplexity, maxBreadth, maxDepth, validate, onResult, }: {
     context: object;
     variableValues: Record<string, unknown>;
     maxComplexity?: number;
@@ -12,6 +12,11 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
         depth: number;
         breadth: number;
     }, reportError: (error: GraphQLError) => void) => void;
+    onResult?: (result: {
+        complexity: number;
+        depth: number;
+        breadth: number;
+    }, errors: GraphQLError[]) => void;
 }) {
     const complexityValidationRule: ValidationRule = (validationContext) => {
         const state = {
@@ -43,45 +48,54 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
                     state.breadth = Math.max(state.breadth, complexity.breadth);
                 },
                 leave: () => {
+                    const errors: GraphQLError[] = [];
+                    const reportError = (error: GraphQLError) => {
+                        errors.push(error);
+                    };
                     if (validate) {
                         validate(state, (error) => {
-                            validationContext.reportError(error);
+                            reportError(error);
                         });
-                        return;
                     }
-                    if (maxComplexity && state.complexity > maxComplexity) {
-                        validationContext.reportError(new GraphQLError(`Query complexity of ${state.complexity} exceeds max complexity of ${maxComplexity}`, {
-                            extensions: {
-                                queryComplexity: {
-                                    max: maxComplexity,
-                                    actual: state.complexity,
+                    else {
+                        if (maxComplexity && state.complexity > maxComplexity) {
+                            reportError(new GraphQLError(`Query complexity of ${state.complexity} exceeds max complexity of ${maxComplexity}`, {
+                                extensions: {
+                                    queryComplexity: {
+                                        max: maxComplexity,
+                                        actual: state.complexity,
+                                    },
+                                    code: "QUERY_COMPLEXITY",
                                 },
-                                code: "QUERY_COMPLEXITY",
-                            },
-                        }));
-                    }
-                    if (maxDepth && state.depth > maxDepth) {
-                        validationContext.reportError(new GraphQLError(`Query depth of ${state.depth} exceeds max depth of ${maxDepth}`, {
-                            extensions: {
-                                queryDepth: {
-                                    max: maxDepth,
-                                    actual: state.depth,
+                            }));
+                        }
+                        if (maxDepth && state.depth > maxDepth) {
+                            reportError(new GraphQLError(`Query depth of ${state.depth} exceeds max depth of ${maxDepth}`, {
+                                extensions: {
+                                    queryDepth: {
+                                        max: maxDepth,
+                                        actual: state.depth,
+                                    },
+                                    code: "QUERY_DEPTH",
                                 },
-                                code: "QUERY_DEPTH",
-                            },
-                        }));
-                    }
-                    if (maxBreadth && state.breadth > maxBreadth) {
-                        validationContext.reportError(new GraphQLError(`Query breadth of ${state.breadth} exceeds max breadth of ${maxBreadth}`, {
-                            extensions: {
-                                queryBreadth: {
-                                    max: maxBreadth,
-                                    actual: state.breadth,
+                            }));
+                        }
+                        if (maxBreadth && state.breadth > maxBreadth) {
+                            reportError(new GraphQLError(`Query breadth of ${state.breadth} exceeds max breadth of ${maxBreadth}`, {
+                                extensions: {
+                                    queryBreadth: {
+                                        max: maxBreadth,
+                                        actual: state.breadth,
+                                    },
+                                    code: "QUERY_BREADTH",
                                 },
-                                code: "QUERY_BREADTH",
-                            },
-                        }));
+                            }));
+                        }
                     }
+                    for (const error of errors) {
+                        validationContext.reportError(error);
+                    }
+                    onResult?.(state, errors);
                 },
             },
         };

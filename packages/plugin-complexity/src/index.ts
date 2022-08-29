@@ -63,6 +63,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
         complexity:
           fieldConfig.pothosOptions.complexity ??
           this.options.complexity?.fieldComplexity ??
+          this.builder.options?.complexity?.fieldComplexity ??
           (fieldConfig.type.kind === 'List'
             ? {
                 field: this.defaultComplexity,
