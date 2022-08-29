@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.9.0
+
+### Minor Changes
+
+- c82d5719: add builder option for calculating complexity based on field
+
 ## 3.8.0
 
 ### Minor Changes

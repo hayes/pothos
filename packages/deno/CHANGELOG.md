@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.24.0
+
+### Minor Changes
+
+- c82d5719: add builder option for calculating complexity based on field
+
 ## 3.23.0
 
 ### Minor Changes
