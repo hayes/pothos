@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.9.1
+
+### Patch Changes
+
+- 3f5d2a92: Use fieldComplexity from both builder and toSchema options
+
 ## 3.9.0
 
 ### Minor Changes
