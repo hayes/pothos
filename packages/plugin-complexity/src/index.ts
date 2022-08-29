@@ -20,11 +20,11 @@ const pluginName = 'complexity' as const;
 export default pluginName;
 
 export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-  defaultComplexity: number =
+  defaultComplexity =
     this.options.complexity?.defaultComplexity ??
     this.builder.options?.complexity?.defaultComplexity ??
     DEFAULT_COMPLEXITY;
-  defaultListMultiplier: number =
+  defaultListMultiplier =
     this.options.complexity?.defaultListMultiplier ??
     this.builder.options.complexity?.defaultListMultiplier ??
     DEFAULT_LIST_MULTIPLIER;
@@ -62,6 +62,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
         ...fieldConfig.extensions,
         complexity:
           fieldConfig.pothosOptions.complexity ??
+          this.options.complexity?.fieldComplexity ??
           (fieldConfig.type.kind === 'List'
             ? {
                 field: this.defaultComplexity,

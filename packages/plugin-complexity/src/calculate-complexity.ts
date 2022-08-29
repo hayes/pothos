@@ -58,7 +58,7 @@ function complexityFromField(
       info.variableValues,
     ) as Record<string, unknown>;
 
-    complexityOption = complexityOption(args, ctx);
+    complexityOption = complexityOption(args, ctx, field as GraphQLField<unknown, {}, {}>);
   }
 
   let fieldMultiplier;

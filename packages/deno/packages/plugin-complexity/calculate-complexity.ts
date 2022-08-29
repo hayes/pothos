@@ -25,7 +25,7 @@ function complexityFromField(ctx: {}, info: PartialInfo, selection: FieldNode, t
     }
     if (typeof complexityOption === "function") {
         const args = getArgumentValues(field as GraphQLField<unknown, unknown>, selection, info.variableValues) as Record<string, unknown>;
-        complexityOption = complexityOption(args, ctx);
+        complexityOption = complexityOption(args, ctx, field as GraphQLField<unknown, {}, {}>);
     }
     let fieldMultiplier;
     if (typeof complexityOption === "object" && complexityOption.multiplier !== undefined) {

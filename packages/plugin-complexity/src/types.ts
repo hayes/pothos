@@ -1,5 +1,5 @@
-import { GraphQLResolveInfo } from 'graphql';
-import { InputFieldMap, SchemaTypes } from '@pothos/core';
+import { GraphQLField, GraphQLResolveInfo } from 'graphql';
+import { SchemaTypes } from '@pothos/core';
 
 export enum ComplexityErrorKind {
   Complexity = 'Complexity',
@@ -7,7 +7,8 @@ export enum ComplexityErrorKind {
   Breadth = 'Breadth',
 }
 export interface ComplexityPluginOptions<Types extends SchemaTypes> {
-  limit: Partial<ComplexityResult> | ((ctx: Types['Context']) => Partial<ComplexityResult>);
+  limit?: Partial<ComplexityResult> | ((ctx: Types['Context']) => Partial<ComplexityResult>);
+  fieldComplexity?: FieldComplexityFunction<Types['Context'], Record<string, unknown>>;
   defaultComplexity?: number;
   defaultListMultiplier?: number;
   complexityError?: ComplexityErrorFn;
@@ -20,9 +21,15 @@ export type ComplexityErrorFn = (
   info: GraphQLResolveInfo,
 ) => Error | string;
 
-export type FieldComplexity<Context, Args extends InputFieldMap> =
+export type FieldComplexity<Context, Args> =
   | FieldComplexityValue
-  | ((args: Args, ctx: Context) => FieldComplexityValue);
+  | FieldComplexityFunction<Context, Args>;
+
+export type FieldComplexityFunction<Context, Args> = (
+  args: Args,
+  ctx: Context,
+  field: GraphQLField<unknown, Context, Args>,
+) => FieldComplexityValue;
 
 export type FieldComplexityValue =
   | number

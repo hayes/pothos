@@ -73,6 +73,10 @@ const schema = builder.toSchema({
 
 #### Options
 
+- fieldComplexity: (optional,
+  `(args, ctx, field) => { complexity: number, multiplier: number} | number`): default complexity
+  calculation for fields. `defaultComplexity` and `defaultListMultiplier` will not be used if this
+  is set.
 - defaultComplexity: (optional `number`) defines the default complexity for every field in the
   schema
 - defaultListMultiplier: (optional `number`) defines a default complexity multiplier for a list

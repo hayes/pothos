@@ -11,10 +11,10 @@ export * from './validator.ts';
 const pluginName = "complexity" as const;
 export default pluginName;
 export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
-    defaultComplexity: number = this.options.complexity?.defaultComplexity ??
+    defaultComplexity = this.options.complexity?.defaultComplexity ??
         this.builder.options?.complexity?.defaultComplexity ??
         DEFAULT_COMPLEXITY;
-    defaultListMultiplier: number = this.options.complexity?.defaultListMultiplier ??
+    defaultListMultiplier = this.options.complexity?.defaultListMultiplier ??
         this.builder.options.complexity?.defaultListMultiplier ??
         DEFAULT_LIST_MULTIPLIER;
     complexityError: ComplexityErrorFn = this.options.complexity?.complexityError ??
@@ -40,6 +40,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
             extensions: {
                 ...fieldConfig.extensions,
                 complexity: fieldConfig.pothosOptions.complexity ??
+                    this.options.complexity?.fieldComplexity ??
                     (fieldConfig.type.kind === "List"
                         ? {
                             field: this.defaultComplexity,
