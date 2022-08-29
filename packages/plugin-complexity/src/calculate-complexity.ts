@@ -1,6 +1,7 @@
 import {
   FieldNode,
   FragmentDefinitionNode,
+  getArgumentValues,
   getNamedType,
   GraphQLField,
   GraphQLList,
@@ -15,7 +16,6 @@ import {
   Kind,
   SelectionSetNode,
 } from 'graphql';
-import { getArgumentValues } from 'graphql/execution/values';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 
 import type { ComplexityResult, FieldComplexity } from '.';

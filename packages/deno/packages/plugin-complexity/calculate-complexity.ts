@@ -1,6 +1,5 @@
 // @ts-nocheck
-import { FieldNode, FragmentDefinitionNode, getNamedType, GraphQLField, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isInterfaceType, isObjectType, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
-import { getArgumentValues } from 'https://cdn.skypack.dev/graphql/execution/values?dts';
+import { FieldNode, FragmentDefinitionNode, getArgumentValues, getNamedType, GraphQLField, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isInterfaceType, isObjectType, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
 import type { ComplexityResult, FieldComplexity } from './index.ts';
 function isListType(type: GraphQLOutputType): boolean {

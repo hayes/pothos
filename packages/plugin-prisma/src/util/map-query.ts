@@ -3,6 +3,7 @@
 import {
   FieldNode,
   FragmentDefinitionNode,
+  getArgumentValues,
   getNamedType,
   GraphQLField,
   GraphQLNamedType,
@@ -13,7 +14,6 @@ import {
   Kind,
   SelectionSetNode,
 } from 'graphql';
-import { getArgumentValues } from 'graphql/execution/values';
 import {
   FieldSelection,
   IncludeMap,
