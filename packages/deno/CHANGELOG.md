@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.24.1
+
+### Patch Changes
+
+- 3f5d2a92: Use fieldComplexity from both builder and toSchema options
+
 ## 3.24.0
 
 ### Minor Changes
