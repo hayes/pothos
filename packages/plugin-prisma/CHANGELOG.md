@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.29.0
+
+### Minor Changes
+
+- 76d50bb4: Fix import of cjs graphql file in esm pothos
+
 ## 3.28.0
 
 ### Minor Changes
