@@ -1,5 +1,25 @@
 # @pothos-examples/complex-app
 
+## 1.2.0
+
+### Minor Changes
+
+- 50a60d92: Support prisma filtered relations counts
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+- Updated dependencies [e297e78a]
+- Updated dependencies [50a60d92]
+  - @pothos/core@3.19.1
+  - @pothos/plugin-prisma@3.31.0
+  - @pothos/plugin-prisma-utils@6.0.0
+  - @pothos/plugin-scope-auth@3.12.0
+  - @pothos/plugin-dataloader@3.10.0
+  - @pothos/plugin-relay@3.24.0
+  - @pothos/plugin-simple-objects@3.4.0
+  - @pothos/plugin-validation@3.6.0
+
 ## 1.1.7
 
 ### Patch Changes

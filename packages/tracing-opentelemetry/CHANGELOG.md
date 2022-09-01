@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 0.4.2
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
 ## 0.4.1
 
 ### Patch Changes

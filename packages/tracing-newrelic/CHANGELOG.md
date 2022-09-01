@@ -1,5 +1,11 @@
 # @pothos/tracing-newrelic
 
+## 0.3.2
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
 ## 0.3.1
 
 ### Patch Changes

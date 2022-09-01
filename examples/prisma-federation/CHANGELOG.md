@@ -1,5 +1,21 @@
 # @pothos-examples/relay
 
+## 2.5.0
+
+### Minor Changes
+
+- 50a60d92: Support prisma filtered relations counts
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+- Updated dependencies [e297e78a]
+- Updated dependencies [50a60d92]
+  - @pothos/core@3.19.1
+  - @pothos/plugin-directives@3.5.2
+  - @pothos/plugin-federation@3.4.2
+  - @pothos/plugin-prisma@3.31.0
+
 ## 2.4.22
 
 ### Patch Changes

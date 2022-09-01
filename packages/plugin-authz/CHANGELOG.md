@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.3.1
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
 ## 3.3.0
 
 ### Minor Changes
