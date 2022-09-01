@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.4.2
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
 ## 3.4.1
 
 ### Patch Changes

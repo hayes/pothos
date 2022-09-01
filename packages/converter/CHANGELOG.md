@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.3.5
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
 ## 3.3.4
 
 ### Patch Changes

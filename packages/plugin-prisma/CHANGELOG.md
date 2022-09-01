@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.31.0
+
+### Minor Changes
+
+- 50a60d92: Support prisma filtered relations counts
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+
 ## 3.30.0
 
 ### Minor Changes

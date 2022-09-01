@@ -1,5 +1,13 @@
 # @pothos-examples/envelope-helix-fastify
 
+## 2.3.8
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+- Updated dependencies [e297e78a]
+  - @pothos/core@3.19.1
+
 ## 2.3.7
 
 ### Patch Changes

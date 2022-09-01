@@ -1,5 +1,18 @@
 # @pothos/plugin-prisma-utils
 
+## 6.0.0
+
+### Minor Changes
+
+- 50a60d92: Support prisma filtered relations counts
+
+### Patch Changes
+
+- e297e78a: Support typescript@4.8
+- Updated dependencies [e297e78a]
+- Updated dependencies [50a60d92]
+  - @pothos/plugin-prisma@3.31.0
+
 ## 5.0.0
 
 ### Patch Changes

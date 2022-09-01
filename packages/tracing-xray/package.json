@@ -1,6 +1,6 @@
 {
   "name": "@pothos/tracing-xray",
-  "version": "0.3.1",
+  "version": "0.3.2",
   "description": "AWS XRay tracing utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
