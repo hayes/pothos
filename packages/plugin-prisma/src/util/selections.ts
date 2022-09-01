@@ -11,7 +11,7 @@ export interface SelectionState {
   query: object;
   mode: SelectionMode;
   fields: Set<string>;
-  counts: Set<string>;
+  counts: Map<string, boolean | Record<string, unknown>>;
   relations: Map<string, SelectionState>;
   mappings: LoaderMappings;
   parent?: SelectionState;
@@ -39,6 +39,19 @@ export function selectionCompatible(
   return ignoreQuery || deepEqual(state.query, query);
 
   function compare(key: string, value: SelectionMap | boolean) {
+    if (key === '_count') {
+      const selections = value && (value as { select?: Record<string, unknown> }).select;
+      const keys = selections && Object.keys(selections);
+
+      if (!keys || keys.length === 0) {
+        return false;
+      }
+
+      return keys.some(
+        (k) => state.counts.has(k) && !deepEqual(state.counts.get(k), selections[k]),
+      );
+    }
+
     return (
       value &&
       state.fieldMap.relations.has(key) &&
@@ -89,7 +102,7 @@ export function createState(
     fieldMap,
     query: {},
     fields: new Set(),
-    counts: new Set(),
+    counts: new Map(),
     relations: new Map(),
     mappings: {},
   };
@@ -122,9 +135,9 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
     }
 
     if (key === '_count') {
-      const counts = (value as { select?: {} }).select ?? {};
+      const counts = (value as { select?: Record<string, boolean> }).select ?? {};
       Object.keys(counts).forEach((count) => {
-        state.counts.add(count);
+        state.counts.set(count, counts[count]);
       });
 
       return;
@@ -149,7 +162,7 @@ export function mergeSelection(state: SelectionState, { select, include, ...quer
 
 export function selectionToQuery(state: SelectionState): SelectionMap {
   const nestedIncludes: Record<string, SelectionMap | boolean> = {};
-  const counts: Record<string, boolean> = {};
+  const counts: Record<string, unknown> = {};
 
   let hasSelection = false;
 
@@ -161,12 +174,12 @@ export function selectionToQuery(state: SelectionState): SelectionMap {
 
   if (state.counts.size > 0) {
     hasSelection = true;
-    for (const count of state.counts) {
-      counts[count] = true;
+    for (const [count, selection] of state.counts) {
+      counts[count] = selection;
     }
 
     nestedIncludes._count = {
-      select: counts,
+      select: counts as {},
     };
   }
 

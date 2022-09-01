@@ -208,6 +208,8 @@ const builder = new SchemaBuilder<{
     // for object types, relations and exposed fields.
     // descriptions can be omitted by setting description to false
     exposeDescriptions: boolean | { models: boolean, fields: boolean },
+    // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
+    filterConnectionTotalCount: true,
   },
 });
 ```
@@ -244,6 +246,8 @@ const builder = new SchemaBuilder<{
     client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
     // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
     dmmf: Prisma.dmmf,
+    // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
+    filterConnectionTotalCount: true,
   },
 });
 ```
@@ -473,7 +477,11 @@ support any filters on the counts, but can give a total count for a relation.
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
-    postCount: t.relationCount('posts'),
+    postCount: t.relationCount('posts', {
+      where: {
+        published: true,
+      },
+    }),
   }),
 });
 ```

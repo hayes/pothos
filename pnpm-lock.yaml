@@ -68,10 +68,10 @@ importers:
       '@pothos/plugin-scope-auth': workspace:*
       '@pothos/plugin-simple-objects': workspace:*
       '@pothos/plugin-validation': workspace:*
-      '@prisma/client': ^4.2.1
+      '@prisma/client': ^4.3.1
       graphql: 16.5.0
       graphql-scalars: ^1.18.0
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     dependencies:
       '@faker-js/faker': 7.4.0
       '@graphql-yoga/node': 2.13.8_graphql@16.5.0
@@ -83,10 +83,10 @@ importers:
       '@pothos/plugin-scope-auth': link:../../packages/plugin-scope-auth
       '@pothos/plugin-simple-objects': link:../../packages/plugin-simple-objects
       '@pothos/plugin-validation': link:../../packages/plugin-validation
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.5.0
       graphql-scalars: 1.18.0_graphql@16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   examples/envelope-helix-fastify:
     specifiers:
@@ -217,17 +217,17 @@ importers:
       '@graphql-yoga/node': ^2.13.8
       '@pothos/core': workspace:*
       '@pothos/plugin-prisma': workspace:*
-      '@prisma/client': ^4.2.1
+      '@prisma/client': ^4.3.1
       graphql: 16.5.0
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     dependencies:
       '@faker-js/faker': 7.4.0
       '@graphql-yoga/node': 2.13.8_graphql@16.5.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   examples/prisma-federation:
     specifiers:
@@ -238,11 +238,11 @@ importers:
       '@pothos/plugin-directives': workspace:*
       '@pothos/plugin-federation': workspace:*
       '@pothos/plugin-prisma': workspace:*
-      '@prisma/client': ^4.2.1
+      '@prisma/client': ^4.3.1
       apollo-server: ^3.10.1
       apollo-server-core: ^3.10.1
       graphql: 16.5.0
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     dependencies:
       '@apollo/gateway': 2.0.5_graphql@16.5.0
       '@apollo/subgraph': 2.0.5_graphql@16.5.0
@@ -251,11 +251,11 @@ importers:
       '@pothos/plugin-directives': link:../../packages/plugin-directives
       '@pothos/plugin-federation': link:../../packages/plugin-federation
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       apollo-server: 3.10.1_graphql@16.5.0
       apollo-server-core: 3.10.1_graphql@16.5.0
       graphql: 16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   examples/prisma-relay:
     specifiers:
@@ -264,18 +264,18 @@ importers:
       '@pothos/core': ^3.19.0
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-relay': workspace:*
-      '@prisma/client': ^4.2.1
+      '@prisma/client': ^4.3.1
       graphql: 16.5.0
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     dependencies:
       '@faker-js/faker': 7.4.0
       '@graphql-yoga/node': 2.13.8_graphql@16.5.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
       '@pothos/plugin-relay': link:../../packages/plugin-relay
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -284,14 +284,14 @@ importers:
       '@pothos/core': workspace:*
       '@pothos/plugin-relay': workspace:*
       graphql: 16.5.0
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     dependencies:
       '@faker-js/faker': 7.4.0
       '@graphql-yoga/node': 2.13.8_graphql@16.5.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-relay': link:../../packages/plugin-relay
       graphql: 16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   examples/simple-classes:
     specifiers:
@@ -520,11 +520,11 @@ importers:
       '@pothos/plugin-relay': workspace:*
       '@pothos/plugin-simple-objects': workspace:*
       '@pothos/test-utils': workspace:*
-      '@prisma/client': ^4.2.1
+      '@prisma/client': ^4.3.1
       '@prisma/generator-helper': ^4.2.1
       graphql: 16.5.0
       graphql-tag: ^2.12.6
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     dependencies:
       '@prisma/generator-helper': 4.2.1
     devDependencies:
@@ -534,31 +534,31 @@ importers:
       '@pothos/plugin-relay': link:../plugin-relay
       '@pothos/plugin-simple-objects': link:../plugin-simple-objects
       '@pothos/test-utils': link:../test-utils
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.5.0
       graphql-tag: 2.12.6_graphql@16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   packages/plugin-prisma-utils:
     specifiers:
       '@pothos/core': workspace:*
       '@pothos/plugin-prisma': workspace:*
       '@pothos/test-utils': workspace:*
-      '@prisma/client': ^4.1.0
+      '@prisma/client': ^4.3.1
       '@prisma/generator-helper': ^4.1.0
       graphql: 16.5.0
       graphql-tag: ^2.12.6
-      prisma: ^4.1.0
+      prisma: ^4.3.1
     dependencies:
       '@prisma/generator-helper': 4.2.1
     devDependencies:
       '@pothos/core': link:../core
       '@pothos/plugin-prisma': link:../plugin-prisma
       '@pothos/test-utils': link:../test-utils
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.5.0
       graphql-tag: 2.12.6_graphql@16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   packages/plugin-prisma-utils/esm:
     specifiers: {}
@@ -590,18 +590,18 @@ importers:
       '@pothos/core': workspace:*
       '@pothos/plugin-prisma': workspace:*
       '@pothos/test-utils': workspace:*
-      '@prisma/client': ^4.2.1
+      '@prisma/client': ^4.3.1
       graphql: 16.5.0
       graphql-tag: ^2.12.6
-      prisma: ^4.2.1
+      prisma: ^4.3.1
     devDependencies:
       '@pothos/core': link:../core
       '@pothos/plugin-prisma': link:../plugin-prisma
       '@pothos/test-utils': link:../test-utils
-      '@prisma/client': 4.2.1_prisma@4.2.1
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.5.0
       graphql-tag: 2.12.6_graphql@16.5.0
-      prisma: 4.2.1
+      prisma: 4.3.1
 
   packages/plugin-scope-auth/esm:
     specifiers: {}
@@ -3191,6 +3191,7 @@ packages:
         optional: true
     dependencies:
       typescript: 4.7.4
+    dev: false
 
   /@boost/pipeline/3.2.2_typescript@4.7.4:
     resolution: {integrity: sha512-L60o2CFRddDXXInE0o8H3Dtmr9/PE3YMHDykJbeFGsu2pLPCNl3JnlLHIBYxfSSNaqX+kFbvK2WvhfEdACMkyQ==}
@@ -5253,8 +5254,8 @@ packages:
       tslib: 2.4.0
       webcrypto-core: 1.7.5
 
-  /@prisma/client/4.2.1_prisma@4.2.1:
-    resolution: {integrity: sha512-PZBkY60+k5oix+e6IUfl3ub8TbRLNsPLdfWrdy2eh80WcHTaT+/UfvXf/B7gXedH7FRtbPFHZXk1hZenJiJZFQ==}
+  /@prisma/client/4.3.1_prisma@4.3.1:
+    resolution: {integrity: sha512-FA0/d1VMJNWqzU7WVWTNWJ+lGOLR9JUBnF73GdIPAEVo/6dWk4gHx0EmgeU+SMv4MZoxgOeTBJF2azhg7x0hMw==}
     engines: {node: '>=14.17'}
     requiresBuild: true
     peerDependencies:
@@ -5263,8 +5264,8 @@ packages:
       prisma:
         optional: true
     dependencies:
-      '@prisma/engines-version': 4.2.0-33.2920a97877e12e055c1333079b8d19cee7f33826
-      prisma: 4.2.1
+      '@prisma/engines-version': 4.3.0-32.c875e43600dfe042452e0b868f7a48b817b9640b
+      prisma: 4.3.1
 
   /@prisma/debug/4.2.1:
     resolution: {integrity: sha512-Cf7FBwZN5dNHD/iboWYbKQHSykpoVP/AmWVCUm74S3av2XbbHE5Eku5oudhpWD8gE55UrpHvO8hzBmD9m+XTQQ==}
@@ -5276,11 +5277,11 @@ packages:
       - supports-color
     dev: false
 
-  /@prisma/engines-version/4.2.0-33.2920a97877e12e055c1333079b8d19cee7f33826:
-    resolution: {integrity: sha512-tktkqdiwqE4QhmE088boPt+FwPj1Jub/zk+5F6sEfcRHzO5yz9jyMD5HFVtiwxZPLx/8Xg9ElnuTi8E5lWVQFQ==}
+  /@prisma/engines-version/4.3.0-32.c875e43600dfe042452e0b868f7a48b817b9640b:
+    resolution: {integrity: sha512-8yWpXkQRmiSfsi2Wb/ZS5D3RFbeu/btL9Pm/gdF4phB0Lo5KGsDFMxFMgaD64mwED2nHc8ZaEJg/+4Jymb9Znw==}
 
-  /@prisma/engines/4.2.1:
-    resolution: {integrity: sha512-0KqBwREUOjBiHwITsQzw2DWfLHjntvbqzGRawj4sBMnIiL5CXwyDUKeHOwXzKMtNr1rEjxEsypM14g0CzLRK3g==}
+  /@prisma/engines/4.3.1:
+    resolution: {integrity: sha512-4JF/uMaEDAPdcdZNOrnzE3BvrbGpjgV0FcPT3EVoi6I86fWkloqqxBt+KcK/+fIRR0Pxj66uGR9wVH8U1Y13JA==}
     requiresBuild: true
 
   /@prisma/generator-helper/4.2.1:
@@ -8659,6 +8660,7 @@ packages:
 
   /encoding/0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
+    requiresBuild: true
     dependencies:
       iconv-lite: 0.6.3
 
@@ -14092,13 +14094,13 @@ packages:
       parse-ms: 2.1.0
     dev: true
 
-  /prisma/4.2.1:
-    resolution: {integrity: sha512-HuYqnTDgH8atjPGtYmY0Ql9XrrJnfW7daG1PtAJRW0E6gJxc50lY3vrIDn0yjMR3TvRlypjTcspQX8DT+xD4Sg==}
+  /prisma/4.3.1:
+    resolution: {integrity: sha512-90xo06wtqil76Xsi3mNpc4Js3SdDRR5g4qb9h+4VWY4Y8iImJY6xc3PX+C9xxTSt1lr0Q89A0MLkJjd8ax6KiQ==}
     engines: {node: '>=14.17'}
     hasBin: true
     requiresBuild: true
     dependencies:
-      '@prisma/engines': 4.2.1
+      '@prisma/engines': 4.3.1
 
   /process-nextick-args/2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}

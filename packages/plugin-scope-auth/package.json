@@ -53,10 +53,10 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.2.1",
+    "@prisma/client": "^4.3.1",
     "graphql": "16.6.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.2.1"
+    "prisma": "^4.3.1"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

@@ -39,6 +39,7 @@ declare global {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
       prisma:
         | {
+            filterConnectionTotalCount?: boolean;
             client: PrismaClient;
             exposeDescriptions?:
               | boolean
@@ -48,6 +49,7 @@ declare global {
                 };
           }
         | {
+            filterConnectionTotalCount?: boolean;
             client: (ctx: Types['Context']) => PrismaClient;
             dmmf: { datamodel: unknown };
             exposeDescriptions?:

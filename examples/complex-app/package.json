@@ -18,17 +18,17 @@
     "@faker-js/faker": "^7.4.0",
     "@graphql-yoga/node": "^2.13.8",
     "@pothos/core": "^3.19.0",
+    "@pothos/plugin-dataloader": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-prisma-utils": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
-    "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-scope-auth": "workspace:*",
-    "@pothos/plugin-dataloader": "workspace:*",
+    "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
-    "@prisma/client": "^4.2.1",
+    "@prisma/client": "^4.3.1",
     "graphql": "16.6.0",
     "graphql-scalars": "^1.18.0",
-    "prisma": "^4.2.1"
+    "prisma": "^4.3.1"
   },
   "publishConfig": {
     "access": "public"

@@ -27,6 +27,7 @@ describe('prisma counts', () => {
         }
         me {
           postCount
+          publishedCount
           anotherPostCount: postCount
           postsConnection(first: 1) {
             totalCount
@@ -37,6 +38,14 @@ describe('prisma counts', () => {
             }
           }
           oldPosts: postsConnection(first: 1, oldestFirst: true) {
+            totalCount
+            edges {
+              node {
+                id
+              }
+            }
+          }
+          publishedPosts: postsConnection(first: 1, published: true) {
             totalCount
             edges {
               node {
@@ -79,6 +88,17 @@ describe('prisma counts', () => {
                 },
               ],
               "totalCount": 250,
+            },
+            "publishedCount": 149,
+            "publishedPosts": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "totalCount": 149,
             },
           },
           "userConnection": {
@@ -142,6 +162,46 @@ describe('prisma counts', () => {
                   "_all": true,
                 },
               },
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": {
+                    "where": {
+                      "published": true,
+                    },
+                  },
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+                "where": {
+                  "published": true,
+                },
+              },
+            },
+            "where": {
+              "id": 1,
             },
           },
           "dataPath": [],

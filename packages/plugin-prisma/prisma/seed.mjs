@@ -22,6 +22,7 @@ async function main() {
         createdAt: new Date(now + i * 500 + j),
         title: faker.lorem.sentence(),
         content: faker.lorem.paragraph(),
+        published: j > 100,
         media: {
           create: [
             {

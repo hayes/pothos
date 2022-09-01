@@ -85,10 +85,10 @@ describe('nested query', () => {
                     "id": "250",
                     "media": [
                       {
-                        "url": "http://misty-dilapidation.org",
+                        "url": "http://misty-dill.org",
                       },
                       {
-                        "url": "https://fumbling-jack.net",
+                        "url": "https://fumbling-jackfruit.net",
                       },
                     ],
                   },

@@ -1,4 +1,4 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldMap,
@@ -385,12 +385,14 @@ export type RelationCountOptions<
   Types extends SchemaTypes,
   Shape,
   NeedsResolve extends boolean,
+  Where,
 > = Omit<
   PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, {}, number>,
   'resolve' | 'type'
 > &
   (NeedsResolve extends false
     ? {
+        where?: Where | ((args: {}, context: Types['Context']) => Where);
         resolve?: (
           parent: Shape,
           args: {},
@@ -399,6 +401,7 @@ export type RelationCountOptions<
         ) => MaybePromise<number>;
       }
     : {
+        where?: Where | ((args: {}, context: Types['Context']) => Where);
         resolve: (
           parent: Shape,
           args: {},
@@ -620,6 +623,7 @@ export type FieldSelection =
         selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
         path?: string[] | IndirectInclude,
       ) => SelectionMap | boolean,
+      resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap);
 
 export type LoaderMappings = Record<
