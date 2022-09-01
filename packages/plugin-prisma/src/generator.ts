@@ -1,7 +1,7 @@
 /* eslint-disable no-magic-numbers */
 /* eslint-disable no-nested-ternary */
 import { mkdir, writeFile } from 'fs';
-import { dirname } from 'path';
+import { dirname, resolve as resolvePath } from 'path';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import { generatorHandler } from '@prisma/generator-helper';
 
@@ -24,11 +24,13 @@ function checkTSVersion() {
   }
 }
 
+const defaultOutput = resolvePath(__dirname, '../generated');
+
 generatorHandler({
   onManifest: () => ({
     prettyName: 'Pothos integration',
-    defaultOutput: 'node_modules/@pothos/plugin-prisma/generated.ts',
     requiresGenerators: ['prisma-client-js'],
+    defaultOutput,
   }),
   onGenerate: async (options) => {
     checkTSVersion();
