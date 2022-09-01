@@ -13,27 +13,42 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: checkout code repository
-        uses: actions/checkout@v2
+        uses: actions/checkout@v3
         with:
           fetch-depth: 0
 
-      - name: setup node.js
-        uses: actions/setup-node@v2
+      - name: Use Node.js 18
+        uses: actions/setup-node@v3
         with:
           node-version: 18
 
-      - name: Cache pnpm modules
-        uses: actions/cache@v2
+      - uses: pnpm/action-setup@v2.0.1
+        name: Install pnpm
+        id: pnpm-install
         with:
-          path: ~/.pnpm-store
-          key: ${{ runner.os }}-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-
+          version: 7
+          run_install: false
 
-      - uses: pnpm/action-setup@v2.1.0
+      - name: Get pnpm store directory
+        id: pnpm-cache
+        run: |
+          echo "::set-output name=pnpm_cache_dir::$(pnpm store path)"
+
+      - uses: actions/cache@v3
+        name: Setup turbo cache
         with:
-          version: 7.4.1
-          run_install: true
+          path: ./node_modules/.cache
+          key: ${{ runner.os }}-18-turbo-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-18-turbo-cache-
+
+      - uses: actions/cache@v3
+        name: Setup pnpm cache
+        with:
+          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
+          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-pnpm-store-
 
       - name: Creating .npmrc
         run: |
