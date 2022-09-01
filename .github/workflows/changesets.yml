@@ -46,7 +46,7 @@ jobs:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
-        run: pnpm install --frozen-lock-file
+        run: pnpm install --frozen-lockfile
 
       - name: Create PR or Publish release
         id: changesets
