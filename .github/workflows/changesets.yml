@@ -59,6 +59,9 @@ jobs:
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
 
+      - name: Install dependencies
+        run: pnpm install --frozen-lock-file
+
       - name: Create PR or Publish release
         id: changesets
         uses: changesets/action@v1
