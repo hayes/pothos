@@ -17,38 +17,24 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Use Node.js 18
-        uses: actions/setup-node@v3
-        with:
-          node-version: 18
-
-      - uses: pnpm/action-setup@v2.0.1
+      - uses: pnpm/action-setup@v2.2.2
         name: Install pnpm
         id: pnpm-install
         with:
           version: 7
           run_install: false
 
-      - name: Get pnpm store directory
-        id: pnpm-cache
-        run: |
-          echo "::set-output name=pnpm_cache_dir::$(pnpm store path)"
-
-      - uses: actions/cache@v3
-        name: Setup turbo cache
+      - name: Use Node.js 18
+        uses: actions/setup-node@v2
         with:
-          path: ./node_modules/.cache
-          key: ${{ runner.os }}-18-turbo-cache-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-18-turbo-cache-
+          node-version: 18
+          cache: 'pnpm'
 
-      - uses: actions/cache@v3
-        name: Setup pnpm cache
+      - name: Setup turbo cache
+        uses: actions/cache@v3
         with:
-          path: ${{ steps.pnpm-cache.outputs.pnpm_cache_dir }}
-          key: ${{ runner.os }}-pnpm-store-${{ hashFiles('**/pnpm-lock.yaml') }}
-          restore-keys: |
-            ${{ runner.os }}-pnpm-store-
+          path: node_modules/.cache
+          key: turbo-${{ runner.os }}-18-${{ hashFiles('**/pnpm-lock.yaml') }}
 
       - name: Creating .npmrc
         run: |
