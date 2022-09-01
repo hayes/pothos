@@ -46,13 +46,13 @@ describe('authz', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "users": Array [
-            Object {
+      {
+        "data": {
+          "users": [
+            {
               "id": "1",
             },
-            Object {
+            {
               "id": "2",
             },
           ],
@@ -103,14 +103,14 @@ describe('authz', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "users": Array [
-            Object {
+      {
+        "data": {
+          "users": [
+            {
               "email": "user01@gmail.com",
               "id": "1",
             },
-            Object {
+            {
               "email": "user02@gmail.com",
               "id": "2",
             },
@@ -159,13 +159,13 @@ describe('authz', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
-          "posts": Array [
-            Object {
+      {
+        "data": {
+          "posts": [
+            {
               "id": "1",
             },
-            Object {
+            {
               "id": "2",
             },
           ],

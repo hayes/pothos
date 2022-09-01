@@ -51,6 +51,7 @@ export default class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<Args, 'Boolean', Nullable>({
+      resolve: undefined as never,
       ...options,
       type: 'Boolean',
     });
@@ -87,6 +88,7 @@ export default class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<Args, 'Float', Nullable>({
+      resolve: undefined as never,
       ...options,
       type: 'Float',
     });
@@ -122,7 +124,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'ID', Nullable>({ ...options, type: 'ID' });
+    return this.createField<Args, 'ID', Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: 'ID',
+    });
   }
 
   /**
@@ -155,7 +161,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Int', Nullable>({ ...options, type: 'Int' });
+    return this.createField<Args, 'Int', Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: 'Int',
+    });
   }
 
   /**
@@ -189,6 +199,7 @@ export default class RootFieldBuilder<
     const [options = {} as never] = args;
 
     return this.createField<Args, 'String', Nullable>({
+      resolve: undefined as never,
       ...options,
       type: 'String',
     });
@@ -224,7 +235,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Boolean'], Nullable>({ ...options, type: ['Boolean'] });
+    return this.createField<Args, ['Boolean'], Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: ['Boolean'],
+    });
   }
 
   /**
@@ -257,7 +272,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Float'], Nullable>({ ...options, type: ['Float'] });
+    return this.createField<Args, ['Float'], Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: ['Float'],
+    });
   }
 
   /**
@@ -290,7 +309,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['ID'], Nullable>({ ...options, type: ['ID'] });
+    return this.createField<Args, ['ID'], Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: ['ID'],
+    });
   }
 
   /**
@@ -323,7 +346,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Int'], Nullable>({ ...options, type: ['Int'] });
+    return this.createField<Args, ['Int'], Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: ['Int'],
+    });
   }
 
   /**
@@ -356,7 +383,11 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['String'], Nullable>({ ...options, type: ['String'] });
+    return this.createField<Args, ['String'], Nullable>({
+      resolve: undefined as never,
+      ...options,
+      type: ['String'],
+    });
   }
 
   /**
@@ -381,6 +412,6 @@ export default class RootFieldBuilder<
       ResolveReturnShape
     >,
   ) {
-    return this.createField<Args, Type, Nullable>(options);
+    return this.createField<Args, Type, Nullable>(options as never);
   }
 }

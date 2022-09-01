@@ -41,7 +41,7 @@
     "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^4.1.0"
+    "@prisma/generator-helper": "^4.3.1"
   },
   "peerDependencies": {
     "@pothos/plugin-prisma": "workspace:*",

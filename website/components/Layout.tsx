@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import Head from 'next/head';
 import Link from 'next/link';
 import { useRouter } from 'next/router';
-import MenuIcon from '@heroicons/react/outline/MenuIcon';
+import { Bars3Icon } from '@heroicons/react/24/outline';
 import DiscordLogo from './Docs/discord';
 import GithubLogo from './Docs/github';
 import { SearchPane } from './Search';
@@ -76,7 +76,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
         </header>
         <details className="xl:hidden absolute top-0 z-20 h-full">
           <summary className="p-4 text-white">
-            <MenuIcon className="h-8" />
+            <Bars3Icon className="h-8" />
           </summary>
           <Toc
             active={router.pathname}

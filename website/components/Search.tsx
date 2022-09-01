@@ -1,7 +1,7 @@
 import { ChangeEvent, useMemo, useRef, useState } from 'react';
 import debounce from 'just-debounce';
 import Link from 'next/link';
-import SearchIcon from '@heroicons/react/outline/SearchIcon';
+import { MagnifyingGlassIcon } from '@heroicons/react/24/outline';
 import { useQuery } from '@tanstack/react-query';
 import { useClickOutside } from '../util/useClickOutside';
 
@@ -106,8 +106,8 @@ export function SearchPane() {
         }
       }}
     >
-      <summary ref={summaryRef} className="-mr-4 p-4 cursor-pointer text-white">
-        <SearchIcon className="h-8" />
+      <summary ref={summaryRef} className="p-4 -mr-2 cursor-pointer text-white">
+        <MagnifyingGlassIcon className="h-6 w-6" />
       </summary>
       <div
         className={`absolute py-4 top-16 bottom-0 -right-4 dark:bg-[#282a36] shadow w-96 pb-4 px overflow-y-auto z-20 bg-white`}
@@ -117,7 +117,7 @@ export function SearchPane() {
         </label>
         <div className="relative w-full text-gray-400 focus-within:text-gray-600 dark:focus-within:text-gray-100">
           <div className="absolute inset-y-0 left-2 flex items-center pointer-events-none">
-            <SearchIcon className="h-5 w-5" aria-hidden="true" />
+            <MagnifyingGlassIcon className="h-5 w-5" aria-hidden="true" />
           </div>
           <div className="border-b border-gray-300 dark:border-gray-600 focus-within:border-green">
             <input

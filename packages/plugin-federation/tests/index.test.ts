@@ -89,18 +89,18 @@ describe('federation', () => {
       });
 
       expect(data).toMatchInlineSnapshot(`
-        Object {
-          "data": Object {
-            "me": Object {
+        {
+          "data": {
+            "me": {
               "id": "1",
               "name": "Ada Lovelace",
-              "reviews": Array [
-                Object {
-                  "author": Object {
-                    "reviews": Array [
-                      Object {
+              "reviews": [
+                {
+                  "author": {
+                    "reviews": [
+                      {
                         "id": "1",
-                        "product": Object {
+                        "product": {
                           "inStock": true,
                           "name": "Table",
                           "price": 899,
@@ -109,9 +109,9 @@ describe('federation', () => {
                           "weight": 100,
                         },
                       },
-                      Object {
+                      {
                         "id": "2",
-                        "product": Object {
+                        "product": {
                           "inStock": false,
                           "name": "Couch",
                           "price": 1299,
@@ -126,12 +126,12 @@ describe('federation', () => {
                   "body": "Love it!",
                   "id": "1",
                 },
-                Object {
-                  "author": Object {
-                    "reviews": Array [
-                      Object {
+                {
+                  "author": {
+                    "reviews": [
+                      {
                         "id": "1",
-                        "product": Object {
+                        "product": {
                           "inStock": true,
                           "name": "Table",
                           "price": 899,
@@ -140,9 +140,9 @@ describe('federation', () => {
                           "weight": 100,
                         },
                       },
-                      Object {
+                      {
                         "id": "2",
-                        "product": Object {
+                        "product": {
                           "inStock": false,
                           "name": "Couch",
                           "price": 1299,

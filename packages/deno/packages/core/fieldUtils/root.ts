@@ -16,7 +16,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         return this.createField<Args, "Boolean", Nullable>({
             ...options,
             type: "Boolean",
-        });
+        } as never);
     }
     /**
      * Create a Float field
@@ -29,7 +29,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         return this.createField<Args, "Float", Nullable>({
             ...options,
             type: "Float",
-        });
+        } as never);
     }
     /**
      * Create a ID field
@@ -39,7 +39,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
-        return this.createField<Args, "ID", Nullable>({ ...options, type: "ID" });
+        return this.createField<Args, "ID", Nullable>({ ...options, type: "ID" } as never);
     }
     /**
      * Create a Int field
@@ -49,7 +49,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
-        return this.createField<Args, "Int", Nullable>({ ...options, type: "Int" });
+        return this.createField<Args, "Int", Nullable>({ ...options, type: "Int" } as never);
     }
     /**
      * Create a String field
@@ -62,7 +62,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         return this.createField<Args, "String", Nullable>({
             ...options,
             type: "String",
-        });
+        } as never);
     }
     /**
      * Create a Boolean list field
@@ -78,7 +78,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "Boolean"
-        ], Nullable>({ ...options, type: ["Boolean"] });
+        ], Nullable>({
+            ...options,
+            type: ["Boolean"],
+        } as never);
     }
     /**
      * Create a Float list field
@@ -94,7 +97,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "Float"
-        ], Nullable>({ ...options, type: ["Float"] });
+        ], Nullable>({ ...options, type: ["Float"] } as never);
     }
     /**
      * Create a ID list field
@@ -110,7 +113,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "ID"
-        ], Nullable>({ ...options, type: ["ID"] });
+        ], Nullable>({ ...options, type: ["ID"] } as never);
     }
     /**
      * Create a Int list field
@@ -126,7 +129,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "Int"
-        ], Nullable>({ ...options, type: ["Int"] });
+        ], Nullable>({ ...options, type: ["Int"] } as never);
     }
     /**
      * Create a String list field
@@ -142,13 +145,13 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "String"
-        ], Nullable>({ ...options, type: ["String"] });
+        ], Nullable>({ ...options, type: ["String"] } as never);
     }
     /**
      * create a new field for the current type
      * @param {PothosSchemaTypes.FieldOptions} options - options for this field
      */
     field<Args extends InputFieldMap, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>) {
-        return this.createField<Args, Type, Nullable>(options);
+        return this.createField<Args, Type, Nullable>(options as never);
     }
 }

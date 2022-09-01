@@ -1,5 +1,5 @@
 import { HTMLProps } from 'react';
-import LinkIcon from '@heroicons/react/outline/LinkIcon';
+import { LinkIcon } from '@heroicons/react/24/outline';
 
 export function Heading({
   tag,

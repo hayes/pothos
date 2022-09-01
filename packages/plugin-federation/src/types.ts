@@ -36,10 +36,7 @@ export type ShapeFromExternalFields<Fields extends FieldMap> = {
     : unknown;
 };
 
-export type SelectionFromShape<
-  Shape extends {},
-  Space extends string = '',
-> = {} extends Required<Shape>
+export type SelectionFromShape<Shape, Space extends string = ''> = {} extends Required<Shape>
   ? ''
   : {
       [K in keyof Shape]: Omit<Shape, K> extends infer R
