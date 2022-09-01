@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.30.0
+
+### Minor Changes
+
+- 521cde32: Improve how default output location for prisma types is calculated
+
 ## 3.29.0
 
 ### Minor Changes
