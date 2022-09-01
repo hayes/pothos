@@ -1,7 +1,6 @@
 import { useState } from 'react';
 import Link from 'next/link';
-import ChevronDownIcon from '@heroicons/react/outline/ChevronDownIcon';
-import ChevronUpIcon from '@heroicons/react/outline/ChevronUpIcon';
+import { ChevronDownIcon, ChevronUpIcon } from '@heroicons/react/24/outline';
 
 export interface TableOfContentsEntry {
   title: string;

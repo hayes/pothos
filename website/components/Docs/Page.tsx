@@ -1,7 +1,6 @@
 import { HTMLProps, ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import Link from 'next/link';
-import ArrowLeftIcon from '@heroicons/react/outline/ArrowLeftIcon';
-import ArrowRightIcon from '@heroicons/react/outline/ArrowRightIcon';
+import { ArrowLeftIcon, ArrowRightIcon } from '@heroicons/react/24/outline';
 import { MDXProvider } from '@mdx-js/react';
 import { Layout } from '../Layout';
 import { TableOfContents } from '../Toc';

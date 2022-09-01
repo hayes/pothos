@@ -10,16 +10,16 @@ directive @override(from: String!) on FIELD_DEFINITION
 directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product
-  @key(fields: \\"sku package\\")
-  @key(fields: \\"sku variation { id }\\")
+  @key(fields: "sku package")
+  @key(fields: "sku variation { id }")
 {
   id: ID!
   sku: String
   package: String
   dimensions: ProductDimension
   variation: ProductVariation
-  notes: [String!] @inaccessible @tag(name: \\"internal\\")
-  createdBy: User @provides(fields: \\"totalProductsCreated\\")
+  notes: [String!] @inaccessible @tag(name: "internal")
+  createdBy: User @provides(fields: "totalProductsCreated")
 }
 
 type ProductDimension
@@ -39,12 +39,12 @@ type Query {
 }
 
 type User
-  @key(fields: \\"email\\")
+  @key(fields: "email")
   @extends
 {
   email: String! @external
   totalProductsCreated: Int @external
-  name: String @override(from: \\"users\\")
+  name: String @override(from: "users")
 }
 
 scalar link__Import"
@@ -108,9 +108,9 @@ scalar _Any
 union _Entity = Product | User
 
 type _Service {
-  \\"\\"\\"
+  """
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
-  \\"\\"\\"
+  """
   sdl: String
 }
 

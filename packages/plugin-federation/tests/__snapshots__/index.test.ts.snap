@@ -14,7 +14,7 @@ type Query {
 }
 
 type User
-  @key(fields: \\"id\\")
+  @key(fields: "id")
 {
   id: ID
   name: String
@@ -62,9 +62,9 @@ scalar _Any
 union _Entity = User
 
 type _Service {
-  \\"\\"\\"
+  """
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
-  \\"\\"\\"
+  """
   sdl: String
 }
 
@@ -81,14 +81,14 @@ directive @override(from: String!) on FIELD_DEFINITION
 directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product
-  @key(fields: \\"upc\\")
+  @key(fields: "upc")
   @extends
 {
   price: Float @external
   weight: Float @external
   upc: String
   inStock: Boolean
-  shippingEstimate: Float @requires(fields: \\"price weight\\")
+  shippingEstimate: Float @requires(fields: "price weight")
 }
 
 scalar link__Import"
@@ -133,9 +133,9 @@ scalar _Any
 union _Entity = Product
 
 type _Service {
-  \\"\\"\\"
+  """
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
-  \\"\\"\\"
+  """
   sdl: String
 }
 
@@ -152,7 +152,7 @@ directive @override(from: String!) on FIELD_DEFINITION
 directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product
-  @key(fields: \\"upc\\")
+  @key(fields: "upc")
 {
   upc: String
   name: String
@@ -206,9 +206,9 @@ scalar _Any
 union _Entity = Product
 
 type _Service {
-  \\"\\"\\"
+  """
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
-  \\"\\"\\"
+  """
   sdl: String
 }
 
@@ -225,7 +225,7 @@ directive @override(from: String!) on FIELD_DEFINITION
 directive @shareable on FIELD_DEFINITION | OBJECT
 
 type Product
-  @key(fields: \\"upc\\")
+  @key(fields: "upc")
   @extends
 {
   upc: String
@@ -233,16 +233,16 @@ type Product
 }
 
 type Review
-  @key(fields: \\"id\\")
+  @key(fields: "id")
 {
   id: ID
   body: String
-  author: User @provides(fields: \\"username\\")
+  author: User @provides(fields: "username")
   product: Product
 }
 
 type User
-  @key(fields: \\"id\\")
+  @key(fields: "id")
   @extends
 {
   username: String @external
@@ -302,9 +302,9 @@ scalar _Any
 union _Entity = Product | Review | User
 
 type _Service {
-  \\"\\"\\"
+  """
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
-  \\"\\"\\"
+  """
   sdl: String
 }
 

@@ -261,7 +261,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     }
 
     if ($any) {
-      const anyResult = this.evaluateScopeMap($any!, info);
+      const anyResult = this.evaluateScopeMap($any, info);
 
       if (isThenable(anyResult)) {
         promises.push(anyResult);
@@ -277,7 +277,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     }
 
     if ($all) {
-      const allResult = this.evaluateScopeMap($all!, info, true);
+      const allResult = this.evaluateScopeMap($all, info, true);
 
       if (isThenable(allResult)) {
         promises.push(allResult);

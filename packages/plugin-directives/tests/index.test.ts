@@ -87,8 +87,8 @@ describe('extends example schema', () => {
     });
 
     expect(result).toMatchInlineSnapshot(`
-      Object {
-        "data": Object {
+      {
+        "data": {
           "test": "hi",
         },
       }
@@ -101,9 +101,9 @@ describe('extends example schema', () => {
     });
 
     expect(result2).toMatchInlineSnapshot(`
-      Object {
+      {
         "data": null,
-        "errors": Array [
+        "errors": [
           [GraphQLError: Too many requests, please try again in 5 seconds.],
         ],
       }
