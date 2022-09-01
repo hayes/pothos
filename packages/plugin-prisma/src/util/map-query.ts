@@ -222,9 +222,6 @@ function addFieldSelection(
 
   let fieldSelectionMap: SelectionMap;
 
-  const fieldParentSelect = field.extensions?.pothosPrismaParentSelect as
-    | Record<string, SelectionMap | boolean>
-    | undefined;
   let mappings: LoaderMappings = {};
 
   if (typeof fieldSelect === 'function') {
@@ -233,70 +230,88 @@ function addFieldSelection(
       unknown
     >;
 
-    fieldSelectionMap = fieldSelect(args, context, (rawQuery, indirectInclude) => {
-      const returnType = getNamedType(field.type);
-      const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
+    fieldSelectionMap = fieldSelect(
+      args,
+      context,
+      (rawQuery, indirectInclude) => {
+        const returnType = getNamedType(field.type);
+        const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
 
-      const normalizedIndirectInclude = Array.isArray(indirectInclude)
-        ? normalizeInclude(indirectInclude, getIndirectType(returnType, info))
-        : indirectInclude;
+        const normalizedIndirectInclude = Array.isArray(indirectInclude)
+          ? normalizeInclude(indirectInclude, getIndirectType(returnType, info))
+          : indirectInclude;
 
-      const fieldState = createStateForType(
-        getIndirectType(
-          normalizedIndirectInclude
-            ? info.schema.getType(normalizedIndirectInclude.getType())!
-            : returnType,
+        const fieldState = createStateForType(
+          getIndirectType(
+            normalizedIndirectInclude
+              ? info.schema.getType(normalizedIndirectInclude.getType())!
+              : returnType,
+            info,
+          ),
           info,
-        ),
-        info,
-        state,
-      );
+          state,
+        );
 
-      if (typeof query === 'object' && Object.keys(query).length > 0) {
-        mergeSelection(fieldState, { select: {}, ...query });
-      }
+        if (typeof query === 'object' && Object.keys(query).length > 0) {
+          mergeSelection(fieldState, { select: {}, ...query });
+        }
 
-      if (normalizedIndirectInclude && normalizedIndirectInclude.path.length > 0) {
+        if (normalizedIndirectInclude && normalizedIndirectInclude.path.length > 0) {
+          resolveIndirectInclude(
+            returnType,
+            info,
+            selection,
+            [
+              ...((returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? []),
+              ...normalizedIndirectInclude.path,
+            ],
+            [],
+            (resolvedType, resolvedField, path) => {
+              addTypeSelectionsForField(
+                resolvedType,
+                context,
+                info,
+                fieldState,
+                resolvedField,
+                path,
+              );
+            },
+          );
+        }
+
+        addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
+
+        // eslint-disable-next-line prefer-destructuring
+        mappings = fieldState.mappings;
+
+        return selectionToQuery(fieldState);
+      },
+      (path) => {
+        const returnType = getNamedType(field.type);
+        let node: FieldNode | null = null;
+
         resolveIndirectInclude(
           returnType,
           info,
           selection,
-          [
-            ...((returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? []),
-            ...normalizedIndirectInclude.path,
-          ],
+          path.map((name) => ({
+            name,
+          })),
           [],
-          (resolvedType, resolvedField, path) => {
-            addTypeSelectionsForField(resolvedType, context, info, fieldState, resolvedField, path);
+          (_, resolvedField) => {
+            node = resolvedField;
           },
         );
-      }
 
-      addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
-
-      // eslint-disable-next-line prefer-destructuring
-      mappings = fieldState.mappings;
-
-      return selectionToQuery(fieldState);
-    });
+        return node;
+      },
+    );
   } else {
     fieldSelectionMap = { select: fieldSelect };
   }
 
   if (fieldSelect && selectionCompatible(state, fieldSelectionMap, true)) {
     mergeSelection(state, fieldSelectionMap);
-    state.mappings[selection.alias?.value ?? selection.name.value] = {
-      field: selection.name.value,
-      type: type.name,
-      mappings,
-      indirectPath,
-    };
-  } else if (
-    fieldParentSelect &&
-    state.parent &&
-    selectionCompatible(state.parent, { select: fieldParentSelect }, true)
-  ) {
-    mergeSelection(state.parent, { select: fieldParentSelect });
     state.mappings[selection.alias?.value ?? selection.name.value] = {
       field: selection.name.value,
       type: type.name,

@@ -11,7 +11,7 @@ import {
 export class ModelLoader {
   model: object;
   builder: PothosSchemaTypes.SchemaBuilder<never>;
-  findUnique: (args: unknown, ctx: {}) => unknown;
+  findUnique: (model: Record<string, unknown>, ctx: {}) => unknown;
   modelName: string;
 
   staged = new Set<{
@@ -23,7 +23,7 @@ export class ModelLoader {
     model: object,
     builder: PothosSchemaTypes.SchemaBuilder<never>,
     modelName: string,
-    findUnique: (args: unknown, ctx: {}) => unknown,
+    findUnique: (model: Record<string, unknown>, ctx: {}) => unknown,
   ) {
     this.model = model;
     this.builder = builder;
@@ -34,7 +34,7 @@ export class ModelLoader {
   static forRef<Types extends SchemaTypes>(
     ref: ObjectRef<unknown>,
     modelName: string,
-    findUnique: (args: unknown, ctx: {}) => unknown,
+    findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
     return createContextCache(
@@ -238,14 +238,14 @@ export class ModelLoader {
         if (delegate.findUniqueOrThrow) {
           return delegate.findUniqueOrThrow({
             ...selectionToQuery(state),
-            where: { ...(this.findUnique(this.model, context) as {}) },
+            where: { ...(this.findUnique(this.model as Record<string, unknown>, context) as {}) },
           } as never) as Promise<Record<string, unknown>>;
         }
 
         return delegate.findUnique({
           rejectOnNotFound: true,
           ...selectionToQuery(state),
-          where: { ...(this.findUnique(this.model, context) as {}) },
+          where: { ...(this.findUnique(this.model as Record<string, unknown>, context) as {}) },
         } as never) as Promise<Record<string, unknown>>;
       }),
       state,

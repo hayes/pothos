@@ -124,6 +124,11 @@ const User = builder.prismaNode('User', {
     }),
     profileWithErrors: t.relation('profile', { nullable: true, errors: {} }),
     postCount: t.relationCount('posts'),
+    publishedCount: t.relationCount('posts', {
+      where: {
+        published: true,
+      },
+    }),
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
@@ -145,8 +150,10 @@ const User = builder.prismaNode('User', {
       cursor: 'createdAt',
       args: {
         oldestFirst: t.arg.boolean(),
+        published: t.arg.boolean(),
       },
       query: (args) => ({
+        ...(args.published != null ? { where: { published: true } } : {}),
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },

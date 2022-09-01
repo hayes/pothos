@@ -42,6 +42,7 @@ export default new SchemaBuilder<{
   plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin, ComplexityPlugin, SimpleObjects],
   relayOptions: {},
   prisma: {
+    filterConnectionTotalCount: true,
     client: () => prisma,
     dmmf: Prisma.dmmf,
     exposeDescriptions: true,

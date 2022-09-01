@@ -1,5 +1,6 @@
+/* eslint-disable no-nested-ternary */
 /* eslint-disable no-underscore-dangle */
-import { GraphQLResolveInfo } from 'graphql';
+import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import {
   CompatibleTypes,
   FieldKind,
@@ -172,6 +173,7 @@ export class PrismaObjectFieldBuilder<
         args,
       }),
     });
+
     const cursorSelection = ModelLoader.getCursorSelection(
       ref,
       relationField.type,
@@ -182,7 +184,8 @@ export class PrismaObjectFieldBuilder<
     const relationSelect = (
       args: object,
       context: object,
-      nestedQuery: (query: unknown, path: unknown) => unknown,
+      nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
+      getSelection: (path: string[]) => FieldNode | null,
     ) => {
       const nested = nestedQuery(getQuery(args, context), {
         getType: () => {
@@ -194,8 +197,16 @@ export class PrismaObjectFieldBuilder<
         path: [{ name: 'edges' }, { name: 'node' }],
       }) as SelectionMap;
 
+      const hasTotalCount = totalCount && !!getSelection(['totalCount']);
+      const countSelect = this.builder.options.prisma.filterConnectionTotalCount
+        ? nested.where
+          ? { where: nested.where }
+          : true
+        : true;
+
       return {
         select: {
+          ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
           [name]: nested?.select
             ? {
                 ...nested,
@@ -266,9 +277,6 @@ export class PrismaObjectFieldBuilder<
           ? (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
               totalCount: t.int({
                 nullable: false,
-                extensions: {
-                  pothosPrismaParentSelect: { _count: { select: { [name]: true } } },
-                },
                 resolve: (parent, args, context) => parent.totalCount,
               }),
               ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
@@ -352,18 +360,35 @@ export class PrismaObjectFieldBuilder<
 
   relationCount<Field extends Model['RelationName']>(
     ...allArgs: NormalizeArgs<
-      [name: Field, options?: RelationCountOptions<Types, Shape, NeedsResolve>]
+      [
+        name: Field,
+        options?: RelationCountOptions<
+          Types,
+          Shape,
+          NeedsResolve,
+          Model['Relations'][Field]['Types']['Where']
+        >,
+      ]
     >
   ): FieldRef<number, 'Object'> {
-    const [name, options = {} as never] = allArgs;
+    const [name, { where, ...options } = {} as never] = allArgs;
 
     const { resolve, ...rest } = options;
 
-    const countSelect = {
-      _count: {
-        select: { [name]: true },
-      },
-    };
+    const countSelect =
+      typeof where === 'function'
+        ? (args: {}, context: {}) => ({
+            _count: {
+              select: {
+                [name]: { where: (where as (args: unknown, ctx: unknown) => {})(args, context) },
+              },
+            },
+          })
+        : {
+            _count: {
+              select: { [name]: where ? { where } : true },
+            },
+          };
 
     return this.field({
       ...(rest as {}),
