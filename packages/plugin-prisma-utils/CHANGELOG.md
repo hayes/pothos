@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.2.0
+
+### Minor Changes
+
+- 8b31b25a: support search filters and AND/OR/NOT on prismaWhere
+
 ## 6.0.0
 
 ### Minor Changes
