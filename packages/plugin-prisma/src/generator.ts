@@ -24,7 +24,7 @@ function checkTSVersion() {
   }
 }
 
-const defaultOutput = resolvePath(__dirname, '../generated');
+const defaultOutput = resolvePath(__dirname, '../generated.ts');
 
 generatorHandler({
   onManifest: () => ({
