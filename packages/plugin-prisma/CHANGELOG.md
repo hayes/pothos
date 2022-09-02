@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.31.1
+
+### Patch Changes
+
+- 47fea5ed: Fix: add .ts extension to filename for generated prisma fields
+
 ## 3.31.0
 
 ### Minor Changes
