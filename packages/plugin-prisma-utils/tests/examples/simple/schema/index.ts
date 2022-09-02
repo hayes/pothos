@@ -81,6 +81,7 @@ const CommentWhere = builder.prismaWhere('Comment', {
 const UserWhere = builder.prismaWhere('User', {
   fields: {
     id: IDFilter,
+    NOT: true,
   },
 });
 

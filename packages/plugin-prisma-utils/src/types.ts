@@ -26,6 +26,7 @@ export interface FilterShape<T> {
   endsWith?: T;
   is?: T;
   isNot?: T;
+  search?: T;
 }
 
 export type FilterOps = keyof FilterShape<unknown>;
@@ -60,7 +61,9 @@ export interface PrismaWhereOptions<Types extends SchemaTypes, Model extends Pri
 }
 
 export type PrismaWhereFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
-  [K in keyof Model['Where']]?: PrismaWhereFieldType<Types, Model, K>;
+  [K in keyof Model['Where']]?: K extends 'AND' | 'OR' | 'NOT'
+    ? boolean | Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where']>>, 'type'>
+    : PrismaWhereFieldType<Types, Model, K>;
 };
 
 export interface PrismaWhereFieldOptions<

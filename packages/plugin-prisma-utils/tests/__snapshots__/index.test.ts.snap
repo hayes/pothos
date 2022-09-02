@@ -67,6 +67,7 @@ input StringListFilter {
 }
 
 input UserFilter {
+  NOT: [UserFilter!]
   id: IntFilter
 }
 

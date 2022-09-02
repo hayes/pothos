@@ -225,6 +225,16 @@ schemaBuilder.prismaWhere = function prismaWhere<
           return;
         }
 
+        if (field === 'AND' || field === 'OR' || field === 'NOT') {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: [ref],
+            ...(typeof fieldOption === 'object' ? fieldOption : {}),
+          });
+
+          return;
+        }
+
         if (fieldOption instanceof InputFieldRef) {
           fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
         } else {
