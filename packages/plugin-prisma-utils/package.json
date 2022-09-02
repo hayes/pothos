@@ -44,7 +44,8 @@
     "@prisma/generator-helper": "^4.3.1"
   },
   "peerDependencies": {
-    "@pothos/plugin-prisma": "workspace:*",
+    "@pothos/core": "*",
+    "@pothos/plugin-prisma": "*",
     "@prisma/client": "*",
     "graphql": ">=15.1.0"
   },
