@@ -228,7 +228,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
         if (field === 'AND' || field === 'OR' || field === 'NOT') {
           fieldDefs[field] = t.field({
             required: false,
-            type: [ref],
+            type: field === 'NOT' ? ref : [ref],
             ...(typeof fieldOption === 'object' ? fieldOption : {}),
           });
 

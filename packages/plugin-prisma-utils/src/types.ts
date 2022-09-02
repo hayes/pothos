@@ -61,7 +61,9 @@ export interface PrismaWhereOptions<Types extends SchemaTypes, Model extends Pri
 }
 
 export type PrismaWhereFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
-  [K in keyof Model['Where']]?: K extends 'AND' | 'OR' | 'NOT'
+  [K in keyof Model['Where']]?: K extends 'AND' | 'OR'
+    ? boolean | Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where'][]>>, 'type'>
+    : K extends 'NOT'
     ? boolean | Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where']>>, 'type'>
     : PrismaWhereFieldType<Types, Model, K>;
 };
