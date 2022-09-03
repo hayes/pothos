@@ -1,13 +1,13 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 const pageInfoRefMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<PageInfoShape>>();
-const nodeInterfaceRefMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, InterfaceRef<ObjectParam<SchemaTypes>>>();
+const nodeInterfaceRefMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, InterfaceRef<{}>>();
 export const connectionRefs = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>[]>();
 export const globalConnectionFieldsMap = new WeakMap<PothosSchemaTypes.SchemaBuilder<SchemaTypes>, ((ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => void)[]>();
 schemaBuilderProto.pageInfoRef = function pageInfoRef() {
@@ -46,9 +46,44 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     if (nodeInterfaceRefMap.has(this)) {
         return nodeInterfaceRefMap.get(this)!;
     }
-    const ref = this.interfaceRef<ObjectParam<SchemaTypes>>("Node");
+    const ref = this.interfaceRef<{}>("Node");
     nodeInterfaceRefMap.set(this, ref);
     ref.implement({
+        resolveType: (value, context, info, graphQLType) => {
+            if (!value) {
+                return defaultTypeResolver(value, context, info, graphQLType);
+            }
+            const typeBrand = getTypeBrand(value);
+            if (typeBrand) {
+                const type = this.configStore.getTypeConfig(typeBrand as string);
+                return type.name;
+            }
+            try {
+                if (typeof value === "object") {
+                    // eslint-disable-next-line no-underscore-dangle
+                    const typename = (value as {
+                        __typename: string;
+                    }).__typename;
+                    if (typename) {
+                        return typename;
+                    }
+                    // eslint-disable-next-line no-underscore-dangle
+                    const nodeRef = (value as {
+                        __type: OutputRef;
+                    }).__type;
+                    if (nodeRef) {
+                        const config = this.configStore.getTypeConfig(nodeRef);
+                        if (config) {
+                            return config.name;
+                        }
+                    }
+                }
+            }
+            catch {
+                // ignore
+            }
+            return defaultTypeResolver(value, context, info, graphQLType);
+        },
         ...this.options.relayOptions.nodeTypeOptions,
         fields: (t) => ({
             [this.options.relayOptions?.idFieldName ?? "id"]: t.globalID({
@@ -92,52 +127,30 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     const ref = this.objectType<[
     ], ObjectParam<SchemaTypes>>(param, {
         ...(options as {}),
-        isTypeOf: (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
-            if (options.isTypeOf) {
-                return options.isTypeOf(maybeNode, context, info);
-            }
-            if (!maybeNode) {
-                return false;
-            }
-            const typeBrand = getTypeBrand(maybeNode);
-            if (typeBrand && this.configStore.getTypeConfig(typeBrand as string).name === nodeName) {
-                return true;
-            }
-            if (typeof param === "function" && maybeNode instanceof (param as Function)) {
-                return true;
-            }
-            const proto = Object.getPrototypeOf(maybeNode) as {
-                constructor: unknown;
-            };
-            try {
-                if (typeof maybeNode === "object") {
-                    // eslint-disable-next-line no-underscore-dangle
-                    const typename = (maybeNode as {
-                        __typename: string;
-                    }).__typename;
-                    if (typename === nodeName) {
-                        return true;
-                    }
-                    // eslint-disable-next-line no-underscore-dangle
-                    const nodeRef = (maybeNode as {
-                        __type: OutputRef;
-                    }).__type;
-                    if (!nodeRef) {
+        isTypeOf: options.isTypeOf ??
+            (typeof param === "function"
+                ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
+                    if (!maybeNode) {
                         return false;
                     }
-                    const config = this.configStore.getTypeConfig(nodeRef);
-                    return config.name === nodeName;
+                    if (maybeNode instanceof (param as Function)) {
+                        return true;
+                    }
+                    const proto = Object.getPrototypeOf(maybeNode) as {
+                        constructor: unknown;
+                    };
+                    try {
+                        if (proto?.constructor) {
+                            const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
+                            return config.name === nodeName;
+                        }
+                    }
+                    catch {
+                        // ignore
+                    }
+                    return false;
                 }
-                if (proto?.constructor) {
-                    const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
-                    return config.name === nodeName;
-                }
-            }
-            catch {
-                // ignore
-            }
-            return false;
-        },
+                : undefined),
         interfaces: interfacesWithNode as [
         ],
     }, fields);
