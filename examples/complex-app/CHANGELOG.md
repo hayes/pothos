@@ -1,5 +1,14 @@
 # @pothos-examples/complex-app
 
+## 1.3.1
+
+### Patch Changes
+
+- Updated dependencies [631dea27]
+  - @pothos/plugin-relay@3.26.0
+  - @pothos/plugin-dataloader@3.11.0
+  - @pothos/plugin-prisma@3.32.0
+
 ## 1.3.0
 
 ### Minor Changes
