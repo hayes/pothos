@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.26.0
+
+### Minor Changes
+
+- 631dea27: Move some checks from isTypeOf to resovleType to improve performance and allow nodes
+  without isTypeOf checks
+
 ## 3.25.0
 
 ### Minor Changes
