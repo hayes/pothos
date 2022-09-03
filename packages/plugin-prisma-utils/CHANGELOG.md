@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.3.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
 ## 0.2.0
 
 ### Minor Changes

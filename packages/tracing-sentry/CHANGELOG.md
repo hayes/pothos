@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.6.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
 ## 0.5.2
 
 ### Patch Changes

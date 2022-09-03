@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.25.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
 ## 3.24.2
 
 ### Patch Changes
