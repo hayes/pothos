@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.10.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
 ## 3.9.1
 
 ### Patch Changes

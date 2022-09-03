@@ -1,5 +1,17 @@
 # @pothos-examples/relay
 
+## 2.3.0
+
+### Minor Changes
+
+- d67764b5: Make options objecst on toSchema, queryType, and mutationType optional
+
+### Patch Changes
+
+- Updated dependencies [d67764b5]
+  - @pothos/core@3.20.0
+  - @pothos/plugin-prisma@3.32.0
+
 ## 2.2.1
 
 ### Patch Changes

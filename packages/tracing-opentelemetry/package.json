@@ -1,6 +1,6 @@
 {
   "name": "@pothos/tracing-opentelemetry",
-  "version": "0.4.2",
+  "version": "0.5.0",
   "description": "Opentelemetry utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
