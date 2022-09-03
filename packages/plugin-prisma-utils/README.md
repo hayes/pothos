@@ -129,7 +129,7 @@ builder.prismaObject('User', {
   }),
 });
 
-export default builder.toSchema({});
+export default builder.toSchema();
 ```
 
 To implement something like the above, you can look at the example provided

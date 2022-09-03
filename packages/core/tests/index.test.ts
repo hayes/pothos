@@ -14,10 +14,10 @@ describe('Example schema', () => {
 describe('Field Nullability', () => {
   it('generates expected schema', () => {
     const nullableFieldSchema = printSchema(
-      lexicographicSortSchema(nullableFieldBuilder.toSchema({})),
+      lexicographicSortSchema(nullableFieldBuilder.toSchema()),
     );
     const nonNullableFieldSchema = printSchema(
-      lexicographicSortSchema(nonNullableFieldBuilder.toSchema({})),
+      lexicographicSortSchema(nonNullableFieldBuilder.toSchema()),
     );
 
     expect(nullableFieldSchema).toMatchInlineSnapshot(`

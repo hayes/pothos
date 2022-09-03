@@ -80,4 +80,4 @@ builder.queryType({
   }),
 });
 
-export default builder.toSchema({});
+export default builder.toSchema();

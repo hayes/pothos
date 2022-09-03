@@ -18,7 +18,7 @@ builder.scalarType('DateTime', {
   parseValue: (value) => (typeof value === 'number' ? new Date(value) : new Date(String(value))),
 });
 
-builder.queryType({});
+builder.queryType();
 
 builder.queryField('post', (t) =>
   t.prismaField({
@@ -110,4 +110,4 @@ builder.queryField('posts', (t) =>
   }),
 );
 
-export default builder.toSchema({});
+export default builder.toSchema();

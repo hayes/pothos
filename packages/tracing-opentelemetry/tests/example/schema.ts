@@ -95,4 +95,4 @@ builder.queryType({
   }),
 });
 
-export const schema = builder.toSchema({});
+export const schema = builder.toSchema();

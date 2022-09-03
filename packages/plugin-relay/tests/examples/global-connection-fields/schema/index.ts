@@ -172,4 +172,4 @@ builder.globalConnectionFields((t) => ({
   }),
 }));
 
-export default builder.toSchema({});
+export default builder.toSchema();

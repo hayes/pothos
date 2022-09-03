@@ -31,9 +31,9 @@ When js/ts files either directly or indirectly import each other, the exports fr
 initially be undefined while executing the main body of the other. These issues often result in
 confusing and unrelated errors because the relevant values are often not used until much later.
 
-Pothos mitigates this by deferring a lot of the processing until the `builder.toSchema({})` method
-is called. As long as the file that builds the schema (calls the `toSchema` method) is not imported
-by any other file that defines parts of the schema, this will ensure that all types are properly
+Pothos mitigates this by deferring a lot of the processing until the `builder.toSchema()` method is
+called. As long as the file that builds the schema (calls the `toSchema` method) is not imported by
+any other file that defines parts of the schema, this will ensure that all types are properly
 imported, and types are not unexpectedly undefined.
 
 As you can see in the example below, the references to `Post` and `User` when defining fields are
@@ -56,7 +56,7 @@ export const Post = builder.objectType('Post', {
 })
 
 // schema.js
-export const schema = builder.toSchema({})
+export const schema = builder.toSchema()
 ```
 
 Another best practice is to avoid importing from `index.ts` files by importing from the file that

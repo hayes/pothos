@@ -13,8 +13,8 @@ builder.queryField('currentId', (t) =>
   }),
 );
 
-builder.mutationType({});
-builder.subscriptionType({});
+builder.mutationType();
+builder.subscriptionType();
 
 const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
   authScopes: {
@@ -827,4 +827,4 @@ builder.queryType({
   }),
 });
 
-export default builder.toSchema({});
+export default builder.toSchema();

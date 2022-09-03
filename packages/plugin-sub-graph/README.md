@@ -30,7 +30,7 @@ const builder = new SchemaBuilder<{
 
 //in another file:
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 

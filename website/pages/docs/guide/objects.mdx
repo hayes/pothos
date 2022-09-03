@@ -118,7 +118,7 @@ import { createServer } from '@graphql-yoga/node';
 
 // Build schema and start server with the types we wrote above
 const server = createServer({
-  schema: builder.toSchema({}),
+  schema: builder.toSchema(),
 });
 
 server.start();

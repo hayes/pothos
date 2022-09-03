@@ -4,7 +4,7 @@ import builder from './examples/starwars/builder';
 
 describe('subGraphs', () => {
   it('full graph', () => {
-    const fullSchema = builder.toSchema({});
+    const fullSchema = builder.toSchema();
 
     expect(printSchema(lexicographicSortSchema(fullSchema))).toMatchSnapshot();
   });

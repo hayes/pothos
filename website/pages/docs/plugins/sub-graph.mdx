@@ -5,12 +5,12 @@ menu: Plugins
 description: SubGraph plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # SubGraph Plugin
 
@@ -44,7 +44,7 @@ const builder = new SchemaBuilder<{
 
 //in another file:
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 const publicSchema = builder.toSchema({ subGraph: 'Public' });
 const internalSchema = builder.toSchema({ subGraph: 'Internal' });
 

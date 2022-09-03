@@ -1,8 +1,8 @@
 import builder from '../builder';
 
-builder.queryType({});
-builder.mutationType({});
-builder.subscriptionType({});
+builder.queryType();
+builder.mutationType();
+builder.subscriptionType();
 
 builder.queryField('exampleQuery', (t) =>
   t.fieldWithInput({
@@ -206,4 +206,4 @@ builder.queryField('withValidation', (t) =>
   }),
 );
 
-export default builder.toSchema({});
+export default builder.toSchema();

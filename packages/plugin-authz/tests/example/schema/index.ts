@@ -91,4 +91,4 @@ builder.mutationType({
   }),
 });
 
-export default builder.toSchema({});
+export default builder.toSchema();

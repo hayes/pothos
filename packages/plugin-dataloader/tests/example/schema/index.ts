@@ -7,6 +7,6 @@ import './objects';
 import './unions';
 import builder from '../builder';
 
-builder.queryType({});
+builder.queryType();
 
-export default builder.toSchema({});
+export default builder.toSchema();

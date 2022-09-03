@@ -4,4 +4,4 @@ import './point';
 import './team';
 import { builder } from '../builder';
 
-export const schema = builder.toSchema({});
+export const schema = builder.toSchema();

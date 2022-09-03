@@ -15,7 +15,7 @@ import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.ts';
 import ObjectRef, { ImplementableObjectRef } from './refs/object.ts';
 import ScalarRef from './refs/scalar.ts';
 import UnionRef from './refs/union.ts';
-import type { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, OutputType, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
+import type { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeArgs, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, OutputType, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -100,7 +100,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             }));
         });
     }
-    queryType(options: PothosSchemaTypes.QueryTypeOptions<Types>, fields?: QueryFieldsShape<Types>) {
+    queryType(...args: NormalizeArgs<[
+        options?: PothosSchemaTypes.QueryTypeOptions<Types>,
+        fields?: QueryFieldsShape<Types>
+    ]>) {
+        const [options = {}, fields] = args;
         const config: PothosQueryTypeConfig = {
             kind: "Query",
             graphqlKind: "Object",
@@ -125,7 +129,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             [name]: field(new QueryFieldBuilder(this)),
         }));
     }
-    mutationType(options: PothosSchemaTypes.MutationTypeOptions<Types>, fields?: MutationFieldsShape<Types>) {
+    mutationType(...args: NormalizeArgs<[
+        options?: PothosSchemaTypes.MutationTypeOptions<Types>,
+        fields?: MutationFieldsShape<Types>
+    ]>) {
+        const [options = {}, fields] = args;
         const config: PothosMutationTypeConfig = {
             kind: "Mutation",
             graphqlKind: "Object",
@@ -150,7 +158,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             [name]: field(new MutationFieldBuilder(this)),
         }));
     }
-    subscriptionType(options: PothosSchemaTypes.SubscriptionTypeOptions<Types>, fields?: SubscriptionFieldsShape<Types>) {
+    subscriptionType(...args: NormalizeArgs<[
+        options?: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
+        fields?: SubscriptionFieldsShape<Types>
+    ]>) {
+        const [options = {}, fields] = args;
         const config: PothosSubscriptionTypeConfig = {
             kind: "Subscription",
             graphqlKind: "Object",
@@ -333,7 +345,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     interfaceRef<T>(name: string): ImplementableInterfaceRef<Types, T> {
         return new ImplementableInterfaceRef<Types, T>(this, name);
     }
-    toSchema(options: PothosSchemaTypes.BuildSchemaOptions<Types>) {
+    toSchema(...args: NormalizeArgs<[
+        options?: PothosSchemaTypes.BuildSchemaOptions<Types>
+    ]>) {
+        const [options = {}] = args;
         const { directives, extensions } = options;
         const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
         scalars.forEach((scalar) => {

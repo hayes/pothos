@@ -4,13 +4,12 @@ menu: Guide
 description: Guide for printing a Pothos schema to an SDL schema file
 ---
 
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+export default DocsPage;
 
-export default DocsPage
-
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Printing Schema
 
@@ -35,7 +34,7 @@ builder.queryType({
   }),
 });
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 const schemaAsString = printSchema(lexicographicSortSchema(schema));
 
 writeFileSync('/path/to/schema.graphql', schemaAsString);

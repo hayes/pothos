@@ -63,4 +63,4 @@ builder.prismaObject('User', {
   }),
 });
 
-export default builder.toSchema({});
+export default builder.toSchema();

@@ -43,6 +43,7 @@ import type {
   InterfaceTypeOptions,
   MutationFieldsShape,
   MutationFieldThunk,
+  NormalizeArgs,
   NormalizeSchemeBuilderOptions,
   ObjectFieldsShape,
   ObjectFieldThunk,
@@ -199,7 +200,12 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     });
   }
 
-  queryType(options: PothosSchemaTypes.QueryTypeOptions<Types>, fields?: QueryFieldsShape<Types>) {
+  queryType(
+    ...args: NormalizeArgs<
+      [options?: PothosSchemaTypes.QueryTypeOptions<Types>, fields?: QueryFieldsShape<Types>]
+    >
+  ) {
+    const [options = {}, fields] = args;
     const config: PothosQueryTypeConfig = {
       kind: 'Query',
       graphqlKind: 'Object',
@@ -231,9 +237,11 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   mutationType(
-    options: PothosSchemaTypes.MutationTypeOptions<Types>,
-    fields?: MutationFieldsShape<Types>,
+    ...args: NormalizeArgs<
+      [options?: PothosSchemaTypes.MutationTypeOptions<Types>, fields?: MutationFieldsShape<Types>]
+    >
   ) {
+    const [options = {}, fields] = args;
     const config: PothosMutationTypeConfig = {
       kind: 'Mutation',
       graphqlKind: 'Object',
@@ -265,9 +273,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   subscriptionType(
-    options: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
-    fields?: SubscriptionFieldsShape<Types>,
+    ...args: NormalizeArgs<
+      [
+        options?: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
+        fields?: SubscriptionFieldsShape<Types>,
+      ]
+    >
   ) {
+    const [options = {}, fields] = args;
     const config: PothosSubscriptionTypeConfig = {
       kind: 'Subscription',
       graphqlKind: 'Object',
@@ -553,7 +566,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return new ImplementableInterfaceRef<Types, T>(this, name);
   }
 
-  toSchema(options: PothosSchemaTypes.BuildSchemaOptions<Types>) {
+  toSchema(...args: NormalizeArgs<[options?: PothosSchemaTypes.BuildSchemaOptions<Types>]>) {
+    const [options = {}] = args;
     const { directives, extensions } = options;
 
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];

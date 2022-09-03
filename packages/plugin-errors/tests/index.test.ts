@@ -8,7 +8,7 @@ describe('errors plugin', () => {
     expect(printSchema(schema)).toMatchSnapshot();
 
     expect(() => {
-      builder.toSchema({});
+      builder.toSchema();
     }).not.toThrow();
   });
 

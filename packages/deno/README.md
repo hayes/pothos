@@ -35,7 +35,7 @@ builder.queryType({
 });
 
 const server = createServer({
-  schema: builder.toSchema({}),
+  schema: builder.toSchema(),
 });
 
 server.start();
@@ -152,7 +152,7 @@ builder.queryType({
   }),
 });
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 
 // Mount a route to serve the graphql API and playground
 router.all('/graphql', async (context) => {

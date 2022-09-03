@@ -301,6 +301,6 @@ builder.queryField('directResult', (t) =>
   }),
 );
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 
 export default schema;

@@ -5,12 +5,12 @@ menu: Guide
 description: Guide for generating client types from a Pothos schema
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Generating types for client
 
@@ -36,7 +36,7 @@ import './types/User';
 import './types/Posts';
 
 // Build and export the schema
-export const schema = builder.toSchema({});
+export const schema = builder.toSchema();
 ```
 
 ## export schema in a js file

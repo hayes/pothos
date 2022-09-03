@@ -6,8 +6,8 @@ import './scalars';
 import './inputs';
 import builder from './builder';
 
-builder.queryType({});
+builder.queryType();
 
-const schema = builder.toSchema({});
+const schema = builder.toSchema();
 
 export default schema;

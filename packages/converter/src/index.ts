@@ -199,7 +199,7 @@ export default class PothosConverter {
             kind: StructureKind.VariableDeclaration,
             name: 'schema',
             initializer: (writer) => {
-              writer.writeLine('builder.toSchema({})');
+              writer.writeLine('builder.toSchema()');
             },
           },
         ],

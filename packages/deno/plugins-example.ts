@@ -83,7 +83,7 @@ builder.loadableObject('User', {
   }),
 });
 
-builder.subscriptionType({});
+builder.subscriptionType();
 
 const schema = builder.toSchema({ mocks: {}, subGraph: 'test' });
 

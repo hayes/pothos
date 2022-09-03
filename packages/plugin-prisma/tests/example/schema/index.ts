@@ -810,4 +810,4 @@ builder.queryField('blog', (t) =>
   }),
 );
 
-export default builder.toSchema({});
+export default builder.toSchema();

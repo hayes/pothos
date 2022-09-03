@@ -96,6 +96,6 @@ builder.scalarType('Date', {
 });
 
 const { rateLimitDirectiveTransformer } = rateLimitDirective();
-const schema = rateLimitDirectiveTransformer(builder.toSchema({}));
+const schema = rateLimitDirectiveTransformer(builder.toSchema());
 
 export default schema;

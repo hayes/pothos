@@ -38,11 +38,12 @@ methods to the class prototypes
 
 ### Recieved multiple implementations for plugin
 
-By default, Pothos doesn't allow multiple plugin registrations with the same name. During development,
-it can be helpful to disable this check by setting `SchemaBuilder.allowPluginReRegistration = true`.
+By default, Pothos doesn't allow multiple plugin registrations with the same name. During
+development, it can be helpful to disable this check by setting
+`SchemaBuilder.allowPluginReRegistration = true`.
 
-Keep in mind that this not only allows plugins to be updated when for example, using HMR but can also
-lead to unexpected behavior with plugins using the same name.
+Keep in mind that this not only allows plugins to be updated when for example, using HMR but can
+also lead to unexpected behavior with plugins using the same name.
 
 ### Refs is undefined
 
@@ -51,11 +52,10 @@ circular imports will work correctly with pothos as long as the following condit
 
 1. The `builder` is defined in a file that does not import any files that use the builder (or
    indirectly import it).
-2. `builder.toSchema({})` is called in a file that is not imported by any files that use the
-   builder.
+2. `builder.toSchema()` is called in a file that is not imported by any files that use the builder.
 
 This is generally done by having a simple `builder.ts` that initializes the builder to export. This
 file can also define some core parts of your schema (the query object, scalers etc). The rest of the
 schema can then import the builder from `builder.ts`. A `schema.ts` file can then import all files
-that define parts of the schema. `schema.ts` can then call `builder.toSchema({})` and export the
+that define parts of the schema. `schema.ts` can then call `builder.toSchema()` and export the
 result for use by the server.

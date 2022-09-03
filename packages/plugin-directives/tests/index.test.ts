@@ -63,7 +63,7 @@ describe('extends example schema', () => {
       },
     });
 
-    const types = builder.toSchema({}).getTypeMap();
+    const types = builder.toSchema().getTypeMap();
 
     expect(types.Query.extensions?.directives).toStrictEqual([
       {

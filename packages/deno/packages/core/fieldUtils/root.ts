@@ -14,9 +14,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "Boolean", Nullable>({
+            resolve: undefined as never,
             ...options,
             type: "Boolean",
-        } as never);
+        });
     }
     /**
      * Create a Float field
@@ -27,9 +28,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "Float", Nullable>({
+            resolve: undefined as never,
             ...options,
             type: "Float",
-        } as never);
+        });
     }
     /**
      * Create a ID field
@@ -39,7 +41,11 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
-        return this.createField<Args, "ID", Nullable>({ ...options, type: "ID" } as never);
+        return this.createField<Args, "ID", Nullable>({
+            resolve: undefined as never,
+            ...options,
+            type: "ID",
+        });
     }
     /**
      * Create a Int field
@@ -49,7 +55,11 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
-        return this.createField<Args, "Int", Nullable>({ ...options, type: "Int" } as never);
+        return this.createField<Args, "Int", Nullable>({
+            resolve: undefined as never,
+            ...options,
+            type: "Int",
+        });
     }
     /**
      * Create a String field
@@ -60,9 +70,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "String", Nullable>({
+            resolve: undefined as never,
             ...options,
             type: "String",
-        } as never);
+        });
     }
     /**
      * Create a Boolean list field
@@ -79,9 +90,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         return this.createField<Args, [
             "Boolean"
         ], Nullable>({
+            resolve: undefined as never,
             ...options,
             type: ["Boolean"],
-        } as never);
+        });
     }
     /**
      * Create a Float list field
@@ -97,7 +109,11 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "Float"
-        ], Nullable>({ ...options, type: ["Float"] } as never);
+        ], Nullable>({
+            resolve: undefined as never,
+            ...options,
+            type: ["Float"],
+        });
     }
     /**
      * Create a ID list field
@@ -113,7 +129,11 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "ID"
-        ], Nullable>({ ...options, type: ["ID"] } as never);
+        ], Nullable>({
+            resolve: undefined as never,
+            ...options,
+            type: ["ID"],
+        });
     }
     /**
      * Create a Int list field
@@ -129,7 +149,11 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "Int"
-        ], Nullable>({ ...options, type: ["Int"] } as never);
+        ], Nullable>({
+            resolve: undefined as never,
+            ...options,
+            type: ["Int"],
+        });
     }
     /**
      * Create a String list field
@@ -145,7 +169,11 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
         const [options = {} as never] = args;
         return this.createField<Args, [
             "String"
-        ], Nullable>({ ...options, type: ["String"] } as never);
+        ], Nullable>({
+            resolve: undefined as never,
+            ...options,
+            type: ["String"],
+        });
     }
     /**
      * create a new field for the current type

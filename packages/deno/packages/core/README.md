@@ -35,7 +35,7 @@ builder.queryType({
 });
 
 const server = createServer({
-  schema: builder.toSchema({}),
+  schema: builder.toSchema(),
 });
 
 server.start();

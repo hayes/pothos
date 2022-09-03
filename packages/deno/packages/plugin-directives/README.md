@@ -41,7 +41,7 @@ builder.queryType({
 });
 
 const { rateLimitDirectiveTransformer } = rateLimitDirective();
-const schema = rateLimitDirectiveTransformer(builder.toSchema({}));
+const schema = rateLimitDirectiveTransformer(builder.toSchema());
 ```
 
 The directives plugin allows you to define types for the directives your schema will use the
