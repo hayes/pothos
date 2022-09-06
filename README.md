@@ -123,6 +123,7 @@ generous people and organizations:
 - [![Prisma](https://pothos-graphql.dev/assets/prisma-logo.svg)](https://www.prisma.io/)
 - [![GitHub](https://pothos-graphql.dev/assets/github-logo.svg)](https://github.com/)
 - [![Stellate](https://pothos-graphql.dev/assets/stellate-logo.svg)](https://stellate.co/)
+- [![Nhost](https://pothos-graphql.dev/assets/nhost-logo.svg)](https://nhost.io/)
 - [@seanaye](https://github.com/seanaye)
 - [@kidqueb](https://github.com/kidqueb)
 - [@localticketing](https://github.com/localticketing)
