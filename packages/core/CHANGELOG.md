@@ -1,5 +1,13 @@
 # Change Log
 
+## 3.21.0
+
+### Minor Changes
+
+- cf93c7c9: Allow nullable arguments to set null as a default value
+- cf93c7c9: Fix some edge cases with how option objects become optional when no arguments are
+  required
+
 ## 3.20.0
 
 ### Minor Changes
