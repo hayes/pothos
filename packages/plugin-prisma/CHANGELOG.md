@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.33.0
+
+### Minor Changes
+
+- cf93c7c9: Fix some edge cases with how option objects become optional when no arguments are
+  required
+
 ## 3.32.0
 
 ### Minor Changes
