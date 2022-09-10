@@ -144,7 +144,7 @@ export default class InputFieldBuilder<
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
       ...args: NormalizeArgs<
-        [options?: Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind], 'type'>]
+        [options: Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind], 'type'>]
       >
     ) => {
       const [options = {} as never] = args;

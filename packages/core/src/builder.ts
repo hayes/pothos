@@ -202,7 +202,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   queryType(
     ...args: NormalizeArgs<
-      [options?: PothosSchemaTypes.QueryTypeOptions<Types>, fields?: QueryFieldsShape<Types>]
+      [options: PothosSchemaTypes.QueryTypeOptions<Types>, fields?: QueryFieldsShape<Types>],
+      0
     >
   ) {
     const [options = {}, fields] = args;
@@ -238,7 +239,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   mutationType(
     ...args: NormalizeArgs<
-      [options?: PothosSchemaTypes.MutationTypeOptions<Types>, fields?: MutationFieldsShape<Types>]
+      [options: PothosSchemaTypes.MutationTypeOptions<Types>, fields?: MutationFieldsShape<Types>],
+      0
     >
   ) {
     const [options = {}, fields] = args;
@@ -275,9 +277,10 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   subscriptionType(
     ...args: NormalizeArgs<
       [
-        options?: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
+        options: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
         fields?: SubscriptionFieldsShape<Types>,
-      ]
+      ],
+      0
     >
   ) {
     const [options = {}, fields] = args;

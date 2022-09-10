@@ -198,33 +198,34 @@ declare global {
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
           >(
+            options: PrismaConnectionFieldOptions<
+              Types,
+              ParentShape,
+              Type,
+              Model,
+              ObjectRef<Model['Shape']>,
+              Nullable,
+              Args,
+              ResolveReturnShape,
+              Kind
+            >,
             ...args: NormalizeArgs<
               [
-                options: PrismaConnectionFieldOptions<
-                  Types,
-                  ParentShape,
-                  Type,
-                  Model,
-                  ObjectRef<Model['Shape']>,
-                  Nullable,
-                  Args,
-                  ResolveReturnShape,
-                  Kind
-                >,
-                connectionOptions?: ConnectionObjectOptions<
+                connectionOptions: ConnectionObjectOptions<
                   Types,
                   ObjectRef<Model['Shape']>,
                   false,
                   false,
                   ResolveReturnShape
                 >,
-                edgeOptions?: ConnectionEdgeObjectOptions<
+                edgeOptions: ConnectionEdgeObjectOptions<
                   Types,
                   ObjectRef<Model['Shape']>,
                   false,
                   ResolveReturnShape
                 >,
-              ]
+              ],
+              0
             >
           ) => FieldRef<ShapeFromConnection<ConnectionShapeHelper<Types, Model['Shape'], Nullable>>>
         : '@pothos/plugin-relay is required to use this method';

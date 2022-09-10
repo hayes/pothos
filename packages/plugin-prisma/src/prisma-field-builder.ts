@@ -107,24 +107,25 @@ export class PrismaObjectFieldBuilder<
         Args extends InputFieldMap,
         ResolveReturnShape,
       >(
+        field: Field,
+        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
         ...args: NormalizeArgs<
           [
-            field: Field,
-            options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
-            connectionOptions?: PothosSchemaTypes.ConnectionObjectOptions<
+            connectionOptions: PothosSchemaTypes.ConnectionObjectOptions<
               Types,
               ObjectRef<Shape>,
               false,
               false,
               ResolveReturnShape
             >,
-            edgeOptions?: PothosSchemaTypes.ConnectionEdgeObjectOptions<
+            edgeOptions: PothosSchemaTypes.ConnectionEdgeObjectOptions<
               Types,
               ObjectRef<Shape>,
               false,
               ResolveReturnShape
             >,
-          ]
+          ],
+          0
         >
       ) => FieldRef<
         ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>>
@@ -307,10 +308,10 @@ export class PrismaObjectFieldBuilder<
     Args extends InputFieldMap,
     ResolveReturnShape,
   >(
+    name: Field,
     ...allArgs: NormalizeArgs<
       [
-        name: Field,
-        options?: RelatedFieldOptions<
+        options: RelatedFieldOptions<
           Types,
           Model,
           Field,
@@ -323,7 +324,7 @@ export class PrismaObjectFieldBuilder<
       ]
     >
   ): FieldRef<Model['Relations'][Field]['Shape'], 'Object'> {
-    const [name, { description, ...options } = {} as never] = allArgs;
+    const [{ description, ...options } = {} as never] = allArgs;
     const relationField = getRelation(this.model, this.builder, name);
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
 
@@ -359,10 +360,10 @@ export class PrismaObjectFieldBuilder<
   }
 
   relationCount<Field extends Model['RelationName']>(
+    name: Field,
     ...allArgs: NormalizeArgs<
       [
-        name: Field,
-        options?: RelationCountOptions<
+        options: RelationCountOptions<
           Types,
           Shape,
           NeedsResolve,
@@ -371,7 +372,7 @@ export class PrismaObjectFieldBuilder<
       ]
     >
   ): FieldRef<number, 'Object'> {
-    const [name, { where, ...options } = {} as never] = allArgs;
+    const [{ where, ...options } = {} as never] = allArgs;
 
     const { resolve, ...rest } = options;
 
@@ -405,10 +406,10 @@ export class PrismaObjectFieldBuilder<
     Args extends InputFieldMap,
     Nullable,
   >(
+    variant: Variant,
     ...allArgs: NormalizeArgs<
       [
-        variant: Variant,
-        options?: VariantFieldOptions<
+        options: VariantFieldOptions<
           Types,
           Model,
           Variant extends PrismaObjectRef<Model> ? Variant : PrismaObjectRef<Model>,
@@ -419,7 +420,7 @@ export class PrismaObjectFieldBuilder<
       ]
     >
   ): FieldRef<Model['Shape'], 'Object'> {
-    const [variant, { isNull, nullable, ...options } = {} as never] = allArgs;
+    const [{ isNull, nullable, ...options } = {} as never] = allArgs;
     const ref: PrismaObjectRef<PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
@@ -458,7 +459,7 @@ export class PrismaObjectFieldBuilder<
     ...args: NormalizeArgs<
       [
         name: Name,
-        options?: Omit<
+        options: Omit<
           PothosSchemaTypes.ObjectFieldOptions<
             Types,
             Shape,
@@ -498,7 +499,7 @@ export class PrismaObjectFieldBuilder<
       ...args: NormalizeArgs<
         [
           name: Name,
-          options?: Omit<
+          options: Omit<
             PothosSchemaTypes.ObjectFieldOptions<
               Types,
               Shape,

@@ -10,7 +10,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
      * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     boolean<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<"Boolean"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Boolean", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, "Boolean", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "Boolean", Nullable>({
@@ -24,7 +24,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
      * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     float<Args extends InputFieldMap, Nullable extends FieldNullability<"Float">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Float", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, "Float", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "Float", Nullable>({
@@ -38,7 +38,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
      * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     id<Args extends InputFieldMap, Nullable extends FieldNullability<"ID">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "ID", Nullable>({
@@ -52,7 +52,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
      * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     int<Args extends InputFieldMap, Nullable extends FieldNullability<"Int">, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, "Int", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "Int", Nullable>({
@@ -66,7 +66,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
      * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
      */
     string<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<"String"> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, "String", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, "String", Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
         const [options = {} as never] = args;
         return this.createField<Args, "String", Nullable>({
@@ -82,7 +82,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     booleanList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Boolean"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, [
             "Boolean"
         ], Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -102,7 +102,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     floatList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Float"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, [
             "Float"
         ], Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -122,7 +122,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     idList<Args extends InputFieldMap, Nullable extends FieldNullability<[
         "ID"
     ]>, ResolveShape, ResolveReturnShape>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, [
             "ID"
         ], Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -142,7 +142,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     intList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "Int"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, [
             "Int"
         ], Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {
@@ -162,7 +162,7 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
     stringList<Args extends InputFieldMap, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<[
         "String"
     ]> = Types["DefaultFieldNullability"]>(...args: NormalizeArgs<[
-        options?: Omit<FieldOptionsFromKind<Types, ParentShape, [
+        options: Omit<FieldOptionsFromKind<Types, ParentShape, [
             "String"
         ], Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "type">
     ]>) {

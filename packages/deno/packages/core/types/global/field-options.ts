@@ -103,10 +103,10 @@ declare global {
             description?: string;
             /** When present marks this field as deprecated */
             deprecationReason?: string;
-            /** etermins if this field can be omitted (or set as null) */
+            /** determines if this field can be omitted (or set as null) */
             required?: Req;
             /** default value if this field is not included in the query */
-            defaultValue?: NonNullable<InputShapeFromTypeParam<Types, Type, Req>>;
+            defaultValue?: InputShapeFromTypeParam<Types, Type, Req>;
             /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
             extensions?: Readonly<Record<string, unknown>>;
         }

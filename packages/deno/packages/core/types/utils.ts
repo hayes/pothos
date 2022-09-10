@@ -61,8 +61,10 @@ export type LastIndex<T extends unknown[]> = T extends [
     unknown,
     ...infer U
 ] ? U["length"] : 0;
-export type NormalizeArgs<T extends unknown[]> = undefined extends T[LastIndex<T>] ? {} extends T[LastIndex<T>] ? T : {
-    [K in keyof T]-?: NonNullable<T[K]>;
+export type NormalizeArgs<T extends unknown[], Index extends keyof T = LastIndex<T>> = undefined extends T[Index] ? {} extends T[Index] ? T : {
+    [K in keyof T]-?: T[K];
+} : {} extends T[Index] ? {
+    [K in keyof T]?: T[K];
 } : T;
 export type IsStrictMode = undefined extends {
     t: 1;

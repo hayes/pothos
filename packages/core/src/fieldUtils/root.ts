@@ -32,7 +32,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -69,7 +69,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -106,7 +106,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -143,7 +143,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -180,7 +180,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -217,7 +217,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -254,7 +254,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -291,7 +291,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -328,7 +328,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,
@@ -365,7 +365,7 @@ export default class RootFieldBuilder<
   >(
     ...args: NormalizeArgs<
       [
-        options?: Omit<
+        options: Omit<
           FieldOptionsFromKind<
             Types,
             ParentShape,

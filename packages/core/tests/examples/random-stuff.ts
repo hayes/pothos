@@ -87,6 +87,11 @@ const Example = builder.inputType('Example', {
     date: t.field({
       type: 'Date',
     }),
+    withNullDefault: t.field({
+      type: 'Boolean',
+      required: false,
+      defaultValue: null,
+    }),
   }),
 });
 

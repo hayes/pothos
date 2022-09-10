@@ -26,6 +26,7 @@ input Example {
   id2: Int
   ids: [ID!]!
   ids2: [Int!]
+  withNullDefault: Boolean = null
 }
 
 input Example2 {

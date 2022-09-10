@@ -101,9 +101,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         });
     }
     queryType(...args: NormalizeArgs<[
-        options?: PothosSchemaTypes.QueryTypeOptions<Types>,
+        options: PothosSchemaTypes.QueryTypeOptions<Types>,
         fields?: QueryFieldsShape<Types>
-    ]>) {
+    ], 0>) {
         const [options = {}, fields] = args;
         const config: PothosQueryTypeConfig = {
             kind: "Query",
@@ -130,9 +130,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }));
     }
     mutationType(...args: NormalizeArgs<[
-        options?: PothosSchemaTypes.MutationTypeOptions<Types>,
+        options: PothosSchemaTypes.MutationTypeOptions<Types>,
         fields?: MutationFieldsShape<Types>
-    ]>) {
+    ], 0>) {
         const [options = {}, fields] = args;
         const config: PothosMutationTypeConfig = {
             kind: "Mutation",
@@ -159,9 +159,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }));
     }
     subscriptionType(...args: NormalizeArgs<[
-        options?: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
+        options: PothosSchemaTypes.SubscriptionTypeOptions<Types>,
         fields?: SubscriptionFieldsShape<Types>
-    ]>) {
+    ], 0>) {
         const [options = {}, fields] = args;
         const config: PothosSubscriptionTypeConfig = {
             kind: "Subscription",
