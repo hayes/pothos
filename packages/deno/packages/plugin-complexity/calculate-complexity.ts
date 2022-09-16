@@ -37,7 +37,7 @@ function complexityFromField(ctx: {}, info: PartialInfo, selection: FieldNode, t
     let complexity = 0;
     if (field && selection.selectionSet) {
         const subSelection = complexityFromSelectionSet(ctx, info, selection.selectionSet, getNamedType(field.type));
-        complexity += subSelection.complexity * fieldMultiplier;
+        complexity += subSelection.complexity * Math.max(fieldMultiplier, 0);
         depth += subSelection.depth;
         breadth += subSelection.breadth;
     }

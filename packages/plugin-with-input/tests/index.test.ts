@@ -40,6 +40,9 @@ describe('example schema', () => {
           withValidationInvalid: withValidation(input: { email: "test" }) {
             email
           }
+          prismaFieldWithInput(input: { id: "1" }) {
+            id
+          }
         }
       `;
 
@@ -61,6 +64,9 @@ describe('example schema', () => {
             "obj": {
               "exampleObjectField": "123",
               "withOptions": "123",
+            },
+            "prismaFieldWithInput": {
+              "id": "1",
             },
             "withOptions": "123",
             "withValidation": "test@test.com",

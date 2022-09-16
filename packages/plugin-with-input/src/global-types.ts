@@ -7,7 +7,12 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { FieldWithInputOptions, WithInputBuilderOptions } from './types';
+import {
+  FieldWithInputOptions,
+  WithInputArgOptions,
+  WithInputBuilderOptions,
+  WithInputTypeOptions,
+} from './types';
 
 import type { PothosWithInputPlugin } from '.';
 
@@ -60,6 +65,19 @@ declare global {
           boolean extends ArgRequired ? Types['WithInputArgRequired'] & boolean : ArgRequired
         >,
       ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
+    }
+
+    export interface FieldWithInputBaseOptions<
+      Types extends SchemaTypes,
+      Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
+      Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+      InputName extends string,
+      ArgRequired extends boolean,
+    > {
+      typeOptions?: WithInputTypeOptions<Types, Fields>;
+      argOptions?: WithInputArgOptions<Types, Fields, InputName, ArgRequired>;
+      input: Fields;
+      args?: Args;
     }
   }
 }

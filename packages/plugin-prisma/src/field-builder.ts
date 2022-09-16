@@ -41,6 +41,31 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   }) as never;
 };
 
+fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput({
+  type,
+  resolve,
+  ...options
+}) {
+  const modelOrRef = Array.isArray(type) ? type[0] : type;
+  const typeRef =
+    typeof modelOrRef === 'string'
+      ? getRefFromModel(modelOrRef, this.builder)
+      : (modelOrRef as ObjectRef<unknown>);
+  const typeParam = Array.isArray(type) ? ([typeRef] as [ObjectRef<unknown>]) : typeRef;
+
+  return (
+    this as typeof fieldBuilderProto & { fieldWithInput: typeof fieldBuilderProto.field }
+  ).fieldWithInput({
+    ...(options as {}),
+    type: typeParam,
+    resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
+      const query = queryFromInfo({ context, info });
+
+      return resolve(query, parent, args as never, context, info) as never;
+    },
+  }) as never;
+};
+
 fieldBuilderProto.prismaConnection = function prismaConnection<
   Type extends keyof SchemaTypes['PrismaTypes'],
   Nullable extends boolean,

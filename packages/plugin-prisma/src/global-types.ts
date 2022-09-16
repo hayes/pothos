@@ -5,6 +5,7 @@ import {
   FieldNullability,
   FieldRef,
   InputFieldMap,
+  InputFieldRef,
   InterfaceParam,
   NormalizeArgs,
   OutputType,
@@ -20,6 +21,7 @@ import {
   PrismaClient,
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
+  PrismaFieldWithInputOptions,
   PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectFieldOptions,
@@ -229,6 +231,54 @@ declare global {
             >
           ) => FieldRef<ShapeFromConnection<ConnectionShapeHelper<Types, Model['Shape'], Nullable>>>
         : '@pothos/plugin-relay is required to use this method';
+
+      prismaFieldWithInput: 'prisma' extends PluginName
+        ? <
+            Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+            TypeParam extends
+              | PrismaObjectRef<PrismaModelTypes>
+              | keyof Types['PrismaTypes']
+              | [keyof Types['PrismaTypes']]
+              | [PrismaObjectRef<PrismaModelTypes>],
+            Type extends TypeParam extends [unknown]
+              ? [ObjectRef<Model['Shape']>]
+              : ObjectRef<Model['Shape']>,
+            ResolveShape,
+            ResolveReturnShape,
+            ArgRequired extends boolean,
+            Args extends Record<string, InputFieldRef<unknown, 'Arg'>> = {},
+            Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+            InputName extends string = 'input',
+            Model extends PrismaModelTypes = PrismaModelTypes &
+              (TypeParam extends [keyof Types['PrismaTypes']]
+                ? Types['PrismaTypes'][TypeParam[0]]
+                : TypeParam extends [PrismaObjectRef<PrismaModelTypes>]
+                ? TypeParam[0][typeof prismaModelKey]
+                : TypeParam extends PrismaObjectRef<PrismaModelTypes>
+                ? TypeParam[typeof prismaModelKey]
+                : TypeParam extends keyof Types['PrismaTypes']
+                ? Types['PrismaTypes'][TypeParam]
+                : never),
+          >(
+            options: PrismaFieldWithInputOptions<
+              Types,
+              ParentShape,
+              Kind,
+              Args,
+              Fields,
+              TypeParam,
+              Model,
+              Type,
+              Nullable,
+              InputName,
+              ResolveShape,
+              ResolveReturnShape,
+              boolean extends ArgRequired
+                ? (Types & { WithInputArgRequired: boolean })['WithInputArgRequired']
+                : ArgRequired
+            >,
+          ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>
+        : '@pothos/plugin-prisma is required to use this method';
     }
 
     export interface ConnectionFieldOptions<
@@ -280,5 +330,13 @@ declare global {
       Shape extends object = Model['Shape'],
     > extends InternalPrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>,
         RootFieldBuilder<Types, Shape, 'PrismaObject'> {}
+
+    export interface FieldWithInputBaseOptions<
+      Types extends SchemaTypes,
+      Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
+      Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+      InputName extends string,
+      ArgRequired extends boolean,
+    > {}
   }
 }

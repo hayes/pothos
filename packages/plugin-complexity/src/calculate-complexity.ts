@@ -79,7 +79,7 @@ function complexityFromField(
       getNamedType(field.type),
     );
 
-    complexity += subSelection.complexity * fieldMultiplier;
+    complexity += subSelection.complexity * Math.max(fieldMultiplier, 0);
     depth += subSelection.depth;
     breadth += subSelection.breadth;
   }

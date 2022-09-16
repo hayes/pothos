@@ -1,23 +1,45 @@
 import SchemaBuilder from '@pothos/core';
+import PrismaPlugin from '@pothos/plugin-prisma';
 import ValidationPlugin from '@pothos/plugin-validation';
+import { PrismaClient } from '../../prisma/client';
+import type PrismaTypes from '../../prisma/generated';
 import WithInputPlugin from '../../src';
 
-export default new SchemaBuilder({
-  plugins: [ValidationPlugin, WithInputPlugin],
+export const prisma = new PrismaClient();
+
+export default new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Scalars: {
+    ID: { Input: string; Output: string | number };
+  };
+}>({
+  plugins: [ValidationPlugin, WithInputPlugin, PrismaPlugin],
   withInput: {
     argOptions: {
       description: 'input arg',
     },
   },
+  prisma: {
+    client: prisma,
+  },
 });
 
-const builderWithNonRequireInputs = new SchemaBuilder<{ WithInputArgRequired: false }>({
+const builderWithNonRequireInputs = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  WithInputArgRequired: false;
+  Scalars: {
+    ID: { Input: string; Output: string | number };
+  };
+}>({
   plugins: [ValidationPlugin, WithInputPlugin],
   withInput: {
     argOptions: {
       required: false,
       description: 'input arg',
     },
+  },
+  prisma: {
+    client: prisma,
   },
 });
 

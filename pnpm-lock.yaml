@@ -88,6 +88,9 @@ importers:
       graphql-scalars: 1.18.0_graphql@16.6.0
       prisma: 4.3.1
 
+  examples/complex-app/prisma/client:
+    specifiers: {}
+
   examples/envelope-helix-fastify:
     specifiers:
       '@envelop/core': ^2.6.0
@@ -257,6 +260,9 @@ importers:
       graphql: 16.6.0
       prisma: 4.3.1
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.5.0
@@ -276,6 +282,12 @@ importers:
       '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.6.0
       prisma: 4.3.1
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -563,7 +575,13 @@ importers:
   packages/plugin-prisma-utils/esm:
     specifiers: {}
 
+  packages/plugin-prisma-utils/tests/client:
+    specifiers: {}
+
   packages/plugin-prisma/esm:
+    specifiers: {}
+
+  packages/plugin-prisma/tests/client:
     specifiers: {}
 
   packages/plugin-relay:
@@ -604,6 +622,9 @@ importers:
       prisma: 4.3.1
 
   packages/plugin-scope-auth/esm:
+    specifiers: {}
+
+  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -694,18 +715,27 @@ importers:
   packages/plugin-with-input:
     specifiers:
       '@pothos/core': workspace:*
+      '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-validation': workspace:*
       '@pothos/test-utils': workspace:*
+      '@prisma/client': ^4.3.1
       graphql: 16.6.0
       graphql-tag: ^2.12.6
+      prisma: ^4.3.1
     devDependencies:
       '@pothos/core': link:../core
+      '@pothos/plugin-prisma': link:../plugin-prisma
       '@pothos/plugin-validation': link:../plugin-validation
       '@pothos/test-utils': link:../test-utils
+      '@prisma/client': 4.3.1_prisma@4.3.1
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
+      prisma: 4.3.1
 
   packages/plugin-with-input/esm:
+    specifiers: {}
+
+  packages/plugin-with-input/prisma/client:
     specifiers: {}
 
   packages/test-utils:

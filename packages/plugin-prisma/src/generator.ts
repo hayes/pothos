@@ -237,7 +237,7 @@ generatorHandler({
     });
 
     return new Promise<void>((resolve, reject) => {
-      writeFile(sourcefile.fileName, result, (err) => {
+      writeFile(sourcefile.fileName, `/* eslint-disable */\n${result}`, (err) => {
         if (err) {
           reject(err);
         } else {

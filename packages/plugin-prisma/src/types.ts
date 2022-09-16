@@ -5,6 +5,7 @@ import {
   FieldNullability,
   FieldOptionsFromKind,
   InputFieldMap,
+  InputFieldRef,
   InputFieldsFromShape,
   InputShapeFromFields,
   InterfaceParam,
@@ -442,6 +443,55 @@ export type PrismaFieldOptions<
         : PrismaFieldResolver<Types, Model, ParentShape, Param, Args, Nullable, ResolveReturnShape>;
     }
   : never;
+
+export type PrismaFieldWithInputOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Kind extends FieldKind,
+  Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
+  Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+  Type extends
+    | PrismaObjectRef<PrismaModelTypes>
+    | keyof Types['PrismaTypes']
+    | [keyof Types['PrismaTypes']]
+    | [PrismaObjectRef<PrismaModelTypes>],
+  Model extends PrismaModelTypes,
+  Param extends TypeParam<Types>,
+  Nullable extends FieldNullability<Param>,
+  InputName extends string,
+  ResolveShape,
+  ResolveReturnShape,
+  ArgRequired extends boolean,
+> = Omit<
+  PrismaFieldOptions<
+    Types,
+    ParentShape,
+    Type,
+    Model,
+    Param,
+    {
+      [K in InputName]: InputFieldRef<
+        InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
+      >;
+    } & Args,
+    Nullable,
+    ResolveShape,
+    ResolveReturnShape,
+    Kind
+  >,
+  'args'
+> &
+  PothosSchemaTypes.FieldWithInputBaseOptions<
+    Types,
+    {
+      [K in InputName]: InputFieldRef<
+        InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
+      >;
+    } & Args,
+    Fields,
+    InputName,
+    ArgRequired
+  >;
 
 export type PrismaFieldResolver<
   Types extends SchemaTypes,

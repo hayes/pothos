@@ -1,4 +1,4 @@
-import builder from '../builder';
+import builder, { prisma } from '../builder';
 
 builder.queryType();
 builder.mutationType();
@@ -205,5 +205,28 @@ builder.queryField('withValidation', (t) =>
     resolve: (root, args) => args.input.email,
   }),
 );
+
+builder.queryField('prismaFieldWithInput', (t) =>
+  t.prismaFieldWithInput({
+    type: 'User',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    nullable: true,
+    resolve: (query, _, args) =>
+      prisma.user.findUnique({
+        where: {
+          id: Number.parseInt(args.input.id, 10),
+        },
+        ...query,
+      }),
+  }),
+);
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id', {}),
+  }),
+});
 
 export default builder.toSchema();
