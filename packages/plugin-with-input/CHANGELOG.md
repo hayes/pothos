@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.8.0
+
+### Minor Changes
+
+- a76616e0: Add prismaFieldWithInput method
+
 ## 3.7.0
 
 ### Minor Changes

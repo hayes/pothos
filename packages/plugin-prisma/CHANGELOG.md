@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.34.0
+
+### Minor Changes
+
+- a76616e0: Add prismaFieldWithInput method
+
 ## 3.33.0
 
 ### Minor Changes

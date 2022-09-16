@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.27.1
+
+### Patch Changes
+
+- a76616e0: Don't allow negative size in complexity multipliers
+
 ## 3.27.0
 
 ### Minor Changes
