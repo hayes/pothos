@@ -9,7 +9,7 @@ const Post = builder.objectRef<typeof posts[number]>('Post');
 
 Post.implement({
   authz: {
-    rules: ['CanReadPost'],
+    compositeRules: [{ or: ['IsAdmin', 'CanReadPost'] }],
   },
   fields: (t) => ({
     id: t.exposeID('id'),

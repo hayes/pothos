@@ -55,6 +55,9 @@ describe('authz', () => {
             {
               "id": "2",
             },
+            {
+              "id": "3",
+            },
           ],
         },
       }
@@ -84,7 +87,7 @@ describe('authz', () => {
     });
   });
 
-  it('amin user, admin query', async () => {
+  it('admin user, admin query', async () => {
     const query = gql`
       query {
         users {
@@ -114,6 +117,46 @@ describe('authz', () => {
               "email": "user02@gmail.com",
               "id": "2",
             },
+            {
+              "email": "user03@gmail.com",
+              "id": "3",
+            },
+          ],
+        },
+      }
+    `);
+  });
+
+  it('admin user, normal query', async () => {
+    const query = gql`
+      query {
+        posts {
+          id
+          title
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {
+        user: users[1],
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "posts": [
+            {
+              "id": "1",
+              "title": "Post01 title",
+            },
+            {
+              "id": "2",
+              "title": "Post02 title",
+            },
           ],
         },
       }
@@ -133,12 +176,10 @@ describe('authz', () => {
         schema,
         document: query,
         contextValue: {
-          user: users[1],
+          user: users[2],
         },
       }),
-    ).rejects.toMatchObject({
-      message: 'Access denied',
-    });
+    ).rejects.toMatchObject({ message: 'User is not admin\nAccess denied'});
   });
 
   it('auth rule on type (authorized)', async () => {

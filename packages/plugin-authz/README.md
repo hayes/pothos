@@ -70,3 +70,20 @@ Post.implement({
   }),
 });
 ```
+
+## Defining inline composite rules
+
+```typescript
+const Post = builder.objectRef<IPost>('Post');
+
+Post.implement({
+  authz: {
+    compositeRules: [{ or: ['CanReadPost', 'IsAdmin'] }],
+  },
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+```
+
+More details about composite rules are in the documentation of [AuthZ](https://github.com/AstrumU/graphql-authz#inline-composition-rules)
