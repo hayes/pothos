@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.4.1
+
+### Patch Changes
+
+- ecab9471: Added support for inline composite rules
+
 ## 3.4.0
 
 ### Minor Changes
