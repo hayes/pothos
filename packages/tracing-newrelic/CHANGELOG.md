@@ -1,5 +1,11 @@
 # @pothos/tracing-newrelic
 
+## 0.4.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 0.4.0
 
 ### Minor Changes

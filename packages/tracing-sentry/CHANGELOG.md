@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.6.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 0.6.0
 
 ### Minor Changes

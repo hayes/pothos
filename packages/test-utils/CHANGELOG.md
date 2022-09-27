@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.3.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 1.3.0
 
 ### Minor Changes

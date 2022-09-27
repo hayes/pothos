@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.13.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 3.13.0
 
 ### Minor Changes

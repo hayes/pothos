@@ -1,5 +1,21 @@
 # @pothos-examples/complex-app
 
+## 1.3.4
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+- Updated dependencies [aa18acb7]
+- Updated dependencies [aa18acb7]
+  - @pothos/core@3.21.1
+  - @pothos/plugin-dataloader@3.11.1
+  - @pothos/plugin-prisma@3.34.1
+  - @pothos/plugin-prisma-utils@0.3.1
+  - @pothos/plugin-relay@3.27.1
+  - @pothos/plugin-scope-auth@3.13.1
+  - @pothos/plugin-simple-objects@3.5.1
+  - @pothos/plugin-validation@3.7.1
+
 ## 1.3.3
 
 ### Patch Changes

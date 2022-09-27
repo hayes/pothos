@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.5.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 3.5.0
 
 ### Minor Changes
