@@ -17,7 +17,7 @@
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
     "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
-    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts"
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts"
   },
   "repository": {
     "type": "git",
@@ -31,7 +31,7 @@
   "dependencies": {
     "graphql": "16.6.0",
     "graphql-helix": "^1.13.0",
-    "ts-morph": "^15.1.0",
+    "ts-morph": "^16.0.0",
     "yargs": "^17.5.1"
   }
 }

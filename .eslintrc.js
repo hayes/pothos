@@ -1,16 +1,11 @@
-import { ESLintConfig } from '@beemo/driver-eslint';
-
-const config: ESLintConfig = {
+module.exports = {
+  root: true,
+  extends: ['moon', 'moon/node'],
+  parserOptions: {
+    project: 'tsconfig.eslint.json',
+    tsconfigRootDir: __dirname,
+  },
   plugins: ['prettier'],
-  ignore: [
-    'deno',
-    'scripts',
-    'packages/plugin-prisma/prisma',
-    'packages/plugin-prisma/tests/generated.ts',
-    'examples/*/prisma/generated.ts',
-    '*.generated.ts',
-    '*.generated.tsx',
-  ],
   rules: {
     'import/no-cycle': 2,
     'import/no-unresolved': 'off',
@@ -57,5 +52,3 @@ const config: ESLintConfig = {
     },
   ],
 };
-
-export default config;

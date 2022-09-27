@@ -17,7 +17,7 @@
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
     "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
-    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "test": "NEW_RELIC_APP_NAME=PothosTest vitest --run"
   },
   "repository": {
@@ -46,13 +46,13 @@
     "newrelic": "*"
   },
   "devDependencies": {
-    "@graphql-yoga/node": "^2.13.12",
+    "@graphql-yoga/node": "^2.13.13",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@types/newrelic": "^7.0.3",
     "graphql": "16.6.0",
     "graphql-tag": "^2.12.6",
-    "newrelic": "^9.0.2"
+    "newrelic": "^9.1.0"
   }
 }

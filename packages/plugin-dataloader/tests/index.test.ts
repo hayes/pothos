@@ -113,6 +113,12 @@ describe('dataloader', () => {
             title
             content
           }
+          postNullable(id: 123) {
+            id
+          }
+          postsNullable(ids: [123]) {
+            id
+          }
           post(id: 1) {
             id
           }
@@ -214,11 +220,11 @@ describe('dataloader', () => {
           [GraphQLError: Invalid ID -456],
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -456],
+          [GraphQLError: Invalid ID -123],
+          [GraphQLError: Invalid ID -456],
           [GraphQLError: Invalid ID -1],
           [GraphQLError: Invalid ID -123],
           [GraphQLError: Invalid ID -123],
-          [GraphQLError: Invalid ID -123],
-          [GraphQLError: Invalid ID -456],
         ]
       `);
     });

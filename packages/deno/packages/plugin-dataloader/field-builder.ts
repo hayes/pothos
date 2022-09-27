@@ -13,9 +13,12 @@ fieldBuilderProto.loadable = function loadable<Args extends InputFieldMap, Type 
         // @ts-expect-error types don't match because this handles both lists and single objects
         resolve: async (parent: unknown, args: InputShapeFromFields<Args>, context: {}, info: GraphQLResolveInfo) => {
             const ids = await resolve(parent, args, context, info);
+            if (ids == null) {
+                return null;
+            }
             const loader = getLoader(context);
             if (Array.isArray(type)) {
-                return rejectErrors(loader.loadMany(ids as Key[]));
+                return rejectErrors((ids as Key[]).map((id) => (id == null ? id : loader.load(id))));
             }
             return loader.load(ids as Key);
         },

@@ -1,12 +1,16 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 export type DataloaderKey = bigint | number | string;
 export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
     load: (keys: Key[], context: Types["Context"]) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
     sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
-    resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], Type extends unknown[] ? Key[] : Key, ResolveReturnShape>;
+    resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], (Type extends unknown[] ? [
+        OutputRef<Key>
+    ] : OutputRef<Key>) extends infer KeyType ? KeyType extends OutputRef | [
+        OutputRef
+    ] ? ShapeFromTypeParam<Types, KeyType, Nullable extends FieldNullability<KeyType> ? Nullable : never> : never : never, ResolveReturnShape>;
 };
 export type LoadableListFieldOptions<Types extends SchemaTypes, ParentShape, Type extends OutputType<Types>, Nullable extends FieldNullability<[
     Type

@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
+import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
 import ScopeAuthPlugin from '../../src';
 import { db } from './db';
@@ -27,7 +28,11 @@ const builder = new SchemaBuilder<{
   };
   PrismaTypes: PrismaTypes;
 }>({
-  plugins: [ScopeAuthPlugin, PrismaPlugin],
+  plugins: [ScopeAuthPlugin, PrismaPlugin, RelayPlugin],
+  relayOptions: {
+    clientMutationId: 'omit',
+    cursorType: 'String',
+  },
   prisma: {
     client: db,
   },

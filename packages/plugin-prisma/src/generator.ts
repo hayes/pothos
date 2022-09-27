@@ -1,3 +1,5 @@
+/* eslint-disable unicorn/prefer-module */
+/* eslint-disable node/prefer-promises/fs */
 /* eslint-disable no-magic-numbers */
 /* eslint-disable no-nested-ternary */
 import { mkdir, writeFile } from 'fs';

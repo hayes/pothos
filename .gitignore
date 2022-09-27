@@ -35,10 +35,6 @@ tmp/
 todo.md
 
 # Generated configs
-.eslintignore
-.eslintrc.js
-.prettierignore
-prettier.config.js
 .devcontainer
 
 *.tsbuildinfo

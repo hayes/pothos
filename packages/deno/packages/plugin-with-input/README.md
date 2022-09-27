@@ -124,3 +124,27 @@ builder.queryType({
     }),
 });
 ```
+
+### Prisma plugin integration
+
+If you are using the prisma plugin you can use `t.prismaFieldWithInput` to add prisma fields with
+input objects:
+
+```typescript
+builder.queryField('prismaFieldWithInput', (t) =>
+  t.prismaFieldWithInput({
+    type: 'User',
+    input: {
+      id: t.input.id({ required: true }),
+    },
+    nullable: true,
+    resolve: (query, _, args) =>
+      prisma.user.findUnique({
+        where: {
+          id: Number.parseInt(args.input.id, 10),
+        },
+        ...query,
+      }),
+  }),
+);
+```

@@ -95,6 +95,23 @@ builder.queryFields((t) => ({
     sort: (post) => post.id,
     resolve: (_root, args) => Promise.resolve(args.ids),
   }),
+  postNullable: t.loadable({
+    type: Post,
+    nullable: true,
+    load: (ids: number[], context) =>
+      Promise.resolve(ids.map((id) => ({ id, title: `${id} title`, content: `${id} content` }))),
+    resolve: (_root, args) => null,
+  }),
+  postsNullable: t.loadable({
+    type: [Post],
+    nullable: {
+      list: false,
+      items: true,
+    },
+    load: (ids: number[], context) =>
+      Promise.resolve(ids.map((id) => ({ id, title: `${id} title`, content: `${id} content` }))),
+    resolve: (_root, args) => [null],
+  }),
 
   oneToMany: t.loadableList({
     type: Post,

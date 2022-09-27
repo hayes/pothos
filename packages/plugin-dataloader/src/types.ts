@@ -12,6 +12,7 @@ import {
   ObjectParam,
   ObjectRef,
   ObjectTypeOptions,
+  OutputRef,
   OutputShape,
   OutputType,
   Resolver,
@@ -46,7 +47,15 @@ export type LoadableFieldOptions<
     ParentShape,
     InputShapeFromFields<Args>,
     Types['Context'],
-    Type extends unknown[] ? Key[] : Key,
+    (Type extends unknown[] ? [OutputRef<Key>] : OutputRef<Key>) extends infer KeyType
+      ? KeyType extends OutputRef | [OutputRef]
+        ? ShapeFromTypeParam<
+            Types,
+            KeyType,
+            Nullable extends FieldNullability<KeyType> ? Nullable : never
+          >
+        : never
+      : never,
     ResolveReturnShape
   >;
 };

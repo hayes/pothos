@@ -12,7 +12,7 @@
     "@envelop/core": "^2.6.0",
     "@faker-js/faker": "^7.5.0",
     "@pothos/core": "workspace:*",
-    "fastify": "^4.5.3",
+    "fastify": "^4.6.0",
     "graphql": "16.6.0",
     "graphql-helix": "^1.13.0"
   },

@@ -79,8 +79,10 @@ type Query {
   oneToMany(id: ID!): [Post]
   pets(ids: [ID!]!): [Pet!]!
   post(id: Int!): Post
+  postNullable: Post
   postSorted(id: Int!): Post
   posts(ids: [Int!]!): [Post]
+  postsNullable: [Post]!
   postsSorted(ids: [Int!]!): [Post]
   preloadedUser(id: String): PreloadedUser
   preloadedUserToKey(id: String): PreloadedUserToKey
@@ -410,6 +412,7 @@ exports[`dataloader > queries > valid queries 1`] = `
     "post2": {
       "id": "2",
     },
+    "postNullable": null,
     "postSorted": {
       "id": "1",
     },
@@ -439,6 +442,9 @@ exports[`dataloader > queries > valid queries 1`] = `
         "id": "789",
         "title": "789 title",
       },
+    ],
+    "postsNullable": [
+      null,
     ],
     "postsSorted": [
       {

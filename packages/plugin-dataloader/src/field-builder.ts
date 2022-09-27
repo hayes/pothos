@@ -68,10 +68,15 @@ fieldBuilderProto.loadable = function loadable<
       info: GraphQLResolveInfo,
     ) => {
       const ids = await resolve(parent, args, context, info);
+
+      if (ids == null) {
+        return null;
+      }
+
       const loader = getLoader(context);
 
       if (Array.isArray(type)) {
-        return rejectErrors(loader.loadMany(ids as Key[]));
+        return rejectErrors((ids as Key[]).map((id) => (id == null ? id : loader.load(id))));
       }
 
       return loader.load(ids as Key);
