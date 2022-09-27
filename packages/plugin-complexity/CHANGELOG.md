@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.10.2
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 3.10.1
 
 ### Patch Changes

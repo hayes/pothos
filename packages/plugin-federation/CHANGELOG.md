@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.4.3
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 3.4.2
 
 ### Patch Changes

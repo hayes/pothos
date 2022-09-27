@@ -1,5 +1,16 @@
 # @pothos-examples/relay
 
+## 2.5.5
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+- Updated dependencies [aa18acb7]
+  - @pothos/core@3.21.1
+  - @pothos/plugin-directives@3.6.1
+  - @pothos/plugin-federation@3.4.3
+  - @pothos/plugin-prisma@3.34.1
+
 ## 2.5.4
 
 ### Patch Changes

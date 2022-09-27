@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.8.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 3.8.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.4.2
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+
 ## 3.4.1
 
 ### Patch Changes

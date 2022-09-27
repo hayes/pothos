@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.11.1
+
+### Patch Changes
+
+- aa18acb7: update dev dependencies
+- aa18acb7: Fix nullable loadable fields
+
 ## 3.11.0
 
 ### Minor Changes
