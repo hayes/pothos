@@ -6,9 +6,13 @@
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
-    "types": "./dts/index.d.ts",
-    "import": "./esm/index.js",
-    "require": "./lib/index.js"
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
   },
   "scripts": {
     "generate": "prisma generate",
@@ -47,7 +51,7 @@
     "access": "public"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^4.3.1"
+    "@prisma/generator-helper": "^4.4.0"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -65,9 +69,9 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.3.1",
+    "@prisma/client": "^4.4.0",
     "graphql": "16.6.0",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.3.1"
+    "prisma": "^4.4.0"
   }
 }

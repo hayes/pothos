@@ -26,7 +26,7 @@ const User = builder.externalRef('User', builder.selection<{ id: string }>('id')
       type: ['Comment'],
       resolve: (query, user) =>
         db.user
-          .findUnique({ where: { id: Number.parseInt(user.id, 10) } })
+          .findUniqueOrThrow({ where: { id: Number.parseInt(user.id, 10) } })
           .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
     }),
   }),
@@ -41,7 +41,7 @@ const Post = builder.externalRef('Post', builder.selection<{ id: string }>('id')
       type: ['Comment'],
       resolve: (query, post) =>
         db.post
-          .findUnique({ where: { id: Number.parseInt(post.id, 10) } })
+          .findUniqueOrThrow({ where: { id: Number.parseInt(post.id, 10) } })
           .comments({ orderBy: { updatedAt: 'desc' }, ...query }),
     }),
   }),

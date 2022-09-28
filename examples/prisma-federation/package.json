@@ -21,11 +21,11 @@
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@prisma/client": "^4.3.1",
-    "apollo-server": "^3.10.1",
-    "apollo-server-core": "^3.10.1",
+    "@prisma/client": "^4.4.0",
+    "apollo-server": "^3.10.2",
+    "apollo-server-core": "^3.10.2",
     "graphql": "16.6.0",
-    "prisma": "^4.3.1"
+    "prisma": "^4.4.0"
   },
   "publishConfig": {
     "access": "public"

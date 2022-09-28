@@ -6,9 +6,13 @@
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
   "exports": {
-    "types": "./dts/index.d.ts",
-    "import": "./esm/index.js",
-    "require": "./lib/index.js"
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
   },
   "scripts": {
     "type": "tsc --project tsconfig.type.json",

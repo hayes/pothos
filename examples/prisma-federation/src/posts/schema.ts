@@ -26,7 +26,7 @@ const User = builder.externalRef('User', builder.selection<{ id: string }>('id')
       type: ['Post'],
       resolve: (query, user) =>
         db.user
-          .findUnique({ where: { id: Number.parseInt(user.id, 10) } })
+          .findUniqueOrThrow({ where: { id: Number.parseInt(user.id, 10) } })
           .posts({ orderBy: { updatedAt: 'desc' }, ...query }),
     }),
   }),

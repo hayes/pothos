@@ -80,6 +80,7 @@ export interface Path {
 }
 
 export type LastIndex<T extends unknown[]> = T extends [unknown, ...infer U] ? U['length'] : 0;
+
 export type NormalizeArgs<
   T extends unknown[],
   Index extends keyof T = LastIndex<T>,
