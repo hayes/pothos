@@ -1,5 +1,23 @@
 # @pothos-examples/complex-app
 
+## 1.4.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+### Patch Changes
+
+- Updated dependencies [11929311]
+  - @pothos/core@3.22.0
+  - @pothos/plugin-dataloader@3.12.0
+  - @pothos/plugin-prisma@3.35.0
+  - @pothos/plugin-prisma-utils@0.4.0
+  - @pothos/plugin-relay@3.28.0
+  - @pothos/plugin-scope-auth@3.14.0
+  - @pothos/plugin-simple-objects@3.6.0
+  - @pothos/plugin-validation@3.8.0
+
 ## 1.3.4
 
 ### Patch Changes

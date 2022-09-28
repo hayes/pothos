@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.4.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
 ## 1.3.1
 
 ### Patch Changes

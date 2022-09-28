@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.22.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
 ## 3.21.1
 
 ### Patch Changes

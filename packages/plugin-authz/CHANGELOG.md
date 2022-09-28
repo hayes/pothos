@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.5.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
 ## 3.4.2
 
 ### Patch Changes

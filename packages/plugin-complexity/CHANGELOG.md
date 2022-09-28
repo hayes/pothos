@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.11.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
 ## 3.10.2
 
 ### Patch Changes
