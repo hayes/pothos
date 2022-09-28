@@ -484,8 +484,7 @@ builder.prismaObject('User', {
 
 Prisma supports querying for
 [relation counts](https://www.prisma.io/docs/concepts/components/prisma-client/aggregation-grouping-summarizing#count-relations)
-which allow including counts for relations along side other `includes`. This does not currently
-support any filters on the counts, but can give a total count for a relation.
+which allow including counts for relations along side other `includes`. Before prisma 4.2.0, this does not support any filters on the counts, but can give a total count for a relation. Starting from prisma 4.2.0, filters on relation count are available under the `filteredRelationCount` preview feature flag.
 
 ```typescript
 builder.prismaObject('User', {
