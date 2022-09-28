@@ -1,5 +1,11 @@
 # @pothos/tracing-xray
 
+## 0.5.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
 ## 0.4.1
 
 ### Patch Changes

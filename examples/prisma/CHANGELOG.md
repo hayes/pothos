@@ -1,5 +1,17 @@
 # @pothos-examples/relay
 
+## 2.4.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+### Patch Changes
+
+- Updated dependencies [11929311]
+  - @pothos/core@3.22.0
+  - @pothos/plugin-prisma@3.35.0
+
 ## 2.3.3
 
 ### Patch Changes

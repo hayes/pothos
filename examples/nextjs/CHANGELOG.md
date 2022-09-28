@@ -1,5 +1,16 @@
 # @pothos-examples/nextjs
 
+## 2.5.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
+### Patch Changes
+
+- Updated dependencies [11929311]
+  - @pothos/core@3.22.0
+
 ## 2.4.2
 
 ### Patch Changes

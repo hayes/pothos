@@ -4,6 +4,14 @@
 
 ### Patch Changes
 
+- 80159a03: Add hint about filteredRelationCount feature flag to prisma plugin relationCount.
+- Updated dependencies [11929311]
+  - @pothos/core@3.22.0
+
+## null
+
+### Patch Changes
+
 - Updated dependencies [aa18acb7]
   - @pothos/core@3.21.1
 

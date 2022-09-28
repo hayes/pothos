@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.4.0
+
+### Minor Changes
+
+- 11929311: Update type definitions to work with module: "nodeNext"
+
 ## 0.3.1
 
 ### Patch Changes
