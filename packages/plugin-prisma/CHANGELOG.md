@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.35.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
 ## 3.35.0
 
 ### Minor Changes

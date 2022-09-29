@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.4.1
+
+### Patch Changes
+
+- 67531f1e: Create separate typescript definitions for esm files
+
 ## 0.4.0
 
 ### Minor Changes
