@@ -1,5 +1,13 @@
 # @pothos-examples/nextjs
 
+## 2.5.5
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+- Updated dependencies [9fa27cf7]
+  - @pothos/core@3.22.5
+
 ## 2.5.4
 
 ### Patch Changes

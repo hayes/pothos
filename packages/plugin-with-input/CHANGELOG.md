@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.9.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 3.9.3
 
 ### Patch Changes

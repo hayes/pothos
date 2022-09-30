@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.4.3
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 1.4.2
 
 ### Patch Changes

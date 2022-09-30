@@ -1,5 +1,13 @@
 # @pothos-examples/graphql-shield
 
+## 2.2.8
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+- Updated dependencies [9fa27cf7]
+  - @pothos/core@3.22.5
+
 ## 2.2.7
 
 ### Patch Changes
