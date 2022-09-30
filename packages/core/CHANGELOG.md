@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.22.3
+
+### Patch Changes
+
+- c28b8712: restore esm package.json
+
 ## 3.22.2
 
 ### Patch Changes
