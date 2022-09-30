@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-mocks",
-  "version": "3.7.1",
+  "version": "3.7.2",
   "description": "A Pothos plugin for mocking resolvers",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

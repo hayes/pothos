@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
 ## 3.12.1
 
 ### Patch Changes

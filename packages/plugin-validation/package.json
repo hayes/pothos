@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-validation",
-  "version": "3.8.1",
+  "version": "3.8.2",
   "description": "A Pothos plugin for adding argument validation",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
