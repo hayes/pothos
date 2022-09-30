@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
 ## 0.7.2
 
 ### Patch Changes

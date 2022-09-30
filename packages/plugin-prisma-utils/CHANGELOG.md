@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.4.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
 ## 0.4.2
 
 ### Patch Changes

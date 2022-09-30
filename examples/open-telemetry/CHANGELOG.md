@@ -1,5 +1,15 @@
 # @pothos-examples/open-telemetry
 
+## 1.2.7
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+- Updated dependencies [3a82d645]
+  - @pothos/core@3.22.4
+  - @pothos/plugin-tracing@0.5.3
+  - @pothos/tracing-opentelemetry@0.6.3
+
 ## 1.2.6
 
 ### Patch Changes

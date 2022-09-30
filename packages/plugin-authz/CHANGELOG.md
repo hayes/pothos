@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.5.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
 ## 3.5.2
 
 ### Patch Changes

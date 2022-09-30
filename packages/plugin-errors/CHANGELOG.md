@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
 ## 3.8.2
 
 ### Patch Changes
