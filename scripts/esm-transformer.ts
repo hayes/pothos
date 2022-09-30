@@ -78,8 +78,6 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
       ) {
         const mod = resolveImport(node.argument.literal.text, sourceFile.fileName);
 
-        console.log(mod);
-
         return ts.factory.updateImportTypeNode(
           node,
           ts.factory.updateLiteralTypeNode(node.argument, ts.factory.createStringLiteral(mod)),
