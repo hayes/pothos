@@ -1,4 +1,5 @@
 import * as ts from 'typescript';
+
 import { dirname, join, resolve } from 'path';
 import * as fs from 'fs';
 
@@ -89,7 +90,7 @@ function getFiles(dir: string, root = false): string[] {
       return getFiles(fullPath);
     }
 
-    return fullPath.endsWith('.js') ? [fullPath] : [];
+    return fullPath.endsWith('.js') || fullPath.endsWith('.d.ts') ? [fullPath] : [];
   });
 
   return paths.flatMap((entry) => entry);
