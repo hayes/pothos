@@ -1,6 +1,6 @@
 {
   "name": "@pothos/test-utils",
-  "version": "1.4.1",
+  "version": "1.4.0",
   "description": "shared test utils for testing Pothos packages",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -19,7 +19,7 @@
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
     "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
-    "build:esm": "cp -r dts/ esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts"
   },
