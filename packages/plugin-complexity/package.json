@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-complexity",
-  "version": "3.11.1",
+  "version": "3.11.2",
   "description": "A Pothos plugin for defining and limiting complexity of queries",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

@@ -1,5 +1,11 @@
 # @pothos/tracing-xray
 
+## 0.5.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
 ## 0.5.1
 
 ### Patch Changes

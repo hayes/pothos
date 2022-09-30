@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.2
+
+### Patch Changes
+
+- 218fc68b: Fix script for copying ems d.ts definitions
+
 ## 0.7.1
 
 ### Patch Changes
