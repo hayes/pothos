@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 0.6.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 0.6.3
 
 ### Patch Changes

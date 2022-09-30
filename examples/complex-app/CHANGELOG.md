@@ -1,5 +1,20 @@
 # @pothos-examples/complex-app
 
+## 1.4.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+- Updated dependencies [9fa27cf7]
+  - @pothos/core@3.22.5
+  - @pothos/plugin-dataloader@3.12.4
+  - @pothos/plugin-prisma@3.35.4
+  - @pothos/plugin-prisma-utils@0.4.4
+  - @pothos/plugin-relay@3.28.4
+  - @pothos/plugin-scope-auth@3.14.4
+  - @pothos/plugin-simple-objects@3.6.4
+  - @pothos/plugin-validation@3.8.4
+
 ## 1.4.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 0.7.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.4.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 0.4.3
 
 ### Patch Changes
