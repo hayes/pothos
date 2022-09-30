@@ -23,7 +23,7 @@
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "generate": "prisma generate",
-    "test": "pnpm vitest --run"
+    "test": "pnpm vitest --run --segfault-retry=3"
   },
   "repository": {
     "type": "git",
