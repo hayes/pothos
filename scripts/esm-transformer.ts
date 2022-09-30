@@ -2,6 +2,8 @@ import * as ts from 'typescript';
 
 import { dirname, join, resolve } from 'path';
 import * as fs from 'fs';
+import { t } from 'vitest/dist/global-e98f203b';
+import { throws } from 'assert';
 
 type LoadedFile = {
   path: string;
@@ -52,7 +54,6 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           if (ts.isImportDeclaration(node)) {
             return ts.factory.updateImportDeclaration(
               node,
-              node.decorators,
               node.modifiers,
               node.importClause,
               ts.factory.createStringLiteral(mod, true),
@@ -62,7 +63,6 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
 
           return ts.factory.updateExportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.isTypeOnly,
             node.exportClause,
@@ -70,6 +70,23 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
             undefined,
           );
         }
+      } else if (
+        sourceFile.fileName.endsWith('index.d.ts') &&
+        ts.isImportTypeNode(node) &&
+        ts.isLiteralTypeNode(node.argument) &&
+        ts.isStringLiteralLike(node.argument.literal)
+      ) {
+        const mod = resolveImport(node.argument.literal.text, sourceFile.fileName);
+
+        console.log(mod);
+
+        return ts.factory.updateImportTypeNode(
+          node,
+          ts.factory.updateLiteralTypeNode(node.argument, ts.factory.createStringLiteral(mod)),
+          node.assertions,
+          node.qualifier,
+          node.typeArguments,
+        );
       }
 
       return ts.visitEachChild(node, visitor, context);
