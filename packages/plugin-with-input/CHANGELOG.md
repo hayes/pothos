@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.9.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+
 ## 3.9.2
 
 ### Patch Changes

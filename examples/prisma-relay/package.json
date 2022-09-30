@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.7.2",
+  "version": "2.7.3",
   "name": "@pothos-examples/prisma-relay",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -16,7 +16,7 @@
   "dependencies": {
     "@faker-js/faker": "^7.5.0",
     "@graphql-yoga/node": "^2.13.13",
-    "@pothos/core": "^3.22.2",
+    "@pothos/core": "^3.22.4",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@prisma/client": "^4.4.0",

@@ -1,6 +1,6 @@
 {
   "name": "@pothos/deno",
-  "version": "3.28.1",
+  "version": "3.28.2",
   "description": "Deno compatible versions of Pothos packages",
   "repository": {
     "type": "git",

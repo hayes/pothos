@@ -1,5 +1,16 @@
 # @pothos-examples/relay
 
+## 2.6.4
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+- Updated dependencies [3a82d645]
+  - @pothos/core@3.22.4
+  - @pothos/plugin-directives@3.7.3
+  - @pothos/plugin-federation@3.5.3
+  - @pothos/plugin-prisma@3.35.3
+
 ## 2.6.3
 
 ### Patch Changes

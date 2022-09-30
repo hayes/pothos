@@ -1,5 +1,15 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.3
+
+### Patch Changes
+
+- 3a82d645: Apply esm transform to esm d.ts definitions
+- Updated dependencies [3a82d645]
+  - @pothos/core@3.22.4
+  - @pothos/plugin-prisma@3.35.3
+  - @pothos/plugin-relay@3.28.3
+
 ## 2.7.2
 
 ### Patch Changes

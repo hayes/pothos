@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-tracing",
-  "version": "0.5.2",
+  "version": "0.5.3",
   "description": "A Pothos plugin for tracing and logging resolver invocations",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
