@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.11.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 3.11.3
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.5.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 3.5.3
 
 ### Patch Changes

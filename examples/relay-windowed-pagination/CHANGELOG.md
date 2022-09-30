@@ -1,5 +1,14 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.5
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+- Updated dependencies [9fa27cf7]
+  - @pothos/core@3.22.5
+  - @pothos/plugin-relay@3.28.4
+
 ## 2.7.4
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.12.4
+
+### Patch Changes
+
+- 9fa27cf7: Transform dynamic type imports in d.ts files
+
 ## 3.12.3
 
 ### Patch Changes
