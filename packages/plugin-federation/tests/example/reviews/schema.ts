@@ -64,6 +64,8 @@ const Product = builder
       upc: t.exposeString('upc'),
       reviews: t.field({
         type: [ReviewType],
+        deprecationReason: 'test',
+        tag: 'test',
         resolve: ({ upc }) => reviews.filter((review) => review.product.upc === upc),
       }),
     }),

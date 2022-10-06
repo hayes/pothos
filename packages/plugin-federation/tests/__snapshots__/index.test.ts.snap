@@ -229,7 +229,7 @@ type Product
   @extends
 {
   upc: String
-  reviews: [Review!]
+  reviews: [Review!] @deprecated(reason: "test") @tag(name: "test")
 }
 
 type Review
@@ -275,7 +275,7 @@ directive @shareable on FIELD_DEFINITION | OBJECT
 directive @tag(name: String!) repeatable on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
 
 type Product {
-  reviews: [Review!]
+  reviews: [Review!] @deprecated(reason: "test")
   upc: String
 }
 
