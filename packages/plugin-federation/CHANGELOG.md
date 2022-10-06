@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.6.0
+
+### Minor Changes
+
+- 4c086637: print deprecated directives in schema sdl field
+
 ## 3.5.4
 
 ### Patch Changes

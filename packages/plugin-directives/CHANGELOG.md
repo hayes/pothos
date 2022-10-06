@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.0
+
+### Minor Changes
+
+- 4c086637: Add deprecated directive to mock ast nodes
+
 ## 3.7.4
 
 ### Patch Changes
