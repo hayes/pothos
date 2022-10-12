@@ -184,8 +184,7 @@ const server = new ApolloServer({
   schema,
 });
 
-server
-  .listen(4000)
+startStandaloneServer(server, { listen: { port: 4000 } })
   .then(({ url }) => {
     console.log(`🚀 Server ready at ${url}`);
   })
@@ -198,4 +197,8 @@ For a functional example that combines multiple graphs built with Pothos into a 
 [https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)
 
 ### Printing the schema
-If you are printing the schema as a string for any reason, and then using the printed schema for Apollo Federation(submitting if using Managed Federation, or composing manually with `rover`), you must use `printSubgraphSchema`(from `@apollo/subgraph`) or another compatible way of printing the schema(that includes directives) in order for it to work.
+
+If you are printing the schema as a string for any reason, and then using the printed schema for
+Apollo Federation(submitting if using Managed Federation, or composing manually with `rover`), you
+must use `printSubgraphSchema`(from `@apollo/subgraph`) or another compatible way of printing the
+schema(that includes directives) in order for it to work.
