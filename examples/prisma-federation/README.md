@@ -19,11 +19,11 @@ and `@apollo/subgraph`
 yarn add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
 ```
 
-You will likely want to install apollo-server as well, but it is not required if you want to use a
+You will likely want to install @apollo/server as well, but it is not required if you want to use a
 different server
 
 ```bash
-yarn add apollo-server
+yarn add @apollo/server
 ```
 
 ### Setup
@@ -170,8 +170,7 @@ const server = new ApolloServer({
   schema,
 });
 
-server
-  .listen(4000)
+startStandaloneServer(server, { listen: { port: 4000 } })
   .then(({ url }) => {
     console.log(`🚀 Server ready at ${url}`);
   })

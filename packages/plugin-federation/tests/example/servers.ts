@@ -1,3 +1,4 @@
+import { startStandaloneServer } from '@apollo/server/standalone';
 import { server as accountsServer } from './accounts';
 import { server as inventoryServer } from './inventory';
 import { server as productsServer } from './products';
@@ -13,7 +14,7 @@ export const servers = [
 export function startServers() {
   return Promise.all(
     servers.map(async ({ server, name }) => {
-      const { url } = await server.listen(0);
+      const { url } = await startStandaloneServer(server, { listen: { port: 0 } });
 
       return { name, url, server };
     }),

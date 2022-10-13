@@ -1,7 +1,8 @@
-import { ApolloServer } from 'apollo-server';
+import { ApolloServer } from '@apollo/server';
+import { startStandaloneServer } from '@apollo/server/standalone';
+import { printSubgraphSchema } from '@apollo/subgraph';
 import axios from 'axios';
 import { printSchema } from 'graphql';
-import { printSubgraphSchema } from '@apollo/subgraph';
 import { schema as accountsSchema } from './example/accounts/schema';
 import { createGateway } from './example/gateway';
 import { schema as inventorySchema } from './example/inventory/schema';
@@ -47,7 +48,7 @@ describe('federation', () => {
       servers = await startServers();
       gateway = createGateway(servers);
 
-      const { url } = await gateway.listen(0);
+      const { url } = await startStandaloneServer(gateway, { listen: { port: 0 } });
 
       gatewayUrl = url;
     });
