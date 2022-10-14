@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.28.4
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 3.28.3
 
 ### Patch Changes

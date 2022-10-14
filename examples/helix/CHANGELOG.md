@@ -1,5 +1,13 @@
 # @pothos-examples/helix
 
+## 2.4.9
+
+### Patch Changes
+
+- d350f842: update dev deps
+- Updated dependencies [d350f842]
+  - @pothos/core@3.22.6
+
 ## 2.4.8
 
 ### Patch Changes

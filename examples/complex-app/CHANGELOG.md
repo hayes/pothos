@@ -1,5 +1,21 @@
 # @pothos-examples/complex-app
 
+## 1.4.5
+
+### Patch Changes
+
+- d350f842: update dev deps
+- Updated dependencies [d350f842]
+- Updated dependencies [d350f842]
+  - @pothos/plugin-scope-auth@3.15.0
+  - @pothos/core@3.22.6
+  - @pothos/plugin-dataloader@3.12.4
+  - @pothos/plugin-prisma@3.35.4
+  - @pothos/plugin-prisma-utils@0.4.4
+  - @pothos/plugin-relay@3.28.4
+  - @pothos/plugin-simple-objects@3.6.4
+  - @pothos/plugin-validation@3.8.4
+
 ## 1.4.4
 
 ### Patch Changes

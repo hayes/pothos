@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.5
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 0.7.4
 
 ### Patch Changes

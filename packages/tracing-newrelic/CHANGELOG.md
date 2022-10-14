@@ -1,5 +1,11 @@
 # @pothos/tracing-newrelic
 
+## 0.5.5
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 0.5.4
 
 ### Patch Changes

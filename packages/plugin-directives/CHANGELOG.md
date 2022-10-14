@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.1
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 3.8.0
 
 ### Minor Changes

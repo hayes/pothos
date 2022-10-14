@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 0.6.5
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 0.6.4
 
 ### Patch Changes

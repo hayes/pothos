@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.6.1
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 3.6.0
 
 ### Minor Changes

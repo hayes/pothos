@@ -1,5 +1,16 @@
 # @pothos-examples/relay
 
+## 2.6.7
+
+### Patch Changes
+
+- d350f842: update dev deps
+- Updated dependencies [d350f842]
+  - @pothos/core@3.22.6
+  - @pothos/plugin-directives@3.8.1
+  - @pothos/plugin-federation@3.6.1
+  - @pothos/plugin-prisma@3.35.4
+
 ## 2.6.6
 
 ### Patch Changes
