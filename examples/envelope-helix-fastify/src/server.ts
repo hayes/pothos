@@ -6,11 +6,11 @@ import {
   sendResult,
   shouldRenderGraphiQL,
 } from 'graphql-helix';
-import { envelop, useLogger, useSchema, useTiming } from '@envelop/core';
+import { envelop, useLogger, useSchema } from '@envelop/core';
 import { schema as rawSchema } from './schema';
 
 export const getEnveloped = envelop({
-  plugins: [useSchema(rawSchema), useLogger(), useTiming()],
+  plugins: [useSchema(rawSchema), useLogger()],
 });
 
 const PORT = 3000;

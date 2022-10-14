@@ -24,7 +24,8 @@ const builder = new SchemaBuilder<{
     asyncPermission: string;
   };
   AuthContexts: {
-    loggedIn: Context & { user: User };
+    loggedIn: Context & { user: User; isLoggedIn: true };
+    admin: Context & { user: User; isAdmin: true };
   };
   PrismaTypes: PrismaTypes;
 }>({

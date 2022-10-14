@@ -10,10 +10,10 @@
     "start": "next start"
   },
   "dependencies": {
-    "@apollo/client": "^3.6.9",
-    "@faker-js/faker": "^7.5.0",
+    "@apollo/client": "^3.7.0",
+    "@faker-js/faker": "^7.6.0",
     "@pothos/core": "workspace:*",
-    "@tanstack/react-query": "^4.7.2",
+    "@tanstack/react-query": "^4.12.0",
     "graphql": "16.6.0",
     "graphql-helix": "^1.13.0",
     "graphql-tag": "^2.12.6",
@@ -22,13 +22,13 @@
     "react-dom": "18.2.0"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "^2.13.1",
-    "@graphql-codegen/near-operation-file-preset": "^2.4.1",
+    "@graphql-codegen/cli": "^2.13.7",
+    "@graphql-codegen/near-operation-file-preset": "^2.4.2",
     "@graphql-codegen/schema-ast": "^2.5.1",
-    "@graphql-codegen/typescript": "^2.7.3",
-    "@graphql-codegen/typescript-operations": "^2.5.3",
-    "@graphql-codegen/typescript-react-apollo": "^3.3.3",
-    "@types/node": "18.7.23",
+    "@graphql-codegen/typescript": "^2.7.4",
+    "@graphql-codegen/typescript-operations": "^2.5.4",
+    "@graphql-codegen/typescript-react-apollo": "^3.3.4",
+    "@types/node": "18.8.5",
     "@types/react": "18.0.21",
     "@types/react-dom": "18.0.6",
     "concurrently": "^7.4.0",

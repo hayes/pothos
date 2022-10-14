@@ -8,6 +8,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
   TypeParam,
+  UnionToIntersection,
 } from '@pothos/core';
 import type RequestCache from './request-cache';
 
@@ -138,10 +139,21 @@ export interface ResolveStep<Types extends SchemaTypes> {
       ) => string);
 }
 
-export type ContextForAuth<Types extends SchemaTypes, Scopes extends {}> = keyof Scopes &
-  keyof Types['AuthContexts'] extends string
-  ? Types['AuthContexts'][keyof Scopes & keyof Types['AuthContexts']]
-  : Types['Context'];
+export type ContextForAuth<Types extends SchemaTypes, Scopes> = Scopes extends (
+  ...args: any[]
+) => infer R
+  ? ContextForAuth<Types, R>
+  : Scopes extends boolean
+  ? Types['Context']
+  : keyof Scopes extends infer Scope
+  ? Scope extends keyof Types['AuthContexts']
+    ? Types['AuthContexts'][Scope]
+    : Scope extends '$any'
+    ? ContextForAuth<Types, Scopes[Scope & keyof Scopes]>
+    : Scope extends '$all'
+    ? UnionToIntersection<ContextForAuth<Types, Scopes[Scope & keyof Scopes]>>
+    : Types['Context']
+  : never;
 
 export type UnauthorizedResolver<
   Types extends SchemaTypes,

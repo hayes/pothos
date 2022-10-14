@@ -53,7 +53,7 @@
     "graphql": "16.6.0",
     "graphql-rate-limit-directive": "^2.0.2",
     "graphql-tag": "^2.12.6",
-    "rate-limiter-flexible": "^2.3.11"
+    "rate-limiter-flexible": "^2.3.12"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

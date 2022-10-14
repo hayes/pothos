@@ -89,3 +89,49 @@ builder.queryField('withAuthPrismaUser', (t) =>
       }),
   }),
 );
+
+builder.queryField('withAuthFunction', (t) =>
+  t
+    .withAuth(() => ({
+      loggedIn: true,
+    }))
+    .prismaField({
+      type: 'User',
+      nullable: true,
+      resolve: (query, root, args, ctx) =>
+        db.user.findUniqueOrThrow({
+          ...query,
+          where: { id: Number.parseInt(ctx.user.id, 10) },
+        }),
+    }),
+);
+
+builder.queryField('withAuthBoolean', (t) =>
+  t
+    .withAuth(() => Math.random() > 0.5 && { loggedIn: true })
+    .prismaField({
+      type: 'User',
+      nullable: true,
+      resolve: (query, root, args, ctx) =>
+        'isLoggedIn' in ctx
+          ? db.user.findUniqueOrThrow({
+              ...query,
+              where: { id: Number.parseInt(ctx.user.id, 10) },
+            })
+          : null,
+    }),
+);
+
+builder.queryField('withAll', (t) =>
+  t.withAuth({ $all: { loggedIn: true, admin: true } }).boolean({
+    nullable: true,
+    resolve: (root, args, ctx) => ctx.isAdmin && ctx.isLoggedIn,
+  }),
+);
+
+builder.queryField('withAny', (t) =>
+  t.withAuth({ $any: { loggedIn: true, admin: true } }).boolean({
+    resolve: (root, args, ctx) =>
+      ('isAdmin' in ctx && ctx.isAdmin) || ('isLoggedIn' in ctx && ctx.isLoggedIn),
+  }),
+);

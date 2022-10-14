@@ -173,7 +173,11 @@ type Query {
   grantedFromRoot: String!
   notGrantedFromRoot: String!
   post: Post!
+  withAll: Boolean
+  withAny: Boolean!
   withAuth: Boolean
+  withAuthBoolean: User
+  withAuthFunction: User
   withAuthObject: WithAuthObject
   withAuthPrismaUser: User
 }

@@ -15,7 +15,7 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@faker-js/faker": "^7.5.0",
+    "@faker-js/faker": "^7.6.0",
     "@graphql-yoga/node": "^2.13.13",
     "@pothos/core": "^3.22.5",
     "@pothos/plugin-dataloader": "workspace:*",
@@ -27,7 +27,7 @@
     "@pothos/plugin-validation": "workspace:*",
     "@prisma/client": "^4.4.0",
     "graphql": "16.6.0",
-    "graphql-scalars": "^1.18.0",
+    "graphql-scalars": "^1.19.0",
     "prisma": "^4.4.0"
   },
   "publishConfig": {
