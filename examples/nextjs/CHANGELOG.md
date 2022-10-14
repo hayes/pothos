@@ -1,5 +1,13 @@
 # @pothos-examples/nextjs
 
+## 2.5.6
+
+### Patch Changes
+
+- d350f842: update dev deps
+- Updated dependencies [d350f842]
+  - @pothos/core@3.22.6
+
 ## 2.5.5
 
 ### Patch Changes

@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.15.0
+
+### Minor Changes
+
+- d350f842: Support functions and $any and $all in authField and withAuth methods
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 3.14.4
 
 ### Patch Changes

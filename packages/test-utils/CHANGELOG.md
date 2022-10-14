@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.4.4
+
+### Patch Changes
+
+- d350f842: update dev deps
+
 ## 1.4.3
 
 ### Patch Changes
