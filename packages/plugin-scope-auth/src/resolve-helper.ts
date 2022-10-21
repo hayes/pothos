@@ -2,7 +2,7 @@ import { GraphQLResolveInfo } from 'graphql';
 import { isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 import { ForbiddenError } from './errors';
 import RequestCache from './request-cache';
-import { AuthScopeFailureType, ResolveStep, UnauthorizedResolver } from './types';
+import { ResolveStep, UnauthorizedResolver } from './types';
 
 import type { PothosScopeAuthPlugin, UnauthorizedErrorFn } from '.';
 
@@ -31,28 +31,10 @@ export function resolveHelper<Types extends SchemaTypes>(
     context,
     info,
     result,
-  ) => {
-    if (globalUnauthorizedError) {
-      return globalUnauthorizedError(parent, context, info, result);
-    }
-
-    const failure =
-      (result.failure.kind === AuthScopeFailureType.AnyAuthScopes ||
-        result.failure.kind === AuthScopeFailureType.AllAuthScopes) &&
-      result.failure.failures.length === 1
-        ? result.failure.failures[0]
-        : result.failure;
-
-    if (
-      (failure.kind === AuthScopeFailureType.AuthScope ||
-        failure.kind === AuthScopeFailureType.AuthScopeFunction) &&
-      failure.error
-    ) {
-      return failure.error;
-    }
-
-    return result.message;
-  };
+  ) =>
+    globalUnauthorizedError
+      ? globalUnauthorizedError(parent, context, info, result)
+      : result.message;
 
   const createError: UnauthorizedErrorFn<Types, object, {}> =
     fieldConfig.pothosOptions.unauthorizedError ?? defaultUnauthorizedError;

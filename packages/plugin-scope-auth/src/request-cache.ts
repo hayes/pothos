@@ -32,14 +32,10 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   cacheKey?: (value: unknown) => unknown;
 
-  treatErrorsAsUnauthorized: boolean;
-
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: Types['Context']) {
     this.builder = builder;
     this.context = context;
     this.cacheKey = builder.options.scopeAuthOptions?.cacheKey;
-    this.treatErrorsAsUnauthorized =
-      builder.options.scopeAuthOptions?.treatErrorsAsUnauthorized ?? false;
   }
 
   static fromContext<T extends SchemaTypes>(
@@ -157,47 +153,21 @@ export default class RequestCache<Types extends SchemaTypes> {
         );
       }
 
-      let result;
-
-      if (this.treatErrorsAsUnauthorized) {
-        try {
-          result = (loader as (param: Types['AuthScopes'][T]) => MaybePromise<boolean>)(arg);
-        } catch (error: unknown) {
-          cache.set(key, {
-            kind: AuthScopeFailureType.AuthScope,
-            scope: name as string,
-            parameter: arg,
-            error: error as Error,
-          });
-
-          return cache.get(key)!;
-        }
-      } else {
-        result = (loader as (param: Types['AuthScopes'][T]) => MaybePromise<boolean>)(arg);
-      }
+      const result = (loader as (param: Types['AuthScopes'][T]) => MaybePromise<boolean>)(arg);
 
       if (isThenable(result)) {
-        let promise: Promise<AuthFailure | null> = result.then((r) =>
-          r
-            ? null
-            : {
-                kind: AuthScopeFailureType.AuthScope,
-                scope: name as string,
-                parameter: arg,
-                error: null,
-              },
+        cache.set(
+          key,
+          result.then((r) =>
+            r
+              ? null
+              : {
+                  kind: AuthScopeFailureType.AuthScope,
+                  scope: name as string,
+                  parameter: arg,
+                },
+          ),
         );
-
-        if (this.treatErrorsAsUnauthorized) {
-          promise = promise.catch((error: unknown) => ({
-            kind: AuthScopeFailureType.AuthScope,
-            scope: name as string,
-            parameter: arg,
-            error: error as Error,
-          }));
-        }
-
-        cache.set(key, promise);
       } else {
         cache.set(
           key,
@@ -207,7 +177,6 @@ export default class RequestCache<Types extends SchemaTypes> {
                 kind: AuthScopeFailureType.AuthScope,
                 scope: name as string,
                 parameter: arg,
-                error: null,
               },
         );
       }
@@ -240,7 +209,6 @@ export default class RequestCache<Types extends SchemaTypes> {
           kind: AuthScopeFailureType.AuthScope,
           scope: scopeName as string,
           parameter: map[scopeName],
-          error: null,
         });
         if (forAll) {
           return failure;
@@ -263,7 +231,6 @@ export default class RequestCache<Types extends SchemaTypes> {
           kind: AuthScopeFailureType.AuthScope,
           scope: scopeName as string,
           parameter: map[scopeName],
-          error: null,
         });
 
         if (forAll) {
@@ -381,7 +348,6 @@ export default class RequestCache<Types extends SchemaTypes> {
         ? null
         : {
             kind: AuthScopeFailureType.AuthScopeFunction,
-            error: null,
           };
     }
 
@@ -415,36 +381,13 @@ export default class RequestCache<Types extends SchemaTypes> {
     const cache = typeCache.get(type)!;
 
     if (!cache.has(parent)) {
-      let result;
-
-      if (this.treatErrorsAsUnauthorized) {
-        try {
-          result = authScopes(parent, info);
-        } catch (error: unknown) {
-          cache.set(parent, {
-            kind: AuthScopeFailureType.AuthScopeFunction,
-            error: error as Error,
-          });
-
-          return cache.get(parent)!;
-        }
-      } else {
-        result = authScopes(parent, this.context);
-      }
+      const result = authScopes(parent, this.context);
 
       if (isThenable(result)) {
-        let promise: Promise<AuthFailure | null> = result.then((resolved) =>
-          this.evaluateScopeMap(resolved, info),
+        cache.set(
+          parent,
+          result.then((resolved) => this.evaluateScopeMap(resolved, info)),
         );
-
-        if (this.treatErrorsAsUnauthorized) {
-          promise = promise.catch((error: unknown) => ({
-            kind: AuthScopeFailureType.AuthScopeFunction,
-            error: error as Error,
-          }));
-        }
-
-        cache.set(parent, promise);
       } else {
         cache.set(parent, this.evaluateScopeMap(result, info));
       }
