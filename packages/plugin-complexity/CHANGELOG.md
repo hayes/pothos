@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.11.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 3.11.5
 
 ### Patch Changes

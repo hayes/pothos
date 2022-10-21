@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.7
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 0.7.6
 
 ### Patch Changes

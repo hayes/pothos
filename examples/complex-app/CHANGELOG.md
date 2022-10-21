@@ -1,5 +1,20 @@
 # @pothos-examples/complex-app
 
+## 1.4.7
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+- Updated dependencies [6f00194c]
+  - @pothos/core@3.22.8
+  - @pothos/plugin-dataloader@3.12.6
+  - @pothos/plugin-prisma@3.35.6
+  - @pothos/plugin-prisma-utils@0.4.6
+  - @pothos/plugin-relay@3.28.6
+  - @pothos/plugin-scope-auth@3.15.2
+  - @pothos/plugin-simple-objects@3.6.6
+  - @pothos/plugin-validation@3.8.6
+
 ## 1.4.6
 
 ### Patch Changes

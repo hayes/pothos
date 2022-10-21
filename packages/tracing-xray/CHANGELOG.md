@@ -1,5 +1,11 @@
 # @pothos/tracing-xray
 
+## 0.5.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 0.5.5
 
 ### Patch Changes
