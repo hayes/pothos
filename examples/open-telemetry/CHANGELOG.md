@@ -1,5 +1,15 @@
 # @pothos-examples/open-telemetry
 
+## 1.2.10
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+- Updated dependencies [b12f9122]
+  - @pothos/core@3.22.7
+  - @pothos/plugin-tracing@0.5.5
+  - @pothos/tracing-opentelemetry@0.6.6
+
 ## 1.2.9
 
 ### Patch Changes

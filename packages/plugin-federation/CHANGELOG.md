@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.6.2
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 3.6.1
 
 ### Patch Changes

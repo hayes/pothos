@@ -1,5 +1,20 @@
 # @pothos-examples/complex-app
 
+## 1.4.6
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+- Updated dependencies [b12f9122]
+  - @pothos/core@3.22.7
+  - @pothos/plugin-dataloader@3.12.5
+  - @pothos/plugin-prisma@3.35.5
+  - @pothos/plugin-prisma-utils@0.4.5
+  - @pothos/plugin-relay@3.28.5
+  - @pothos/plugin-scope-auth@3.15.1
+  - @pothos/plugin-simple-objects@3.6.5
+  - @pothos/plugin-validation@3.8.5
+
 ## 1.4.5
 
 ### Patch Changes

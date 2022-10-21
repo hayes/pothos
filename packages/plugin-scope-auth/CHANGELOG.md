@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.15.1
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 3.15.0
 
 ### Minor Changes

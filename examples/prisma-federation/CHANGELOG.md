@@ -1,5 +1,16 @@
 # @pothos-examples/relay
 
+## 2.6.8
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+- Updated dependencies [b12f9122]
+  - @pothos/core@3.22.7
+  - @pothos/plugin-directives@3.8.2
+  - @pothos/plugin-federation@3.6.2
+  - @pothos/plugin-prisma@3.35.5
+
 ## 2.6.7
 
 ### Patch Changes

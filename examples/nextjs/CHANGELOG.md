@@ -1,5 +1,13 @@
 # @pothos-examples/nextjs
 
+## 2.5.7
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+- Updated dependencies [b12f9122]
+  - @pothos/core@3.22.7
+
 ## 2.5.6
 
 ### Patch Changes

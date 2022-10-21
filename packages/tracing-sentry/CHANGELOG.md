@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.6
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 0.7.5
 
 ### Patch Changes
