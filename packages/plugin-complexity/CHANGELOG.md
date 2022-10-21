@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.11.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 3.11.4
 
 ### Patch Changes

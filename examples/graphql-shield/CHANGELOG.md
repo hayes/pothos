@@ -1,5 +1,13 @@
 # @pothos-examples/graphql-shield
 
+## 2.2.10
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+- Updated dependencies [b12f9122]
+  - @pothos/core@3.22.7
+
 ## 2.2.9
 
 ### Patch Changes

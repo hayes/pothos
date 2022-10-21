@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.4.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 0.4.4
 
 ### Patch Changes

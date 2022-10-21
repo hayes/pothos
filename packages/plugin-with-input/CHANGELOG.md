@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.9.5
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 3.9.4
 
 ### Patch Changes

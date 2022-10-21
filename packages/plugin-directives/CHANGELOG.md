@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.8.2
+
+### Patch Changes
+
+- b12f9122: Fix issue with esm build script
+
 ## 3.8.1
 
 ### Patch Changes
