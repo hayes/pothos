@@ -1,5 +1,13 @@
 # @pothos-examples/nextjs
 
+## 2.5.8
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+- Updated dependencies [6f00194c]
+  - @pothos/core@3.22.8
+
 ## 2.5.7
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/tracing-newrelic
 
+## 0.5.7
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 0.5.6
 
 ### Patch Changes

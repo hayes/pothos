@@ -1,5 +1,15 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.7
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+- Updated dependencies [6f00194c]
+  - @pothos/core@3.22.8
+  - @pothos/plugin-prisma@3.35.6
+  - @pothos/plugin-relay@3.28.6
+
 ## 2.7.6
 
 ### Patch Changes

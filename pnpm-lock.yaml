@@ -56,7 +56,7 @@ importers:
     specifiers:
       '@faker-js/faker': ^7.6.0
       '@graphql-yoga/node': ^2.13.13
-      '@pothos/core': ^3.22.7
+      '@pothos/core': ^3.22.8
       '@pothos/plugin-dataloader': workspace:*
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-prisma-utils': workspace:*
@@ -253,7 +253,7 @@ importers:
     specifiers:
       '@faker-js/faker': ^7.6.0
       '@graphql-yoga/node': ^2.13.13
-      '@pothos/core': ^3.22.7
+      '@pothos/core': ^3.22.8
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-relay': workspace:*
       '@prisma/client': ^4.4.0

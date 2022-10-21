@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.9.6
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 3.9.5
 
 ### Patch Changes

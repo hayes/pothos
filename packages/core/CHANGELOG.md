@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.22.8
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 3.22.7
 
 ### Patch Changes

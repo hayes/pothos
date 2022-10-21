@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.6.3
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+
 ## 3.6.2
 
 ### Patch Changes

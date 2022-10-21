@@ -1,6 +1,6 @@
 {
   "name": "@pothos/tracing-newrelic",
-  "version": "0.5.6",
+  "version": "0.5.7",
   "description": "New Relic utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
