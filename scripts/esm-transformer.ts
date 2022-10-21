@@ -51,16 +51,18 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           const mod = resolveImport(moduleSpecifier.text, sourceFile.fileName);
 
           if (ts.isImportDeclaration(node)) {
-            return ts.factory.updateImportDeclaration(
+            const updated = ts.factory.updateImportDeclaration(
               node,
               node.modifiers,
               node.importClause,
               ts.factory.createStringLiteral(mod, true),
               undefined,
             );
+
+            return ts.visitEachChild(updated, visitor, context);
           }
 
-          return ts.factory.updateExportDeclaration(
+          const updatedNode = ts.factory.updateExportDeclaration(
             node,
             node.modifiers,
             node.isTypeOnly,
@@ -68,6 +70,8 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
             ts.factory.createStringLiteral(mod, true),
             undefined,
           );
+
+          return ts.visitEachChild(updatedNode, visitor, context);
         }
       } else if (
         ts.isImportTypeNode(node) &&
@@ -76,13 +80,15 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
       ) {
         const mod = resolveImport(node.argument.literal.text, sourceFile.fileName);
 
-        return ts.factory.updateImportTypeNode(
+        const updatedNode = ts.factory.updateImportTypeNode(
           node,
           ts.factory.updateLiteralTypeNode(node.argument, ts.factory.createStringLiteral(mod)),
           node.assertions,
           node.qualifier,
           node.typeArguments,
         );
+
+        return ts.visitEachChild(updatedNode, visitor, context);
       }
 
       return ts.visitEachChild(node, visitor, context);
