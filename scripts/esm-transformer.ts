@@ -2,7 +2,6 @@ import * as ts from 'typescript';
 
 import { dirname, join, resolve } from 'path';
 import * as fs from 'fs';
-import { t } from 'vitest/dist/global-e98f203b';
 import { throws } from 'assert';
 
 type LoadedFile = {
@@ -71,7 +70,6 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           );
         }
       } else if (
-        sourceFile.fileName.endsWith('index.d.ts') &&
         ts.isImportTypeNode(node) &&
         ts.isLiteralTypeNode(node.argument) &&
         ts.isStringLiteralLike(node.argument.literal)
