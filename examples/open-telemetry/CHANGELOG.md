@@ -1,5 +1,15 @@
 # @pothos-examples/open-telemetry
 
+## 1.2.11
+
+### Patch Changes
+
+- 6f00194c: Fix an issue with esm import transform
+- Updated dependencies [6f00194c]
+  - @pothos/core@3.22.8
+  - @pothos/plugin-tracing@0.5.6
+  - @pothos/tracing-opentelemetry@0.6.7
+
 ## 1.2.10
 
 ### Patch Changes
