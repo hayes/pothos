@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.35.7
+
+### Patch Changes
+
+- b6be576d: Fix typing for nullable prisma connections
+
 ## 3.35.6
 
 ### Patch Changes
