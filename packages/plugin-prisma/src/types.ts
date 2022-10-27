@@ -571,7 +571,11 @@ export type PrismaConnectionFieldOptions<
           args: ConnectionArgs,
           context: Types['Context'],
           info: GraphQLResolveInfo,
-        ) => MaybePromise<Model['Shape'][]>;
+        ) => ShapeFromTypeParam<Types, [Param], Nullable> extends infer Shape
+          ? [Shape] extends [[readonly (infer Item)[] | null | undefined]]
+            ? ListResolveValue<Shape, Item, ResolveReturnShape>
+            : MaybePromise<Shape>
+          : never;
         totalCount?: (
           parent: ParentShape,
           args: ConnectionArgs,
@@ -636,7 +640,13 @@ export type RelatedConnectionOptions<
               args: ConnectionArgs,
               context: Types['Context'],
               info: GraphQLResolveInfo,
-            ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
+            ) => MaybePromise<
+              ShapeFromTypeParam<
+                Types,
+                [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                Nullable
+              >
+            >;
           }
         : {
             resolve: (
@@ -650,7 +660,13 @@ export type RelatedConnectionOptions<
               args: ConnectionArgs,
               context: Types['Context'],
               info: GraphQLResolveInfo,
-            ) => MaybePromise<Model['Relations'][Field & keyof Model['Relations']]['Shape']>;
+            ) => MaybePromise<
+              ShapeFromTypeParam<
+                Types,
+                [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                Nullable
+              >
+            >;
           })
     : never);
 

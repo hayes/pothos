@@ -134,5 +134,6 @@ generous people and organizations:
 - [@Gomah](https://github.com/Gomah)
 - [![@IPS-Hosting](https://pothos-graphql.dev/assets/ips-logo.svg)](https://github.com/IPS-Hosting)
 - [@smartvokat](https://github.com/smartvokat)
-- [@evilkiwi](https://github.com/evilkiwi)
 - [@garth](https://github.com/garth)
+- [@lifedup](https://github.com/lifedup)
+- [@jacobgmathew](https://github.com/jacobgmathew)
