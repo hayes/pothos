@@ -132,7 +132,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
           formatCursor,
-          (query) => resolve(query as never, parent, args as never, context, info),
+          (query) => resolve(query as never, parent, args as never, context, info) as never,
         ),
     },
     {
