@@ -45,12 +45,104 @@ describe('treatErrorsAsUnauthorized', () => {
           "syncPermission": null,
         },
         "errors": [
-          [GraphQLError: syncPermission],
+          [GraphQLError: Not authorized to resolve Query.syncPermission],
           [GraphQLError: Not authorized to resolve Query.all],
           [GraphQLError: inlineSync],
           [GraphQLError: inlineAsync],
-          [GraphQLError: asyncPermission],
+          [GraphQLError: Not authorized to resolve Query.asyncPermission],
           [GraphQLError: Not authorized to resolve Query.any],
+        ],
+      }
+    `);
+  });
+
+  it('without error', async () => {
+    const query = gql`
+      query {
+        syncPermission
+        asyncPermission
+        any
+        all
+        inlineSync
+        inlineAsync
+      }
+    `;
+
+    const counter = new Counter();
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {
+        throwInScope: false,
+        count: counter.count,
+        throwFirst: true,
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "all": null,
+          "any": null,
+          "asyncPermission": null,
+          "inlineAsync": null,
+          "inlineSync": null,
+          "syncPermission": null,
+        },
+        "errors": [
+          [GraphQLError: Not authorized to resolve Query.syncPermission],
+          [GraphQLError: Not authorized to resolve Query.all],
+          [GraphQLError: inlineSync],
+          [GraphQLError: inlineAsync],
+          [GraphQLError: Not authorized to resolve Query.asyncPermission],
+          [GraphQLError: Not authorized to resolve Query.any],
+        ],
+      }
+    `);
+  });
+
+  it('throw first in any and all', async () => {
+    const query = gql`
+      query {
+        syncPermission
+        asyncPermission
+        any
+        all
+        inlineSync
+        inlineAsync
+      }
+    `;
+
+    const counter = new Counter();
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {
+        throwInScope: true,
+        count: counter.count,
+        throwFirst: true,
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "all": null,
+          "any": null,
+          "asyncPermission": null,
+          "inlineAsync": null,
+          "inlineSync": null,
+          "syncPermission": null,
+        },
+        "errors": [
+          [GraphQLError: syncPermission],
+          [GraphQLError: syncPermission],
+          [GraphQLError: inlineSync],
+          [GraphQLError: inlineAsync],
+          [GraphQLError: asyncPermission],
+          [GraphQLError: syncPermission],
         ],
       }
     `);

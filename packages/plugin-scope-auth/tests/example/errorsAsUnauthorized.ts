@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/require-await */
 import SchemaBuilder from '@pothos/core';
-import ScopeAuthPlugin from '../../src';
+import ScopeAuthPlugin, { AuthFailure, AuthScopeFailureType } from '../../src';
 import { db } from './db';
 import User from './user';
 
@@ -8,6 +8,23 @@ interface Context {
   user: User | null;
   count?: (name: string) => void;
   throwInScope?: boolean;
+  throwFirst?: boolean;
+}
+
+function throwFirstError(failure: AuthFailure, recursive: boolean) {
+  if ('error' in failure && failure.error) {
+    throw failure.error;
+  }
+
+  if (
+    recursive &&
+    (failure.kind === AuthScopeFailureType.AnyAuthScopes ||
+      failure.kind === AuthScopeFailureType.AllAuthScopes)
+  ) {
+    for (const child of failure.failures) {
+      throwFirstError(child, recursive);
+    }
+  }
 }
 
 const builder = new SchemaBuilder<{
@@ -27,6 +44,13 @@ const builder = new SchemaBuilder<{
   defaultFieldNullability: true,
   scopeAuthOptions: {
     treatErrorsAsUnauthorized: true,
+    unauthorizedError: (parent, context, info, result) => {
+      if (context.throwFirst) {
+        throwFirstError(result.failure, context.throwFirst);
+      }
+
+      return result.message;
+    },
   },
   prisma: {
     client: db,

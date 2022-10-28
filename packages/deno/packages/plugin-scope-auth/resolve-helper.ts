@@ -15,15 +15,10 @@ export function resolveHelper<Types extends SchemaTypes>(steps: ResolveStep<Type
         if (globalUnauthorizedError) {
             return globalUnauthorizedError(parent, context, info, result);
         }
-        const failure = (result.failure.kind === AuthScopeFailureType.AnyAuthScopes ||
-            result.failure.kind === AuthScopeFailureType.AllAuthScopes) &&
-            result.failure.failures.length === 1
-            ? result.failure.failures[0]
-            : result.failure;
-        if ((failure.kind === AuthScopeFailureType.AuthScope ||
-            failure.kind === AuthScopeFailureType.AuthScopeFunction) &&
-            failure.error) {
-            return failure.error;
+        if ((result.failure.kind === AuthScopeFailureType.AuthScope ||
+            result.failure.kind === AuthScopeFailureType.AuthScopeFunction) &&
+            result.failure.error) {
+            return result.failure.error;
         }
         return result.message;
     };
