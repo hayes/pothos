@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.6.4
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 3.6.3
 
 ### Patch Changes

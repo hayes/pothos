@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 3.7.6
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.22.9
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 3.22.8
 
 ### Patch Changes

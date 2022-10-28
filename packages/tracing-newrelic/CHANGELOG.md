@@ -1,5 +1,11 @@
 # @pothos/tracing-newrelic
 
+## 0.5.8
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 0.5.7
 
 ### Patch Changes

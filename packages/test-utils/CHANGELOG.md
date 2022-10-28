@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.4.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 1.4.6
 
 ### Patch Changes
