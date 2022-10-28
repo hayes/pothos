@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.5.8
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 3.5.7
 
 ### Patch Changes

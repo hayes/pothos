@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.16.0
+
+### Minor Changes
+
+- d4d41796: Add new `treatErrorsAsUnauthorized` option for better handling of thrown errors
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 3.15.2
 
 ### Patch Changes

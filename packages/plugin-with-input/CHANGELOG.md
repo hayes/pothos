@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 3.9.7
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 3.9.6
 
 ### Patch Changes

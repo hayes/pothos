@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.8
+
+### Patch Changes
+
+- d4d41796: Update dev dependencies
+
 ## 0.7.7
 
 ### Patch Changes
