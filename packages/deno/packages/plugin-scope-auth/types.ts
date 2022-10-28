@@ -6,6 +6,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
     unauthorizedError?: UnauthorizedForTypeErrorFn<Types, {}>;
     cacheKey?: (value: unknown) => unknown;
     runScopesOnType?: boolean;
+    treatErrorsAsUnauthorized?: boolean;
 }
 export interface BuiltInScopes<Types extends SchemaTypes> {
     $all?: true extends true ? AuthScopeMap<Types> : never;
@@ -34,9 +35,11 @@ export interface AuthScopeFailure {
     kind: AuthScopeFailureType.AuthScope;
     scope: string;
     parameter: unknown;
+    error: Error | null;
 }
 export interface AuthScopeFunctionFailure {
     kind: AuthScopeFailureType.AuthScopeFunction;
+    error: Error | null;
 }
 export interface UnknownAuthFailure {
     kind: AuthScopeFailureType.Unknown;

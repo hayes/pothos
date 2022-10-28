@@ -16,10 +16,13 @@ export default class RequestCache<Types extends SchemaTypes> {
     grantCache = new Map<string, Set<string>>();
     scopes?: MaybePromise<ScopeLoaderMap<Types>>;
     cacheKey?: (value: unknown) => unknown;
+    treatErrorsAsUnauthorized: boolean;
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: Types["Context"]) {
         this.builder = builder;
         this.context = context;
         this.cacheKey = builder.options.scopeAuthOptions?.cacheKey;
+        this.treatErrorsAsUnauthorized =
+            builder.options.scopeAuthOptions?.treatErrorsAsUnauthorized ?? false;
     }
     static fromContext<T extends SchemaTypes>(context: T["Context"], builder: PothosSchemaTypes.SchemaBuilder<T>): RequestCache<T> {
         if (!requestCache.has(context)) {
@@ -95,15 +98,42 @@ export default class RequestCache<Types extends SchemaTypes> {
             if (typeof loader !== "function") {
                 throw new TypeError(`Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`);
             }
-            const result = (loader as (param: Types["AuthScopes"][T]) => MaybePromise<boolean>)(arg);
+            let result;
+            if (this.treatErrorsAsUnauthorized) {
+                try {
+                    result = (loader as (param: Types["AuthScopes"][T]) => MaybePromise<boolean>)(arg);
+                }
+                catch (error: unknown) {
+                    cache.set(key, {
+                        kind: AuthScopeFailureType.AuthScope,
+                        scope: name as string,
+                        parameter: arg,
+                        error: error as Error,
+                    });
+                    return cache.get(key)!;
+                }
+            }
+            else {
+                result = (loader as (param: Types["AuthScopes"][T]) => MaybePromise<boolean>)(arg);
+            }
             if (isThenable(result)) {
-                cache.set(key, result.then((r) => r
+                let promise: Promise<AuthFailure | null> = result.then((r) => r
                     ? null
                     : {
                         kind: AuthScopeFailureType.AuthScope,
                         scope: name as string,
                         parameter: arg,
+                        error: null,
+                    });
+                if (this.treatErrorsAsUnauthorized) {
+                    promise = promise.catch((error: unknown) => ({
+                        kind: AuthScopeFailureType.AuthScope,
+                        scope: name as string,
+                        parameter: arg,
+                        error: error as Error,
                     }));
+                }
+                cache.set(key, promise);
             }
             else {
                 cache.set(key, result
@@ -112,6 +142,7 @@ export default class RequestCache<Types extends SchemaTypes> {
                         kind: AuthScopeFailureType.AuthScope,
                         scope: name as string,
                         parameter: arg,
+                        error: null,
                     });
             }
         }
@@ -134,6 +165,7 @@ export default class RequestCache<Types extends SchemaTypes> {
                     kind: AuthScopeFailureType.AuthScope,
                     scope: scopeName as string,
                     parameter: map[scopeName],
+                    error: null,
                 });
                 if (forAll) {
                     return failure;
@@ -153,6 +185,7 @@ export default class RequestCache<Types extends SchemaTypes> {
                     kind: AuthScopeFailureType.AuthScope,
                     scope: scopeName as string,
                     parameter: map[scopeName],
+                    error: null,
                 });
                 if (forAll) {
                     return failure;
@@ -251,6 +284,7 @@ export default class RequestCache<Types extends SchemaTypes> {
                 ? null
                 : {
                     kind: AuthScopeFailureType.AuthScopeFunction,
+                    error: null,
                 };
         }
         if (!this.mapCache.has(map)) {
@@ -269,9 +303,31 @@ export default class RequestCache<Types extends SchemaTypes> {
         }
         const cache = typeCache.get(type)!;
         if (!cache.has(parent)) {
-            const result = authScopes(parent, this.context);
+            let result;
+            if (this.treatErrorsAsUnauthorized) {
+                try {
+                    result = authScopes(parent, info);
+                }
+                catch (error: unknown) {
+                    cache.set(parent, {
+                        kind: AuthScopeFailureType.AuthScopeFunction,
+                        error: error as Error,
+                    });
+                    return cache.get(parent)!;
+                }
+            }
+            else {
+                result = authScopes(parent, this.context);
+            }
             if (isThenable(result)) {
-                cache.set(parent, result.then((resolved) => this.evaluateScopeMap(resolved, info)));
+                let promise: Promise<AuthFailure | null> = result.then((resolved) => this.evaluateScopeMap(resolved, info));
+                if (this.treatErrorsAsUnauthorized) {
+                    promise = promise.catch((error: unknown) => ({
+                        kind: AuthScopeFailureType.AuthScopeFunction,
+                        error: error as Error,
+                    }));
+                }
+                cache.set(parent, promise);
             }
             else {
                 cache.set(parent, this.evaluateScopeMap(result, info));

@@ -1,7 +1,7 @@
 import { GraphQLSchema, isObjectType } from 'graphql';
 import { applyMiddleware } from 'graphql-middleware';
 import { IRules, shield } from 'graphql-shield';
-import { ShieldRule } from 'graphql-shield/dist/types';
+import { ShieldRule } from 'graphql-shield/typings/types';
 import SchemaBuilder, {
   BasePlugin,
   FieldNullability,

@@ -337,6 +337,7 @@ const builder = new SchemaBuilder<{
   };
 }>({
   scopeAuthOptions: {
+    treatErrorsAsUnauthorized: true,
     unauthorizedError: (parent, context, info, result) => new Error(`Not authorized`),
   },
   plugins: [ScopeAuthPlugin],
@@ -352,6 +353,65 @@ this type of failure, and a `failure` property with some details about what caus
 unauthorized. This callback can either return an `Error` instance (or an instance of a class that
 extends `Error`), or a `string`. If a string is returned, it will be converted to a
 `ForbiddenError`.
+
+The `treatErrorsAsUnauthorized` option changes how errors in authorization functions are handled. By
+default errors are not caught by the plugin, and will act as if thrown directly from the resolver.
+This means that thrown errors bypass the `unauthorizedError` callback, and will cause requests to
+fail even when another scope in an `$any` passes.
+
+Setting `treatErrorsAsUnauthorized` will cause errors to be caught and treated as if the scope was
+not authorized.
+
+#### Surfacing errors thrown in authorization checks
+
+When `treatErrorsAsUnauthorized` is set to true, errors are caught and attached to the `result`
+object in the `unauthorizedError` callback. This allows you to surface the error to the client.
+
+For example, if you want to re-throw errors thrown by authorization functions you could do this by
+writeing a custom `unauthorizedError` callback like this:
+
+```typescript
+import SchemaBuilder, { AuthFailure, AuthScopeFailureType } from '@pothos/core';
+
+// Find the first error and re-throw it
+function throwFirstError(failure: AuthFailure) {
+  // Check if the failure has an error attached to it and re-throw it
+  if ('error' in failure && failure.error) {
+    throw failure.error;
+  }
+
+  // Loop over any/all scopes and see if one of their children has an error to throw
+  if (
+    failure.kind === AuthScopeFailureType.AnyAuthScopes ||
+    failure.kind === AuthScopeFailureType.AllAuthScopes
+  ) {
+    for (const child of failure.failures) {
+      throwFirstError(child, recursive);
+    }
+  }
+}
+
+const builder = new SchemaBuilder<{
+  Context: Context;
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  scopeAuthOptions: {
+    treatErrorsAsUnauthorized: true,
+    unauthorizedError: (parent, context, info, result) => {
+      // throw an error if it's found
+      throwFirstError(result.failure);
+      // throw a fallback error if no error was found
+      new Error(`Not authorized`);
+    },
+  },
+  plugins: [ScopeAuthPlugin],
+  authScopes: async (context) => ({
+    loggedIn: !!context.User,
+  }),
+});
+```
 
 #### On individual fields
 
