@@ -167,24 +167,17 @@ export default class PothosConverter {
 
       if (type instanceof GraphQLObjectType) {
         switch (type.name) {
-          case 'Query': {
+          case 'Query':
             this.queryType(type);
-
             break;
-          }
-          case 'Mutation': {
+          case 'Mutation':
             this.mutationType(type);
-
             break;
-          }
-          case 'Subscription': {
+          case 'Subscription':
             this.subscriptionType(type);
-
             break;
-          }
-          default: {
+          default:
             this.objectType(type);
-          }
         }
       }
     });

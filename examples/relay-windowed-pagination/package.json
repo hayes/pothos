@@ -17,7 +17,7 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "graphql": "16.6.0",
-    "prisma": "^4.4.0"
+    "prisma": "^4.5.0"
   },
   "publishConfig": {
     "access": "public"

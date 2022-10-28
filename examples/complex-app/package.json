@@ -25,10 +25,10 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
-    "@prisma/client": "^4.4.0",
+    "@prisma/client": "^4.5.0",
     "graphql": "16.6.0",
-    "graphql-scalars": "^1.19.0",
-    "prisma": "^4.4.0"
+    "graphql-scalars": "^1.20.0",
+    "prisma": "^4.5.0"
   },
   "publishConfig": {
     "access": "public"
