@@ -141,13 +141,11 @@ export function SearchPane() {
             <ul className="mt-1">
               {data!.map((result) => (
                 <li className="p-2 border-b border-gray-500 hover:border-green hover:bg-gray-100 dark:hover:bg-gray-800">
-                  <Link href={result.doc.link}>
-                    <a className="block">
-                      <h2 className="text-lg font-semibold">{result.doc.title}</h2>
-                      <p className="text-sm px-2 text-gray-600 dark:text-gray-400">
-                        - {result.doc.description}
-                      </p>
-                    </a>
+                  <Link href={result.doc.link} className="block">
+                    <h2 className="text-lg font-semibold">{result.doc.title}</h2>
+                    <p className="text-sm px-2 text-gray-600 dark:text-gray-400">
+                      - {result.doc.description}
+                    </p>
                   </Link>
                   <ul className="py-2">
                     {result.matches
@@ -155,11 +153,7 @@ export function SearchPane() {
                       .map((match) => (
                         <li className="px-2">
                           <Link href={match.section!.link}>
-                            <a>
-                              <h3 className="text-md hover:underline">
-                                # {match.section?.heading}
-                              </h3>
-                            </a>
+                            <h3 className="text-md hover:underline"># {match.section?.heading}</h3>
                           </Link>
                         </li>
                       ))}

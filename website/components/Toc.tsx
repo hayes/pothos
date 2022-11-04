@@ -35,36 +35,36 @@ export function SubMenu({ entry, active }: MenuProps) {
           active === entry.link ? 'font-bold dark:text-white ' : ''
         }`}
       >
-        <Link href={entry.link}>
-          <a className={`pl-2 py-1 select-none flex items-center justify-between`}>
-            {entry.name}
-            <div
-              className="px-2 py-1"
-              onClick={(ev) => {
-                ev.preventDefault();
-                setOpen(!open);
-              }}
-            >
-              {open ? (
-                <ChevronUpIcon className="h-4 mr-2" />
-              ) : (
-                <ChevronDownIcon className="h-4 mr-2" />
-              )}
-            </div>
-          </a>
+        <Link
+          href={entry.link}
+          className={`pl-2 py-1 select-none flex items-center justify-between`}
+        >
+          {entry.name}
+          <div
+            className="px-2 py-1"
+            onClick={(ev) => {
+              ev.preventDefault();
+              setOpen(!open);
+            }}
+          >
+            {open ? (
+              <ChevronUpIcon className="h-4 mr-2" />
+            ) : (
+              <ChevronDownIcon className="h-4 mr-2" />
+            )}
+          </div>
         </Link>
       </summary>
       <ol className="block ml-2 pl-2 border-l border-darkGreen dark:border-white text-sm">
         {entry.children?.map((child) => (
           <li key={child.link}>
-            <Link href={child.link}>
-              <a
-                className={`block rounded-l hover:bg-green hover:text-white pl-2 py-1 ${
-                  active === child.link ? 'font-bold dark:text-white' : ''
-                }`}
-              >
-                {child.name}
-              </a>
+            <Link
+              href={child.link}
+              className={`block rounded-l hover:bg-green hover:text-white pl-2 py-1 ${
+                active === child.link ? 'font-bold dark:text-white' : ''
+              }`}
+            >
+              {child.name}
             </Link>
           </li>
         ))}
@@ -86,14 +86,13 @@ export function Toc({ table, active, className }: TocProps) {
             {entry.children && entry.children.length > 0 ? (
               <SubMenu entry={entry} active={active} />
             ) : (
-              <Link href={entry.link}>
-                <a
-                  className={`block pl-2 py-1 rounded-l hover:bg-green hover:text-white ${
-                    active === entry.link ? 'rounded-l font-bold dark:text-white ' : ''
-                  }`}
-                >
-                  {entry.name}
-                </a>
+              <Link
+                href={entry.link}
+                className={`block pl-2 py-1 rounded-l hover:bg-green hover:text-white ${
+                  active === entry.link ? 'rounded-l font-bold dark:text-white ' : ''
+                }`}
+              >
+                {entry.name}
               </Link>
             )}
           </li>

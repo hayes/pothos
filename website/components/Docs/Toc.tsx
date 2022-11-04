@@ -128,12 +128,10 @@ export function Toc({
         {currentPage?.description && <meta name="description" content={currentPage.description} />}
       </Head>
       {currentPage && (
-        <Link href={currentPage.githubFile}>
-          <a className="flex space-x-2 mb-8 dark:text-white">
-            <GithubLogo height={20} width={20} />
+        <Link href={currentPage.githubFile} className="flex space-x-2 mb-8 dark:text-white">
+          <GithubLogo height={20} width={20} />
 
-            <span>Edit on Github</span>
-          </a>
+          <span>Edit on Github</span>
         </Link>
       )}
       <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">

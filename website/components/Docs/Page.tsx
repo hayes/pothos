@@ -15,9 +15,7 @@ export interface BaseProps {
 
 const components = {
   a: ({ href, ...props }: HTMLProps<HTMLAnchorElement>) => (
-    <Link href={href!}>
-      <a {...props} className="" />
-    </Link>
+    <Link href={href!} {...(props as {})} className=""></Link>
   ),
   h1: (props: HTMLProps<HTMLHeadingElement>) => (
     <Heading tag="h1" {...props} className="text-3xl dark:!text-gray-200" />
@@ -32,7 +30,11 @@ const components = {
     <Heading tag="h4" {...props} className="text-3xl" />
   ),
   inlineCode: (props: HTMLProps<HTMLElement>) => <code {...props} />,
-  pre: (props: HTMLProps<HTMLElement>) => <pre>{props.children}</pre>,
+  pre: (props: HTMLProps<HTMLElement>) => (
+    <pre className="[&>code]:bg-transparent [&>code]:after:hidden [&>code]:font-normal">
+      {props.children}
+    </pre>
+  ),
   code: (props: HTMLProps<HTMLElement>) => {
     const match = /language-(\w+)/.exec(props.className ?? '');
 
@@ -41,7 +43,7 @@ const components = {
     ) : (
       <code
         {...props}
-        className="bg-gray-200 dark:bg-gray-700 dark:text-white rounded before:content-[''] after:content-[''] px-2 font-semibold inline-block"
+        className=" bg-gray-200 dark:bg-gray-700 dark:text-white rounded before:content-[''] after:content-[''] px-2 font-semibold inline-block"
       />
     );
   },
@@ -86,19 +88,21 @@ export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: T
           {children}
           <div className="mt-20 flex justify-center space-x-4">
             {currentPage?.prevPage && (
-              <Link href={currentPage.prevPage.link}>
-                <a className="flex items-center space-x-2 border shadow p-4 text-gray-700 dark:text-gray-200 no-underline hover:shadow-md hover:underline">
-                  <ArrowLeftIcon height={22} />
-                  <span>{currentPage.prevPage.name}</span>
-                </a>
+              <Link
+                href={currentPage.prevPage.link}
+                className="flex items-center space-x-2 border shadow p-4 text-gray-700 dark:text-gray-200 no-underline hover:shadow-md hover:underline"
+              >
+                <ArrowLeftIcon height={22} />
+                <span>{currentPage.prevPage.name}</span>
               </Link>
             )}
             {currentPage?.nextPage && (
-              <Link href={currentPage.nextPage.link}>
-                <a className="flex items-center space-x-2 border shadow p-4 text-gray-700  dark:text-gray-200 no-underline hover:shadow-md hover:underline">
-                  <span>{currentPage.nextPage.name}</span>
-                  <ArrowRightIcon height={22} />
-                </a>
+              <Link
+                href={currentPage.nextPage.link}
+                className="flex items-center space-x-2 border shadow p-4 text-gray-700  dark:text-gray-200 no-underline hover:shadow-md hover:underline"
+              >
+                <span>{currentPage.nextPage.name}</span>
+                <ArrowRightIcon height={22} />
               </Link>
             )}
           </div>
