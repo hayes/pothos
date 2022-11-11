@@ -4,14 +4,22 @@ import SchemaBuilder, {
   brandWithType,
   FieldRef,
   InterfaceRef,
+  ObjectRef,
   OutputType,
   SchemaTypes,
 } from '@pothos/core';
+import { PrismaConnectionRef } from './connection-ref';
 import { PrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
-import PrismaNodeRef from './node-ref';
+import { PrismaNodeRef } from './node-ref';
+import { PrismaObjectRef } from './object-ref';
 import { PrismaModelTypes, PrismaNodeOptions } from './types';
-import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
+import {
+  getCursorFormatter,
+  getCursorParser,
+  getDefaultIDParser,
+  getDefaultIDSerializer,
+} from './util/cursors';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
 import { getModelDescription } from './util/description';
 import { getClient, getDMMF } from './util/get-client';
@@ -77,7 +85,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const resolve = rawResolve ?? getDefaultIDSerializer(type, fieldName, this);
   const idParser = fieldName ? getDefaultIDParser(type, fieldName, this) : undefined;
   const typeName = variant ?? name ?? type;
-  const nodeRef = new PrismaNodeRef(typeName);
+  const nodeRef = new PrismaNodeRef(typeName, type);
   const findUnique = rawFindUnique
     ? (parent: unknown, context: {}) =>
         rawFindUnique(resolve(parent as never, context) as string, context)
@@ -155,4 +163,104 @@ schemaBuilderProto.prismaNode = function prismaNode(
   this.configStore.associateRefWithName(nodeRef, typeName);
 
   return nodeRef;
+} as never;
+
+schemaBuilderProto.prismaConnectionObject = function prismaConnectionObject<
+  Type extends PrismaObjectRef<PrismaModelTypes> | string,
+  ResolveReturnShape,
+  Model extends PrismaModelTypes = PrismaModelTypes,
+>(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
+    connectionObject?: (...connectionArgs: unknown[]) => ObjectRef<unknown>;
+  },
+  {
+    type,
+    maxSize,
+    defaultSize,
+    cursor,
+    ...options
+  }: PothosSchemaTypes.ConnectionObjectOptions<
+    SchemaTypes,
+    ObjectRef<Model['Shape']>,
+    false,
+    false,
+    ResolveReturnShape
+  > & {
+    type: Type;
+    name?: string;
+    cursor: string & keyof Model['WhereUnique'];
+    defaultSize?:
+      | number
+      | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => number);
+    maxSize?: number | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => number);
+  },
+  edgeOptions = {},
+) {
+  if (!this.connectionObject) {
+    throw new TypeError(
+      'builder.prismaConnectionObject requires @pothos/plugin-relay to be installed',
+    );
+  }
+
+  const typeRef: PrismaObjectRef<PrismaModelTypes> =
+    typeof type === 'string' ? getRefFromModel(type, this) : type;
+  const connectionName = options.name ?? `${typeRef.name}Connection`;
+
+  this.connectionObject(
+    {
+      ...options,
+      name: connectionName,
+      type: typeRef,
+    },
+    edgeOptions,
+  );
+
+  const formatCursor = getCursorFormatter(typeRef.modelName, this, cursor);
+  const parseCursor = getCursorParser(typeRef.modelName, this, cursor);
+
+  const prismaConnectionRef = new PrismaConnectionRef({
+    name: connectionName,
+    formatCursor,
+    parseCursor,
+    maxSize,
+    defaultSize,
+  });
+
+  this.configStore.associateRefWithName(prismaConnectionRef, connectionName);
+
+  return prismaConnectionRef;
+} as never;
+
+schemaBuilderProto.prismaEdgeObject = function prismaEdgeObject<
+  Type extends PrismaObjectRef<PrismaModelTypes> | string,
+  ResolveReturnShape,
+  Model extends PrismaModelTypes = PrismaModelTypes,
+>(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes> & {
+    edgeObject?: (edgeOptions: Record<string, unknown>) => ObjectRef<unknown>;
+  },
+  {
+    type,
+    ...options
+  }: PothosSchemaTypes.ConnectionEdgeObjectOptions<
+    SchemaTypes,
+    ObjectRef<Model['Shape']>,
+    false,
+    ResolveReturnShape
+  > & {
+    type: Type;
+    name?: string;
+  },
+) {
+  if (!this.edgeObject) {
+    throw new TypeError('builder.prismaEdgeObject requires @pothos/plugin-relay to be installed');
+  }
+
+  const typeRef: PrismaObjectRef<PrismaModelTypes> =
+    typeof type === 'string' ? getRefFromModel(type, this) : type;
+
+  return this.edgeObject({
+    type: typeRef,
+    ...options,
+  });
 } as never;

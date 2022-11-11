@@ -8,6 +8,7 @@ import {
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
+import { PrismaConnectionRef } from './connection-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
 import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
@@ -123,6 +124,8 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
               context,
               info,
               select: cursorSelection as {},
+              path: ['edges', 'node'],
+              typeName,
             }),
             ctx: context,
             parseCursor,
@@ -135,30 +138,32 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           (query) => resolve(query as never, parent, args as never, context, info) as never,
         ),
     },
-    {
-      ...connectionOptions,
-      fields: totalCount
-        ? (
-            t: PothosSchemaTypes.ObjectFieldBuilder<
-              SchemaTypes,
-              { totalCount?: () => MaybePromise<number> }
-            >,
-          ) => ({
-            totalCount: t.int({
-              nullable: false,
-              resolve: (parent, args, context) => parent.totalCount?.(),
-            }),
-            ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
-          })
-        : (connectionOptions as { fields: undefined }).fields,
-      extensions: {
-        ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-        pothosPrismaIndirectInclude: {
-          getType: () => typeName,
-          path: [{ name: 'edges' }, { name: 'node' }],
+    connectionOptions instanceof PrismaConnectionRef
+      ? connectionOptions
+      : {
+          ...connectionOptions,
+          fields: totalCount
+            ? (
+                t: PothosSchemaTypes.ObjectFieldBuilder<
+                  SchemaTypes,
+                  { totalCount?: () => MaybePromise<number> }
+                >,
+              ) => ({
+                totalCount: t.int({
+                  nullable: false,
+                  resolve: (parent, args, context) => parent.totalCount?.(),
+                }),
+                ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+              })
+            : (connectionOptions as { fields: undefined }).fields,
+          extensions: {
+            ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
+            // pothosPrismaIndirectInclude: {
+            //   getType: () => typeName,
+            //   path: [{ name: 'edges' }, { name: 'node' }],
+            // },
+          },
         },
-      },
-    },
     edgeOptions,
   );
 

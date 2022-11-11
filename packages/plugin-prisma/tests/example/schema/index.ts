@@ -277,8 +277,35 @@ const SelectPost = builder.prismaNode('Post', {
       },
       resolve: (post) => post.createdAt.toISOString(),
     }),
+    comments: t.field({
+      type: CommentConnection,
+      args: {
+        ...t.arg.connectionArgs(),
+      },
+      select: (args, ctx, nestedSelection) => ({
+        comments: {
+          ...nestedSelection({}),
+          ...CommentConnection.getQuery(args, ctx),
+        },
+      }),
+      resolve: (parent, args, ctx) => CommentConnection.resolve(parent.comments, args, ctx),
+    }),
   }),
 });
+
+builder.queryField('selectPost', (t) =>
+  t.prismaField({
+    type: SelectPost,
+    args: {
+      id: t.arg.globalID({ required: true }),
+    },
+    resolve: (query, _, args) =>
+      prisma.post.findUniqueOrThrow({
+        ...query,
+        where: { id: Number.parseInt(args.id.id, 10) },
+      }),
+  }),
+);
 
 const Profile = builder.prismaObject('Profile', {
   // Testing that user is typed correctly
@@ -809,5 +836,10 @@ builder.queryField('blog', (t) =>
     },
   }),
 );
+
+const CommentConnection = builder.prismaConnectionObject({
+  type: 'Comment',
+  cursor: 'id',
+});
 
 export default builder.toSchema();

@@ -1779,4 +1779,80 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('connectionObjectRef', async () => {
+    const query = gql`
+      query {
+        selectPost(id: "U2VsZWN0UG9zdDox") {
+          id
+          comments(first: 2, after: "R1BDOk46MTAwMQ==") {
+            edges {
+              cursor
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "selectPost": {
+            "comments": {
+              "edges": [
+                {
+                  "cursor": "R1BDOk46MjAwMQ==",
+                  "node": {
+                    "id": "2001",
+                  },
+                },
+                {
+                  "cursor": "R1BDOk46MzAwMQ==",
+                  "node": {
+                    "id": "3001",
+                  },
+                },
+              ],
+            },
+            "id": "U2VsZWN0UG9zdDox",
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "select": {
+              "comments": {
+                "cursor": {
+                  "id": 1001,
+                },
+                "skip": 1,
+                "take": 3,
+              },
+              "id": true,
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

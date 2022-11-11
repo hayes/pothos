@@ -14,7 +14,8 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import PrismaNodeRef from './node-ref';
+import { PrismaConnectionRef } from './connection-ref';
+import { PrismaNodeRef } from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import {
@@ -145,6 +146,73 @@ declare global {
             >
           >
         : '@pothos/plugin-relay is required to use this method';
+
+      prismaConnectionObject: 'relay' extends PluginName
+        ? <
+            Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
+            ResolveReturnShape,
+            Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
+              ? T
+              : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+          >(
+            options: ConnectionObjectOptions<
+              Types,
+              ObjectRef<Model['Shape']>,
+              false,
+              false,
+              ResolveReturnShape
+            > & {
+              type: Type;
+              name?: string;
+              cursor: string & keyof Model['WhereUnique'];
+              defaultSize?:
+                | number
+                | ((args: DefaultConnectionArguments, ctx: Types['Context']) => number);
+              maxSize?:
+                | number
+                | ((args: DefaultConnectionArguments, ctx: Types['Context']) => number);
+            },
+            ...args: NormalizeArgs<
+              [
+                edgeOptions:
+                  | ConnectionEdgeObjectOptions<
+                      Types,
+                      ObjectRef<Model['Shape']>,
+                      false,
+                      ResolveReturnShape
+                    >
+                  | ObjectRef<{
+                      cursor: string;
+                      node: Model['Shape'];
+                    }>,
+              ],
+              0
+            >
+          ) => PrismaConnectionRef<Types, Model['Shape']>
+        : '@pothos/plugin-relay is required to use this method';
+
+      prismaEdgeObject: 'relay' extends PluginName
+        ? <
+            Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
+            ResolveReturnShape,
+            Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
+              ? T
+              : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+          >(
+            edgeOptions: ConnectionEdgeObjectOptions<
+              Types,
+              ObjectRef<Model['Shape']>,
+              false,
+              ResolveReturnShape
+            > & {
+              type: Type;
+              name?: string;
+            },
+          ) => ObjectRef<{
+            cursor: string;
+            node: Model['Shape'];
+          }>
+        : '@pothos/plugin-relay is required to use this method';
     }
 
     export interface RootFieldBuilder<
@@ -213,19 +281,26 @@ declare global {
             >,
             ...args: NormalizeArgs<
               [
-                connectionOptions: ConnectionObjectOptions<
-                  Types,
-                  ObjectRef<Model['Shape']>,
-                  false,
-                  false,
-                  ResolveReturnShape
-                >,
-                edgeOptions: ConnectionEdgeObjectOptions<
-                  Types,
-                  ObjectRef<Model['Shape']>,
-                  false,
-                  ResolveReturnShape
-                >,
+                connectionOptions:
+                  | ConnectionObjectOptions<
+                      Types,
+                      ObjectRef<Model['Shape']>,
+                      false,
+                      false,
+                      ResolveReturnShape
+                    >
+                  | PrismaConnectionRef<Types, Model['Shape']>,
+                edgeOptions:
+                  | ConnectionEdgeObjectOptions<
+                      Types,
+                      ObjectRef<Model['Shape']>,
+                      false,
+                      ResolveReturnShape
+                    >
+                  | ObjectRef<{
+                      cursor: string;
+                      node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                    }>,
               ],
               0
             >

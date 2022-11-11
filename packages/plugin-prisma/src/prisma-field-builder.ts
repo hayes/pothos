@@ -16,6 +16,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import { PrismaConnectionRef } from './connection-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
 import {
@@ -111,19 +112,26 @@ export class PrismaObjectFieldBuilder<
         options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
         ...args: NormalizeArgs<
           [
-            connectionOptions: PothosSchemaTypes.ConnectionObjectOptions<
-              Types,
-              ObjectRef<Shape>,
-              false,
-              false,
-              ResolveReturnShape
-            >,
-            edgeOptions: PothosSchemaTypes.ConnectionEdgeObjectOptions<
-              Types,
-              ObjectRef<Shape>,
-              false,
-              ResolveReturnShape
-            >,
+            connectionOptions:
+              | PothosSchemaTypes.ConnectionObjectOptions<
+                  Types,
+                  ObjectRef<Shape>,
+                  false,
+                  false,
+                  ResolveReturnShape
+                >
+              | PrismaConnectionRef<Types, Model['Shape']>,
+            edgeOptions:
+              | PothosSchemaTypes.ConnectionEdgeObjectOptions<
+                  Types,
+                  ObjectRef<Shape>,
+                  false,
+                  ResolveReturnShape
+                >
+              | ObjectRef<{
+                  cursor: string;
+                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                }>,
           ],
           0
         >
@@ -272,18 +280,22 @@ export class PrismaObjectFieldBuilder<
           );
         },
       },
-      {
-        ...connectionOptions,
-        fields: totalCount
-          ? (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
-              totalCount: t.int({
-                nullable: false,
-                resolve: (parent, args, context) => parent.totalCount,
-              }),
-              ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
-            })
-          : (connectionOptions as { fields: undefined }).fields,
-      },
+      connectionOptions instanceof PrismaConnectionRef
+        ? connectionOptions
+        : {
+            ...connectionOptions,
+            fields: totalCount
+              ? (
+                  t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
+                ) => ({
+                  totalCount: t.int({
+                    nullable: false,
+                    resolve: (parent, args, context) => parent.totalCount,
+                  }),
+                  ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+                })
+              : (connectionOptions as { fields: undefined }).fields,
+          },
       edgeOptions,
     );
 

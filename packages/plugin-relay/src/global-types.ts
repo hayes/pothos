@@ -235,34 +235,36 @@ declare global {
         Type extends OutputType<Types>,
         Args extends InputFieldMap,
         Nullable extends boolean,
+        ResolveShape,
         ResolveReturnShape,
         EdgeNullability extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
       >(
-        options: ConnectionFieldOptions<
+        options: FieldOptionsFromKind<
           Types,
           ParentShape,
           Type,
           Nullable,
-          EdgeNullability,
-          NodeNullability,
-          Args,
+          (InputFieldMap extends Args ? {} : Args) &
+            InputFieldsFromShape<DefaultConnectionArguments>,
+          Kind,
+          ResolveShape,
           ResolveReturnShape
-        > &
-          Omit<
-            FieldOptionsFromKind<
+        > extends infer FieldOptions
+          ? ConnectionFieldOptions<
               Types,
-              ParentShape,
+              FieldOptions extends { resolve: (parent: infer P, ...args: any[]) => unknown }
+                ? P
+                : ParentShape,
               Type,
               Nullable,
-              (InputFieldMap extends Args ? {} : Args) &
-                InputFieldsFromShape<DefaultConnectionArguments>,
-              Kind,
-              ParentShape,
+              EdgeNullability,
+              NodeNullability,
+              Args,
               ResolveReturnShape
-            >,
-            'args' | 'resolve' | 'type'
-          >,
+            > &
+              Omit<FieldOptions, 'args' | 'resolve' | 'type'>
+          : never,
         ...args: NormalizeArgs<
           [
             connectionOptions:
