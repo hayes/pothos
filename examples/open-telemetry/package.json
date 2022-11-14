@@ -4,7 +4,7 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "@graphql-yoga/node": "^2.13.13",
+    "graphql-yoga": "3.0.0-next.12",
     "@opentelemetry/api": "^1.2.0",
     "@opentelemetry/exporter-zipkin": "^1.7.0",
     "@opentelemetry/instrumentation": "^0.33.0",

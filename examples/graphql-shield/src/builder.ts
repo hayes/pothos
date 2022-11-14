@@ -1,4 +1,4 @@
-import { YogaInitialContext } from '@graphql-yoga/node';
+import { YogaInitialContext } from 'graphql-yoga';
 import SchemaBuilder from '@pothos/core';
 import Plugin from './shield-plugin';
 

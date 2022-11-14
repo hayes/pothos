@@ -1,10 +1,13 @@
-import { createServer } from '@graphql-yoga/node';
+import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
 import { schema } from './schema';
 
-const server = createServer({
+const yoga = createYoga({
   schema,
 });
 
-server.start().catch((error) => {
-  console.error(error);
-});
+const server = createServer(yoga);
+
+const port = 3000;
+
+server.listen(port);

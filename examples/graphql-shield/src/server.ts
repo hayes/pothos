@@ -1,13 +1,16 @@
-import { createServer } from '@graphql-yoga/node';
+import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
 import { schema } from './schema';
 
-export const server = createServer({
+const yoga = createYoga({
   schema,
   context: (ctx) => ({
     user: { id: Number.parseInt(ctx.request.headers.get('x-user-id') ?? '1', 10) },
   }),
 });
 
-server.start().catch((error) => {
-  console.error(error);
-});
+export const server = createServer(yoga);
+
+const port = 3000;
+
+server.listen(port);

@@ -50,7 +50,7 @@
     "newrelic": "*"
   },
   "devDependencies": {
-    "@graphql-yoga/node": "^2.13.13",
+    "graphql-yoga": "3.0.0-next.12",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",

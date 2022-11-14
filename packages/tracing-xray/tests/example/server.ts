@@ -1,6 +1,7 @@
+import { createServer } from 'node:http';
 import AWSXRay from 'aws-xray-sdk-core';
 import { print } from 'graphql';
-import { createServer, Plugin } from '@graphql-yoga/node';
+import { createYoga, Plugin } from 'graphql-yoga';
 import { AttributeNames, SpanNames } from '../../src';
 import { schema } from './schema';
 
@@ -32,10 +33,12 @@ const tracingPlugin: Plugin = {
   },
 };
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
   maskedErrors: false,
 });
 
-server.start().catch(console.error);
+const server = createServer(yoga);
+
+server.listen(3000);

@@ -69,13 +69,14 @@ builder.objectType(User, {
 Finally, we need to actually create our context when a request is created.
 
 ```typescript
-const server = createServer({
+const yoga = createYoga({
   schema,
   context: async ({ req }) => ({
     // This part is up to you!
     currentUser: await getUserFromAuthHeader(req.headers.authorization),
   }),
 });
+const server = createServer(yoga);
 
 server.listen(3000);
 ```
@@ -95,7 +96,7 @@ its identity, you can manually initialize the context cache and attach it to the
 ```typescript
 import { initContextCache } from '@pothos/core';
 
-const server = createServer({
+const server = createYoga({
   schema: builder.toSchema(),
   context: async ({ req }) => ({
     // Adding this will prevent any issues if you server implementation
@@ -106,5 +107,7 @@ const server = createServer({
   }),
 });
 
-server.start();
+const server = createServer(yoga);
+
+server.listen(3000);
 ```

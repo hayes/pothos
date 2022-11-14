@@ -55,7 +55,6 @@ importers:
   examples/complex-app:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': ^3.23.0
       '@pothos/plugin-dataloader': workspace:*
       '@pothos/plugin-prisma': workspace:*
@@ -67,10 +66,10 @@ importers:
       '@prisma/client': ^4.5.0
       graphql: 16.6.0
       graphql-scalars: ^1.20.0
+      graphql-yoga: 3.0.0-next.12
       prisma: ^4.5.0
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-dataloader': link:../../packages/plugin-dataloader
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
@@ -82,6 +81,7 @@ importers:
       '@prisma/client': 4.5.0_prisma@4.5.0
       graphql: 16.6.0
       graphql-scalars: 1.20.0_graphql@16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
       prisma: 4.5.0
 
   examples/envelope-helix-fastify:
@@ -103,18 +103,18 @@ importers:
   examples/graphql-shield:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': 2.13.13
       '@pothos/core': workspace:*
       graphql: 16.6.0
       graphql-middleware: ^6.1.33
       graphql-shield: ^7.6.3
+      graphql-yoga: 3.0.0-next.12
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       graphql: 16.6.0
       graphql-middleware: 6.1.33_graphql@16.6.0
       graphql-shield: 7.6.3_rpdijwwqx5bcdzo7hy5fcln5ty
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
 
   examples/helix:
     specifiers:
@@ -177,7 +177,6 @@ importers:
 
   examples/open-telemetry:
     specifiers:
-      '@graphql-yoga/node': ^2.13.13
       '@opentelemetry/api': ^1.2.0
       '@opentelemetry/exporter-zipkin': ^1.7.0
       '@opentelemetry/instrumentation': ^0.33.0
@@ -189,9 +188,9 @@ importers:
       '@pothos/tracing-opentelemetry': workspace:*
       bema: ^0.1.2
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12
       tsm: ^2.2.2
     dependencies:
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@opentelemetry/api': 1.2.0
       '@opentelemetry/exporter-zipkin': 1.7.0_@opentelemetry+api@1.2.0
       '@opentelemetry/instrumentation': 0.33.0_@opentelemetry+api@1.2.0
@@ -203,24 +202,25 @@ importers:
       '@pothos/tracing-opentelemetry': link:../../packages/tracing-opentelemetry
       bema: 0.1.2
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
       tsm: 2.2.2
 
   examples/prisma:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': workspace:*
       '@pothos/plugin-prisma': workspace:*
       '@prisma/client': ^4.5.0
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12
       prisma: ^4.5.0
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
       '@prisma/client': 4.5.0_prisma@4.5.0
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
       prisma: 4.5.0
 
   examples/prisma-federation:
@@ -252,62 +252,62 @@ importers:
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': ^3.23.0
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-relay': workspace:*
       '@prisma/client': ^4.5.0
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12
       prisma: ^4.5.0
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
       '@pothos/plugin-relay': link:../../packages/plugin-relay
       '@prisma/client': 4.5.0_prisma@4.5.0
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
       prisma: 4.5.0
 
   examples/relay-windowed-pagination:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': 2.13.13
       '@pothos/core': workspace:*
       '@pothos/plugin-relay': workspace:*
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12
       prisma: ^4.5.0
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-relay': link:../../packages/plugin-relay
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
       prisma: 4.5.0
 
   examples/simple-classes:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': workspace:*
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
 
   examples/simple-interfaces:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': workspace:*
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12
     dependencies:
       '@faker-js/faker': 7.6.0
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       graphql: 16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
 
   packages/converter:
     specifiers:
@@ -723,22 +723,22 @@ importers:
 
   packages/tracing-newrelic:
     specifiers:
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': workspace:*
       '@pothos/plugin-tracing': workspace:*
       '@pothos/test-utils': workspace:*
       '@types/newrelic': ^7.0.4
       graphql: 16.6.0
       graphql-tag: ^2.12.6
+      graphql-yoga: 3.0.0-next.12
       newrelic: ^9.5.0
     devDependencies:
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../core
       '@pothos/plugin-tracing': link:../plugin-tracing
       '@pothos/test-utils': link:../test-utils
       '@types/newrelic': 7.0.4
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
       newrelic: 9.5.0
 
   packages/tracing-newrelic/esm:
@@ -748,7 +748,6 @@ importers:
     specifiers:
       '@envelop/core': ^3.0.3
       '@envelop/opentelemetry': ^4.0.3
-      '@graphql-yoga/node': ^2.13.13
       '@opentelemetry/api': ^1.2.0
       '@opentelemetry/exporter-trace-otlp-http': ^0.33.0
       '@opentelemetry/instrumentation': ^0.33.0
@@ -762,10 +761,10 @@ importers:
       '@pothos/test-utils': workspace:*
       graphql: 16.6.0
       graphql-tag: ^2.12.6
+      graphql-yoga: 3.0.0-next.12
     devDependencies:
       '@envelop/core': 3.0.3
       '@envelop/opentelemetry': 4.0.3_pbptz7adnmiijjca652cpfgxr4
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@opentelemetry/api': 1.2.0
       '@opentelemetry/exporter-trace-otlp-http': 0.33.0_@opentelemetry+api@1.2.0
       '@opentelemetry/instrumentation': 0.33.0_@opentelemetry+api@1.2.0
@@ -779,13 +778,13 @@ importers:
       '@pothos/test-utils': link:../test-utils
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
 
   packages/tracing-opentelemetry/esm:
     specifiers: {}
 
   packages/tracing-sentry:
     specifiers:
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': workspace:*
       '@pothos/plugin-tracing': workspace:*
       '@pothos/test-utils': workspace:*
@@ -793,8 +792,8 @@ importers:
       '@sentry/tracing': ^7.17.1
       graphql: 16.6.0
       graphql-tag: ^2.12.6
+      graphql-yoga: 3.0.0-next.12
     devDependencies:
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../core
       '@pothos/plugin-tracing': link:../plugin-tracing
       '@pothos/test-utils': link:../test-utils
@@ -802,27 +801,28 @@ importers:
       '@sentry/tracing': 7.17.1
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
 
   packages/tracing-sentry/esm:
     specifiers: {}
 
   packages/tracing-xray:
     specifiers:
-      '@graphql-yoga/node': ^2.13.13
       '@pothos/core': workspace:*
       '@pothos/plugin-tracing': workspace:*
       '@pothos/test-utils': workspace:*
       aws-xray-sdk-core: ^3.3.8
       graphql: 16.6.0
       graphql-tag: ^2.12.6
+      graphql-yoga: 3.0.0-next.12
     devDependencies:
-      '@graphql-yoga/node': 2.13.13_graphql@16.6.0
       '@pothos/core': link:../core
       '@pothos/plugin-tracing': link:../plugin-tracing
       '@pothos/test-utils': link:../test-utils
       aws-xray-sdk-core: 3.3.8
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
+      graphql-yoga: 3.0.0-next.12_graphql@16.6.0
 
   packages/tracing-xray/esm:
     specifiers: {}
@@ -2142,15 +2142,6 @@ packages:
     dependencies:
       '@jridgewell/trace-mapping': 0.3.9
 
-  /@envelop/core/2.6.0_graphql@16.6.0:
-    resolution: {integrity: sha512-yTptKinJN//i6m1kXUbnLBl/FobzddI4ehURAMS08eRUOQwAuXqJU9r8VdTav8nIZLb4t6cuDWFb3n331LiwLw==}
-    peerDependencies:
-      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^16.5.0
-    dependencies:
-      '@envelop/types': 2.4.0_graphql@16.6.0
-      graphql: 16.6.0
-      tslib: 2.4.0
-
   /@envelop/core/3.0.3:
     resolution: {integrity: sha512-GXIb7HhsSYerMJR/AhJ6nN9F+w17bYRdUfu7ZXTixJEjS/3SXXK29qvr42iLLEqrnum57nk6cDyA3DBZLnuJ9w==}
     dependencies:
@@ -2181,23 +2172,15 @@ packages:
       tslib: 2.4.0
     dev: true
 
-  /@envelop/parser-cache/4.7.0_4hr55tbjlvoppd2sokdhrbpreq:
-    resolution: {integrity: sha512-63NfXDcW/vGn4U6NFxaZ0JbYWAcJb9A6jhTvghsSz1ZS+Dny/ci8bVSgVmM1q+N56hPyGsVPuyI+rIc71mPU5g==}
+  /@envelop/parser-cache/5.0.3_pbptz7adnmiijjca652cpfgxr4:
+    resolution: {integrity: sha512-3H3PZI//1ConuD0MmkKl3Sm9j7vRQvI/fIgvzXbE0n/OuuVV7D9rmtnSEqTkXufAgxKv674T2DJF4QPQHOy9Ag==}
     peerDependencies:
-      '@envelop/core': ^2.6.0
+      '@envelop/core': ^3.0.3
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^16.5.0
     dependencies:
-      '@envelop/core': 2.6.0_graphql@16.6.0
+      '@envelop/core': 3.0.3
       graphql: 16.6.0
       lru-cache: 6.0.0
-      tslib: 2.4.0
-
-  /@envelop/types/2.4.0_graphql@16.6.0:
-    resolution: {integrity: sha512-pjxS98cDQBS84X29VcwzH3aJ/KiLCGwyMxuj7/5FkdiaCXAD1JEvKEj9LARWlFYj1bY43uII4+UptFebrhiIaw==}
-    peerDependencies:
-      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^16.5.0
-    dependencies:
-      graphql: 16.6.0
       tslib: 2.4.0
 
   /@envelop/types/3.0.0:
@@ -2205,13 +2188,13 @@ packages:
     dependencies:
       tslib: 2.4.0
 
-  /@envelop/validation-cache/4.7.0_4hr55tbjlvoppd2sokdhrbpreq:
-    resolution: {integrity: sha512-PzL+GfWJRT+JjsJqZAIxHKEkvkM3hxkeytS5O0QLXT8kURNBV28r+Kdnn2RCF5+6ILhyGpiDb60vaquBi7g4lw==}
+  /@envelop/validation-cache/5.0.3_pbptz7adnmiijjca652cpfgxr4:
+    resolution: {integrity: sha512-zJcP8CFCdeUTkIymbBnuRgp3+G/YCubl7Pi+WoM0W2LAsJl7yxvqoaHS5aPbpNJunqUomsnRwBtkcK966EzjsQ==}
     peerDependencies:
-      '@envelop/core': ^2.6.0
+      '@envelop/core': ^3.0.3
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^16.5.0
     dependencies:
-      '@envelop/core': 2.6.0_graphql@16.6.0
+      '@envelop/core': 3.0.3
       graphql: 16.6.0
       lru-cache: 6.0.0
       tslib: 2.4.0
@@ -2602,6 +2585,18 @@ packages:
       graphql: 16.6.0
     dev: true
 
+  /@graphql-tools/executor/0.0.8_graphql@16.6.0:
+    resolution: {integrity: sha512-3I9LnwapdMRPlMQolR/GM+5M0qtSSzWy+5v5dxmhVX/hxda4LCKVNvjqW1sQWKGTGpXxCmSpjsmX/sB8aQsJIA==}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^16.5.0
+    dependencies:
+      '@graphql-tools/utils': 9.1.0_graphql@16.6.0
+      '@graphql-typed-document-node/core': 3.1.1_graphql@16.6.0
+      '@repeaterjs/repeater': 3.0.4
+      graphql: 16.6.0
+      tslib: 2.4.0
+      value-or-promise: 1.0.11
+
   /@graphql-tools/git-loader/7.2.7_graphql@16.6.0:
     resolution: {integrity: sha512-/vBz89ugBMfoKPI4WNiaNiUmlRvOkkLgd0ANue4ggPAOqAy6c2Q9yooblzr7RDF72HBpg4MAmzmbmVLIdiTlzg==}
     peerDependencies:
@@ -2715,6 +2710,7 @@ packages:
       '@graphql-tools/utils': 8.12.0_graphql@16.6.0
       graphql: 16.6.0
       tslib: 2.4.0
+    dev: true
 
   /@graphql-tools/merge/8.3.7_graphql@16.6.0:
     resolution: {integrity: sha512-su9cUb0gtbvKTmD3LJ3EoUkdqmJ3KBk1efJGvUoN8tFzVVBdxgfOVxwLGI2GgIHcKRVvfhumkjHsa2aneHSY+Q==}
@@ -2803,6 +2799,7 @@ packages:
       graphql: 16.6.0
       tslib: 2.4.0
       value-or-promise: 1.0.11
+    dev: true
 
   /@graphql-tools/schema/9.0.5_graphql@16.6.0:
     resolution: {integrity: sha512-JPxFumaPQp6pRnrofy7rWVNW57r/1RISNxBCGOudFmjfRE2PlO6b766pxhDnggm/yMR3yzR+mA/JHpOK+ij+EA==}
@@ -2849,6 +2846,7 @@ packages:
     dependencies:
       graphql: 16.6.0
       tslib: 2.4.0
+    dev: true
 
   /@graphql-tools/utils/8.13.0_graphql@16.6.0:
     resolution: {integrity: sha512-cI4LdXElgVK2jFoq0DpANlvk4Di6kIapHsJI63RCepQ6xZe+mLI1mDrGdesG37s2BaABqV3RdTzeO/sPnTtyxQ==}
@@ -2866,6 +2864,22 @@ packages:
       graphql: 16.6.0
       tslib: 2.4.0
     dev: false
+
+  /@graphql-tools/utils/9.1.0_graphql@16.6.0:
+    resolution: {integrity: sha512-4Ketxo98IwKA/56LP6cI6PgQBwUCujszQcTNkzjq7liJPa2mLjKnmVOJ0bauMwKcEazeYuZagceljb0POmEGvQ==}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^16.5.0
+    dependencies:
+      graphql: 16.6.0
+      tslib: 2.4.0
+
+  /@graphql-tools/utils/9.1.1_graphql@16.6.0:
+    resolution: {integrity: sha512-DXKLIEDbihK24fktR2hwp/BNIVwULIHaSTNTNhXS+19vgT50eX9wndx1bPxGwHnVBOONcwjXy0roQac49vdt/w==}
+    peerDependencies:
+      graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^16.5.0
+    dependencies:
+      graphql: 16.6.0
+      tslib: 2.4.0
 
   /@graphql-tools/wrap/9.2.4_graphql@16.6.0:
     resolution: {integrity: sha512-e3j8ZCb3Rbw95SZuuqEErBQ/7GhNpU33LWJo10taVNmSWkOaFwpCVAoMXrGNVeIYM8moNyjFyeIO1zNjbNEH3Q==}
@@ -2887,49 +2901,16 @@ packages:
     dependencies:
       graphql: 16.6.0
 
-  /@graphql-yoga/common/2.12.12_graphql@16.6.0:
-    resolution: {integrity: sha512-La2ygIw2qlIJZrRGT4nW70Nam7gQ2xZkOn0FDCnKWSJhQ4nHw4aFAkeHIJdZGK0u2TqtXRrNSAj5cb/TZoqUiQ==}
-    peerDependencies:
-      graphql: ^15.2.0 || ^16.0.0 || ^16.5.0
+  /@graphql-yoga/subscription/3.0.0-next.0:
+    resolution: {integrity: sha512-ne+0p7CUHK8XOZRymKzYCLtllKNLqHnL+DiAOMCsvTm7NwgRXBBWiVwN/Bkp/JUTS8+PTssuTSLG8cUTR55p7g==}
     dependencies:
-      '@envelop/core': 2.6.0_graphql@16.6.0
-      '@envelop/parser-cache': 4.7.0_4hr55tbjlvoppd2sokdhrbpreq
-      '@envelop/validation-cache': 4.7.0_4hr55tbjlvoppd2sokdhrbpreq
-      '@graphql-tools/schema': 9.0.4_graphql@16.6.0
-      '@graphql-tools/utils': 8.12.0_graphql@16.6.0
-      '@graphql-typed-document-node/core': 3.1.1_graphql@16.6.0
-      '@graphql-yoga/subscription': 2.2.3
-      '@whatwg-node/fetch': 0.3.2
-      dset: 3.1.2
-      graphql: 16.6.0
-      tslib: 2.4.0
-    transitivePeerDependencies:
-      - encoding
-
-  /@graphql-yoga/node/2.13.13_graphql@16.6.0:
-    resolution: {integrity: sha512-3NmdEq3BkuVLRbo5yUi401sBiwowSKgY8O1DN1RwYdHRr0nu2dXzlYEETf4XLymyP6mKsVfQgsy7HQjwsc1oNw==}
-    peerDependencies:
-      graphql: ^15.2.0 || ^16.0.0 || ^16.5.0
-    dependencies:
-      '@envelop/core': 2.6.0_graphql@16.6.0
-      '@graphql-tools/utils': 8.12.0_graphql@16.6.0
-      '@graphql-yoga/common': 2.12.12_graphql@16.6.0
-      '@graphql-yoga/subscription': 2.2.3
-      '@whatwg-node/fetch': 0.3.2
-      graphql: 16.6.0
-      tslib: 2.4.0
-    transitivePeerDependencies:
-      - encoding
-
-  /@graphql-yoga/subscription/2.2.3:
-    resolution: {integrity: sha512-It/Dfh+nW2ClTtmOylAa+o7fbKIRYRTH6jfKLj3YB75tkv/rFZ70bjlChDCrEMa46I+zDMg7+cdkrQOXov2fDg==}
-    dependencies:
-      '@graphql-yoga/typed-event-target': 0.1.1
+      '@graphql-yoga/typed-event-target': 1.0.0-next.0
       '@repeaterjs/repeater': 3.0.4
+      '@whatwg-node/events': 0.0.2
       tslib: 2.4.0
 
-  /@graphql-yoga/typed-event-target/0.1.1:
-    resolution: {integrity: sha512-l23kLKHKhfD7jmv4OUlzxMTihSqgIjGWCSb0KdlLkeiaF2jjuo8pRhX200hFTrtjRHGSYS1fx2lltK/xWci+vw==}
+  /@graphql-yoga/typed-event-target/1.0.0-next.0:
+    resolution: {integrity: sha512-OP+6WpeP2eJBdQ4aVdP6m+dhVXPQX1xJ0T2GVmBMiRD3NQeaIMbAP0FPrB3gvh2VGVH0UaAPspQSKsxwEe8YtQ==}
     dependencies:
       '@repeaterjs/repeater': 3.0.4
       tslib: 2.4.0
@@ -5005,6 +4986,9 @@ packages:
     resolution: {integrity: sha512-bYuSNomfn4hu2tPiDN+JZtnzCpSpbJ/PNeulmocDy3xN2X5OkJL65zo6rPZp65cPPhLF9vfT/dgE+RtFRCSxOA==}
     dev: true
 
+  /@whatwg-node/events/0.0.2:
+    resolution: {integrity: sha512-WKj/lI4QjnLuPrim0cfO7i+HsDSXHxNv1y0CrJhdntuO3hxWZmnXCwNDnwOvry11OjRin6cgWNF+j/9Pn8TN4w==}
+
   /@whatwg-node/fetch/0.3.2:
     resolution: {integrity: sha512-Bs5zAWQs0tXsLa4mRmLw7Psps1EN78vPtgcLpw3qPY8s6UYPUM67zFZ9cy+7tZ64PXhfwzxJn+m7RH2Lq48RNQ==}
     dependencies:
@@ -5019,6 +5003,7 @@ packages:
       web-streams-polyfill: 3.2.1
     transitivePeerDependencies:
       - encoding
+    dev: true
 
   /@whatwg-node/fetch/0.5.1:
     resolution: {integrity: sha512-RBZS60EU6CbRJ370BVVKW4F9csZuGh0OQNrUDhJ0IaIFLsXsJorFCM2iwaDWZTAPMqxW1TmuVcVKJ3d/H1dV1g==}
@@ -5034,6 +5019,30 @@ packages:
     transitivePeerDependencies:
       - encoding
     dev: true
+
+  /@whatwg-node/fetch/0.5.3:
+    resolution: {integrity: sha512-cuAKL3Z7lrJJuUrfF1wxkQTb24Qd1QO/lsjJpM5ZSZZzUMms5TPnbGeGUKWA3hVKNHh30lVfr2MyRCT5Jfkucw==}
+    dependencies:
+      '@peculiar/webcrypto': 1.4.0
+      abort-controller: 3.0.0
+      busboy: 1.6.0
+      form-data-encoder: 1.7.2
+      formdata-node: 4.4.1
+      node-fetch: 2.6.7
+      undici: 5.12.0
+      web-streams-polyfill: 3.2.1
+    transitivePeerDependencies:
+      - encoding
+
+  /@whatwg-node/server/0.4.16:
+    resolution: {integrity: sha512-fDYg7M/wLDkzUoymD85T3hlLkHufrddB4587BANf62spPbWRV9bu5rlYdUDgWd/XNuEye06M9KjduSKl32KQgw==}
+    peerDependencies:
+      '@types/node': ^18.0.6
+    dependencies:
+      '@whatwg-node/fetch': 0.5.3
+      tslib: 2.4.0
+    transitivePeerDependencies:
+      - encoding
 
   /@wry/context/0.6.1:
     resolution: {integrity: sha512-LOmVnY1iTU2D8tv4Xf6MVMZZ+juIJ87Kt/plMijjN20NMAXGmH4u8bS1t0uT74cZ5gwpocYueV58YwyI8y+GKw==}
@@ -8235,6 +8244,7 @@ packages:
 
   /event-target-polyfill/0.0.3:
     resolution: {integrity: sha512-ZMc6UuvmbinrCk4RzGyVmRyIsAyxMRlp4CqSrcQRO8Dy0A9ldbiRy5kdtBj4OtP7EClGdqGfIqo9JmOClMsGLQ==}
+    dev: true
 
   /event-target-shim/5.0.1:
     resolution: {integrity: sha512-i/2XbnSz/uxRCU6+NdVJgKWDTM427+MqYbkQzD321DuCQJUqOuJKIA0IM2+W2xtYHdKOmZ4dR6fExsd4SXL+WQ==}
@@ -9066,6 +9076,27 @@ packages:
     dependencies:
       graphql: 16.6.0
     dev: true
+
+  /graphql-yoga/3.0.0-next.12_graphql@16.6.0:
+    resolution: {integrity: sha512-J1Pqk8dF9JOb7EL9uOzOf4Yd1lr6ZfNI+m0PP2xSVpOY8e6AiW9h/p58WsPWhCY5n77X9O6BeLz8YBUdGK0mHg==}
+    peerDependencies:
+      graphql: ^15.2.0 || ^16.0.0 || ^16.5.0
+    dependencies:
+      '@envelop/core': 3.0.3
+      '@envelop/parser-cache': 5.0.3_pbptz7adnmiijjca652cpfgxr4
+      '@envelop/validation-cache': 5.0.3_pbptz7adnmiijjca652cpfgxr4
+      '@graphql-tools/executor': 0.0.8_graphql@16.6.0
+      '@graphql-tools/schema': 9.0.5_graphql@16.6.0
+      '@graphql-tools/utils': 9.1.1_graphql@16.6.0
+      '@graphql-yoga/subscription': 3.0.0-next.0
+      '@whatwg-node/fetch': 0.5.3
+      '@whatwg-node/server': 0.4.16
+      dset: 3.1.2
+      graphql: 16.6.0
+      tslib: 2.4.0
+    transitivePeerDependencies:
+      - '@types/node'
+      - encoding
 
   /graphql/16.6.0:
     resolution: {integrity: sha512-KPIBPDlW7NxrbT/eh4qPXz5FiFdL5UbaA0XUNz2Rp3Z3hqBSkbj0GVjwFDztsWVauZUWsbKHgMg++sk8UX0bkw==}
@@ -14403,13 +14434,13 @@ packages:
   /undici/5.10.0:
     resolution: {integrity: sha512-c8HsD3IbwmjjbLvoZuRI26TZic+TSEe8FPMLLOkN1AfYRhdjnKBU6yL+IwcSCbdZiX4e5t0lfMDLDCqj4Sq70g==}
     engines: {node: '>=12.18'}
+    dev: true
 
   /undici/5.12.0:
     resolution: {integrity: sha512-zMLamCG62PGjd9HHMpo05bSLvvwWOZgGeiWlN/vlqu3+lRo3elxktVGEyLMX+IO7c2eflLjcW74AlkhEZm15mg==}
     engines: {node: '>=12.18'}
     dependencies:
       busboy: 1.6.0
-    dev: true
 
   /unified/10.1.2:
     resolution: {integrity: sha512-pUSWAi/RAnVy1Pif2kAoeWNBa3JVrx0MId2LASj8G+7AiHWoKZNTomq6LG326T68U7/e263X6fTdcXIy7XnF7Q==}

@@ -5,7 +5,7 @@ This example shows how you can create a simple plugin to apply graphql shield ru
 This example uses the following packages:
 
 - `@pothos/core`: For building the schema
-- `@graphql-yoga/node`: For creating a server that executes the schema
+- `graphql-yoga`: For creating a server that executes the schema
 
 ## Schema
 

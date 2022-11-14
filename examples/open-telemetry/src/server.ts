@@ -1,4 +1,5 @@
-import { createServer } from '@graphql-yoga/node';
+import { createYoga } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { AttributeValue } from '@opentelemetry/api';
 import SchemaBuilder from '@pothos/core';
 import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
@@ -27,9 +28,13 @@ export const builder = new SchemaBuilder<{
   },
 });
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
 });
 
-server.start().catch(console.error);
+const server = createServer(yoga);
+
+const port = 3000;
+
+server.listen(port);

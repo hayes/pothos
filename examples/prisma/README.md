@@ -6,7 +6,7 @@ This example uses the following packages:
 - `@pothos/plugin-prisma`: For prisma based type definitions, and efficient queries
 - `@prisma/client`: For querying data from a database
 - `prisma`: For running migrations and generating `@prisma/client`
-- `@graphql-yoga/node`: For creating a server that executes the schema
+- `graphql-yoga`: For creating a server that executes the schema
 
 ## Schema
 

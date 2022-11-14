@@ -1,6 +1,7 @@
 import '@sentry/tracing';
+import { createServer } from 'node:http';
 import { print } from 'graphql';
-import { createServer, Plugin } from '@graphql-yoga/node';
+import { createYoga, Plugin } from 'graphql-yoga';
 import * as Sentry from '@sentry/node';
 import { AttributeNames } from '../../src';
 import { schema } from './schema';
@@ -37,9 +38,11 @@ const tracingPlugin: Plugin = {
   },
 };
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
 });
 
-server.start().catch(console.error);
+const server = createServer(yoga);
+
+server.listen(3000);

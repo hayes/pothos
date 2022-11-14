@@ -409,7 +409,8 @@ slightly different.
 // eslint-disable-next-line simple-import-sort/imports
 import { tracer } from './tracer'; // Tracer should be imported first if it handles additional instrumentation
 import { print } from 'graphql';
-import { createServer, Plugin } from '@graphql-yoga/node';
+import { createYoga, Plugin } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { AttributeNames, SpanNames } from '@pothos/tracing-opentelemetry';
 import { schema } from './schema';
 
@@ -441,10 +442,14 @@ const tracingPlugin: Plugin = {
   },
 };
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 Envelop also provides its own opentelemetry plugin which can be used instead of a custom plugin like
@@ -454,10 +459,11 @@ does not track the parent/child relations of spans it creates.
 ```ts
 import { provider } from './tracer'; // Tracer should be imported first if it handles additional instrumentation
 import { useOpenTelemetry } from '@envelop/opentelemetry';
-import { createServer } from '@graphql-yoga/node';
+import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
 import { schema } from './schema';
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [
     useOpenTelemetry(
@@ -471,6 +477,10 @@ const server = createServer({
     ),
   ],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 #### Setting up a tracer
@@ -600,7 +610,8 @@ slightly different.
 // eslint-disable-next-line simple-import-sort/imports
 import newrelic from 'newrelic'; // newrelic must be imported first
 import { print } from 'graphql';
-import { createServer, Plugin } from '@graphql-yoga/node';
+import { createYoga, Plugin } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { AttributeNames } from '@pothos/tracing-newrelic';
 import { schema } from './schema';
 
@@ -613,10 +624,14 @@ const tracingPlugin: Plugin = {
   },
 };
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 ### Using the envelop newrelic plugin
@@ -625,10 +640,11 @@ Envelop has it's own plugin for newrelic that can be combined with the tracing p
 
 ```ts
 import { useNewRelic } from '@envelop/newrelic';
-import { createServer } from '@graphql-yoga/node';
+import { createServer } from 'graphql-yoga';
+import { createYoga } from 'graphql-yoga';
 import { schema } from './schema';
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [
     useNewRelic({
@@ -638,6 +654,10 @@ const server = createServer({
     }),
   ],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 ### Sentry
@@ -687,7 +707,8 @@ slightly different.
 ```ts
 import '@sentry/tracing';
 import { print } from 'graphql';
-import { createServer, Plugin } from '@graphql-yoga/node';
+import { createYoga, Plugin } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { AttributeNames } from '@pothos/tracing-sentry';
 import * as Sentry from '@sentry/node';
 import { schema } from './schema';
@@ -724,10 +745,14 @@ const tracingPlugin: Plugin = {
   },
 };
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 ### Using the envelop sentry plugin
@@ -736,10 +761,11 @@ Envelop has it's own plugin for Sentry that can be combined with the tracing plu
 
 ```ts
 import { useSentry } from '@envelop/sentry';
-import { createServer } from '@graphql-yoga/node';
+import { createYoga } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { schema } from './schema';
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [
     useSentry({
@@ -749,6 +775,10 @@ const server = createServer({
     }),
   ],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 ### AWS XRay
@@ -797,7 +827,8 @@ slightly different.
 ```ts
 import AWSXRay from 'aws-xray-sdk-core';
 import { print } from 'graphql';
-import { createServer, Plugin } from '@graphql-yoga/node';
+import { createYoga, Plugin } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import { AttributeNames, SpanNames } from '@pothos/tracing-xray';
 import { schema } from './schema';
 
@@ -829,8 +860,12 @@ const tracingPlugin: Plugin = {
   },
 };
 
-const server = createServer({
+const yoga = createYoga({
   schema,
   plugins: [tracingPlugin],
 });
+
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
