@@ -11,8 +11,10 @@ import InternalRootFieldBuilder from './fieldUtils/root';
 import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
 import InternalBaseTypeRef from './refs/base';
 import InternalEnumRef from './refs/enum';
+import InternalInputListRef from './refs/input-list';
 import InternalInputObjectRef from './refs/input-object';
 import InternalInterfaceRef from './refs/interface';
+import InternalListRef from './refs/list';
 import InternalObjectRef from './refs/object';
 import InternalScalarRef from './refs/scalar';
 import InternalUnionRef from './refs/union';
@@ -148,6 +150,11 @@ export const InputObjectRef = InternalInputObjectRef as new <T>(
   name: string,
 ) => PothosSchemaTypes.InputObjectRef<T>;
 
+export type InputListRef<T> = PothosSchemaTypes.InputListRef<T>;
+export const InputListRef = InternalInputListRef as new <T>(
+  name: string,
+) => PothosSchemaTypes.InputListRef<T>;
+
 export type InterfaceRef<T, P = T> = PothosSchemaTypes.InterfaceRef<T, P>;
 export const InterfaceRef = InternalInterfaceRef as new <T, P = T>(
   name: string,
@@ -167,6 +174,12 @@ export type UnionRef<T, P = T> = PothosSchemaTypes.UnionRef<T, P>;
 export const UnionRef = InternalUnionRef as new <T, P = T>(
   name: string,
 ) => PothosSchemaTypes.UnionRef<T, P>;
+
+export type ListRef<T, P = T> = PothosSchemaTypes.ListRef<T, P>;
+export const ListRef = InternalListRef as new <T, P = T>(name: string) => PothosSchemaTypes.ListRef<
+  T,
+  P
+>;
 
 export { default as BuildCache } from './build-cache';
 export { default as BuiltinScalarRef } from './refs/builtin-scalar';
