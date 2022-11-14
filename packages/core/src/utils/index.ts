@@ -70,18 +70,18 @@ builder.objectType('MyObject', {
 
 type BrandWithTypeResult<T, Types extends SchemaTypes> = T extends Record<string, unknown>
   ? {
-      [K in keyof T & typeof typeBrandKey]: K extends typeof typeBrandKey
-        ? OutputType<Types>
-        : T[K];
+      [K in keyof T | typeof typeBrandKey]: K extends keyof T
+        ? T[K]
+        : OutputType<Types>
     }
-  : undefined;
+  : T;
 
 export function brandWithType<T, Types extends SchemaTypes>(
   val: T,
   type: OutputType<Types>,
 ): BrandWithTypeResult<T, Types> {
   if (typeof val !== 'object' || val === null) {
-    return undefined as BrandWithTypeResult<T, Types>;
+    return val as BrandWithTypeResult<T, Types>;
   }
 
   Object.defineProperty(val, typeBrandKey, {
