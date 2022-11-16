@@ -28,6 +28,7 @@ import {
   Kind,
   ListTypeNode,
   NamedTypeNode,
+  OperationTypeNode,
   parseValue,
   TypeNode,
   ValueNode,
@@ -36,6 +37,38 @@ import type { DirectiveList } from './types';
 
 export default function mockAst(schema: GraphQLSchema) {
   const types = schema.getTypeMap();
+
+  schema.extensionASTNodes = [
+    {
+      kind: Kind.SCHEMA_EXTENSION,
+      directives: directiveNodes(schema.extensions.directives as DirectiveList),
+      operationTypes: (
+        [
+          {
+            operation: OperationTypeNode.QUERY,
+            node: schema.getQueryType(),
+          },
+          {
+            operation: OperationTypeNode.MUTATION,
+            node: schema.getMutationType(),
+          },
+          {
+            operation: OperationTypeNode.SUBSCRIPTION,
+            node: schema.getSubscriptionType(),
+          },
+        ] as const
+      )
+        .filter(
+          ({ node, operation }) =>
+            node && node.name !== `${operation[0].toUpperCase()}${operation.slice(1)}`,
+        )
+        .map(({ operation, node }) => ({
+          kind: Kind.OPERATION_TYPE_DEFINITION,
+          operation,
+          type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: node!.name } },
+        })),
+    },
+  ];
 
   Object.keys(types).forEach((typeName) => {
     const type = types[typeName];

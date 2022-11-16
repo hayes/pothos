@@ -48,7 +48,19 @@ schemaBuilderProto.externalRef = function externalRef<
 };
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
-  const schema = this.toSchema(options);
+  const schema = this.toSchema({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      directives: {
+        ...(options?.extensions?.directives as {}),
+        // link: {
+        //   url: 'https://specs.apollo.dev/federation/v2.0',
+        //   import: ['@key', '@shareable'],
+        // },
+      },
+    },
+  });
   const queryType = schema.getType('Query') as GraphQLObjectType | undefined;
   const types = schema.getTypeMap();
 
@@ -90,6 +102,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
     subscription: schema.getType('Subscription') as GraphQLObjectType,
     extensions: schema.extensions,
     directives: [...schema.getDirectives(), ...federationDirectives],
+    extensionASTNodes: schema.extensionASTNodes,
     types: [
       ...Object.values(types).filter((type) => type.name !== 'Query'),
       newQuery,
@@ -100,6 +113,8 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
   const sorted = lexicographicSortSchema(subGraphSchema);
 
   const sdl = printSubgraphSchema(sorted);
+
+  console.log(subGraphSchema.astNode);
 
   return sorted;
 };
