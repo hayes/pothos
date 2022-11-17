@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   createContextCache,
   FieldRef,
@@ -15,7 +16,6 @@ import SchemaBuilder, {
   SchemaTypes,
   verifyRef,
 } from '@pothos/core';
-import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 

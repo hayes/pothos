@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from 'graphql';
 import {
   EmptyToOptional,
   FieldKind,
@@ -28,7 +29,6 @@ import {
   ShapeFromListTypeParam,
   ShapeFromTypeParam,
 } from '@pothos/core';
-import { GraphQLResolveInfo } from 'graphql';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldName?: string;
