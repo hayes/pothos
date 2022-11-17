@@ -548,6 +548,32 @@ const builder = new SchemaBuilder({
 });
 ```
 
+### Using custom resolve for node and or nodes
+
+if you want to resolve the queries for `node` and or `nodes` you can provide a custom resolve
+functions into the relay options of the builder:
+
+```typescript
+import RelayPlugin, { decodeGlobalID } from '@pothos/plugin-relay';
+
+function node(globalId: string) {
+  const { id } = decodeGlobalID(globalID);
+  return getThing(id);
+}
+
+const builder = new SchemaBuilder({
+  plugins: [RelayPlugin],
+  relayOptions: {
+    nodeQueryOptions: {
+      resolve: (globalID, context) => node(globalID),
+    },
+    nodesQueryOptions: {
+      resolve: (globalIDs, context) => globalIDs.map((globalID) => node(globalID)),
+    },
+  },
+});
+```
+
 ### Extending all connections
 
 There are 2 builder methods for adding fields to all connection objects: `t.globalConnectionField`

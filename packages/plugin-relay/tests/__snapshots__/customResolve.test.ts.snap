@@ -1,0 +1,11 @@
+// Vitest Snapshot v1
+
+exports[`cursor based connection > queries 1`] = `
+{
+  "data": {
+    "node": {
+      "number": 2,
+    },
+  },
+}
+`;

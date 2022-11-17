@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-return */
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
-import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   createContextCache,
   FieldRef,
@@ -16,6 +15,7 @@ import SchemaBuilder, {
   SchemaTypes,
   verifyRef,
 } from '@pothos/core';
+import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 
@@ -156,6 +156,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
           id: t.arg.id({ required: true }),
         },
         resolve: async (root, args, context, info) =>
+          this.options.relayOptions?.nodeQueryOptions?.resolve?.(String(args.id), context) ??
           (await resolveNodes(this, context, info, [String(args.id)]))[0],
       }) as FieldRef<unknown>,
   );
@@ -172,9 +173,10 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         ids: t.arg.idList({ required: true }),
       },
       resolve: async (root, args, context, info) =>
-        (await resolveNodes(this, context, info, args.ids as string[])) as Promise<
+        this.options.relayOptions?.nodesQueryOptions?.resolve?.(args.ids as string[], context) ??
+        ((await resolveNodes(this, context, info, args.ids as string[])) as Promise<
           ObjectParam<SchemaTypes>
-        >[],
+        >[]),
     }),
   );
 

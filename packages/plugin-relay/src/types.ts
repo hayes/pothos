@@ -1,4 +1,3 @@
-import { GraphQLResolveInfo } from 'graphql';
 import {
   EmptyToOptional,
   FieldKind,
@@ -29,6 +28,7 @@ import {
   ShapeFromListTypeParam,
   ShapeFromTypeParam,
 } from '@pothos/core';
+import { GraphQLResolveInfo } from 'graphql';
 
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldName?: string;
@@ -49,20 +49,24 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       OutputRefShape<GlobalIDShape<Types> | string>,
       boolean,
       { id: InputFieldRef<InputShape<Types, 'ID'>> },
-      Promise<unknown>
+      Promise<Types['Objects']>
     >,
     'args' | 'resolve' | 'type'
-  >;
+  > & {
+    resolve?: (id: string, context: Types['Context']) => MaybePromise<Types['Objects']>;
+  };
   nodesQueryOptions: Omit<
     PothosSchemaTypes.QueryFieldOptions<
       Types,
       [OutputRefShape<GlobalIDShape<Types> | string>],
       FieldNullability<[unknown]>,
       { ids: InputFieldRef<InputShape<Types, 'ID'>[]> },
-      Promise<unknown>[]
+      Promise<Types['Objects']>[]
     >,
     'args' | 'resolve' | 'type'
-  >;
+  > & {
+    resolve?: (ids: string[], context: Types['Context']) => MaybePromise<Types['Objects'][]>;
+  };
   mutationInputArgOptions: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>,
     'fields' | 'type'
