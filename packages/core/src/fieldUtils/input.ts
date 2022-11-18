@@ -1,8 +1,10 @@
 import InputFieldRef from '../refs/input-field';
+import InputListRef from '../refs/input-list';
 import type {
   ArgBuilder,
   FieldRequiredness,
   InputShapeFromTypeParam,
+  InputTypeParam,
   NormalizeArgs,
 } from '../types';
 import { InputType, SchemaTypes } from '../types';
@@ -83,6 +85,12 @@ export default class InputFieldBuilder<
     this.kind = kind;
     this.typename = typename;
   }
+
+  listRef = <T extends InputTypeParam<Types>, Required extends boolean = true>(
+    type: T,
+    required?: Required,
+  ): InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]> =>
+    new InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]>(type, required ?? true);
 
   argBuilder(): ArgBuilder<Types> {
     const builder = this.field.bind(this as never) as InputFieldBuilder<Types, 'Arg'>['field'];

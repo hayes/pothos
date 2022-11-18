@@ -11,9 +11,11 @@ export default class ListRef<Types extends SchemaTypes, T, P = T>
   [parentShapeKey]!: P;
 
   listType: TypeParam<Types>;
+  nullable: boolean;
 
-  constructor(listType: TypeParam<Types>) {
+  constructor(listType: TypeParam<Types>, nullable: boolean) {
     super('List', `List<${String(listType)}>`);
     this.listType = listType;
+    this.nullable = nullable;
   }
 }

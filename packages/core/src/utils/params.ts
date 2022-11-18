@@ -43,7 +43,7 @@ export function typeFromParam<Types extends SchemaTypes>(
   if (param instanceof ListRef) {
     return {
       kind: 'List',
-      type: typeFromParam(param.listType as TypeParam<Types>, configStore, itemNullable),
+      type: typeFromParam(param.listType as TypeParam<Types>, configStore, param.nullable),
       nullable,
     };
   }
@@ -92,7 +92,11 @@ export function inputTypeFromParam<Types extends SchemaTypes>(
   if (param instanceof InputListRef) {
     return {
       kind: 'List',
-      type: inputTypeFromParam(param.listType as InputTypeParam<Types>, configStore, itemRequired),
+      type: inputTypeFromParam(
+        param.listType as InputTypeParam<Types>,
+        configStore,
+        param.required,
+      ),
       required,
     };
   }

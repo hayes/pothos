@@ -9,9 +9,11 @@ export default class InputObjectRef<Types extends SchemaTypes, T>
 
   [inputShapeKey]!: T;
   listType: InputTypeParam<Types>;
+  required: boolean;
 
-  constructor(listType: InputTypeParam<Types>) {
+  constructor(listType: InputTypeParam<Types>, required: boolean) {
     super('InputList', `InputList<${String(listType)}>`);
     this.listType = listType;
+    this.required = required;
   }
 }

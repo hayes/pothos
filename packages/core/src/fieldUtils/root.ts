@@ -1,4 +1,5 @@
-import type { ArgBuilder, InputFieldMap, NormalizeArgs } from '../types';
+import ListRef from '../refs/list';
+import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types';
 import {
   FieldKind,
   FieldNullability,
@@ -413,5 +414,12 @@ export default class RootFieldBuilder<
     >,
   ) {
     return this.createField<Args, Type, Nullable>(options as never);
+  }
+
+  listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(
+    type: T,
+    nullable?: Nullable,
+  ): ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]> {
+    return new ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]>(type, nullable ?? false);
   }
 }

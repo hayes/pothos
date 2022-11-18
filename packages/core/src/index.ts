@@ -153,6 +153,7 @@ export const InputObjectRef = InternalInputObjectRef as new <T>(
 export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
 export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(
   name: string,
+  required: boolean,
 ) => PothosSchemaTypes.InputListRef<Types, T>;
 
 export type InterfaceRef<T, P = T> = PothosSchemaTypes.InterfaceRef<T, P>;
@@ -178,6 +179,7 @@ export const UnionRef = InternalUnionRef as new <T, P = T>(
 export type ListRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ListRef<Types, T, P>;
 export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(
   name: string,
+  nullable: boolean,
 ) => PothosSchemaTypes.ListRef<Types, T, P>;
 
 export { default as BuildCache } from './build-cache';
