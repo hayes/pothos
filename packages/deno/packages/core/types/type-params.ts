@@ -39,7 +39,7 @@ export interface OutputRef<T = unknown> {
 export interface InputRef<T = unknown> {
     [inputShapeKey]: T;
     name: string;
-    kind: "Enum" | "InputObject" | "Scalar";
+    kind: "Enum" | "InputObject" | "Scalar" | "InputList";
 }
 export type OutputType<Types extends SchemaTypes> = BaseEnum | keyof Types["outputShapes"]
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

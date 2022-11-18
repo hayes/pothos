@@ -54,11 +54,13 @@ declare global {
     export interface BaseTypeRef extends InternalBaseRef {}
     export interface EnumRef<T, U = T> extends InternalEnumRef<T, U> {}
     export interface InputObjectRef<T> extends InternalInputObjectRef<T> {}
-    export interface InputListRef<T> extends InternalInputListRef<T> {}
+    export interface InputListRef<Types extends SchemaTypes, T>
+      extends InternalInputListRef<Types, T> {}
     export interface InterfaceRef<T, P = T> extends InternalInterfaceRef<T, P> {}
     export interface ObjectRef<T, P = T> extends InternalObjectRef<T, P> {}
     export interface ScalarRef<T, U, P = T> extends InternalScalarRef<T, U, P> {}
     export interface UnionRef<T, P = T> extends InternalUnionRef<T, P> {}
-    export interface ListRef<T, P = T> extends InternalListRef<T, P> {}
+    export interface ListRef<Types extends SchemaTypes, T, P = T>
+      extends InternalListRef<Types, T, P> {}
   }
 }

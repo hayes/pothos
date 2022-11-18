@@ -9,6 +9,7 @@ import SchemaBuilder, {
   MaybePromise,
   PothosOutputFieldConfig,
   SchemaTypes,
+  unwrapOutputFieldType,
 } from '@pothos/core';
 
 export * from './refs';
@@ -22,9 +23,8 @@ export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugi
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const isList = fieldConfig.type.kind === 'List';
-    const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
 
-    const config = this.buildCache.getTypeConfig(type.ref);
+    const config = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
 
     const getDataloader = config.extensions?.getDataloader as (
       context: object,

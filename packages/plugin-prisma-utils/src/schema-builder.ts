@@ -2,6 +2,7 @@ import SchemaBuilder, {
   BaseTypeRef,
   EnumRef,
   InputFieldRef,
+  InputObjectRef,
   InputRef,
   InputShapeFromTypeParam,
   InputType,
@@ -195,7 +196,7 @@ schemaBuilder.prismaOrderBy = function prismaOrderBy<
     },
   });
 
-  return ref as InputRef<Model['OrderBy']>;
+  return ref as InputObjectRef<Model['OrderBy']>;
 };
 
 schemaBuilder.prismaWhere = function prismaWhere<
@@ -206,7 +207,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
 >(
   type: Name,
   { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model>,
-): InputRef<Model['Where']> {
+): InputObjectRef<Model['Where']> {
   const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Filter`);
 
   ref.implement({

@@ -114,8 +114,6 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
 
   const sdl = printSubgraphSchema(sorted);
 
-  console.log(subGraphSchema.astNode);
-
   return sorted;
 };
 

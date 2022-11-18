@@ -174,9 +174,10 @@ export type PothosOutputFieldType<Types extends SchemaTypes> =
     }
   | {
       kind: 'List';
-      type: PothosNameOutputFieldType<Types>;
+      type: PothosOutputFieldType<Types>;
       nullable: boolean;
     };
+
 export type PothosNameOutputFieldType<Types extends SchemaTypes> = Exclude<
   PothosOutputFieldType<Types>,
   { kind: 'List' }
@@ -190,7 +191,7 @@ export type PothosInputFieldType<Types extends SchemaTypes> =
     }
   | {
       kind: 'List';
-      type: PothosNameInputFieldType<Types>;
+      type: PothosInputFieldType<Types>;
       required: boolean;
     };
 

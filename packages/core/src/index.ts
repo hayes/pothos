@@ -150,10 +150,10 @@ export const InputObjectRef = InternalInputObjectRef as new <T>(
   name: string,
 ) => PothosSchemaTypes.InputObjectRef<T>;
 
-export type InputListRef<T> = PothosSchemaTypes.InputListRef<T>;
-export const InputListRef = InternalInputListRef as new <T>(
+export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
+export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(
   name: string,
-) => PothosSchemaTypes.InputListRef<T>;
+) => PothosSchemaTypes.InputListRef<Types, T>;
 
 export type InterfaceRef<T, P = T> = PothosSchemaTypes.InterfaceRef<T, P>;
 export const InterfaceRef = InternalInterfaceRef as new <T, P = T>(
@@ -175,11 +175,10 @@ export const UnionRef = InternalUnionRef as new <T, P = T>(
   name: string,
 ) => PothosSchemaTypes.UnionRef<T, P>;
 
-export type ListRef<T, P = T> = PothosSchemaTypes.ListRef<T, P>;
-export const ListRef = InternalListRef as new <T, P = T>(name: string) => PothosSchemaTypes.ListRef<
-  T,
-  P
->;
+export type ListRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ListRef<Types, T, P>;
+export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(
+  name: string,
+) => PothosSchemaTypes.ListRef<Types, T, P>;
 
 export { default as BuildCache } from './build-cache';
 export { default as BuiltinScalarRef } from './refs/builtin-scalar';

@@ -263,7 +263,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     } else if (this.refsToName.has(ref)) {
       config = this.typeConfigs.get(this.refsToName.get(ref)!)!;
     } else if (ref instanceof ListRef || ref instanceof InputListRef) {
-      throw new TypeError(`Expected a base type but got a ${ref.kind} of ${ref.listType.name}`);
+      throw new TypeError(`Expected a base type but got a ${ref.kind} of ${String(ref.listType)}`);
     } else {
       throw new TypeError(`Ref ${String(ref)} has not been implemented`);
     }

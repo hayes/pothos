@@ -2,10 +2,36 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable no-param-reassign */
 import './global-types.ts';
-import { ArgumentNode, ConstDirectiveNode, DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
+import { ArgumentNode, ConstDirectiveNode, DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, OperationTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import type { DirectiveList } from './types.ts';
 export default function mockAst(schema: GraphQLSchema) {
     const types = schema.getTypeMap();
+    schema.extensionASTNodes = [
+        {
+            kind: Kind.SCHEMA_EXTENSION,
+            directives: directiveNodes(schema.extensions.directives as DirectiveList),
+            operationTypes: ([
+                {
+                    operation: OperationTypeNode.QUERY,
+                    node: schema.getQueryType(),
+                },
+                {
+                    operation: OperationTypeNode.MUTATION,
+                    node: schema.getMutationType(),
+                },
+                {
+                    operation: OperationTypeNode.SUBSCRIPTION,
+                    node: schema.getSubscriptionType(),
+                },
+            ] as const)
+                .filter(({ node, operation }) => node && node.name !== `${operation[0].toUpperCase()}${operation.slice(1)}`)
+                .map(({ operation, node }) => ({
+                kind: Kind.OPERATION_TYPE_DEFINITION,
+                operation,
+                type: { kind: Kind.NAMED_TYPE, name: { kind: Kind.NAME, value: node!.name } },
+            })),
+        },
+    ];
     Object.keys(types).forEach((typeName) => {
         const type = types[typeName];
         if (type instanceof GraphQLObjectType) {

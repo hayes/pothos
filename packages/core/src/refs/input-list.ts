@@ -1,12 +1,17 @@
-import { InputRef, inputShapeKey } from '../types';
+import { inputShapeKey, InputTypeParam, SchemaTypes } from '../types';
+import BaseTypeRef from './base';
 
-export default class InputObjectRef<T> implements PothosSchemaTypes.InputListRef<T> {
-  kind = 'InputList' as const;
+export default class InputObjectRef<Types extends SchemaTypes, T>
+  extends BaseTypeRef
+  implements PothosSchemaTypes.InputListRef<Types, T>
+{
+  override kind = 'InputList' as const;
 
   [inputShapeKey]!: T;
-  listType: InputRef;
+  listType: InputTypeParam<Types>;
 
-  constructor(listType: InputRef) {
+  constructor(listType: InputTypeParam<Types>) {
+    super('InputList', `InputList<${String(listType)}>`);
     this.listType = listType;
   }
 }

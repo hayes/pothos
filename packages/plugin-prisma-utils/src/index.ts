@@ -8,6 +8,7 @@ import SchemaBuilder, {
   mapInputFields,
   PothosOutputFieldConfig,
   SchemaTypes,
+  unwrapInputFieldType,
 } from '@pothos/core';
 
 const pluginName = 'prismaUtils' as const;
@@ -46,9 +47,7 @@ export class PrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object, unknown> {
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
-      const inputType = this.buildCache.getTypeConfig(
-        inputField.type.kind === 'List' ? inputField.type.type.ref : inputField.type.ref,
-      );
+      const inputType = this.buildCache.getTypeConfig(unwrapInputFieldType(inputField.type));
 
       if (inputType.extensions?.pothosPrismaInput) {
         return true;
