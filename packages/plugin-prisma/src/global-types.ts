@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import {
   FieldKind,
+  FieldMap,
   FieldNullability,
   FieldRef,
   InputFieldMap,
@@ -23,6 +24,7 @@ import {
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
   PrismaFieldWithInputOptions,
+  prismaModelName,
   PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectFieldOptions,
@@ -117,6 +119,37 @@ declare global {
         >,
       ) => PrismaObjectRef<Model, ShapeFromSelection<Model, { select: Select; include: Include }>>;
 
+      prismaObjectField: <
+        Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer M, {}>
+          ? M
+          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+        Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
+          ? S
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fieldName: string,
+        field: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldRef,
+      ) => void;
+
+      prismaObjectFields: <
+        Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer M, {}>
+          ? M
+          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+        Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
+          ? S
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fields: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldMap,
+      ) => void;
+
       prismaNode: 'relay' extends PluginName
         ? <
             Name extends keyof Types['PrismaTypes'],
@@ -154,10 +187,14 @@ declare global {
             Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+            Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer T>
+              ? T
+              : (PrismaModelTypes &
+                  Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'],
           >(
             options: ConnectionObjectOptions<
               Types,
-              ObjectRef<Model['Shape']>,
+              ObjectRef<Shape>,
               false,
               false,
               ResolveReturnShape
@@ -175,20 +212,15 @@ declare global {
             ...args: NormalizeArgs<
               [
                 edgeOptions:
-                  | ConnectionEdgeObjectOptions<
-                      Types,
-                      ObjectRef<Model['Shape']>,
-                      false,
-                      ResolveReturnShape
-                    >
+                  | ConnectionEdgeObjectOptions<Types, ObjectRef<Shape>, false, ResolveReturnShape>
                   | ObjectRef<{
                       cursor: string;
-                      node: Model['Shape'];
+                      node: Shape;
                     }>,
               ],
               0
             >
-          ) => PrismaConnectionRef<Types, Model['Shape']>
+          ) => PrismaConnectionRef<Types, Shape>
         : '@pothos/plugin-relay is required to use this method';
 
       prismaEdgeObject: 'relay' extends PluginName
@@ -198,10 +230,14 @@ declare global {
             Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+            Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer T>
+              ? T
+              : (PrismaModelTypes &
+                  Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'],
           >(
             edgeOptions: ConnectionEdgeObjectOptions<
               Types,
-              ObjectRef<Model['Shape']>,
+              ObjectRef<Shape>,
               false,
               ResolveReturnShape
             > & {
@@ -210,7 +246,7 @@ declare global {
             },
           ) => ObjectRef<{
             cursor: string;
-            node: Model['Shape'];
+            node: Shape;
           }>
         : '@pothos/plugin-relay is required to use this method';
     }

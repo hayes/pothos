@@ -215,6 +215,37 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 
+const MediaConnection = builder.prismaConnectionObject({ type: Media, cursor: 'id' });
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.field({
+    type: MediaConnection,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    select: (args, ctx, nestedSelection) => ({
+      media: {
+        ...MediaConnection.getQuery(args, ctx),
+        select: {
+          order: true,
+          media: nestedSelection({
+            select: {
+              id: true,
+              posts: true,
+            },
+          }),
+        },
+      },
+    }),
+    resolve: (post, args, ctx) =>
+      MediaConnection.resolve(
+        post.media.map(({ media }) => media),
+        args,
+        ctx,
+      ),
+  }),
+);
+
 const SelectUser = builder.prismaNode('User', {
   variant: 'SelectUser',
   id: {
@@ -324,6 +355,27 @@ const Profile = builder.prismaObject('Profile', {
           },
           ...query,
         }),
+    }),
+  }),
+});
+
+const CircularComment = builder.prismaObject('Comment', {
+  variant: 'CircularComment',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+builder.prismaObjectField(CircularComment, 'author', (t) =>
+  t.relation('author', { type: CircularUser }),
+);
+
+const CircularUser = builder.prismaObject('User', {
+  variant: 'CircularUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    comments: t.relation('comments', {
+      type: CircularComment,
     }),
   }),
 });

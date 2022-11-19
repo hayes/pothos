@@ -32,7 +32,9 @@ schemaBuilderProto.prismaObject = function prismaObject(
   type,
   { fields, findUnique, select, include, description, ...options },
 ) {
-  const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
+  const ref = options.variant
+    ? new PrismaObjectRef(options.variant, type)
+    : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
   const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
@@ -264,3 +266,35 @@ schemaBuilderProto.prismaEdgeObject = function prismaEdgeObject<
     ...options,
   });
 } as never;
+
+schemaBuilderProto.prismaObjectField = function prismaObjectField(type, fieldName, field) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () => ({
+      [fieldName]: field(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    }));
+  });
+};
+
+schemaBuilderProto.prismaObjectFields = function prismaObjectFields(type, fields) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () =>
+      fields(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    );
+  });
+};

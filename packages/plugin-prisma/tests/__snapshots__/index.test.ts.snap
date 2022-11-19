@@ -10,6 +10,16 @@ type Blog {
   posts: [Post!]!
 }
 
+type CircularComment {
+  author: CircularUser!
+  id: ID!
+}
+
+type CircularUser {
+  comments: [CircularComment!]!
+  id: ID!
+}
+
 type Comment {
   author: User!
   authorBio: String
@@ -58,6 +68,16 @@ type Media {
   url: String!
 }
 
+type MediaConnection {
+  edges: [MediaEdge]!
+  pageInfo: PageInfo!
+}
+
+type MediaEdge {
+  cursor: String!
+  node: Media!
+}
+
 interface Named {
   name: String
 }
@@ -83,6 +103,7 @@ type Post {
   createdAt: String!
   id: ID!
   media: [Media!]!
+  mediaConnection(after: ID, before: ID, first: Int, last: Int): MediaConnection!
   ownComments: [Comment!]!
   ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
   post: User!

@@ -88,9 +88,12 @@ export default class InputFieldBuilder<
 
   listRef = <T extends InputTypeParam<Types>, Required extends boolean = true>(
     type: T,
-    required?: Required,
+    options?: { required?: Required },
   ): InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]> =>
-    new InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]>(type, required ?? true);
+    new InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]>(
+      type,
+      options?.required ?? true,
+    );
 
   argBuilder(): ArgBuilder<Types> {
     const builder = this.field.bind(this as never) as InputFieldBuilder<Types, 'Arg'>['field'];

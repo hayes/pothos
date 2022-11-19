@@ -676,6 +676,63 @@ const Media = builder.prismaObject('Media', {
 });
 ```
 
+## Indirect relations as connections
+
+Creating connections from indirect relations is a little more involved, but can be done by manually
+creating a PrismaConnection object
+
+```ts
+// Create a prisma object for the node type of your connection
+const Media = builder.prismaObject('Media', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+  }),
+});
+
+const MediaConnection = builder.prismaConnectionObject(
+  {
+    type: Media,
+    cursor: 'id',
+    // additional options like name, description, etc
+  },
+  {
+    // optional edge options
+  },
+);
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.field({
+    type: MediaConnection,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    select: (args, ctx, nestedSelection) => ({
+      media: {
+        ...MediaConnection.getQuery(args, ctx),
+        select: {
+          order: true,
+          media: nestedSelection({
+            select: {
+              id: true,
+              posts: true,
+            },
+          }),
+        },
+      },
+    }),
+    resolve: (post, args, ctx) =>
+      MediaConnection.resolve(
+        post.media.map(({ media }) => media),
+        args,
+        ctx,
+      ),
+  }),
+);
+```
+
 ## Selecting fields from a nested GraphQL field
 
 By default, the `nestedSelection` function will return selections based on the type of the current
@@ -726,6 +783,14 @@ builder.prismaObject('User', {
 });
 ```
 
+## Extending prisma objects
+
+The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
+using selections, or exposing fields not in the default selection. To use these features, you can
+use
+
+`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
+
 ## Type variants
 
 The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
@@ -754,9 +819,6 @@ const Viewer = builder.prismaObject('User', {
 });
 
 const User = builder.prismaNode('User', {
-  // Testing that user is typed correctly
-  authScopes: (user) => !!user.id,
-  interfaces: [Named],
   id: {
     resolve: (user) => user.id,
   },
@@ -797,6 +859,36 @@ const Viewer = builder.prismaObject('User', {
   });
 });
 ```
+
+You may run into circualr reference issues if you use 2 prisma object refs to reference eachother.
+To avoid this, you can split out the field definition for one of the relationships using
+`builder.prismaObjectField`
+
+```ts
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    user: t.variant(User),
+  });
+});
+
+const User = builder.prismaNode('User', {
+  interfaces: [Named],
+  id: {
+    resolve: (user) => user.id,
+  },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+// Viewer references the `User` ref in its field definiton,
+// referencing the `User` in fields would cause a circular type issue
+builder.prismaObjectField(Viewer, 'user', t.variant(User));
+```
+
+This same workaround applies when defining relations using variants.
 
 ## Relay integration
 

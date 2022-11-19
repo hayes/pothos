@@ -151,29 +151,15 @@ type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normali
     : unknown;
 }>;
 
-export type PrismaObjectTypeOptions<
+export type PrismaObjectRefOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  Interfaces extends InterfaceParam<Types>[],
   FindUnique,
   Include,
   Select,
   Shape extends object,
 > = NameOrVariant &
-  Omit<
-    | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
-    | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
-    'fields' | 'description'
-  > & {
-    description?: string | false;
-    fields?: PrismaObjectFieldsShape<
-      Types,
-      Model,
-      FindUnique extends null ? true : false,
-      Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
-      Select
-    >;
-  } & (
+  (
     | {
         include?: Include & Model['Include'];
         select?: never;
@@ -186,6 +172,39 @@ export type PrismaObjectTypeOptions<
         findUnique?: (parent: Shape, context: Types['Context']) => Model['WhereUnique'];
       }
   );
+
+export type PrismaObjectImplementationOptions<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Interfaces extends InterfaceParam<Types>[],
+  FindUnique,
+  Select,
+  Shape extends object,
+> = Omit<
+  | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
+  | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
+  'fields' | 'description'
+> & {
+  description?: string | false;
+  fields?: PrismaObjectFieldsShape<
+    Types,
+    Model,
+    FindUnique extends null ? true : false,
+    Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
+    Select
+  >;
+};
+
+export type PrismaObjectTypeOptions<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Interfaces extends InterfaceParam<Types>[],
+  FindUnique,
+  Include,
+  Select,
+  Shape extends object,
+> = PrismaObjectRefOptions<Types, Model, FindUnique, Include, Select, Shape> &
+  PrismaObjectImplementationOptions<Types, Model, Interfaces, FindUnique, Select, Shape>;
 
 type NameOrVariant =
   | {
