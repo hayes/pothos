@@ -235,8 +235,8 @@ export function argsForTypes<Types extends SchemaTypes, Name extends keyof Types
 
     if (orderBy && filter) {
       args[type] = builder.args((t) => ({
-        filter: t.field({ type: filter!, required: false }),
-        orderBy: t.field({ type: orderBy!, required: false }),
+        filter: t.field({ type: filter, required: false }),
+        orderBy: t.field({ type: orderBy, required: false }),
       })) as typeof args[Name];
     }
   }

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import type BuildCache from '../build-cache.ts';
 import { PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
+import { unwrapInputFieldType } from './params.ts';
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
     configs: Record<string, PothosInputFieldConfig<Types>>;
     map: InputFieldsMapping<Types, T> | null;
@@ -101,7 +102,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(inputs: Record<str
             }
             return;
         }
-        const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(inputField.type.kind === "List" ? inputField.type.type.ref : inputField.type.ref);
+        const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(unwrapInputFieldType(inputField.type));
         if (!seenTypes.has(typeConfig.name)) {
             const typeEntry = {
                 configs: inputFieldConfigs,

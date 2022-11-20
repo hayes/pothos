@@ -1,5 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
+import { prismaConnectionHelpers } from '../../../src';
 import { queryFromInfo } from '../../../src/util/map-query';
 import { Post } from '../../client';
 import builder, { prisma } from '../builder';
@@ -215,6 +216,87 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 
+const MediaConnection = builder.connectionObject({
+  type: Media,
+  name: 'MediaConnection',
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx),
+          select: {
+            order: true,
+            media: nestedSelection(
+              {
+                select: {
+                  id: true,
+                  posts: true,
+                },
+              },
+              ['edges', 'node'],
+            ),
+          },
+        },
+      }),
+      resolve: (post, args, ctx) =>
+        mediaConnectionHelpers.resolve(
+          post.media.map(({ media }) => media),
+          args,
+          ctx,
+        ),
+    },
+    MediaConnection,
+  ),
+);
+
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, Media, {
+  cursor: 'id',
+});
+
+builder.prismaObjectFields('Post', (t) => ({
+  manualMediaConnection: t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx),
+          select: {
+            order: true,
+            media: nestedSelection({}, ['edges', 'node']),
+          },
+        },
+      }),
+      resolve: (post, args, ctx) => {
+        const connection = mediaConnectionHelpers.resolve(
+          post.media.map(({ media }) => media),
+          args,
+          ctx,
+        );
+
+        return {
+          ...connection,
+          edges: connection.edges.map((edge, i) => ({
+            ...post.media[i],
+            ...edge!,
+          })),
+        };
+      },
+    },
+    {},
+    {
+      fields: (edge) => ({
+        order: edge.int({
+          resolve: (media) => media.order,
+        }),
+      }),
+    },
+  ),
+}));
+
 const SelectUser = builder.prismaNode('User', {
   variant: 'SelectUser',
   id: {
@@ -257,6 +339,15 @@ const SelectUser = builder.prismaNode('User', {
   }),
 });
 
+const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+});
+
+const CommentConnection = builder.connectionObject({
+  type: commentConnectionHelpers.ref,
+  name: 'CommentConnection',
+});
+
 const SelectPost = builder.prismaNode('Post', {
   variant: 'SelectPost',
   id: {
@@ -277,8 +368,36 @@ const SelectPost = builder.prismaNode('Post', {
       },
       resolve: (post) => post.createdAt.toISOString(),
     }),
+    comments: t.connection(
+      {
+        type: commentConnectionHelpers.ref,
+        select: (args, ctx, nestedSelection) => ({
+          comments: {
+            ...nestedSelection({}, ['edges', 'node']),
+            ...commentConnectionHelpers.getQuery(args, ctx),
+          },
+        }),
+        resolve: (parent, args, ctx) =>
+          commentConnectionHelpers.resolve(parent.comments, args, ctx),
+      },
+      CommentConnection,
+    ),
   }),
 });
+
+builder.queryField('selectPost', (t) =>
+  t.prismaField({
+    type: SelectPost,
+    args: {
+      id: t.arg.globalID({ required: true }),
+    },
+    resolve: (query, _, args) =>
+      prisma.post.findUniqueOrThrow({
+        ...query,
+        where: { id: Number.parseInt(args.id.id, 10) },
+      }),
+  }),
+);
 
 const Profile = builder.prismaObject('Profile', {
   // Testing that user is typed correctly
@@ -297,6 +416,27 @@ const Profile = builder.prismaObject('Profile', {
           },
           ...query,
         }),
+    }),
+  }),
+});
+
+const CircularComment = builder.prismaObject('Comment', {
+  variant: 'CircularComment',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+  }),
+});
+
+builder.prismaObjectField(CircularComment, 'author', (t) =>
+  t.relation('author', { type: CircularUser }),
+);
+
+const CircularUser = builder.prismaObject('User', {
+  variant: 'CircularUser',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    comments: t.relation('comments', {
+      type: CircularComment,
     }),
   }),
 });
@@ -347,7 +487,7 @@ const PostRef = builder.prismaObject('Post', {
         take: 3,
       },
     }),
-    commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
+    commentsConnection: t.relatedConnection('comments', { cursor: 'id' }, CommentConnection),
     ownComments: t.relation('comments', {
       query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
     }),

@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, SchemaTypes, sortClasses, typeBrandKey, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
 export * from './types.ts';
 const pluginName = "errors";
 export default pluginName;
@@ -65,7 +65,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         }).directResult ??
             errorBuilderOptions?.directResult ??
             false;
-        const typeRef = fieldConfig.type.kind === "List" ? fieldConfig.type.type.ref : fieldConfig.type.ref;
+        const typeRef = unwrapOutputFieldType(fieldConfig.type);
         const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
         const unionType = this.runUnique(resultName, () => {
             let resultType: ImplementableObjectRef<Types, unknown>;
@@ -94,8 +94,8 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
                     }),
                 });
             }
-            const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
-            const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions?.getDataloader;
+            const getDataloader = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
+                .extensions?.getDataloader;
             return this.builder.unionType(unionName, {
                 types: [...errorTypes, resultType],
                 resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,

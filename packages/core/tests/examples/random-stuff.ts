@@ -23,7 +23,7 @@ class Animal {
 }
 
 class Giraffe extends Animal {
-  override species: 'Giraffe' = 'Giraffe';
+  override species = 'Giraffe' as const;
 
   name: string;
 
@@ -357,6 +357,19 @@ builder.subscriptionType({
 });
 
 builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
+
+builder.queryField('nestedLists', (t) =>
+  t.field({
+    type: t.listRef(t.listRef(t.listRef('String')), { nullable: true }),
+    args: {
+      input: t.arg({
+        type: t.arg.listRef(t.arg.listRef(t.arg.listRef('String')), { required: false }),
+        required: true,
+      }),
+    },
+    resolve: (_, args) => args.input,
+  }),
+);
 
 const schema = builder.toSchema();
 

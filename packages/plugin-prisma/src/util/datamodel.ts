@@ -24,7 +24,7 @@ export function getRefFromModel<Types extends SchemaTypes>(
   const cache = refMap.get(builder)!;
 
   if (!cache.has(name)) {
-    cache.set(name, new PrismaObjectRef(name));
+    cache.set(name, new PrismaObjectRef(name, name));
   }
 
   return cache.get(name)!;

@@ -1,4 +1,13 @@
-import { OutputType, SchemaTypes, typeBrandKey } from '../types';
+import InputListRef from '../refs/input-list';
+import ListRef from '../refs/list';
+import {
+  InputType,
+  InputTypeParam,
+  OutputType,
+  SchemaTypes,
+  typeBrandKey,
+  TypeParam,
+} from '../types';
 
 export * from './base64';
 export * from './context-cache';
@@ -85,4 +94,46 @@ export function getTypeBrand(val: unknown) {
   }
 
   return null;
+}
+
+export function unwrapListParam<Types extends SchemaTypes>(
+  param: TypeParam<Types> | InputTypeParam<Types>,
+): OutputType<Types> | InputType<Types> {
+  if (Array.isArray(param)) {
+    return unwrapListParam(param[0]);
+  }
+
+  if (param instanceof ListRef || param instanceof InputListRef) {
+    return unwrapListParam(param.listType as TypeParam<Types>);
+  }
+
+  return param;
+}
+
+export function unwrapOutputListParam<Types extends SchemaTypes>(
+  param: TypeParam<Types>,
+): OutputType<Types> {
+  if (Array.isArray(param)) {
+    return unwrapOutputListParam(param[0]);
+  }
+
+  if (param instanceof ListRef) {
+    return unwrapOutputListParam(param.listType as TypeParam<Types>);
+  }
+
+  return param;
+}
+
+export function unwrapInputListParam<Types extends SchemaTypes>(
+  param: InputTypeParam<Types>,
+): InputType<Types> {
+  if (Array.isArray(param)) {
+    return unwrapInputListParam(param[0]);
+  }
+
+  if (param instanceof InputListRef) {
+    return unwrapInputListParam(param.listType as InputTypeParam<Types>);
+  }
+
+  return param;
 }

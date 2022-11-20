@@ -5,8 +5,10 @@ import type InternalInputFieldBuilder from '../../fieldUtils/input.ts';
 import type InternalRootFieldBuilder from '../../fieldUtils/root.ts';
 import type InternalBaseRef from '../../refs/base.ts';
 import type InternalEnumRef from '../../refs/enum.ts';
+import type InternalInputListRef from '../../refs/input-list.ts';
 import type InternalInputObjectRef from '../../refs/input-object.ts';
 import type InternalInterfaceRef from '../../refs/interface.ts';
+import type InternalListRef from '../../refs/list.ts';
 import type InternalObjectRef from '../../refs/object.ts';
 import type InternalScalarRef from '../../refs/scalar.ts';
 import type InternalUnionRef from '../../refs/union.ts';
@@ -38,6 +40,8 @@ declare global {
         }
         export interface InputObjectRef<T> extends InternalInputObjectRef<T> {
         }
+        export interface InputListRef<Types extends SchemaTypes, T> extends InternalInputListRef<Types, T> {
+        }
         export interface InterfaceRef<T, P = T> extends InternalInterfaceRef<T, P> {
         }
         export interface ObjectRef<T, P = T> extends InternalObjectRef<T, P> {
@@ -45,6 +49,8 @@ declare global {
         export interface ScalarRef<T, U, P = T> extends InternalScalarRef<T, U, P> {
         }
         export interface UnionRef<T, P = T> extends InternalUnionRef<T, P> {
+        }
+        export interface ListRef<Types extends SchemaTypes, T, P = T> extends InternalListRef<Types, T, P> {
         }
     }
 }

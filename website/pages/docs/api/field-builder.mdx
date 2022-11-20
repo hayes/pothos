@@ -5,12 +5,12 @@ menu: API
 description: API docs for Pothos FieldBuilder
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # FieldBuilder
 
@@ -46,9 +46,9 @@ type FieldOptions = {
 ### Type Parameter
 
 A Type Parameter for a Field can be any `TypeRef` returned by one of the
-[`SchemaBuilder`](./schema-builder) methods for defining a type, a class used to create an object
-or interface type, a ts enum used to define a graphql enum type, or a string that corresponds to one
-of they keys of the `Objects`, `Interfaces`, or `Scalars` objects defined in `SchemaTypes`.
+[`SchemaBuilder`](./schema-builder) methods for defining a type, a class used to create an object or
+interface type, a ts enum used to define a graphql enum type, or a string that corresponds to one of
+they keys of the `Objects`, `Interfaces`, or `Scalars` objects defined in `SchemaTypes`.
 
 For List fields, the Type Parameter should be one of the above wrapped in an array eg `['User']`.
 
@@ -95,6 +95,7 @@ A set of helpers for creating scalar fields. This work the same as
 - `booleanList(options)`
 - `intList(options)`
 - `floatList(options)`
+- `listRef(type, options)`
 
 ### expose
 

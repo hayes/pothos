@@ -1,4 +1,4 @@
-import { InputRef, InputShapeFromTypeParam, InputType, SchemaTypes } from '@pothos/core';
+import { InputShapeFromTypeParam, InputType, SchemaTypes } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
 import {
   FilterListOps,
@@ -26,7 +26,7 @@ declare global {
       >(
         type: Type,
         options: PrismaListFilterOptions<Types, Type, Ops>,
-      ) => InputRef<{
+      ) => InputObjectRef<{
         [K in Ops extends string[] ? Ops[number] : keyof Ops]: InputShapeFromTypeParam<
           Types,
           Type,
@@ -36,7 +36,7 @@ declare global {
       prismaFilter: <Type extends InputType<Types>, Ops extends OpsOptions<Types, Type, FilterOps>>(
         type: Type,
         options: PrismaFilterOptions<Types, Type, Ops>,
-      ) => InputRef<
+      ) => InputObjectRef<
         Pick<
           FilterShape<InputShapeFromTypeParam<Types, Type, true>>,
           Ops extends readonly string[] ? Ops[number] : keyof Ops
@@ -51,7 +51,7 @@ declare global {
       >(
         name: Name,
         options: PrismaOrderByOptions<Types, Model>,
-      ) => InputRef<Model['OrderBy']>;
+      ) => InputObjectRef<Model['OrderBy']>;
 
       orderByEnum: () => EnumRef<'asc' | 'desc'>;
 
@@ -63,7 +63,7 @@ declare global {
       >(
         type: Name,
         options: PrismaWhereOptions<Types, Model>,
-      ) => InputRef<Model['Where']>;
+      ) => InputObjectRef<Model['Where']>;
     }
   }
 }

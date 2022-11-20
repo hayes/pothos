@@ -4,7 +4,7 @@ import './field-builder.ts';
 import './schema-builder.ts';
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, PothosOutputFieldConfig, SchemaTypes, unwrapOutputFieldType, } from '../core/index.ts';
 export * from './refs/index.ts';
 export * from './types.ts';
 export * from './util.ts';
@@ -12,8 +12,7 @@ const pluginName = "dataloader" as const;
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";
-        const type = fieldConfig.type.kind === "List" ? fieldConfig.type.type : fieldConfig.type;
-        const config = this.buildCache.getTypeConfig(type.ref);
+        const config = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type));
         const getDataloader = config.extensions?.getDataloader as (context: object) => DataLoader<unknown, unknown>;
         if (!getDataloader) {
             return resolver;

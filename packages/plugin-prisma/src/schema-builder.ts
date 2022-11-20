@@ -9,7 +9,8 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
-import PrismaNodeRef from './node-ref';
+import { PrismaNodeRef } from './node-ref';
+import { PrismaObjectRef } from './object-ref';
 import { PrismaModelTypes, PrismaNodeOptions } from './types';
 import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';
@@ -24,7 +25,9 @@ schemaBuilderProto.prismaObject = function prismaObject(
   type,
   { fields, findUnique, select, include, description, ...options },
 ) {
-  const ref = options.variant ? this.objectRef(options.variant) : getRefFromModel(type, this);
+  const ref = options.variant
+    ? new PrismaObjectRef(options.variant, type)
+    : getRefFromModel(type, this);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
   const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
@@ -77,7 +80,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
   const resolve = rawResolve ?? getDefaultIDSerializer(type, fieldName, this);
   const idParser = fieldName ? getDefaultIDParser(type, fieldName, this) : undefined;
   const typeName = variant ?? name ?? type;
-  const nodeRef = new PrismaNodeRef(typeName);
+  const nodeRef = new PrismaNodeRef(typeName, type);
   const findUnique = rawFindUnique
     ? (parent: unknown, context: {}) =>
         rawFindUnique(resolve(parent as never, context) as string, context)
@@ -156,3 +159,35 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
   return nodeRef;
 } as never;
+
+schemaBuilderProto.prismaObjectField = function prismaObjectField(type, fieldName, field) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () => ({
+      [fieldName]: field(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    }));
+  });
+};
+
+schemaBuilderProto.prismaObjectFields = function prismaObjectFields(type, fields) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () =>
+      fields(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    );
+  });
+};

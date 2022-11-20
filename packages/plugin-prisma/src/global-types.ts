@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import {
   FieldKind,
+  FieldMap,
   FieldNullability,
   FieldRef,
   InputFieldMap,
@@ -14,7 +15,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import PrismaNodeRef from './node-ref';
+import { PrismaNodeRef } from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import {
@@ -22,6 +23,7 @@ import {
   PrismaConnectionFieldOptions,
   PrismaFieldOptions,
   PrismaFieldWithInputOptions,
+  prismaModelName,
   PrismaModelTypes,
   PrismaNodeOptions,
   PrismaObjectFieldOptions,
@@ -116,6 +118,37 @@ declare global {
         >,
       ) => PrismaObjectRef<Model, ShapeFromSelection<Model, { select: Select; include: Include }>>;
 
+      prismaObjectField: <
+        Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer M, {}>
+          ? M
+          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+        Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
+          ? S
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fieldName: string,
+        field: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldRef,
+      ) => void;
+
+      prismaObjectFields: <
+        Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer M, {}>
+          ? M
+          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+        Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
+          ? S
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fields: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldMap,
+      ) => void;
+
       prismaNode: 'relay' extends PluginName
         ? <
             Name extends keyof Types['PrismaTypes'],
@@ -199,6 +232,7 @@ declare global {
             Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+            Shape = Type extends PrismaObjectRef<PrismaModelTypes, infer S> ? S : Model['Shape'],
           >(
             options: PrismaConnectionFieldOptions<
               Types,
@@ -213,19 +247,21 @@ declare global {
             >,
             ...args: NormalizeArgs<
               [
-                connectionOptions: ConnectionObjectOptions<
-                  Types,
-                  ObjectRef<Model['Shape']>,
-                  false,
-                  false,
-                  ResolveReturnShape
-                >,
-                edgeOptions: ConnectionEdgeObjectOptions<
-                  Types,
-                  ObjectRef<Model['Shape']>,
-                  false,
-                  ResolveReturnShape
-                >,
+                connectionOptions:
+                  | ConnectionObjectOptions<
+                      Types,
+                      ObjectRef<Shape>,
+                      false,
+                      false,
+                      ResolveReturnShape
+                    >
+                  | ObjectRef<ShapeFromConnection<ConnectionShapeHelper<Types, Shape, false>>>,
+                edgeOptions:
+                  | ConnectionEdgeObjectOptions<Types, ObjectRef<Shape>, false, ResolveReturnShape>
+                  | ObjectRef<{
+                      cursor: string;
+                      node?: Shape | null | undefined;
+                    }>,
               ],
               0
             >

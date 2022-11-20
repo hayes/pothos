@@ -1779,4 +1779,182 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('manual connections', async () => {
+    const query = gql`
+      query {
+        post(id: 1) {
+          id
+          mediaConnection(first: 1) {
+            edges {
+              cursor
+              node {
+                url
+              }
+            }
+          }
+          manualMediaConnection(first: 1, after: "R1BDOk46MQ==") {
+            edges {
+              cursor
+              order
+              node {
+                url
+              }
+            }
+          }
+        }
+        selectPost(id: "U2VsZWN0UG9zdDox") {
+          comments(first: 1) {
+            edges {
+              node {
+                id
+                authorBio
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "post": {
+            "id": "1",
+            "manualMediaConnection": {
+              "edges": [
+                {
+                  "cursor": "R1BDOk46Mg==",
+                  "node": {
+                    "url": "http://eminent-east.org",
+                  },
+                  "order": 1,
+                },
+              ],
+            },
+            "mediaConnection": {
+              "edges": [
+                {
+                  "cursor": "R1BDOk46MQ==",
+                  "node": {
+                    "url": "https://slushy-body.net",
+                  },
+                },
+              ],
+            },
+          },
+          "selectPost": {
+            "comments": {
+              "edges": [
+                {
+                  "node": {
+                    "authorBio": "Saepe deserunt animi quia.",
+                    "id": "1",
+                  },
+                },
+              ],
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "comments": {
+                "include": {
+                  "author": true,
+                },
+                "take": 3,
+              },
+              "media": {
+                "select": {
+                  "media": {
+                    "select": {
+                      "id": true,
+                      "posts": true,
+                      "url": true,
+                    },
+                  },
+                  "order": true,
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "select": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 2,
+              },
+              "id": true,
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "media": {
+                "cursor": {
+                  "id": 1,
+                },
+                "select": {
+                  "media": {
+                    "select": {
+                      "id": true,
+                      "url": true,
+                    },
+                  },
+                  "order": true,
+                },
+                "skip": 1,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

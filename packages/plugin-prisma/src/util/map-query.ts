@@ -96,6 +96,11 @@ function resolveIndirectInclude(
   path: string[],
   resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
 ) {
+  if (includePath.length === 0) {
+    resolve(type, selection as FieldNode, path);
+    return;
+  }
+
   const [include, ...rest] = includePath;
   if (!selection.selectionSet || !include) {
     return;
@@ -107,18 +112,14 @@ function resolveIndirectInclude(
         if (sel.name.value === include.name && isObjectType(type)) {
           const returnType = getNamedType(type.getFields()[sel.name.value].type);
 
-          if (rest.length === 0) {
-            resolve(returnType, sel, [...path, sel.alias?.value ?? sel.name.value]);
-          } else {
-            resolveIndirectInclude(
-              returnType,
-              info,
-              sel,
-              rest,
-              [...path, sel.alias?.value ?? sel.name.value],
-              resolve,
-            );
-          }
+          resolveIndirectInclude(
+            returnType,
+            info,
+            sel,
+            rest,
+            [...path, sel.alias?.value ?? sel.name.value],
+            resolve,
+          );
         }
         continue;
       case Kind.FRAGMENT_SPREAD:
@@ -334,7 +335,8 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   select?: T;
   path?: string[];
 }): { select: T } | { include?: {} } {
-  const type = typeName ? info.schema.getTypeMap()[typeName] : getNamedType(info.returnType);
+  const returnType = getNamedType(info.returnType);
+  const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
   const state = createStateForType(type, info);
 
   if (select) {
@@ -342,14 +344,27 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   }
 
   if (path.length > 0) {
+    const { pothosPrismaIndirectInclude } = (returnType.extensions ?? {}) as {
+      pothosPrismaIndirectInclude?: IndirectInclude;
+    };
+
     resolveIndirectInclude(
-      getNamedType(info.returnType),
+      returnType,
       info,
       info.fieldNodes[0],
-      path.map((n) => (typeof n === 'string' ? { name: n } : n)),
+      pothosPrismaIndirectInclude?.path ?? [],
       [],
-      (resolvedType, resolvedField, nested) => {
-        addTypeSelectionsForField(resolvedType, context, info, state, resolvedField, nested);
+      (indirectType, indirectField, subPath) => {
+        resolveIndirectInclude(
+          indirectType,
+          info,
+          indirectField,
+          path.map((n) => (typeof n === 'string' ? { name: n } : n)),
+          subPath,
+          (resolvedType, resolvedField, nested) => {
+            addTypeSelectionsForField(resolvedType, context, info, state, resolvedField, nested);
+          },
+        );
       },
     );
   } else {

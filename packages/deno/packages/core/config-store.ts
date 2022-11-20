@@ -7,8 +7,11 @@ import BuiltinScalarRef from './refs/builtin-scalar.ts';
 import FieldRef from './refs/field.ts';
 import InputTypeRef from './refs/input.ts';
 import InputFieldRef from './refs/input-field.ts';
+import InputListRef from './refs/input-list.ts';
+import ListRef from './refs/list.ts';
 import OutputTypeRef from './refs/output.ts';
 import type { ConfigurableRef, FieldMap, GraphQLFieldKind, InputFieldMap, InputRef, InputType, InputTypeParam, InterfaceParam, OutputRef, OutputType, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, SchemaTypes, TypeParam, } from './types/index.ts';
+import { unwrapListParam } from './utils/index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, PothosTypeConfig>();
     private fieldRefs = new WeakMap<FieldRef | InputFieldRef, (name: string, parentField: string | undefined, typeConfig: PothosTypeConfig) => PothosFieldConfig<Types>>();
@@ -73,7 +76,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         if (this.fieldRefs.has(ref)) {
             throw new Error(`FieldRef ${String(ref)} has already been added to config store`);
         }
-        const typeRefOrName = Array.isArray(typeParam) ? typeParam[0] : typeParam;
+        const typeRefOrName = unwrapListParam(typeParam);
         const argRefs = Object.keys(args).map((argName) => {
             const argRef = args[argName];
             argRef.fieldName = argName;
@@ -158,8 +161,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
         else if (this.refsToName.has(ref)) {
             config = this.typeConfigs.get(this.refsToName.get(ref)!)!;
         }
+        else if (ref instanceof ListRef || ref instanceof InputListRef) {
+            throw new TypeError(`Expected a base type but got a ${ref.kind} of ${String(ref.listType)}`);
+        }
         else {
-            throw new Error(`Ref ${String(ref)} has not been implemented`);
+            throw new TypeError(`Ref ${String(ref)} has not been implemented`);
         }
         if (kind && config.graphqlKind !== kind) {
             throw new TypeError(`Expected ref to resolve to a ${kind} type, but got ${config.kind}`);
@@ -195,8 +201,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     getOutputTypeRef(ref: ConfigurableRef<Types> | string) {
         if (ref instanceof BaseTypeRef) {
-            if (ref.kind === "InputObject") {
-                throw new TypeError(`Expected ${ref.name} to be an output type but got ${ref.name}`);
+            if (ref.kind === "InputObject" || ref.kind === "InputList") {
+                throw new TypeError(`Expected ${ref.name} to be an output type but got ${ref.kind}`);
+            }
+            if (ref.kind === "List") {
+                throw new TypeError(`Expected ${ref.name} to be a base type but got a ${ref.kind}`);
             }
             return ref as OutputRef;
         }

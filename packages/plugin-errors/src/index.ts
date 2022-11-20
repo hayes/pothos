@@ -8,6 +8,7 @@ import SchemaBuilder, {
   SchemaTypes,
   sortClasses,
   typeBrandKey,
+  unwrapOutputFieldType,
 } from '@pothos/core';
 
 export * from './types';
@@ -105,8 +106,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       errorBuilderOptions?.directResult ??
       false;
 
-    const typeRef =
-      fieldConfig.type.kind === 'List' ? fieldConfig.type.type.ref : fieldConfig.type.ref;
+    const typeRef = unwrapOutputFieldType(fieldConfig.type);
 
     const typeName = this.builder.configStore.getTypeConfig(typeRef).name;
 
@@ -143,8 +143,8 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         });
       }
 
-      const type = fieldConfig.type.kind === 'List' ? fieldConfig.type.type : fieldConfig.type;
-      const getDataloader = this.buildCache.getTypeConfig(type.ref).extensions?.getDataloader;
+      const getDataloader = this.buildCache.getTypeConfig(unwrapOutputFieldType(fieldConfig.type))
+        .extensions?.getDataloader;
 
       return this.builder.unionType(unionName, {
         types: [...errorTypes, resultType],

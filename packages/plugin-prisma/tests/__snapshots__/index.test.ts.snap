@@ -10,6 +10,16 @@ type Blog {
   posts: [Post!]!
 }
 
+type CircularComment {
+  author: CircularUser!
+  id: ID!
+}
+
+type CircularUser {
+  comments: [CircularComment!]!
+  id: ID!
+}
+
 type Comment {
   author: User!
   authorBio: String
@@ -17,6 +27,16 @@ type Comment {
   id: ID!
   post: Post!
   postAuthor: User!
+}
+
+type CommentConnection {
+  edges: [CommentEdge]!
+  pageInfo: PageInfo!
+}
+
+type CommentEdge {
+  cursor: String!
+  node: Comment!
 }
 
 interface Error {
@@ -48,6 +68,16 @@ type Media {
   url: String!
 }
 
+type MediaConnection {
+  edges: [MediaEdge]!
+  pageInfo: PageInfo!
+}
+
+type MediaEdge {
+  cursor: String!
+  node: Media!
+}
+
 interface Named {
   name: String
 }
@@ -68,11 +98,13 @@ type Post {
   author: User!
   commentAuthorIds: [ID!]!
   comments: [Comment!]!
-  commentsConnection(after: ID, before: ID, first: Int, last: Int): PostCommentsConnection!
+  commentsConnection(after: ID, before: ID, first: Int, last: Int): CommentConnection!
   content: String
   createdAt: String!
   id: ID!
+  manualMediaConnection(after: ID, before: ID, first: Int, last: Int): PostManualMediaConnection!
   media: [Media!]!
+  mediaConnection(after: ID, before: ID, first: Int, last: Int): MediaConnection!
   ownComments: [Comment!]!
   ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
   post: User!
@@ -81,14 +113,15 @@ type Post {
   title: String!
 }
 
-type PostCommentsConnection {
-  edges: [PostCommentsConnectionEdge]!
+type PostManualMediaConnection {
+  edges: [PostManualMediaConnectionEdge]!
   pageInfo: PageInfo!
 }
 
-type PostCommentsConnectionEdge {
+type PostManualMediaConnectionEdge {
   cursor: String!
-  node: Comment!
+  node: Media!
+  order: Int!
 }
 
 type PostOwnCommentsConnection {
@@ -126,6 +159,7 @@ type Query {
   posts: [Post!]!
   postsBigIntCursor(after: ID, before: ID, first: Int, last: Int): QueryPostsBigIntCursorConnection!
   selectMe: SelectUser
+  selectPost(id: ID!): SelectPost!
   selectPosts: [SelectPost!]!
   unrelatedConnection(after: ID, before: ID, first: Int, last: Int): QueryUnrelatedConnection!
   userConnection(after: ID, before: ID, first: Int, last: Int, test: Boolean): QueryUserConnection!
@@ -224,6 +258,7 @@ type QueryWithIDSelectConnectionEdge {
 
 \\"\\"\\"Model for Posts!\\"\\"\\"
 type SelectPost implements Node {
+  comments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
   content: String
   createdAt: String!
   id: ID!

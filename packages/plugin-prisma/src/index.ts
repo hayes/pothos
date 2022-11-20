@@ -13,6 +13,9 @@ import { PrismaModelTypes } from './types';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
 
+export { prismaConnectionHelpers } from './connection-helpers';
+export { PrismaNodeRef } from './node-ref';
+export { PrismaObjectRef } from './object-ref';
 export * from './types';
 
 const pluginName = 'prisma' as const;

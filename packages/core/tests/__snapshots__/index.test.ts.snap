@@ -51,6 +51,7 @@ enum MyEnum {
 
 type Query {
   constructor: Boolean!
+  nestedLists(input: [[[String!]!]]!): [[[String!]!]]!
   sheep: Sheep!
   stuff: [stuff!]!
   user: User!

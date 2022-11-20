@@ -98,7 +98,7 @@ export type PothosOutputFieldType<Types extends SchemaTypes> = {
     nullable: boolean;
 } | {
     kind: "List";
-    type: PothosNameOutputFieldType<Types>;
+    type: PothosOutputFieldType<Types>;
     nullable: boolean;
 };
 export type PothosNameOutputFieldType<Types extends SchemaTypes> = Exclude<PothosOutputFieldType<Types>, {
@@ -110,7 +110,7 @@ export type PothosInputFieldType<Types extends SchemaTypes> = {
     required: boolean;
 } | {
     kind: "List";
-    type: PothosNameInputFieldType<Types>;
+    type: PothosInputFieldType<Types>;
     required: boolean;
 };
 export type PothosNameInputFieldType<Types extends SchemaTypes> = Exclude<PothosInputFieldType<Types>, {

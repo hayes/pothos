@@ -111,19 +111,28 @@ export class PrismaObjectFieldBuilder<
         options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
         ...args: NormalizeArgs<
           [
-            connectionOptions: PothosSchemaTypes.ConnectionObjectOptions<
-              Types,
-              ObjectRef<Shape>,
-              false,
-              false,
-              ResolveReturnShape
-            >,
-            edgeOptions: PothosSchemaTypes.ConnectionEdgeObjectOptions<
-              Types,
-              ObjectRef<Shape>,
-              false,
-              ResolveReturnShape
-            >,
+            connectionOptions:
+              | PothosSchemaTypes.ConnectionObjectOptions<
+                  Types,
+                  ObjectRef<Shape>,
+                  false,
+                  false,
+                  ResolveReturnShape
+                >
+              | ObjectRef<
+                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
+                >,
+            edgeOptions:
+              | PothosSchemaTypes.ConnectionEdgeObjectOptions<
+                  Types,
+                  ObjectRef<Shape>,
+                  false,
+                  ResolveReturnShape
+                >
+              | ObjectRef<{
+                  cursor: string;
+                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                }>,
           ],
           0
         >
@@ -272,18 +281,22 @@ export class PrismaObjectFieldBuilder<
           );
         },
       },
-      {
-        ...connectionOptions,
-        fields: totalCount
-          ? (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>) => ({
-              totalCount: t.int({
-                nullable: false,
-                resolve: (parent, args, context) => parent.totalCount,
-              }),
-              ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
-            })
-          : (connectionOptions as { fields: undefined }).fields,
-      },
+      connectionOptions instanceof ObjectRef
+        ? connectionOptions
+        : {
+            ...connectionOptions,
+            fields: totalCount
+              ? (
+                  t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, { totalCount?: number }>,
+                ) => ({
+                  totalCount: t.int({
+                    nullable: false,
+                    resolve: (parent, args, context) => parent.totalCount,
+                  }),
+                  ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
+                })
+              : (connectionOptions as { fields: undefined }).fields,
+          },
       edgeOptions,
     );
 

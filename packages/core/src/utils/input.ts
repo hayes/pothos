@@ -5,6 +5,7 @@ import {
   PothosTypeConfig,
   SchemaTypes,
 } from '../types';
+import { unwrapInputFieldType } from './params';
 
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
   configs: Record<string, PothosInputFieldConfig<Types>>;
@@ -162,7 +163,7 @@ function internalMapInputFields<Types extends SchemaTypes, T>(
     }
 
     const inputFieldConfigs = buildCache.getInputTypeFieldConfigs(
-      inputField.type.kind === 'List' ? inputField.type.type.ref : inputField.type.ref,
+      unwrapInputFieldType(inputField.type),
     );
 
     if (!seenTypes.has(typeConfig.name)) {
