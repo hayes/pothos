@@ -1,5 +1,14 @@
 # Change Log
 
+## 3.36.0
+
+### Minor Changes
+
+- 8841e861: Add builder.prismaObjectField(s) method to extend prisma objects and simplify defining
+  circular relationships
+- cd1c0502: Add support for nested lists
+- 99bc6574: Add initial support for reusable prisma connections
+
 ## 3.35.8
 
 ### Patch Changes

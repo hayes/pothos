@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.29.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+- 99bc6574: Add initial support for reusable prisma connections
+
 ## 3.28.7
 
 ### Patch Changes

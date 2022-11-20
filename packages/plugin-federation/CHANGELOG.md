@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.7.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
 ## 3.6.4
 
 ### Patch Changes
