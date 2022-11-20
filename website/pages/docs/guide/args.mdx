@@ -5,12 +5,12 @@ menu: Guide
 description: Guide for defining field args in Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Args
 
@@ -141,6 +141,36 @@ const Query = builder.queryType({
       },
       resolve: (parent, args) => {
         return [...args.names, ...args.moreNames].filter(name => ['Gina', 'James'].includes(name)),
+      }
+    })
+  }),
+});
+```
+
+## Nested Lists
+
+You can use `t.arg.listRef` to create a list of lists
+
+```typescript
+const Query = builder.queryType({
+  fields: t => ({
+    example: t.boolean({
+      {
+        args: {
+          listOfListOfStrings: t.arg({
+            type: t.arg.listRef(t.arg.listRef('String')),
+          }),
+          listOfListOfNullableStrings: t.arg({
+            type: t.arg.listRef(
+              // By default listRef creates a list of Non-null items
+              // This can be overridden by passing in required: false
+              t.arg.listRef('String', { required: false }),
+              { required: true }),
+          })
+        },
+      },
+      resolve: (parent, args) => {
+        return true
       }
     })
   }),

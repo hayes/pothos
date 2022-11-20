@@ -387,7 +387,7 @@ query {
 
 the `me` `prismaField` would receive something like the following as its query parameter:
 
-```ts
+```typescript
 {
   include: {
     posts: {
@@ -582,7 +582,7 @@ builder.prismaObject('User', {
 The following is a slightly contrived example, but shows how arguments can be used when creating a
 selection for a field:
 
-```ts
+```typescript
 const PostDraft = builder.prismaObject('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
@@ -606,133 +606,13 @@ const PostDraft = builder.prismaObject('Post', {
 });
 ```
 
-## Indirect relations (eg. Join tables)
+## Extending prisma objects
 
-If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
-many relations using a custom join table is a common example of this) you can use the
-`nestedSelection` function passed to `select`.
+The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
+using selections, or exposing fields not in the default selection. To use these features, you can
+use
 
-Given a prisma schema like the following:
-
-```
-model Post {
-  id        Int         @id @default(autoincrement())
-  title     String
-  content   String
-  media     PostMedia[]
-}
-
-model Media {
-  id           Int         @id @default(autoincrement())
-  url          String
-  posts        PostMedia[]
-  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
-  uploadedById Int
-}
-
-model PostMedia {
-  id      Int   @id @default(autoincrement())
-  post    Post  @relation(fields: [postId], references: [id])
-  media   Media @relation(fields: [mediaId], references: [id])
-  postId  Int
-  mediaId Int
-}
-```
-
-You can define a media field that can pre-load the correct relations based on the graphql query:
-
-```ts
-const PostDraft = builder.prismaObject('Post', {
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    media: t.field({
-      select: (args, ctx, nestedSelection) => ({
-        media: {
-          select: {
-            // This will look at what fields are queried on Media
-            // and automatically select uploadedBy if that relation is requested
-            media: nestedSelection(
-              // This arument is the default query for the media relation
-              // It could be something like: `{ select: { id: true } }` instead
-              true,
-            ),
-          },
-        },
-      }),
-      type: [Media],
-      resolve: (post) => post.media.map(({ media }) => media),
-    }),
-  }),
-});
-
-const Media = builder.prismaObject('Media', {
-  select: {
-    id: true,
-  },
-  fields: (t) => ({
-    url: t.exposeString('url'),
-    uploadedBy: t.relation('uploadedBy'),
-  }),
-});
-```
-
-## Indirect relations as connections
-
-Creating connections from indirect relations is a little more involved, but can be done by manually
-creating a PrismaConnection object
-
-```ts
-// Create a prisma object for the node type of your connection
-const Media = builder.prismaObject('Media', {
-  select: {
-    id: true,
-  },
-  fields: (t) => ({
-    url: t.exposeString('url'),
-  }),
-});
-
-// Create a
-const MediaConnection = builder.prismaConnectionObject(
-  {
-    type: Media,
-    cursor: 'id',
-    // additional options like name, description, etc
-  },
-  {
-    // optional edge options
-  },
-);
-
-builder.prismaObjectField('Post', 'mediaConnection', (t) =>
-  t.field({
-    type: MediaConnection,
-    args: {
-      ...t.arg.connectionArgs(),
-    },
-    select: (args, ctx, nestedSelection) => ({
-      media: {
-        ...MediaConnection.getQuery(args, ctx),
-        select: {
-          order: true,
-          media: nestedSelection({
-            select: {
-              id: true,
-              posts: true,
-            },
-          }),
-        },
-      },
-    }),
-    resolve: (post, args, ctx) =>
-      MediaConnection.resolve(
-        post.media.map(({ media }) => media),
-        args,
-        ctx,
-      ),
-  }),
-);
-```
+`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
 
 ## Selecting fields from a nested GraphQL field
 
@@ -741,7 +621,7 @@ field. `nestedSelection` can also be used to get a selection from a field nested
 fields. This is useful if the field returns a type that is not a `prismaObject`, but a field nested
 inside the returned type is.
 
-```ts
+```typescript
 const PostRef = builder.prismaObject('Post', {
   fields: (t) => ({
     title: t.exposeString('title'),
@@ -784,13 +664,229 @@ builder.prismaObject('User', {
 });
 ```
 
-## Extending prisma objects
+## Indirect relations (eg. Join tables)
 
-The normal `builder.objectField(s)` methods can be used to extend prisma objects, but do not support
-using selections, or exposing fields not in the default selection. To use these features, you can
-use
+If you want to define a GraphQL field that directly exposes data from a nested relationship (many to
+many relations using a custom join table is a common example of this) you can use the
+`nestedSelection` function passed to `select`.
 
-`builder.prismaObjectField` or `builder.prismaObjectFields` instead.
+Given a prisma schema like the following:
+
+```
+model Post {
+  id        Int         @id @default(autoincrement())
+  title     String
+  content   String
+  media     PostMedia[]
+}
+
+model Media {
+  id           Int         @id @default(autoincrement())
+  url          String
+  posts        PostMedia[]
+  uploadedBy   User        @relation(fields: [uploadedById], references: [id])
+  uploadedById Int
+}
+
+model PostMedia {
+  id      Int   @id @default(autoincrement())
+  post    Post  @relation(fields: [postId], references: [id])
+  media   Media @relation(fields: [mediaId], references: [id])
+  postId  Int
+  mediaId Int
+}
+```
+
+You can define a media field that can pre-load the correct relations based on the graphql query:
+
+```typescript
+const PostDraft = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    media: t.field({
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          select: {
+            // This will look at what fields are queried on Media
+            // and automatically select uploadedBy if that relation is requested
+            media: nestedSelection(
+              // This arument is the default query for the media relation
+              // It could be something like: `{ select: { id: true } }` instead
+              true,
+            ),
+          },
+        },
+      }),
+      type: [Media],
+      resolve: (post) => post.media.map(({ media }) => media),
+    }),
+  }),
+});
+
+const Media = builder.prismaObject('Media', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+    uploadedBy: t.relation('uploadedBy'),
+  }),
+});
+```
+
+## Indirect relations as connections
+
+Creating connections from indirect relations is a little more involved, but can be acheived using
+`prismaConnectionHelpers` with a normal `t.connection` field:
+
+```typescript
+// Create a prisma object for the node type of your connection
+const Media = builder.prismaObject('Media', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+  }),
+});
+
+// Create connection helpers for the media type.  This will allow you
+// to use the normal t.connection with a prisma type
+const mediaConnectionHelpers = prismaConnectionHelpers(
+  builder,
+  Media, // you can also reference the prisma model by string name
+  {
+    cursor: 'id',
+    // additional/optional options
+    maxSize: 100,
+    defaultSize: 20,
+  },
+);
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    // or if you don't have the `ref` you can get it from the helper
+    type: mediaConnectionHelpers.ref,
+    // since we are not using t.relatedConnection we need to manually
+    // include the selections for our connection
+    select: (args, ctx, nestedSelection) => ({
+      media: {
+        // this turns connection args into `cursor` and `take` for prisma
+        // to enable pagination
+        ...mediaConnectionHelpers.getQuery(args, ctx),
+        // this is the selection for the join table
+        select: {
+          // this is the selection for the nodes from the join table
+          media: nestedSelection(
+            {
+              // you can add additional selections for the node type here if needed
+            },
+            // This tells pothos what field in the query
+            // we want to use to find nested selections
+            ['edges', 'node'],
+          ),
+        },
+      },
+    }),
+    resolve: (post, args, ctx) =>
+      // This helper takes a list of nodes and formats them for the connection
+      mediaConnectionHelpers.resolve(
+        // map results to the list of nodes
+        post.media.map(({ media }) => media),
+        args,
+        ctx,
+      ),
+  }),
+);
+```
+
+## Sharing Connections objects
+
+You can create reusable connection objects by using `builder.connectionObject`.
+
+These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
+`t.connection`
+
+Shared edges can also be created using `t.edgeObject`
+
+```typescript
+const CommentConnection = builder.connectionObject({
+  type: Comment,
+  // or
+  type: commentConnectionHelpers.ref,
+  name: 'CommentConnection',
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    ...
+    commentsConnection: t.relatedConnection(
+      'comments',
+      { cursor: 'id' },
+      // The connection object ref can be passed in place of the connection objectoptions
+      CommentConnection
+    ),
+  }),
+});
+```
+
+## Extending connection edges
+
+In some cases you may want to expose some data from an indirect connection on the edge object.
+
+```typescript
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, Media, {
+  cursor: 'id',
+});
+
+builder.prismaObjectFields('Post', (t) => ({
+  manualMediaConnection: t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx),
+          select: {
+            // Select additional fields from the join table
+            createdAt: true,
+            media: nestedSelection({}, ['edges', 'node']),
+          },
+        },
+      }),
+      resolve: (post, args, ctx) => {
+        const connection = mediaConnectionHelpers.resolve(
+          post.media.map(({ media }) => media),
+          args,
+          ctx,
+        );
+
+        // Manually map the additional fields from the join table to the edge objects
+        return {
+          ...connection,
+          edges: connection.edges.map((edge, i) => ({
+            createdAt: edge.createdAt,
+            ...edge!,
+          })),
+        };
+      },
+    },
+    {},
+    // options for the edge object
+    {
+      // define the additional fields on the edge object
+      fields: (edge) => ({
+        createdAt: edge.field({
+          type: 'DateTime',
+          // the parent shape for edge fields is inferred from the connections resolve function
+          resolve: (media) => media.createdAt,
+        }),
+      }),
+    },
+  ),
+}));
+```
 
 ## Type variants
 
@@ -861,11 +957,11 @@ const Viewer = builder.prismaObject('User', {
 });
 ```
 
-You may run into circualr reference issues if you use 2 prisma object refs to reference eachother.
+You may run into circular reference issues if you use 2 prisma object refs to reference each other.
 To avoid this, you can split out the field definition for one of the relationships using
 `builder.prismaObjectField`
 
-```ts
+```typescript
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   fields: (t) => ({

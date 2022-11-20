@@ -5,12 +5,12 @@ menu: API
 description: API docs for Pothos ArgBuilder
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # ArgBuilder
 
@@ -40,8 +40,8 @@ type FieldOptions = {
 ### Type Parameter
 
 A Type Parameter for a Field can be any `InputTypeRef` returned by one of the
-[`SchemaBuilder`](./schema-builder) methods for defining an `InputObject`, `Enum`, or `Scalar`, a
-ts enum used to define a graphql enum type, or a string that corresponds to one of they keys of the
+[`SchemaBuilder`](./schema-builder) methods for defining an `InputObject`, `Enum`, or `Scalar`, a ts
+enum used to define a graphql enum type, or a string that corresponds to one of they keys of the
 `Scalars` object defined in `SchemaTypes`.
 
 ## helpers
@@ -61,3 +61,4 @@ field from options.
 - `arg.booleanList(options)`
 - `arg.intList(options)`
 - `arg.floatList(options)`
+- `arg.listRef(type, options)`
