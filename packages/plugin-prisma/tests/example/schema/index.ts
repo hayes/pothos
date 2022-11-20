@@ -230,12 +230,15 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
           ...mediaConnectionHelpers.getQuery(args, ctx),
           select: {
             order: true,
-            media: nestedSelection({
-              select: {
-                id: true,
-                posts: true,
+            media: nestedSelection(
+              {
+                select: {
+                  id: true,
+                  posts: true,
+                },
               },
-            }),
+              ['edges', 'node'],
+            ),
           },
         },
       }),
@@ -263,15 +266,7 @@ builder.prismaObjectFields('Post', (t) => ({
           ...mediaConnectionHelpers.getQuery(args, ctx),
           select: {
             order: true,
-            media: nestedSelection(
-              {
-                select: {
-                  id: true,
-                  posts: true,
-                },
-              },
-              ['edges', 'node'],
-            ),
+            media: nestedSelection({}, ['edges', 'node']),
           },
         },
       }),
@@ -378,7 +373,7 @@ const SelectPost = builder.prismaNode('Post', {
         type: commentConnectionHelpers.ref,
         select: (args, ctx, nestedSelection) => ({
           comments: {
-            ...nestedSelection({}),
+            ...nestedSelection({}, ['edges', 'node']),
             ...commentConnectionHelpers.getQuery(args, ctx),
           },
         }),

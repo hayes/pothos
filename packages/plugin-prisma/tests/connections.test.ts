@@ -1780,16 +1780,35 @@ describe('prisma', () => {
     `);
   });
 
-  it('connectionObjectRef', async () => {
+  it('manual connections', async () => {
     const query = gql`
       query {
-        selectPost(id: "U2VsZWN0UG9zdDox") {
+        post(id: 1) {
           id
-          comments(first: 2, after: "R1BDOk46MTAwMQ==") {
+          mediaConnection(first: 1) {
             edges {
               cursor
               node {
+                url
+              }
+            }
+          }
+          manualMediaConnection(first: 1, after: "R1BDOk46MQ==") {
+            edges {
+              cursor
+              order
+              node {
+                url
+              }
+            }
+          }
+        }
+        selectPost(id: "U2VsZWN0UG9zdDox") {
+          comments(first: 1) {
+            edges {
+              node {
                 id
+                authorBio
               }
             }
           }
@@ -1806,24 +1825,41 @@ describe('prisma', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "selectPost": {
-            "comments": {
+          "post": {
+            "id": "1",
+            "manualMediaConnection": {
               "edges": [
                 {
-                  "cursor": "R1BDOk46MjAwMQ==",
+                  "cursor": "R1BDOk46Mg==",
                   "node": {
-                    "id": "2001",
+                    "url": "http://eminent-east.org",
                   },
+                  "order": 1,
                 },
+              ],
+            },
+            "mediaConnection": {
+              "edges": [
                 {
-                  "cursor": "R1BDOk46MzAwMQ==",
+                  "cursor": "R1BDOk46MQ==",
                   "node": {
-                    "id": "3001",
+                    "url": "https://slushy-body.net",
                   },
                 },
               ],
             },
-            "id": "U2VsZWN0UG9zdDox",
+          },
+          "selectPost": {
+            "comments": {
+              "edges": [
+                {
+                  "node": {
+                    "authorBio": "Saepe deserunt animi quia.",
+                    "id": "1",
+                  },
+                },
+              ],
+            },
           },
         },
       }
@@ -1834,15 +1870,81 @@ describe('prisma', () => {
         {
           "action": "findUnique",
           "args": {
-            "select": {
+            "include": {
               "comments": {
-                "cursor": {
-                  "id": 1001,
+                "include": {
+                  "author": true,
                 },
-                "skip": 1,
                 "take": 3,
               },
+              "media": {
+                "select": {
+                  "media": {
+                    "select": {
+                      "id": true,
+                      "posts": true,
+                      "url": true,
+                    },
+                  },
+                  "order": true,
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "select": {
+              "comments": {
+                "include": {
+                  "author": {
+                    "include": {
+                      "profile": true,
+                    },
+                  },
+                },
+                "skip": 0,
+                "take": 2,
+              },
               "id": true,
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "Post",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "media": {
+                "cursor": {
+                  "id": 1,
+                },
+                "select": {
+                  "media": {
+                    "select": {
+                      "id": true,
+                      "url": true,
+                    },
+                  },
+                  "order": true,
+                },
+                "skip": 1,
+                "take": 2,
+              },
             },
             "where": {
               "id": 1,
