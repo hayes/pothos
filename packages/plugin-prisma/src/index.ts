@@ -13,8 +13,7 @@ import { PrismaModelTypes } from './types';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
 
-export type { PrismaConnectionRefOptions } from './connection-ref';
-export { PrismaConnectionRef } from './connection-ref';
+export { prismaConnectionHelpers } from './connection-hepers';
 export { PrismaNodeRef } from './node-ref';
 export { PrismaObjectRef } from './object-ref';
 export * from './types';

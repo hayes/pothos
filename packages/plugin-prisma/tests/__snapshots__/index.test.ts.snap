@@ -102,6 +102,7 @@ type Post {
   content: String
   createdAt: String!
   id: ID!
+  manualMediaConnection(after: ID, before: ID, first: Int, last: Int): PostManualMediaConnection!
   media: [Media!]!
   mediaConnection(after: ID, before: ID, first: Int, last: Int): MediaConnection!
   ownComments: [Comment!]!
@@ -120,6 +121,17 @@ type PostCommentsConnection {
 type PostCommentsConnectionEdge {
   cursor: String!
   node: Comment!
+}
+
+type PostManualMediaConnection {
+  edges: [PostManualMediaConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PostManualMediaConnectionEdge {
+  cursor: String!
+  node: Media!
+  order: Int!
 }
 
 type PostOwnCommentsConnection {

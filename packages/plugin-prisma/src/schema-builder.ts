@@ -8,7 +8,7 @@ import SchemaBuilder, {
   OutputType,
   SchemaTypes,
 } from '@pothos/core';
-import { PrismaConnectionRef } from './connection-ref';
+import { PrismaConnectionRef } from './connection-hepers';
 import { PrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
 import { PrismaNodeRef } from './node-ref';

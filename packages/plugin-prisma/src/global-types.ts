@@ -15,7 +15,6 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { PrismaConnectionRef } from './connection-ref';
 import { PrismaNodeRef } from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
@@ -179,76 +178,6 @@ declare global {
             >
           >
         : '@pothos/plugin-relay is required to use this method';
-
-      prismaConnectionObject: 'relay' extends PluginName
-        ? <
-            Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
-            ResolveReturnShape,
-            Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
-              ? T
-              : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-            Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer T>
-              ? T
-              : (PrismaModelTypes &
-                  Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'],
-          >(
-            options: ConnectionObjectOptions<
-              Types,
-              ObjectRef<Shape>,
-              false,
-              false,
-              ResolveReturnShape
-            > & {
-              type: Type;
-              name?: string;
-              cursor: string & keyof Model['WhereUnique'];
-              defaultSize?:
-                | number
-                | ((args: DefaultConnectionArguments, ctx: Types['Context']) => number);
-              maxSize?:
-                | number
-                | ((args: DefaultConnectionArguments, ctx: Types['Context']) => number);
-            },
-            ...args: NormalizeArgs<
-              [
-                edgeOptions:
-                  | ConnectionEdgeObjectOptions<Types, ObjectRef<Shape>, false, ResolveReturnShape>
-                  | ObjectRef<{
-                      cursor: string;
-                      node: Shape;
-                    }>,
-              ],
-              0
-            >
-          ) => PrismaConnectionRef<Types, Shape>
-        : '@pothos/plugin-relay is required to use this method';
-
-      prismaEdgeObject: 'relay' extends PluginName
-        ? <
-            Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
-            ResolveReturnShape,
-            Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
-              ? T
-              : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-            Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer T>
-              ? T
-              : (PrismaModelTypes &
-                  Types['PrismaTypes'][Type & keyof Types['PrismaTypes']])['Shape'],
-          >(
-            edgeOptions: ConnectionEdgeObjectOptions<
-              Types,
-              ObjectRef<Shape>,
-              false,
-              ResolveReturnShape
-            > & {
-              type: Type;
-              name?: string;
-            },
-          ) => ObjectRef<{
-            cursor: string;
-            node: Shape;
-          }>
-        : '@pothos/plugin-relay is required to use this method';
     }
 
     export interface RootFieldBuilder<
@@ -303,6 +232,7 @@ declare global {
             Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+            Shape = Type extends PrismaObjectRef<PrismaModelTypes, infer S> ? S : Model['Shape'],
           >(
             options: PrismaConnectionFieldOptions<
               Types,
@@ -320,22 +250,17 @@ declare global {
                 connectionOptions:
                   | ConnectionObjectOptions<
                       Types,
-                      ObjectRef<Model['Shape']>,
+                      ObjectRef<Shape>,
                       false,
                       false,
                       ResolveReturnShape
                     >
-                  | PrismaConnectionRef<Types, Model['Shape']>,
+                  | ObjectRef<ShapeFromConnection<ConnectionShapeHelper<Types, Shape, false>>>,
                 edgeOptions:
-                  | ConnectionEdgeObjectOptions<
-                      Types,
-                      ObjectRef<Model['Shape']>,
-                      false,
-                      ResolveReturnShape
-                    >
+                  | ConnectionEdgeObjectOptions<Types, ObjectRef<Shape>, false, ResolveReturnShape>
                   | ObjectRef<{
                       cursor: string;
-                      node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                      node?: Shape | null | undefined;
                     }>,
               ],
               0

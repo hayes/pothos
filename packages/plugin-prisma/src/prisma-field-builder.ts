@@ -16,7 +16,6 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { PrismaConnectionRef } from './connection-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
 import {
@@ -120,7 +119,9 @@ export class PrismaObjectFieldBuilder<
                   false,
                   ResolveReturnShape
                 >
-              | PrismaConnectionRef<Types, Model['Shape']>,
+              | ObjectRef<
+                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
+                >,
             edgeOptions:
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
@@ -280,7 +281,7 @@ export class PrismaObjectFieldBuilder<
           );
         },
       },
-      connectionOptions instanceof PrismaConnectionRef
+      connectionOptions instanceof ObjectRef
         ? connectionOptions
         : {
             ...connectionOptions,

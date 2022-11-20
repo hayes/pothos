@@ -1,5 +1,6 @@
 /* eslint-disable no-underscore-dangle */
 import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
+import { prismaConnectionHelpers } from '../../../src';
 import { queryFromInfo } from '../../../src/util/map-query';
 import { Post } from '../../client';
 import builder, { prisma } from '../builder';
@@ -215,36 +216,91 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 
-const MediaConnection = builder.prismaConnectionObject({ type: Media, cursor: 'id' });
+const MediaConnection = builder.connectionObject({
+  type: Media,
+  name: 'MediaConnection',
+});
 
 builder.prismaObjectField('Post', 'mediaConnection', (t) =>
-  t.field({
-    type: MediaConnection,
-    args: {
-      ...t.arg.connectionArgs(),
-    },
-    select: (args, ctx, nestedSelection) => ({
-      media: {
-        ...MediaConnection.getQuery(args, ctx),
-        select: {
-          order: true,
-          media: nestedSelection({
-            select: {
-              id: true,
-              posts: true,
-            },
-          }),
+  t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx),
+          select: {
+            order: true,
+            media: nestedSelection({
+              select: {
+                id: true,
+                posts: true,
+              },
+            }),
+          },
         },
-      },
-    }),
-    resolve: (post, args, ctx) =>
-      MediaConnection.resolve(
-        post.media.map(({ media }) => media),
-        args,
-        ctx,
-      ),
-  }),
+      }),
+      resolve: (post, args, ctx) =>
+        mediaConnectionHelpers.resolve(
+          post.media.map(({ media }) => media),
+          args,
+          ctx,
+        ),
+    },
+    MediaConnection,
+  ),
 );
+
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, Media, {
+  cursor: 'id',
+});
+
+builder.prismaObjectFields('Post', (t) => ({
+  manualMediaConnection: t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx),
+          select: {
+            order: true,
+            media: nestedSelection(
+              {
+                select: {
+                  id: true,
+                  posts: true,
+                },
+              },
+              ['edges', 'node'],
+            ),
+          },
+        },
+      }),
+      resolve: (post, args, ctx) => {
+        const connection = mediaConnectionHelpers.resolve(
+          post.media.map(({ media }) => media),
+          args,
+          ctx,
+        );
+
+        return {
+          ...connection,
+          edges: connection.edges.map((edge, i) => ({
+            ...post.media[i],
+            ...edge!,
+          })),
+        };
+      },
+    },
+    {},
+    {
+      fields: (edge) => ({
+        order: edge.int({
+          resolve: (media) => media.order,
+        }),
+      }),
+    },
+  ),
+}));
 
 const SelectUser = builder.prismaNode('User', {
   variant: 'SelectUser',
@@ -288,6 +344,15 @@ const SelectUser = builder.prismaNode('User', {
   }),
 });
 
+const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+});
+
+const CommentConnection = builder.connectionObject({
+  type: commentConnectionHelpers.ref,
+  name: 'CommentConnection',
+});
+
 const SelectPost = builder.prismaNode('Post', {
   variant: 'SelectPost',
   id: {
@@ -308,19 +373,20 @@ const SelectPost = builder.prismaNode('Post', {
       },
       resolve: (post) => post.createdAt.toISOString(),
     }),
-    comments: t.field({
-      type: CommentConnection,
-      args: {
-        ...t.arg.connectionArgs(),
+    comments: t.connection(
+      {
+        type: commentConnectionHelpers.ref,
+        select: (args, ctx, nestedSelection) => ({
+          comments: {
+            ...nestedSelection({}),
+            ...commentConnectionHelpers.getQuery(args, ctx),
+          },
+        }),
+        resolve: (parent, args, ctx) =>
+          commentConnectionHelpers.resolve(parent.comments, args, ctx),
       },
-      select: (args, ctx, nestedSelection) => ({
-        comments: {
-          ...nestedSelection({}),
-          ...CommentConnection.getQuery(args, ctx),
-        },
-      }),
-      resolve: (parent, args, ctx) => CommentConnection.resolve(parent.comments, args, ctx),
-    }),
+      CommentConnection,
+    ),
   }),
 });
 
@@ -888,10 +954,5 @@ builder.queryField('blog', (t) =>
     },
   }),
 );
-
-const CommentConnection = builder.prismaConnectionObject({
-  type: 'Comment',
-  cursor: 'id',
-});
 
 export default builder.toSchema();

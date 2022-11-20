@@ -8,7 +8,6 @@ import {
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
-import { PrismaConnectionRef } from './connection-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
 import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
@@ -138,7 +137,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           (query) => resolve(query as never, parent, args as never, context, info) as never,
         ),
     },
-    connectionOptions instanceof PrismaConnectionRef
+    connectionOptions instanceof ObjectRef
       ? connectionOptions
       : {
           ...connectionOptions,
@@ -158,10 +157,6 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             : (connectionOptions as { fields: undefined }).fields,
           extensions: {
             ...(connectionOptions as Record<string, {}> | undefined)?.extensions,
-            // pothosPrismaIndirectInclude: {
-            //   getType: () => typeName,
-            //   path: [{ name: 'edges' }, { name: 'node' }],
-            // },
           },
         },
     edgeOptions,
