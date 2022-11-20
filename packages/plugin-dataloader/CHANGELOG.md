@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.13.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
 ## 3.12.7
 
 ### Patch Changes

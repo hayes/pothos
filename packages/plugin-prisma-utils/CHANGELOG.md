@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.5.0
+
+### Minor Changes
+
+- cd1c0502: Add support for nested lists
+
 ## 0.4.7
 
 ### Patch Changes
