@@ -492,7 +492,7 @@ const PostRef = builder.prismaObject('Post', {
         take: 3,
       },
     }),
-    commentsConnection: t.relatedConnection('comments', { cursor: 'id' }),
+    commentsConnection: t.relatedConnection('comments', { cursor: 'id' }, CommentConnection),
     ownComments: t.relation('comments', {
       query: (args, ctx) => ({ where: { authorId: ctx.user.id } }),
     }),

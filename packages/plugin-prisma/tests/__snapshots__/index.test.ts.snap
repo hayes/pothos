@@ -98,7 +98,7 @@ type Post {
   author: User!
   commentAuthorIds: [ID!]!
   comments: [Comment!]!
-  commentsConnection(after: ID, before: ID, first: Int, last: Int): PostCommentsConnection!
+  commentsConnection(after: ID, before: ID, first: Int, last: Int): CommentConnection!
   content: String
   createdAt: String!
   id: ID!
@@ -111,16 +111,6 @@ type Post {
 
   \\"\\"\\"Title for the post\\"\\"\\"
   title: String!
-}
-
-type PostCommentsConnection {
-  edges: [PostCommentsConnectionEdge]!
-  pageInfo: PageInfo!
-}
-
-type PostCommentsConnectionEdge {
-  cursor: String!
-  node: Comment!
 }
 
 type PostManualMediaConnection {
