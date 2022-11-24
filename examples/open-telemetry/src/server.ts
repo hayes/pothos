@@ -1,5 +1,5 @@
-import { createYoga } from 'graphql-yoga';
 import { createServer } from 'node:http';
+import { createYoga } from 'graphql-yoga';
 import { AttributeValue } from '@opentelemetry/api';
 import SchemaBuilder from '@pothos/core';
 import TracingPlugin, { isRootField } from '@pothos/plugin-tracing';
