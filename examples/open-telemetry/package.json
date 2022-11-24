@@ -4,18 +4,18 @@
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
-    "graphql-yoga": "3.0.0-next.12",
-    "@opentelemetry/api": "^1.2.0",
-    "@opentelemetry/exporter-zipkin": "^1.7.0",
+    "@opentelemetry/api": "^1.3.0",
+    "@opentelemetry/exporter-zipkin": "^1.8.0",
     "@opentelemetry/instrumentation": "^0.33.0",
     "@opentelemetry/instrumentation-http": "^0.33.0",
-    "@opentelemetry/sdk-trace-base": "^1.7.0",
-    "@opentelemetry/sdk-trace-node": "^1.7.0",
+    "@opentelemetry/sdk-trace-base": "^1.8.0",
+    "@opentelemetry/sdk-trace-node": "^1.8.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/tracing-opentelemetry": "workspace:*",
     "bema": "^0.1.2",
     "graphql": "16.6.0",
+    "graphql-yoga": "3.0.3",
     "tsm": "^2.2.2"
   },
   "publishConfig": {
