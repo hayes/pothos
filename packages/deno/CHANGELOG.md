@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.30.1
+
+### Patch Changes
+
+- 15d19a38: Fix hasPreviousPage when paginating backwards with resolveOffsetConnection
+
 ## 3.30.0
 
 ### Minor Changes
