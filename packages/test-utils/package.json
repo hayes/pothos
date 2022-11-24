@@ -35,7 +35,7 @@
   "dependencies": {
     "graphql": "16.6.0",
     "graphql-helix": "^1.13.0",
-    "ts-morph": "^16.0.0",
+    "ts-morph": "^17.0.1",
     "yargs": "^17.6.2"
   }
 }
