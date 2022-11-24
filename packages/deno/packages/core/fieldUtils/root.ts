@@ -1,5 +1,6 @@
 // @ts-nocheck
-import type { ArgBuilder, InputFieldMap, NormalizeArgs } from '../types/index.ts';
+import ListRef from '../refs/list.ts';
+import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types/index.ts';
 import { FieldKind, FieldNullability, FieldOptionsFromKind, SchemaTypes, TypeParam, } from '../types/index.ts';
 import BaseFieldUtil from './base.ts';
 import InputFieldBuilder from './input.ts';
@@ -181,5 +182,10 @@ export default class RootFieldBuilder<Types extends SchemaTypes, ParentShape, Ki
      */
     field<Args extends InputFieldMap, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>) {
         return this.createField<Args, Type, Nullable>(options as never);
+    }
+    listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(type: T, options?: {
+        nullable?: Nullable;
+    }): ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]> {
+        return new ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]>(type, options?.nullable ?? false);
     }
 }

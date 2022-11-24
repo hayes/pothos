@@ -621,7 +621,7 @@ exports[`relay example schema > queries > query array based connections 1`] = `
       ],
       "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-        "hasNextPage": false,
+        "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
       },
@@ -811,7 +811,7 @@ exports[`relay example schema > queries > query offset based connections 1`] = `
       ],
       "pageInfo": {
         "endCursor": "T2Zmc2V0Q29ubmVjdGlvbjo5",
-        "hasNextPage": false,
+        "hasNextPage": true,
         "hasPreviousPage": true,
         "startCursor": "T2Zmc2V0Q29ubmVjdGlvbjo3",
       },

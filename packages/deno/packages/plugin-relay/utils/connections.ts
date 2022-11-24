@@ -51,20 +51,13 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
     }
     const size = first == null && last == null ? defaultSize : endOffset - startOffset;
     endOffset = Math.min(endOffset, startOffset + Math.min(size, maxSize));
-    // Get one extra to check for next page
-    endOffset += 1;
     const totalSize = endOffset - startOffset;
-    const lowerBound = after == null ? 0 : afterOffset;
-    const hasPreviousPage = last == null ? startOffset > 0 : startOffset > lowerBound;
     return {
         offset: startOffset,
-        limit: endOffset - startOffset,
-        hasPreviousPage,
-        expectedSize: totalSize - 1,
-        hasNextPage: (resultSize: number) => {
-            const upperBound = before == null ? startOffset + resultSize : beforeOffset;
-            return last == null ? resultSize >= totalSize : upperBound > endOffset;
-        },
+        limit: totalSize + 1,
+        hasPreviousPage: startOffset > 0,
+        expectedSize: totalSize,
+        hasNextPage: (resultSize: number) => resultSize > totalSize,
     };
 }
 export async function resolveOffsetConnection<T, U extends Promise<T[] | null> | T[] | null>(options: ResolveOffsetConnectionOptions, resolve: (params: {
@@ -83,7 +76,7 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
         ? null
         : {
             cursor: offsetToCursor(offset + index),
-            node: value as NonNullable<T>,
+            node: value,
         });
     const trimmed = edges.slice(0, expectedSize);
     return {
@@ -116,7 +109,7 @@ export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions
         ? null
         : {
             cursor: offsetToCursor(offset + index),
-            node: value as NonNullable<T>,
+            node: value,
         });
     const trimmed = edges.slice(0, expectedSize);
     return {
