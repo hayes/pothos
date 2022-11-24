@@ -16,7 +16,6 @@
   },
   "dependencies": {
     "@faker-js/faker": "^7.6.0",
-    "@graphql-yoga/node": "^2.13.13",
     "@pothos/core": "^3.23.0",
     "@pothos/plugin-dataloader": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
@@ -27,8 +26,9 @@
     "@pothos/plugin-validation": "workspace:*",
     "@prisma/client": "^4.5.0",
     "graphql": "16.6.0",
-    "graphql-scalars": "^1.20.0",
-    "prisma": "^4.5.0"
+    "graphql-scalars": "^1.20.1",
+    "graphql-yoga": "3.0.3",
+    "prisma": "^4.6.1"
   },
   "publishConfig": {
     "access": "public"

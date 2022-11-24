@@ -18,7 +18,8 @@ methods that can take full advantage of the Pothos type system.
 ## Hello, World
 
 ```typescript
-import { createServer } from '@graphql-yoga/node';
+import { createYoga } from 'graphql-yoga';
+import { createServer } from 'node:http';
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
@@ -34,11 +35,13 @@ builder.queryType({
   }),
 });
 
-const server = createServer({
+const yoga = createYoga({
   schema: builder.toSchema(),
 });
 
-server.start();
+const server = createServer(yoga);
+
+server.listen(3000);
 ```
 
 ## What sets Pothos apart

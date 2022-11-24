@@ -50,7 +50,7 @@
   "devDependencies": {
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.6.0",
-    "graphql-scalars": "^1.20.0",
+    "graphql-scalars": "^1.20.1",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

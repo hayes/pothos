@@ -47,11 +47,11 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@graphql-tools/utils": "^8.13.0",
+    "@graphql-tools/utils": "^8.13.1",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.6.0",
-    "graphql-rate-limit-directive": "^2.0.2",
+    "graphql-rate-limit-directive": "^2.0.3",
     "graphql-tag": "^2.12.6",
     "rate-limiter-flexible": "^2.4.1"
   },

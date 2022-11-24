@@ -7,7 +7,7 @@ This example uses the following packages:
 - `@pothos/plugin-relay`: For adding relay compatible connections and nodes
 - `@prisma/client`: For querying data from a database
 - `prisma`: For running migrations and generating `@prisma/client`
-- `@graphql-yoga/node`: For creating a server that executes the schema
+- `graphql-yoga`: For creating a server that executes the schema
 
 ## Schema
 

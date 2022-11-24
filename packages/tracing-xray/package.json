@@ -52,12 +52,12 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@graphql-yoga/node": "^2.13.13",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "aws-xray-sdk-core": "^3.3.8",
+    "aws-xray-sdk-core": "^3.4.0",
     "graphql": "16.6.0",
-    "graphql-tag": "^2.12.6"
+    "graphql-tag": "^2.12.6",
+    "graphql-yoga": "3.0.3"
   }
 }

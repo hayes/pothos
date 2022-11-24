@@ -13,7 +13,7 @@
   },
   "devDependencies": {
     "@swc-node/register": "^1.5.4",
-    "typescript": "^4.8.4"
+    "typescript": "^4.9.3"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }
