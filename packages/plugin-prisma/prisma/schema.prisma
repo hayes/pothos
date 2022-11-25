@@ -50,6 +50,8 @@ model PostMedia {
   postId  Int
   mediaId Int
   order   Int
+
+  @@unique([postId, mediaId])
 }
 
 model Comment {

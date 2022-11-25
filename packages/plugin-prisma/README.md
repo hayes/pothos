@@ -763,9 +763,8 @@ const mediaConnectionHelpers = prismaConnectionHelpers(
 
 builder.prismaObjectField('Post', 'mediaConnection', (t) =>
   t.connection({
+    // The type for the Node
     type: Media,
-    // or if you don't have the `ref` you can get it from the helper
-    type: mediaConnectionHelpers.ref,
     // since we are not using t.relatedConnection we need to manually
     // include the selections for our connection
     select: (args, ctx, nestedSelection) => ({

@@ -118,6 +118,9 @@ CREATE UNIQUE INDEX "Post_bigIntId_key" ON "Post"("bigIntId");
 CREATE UNIQUE INDEX "Post_createdAt_key" ON "Post"("createdAt");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "PostMedia_postId_mediaId_key" ON "PostMedia"("postId", "mediaId");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Comment_createdAt_key" ON "Comment"("createdAt");
 
 -- CreateIndex

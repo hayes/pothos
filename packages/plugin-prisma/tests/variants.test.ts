@@ -63,11 +63,11 @@ describe('variants', () => {
           "me": {
             "__typename": "User",
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
             "viewer": {
               "__typename": "Viewer",
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
               "posts": [
                 {
                   "id": "1",
@@ -120,7 +120,7 @@ describe('variants', () => {
                   },
                 ],
                 "profile": {
-                  "bio": "Saepe deserunt animi quia.",
+                  "bio": "Debitis perspiciatis unde sunt.",
                 },
               },
             },

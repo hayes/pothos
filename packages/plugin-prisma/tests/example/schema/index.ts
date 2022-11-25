@@ -235,7 +235,7 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
 );
 
 const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
-  cursor: 'id',
+  cursor: 'postId_mediaId',
   select: (nodeSelection) => ({
     order: true,
     media: nodeSelection({

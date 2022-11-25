@@ -470,7 +470,7 @@ exports[`prisma > queries for list with nested relations 1`] = `
   "data": {
     "users": [
       {
-        "name": "Maurine Rath",
+        "name": "Maurine Ratke",
         "posts": [
           {
             "author": {
@@ -554,11 +554,11 @@ exports[`prisma > queries for list with nested relations 1`] = `
           },
         ],
         "profile": {
-          "bio": "Saepe deserunt animi quia.",
+          "bio": "Debitis perspiciatis unde sunt.",
         },
       },
       {
-        "name": "Kyla Schoen",
+        "name": "Kyle Schoen",
         "posts": [
           {
             "author": {
@@ -636,70 +636,70 @@ exports[`prisma > queries for record with nested relations 1`] = `
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },
         {
           "author": {
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
             },
           },
         },

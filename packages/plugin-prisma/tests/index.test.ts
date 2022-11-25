@@ -444,7 +444,7 @@ describe('prisma', () => {
             "profileThroughManualLookup": {
               "user": {
                 "profile": {
-                  "bio": "Saepe deserunt animi quia.",
+                  "bio": "Debitis perspiciatis unde sunt.",
                 },
               },
             },
@@ -547,10 +547,10 @@ describe('prisma', () => {
             "__typename": "QueryUsersWithErrorSuccess",
             "data": [
               {
-                "name": "Maurine Rath",
+                "name": "Maurine Ratke",
                 "profileWithErrors": {
                   "data": {
-                    "bio": "Saepe deserunt animi quia.",
+                    "bio": "Debitis perspiciatis unde sunt.",
                     "user": {
                       "id": "VXNlcjox",
                     },
@@ -558,7 +558,7 @@ describe('prisma', () => {
                 },
               },
               {
-                "name": "Kyla Schoen",
+                "name": "Kyle Schoen",
                 "profileWithErrors": null,
               },
             ],
