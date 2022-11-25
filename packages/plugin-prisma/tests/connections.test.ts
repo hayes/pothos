@@ -1879,6 +1879,7 @@ describe('prisma', () => {
               },
               "media": {
                 "select": {
+                  "id": true,
                   "media": {
                     "select": {
                       "id": true,
@@ -1934,9 +1935,11 @@ describe('prisma', () => {
                   "id": 1,
                 },
                 "select": {
+                  "id": true,
                   "media": {
                     "select": {
                       "id": true,
+                      "posts": true,
                       "url": true,
                     },
                   },

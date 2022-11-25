@@ -261,7 +261,8 @@ export function wrapConnectionResult<T extends {}>(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
   cursor: (node: T) => string,
-  totalCount?: number | (() => MaybePromise<number>),
+  totalCount?: null | number | (() => MaybePromise<number>),
+  resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : gotFullResults;
@@ -273,6 +274,12 @@ export function wrapConnectionResult<T extends {}>(
   const edges = nodes.map((value, index) =>
     value == null
       ? null
+      : resolveNode
+      ? {
+          ...value,
+          cursor: cursor(value),
+          node: resolveNode(value),
+        }
       : {
           cursor: cursor(value),
           node: value,
