@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.37.0
+
+### Minor Changes
+
+- 26774fa0: Rewrite prismaConnectionHelpers to properly work with indirect relations
+
 ## 3.36.0
 
 ### Minor Changes
