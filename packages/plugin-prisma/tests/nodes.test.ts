@@ -51,11 +51,11 @@ describe('prisma', () => {
         "data": {
           "node": {
             "__typename": "User",
-            "email": "Maurine.Rath@gmail.com",
+            "email": "Maurine.Ratke@gmail.com",
             "id": "VXNlcjox",
-            "name": "Maurine Rath",
+            "name": "Maurine Ratke",
             "profile": {
-              "bio": "Saepe deserunt animi quia.",
+              "bio": "Debitis perspiciatis unde sunt.",
               "id": "1",
               "user": {
                 "id": "VXNlcjox",
@@ -123,11 +123,11 @@ describe('prisma', () => {
           "nodes": [
             {
               "__typename": "User",
-              "email": "Maurine.Rath@gmail.com",
+              "email": "Maurine.Ratke@gmail.com",
               "id": "VXNlcjox",
-              "name": "Maurine Rath",
+              "name": "Maurine Ratke",
               "profile": {
-                "bio": "Saepe deserunt animi quia.",
+                "bio": "Debitis perspiciatis unde sunt.",
                 "id": "1",
                 "user": {
                   "id": "VXNlcjox",
@@ -136,9 +136,9 @@ describe('prisma', () => {
             },
             {
               "__typename": "User",
-              "email": "Kyla_Schoen@yahoo.com",
+              "email": "Kyle_Schoen@yahoo.com",
               "id": "VXNlcjoy",
-              "name": "Kyla Schoen",
+              "name": "Kyle Schoen",
               "profile": null,
             },
           ],
@@ -318,7 +318,7 @@ describe('prisma', () => {
           "named": [
             {
               "id": "VXNlcjox",
-              "name": "Maurine Rath",
+              "name": "Maurine Ratke",
             },
             null,
           ],
@@ -434,7 +434,7 @@ describe('prisma', () => {
       {
         "data": {
           "node": {
-            "bio": "Saepe deserunt animi quia.",
+            "bio": "Debitis perspiciatis unde sunt.",
             "id": "Vmlld2VyTm9kZTox",
           },
         },

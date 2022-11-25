@@ -217,7 +217,7 @@ describe('query on relations', () => {
           "post": {
             "ownComments": [
               {
-                "content": "Qui praesentium possimus amet amet.",
+                "content": "Cupiditate esse eligendi ratione ratione.",
                 "id": "1",
               },
             ],
@@ -309,9 +309,9 @@ describe('query on relations', () => {
                 {
                   "node": {
                     "author": {
-                      "name": "Maurine Rath",
+                      "name": "Maurine Ratke",
                     },
-                    "content": "Qui praesentium possimus amet amet.",
+                    "content": "Cupiditate esse eligendi ratione ratione.",
                   },
                 },
               ],

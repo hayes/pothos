@@ -68,27 +68,27 @@ describe('nested query', () => {
                     "comments": [
                       {
                         "postAuthor": {
-                          "name": "Maurine Rath",
+                          "name": "Maurine Ratke",
                         },
                       },
                       {
                         "postAuthor": {
-                          "name": "Maurine Rath",
+                          "name": "Maurine Ratke",
                         },
                       },
                       {
                         "postAuthor": {
-                          "name": "Maurine Rath",
+                          "name": "Maurine Ratke",
                         },
                       },
                     ],
                     "id": "250",
                     "media": [
                       {
-                        "url": "http://misty-dill.org",
+                        "url": "http://mixed-dill.org",
                       },
                       {
-                        "url": "https://fumbling-jackfruit.net",
+                        "url": "https://fussy-jackfruit.net",
                       },
                     ],
                   },
@@ -100,17 +100,17 @@ describe('nested query', () => {
             "postPreviews": [
               {
                 "post": {
-                  "content": "Deleniti eos reprehenderit in nisi et qui. Odio et inventore eligendi in. Id harum sit odio quia vitae provident. Provident molestiae harum ullam pariatur quos est quod. Ea quisquam esse quia expedita commodi autem.",
+                  "content": "Iusto odit nisi aliquid nostrum similique libero. Iure velit ipsa quidem aliquid. Cum similique qui reprehenderit dolores veritatis voluptatum. Voluptatum vel culpa magnam illum dignissimos nam cum. Corporis nam commodi ad animi corporis voluptas.",
                   "createdAt": "2012-12-12T00:00:00.000Z",
                 },
-                "preview": "os reprehenderit in nisi et qui. Odio et inventore eligendi in. Id harum sit odio quia vitae provident. Provident molestiae harum ullam pariatur quos est quod. Ea quisquam esse quia expedita commodi autem.",
+                "preview": " nisi aliquid nostrum similique libero. Iure velit ipsa quidem aliquid. Cum similique qui reprehenderit dolores veritatis voluptatum. Voluptatum vel culpa magnam illum dignissimos nam cum. Corporis nam commodi ad animi corporis voluptas.",
               },
               {
                 "post": {
-                  "content": "Necessitatibus molestiae placeat saepe eligendi. Excepturi et laudantium fuga similique fugit corporis voluptatem dolores esse. Et sint magnam aut atque dolores maiores incidunt.",
+                  "content": "Officiis vel nobis debitis quidem. Laudantium blanditiis quam error excepturi dicta aliquam enim ducimus commodi. Pariatur voluptates non beatae iusto ducimus doloribus consectetur.",
                   "createdAt": "2012-12-12T00:00:00.001Z",
                 },
-                "preview": "ibus molestiae placeat saepe eligendi. Excepturi et laudantium fuga similique fugit corporis voluptatem dolores esse. Et sint magnam aut atque dolores maiores incidunt.",
+                "preview": "el nobis debitis quidem. Laudantium blanditiis quam error excepturi dicta aliquam enim ducimus commodi. Pariatur voluptates non beatae iusto ducimus doloribus consectetur.",
               },
             ],
           },
@@ -228,19 +228,19 @@ describe('nested query', () => {
             "posts": [
               {
                 "author": {
-                  "name": "Maurine Rath",
+                  "name": "Maurine Ratke",
                 },
                 "id": "1",
               },
               {
                 "author": {
-                  "name": "Maurine Rath",
+                  "name": "Maurine Ratke",
                 },
                 "id": "2",
               },
               {
                 "author": {
-                  "name": "Maurine Rath",
+                  "name": "Maurine Ratke",
                 },
                 "id": "3",
               },

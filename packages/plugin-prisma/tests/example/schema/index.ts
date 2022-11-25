@@ -226,35 +226,26 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
     {
       type: Media,
       select: (args, ctx, nestedSelection) => ({
-        media: {
-          ...mediaConnectionHelpers.getQuery(args, ctx),
-          select: {
-            order: true,
-            media: nestedSelection(
-              {
-                select: {
-                  id: true,
-                  posts: true,
-                },
-              },
-              ['edges', 'node'],
-            ),
-          },
-        },
+        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
-      resolve: (post, args, ctx) =>
-        mediaConnectionHelpers.resolve(
-          post.media.map(({ media }) => media),
-          args,
-          ctx,
-        ),
+      resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
     },
     MediaConnection,
   ),
 );
 
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, Media, {
-  cursor: 'id',
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'postId_mediaId',
+  select: (nodeSelection) => ({
+    order: true,
+    media: nodeSelection({
+      select: {
+        id: true,
+        posts: true,
+      },
+    }),
+  }),
+  resolveNode: (postMedia) => postMedia.media,
 });
 
 builder.prismaObjectFields('Post', (t) => ({
@@ -262,29 +253,9 @@ builder.prismaObjectFields('Post', (t) => ({
     {
       type: Media,
       select: (args, ctx, nestedSelection) => ({
-        media: {
-          ...mediaConnectionHelpers.getQuery(args, ctx),
-          select: {
-            order: true,
-            media: nestedSelection({}, ['edges', 'node']),
-          },
-        },
+        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
-      resolve: (post, args, ctx) => {
-        const connection = mediaConnectionHelpers.resolve(
-          post.media.map(({ media }) => media),
-          args,
-          ctx,
-        );
-
-        return {
-          ...connection,
-          edges: connection.edges.map((edge, i) => ({
-            ...post.media[i],
-            ...edge!,
-          })),
-        };
-      },
+      resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
     },
     {},
     {
@@ -372,10 +343,7 @@ const SelectPost = builder.prismaNode('Post', {
       {
         type: commentConnectionHelpers.ref,
         select: (args, ctx, nestedSelection) => ({
-          comments: {
-            ...nestedSelection({}, ['edges', 'node']),
-            ...commentConnectionHelpers.getQuery(args, ctx),
-          },
+          comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
         }),
         resolve: (parent, args, ctx) =>
           commentConnectionHelpers.resolve(parent.comments, args, ctx),

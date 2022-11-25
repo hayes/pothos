@@ -1,5 +1,5 @@
 import { print } from 'graphql';
-import { Plugin } from '@graphql-yoga/node';
+import { Plugin } from 'graphql-yoga';
 import { AttributeValue, diag, DiagConsoleLogger, DiagLogLevel, trace } from '@opentelemetry/api';
 import { ZipkinExporter } from '@opentelemetry/exporter-zipkin';
 import { registerInstrumentations } from '@opentelemetry/instrumentation';
@@ -42,7 +42,7 @@ export const tracingPlugin: Plugin = {
           try {
             const result = await executeFn(options);
 
-            return result;
+            return result as unknown;
           } catch (error: unknown) {
             span.recordException(error as Error);
             throw error;

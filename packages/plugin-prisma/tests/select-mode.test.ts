@@ -89,31 +89,31 @@ describe('select mode', () => {
             },
           },
           "viewer": {
-            "bio": "Saepe deserunt animi quia.",
+            "bio": "Debitis perspiciatis unde sunt.",
             "postCount": 250,
             "selectUser": {
-              "name": "Maurine Rath",
+              "name": "Maurine Ratke",
               "postCount": 250,
               "posts": [
                 {
                   "id": "U2VsZWN0UG9zdDox",
-                  "title": "Omnis quisquam quisquam quos nihil dolor voluptatibus velit.",
+                  "title": "Quos distinctio distinctio dignissimos vel quo maiores ea.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDoy",
-                  "title": "Accusantium et quia quos sequi molestiae.",
+                  "title": "Voluptatem eum dolores dignissimos quia vel.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDoz",
-                  "title": "Veniam perspiciatis et nisi aut corporis laboriosam.",
+                  "title": "Ut corrupti eum nostrum consequatur aliquam nostrum.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDo0",
-                  "title": "Sit voluptatum mollitia enim iste molestias nesciunt minima sequi voluptas.",
+                  "title": "Aut molestiae perspiciatis quaerat quas praesentium quia ut sed cumque.",
                 },
                 {
                   "id": "U2VsZWN0UG9zdDo1",
-                  "title": "Omnis odit labore magni rerum quia praesentium distinctio.",
+                  "title": "Quos beatae adipisci explicabo officiis ad esse id.",
                 },
               ],
               "postsConnection": {
@@ -122,7 +122,7 @@ describe('select mode', () => {
                     "node": {
                       "createdAt": "2012-12-12T00:00:00.249Z",
                       "id": "U2VsZWN0UG9zdDoyNTA=",
-                      "title": "Inventore quas reiciendis.",
+                      "title": "Ipsa blanditiis voluptatibus.",
                     },
                   },
                 ],
@@ -319,7 +319,7 @@ describe('select mode', () => {
       {
         "data": {
           "viewer": {
-            "bio": "Saepe deserunt animi quia.",
+            "bio": "Debitis perspiciatis unde sunt.",
             "selectUser": {
               "postsConnection": {
                 "edges": [

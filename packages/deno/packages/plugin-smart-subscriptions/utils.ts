@@ -35,7 +35,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
         },
         unsubscribe: async (name, context) => {
             const map = iterators(context)!;
-            if (!map || !map.has(name)) {
+            if (!map?.has(name)) {
                 return;
             }
             const itr = map.get(name)!;
