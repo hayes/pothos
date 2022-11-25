@@ -737,7 +737,7 @@ const Media = builder.prismaObject('Media', {
 ## Indirect relations as connections
 
 Creating connections from indirect relations is a little more involved, but can be acheived using
-`prismaConnectionHelpers` with a normal `t.connection` field:
+`prismaConnectionHelpers` with a normal `t.connection` field.
 
 ```typescript
 // Create a prisma object for the node type of your connection
@@ -754,9 +754,21 @@ const Media = builder.prismaObject('Media', {
 // to use the normal t.connection with a prisma type
 const mediaConnectionHelpers = prismaConnectionHelpers(
   builder,
-  Media, // you can also reference the prisma model by string name
+  'PostMedia', // this should be the the join table
   {
     cursor: 'id',
+    select: (nodeSelection) => ({
+      // select the relation to the media node using the nodeSelection function
+      media: nodeSelection({
+        // optionally specify fields to select by default for the node
+        select: {
+          id: true,
+          posts: true,
+        },
+      }),
+    }),
+    // resolve the node from the edge
+    resolveNode: (postMedia) => postMedia.media,
     // additional/optional options
     maxSize: 100,
     defaultSize: 20,
@@ -771,34 +783,45 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
     // since we are not using t.relatedConnection we need to manually
     // include the selections for our connection
     select: (args, ctx, nestedSelection) => ({
-      media: {
-        // this turns connection args into `cursor` and `take` for prisma
-        // to enable pagination
-        ...mediaConnectionHelpers.getQuery(args, ctx),
-        // this is the selection for the join table
-        select: {
-          // this is the selection for the nodes from the join table
-          media: nestedSelection(
-            {
-              // you can add additional selections for the node type here if needed
-            },
-            // This tells pothos what field in the query
-            // we want to use to find nested selections
-            ['edges', 'node'],
-          ),
-        },
-      },
+      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
     resolve: (post, args, ctx) =>
       // This helper takes a list of nodes and formats them for the connection
       mediaConnectionHelpers.resolve(
-        // map results to the list of nodes
-        post.media.map(({ media }) => media),
+        // map results to the list of edges
+        post.media,
         args,
         ctx,
       ),
   }),
 );
+```
+
+The above example assumes that you are paginating a relation to a join table, where the pagination
+args are applied based on the relation to that join table, but the nodes themselves are nested
+deeper.
+
+`prismaConnectionHelpers` can also be used to manually create a connection where the edge and
+connections share the same model, and pagination happens directly on a relation to nodes type (even
+if that relation is nested).
+
+```ts
+const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+});
+
+const SelectPost = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    comments: t.connection({
+      type: commentConnectionHelpers.ref,
+      select: (args, ctx, nestedSelection) => ({
+        comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+    }),
+  }),
+});
 ```
 
 ## Sharing Connections objects
@@ -837,8 +860,16 @@ builder.prismaObject('Post', {
 In some cases you may want to expose some data from an indirect connection on the edge object.
 
 ```typescript
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, Media, {
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
   cursor: 'id',
+  select: (nodeSelection) => ({
+    // select the relation to the media node using the nodeSelection function
+    media: nodeSelection({}),
+    // Select additional fields from the join table
+    createdAt: true,
+  }),
+  // resolve the node from the edge
+  resolveNode: (postMedia) => postMedia.media,
 });
 
 builder.prismaObjectFields('Post', (t) => ({
@@ -846,31 +877,18 @@ builder.prismaObjectFields('Post', (t) => ({
     {
       type: Media,
       select: (args, ctx, nestedSelection) => ({
-        media: {
-          ...mediaConnectionHelpers.getQuery(args, ctx),
-          select: {
-            // Select additional fields from the join table
-            createdAt: true,
-            media: nestedSelection({}, ['edges', 'node']),
-          },
+        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        select: {
+          media: nestedSelection({}, ['edges', 'node']),
         },
       }),
-      resolve: (post, args, ctx) => {
-        const connection = mediaConnectionHelpers.resolve(
+
+      resolve: (post, args, ctx) =>
+        mediaConnectionHelpers.resolve(
           post.media.map(({ media }) => media),
           args,
           ctx,
-        );
-
-        // Manually map the additional fields from the join table to the edge objects
-        return {
-          ...connection,
-          edges: connection.edges.map((edge, i) => ({
-            createdAt: edge.createdAt,
-            ...edge!,
-          })),
-        };
-      },
+        ),
     },
     {},
     // options for the edge object
