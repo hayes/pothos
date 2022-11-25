@@ -84,9 +84,6 @@ importers:
       graphql-yoga: 3.0.3_graphql@16.6.0
       prisma: 4.6.1
 
-  examples/complex-app/prisma/client:
-    specifiers: {}
-
   examples/envelope-helix-fastify:
     specifiers:
       '@envelop/core': ^3.0.4
@@ -252,9 +249,6 @@ importers:
       graphql: 16.6.0
       prisma: 4.6.1
 
-  examples/prisma-federation/prisma/client:
-    specifiers: {}
-
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
@@ -274,12 +268,6 @@ importers:
       graphql: 16.6.0
       graphql-yoga: 3.0.3_graphql@16.6.0
       prisma: 4.6.1
-
-  examples/prisma-relay/prisma/client:
-    specifiers: {}
-
-  examples/prisma/prisma/client:
-    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -565,13 +553,7 @@ importers:
   packages/plugin-prisma-utils/esm:
     specifiers: {}
 
-  packages/plugin-prisma-utils/tests/client:
-    specifiers: {}
-
   packages/plugin-prisma/esm:
-    specifiers: {}
-
-  packages/plugin-prisma/tests/client:
     specifiers: {}
 
   packages/plugin-relay:
@@ -614,9 +596,6 @@ importers:
       prisma: 4.6.1
 
   packages/plugin-scope-auth/esm:
-    specifiers: {}
-
-  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -725,9 +704,6 @@ importers:
       prisma: 4.6.1
 
   packages/plugin-with-input/esm:
-    specifiers: {}
-
-  packages/plugin-with-input/prisma/client:
     specifiers: {}
 
   packages/test-utils:
