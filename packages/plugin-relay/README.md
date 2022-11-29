@@ -554,10 +554,9 @@ if you want to resolve the queries for `node` and or `nodes` you can provide a c
 functions into the relay options of the builder:
 
 ```typescript
-import RelayPlugin, { decodeGlobalID } from '@pothos/plugin-relay';
+import RelayPlugin from '@pothos/plugin-relay';
 
-function node(globalId: string) {
-  const { id } = decodeGlobalID(globalID);
+function node({ id, typename }: { id: string; typename: string }) {
   return getThing(id);
 }
 
@@ -565,10 +564,10 @@ const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
   relayOptions: {
     nodeQueryOptions: {
-      resolve: (globalID, context) => node(globalID),
+      resolve: (root, { id }, context, info) => node(id),
     },
     nodesQueryOptions: {
-      resolve: (globalIDs, context) => globalIDs.map((globalID) => node(globalID)),
+      resolve: (root, { id }, context, info) => ids.map((id) => node(id)),
     },
   },
 });

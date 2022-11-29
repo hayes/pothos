@@ -18,6 +18,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
+import { internalEncodeGlobalID } from './utils/internal';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -153,11 +154,23 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         ...this.options.relayOptions.nodeQueryOptions,
         type: ref as InterfaceRef<unknown>,
         args: {
-          id: t.arg.id({ required: true }),
+          id: t.arg.globalID({ required: true }),
         },
-        resolve: async (root, args, context, info) =>
-          this.options.relayOptions?.nodeQueryOptions?.resolve?.(String(args.id), context) ??
-          (await resolveNodes(this, context, info, [String(args.id)]))[0],
+        resolve:
+          (this.options.relayOptions?.nodeQueryOptions?.resolve as never) ??
+          (async (root, args, context, info) => {
+            const { id, type } = args.id as GlobalIDShape<SchemaTypes>;
+            return (
+              await resolveNodes(this, context, info, [
+                internalEncodeGlobalID(
+                  this,
+                  this.configStore.getTypeConfig(type).name,
+                  String(id),
+                  context,
+                ),
+              ])
+            )[0];
+          }),
       }) as FieldRef<unknown>,
   );
 
@@ -170,13 +183,24 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
       ...this.options.relayOptions.nodesQueryOptions,
       type: [ref],
       args: {
-        ids: t.arg.idList({ required: true }),
+        ids: t.arg.globalIDList({ required: true }),
       },
-      resolve: async (root, args, context, info) =>
-        this.options.relayOptions?.nodesQueryOptions?.resolve?.(args.ids as string[], context) ??
-        ((await resolveNodes(this, context, info, args.ids as string[])) as Promise<
-          ObjectParam<SchemaTypes>
-        >[]),
+      resolve:
+        (this.options.relayOptions?.nodesQueryOptions?.resolve as never) ??
+        (async (root, args, context, info) =>
+          (await resolveNodes(
+            this,
+            context,
+            info,
+            (args.ids as GlobalIDShape<SchemaTypes>[]).map((id) =>
+              internalEncodeGlobalID(
+                this,
+                this.configStore.getTypeConfig(id.type).name,
+                String(id.id),
+                context,
+              ),
+            ),
+          )) as Promise<ObjectParam<SchemaTypes>>[]),
     }),
   );
 
