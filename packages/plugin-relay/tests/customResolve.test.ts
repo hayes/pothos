@@ -6,12 +6,9 @@ describe('custom node resolve', () => {
   it('resolves a node with a global id', async () => {
     const query = gql`
       query {
-        node(id: "TnVtYmVyOjI=") {
-          ... on BatchNumber {
-            batchNumber: number
-          }
-          ... on Number {
-            number
+        node(id: "VXNlcjo4") {
+          ... on User {
+            age
           }
         }
       }

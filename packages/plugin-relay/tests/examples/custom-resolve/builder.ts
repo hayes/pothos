@@ -1,28 +1,21 @@
 import SchemaBuilder from '@pothos/core';
 import RelayPlugin from '../../../src';
-import { Poll } from './data';
-import { ContextType } from './types';
+import { users } from './data';
 
 export default new SchemaBuilder<{
   Objects: {
-    Poll: Poll;
-    Answer: { id: number; value: string; count: number };
+    User: { id: number; age: number };
   };
-  Context: ContextType;
-  Connection: {
-    totalCount: number;
-  };
-  DefaultEdgesNullability: false;
   DefaultNodeNullability: true;
 }>({
   plugins: [RelayPlugin],
   relayOptions: {
     nodeQueryOptions: {
-      resolve: (root, { id }, context, info) => Poll.map.get(Number(id)),
+      resolve: (root, { id }, context, info) => users[Number.parseInt(String(id.id), 10)],
     },
     nodesQueryOptions: {
       resolve: (root, { ids }, context, info) =>
-        ids.map(({ id, type }) => Poll.map.get(Number(id))),
+        ids.map(({ id }) => users[Number.parseInt(String(id), 10)]),
     },
   },
 });

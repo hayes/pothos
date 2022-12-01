@@ -1,37 +1,9 @@
-export class Poll {
-  static map = new Map<number, Poll>();
+import { User } from './types';
 
-  static lastID = 0;
+export const users: User[] = Array.from({ length: 10 })
+  .fill(0)
+  .map((_, index) => ({ id: index + 1, age: getAge(index) }));
 
-  static lastAnswerID = 0;
-
-  __type: 'Poll' = 'Poll';
-
-  id: number;
-
-  question: string;
-
-  answers: { id: number; value: string; count: number }[];
-
-  constructor(question: string, answers: string[]) {
-    this.id = Poll.lastID + 1;
-
-    this.question = question;
-
-    this.answers = answers.map((value) => {
-      Poll.lastAnswerID += 1;
-
-      return { value, id: Poll.lastAnswerID, count: 0 };
-    });
-
-    Poll.lastID = this.id;
-  }
-
-  static create(question: string, answers: string[]) {
-    const poll = new Poll(question, answers);
-
-    this.map.set(poll.id, poll);
-
-    return poll;
-  }
+function getAge(index: number): number {
+  return 100 - index * 10;
 }

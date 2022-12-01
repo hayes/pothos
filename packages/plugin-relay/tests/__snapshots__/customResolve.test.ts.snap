@@ -1,19 +1,11 @@
 // Vitest Snapshot v1
 
-exports[`cursor based connection > queries 1`] = `
-{
-  "data": {
-    "node": {
-      "number": 2,
-    },
-  },
-}
-`;
-
 exports[`custom node resolve > resolves a node with a global id 1`] = `
 {
   "data": {
-    "node": null,
+    "node": {
+      "age": 20,
+    },
   },
 }
 `;

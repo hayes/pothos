@@ -1,7 +1,4 @@
-import { PubSub } from 'graphql-subscriptions';
-import { Poll } from './data';
-
-export interface ContextType {
-  Poll: typeof Poll;
-  pubsub: PubSub;
+export interface User {
+  id: number;
+  age: number;
 }

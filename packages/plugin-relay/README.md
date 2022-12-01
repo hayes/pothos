@@ -567,7 +567,7 @@ const builder = new SchemaBuilder({
       resolve: (root, { id }, context, info) => node(id),
     },
     nodesQueryOptions: {
-      resolve: (root, { id }, context, info) => ids.map((id) => node(id)),
+      resolve: (root, { ids }, context, info) => ids.map((id) => node(id)),
     },
   },
 });
