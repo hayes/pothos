@@ -161,7 +161,6 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
           if (ts.isImportDeclaration(node)) {
             return ts.factory.updateImportDeclaration(
               node,
-              node.decorators,
               node.modifiers,
               node.importClause,
               ts.factory.createStringLiteral(mod, true),
@@ -171,7 +170,6 @@ const importTransformer: ts.TransformerFactory<ts.SourceFile> = (context) => {
 
           return ts.factory.updateExportDeclaration(
             node,
-            node.decorators,
             node.modifiers,
             node.isTypeOnly,
             node.exportClause,
