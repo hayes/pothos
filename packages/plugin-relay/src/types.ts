@@ -53,14 +53,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     >,
     'args' | 'resolve' | 'type'
   > & {
-    resolve?: Resolver<
-      Types['Root'],
-      InputShapeFromFields<{
-        id: InputFieldRef<GlobalIDShape<Types>, 'Arg'>;
-      }>,
-      Types['Context'],
-      unknown
-    >;
+    resolve?: (
+      parent: Types['Root'],
+      args: {
+        id: { typename: string; id: string };
+      },
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+      resolveNode: (id: { id: string; typename: string }) => Promise<unknown>,
+    ) => MaybePromise<unknown>;
   };
   nodesQueryOptions: Omit<
     PothosSchemaTypes.QueryFieldOptions<
@@ -72,14 +73,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     >,
     'args' | 'resolve' | 'type'
   > & {
-    resolve?: Resolver<
-      Types['Root'],
-      InputShapeFromFields<{
-        ids: InputFieldRef<GlobalIDShape<Types>[], 'Arg'>;
-      }>,
-      Types['Context'],
-      unknown
-    >;
+    resolve?: (
+      parent: Types['Root'],
+      args: {
+        ids: { typename: string; id: string }[];
+      },
+      context: Types['Context'],
+      info: GraphQLResolveInfo,
+      resolveNodes: (ids: { id: string; typename: string }[]) => Promise<unknown[]>,
+    ) => MaybePromise<MaybePromise<unknown>[]>;
   };
   mutationInputArgOptions: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>,
