@@ -592,7 +592,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       query: buildCache.types.get('Query') as GraphQLObjectType | undefined,
       mutation: buildCache.types.get('Mutation') as GraphQLObjectType | undefined,
       subscription: buildCache.types.get('Subscription') as GraphQLObjectType | undefined,
-      extensions,
+      extensions: extensions ?? {},
       directives: directives as GraphQLDirective[],
       types: builtTypes,
     });
