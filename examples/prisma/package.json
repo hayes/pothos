@@ -17,10 +17,10 @@
     "@faker-js/faker": "^7.6.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@prisma/client": "^4.6.1",
+    "@prisma/client": "^4.7.1",
     "graphql": "16.6.0",
-    "graphql-yoga": "3.0.3",
-    "prisma": "^4.6.1"
+    "graphql-yoga": "3.1.1",
+    "prisma": "^4.7.1"
   },
   "publishConfig": {
     "access": "public"

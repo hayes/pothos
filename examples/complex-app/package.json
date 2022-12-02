@@ -24,11 +24,11 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
-    "@prisma/client": "^4.5.0",
+    "@prisma/client": "^4.7.1",
     "graphql": "16.6.0",
     "graphql-scalars": "^1.20.1",
-    "graphql-yoga": "3.0.3",
-    "prisma": "^4.6.1"
+    "graphql-yoga": "3.1.1",
+    "prisma": "^4.7.1"
   },
   "publishConfig": {
     "access": "public"

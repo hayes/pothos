@@ -301,7 +301,7 @@ describe('findUnique', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "withCompositeID": true,
@@ -318,7 +318,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "withCompositeUnique": {
@@ -344,7 +344,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -358,7 +358,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -372,7 +372,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -389,7 +389,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -406,7 +406,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -423,7 +423,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -437,7 +437,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -451,7 +451,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -468,7 +468,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -485,7 +485,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -499,7 +499,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -513,7 +513,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -530,7 +530,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -547,7 +547,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,
@@ -564,7 +564,7 @@ describe('findUnique', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "FindUniqueRelations": true,

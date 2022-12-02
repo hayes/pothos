@@ -248,7 +248,7 @@ describe('query on relations', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "comments": {
@@ -343,7 +343,7 @@ describe('query on relations', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "comments": {

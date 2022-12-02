@@ -155,21 +155,13 @@ describe('prisma counts', () => {
         },
         {
           "action": "count",
-          "args": {
-            "select": {
-              "_count": {
-                "select": {
-                  "_all": true,
-                },
-              },
-            },
-          },
+          "args": undefined,
           "dataPath": [],
           "model": "User",
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "_count": {
@@ -209,7 +201,7 @@ describe('prisma counts', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "_count": {

@@ -69,7 +69,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "profile": {
@@ -149,7 +149,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "profile": {
@@ -167,7 +167,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "profile": {
@@ -263,7 +263,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {
@@ -332,7 +332,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findFirst",
+          "action": "findFirstOrThrow",
           "args": {
             "where": {
               "id": 1,
@@ -387,7 +387,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findFirst",
+          "action": "findFirstOrThrow",
           "args": {
             "where": {
               "id": 1,
@@ -398,7 +398,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "where": {
               "id": 1,
@@ -444,7 +444,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "profile": true,

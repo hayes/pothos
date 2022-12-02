@@ -1153,7 +1153,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {
@@ -1348,7 +1348,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {
@@ -1687,7 +1687,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "following": {
@@ -1903,7 +1903,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "select": {
               "comments": {
@@ -1928,7 +1928,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "media": {

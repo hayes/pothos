@@ -44,7 +44,7 @@
   },
   "devDependencies": {
     "@apollo/gateway": "^2.2.1",
-    "@apollo/server": "^4.2.1",
+    "@apollo/server": "^4.2.2",
     "@apollo/subgraph": "2.2.1",
     "@graphql-tools/utils": "^9.1.1",
     "@pothos/core": "workspace:*",

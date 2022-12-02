@@ -121,7 +121,7 @@ describe('nested query', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "select": {
               "id": true,

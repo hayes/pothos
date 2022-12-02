@@ -136,7 +136,7 @@ describe('variants', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "profile": true,
@@ -175,7 +175,7 @@ describe('variants', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {

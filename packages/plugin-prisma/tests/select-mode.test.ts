@@ -223,7 +223,7 @@ describe('select mode', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "select": {
               "_count": {
@@ -255,7 +255,7 @@ describe('select mode', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "select": {
               "_count": {
@@ -342,7 +342,7 @@ describe('select mode', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {
@@ -439,7 +439,7 @@ describe('select mode', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {
@@ -541,7 +541,7 @@ describe('select mode', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "include": {
               "posts": {
@@ -569,7 +569,7 @@ describe('select mode', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUnique",
+          "action": "findUniqueOrThrow",
           "args": {
             "select": {
               "id": true,
