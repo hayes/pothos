@@ -153,10 +153,14 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         ...this.options.relayOptions.nodeQueryOptions,
         type: ref as InterfaceRef<unknown>,
         args: {
-          id: t.arg.id({ required: true }),
+          id: t.arg.globalID({ required: true }),
         },
-        resolve: async (root, args, context, info) =>
-          (await resolveNodes(this, context, info, [String(args.id)]))[0],
+        resolve:
+          (this.options.relayOptions?.nodeQueryOptions?.resolve as never) ??
+          (async (root, args, context, info) =>
+            (
+              await resolveNodes(this, context, info, [args.id as { id: string; typename: string }])
+            )[0]),
       }) as FieldRef<unknown>,
   );
 
@@ -169,12 +173,12 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
       ...this.options.relayOptions.nodesQueryOptions,
       type: [ref],
       args: {
-        ids: t.arg.idList({ required: true }),
+        ids: t.arg.globalIDList({ required: true }),
       },
-      resolve: async (root, args, context, info) =>
-        (await resolveNodes(this, context, info, args.ids as string[])) as Promise<
-          ObjectParam<SchemaTypes>
-        >[],
+      resolve:
+        (this.options.relayOptions?.nodesQueryOptions?.resolve as never) ??
+        ((root, args, context, info) =>
+          resolveNodes(this, context, info, args.ids as { id: string; typename: string }[])),
     }),
   );
 

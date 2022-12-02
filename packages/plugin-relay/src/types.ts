@@ -52,7 +52,16 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       Promise<unknown>
     >,
     'args' | 'resolve' | 'type'
-  >;
+  > & {
+    resolve?: Resolver<
+      Types['Root'],
+      InputShapeFromFields<{
+        id: InputFieldRef<GlobalIDShape<Types>, 'Arg'>;
+      }>,
+      Types['Context'],
+      unknown
+    >;
+  };
   nodesQueryOptions: Omit<
     PothosSchemaTypes.QueryFieldOptions<
       Types,
@@ -62,7 +71,16 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       Promise<unknown>[]
     >,
     'args' | 'resolve' | 'type'
-  >;
+  > & {
+    resolve?: Resolver<
+      Types['Root'],
+      InputShapeFromFields<{
+        ids: InputFieldRef<GlobalIDShape<Types>[], 'Arg'>;
+      }>,
+      Types['Context'],
+      unknown
+    >;
+  };
   mutationInputArgOptions: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>,
     'fields' | 'type'
