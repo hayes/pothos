@@ -2,27 +2,29 @@
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { brandWithType, createContextCache, MaybePromise, ObjectParam, OutputType, SchemaTypes, } from '../../core/index.ts';
 import { NodeObjectOptions } from '../types.ts';
-import { internalDecodeGlobalID, internalEncodeGlobalID } from './internal.ts';
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
-export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, globalIDs: (string | null | undefined)[]): Promise<MaybePromise<unknown>[]> {
+export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, globalIDs: ({
+    id: string;
+    typename: string;
+} | null | undefined)[]): Promise<MaybePromise<unknown>[]> {
     const requestCache = getRequestCache(context);
-    const idsByType: Record<string, Map<string, string>> = {};
+    const idsByType: Record<string, Set<string>> = {};
     const results: Record<string, unknown> = {};
     globalIDs.forEach((globalID, i) => {
         if (globalID == null) {
             return;
         }
-        if (requestCache.has(globalID)) {
-            results[globalID] = requestCache.get(globalID)!;
+        const { id, typename } = globalID;
+        const cacheKey = `${typename}:${id}`;
+        if (requestCache.has(cacheKey)) {
+            results[cacheKey] = requestCache.get(cacheKey)!;
             return;
         }
-        const { id, typename } = internalDecodeGlobalID(builder, globalID, context);
-        idsByType[typename] = idsByType[typename] || new Map();
-        idsByType[typename].set(id, globalID);
+        idsByType[typename] = idsByType[typename] ?? new Set();
+        idsByType[typename].add(id);
     });
     await Promise.all(Object.keys(idsByType).map(async (typename) => {
-        const ids = [...idsByType[typename].keys()];
-        const globalIds = [...idsByType[typename].values()];
+        const ids = [...idsByType[typename]];
         const config = builder.configStore.getTypeConfig(typename, "Object");
         const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [
         ]>;
@@ -32,10 +34,10 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
             if (shouldBrandObjects) {
                 brandWithType(val, typename as OutputType<Types>);
             }
-            results[globalIds[i]] = val;
+            results[`${typename}:${ids[i]}`] = val;
         });
     }));
-    return globalIDs.map((globalID) => (globalID == null ? null : results[globalID] ?? null));
+    return globalIDs.map((globalID) => globalID == null ? null : results[`${globalID.typename}:${globalID.id}`] ?? null);
 }
 export async function resolveUncachedNodesForType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, ids: string[], type: OutputType<Types> | string): Promise<unknown[]> {
     const requestCache = getRequestCache(context);
@@ -45,25 +47,23 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(bui
     if (options.loadMany) {
         const loadManyPromise = Promise.resolve(options.loadMany(ids, context));
         return Promise.all(ids.map((id, i) => {
-            const globalID = internalEncodeGlobalID(builder, config.name, id, context);
             const entryPromise = loadManyPromise
                 .then((results: unknown[]) => results[i])
                 .then((result: unknown) => {
-                requestCache.set(globalID, result);
+                requestCache.set(`${config.name}:${id}`, result);
                 return result;
             });
-            requestCache.set(globalID, entryPromise);
+            requestCache.set(`${config.name}:${id}`, entryPromise);
             return entryPromise;
         }));
     }
     if (options.loadOne) {
         return Promise.all(ids.map((id) => {
-            const globalID = internalEncodeGlobalID(builder, config.name, id, context);
             const entryPromise = Promise.resolve(options.loadOne!(id, context)).then((result: unknown) => {
-                requestCache.set(globalID, result);
+                requestCache.set(`${config.name}:${id}`, result);
                 return result;
             });
-            requestCache.set(globalID, entryPromise);
+            requestCache.set(`${config.name}:${id}`, entryPromise);
             return entryPromise;
         }));
     }

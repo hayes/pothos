@@ -640,7 +640,7 @@ Envelop has it's own plugin for newrelic that can be combined with the tracing p
 
 ```ts
 import { useNewRelic } from '@envelop/newrelic';
-import { createServer } from 'graphql-yoga';
+import { createServer } from 'http';
 import { createYoga } from 'graphql-yoga';
 import { schema } from './schema';
 

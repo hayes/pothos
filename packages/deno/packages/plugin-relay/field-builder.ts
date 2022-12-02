@@ -3,7 +3,7 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { assertArray, FieldKind, FieldNullability, InputFieldMap, InputShapeFromFields, InterfaceRef, ObjectRef, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDFieldOptions, GlobalIDListFieldOptions, GlobalIDShape, } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
-import { internalEncodeGlobalID } from './utils/internal.ts';
+import { internalDecodeGlobalID, internalEncodeGlobalID } from './utils/internal.ts';
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<SchemaTypes, unknown, FieldKind>;
 fieldBuilderProto.globalIDList = function globalIDList<Args extends InputFieldMap, Nullable extends FieldNullability<[
     "ID"
@@ -53,8 +53,11 @@ fieldBuilderProto.node = function node({ id, ...options }) {
                 return null;
             }
             const globalID = typeof rawID === "string"
-                ? rawID
-                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(rawID.type).name, String(rawID.id), context);
+                ? internalDecodeGlobalID(this.builder, rawID, context)
+                : rawID && {
+                    id: String(rawID.id),
+                    typename: this.builder.configStore.getTypeConfig(rawID.type).name,
+                };
             return (await resolveNodes(this.builder, context, info, [globalID]))[0];
         },
     });
@@ -74,9 +77,12 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
                 return [];
             }
             const rawIds = (await Promise.all(rawIDList)) as (GlobalIDShape<SchemaTypes> | string | null | undefined)[];
-            const globalIds = rawIds.map((id) => !id || typeof id === "string"
-                ? id
-                : internalEncodeGlobalID(this.builder, this.builder.configStore.getTypeConfig(id.type).name, String(id.id), context));
+            const globalIds = rawIds.map((id) => typeof id === "string"
+                ? internalDecodeGlobalID(this.builder, id, context)
+                : id && {
+                    id: String(id.id),
+                    typename: this.builder.configStore.getTypeConfig(id.type).name,
+                });
             return resolveNodes(this.builder, context, info, globalIds);
         },
     });

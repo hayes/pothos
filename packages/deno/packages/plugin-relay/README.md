@@ -516,7 +516,7 @@ builder.mutationFields((t) => ({
       update: t.args.string({ required: true }),
     },
     resolve(parent, args) {
-      const { type, id } = decodeGlobalId(args.id);
+      const { type, id } = decodeGlobalID(args.id);
 
       const thing = Thing.findById(id);
 
@@ -543,6 +543,50 @@ const builder = new SchemaBuilder({
       const [typename, id] = globalID.split(':');
 
       return { typename, id };
+    },
+  },
+});
+```
+
+### Using custom resolve for node and or nodes field
+
+If you need to customize how nodes are loaded for the `node` and or `nodes` fields you can provide
+custom resolve functions in the builder options for these fields:
+
+```typescript
+import RelayPlugin from '@pothos/plugin-relay';
+
+function customUserLoader({ id, typename }: { id: string; typename: string }) {
+  // load user
+}
+
+const builder = new SchemaBuilder({
+  plugins: [RelayPlugin],
+  relayOptions: {
+    nodeQueryOptions: {
+      resolve: (root, { id }, context, info, resolveNode) => {
+        // use custom loading for User nodes
+        if (id.typename === 'User') {
+          return customUserLoader(id)
+        }
+
+        // fallback to normal loading for everything else
+        return resolveNode(id)
+      }
+    },
+    nodesQueryOptions: {
+      resolve: (root, { ids }, context, info, resolveNodes) => {
+        return ids.map((id) => {
+          if (id.typename === 'User') {
+            return customNodeLoader(id)
+          }
+
+          // it would be more efficient to load all the nodes at once
+          // but it is important to ensure the resolver returns nodes in the right order
+          // we are resolving nodes one at a time here for simplicity
+          return resolveNodes([id])
+        })
+      }
     },
   },
 });

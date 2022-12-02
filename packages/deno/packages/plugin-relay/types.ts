@@ -11,14 +11,34 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
     nodeQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
         id: InputFieldRef<InputShape<Types, "ID">>;
-    }, Promise<unknown>>, "args" | "resolve" | "type">;
+    }, Promise<unknown>>, "args" | "resolve" | "type"> & {
+        resolve?: (parent: Types["Root"], args: {
+            id: {
+                typename: string;
+                id: string;
+            };
+        }, context: Types["Context"], info: GraphQLResolveInfo, resolveNode: (id: {
+            id: string;
+            typename: string;
+        }) => Promise<unknown>) => MaybePromise<unknown>;
+    };
     nodesQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
     ], FieldNullability<[
         unknown
     ]>, {
         ids: InputFieldRef<InputShape<Types, "ID">[]>;
-    }, Promise<unknown>[]>, "args" | "resolve" | "type">;
+    }, Promise<unknown>[]>, "args" | "resolve" | "type"> & {
+        resolve?: (parent: Types["Root"], args: {
+            ids: {
+                typename: string;
+                id: string;
+            }[];
+        }, context: Types["Context"], info: GraphQLResolveInfo, resolveNodes: (ids: {
+            id: string;
+            typename: string;
+        }[]) => Promise<unknown[]>) => MaybePromise<MaybePromise<unknown>[]>;
+    };
     mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>, "fields" | "type">;
     clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", boolean>, "type">;
     clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "resolve" | "type">;
