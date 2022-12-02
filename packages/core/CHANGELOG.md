@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.23.1
+
+### Patch Changes
+
+- fae0f943: Default schema extensions to an empty object
+
 ## 3.23.0
 
 ### Minor Changes
