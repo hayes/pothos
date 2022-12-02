@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.30.0
+
+### Minor Changes
+
+- daa2bf9a: Add support for custom node/nodes resolving
+
 ## 3.29.1
 
 ### Patch Changes
