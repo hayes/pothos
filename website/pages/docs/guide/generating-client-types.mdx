@@ -85,6 +85,38 @@ You can customize this config as needed, but the relevant parts are:
 - Importing your GraphQL schema, this should be the result of calling `builder.toSchema({})`
 - using `printSchema` from `graphql` to convert the schema to a string
 
+## Generating a schema.graphql file with graphql-code-generator
+
+You can generate a schema.graphql file with graphql-code-generator by adding the `schema-ast`
+plugin:
+
+```bash
+yarn add -D @graphql-codegen/schema-ast
+```
+
+```typescript
+// codegen.ts
+import { printSchema } from 'graphql';
+import type { CodegenConfig } from '@graphql-codegen/cli';
+import { schema } from './src/schema';
+
+const config: CodegenConfig = {
+  schema: printSchema(schema),
+  documents: ['src/**/*.tsx'],
+  generates: {
+    './src/gql/': {
+      preset: 'client',
+      plugins: [],
+    },
+    'schema.graphql': {
+      plugins: ['schema-ast'],
+    },
+  },
+};
+
+export default config;
+```
+
 ## Alternatives
 
 In some cases you may want to use an alternative method for loading you schema.
