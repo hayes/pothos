@@ -22,7 +22,8 @@
     "test": "pnpm turbo run test --scope='@pothos/*'",
     "type": "pnpm turbo run type --scope='@pothos/*'",
     "prerelease": "pnpm clean && pnpm install && pnpm run ci",
-    "release": "pnpm run prerelease && changeset publish && git push --follow-tags && git status && pnpm -r publish",
+    "release": "pnpm run prerelease && changeset publish && git push && pnpm git-tag && git status && pnpm -r publish",
+    "git-tag": "TAG=\"release-`date +%s`\" && git tag $TAG && git push origin $TAG",
     "snapshot": "pnpm prerelease && changeset version --snapshot preview && pnpm install && changeset publish --tag preview"
   },
   "workspaces": [

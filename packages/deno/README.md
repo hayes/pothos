@@ -1,4 +1,4 @@
-![Pothos](https://pothos-graphql.dev/assets/logo-name-auto.svg)
+![Pothos](https://pothos-graphql.dev/assets/logo-name-dark.svg)
 
 # Pothos GraphQL
 
