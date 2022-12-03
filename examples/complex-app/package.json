@@ -9,7 +9,8 @@
     "schema": "node -r @swc-node/register scripts/build-schema.ts",
     "seed": "prisma migrate reset -f",
     "start": "node -r @swc-node/register src/server.ts",
-    "type": "tsc --noEmit"
+    "type": "tsc --noEmit",
+    "codegen": "graphql-codegen --config codegen.ts"
   },
   "prisma": {
     "seed": "node -r @swc-node/register prisma/seed.ts"
@@ -28,9 +29,16 @@
     "graphql": "16.6.0",
     "graphql-scalars": "^1.20.1",
     "graphql-yoga": "3.1.1",
-    "prisma": "^4.7.1"
+    "prisma": "^4.7.1",
+    "urql": "^3.0.3"
   },
   "publishConfig": {
     "access": "public"
+  },
+  "devDependencies": {
+    "@graphql-codegen/cli": "2.15.0",
+    "@graphql-codegen/client-preset": "1.2.1",
+    "@graphql-codegen/introspection": "2.2.1",
+    "typescript": "^4.9.3"
   }
 }
