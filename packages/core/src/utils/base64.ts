@@ -23,7 +23,7 @@ export function encodeBase64(value: string): string {
   }
 
   if (typeof globalThis.Buffer === 'function') {
-    return Buffer.from(value).toString('base64');
+    return globalThis.Buffer.from(value).toString('base64');
   }
 
   throw new Error('Unable to locate global `btoa` or `Buffer`');
@@ -37,7 +37,7 @@ export function decodeBase64(value: string): string {
   }
 
   if (typeof globalThis.Buffer === 'function') {
-    return Buffer.from(value, 'base64').toString();
+    return globalThis.Buffer.from(value, 'base64').toString();
   }
 
   throw new Error('Unable to locate global `atob` or `Buffer`');
