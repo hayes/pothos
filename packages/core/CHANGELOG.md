@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.23.1
+
+### Patch Changes
+
+- 7212a3d1: use Buffer from globalThis to avoid compilers detecting ussage of global Buffer
+- fae0f943: Default schema extensions to an empty object
+
 ## 3.23.0
 
 ### Minor Changes
