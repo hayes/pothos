@@ -37,7 +37,6 @@ const moduleMap: Record<string, string> = {
   dataloader: 'https://cdn.skypack.dev/dataloader?dts',
   '@pothos/core': './core/index.ts',
   '@pothos/plugin-directives': './plugin-directives/index.ts',
-  'graphql/execution/values': 'https://cdn.skypack.dev/graphql/execution/values?dts',
 };
 
 type LoadedFile = {

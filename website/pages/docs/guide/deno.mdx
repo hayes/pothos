@@ -14,43 +14,53 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Deno
 
-Pothos now supports deno, but the server implementations available for deno are relatively new and
-take a bit more effort to set up than on node
+Pothos is compatible with [Deno](https://deno.land/), and can be used with
+[GraphQL Yoga](https://the-guild.dev/graphql/yoga-server) which now also supports deno!
 
-### Setup
+## Imports
 
-#### Imports
+There are a number of different ways to import Pothos, but the best option is ussually to set up
+[import maps](https://deno.land/manual@v1.28.3/basics/modules/import_maps) and import from
+[esm.sh](https://esm.sh).
 
-Most of the setup for deno works exactly the same way as it does for node. The main difference is
-where things are imported from. Pothos and all its plugins are published as a single package on
-deno.land. Each of the node packages available on npm are available in the `packages` directory:
+### Import maps
 
-```typescript
-// Core
-import SchemaBuilder from 'https://deno.land/x/pothos/packages/core/mod.ts';
-// Plugins:
-import ValidationPlugin from 'https://deno.land/x/pothos/packages/plugin-validation/mod.ts';
-import ScopeAuthPlugin from 'https://deno.land/x/pothos/packages/plugin-scope-auth/mod.ts';
-// ...etc
+```json
+// import_maps.json
+{
+  "imports": {
+    // define a version of graphql, this should be shared by all graphql libraries
+    "graphql": "https://esm.sh/graphql@16.6.0",
+    // Marking graphql as external will all the graphql from this import_map to be used
+    "graphql-yoga": "https://esm.sh/graphql-yoga?external=graphql",
+    // the `*` prefix in the package name marks all depenencies (only graphql in this case) as external
+    // this ensures the version of graphql defined above is used
+    "@pothos/core": "https://esm.sh/*@pothos/core@3.23.1",
+    // Plugins should mark all dependencies as external as well
+    // this will ensure that both graphql and @pothos/core use the versions defined above
+    // some plugins like validation may require additional dependencies to be added to the import map (eg. zod)
+    "@pothos/plugin-relay": "https://esm.sh/*@pothos/plugin-relay@3.30.0"
+  }
+}
 ```
 
-#### Server
+### deno.json
+
+```json
+// deno.jsonc
+{
+  "importMap": "import_map.json"
+}
+```
+
+## Server
 
 ```typescript
-import { Application, Router } from 'https://deno.land/x/oak@v7.3.0/mod.ts';
-// Currently the way helix exports graphiql doesn't work in deno, so we import the other parts directly, and import a very simple playground file from a gist.
-import { shouldRenderGraphiQL } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/should-render-graphiql.ts';
-import { processRequest } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/process-request.ts';
-import { getGraphQLParameters } from 'https://cdn.jsdelivr.net/gh/contrawork/graphql-helix@master/packages/deno/get-graphql-parameters.ts';
-import playground from 'https://gist.githubusercontent.com/hayes/5c99f7b4f71234452036fd88e142a825/raw/655245a052b10c2912a803c8a6d537096b73c10b/playground.ts';
-// Pothos
-import SchemaBuilder from 'https://deno.land/x/pothos/packages/core/mod.ts';
+// src/index.ts
+import { serve } from 'https://deno.land/std@0.157.0/http/server.ts';
+import { createYoga } from 'graphql-yoga';
+import SchemaBuilder from '@pothos/core';
 
-// Create app and router
-const app = new Application();
-const router = new Router();
-
-// Create a very simple schema
 const builder = new SchemaBuilder({});
 
 builder.queryType({
@@ -59,87 +69,63 @@ builder.queryType({
       args: {
         name: t.arg.string({}),
       },
-      resolve: (parent, { name }) => `hello, ${name || 'World'}`,
+      resolve: (_, { name }) => `hello, ${name || 'World'}`,
     }),
   }),
 });
 
-const schema = builder.toSchema();
-
-// Mount a route to serve the graphql API and playground
-router.all('/graphql', async (context) => {
-  // parse request
-  const request = {
-    body: await context.request.body({}).value,
-    headers: context.request.headers,
-    method: context.request.method,
-    query: context.request.url.searchParams,
-  };
-
-  if (shouldRenderGraphiQL(request)) {
-    context.response.body = playground({ endpoint: 'localhost:8080/graphql' });
-
-    return;
-  }
-  // Extract the GraphQL parameters from the request
-  const { operationName, query, variables } = getGraphQLParameters(request);
-
-  // Validate and execute the query
-  const result = await processRequest({
-    operationName,
-    query,
-    variables,
-    request,
-    schema,
-  });
-
-  if (result.type === 'RESPONSE') {
-    // We set the provided status and headers and just the send the payload back to the client
-    result.headers.forEach(({ name, value }) => context.response.headers.set(name, value));
-
-    context.response.status = result.status;
-    context.response.body = result.payload;
-  } else {
-    // Omitting other response types for brevity, see graphql-helix docs for more a complete implementation
-    throw new Error('Unsupported result type');
-  }
+const yoga = createYoga({
+  schema: builder.toSchema(),
 });
 
-app.use(router.routes());
-app.use(router.allowedMethods());
-
-console.log('Go to http://localhost:8080/graphql to open the playground');
-await app.listen({ port: 8080 });
+serve(yoga, {
+  onListen({ hostname, port }) {
+    console.log(`Listening on http://${hostname}:${port}/graphql`);
+  },
+});
 ```
 
-#### GraphQL versions
-
-The `graphql` library is written in a way that make tools that import different copies of graphql
-incompatible. This means that we need a way to ensure that our graphql library versions are the same
-across our dependencies. There isn't a perfect solution right now, but `import-maps` give us
-something that works.
-
-Pothos uses `https://cdn.skypack.dev/graphql?dts` to make it easy to replace with an import map.
-GraphQL Helix currently uses
-`https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts`
-
-To get these 2 libraries to work together, we can define an import map like:
-
-```typescript
-{
-  "imports": {
-    "https://cdn.skypack.dev/graphql@15.4.0-experimental-stream-defer.1?dts": "https://cdn.skypack.dev/graphql@v15.5.0?dts",
-    "https://cdn.skypack.dev/graphql?dts": "https://cdn.skypack.dev/graphql@v15.5.0?dts"
-  }
-}
-```
-
-This will let us run our app with both libraries using `https://cdn.skypack.dev/graphql@v15.5.0?dts`
-\(or any other version you want to use\). It will be important to keep the versions in sync if you
-update your dependencies.
-
-### Running the app:
+## Running the app:
 
 ```bash
-deno run --allow-net --import-map=import-map.json server-example.ts
+deno run --allow-net src/index.ts
 ```
+
+## Without import maps
+
+In some cases (like when using the deno deploy playground) you may not be able to use import maps.
+In this case, you can use query parameters with esm.sh to ensure that shared versions of packages
+are used:
+
+```ts
+import { serve } from 'https://deno.land/std@0.157.0/http/server.ts';
+// for graphql-yoga and pothos/core 'graphql' is the most import depencency to pin
+import { createYoga } from 'https://esm.sh/graphql-yoga@3.1.1?deps=graphql@16.6.0';
+import SchemaBuilder from 'https://esm.sh/@pothos/core@3.23.1?deps=graphql@16.6.0';
+// for pothos plugins, you should pin both 'graphql' and '@pothos/core'
+import RelayPlugin from 'https://esm.sh/@pothos/plugin-relay@3.30.0?deps=graphql@16.6.0,@pothos/core@3.23.1';
+```
+
+## The @pothos/deno package
+
+The `@pothos/deno` package contains a typescript only version of most of the pothos plugins. This is
+no-longer the recommend way to use pothos with deno, but will continue to be published with new
+changes.
+
+This files for this package are published to npm, and can be consumed from a number of CDNs. The
+benefit of this that all plugins are bundled with pothos/core, and import directly so you do not
+need to mess with dependencies to ensure that plugins are using the correct version of pothos/core.
+
+### example
+
+```typescript
+// dependencies of @pothos/deno are imported from https://cdn.skypack.dev/{package} to ensure
+// that the same version of 'graphql' is used, import other dependencies from sky pack as well
+import { serve } from 'https://deno.land/std@0.157.0/http/server.ts';
+import { createYoga } from 'https://cdn.skypack.dev/graphql-yoga@3.1.1';
+import SchemaBuilder from 'https://esm.sh/@pothos/deno/packages/core/mod.ts';
+import RelayPlugin from 'https://esm.sh/@pothos/deno/packages/plugin-relay/mod.ts';
+```
+
+Pothos uses `https://cdn.skypack.dev/graphql?dts` which can be added to an import map to import a
+different version of graphql.

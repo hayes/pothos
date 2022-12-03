@@ -31,6 +31,11 @@ module.exports = {
       "options": {
         "parser": "json-stringify"
       }
+    },
+    {
+      "files": [
+        "*.mdx",
+      ],
     }
   ]
 };
