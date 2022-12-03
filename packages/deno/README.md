@@ -17,7 +17,7 @@ methods that can take full advantage of the Pothos type system.
 
 ## Note on deno.land
 
-Currently deno.land does not work well with the way versions are taged in pothos. See instructions
+Currently deno.land does not work well with the way versions are tagged in pothos. See instructions
 below for details on how to use pothos with other deno compatible CDNs!
 
 ## Hello, World
