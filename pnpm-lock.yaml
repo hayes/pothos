@@ -59,6 +59,7 @@ importers:
       '@graphql-codegen/client-preset': 1.2.1
       '@graphql-codegen/introspection': 2.2.1
       '@graphql-codegen/schema-ast': ^2.5.1
+      '@graphql-typed-document-node/core': ^3.1.1
       '@pothos/core': ^3.23.0
       '@pothos/plugin-dataloader': workspace:*
       '@pothos/plugin-prisma': workspace:*
@@ -76,6 +77,7 @@ importers:
       urql: ^3.0.3
     dependencies:
       '@faker-js/faker': 7.6.0
+      '@graphql-typed-document-node/core': 3.1.1_graphql@16.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-dataloader': link:../../packages/plugin-dataloader
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
