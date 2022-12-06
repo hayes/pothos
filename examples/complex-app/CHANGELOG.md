@@ -1,5 +1,11 @@
 # @pothos-examples/complex-app
 
+## 1.4.14
+
+### Patch Changes
+
+- bf6a6d2b: make directives plugin more compatible with older versions of graphql.js
+
 ## 1.4.13
 
 ### Patch Changes
