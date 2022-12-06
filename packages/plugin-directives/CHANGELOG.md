@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.9.1
+
+### Patch Changes
+
+- bf6a6d2b: make directives plugin more compatible with older versions of graphql.js
+
 ## 3.9.0
 
 ### Minor Changes
