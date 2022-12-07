@@ -63,7 +63,7 @@ for your resolvers, so you can't just add on more args later. Instead, we can de
 returns a set of args to apply to your field. To make this work, we need to get a few extra types:
 
 ```typescript
-import { InputFieldBuilder } from '@pothos/core';
+import { ArgBuilder, InputFieldBuilder } from '@pothos/core';
 
 export interface SchemaTypes {
   Scalars: {
@@ -77,7 +77,7 @@ export type TypesWithDefaults = PothosSchemaTypes.ExtendDefaultTypes<SchemaTypes
 
 const builder = new SchemaBuilder<SchemaTypes>({});
 
-function createCommonArgs(arg: ArgBuilder<TypesWithDefault>) {
+function createCommonArgs(arg: ArgBuilder<TypesWithDefaults>) {
   return {
     id: arg.id({}),
     reason: arg({ type: 'String', required: false }),
