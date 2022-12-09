@@ -11,6 +11,12 @@ pnpm build
 pnpm test
 ```
 
+You can also run tests for specific packages:
+
+```bash
+pnpm --filter @pothos/core exec vitest
+```
+
 ## Regenerating any generated types for examples and tests
 
 ```bash

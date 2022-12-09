@@ -10,6 +10,7 @@ import SchemaBuilder, {
   typeBrandKey,
   unwrapOutputFieldType,
 } from '@pothos/core';
+import { GetTypeName } from './types';
 
 export * from './types';
 
@@ -20,6 +21,9 @@ export default pluginName;
 export function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
+
+export const getTypeName: GetTypeName = ({ parentTypeName, fieldName, kind }) => `${parentTypeName}${fieldName}${kind}`
+
 
 export const unwrapError = Symbol.for('Pothos.unwrapErrors');
 
@@ -82,16 +86,24 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return fieldConfig;
     }
 
+    /**
+     * NOTES
+     * An argument on builder to configure output type names could work, but we need to figure which argument it would need.
+     * 1. Are all names build using a similar template? in this case it's `${operationType}${fieldName}${SomePostFix}`
+     *    - If they are, we could easily make this function global, if not, it may have to be per plugin instead?
+     */
+    const getNameFn = errorBuilderOptions?.defaultGetTypeName ?? getTypeName
     const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
+
     const {
       types = [],
       result: {
-        name: resultName = `${parentTypeName}${capitalize(fieldConfig.name)}Success`,
+        name: resultName = getNameFn({parentTypeName, fieldName: capitalize(fieldConfig.name), kind: 'Success'}),
         fields: resultFieldOptions,
         ...resultObjectOptions
       } = {} as never,
       union: {
-        name: unionName = `${parentTypeName}${capitalize(fieldConfig.name)}Result`,
+        name: unionName = getNameFn({parentTypeName, fieldName: capitalize(fieldConfig.name), kind: 'Result'}),
         ...unionOptions
       } = {} as never,
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,

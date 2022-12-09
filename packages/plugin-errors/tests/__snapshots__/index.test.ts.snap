@@ -93,3 +93,97 @@ type ZodFieldError {
   path: [String!]!
 }"
 `;
+
+exports[`errors plugin > supports generating custom names 1`] = `
+"type BaseError implements Error {
+  message: String!
+}
+
+type DirectResult {
+  id: ID!
+}
+
+union DirectResult_CUSTOM_NAME_Result = BaseError | DirectResult
+
+interface Error {
+  message: String!
+}
+
+type Extended2Error implements Error {
+  code: Int!
+  message: String!
+}
+
+type ExtendedError implements Error {
+  code: Int!
+  message: String!
+}
+
+union ExtendedErrorList_CUSTOM_NAME_Result = BaseError | Extended2Error | ExtendedError | ExtendedErrorList_CUSTOM_NAME_Success
+
+type ExtendedErrorList_CUSTOM_NAME_Success {
+  data: [String]!
+}
+
+union ExtendedError_CUSTOM_NAME_Result = BaseError | Extended2Error | ExtendedError | ExtendedError_CUSTOM_NAME_Success
+
+type ExtendedError_CUSTOM_NAME_Success {
+  data: String!
+}
+
+union FieldWIthValidation_CUSTOM_NAME_Result = BaseError | FieldWIthValidation_CUSTOM_NAME_Success | ZodError
+
+type FieldWIthValidation_CUSTOM_NAME_Success {
+  result: Boolean!
+}
+
+union HelloWithMinLength_CUSTOM_NAME_Result = BaseError | HelloWithMinLength_CUSTOM_NAME_Success | LengthError
+
+type HelloWithMinLength_CUSTOM_NAME_Success {
+  data: String!
+}
+
+union Hello_CUSTOM_NAME_Result = BaseError | Hello_CUSTOM_NAME_Success
+
+type Hello_CUSTOM_NAME_Success {
+  data: String!
+}
+
+type LengthError implements Error {
+  message: String!
+  minLength: Int!
+}
+
+type Query {
+  directResult(shouldThrow: Boolean): DirectResult_CUSTOM_NAME_Result!
+  extendedError(throw: String): ExtendedError_CUSTOM_NAME_Result
+  extendedErrorList(throw: String): ExtendedErrorList_CUSTOM_NAME_Result
+  fieldWIthValidation(string: String): FieldWIthValidation_CUSTOM_NAME_Result!
+  hello(name: String!): Hello_CUSTOM_NAME_Result!
+  helloWithMinLength(name: String!): HelloWithMinLength_CUSTOM_NAME_Result!
+  simpleError(throw: Boolean): SimpleError_CUSTOM_NAME_Result!
+  validation2(stringList: [String!]): Validation2_CUSTOM_NAME_Result!
+}
+
+union SimpleError_CUSTOM_NAME_Result = BaseError | SimpleError_CUSTOM_NAME_Success
+
+type SimpleError_CUSTOM_NAME_Success {
+  data: String!
+}
+
+union Validation2_CUSTOM_NAME_Result = BaseError | Validation2_CUSTOM_NAME_Success | ZodError
+
+type Validation2_CUSTOM_NAME_Success {
+  result: Boolean!
+}
+
+type ZodError implements Error {
+  fieldErrors: [ZodFieldError!]!
+  message: String!
+}
+
+type ZodFieldError {
+  message: String!
+  path: [String!]!
+}"
+`;
