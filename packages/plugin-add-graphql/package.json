@@ -1,0 +1,56 @@
+{
+  "name": "@pothos/plugin-add-graphql",
+  "version": "3.6.7",
+  "description": "A Pothos plugin for adding existing GraphQL types to a Pothos schema",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest --run --segfault-retry=3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "add",
+    "existing",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@pothos/core": "*",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "graphql": "16.6.0",
+    "graphql-tag": "^2.12.6"
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+}

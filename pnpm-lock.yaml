@@ -430,6 +430,18 @@ importers:
       '@swc/core': 1.3.41
       typescript: 5.0.2
 
+  packages/plugin-add-graphql:
+    specifiers:
+      '@pothos/core': workspace:*
+      '@pothos/test-utils': workspace:*
+      graphql: 16.6.0
+      graphql-tag: ^2.12.6
+    devDependencies:
+      '@pothos/core': link:../core
+      '@pothos/test-utils': link:../test-utils
+      graphql: 16.6.0
+      graphql-tag: 2.12.6_graphql@16.6.0
+
   packages/plugin-authz:
     specifiers:
       '@graphql-authz/core': ^1.3.0
