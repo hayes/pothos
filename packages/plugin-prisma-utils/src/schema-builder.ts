@@ -9,15 +9,21 @@ import SchemaBuilder, {
   PothosSchemaError,
   SchemaTypes,
 } from '@pothos/core';
-import { PrismaModelTypes } from '@pothos/plugin-prisma';
+import { getModel, PrismaModelTypes } from '@pothos/plugin-prisma';
 import {
   FilterListOps,
   FilterOps,
   FilterShape,
   OpsOptions,
+  PrismaCreateManyRelationOptions,
+  PrismaCreateOneRelationOptions,
+  PrismaCreateOptions,
   PrismaFilterOptions,
   PrismaListFilterOptions,
   PrismaOrderByOptions,
+  PrismaUpdateManyRelationOptions,
+  PrismaUpdateOneRelationOptions,
+  PrismaUpdateOptions,
   PrismaWhereOptions,
 } from './types';
 
@@ -205,9 +211,10 @@ schemaBuilder.prismaWhere = function prismaWhere<
   Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
     ? SchemaTypes['PrismaTypes'][Name]
     : never,
+  Fields = {},
 >(
   type: Name,
-  { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model>,
+  { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model, Fields>,
 ): InputObjectRef<Model['Where']> {
   const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Filter`);
 
@@ -253,6 +260,209 @@ schemaBuilder.prismaWhere = function prismaWhere<
   return ref;
 };
 
+schemaBuilder.prismaWhereUnique = schemaBuilder.prismaWhere as never;
+
+schemaBuilder.prismaCreate = function prismaCreate<
+  Name extends keyof SchemaTypes['PrismaTypes'],
+  Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
+    ? SchemaTypes['PrismaTypes'][Name]
+    : never,
+  Fields = {},
+>(type: Name, { name, fields, ...options }: PrismaCreateOptions<SchemaTypes, Model, Fields>) {
+  const ref = this.inputRef<Model['Create']>(name ?? `${nameFromType(type, this)}Create`);
+  const model = getModel(type, this);
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldModel = model.fields.find(({ name: fieldName }) => fieldName === field)!;
+
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        if (fieldOption instanceof InputFieldRef) {
+          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+        } else {
+          fieldDefs[field] = t.field({
+            required: fieldModel.isRequired,
+            type: fieldModel.isList
+              ? [fieldOption as InputRef<unknown>]
+              : (fieldOption as InputRef<unknown>),
+          });
+        }
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref;
+};
+
+schemaBuilder.prismaUpdate = function prismaUpdate<
+  Name extends keyof SchemaTypes['PrismaTypes'],
+  Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
+    ? SchemaTypes['PrismaTypes'][Name]
+    : never,
+  Fields = {},
+>(type: Name, { name, fields, ...options }: PrismaUpdateOptions<SchemaTypes, Model, Fields>) {
+  const ref = this.inputRef<Model['Update']>(name ?? `${nameFromType(type, this)}Update`);
+  const model = getModel(type, this);
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldModel = model.fields.find(({ name: fieldName }) => fieldName === field)!;
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        if (fieldOption instanceof InputFieldRef) {
+          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+        } else {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: fieldModel.isList
+              ? [fieldOption as InputRef<unknown>]
+              : (fieldOption as InputRef<unknown>),
+          });
+        }
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref;
+};
+
+schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
+  Name extends keyof SchemaTypes['PrismaTypes'],
+  Relation extends Model['RelationName'],
+  Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
+    ? SchemaTypes['PrismaTypes'][Name]
+    : never,
+>(
+  type: Name,
+  relation: Relation,
+  {
+    name,
+    fields,
+    ...options
+  }: Relation extends Model['ListRelations']
+    ? PrismaCreateManyRelationOptions<SchemaTypes, Relation, Model>
+    : PrismaCreateOneRelationOptions<SchemaTypes, Relation, Model>,
+) {
+  const ref = this.inputRef(
+    name ?? `${nameFromType(type, this)}Create${capitalize(relation)}Relation`,
+  );
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        if (fieldOption instanceof InputFieldRef) {
+          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+        } else {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: fieldOption as InputRef<unknown>,
+          });
+        }
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref as never;
+};
+
+schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
+  Name extends keyof SchemaTypes['PrismaTypes'],
+  Relation extends Model['RelationName'],
+  Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
+    ? SchemaTypes['PrismaTypes'][Name]
+    : never,
+>(
+  type: Name,
+  relation: Relation,
+  {
+    name,
+    fields,
+    ...options
+  }: Relation extends Model['ListRelations']
+    ? PrismaUpdateManyRelationOptions<SchemaTypes, Relation, Model>
+    : PrismaUpdateOneRelationOptions<SchemaTypes, Relation, Model>,
+) {
+  const ref = this.inputRef(
+    name ?? `${nameFromType(type, this)}Update${capitalize(relation)}Relation`,
+  );
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        if (fieldOption instanceof InputFieldRef) {
+          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+        } else {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: fieldOption as InputRef<unknown>,
+          });
+        }
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref as never;
+};
+
 function nameFromType<Types extends SchemaTypes>(
   type: InputType<Types>,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -274,4 +484,8 @@ function nameFromType<Types extends SchemaTypes>(
   }
 
   throw new PothosSchemaError(`Unable to determine name for type ${String(type)}`);
+}
+
+function capitalize(str: string) {
+  return str[0].toUpperCase() + str.slice(1);
 }

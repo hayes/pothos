@@ -6,7 +6,7 @@
     "target": "es2019",
     "moduleResolution": "node",
     "allowSyntheticDefaultImports": true,
-    "module": "ESNext"
+    "module": "CommonJS"
   },
   "include": [
     "prisma/*.ts",

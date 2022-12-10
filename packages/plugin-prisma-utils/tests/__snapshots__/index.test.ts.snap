@@ -16,6 +16,10 @@ input IntFilter {
   not: IntFilter
 }
 
+type Mutation {
+  createUser(data: UserCreate!): User!
+}
+
 enum OrderBy {
   Asc
   Desc
@@ -23,6 +27,10 @@ enum OrderBy {
 
 type Post {
   id: ID!
+}
+
+input PostCreate {
+  title: String!
 }
 
 input PostFilter {
@@ -41,6 +49,10 @@ input PostOrderBy {
   createdAt: OrderBy
   id: OrderBy
   title: OrderBy
+}
+
+input PostWhereUnique {
+  id: Int
 }
 
 input ProfileOrderBy {
@@ -64,6 +76,23 @@ input StringListFilter {
   every: StringFilter
   none: StringFilter
   some: StringFilter
+}
+
+type User {
+  email: String!
+  id: ID!
+  posts: [Post!]!
+}
+
+input UserCreate {
+  email: String!
+  name: String
+  posts: [UserCreatePostsRelation!]!
+}
+
+input UserCreatePostsRelation {
+  connect: PostWhereUnique
+  create: PostCreate
 }
 
 input UserFilter {

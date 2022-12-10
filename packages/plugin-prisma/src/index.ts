@@ -11,6 +11,7 @@ import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './
 import { ModelLoader } from './model-loader';
 import { PrismaModelTypes } from './types';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors';
+import { getModel, getRefFromModel } from './util/datamodel';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
 
@@ -23,7 +24,7 @@ const pluginName = 'prisma' as const;
 
 export default pluginName;
 
-export { formatPrismaCursor, parsePrismaCursor, queryFromInfo };
+export { formatPrismaCursor, parsePrismaCursor, queryFromInfo, getModel, getRefFromModel };
 
 export type PrismaObjectFieldBuilder<
   Types extends SchemaTypes,

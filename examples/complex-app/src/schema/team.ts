@@ -13,6 +13,10 @@ builder.prismaNode('Team', {
     updatedAt: t.expose('updatedAt', { type: 'DateTime' }),
     name: t.exposeString('name'),
     players: t.relation('players'),
+    playersConnection: t.relatedConnection('players', {
+      cursor: 'id',
+      totalCount: true,
+    }),
     points: t.relatedConnection('points', {
       cursor: 'id',
       query: {
@@ -32,6 +36,7 @@ builder.queryFields((t) => ({
   teams: t.prismaConnection({
     type: 'Team',
     cursor: 'id',
+    totalCount: () => db.team.count(),
     resolve: (query) => db.team.findMany({ ...query, orderBy: { createdAt: 'desc' } }),
   }),
   team: t.prismaField({

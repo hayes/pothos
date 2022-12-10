@@ -5,10 +5,18 @@ import {
   FilterOps,
   FilterShape,
   OpsOptions,
+  PickFields,
+  PrismaCreateManyRelationOptions,
+  PrismaCreateOneRelationOptions,
+  PrismaCreateOptions,
   PrismaFilterOptions,
   PrismaListFilterOptions,
   PrismaOrderByOptions,
+  PrismaUpdateManyRelationOptions,
+  PrismaUpdateOneRelationOptions,
+  PrismaUpdateOptions,
   PrismaWhereOptions,
+  PrismaWhereUniqueOptions,
 } from './types';
 
 import type { PrismaUtilsPlugin } from '.';
@@ -60,10 +68,72 @@ declare global {
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
+        Fields = {},
       >(
         type: Name,
-        options: PrismaWhereOptions<Types, Model>,
-      ) => InputObjectRef<Model['Where']>;
+        options: PrismaWhereOptions<Types, Model, Fields>,
+      ) => InputObjectRef<PickFields<Model['Where'], Fields>>;
+
+      prismaWhereUnique: <
+        Name extends keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+        Fields = {},
+      >(
+        type: Name,
+        options: PrismaWhereUniqueOptions<Types, Model, Fields>,
+      ) => InputObjectRef<PickFields<Model['WhereUnique'], Fields>>;
+
+      prismaCreate: <
+        Name extends keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+        Fields = {},
+      >(
+        type: Name,
+        options: PrismaCreateOptions<Types, Model, Fields>,
+      ) => InputObjectRef<PickFields<Model['Create'], Fields>>;
+
+      prismaCreateRelation: <
+        Name extends keyof Types['PrismaTypes'],
+        Relation extends Model['RelationName'],
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+      >(
+        type: Name,
+        relation: Relation,
+        options: Relation extends Model['ListRelations']
+          ? PrismaCreateManyRelationOptions<Types, Relation, Model>
+          : PrismaCreateOneRelationOptions<Types, Relation, Model>,
+      ) => InputObjectRef<NonNullable<Model['Create'][Relation & keyof Model['Update']]>>;
+
+      prismaUpdate: <
+        Name extends keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+        Fields = {},
+      >(
+        type: Name,
+        options: PrismaUpdateOptions<Types, Model, Fields>,
+      ) => InputObjectRef<PickFields<Model['Update'], Fields>>;
+
+      prismaUpdateRelation: <
+        Name extends keyof Types['PrismaTypes'],
+        Relation extends Model['RelationName'],
+        Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+          ? Types['PrismaTypes'][Name]
+          : never,
+      >(
+        type: Name,
+        relation: Relation,
+        options: Relation extends Model['ListRelations']
+          ? PrismaUpdateManyRelationOptions<Types, Relation, Model>
+          : PrismaUpdateOneRelationOptions<Types, Relation, Model>,
+      ) => InputObjectRef<NonNullable<Model['Update'][Relation & keyof Model['Update']]>>;
     }
   }
 }

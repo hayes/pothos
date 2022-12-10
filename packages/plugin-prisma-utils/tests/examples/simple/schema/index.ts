@@ -110,4 +110,52 @@ builder.queryField('posts', (t) =>
   }),
 );
 
+const CreateUserPostsInput = builder.prismaCreateRelation('User', 'posts', {
+  fields: () => ({
+    create: CreatePostInput,
+    connect: PostWhereUnique,
+  }),
+});
+
+const CreateUserInput = builder.prismaCreate('User', {
+  fields: () => ({
+    email: 'String',
+    name: 'String',
+    posts: CreateUserPostsInput,
+  }),
+});
+
+const PostWhereUnique = builder.prismaWhereUnique('Post', {
+  name: 'PostWhereUnique',
+  fields: {
+    id: 'Int',
+  },
+});
+
+const CreatePostInput = builder.prismaCreate('Post', {
+  fields: {
+    title: 'String',
+  },
+});
+
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+    posts: t.relation('posts'),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    createUser: t.prismaField({
+      type: 'User',
+      args: {
+        data: t.arg({ type: CreateUserInput, required: true }),
+      },
+      resolve: (query, _, args) => prisma.user.create({ ...query, data: args.data }),
+    }),
+  }),
+});
+
 export default builder.toSchema();
