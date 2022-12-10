@@ -25,6 +25,7 @@ import {
   PrismaUpdateOneRelationOptions,
   PrismaUpdateOptions,
   PrismaWhereOptions,
+  PrismaWhereUniqueOptions,
 } from './types';
 
 export const schemaBuilder =
@@ -260,7 +261,52 @@ schemaBuilder.prismaWhere = function prismaWhere<
   return ref;
 };
 
-schemaBuilder.prismaWhereUnique = schemaBuilder.prismaWhere as never;
+schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
+  Name extends keyof SchemaTypes['PrismaTypes'],
+  Model extends PrismaModelTypes = SchemaTypes['PrismaTypes'][Name] extends PrismaModelTypes
+    ? SchemaTypes['PrismaTypes'][Name]
+    : never,
+  Fields = {},
+>(
+  type: Name,
+  { name, fields, ...options }: PrismaWhereUniqueOptions<SchemaTypes, Model, Fields>,
+): InputObjectRef<Model['WhereUnique']> {
+  const ref = this.inputRef<Model['WhereUnique']>(
+    name ?? `${nameFromType(type, this)}UniqueFilter`,
+  );
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+      const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+
+      Object.keys(fieldMap).forEach((field) => {
+        const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
+        if (!fieldOption) {
+          return;
+        }
+
+        if (fieldOption instanceof InputFieldRef) {
+          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+        } else {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: fieldOption as InputRef<unknown>,
+          });
+        }
+      });
+
+      return fieldDefs as never;
+    },
+  });
+
+  return ref;
+};
 
 schemaBuilder.prismaCreate = function prismaCreate<
   Name extends keyof SchemaTypes['PrismaTypes'],

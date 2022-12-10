@@ -1,18 +1,18 @@
 import builder, { prisma } from '../builder';
-import { argsForTypes } from './generator';
+import { PrismaCrudGenerator } from '../generator';
+
+const generator = new PrismaCrudGenerator(builder);
 
 builder.scalarType('DateTime', {
   serialize: (value) => value.toISOString(),
   parseValue: (value) => (typeof value === 'number' ? new Date(value) : new Date(String(value))),
 });
 
-const prismaArgs = argsForTypes(builder, ['Post', 'Comment', 'User', 'PostMedia', 'Profile']);
-
 builder.queryType({
   fields: (t) => ({
     posts: t.prismaField({
       type: ['Post'],
-      args: prismaArgs.Post,
+      args: generator.findManyArgs('Post'),
       resolve: (query, _, args) =>
         prisma.post.findMany({
           ...query,
@@ -29,7 +29,7 @@ builder.prismaObject('Post', {
     id: t.exposeID('id'),
     author: t.relation('author'),
     comments: t.relation('comments', {
-      args: prismaArgs.Comment,
+      args: generator.findManyArgs('Comment'),
       query: (args) => ({
         where: args.filter ?? undefined,
         orderBy: args.orderBy ?? undefined,
@@ -53,7 +53,7 @@ builder.prismaObject('User', {
     id: t.exposeID('id'),
     name: t.exposeString('name', { nullable: true }),
     posts: t.relation('posts', {
-      args: prismaArgs.Post,
+      args: generator.findManyArgs('Post'),
       query: (args) => ({
         where: args.filter ?? undefined,
         orderBy: args.orderBy ?? undefined,

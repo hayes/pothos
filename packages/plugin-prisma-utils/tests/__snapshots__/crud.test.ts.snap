@@ -49,6 +49,26 @@ input DateTimeFilter {
   notIn: [DateTime!]
 }
 
+input FollowFilter {
+  from: UserFilter
+  fromId: IntFilter
+  to: UserFilter
+  toId: IntFilter
+}
+
+input FollowListFilter {
+  every: FollowFilter
+  none: FollowFilter
+  some: FollowFilter
+}
+
+input FollowOrderBy {
+  from: UserOrderBy
+  fromId: OrderBy
+  to: UserOrderBy
+  toId: OrderBy
+}
+
 input IntFilter {
   equals: Int
   gt: Int
@@ -60,6 +80,28 @@ input IntFilter {
   lte: Int
   not: IntFilter
   notIn: [Int!]
+}
+
+input MediaFilter {
+  id: IntFilter
+  posts: PostMediaListFilter
+  uploadedBy: UserFilter
+  uploadedById: IntFilter
+  url: StringFilter
+}
+
+input MediaListFilter {
+  every: MediaFilter
+  none: MediaFilter
+  some: MediaFilter
+}
+
+input MediaOrderBy {
+  id: OrderBy
+  posts: PostMediaOrderBy
+  uploadedBy: UserOrderBy
+  uploadedById: OrderBy
+  url: OrderBy
 }
 
 enum OrderBy {
@@ -93,6 +135,7 @@ input PostListFilter {
 
 input PostMediaFilter {
   id: IntFilter
+  media: MediaFilter
   mediaId: IntFilter
   order: IntFilter
   post: PostFilter
@@ -107,6 +150,7 @@ input PostMediaListFilter {
 
 input PostMediaOrderBy {
   id: OrderBy
+  media: MediaOrderBy
   mediaId: OrderBy
   order: OrderBy
   post: PostOrderBy
@@ -167,8 +211,11 @@ type User {
 }
 
 input UserFilter {
+  Media: MediaListFilter
   comments: CommentListFilter
   email: StringFilter
+  followers: FollowListFilter
+  following: FollowListFilter
   id: IntFilter
   name: StringFilter
   posts: PostListFilter
@@ -176,8 +223,11 @@ input UserFilter {
 }
 
 input UserOrderBy {
+  Media: MediaOrderBy
   comments: CommentOrderBy
   email: OrderBy
+  followers: FollowOrderBy
+  following: FollowOrderBy
   id: OrderBy
   name: OrderBy
   posts: PostOrderBy

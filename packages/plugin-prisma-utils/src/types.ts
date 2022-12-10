@@ -118,7 +118,7 @@ type InputWithShape<Types extends SchemaTypes, T> =
   | InputFieldRef<T | null | undefined>
   | (BaseEnum & Record<string, T>)
   | (new (...args: any[]) => T)
-  | (keyof Types['inputShapes'] extends infer U extends string
+  | (keyof Types['inputShapes'] extends infer U
       ? U extends string
         ? Types['inputShapes'][U & keyof Types['inputShapes']] extends T
           ? U
