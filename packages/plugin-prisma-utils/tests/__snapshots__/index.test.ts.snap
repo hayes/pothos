@@ -87,7 +87,7 @@ type User {
 input UserCreate {
   email: String!
   name: String
-  posts: [UserCreatePostsRelation!]!
+  posts: UserCreatePostsRelation!
 }
 
 input UserCreatePostsRelation {

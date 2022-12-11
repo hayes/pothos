@@ -8,6 +8,26 @@ exports[`generate crud > generates schema 1`] = `
   post: Post!
 }
 
+input CommentCreate {
+  author: CommentCreateAuthorRelation!
+  authorId: Int!
+  content: String!
+  createdAt: DateTime!
+  id: Int!
+  post: CommentCreatePostRelation!
+  postId: Int!
+}
+
+input CommentCreateAuthorRelation {
+  connect: [UserUniqueFilter!]
+  create: [UserCreate!]
+}
+
+input CommentCreatePostRelation {
+  connect: [PostUniqueFilter!]
+  create: [PostCreate!]
+}
+
 input CommentFilter {
   author: UserFilter
   authorId: IntFilter
@@ -34,6 +54,37 @@ input CommentOrderBy {
   postId: OrderBy
 }
 
+input CommentUniqueFilter {
+  createdAt: DateTimeFilter
+  id: IntFilter
+}
+
+input CommentUpdate {
+  author: CommentUpdateAuthorRelation
+  authorId: Int
+  content: String
+  createdAt: DateTime
+  id: Int
+  post: CommentUpdatePostRelation
+  postId: Int
+}
+
+input CommentUpdateAuthorRelation {
+  connect: UserUniqueFilter
+  create: UserCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdate
+}
+
+input CommentUpdatePostRelation {
+  connect: PostUniqueFilter
+  create: PostCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: PostUpdate
+}
+
 scalar DateTime
 
 input DateTimeFilter {
@@ -47,6 +98,23 @@ input DateTimeFilter {
   lte: DateTime
   not: DateTimeFilter
   notIn: [DateTime!]
+}
+
+input FollowCreate {
+  from: FollowCreateFromRelation!
+  fromId: Int!
+  to: FollowCreateToRelation!
+  toId: Int!
+}
+
+input FollowCreateFromRelation {
+  connect: [UserUniqueFilter!]
+  create: [UserCreate!]
+}
+
+input FollowCreateToRelation {
+  connect: [UserUniqueFilter!]
+  create: [UserCreate!]
 }
 
 input FollowFilter {
@@ -69,6 +137,34 @@ input FollowOrderBy {
   toId: OrderBy
 }
 
+input FollowUniqueFilter {
+  fromId: IntFilter
+  toId: IntFilter
+}
+
+input FollowUpdate {
+  from: FollowUpdateFromRelation
+  fromId: Int
+  to: FollowUpdateToRelation
+  toId: Int
+}
+
+input FollowUpdateFromRelation {
+  connect: UserUniqueFilter
+  create: UserCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdate
+}
+
+input FollowUpdateToRelation {
+  connect: UserUniqueFilter
+  create: UserCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdate
+}
+
 input IntFilter {
   equals: Int
   gt: Int
@@ -80,6 +176,24 @@ input IntFilter {
   lte: Int
   not: IntFilter
   notIn: [Int!]
+}
+
+input MediaCreate {
+  id: Int!
+  posts: MediaCreatePostsRelation!
+  uploadedBy: MediaCreateUploadedByRelation
+  uploadedById: Int
+  url: String!
+}
+
+input MediaCreatePostsRelation {
+  connect: PostMediaUniqueFilter
+  create: PostMediaCreate
+}
+
+input MediaCreateUploadedByRelation {
+  connect: [UserUniqueFilter!]
+  create: [UserCreate!]
 }
 
 input MediaFilter {
@@ -104,6 +218,42 @@ input MediaOrderBy {
   url: OrderBy
 }
 
+input MediaUniqueFilter {
+  id: IntFilter
+}
+
+input MediaUpdate {
+  id: Int
+  posts: [MediaUpdatePostsRelation!]
+  uploadedBy: MediaUpdateUploadedByRelation
+  uploadedById: Int
+  url: String
+}
+
+input MediaUpdatePostsRelation {
+  connect: PostMediaUniqueFilter
+  create: PostMediaCreate
+  delete: PostMediaUniqueFilter
+  deleteMany: PostMediaFilter
+  disconnect: PostMediaUniqueFilter
+  set: PostMediaUniqueFilter
+  update: PostMediaUpdate
+  updateMany: PostMediaFilter
+}
+
+input MediaUpdateUploadedByRelation {
+  connect: UserUniqueFilter
+  create: UserCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdate
+}
+
+type Mutation {
+  createUser(input: UserCreate!): User!
+  updateUser(data: UserUpdate!, where: UserUniqueFilter!): User!
+}
+
 enum OrderBy {
   Asc
   Desc
@@ -113,6 +263,33 @@ type Post {
   author: User!
   comments(filter: CommentFilter, orderBy: CommentOrderBy): [Comment!]!
   id: ID!
+}
+
+input PostCreate {
+  author: PostCreateAuthorRelation!
+  authorId: Int!
+  comments: PostCreateCommentsRelation!
+  content: String
+  createdAt: DateTime!
+  id: Int!
+  media: PostCreateMediaRelation!
+  title: String!
+  updatedAt: DateTime!
+}
+
+input PostCreateAuthorRelation {
+  connect: [UserUniqueFilter!]
+  create: [UserCreate!]
+}
+
+input PostCreateCommentsRelation {
+  connect: CommentUniqueFilter
+  create: CommentCreate
+}
+
+input PostCreateMediaRelation {
+  connect: PostMediaUniqueFilter
+  create: PostMediaCreate
 }
 
 input PostFilter {
@@ -131,6 +308,25 @@ input PostListFilter {
   every: PostFilter
   none: PostFilter
   some: PostFilter
+}
+
+input PostMediaCreate {
+  id: Int!
+  media: PostMediaCreateMediaRelation!
+  mediaId: Int!
+  order: Int!
+  post: PostMediaCreatePostRelation!
+  postId: Int!
+}
+
+input PostMediaCreateMediaRelation {
+  connect: [MediaUniqueFilter!]
+  create: [MediaCreate!]
+}
+
+input PostMediaCreatePostRelation {
+  connect: [PostUniqueFilter!]
+  create: [PostCreate!]
 }
 
 input PostMediaFilter {
@@ -157,6 +353,35 @@ input PostMediaOrderBy {
   postId: OrderBy
 }
 
+input PostMediaUniqueFilter {
+  id: IntFilter
+}
+
+input PostMediaUpdate {
+  id: Int
+  media: PostMediaUpdateMediaRelation
+  mediaId: Int
+  order: Int
+  post: PostMediaUpdatePostRelation
+  postId: Int
+}
+
+input PostMediaUpdateMediaRelation {
+  connect: MediaUniqueFilter
+  create: MediaCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: MediaUpdate
+}
+
+input PostMediaUpdatePostRelation {
+  connect: PostUniqueFilter
+  create: PostCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: PostUpdate
+}
+
 input PostOrderBy {
   author: UserOrderBy
   authorId: OrderBy
@@ -168,6 +393,65 @@ input PostOrderBy {
   published: OrderBy
   title: OrderBy
   updatedAt: OrderBy
+}
+
+input PostUniqueFilter {
+  createdAt: DateTimeFilter
+  id: IntFilter
+}
+
+input PostUpdate {
+  author: PostUpdateAuthorRelation
+  authorId: Int
+  comments: [PostUpdateCommentsRelation!]
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: [PostUpdateMediaRelation!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateAuthorRelation {
+  connect: UserUniqueFilter
+  create: UserCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdate
+}
+
+input PostUpdateCommentsRelation {
+  connect: CommentUniqueFilter
+  create: CommentCreate
+  delete: CommentUniqueFilter
+  deleteMany: CommentFilter
+  disconnect: CommentUniqueFilter
+  set: CommentUniqueFilter
+  update: CommentUpdate
+  updateMany: CommentFilter
+}
+
+input PostUpdateMediaRelation {
+  connect: PostMediaUniqueFilter
+  create: PostMediaCreate
+  delete: PostMediaUniqueFilter
+  deleteMany: PostMediaFilter
+  disconnect: PostMediaUniqueFilter
+  set: PostMediaUniqueFilter
+  update: PostMediaUpdate
+  updateMany: PostMediaFilter
+}
+
+input ProfileCreate {
+  bio: String
+  id: Int!
+  user: ProfileCreateUserRelation!
+  userId: Int!
+}
+
+input ProfileCreateUserRelation {
+  connect: [UserUniqueFilter!]
+  create: [UserCreate!]
 }
 
 input ProfileFilter {
@@ -182,6 +466,26 @@ input ProfileOrderBy {
   id: OrderBy
   user: UserOrderBy
   userId: OrderBy
+}
+
+input ProfileUniqueFilter {
+  id: IntFilter
+  userId: IntFilter
+}
+
+input ProfileUpdate {
+  bio: String
+  id: Int
+  user: ProfileUpdateUserRelation
+  userId: Int
+}
+
+input ProfileUpdateUserRelation {
+  connect: UserUniqueFilter
+  create: UserCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdate
 }
 
 type Query {
@@ -210,6 +514,48 @@ type User {
   posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
 }
 
+input UserCreate {
+  Media: UserCreateMediaRelation!
+  comments: UserCreateCommentsRelation!
+  email: String!
+  followers: UserCreateFollowersRelation!
+  following: UserCreateFollowingRelation!
+  id: Int!
+  name: String
+  posts: UserCreatePostsRelation!
+  profile: UserCreateProfileRelation
+}
+
+input UserCreateCommentsRelation {
+  connect: CommentUniqueFilter
+  create: CommentCreate
+}
+
+input UserCreateFollowersRelation {
+  connect: FollowUniqueFilter
+  create: FollowCreate
+}
+
+input UserCreateFollowingRelation {
+  connect: FollowUniqueFilter
+  create: FollowCreate
+}
+
+input UserCreateMediaRelation {
+  connect: MediaUniqueFilter
+  create: MediaCreate
+}
+
+input UserCreatePostsRelation {
+  connect: PostUniqueFilter
+  create: PostCreate
+}
+
+input UserCreateProfileRelation {
+  connect: [ProfileUniqueFilter!]
+  create: [ProfileCreate!]
+}
+
 input UserFilter {
   Media: MediaListFilter
   comments: CommentListFilter
@@ -232,5 +578,85 @@ input UserOrderBy {
   name: OrderBy
   posts: PostOrderBy
   profile: ProfileOrderBy
+}
+
+input UserUniqueFilter {
+  email: StringFilter
+  id: IntFilter
+}
+
+input UserUpdate {
+  Media: [UserUpdateMediaRelation!]
+  comments: [UserUpdateCommentsRelation!]
+  email: String
+  followers: [UserUpdateFollowersRelation!]
+  following: [UserUpdateFollowingRelation!]
+  id: Int
+  name: String
+  posts: [UserUpdatePostsRelation!]
+  profile: UserUpdateProfileRelation
+}
+
+input UserUpdateCommentsRelation {
+  connect: CommentUniqueFilter
+  create: CommentCreate
+  delete: CommentUniqueFilter
+  deleteMany: CommentFilter
+  disconnect: CommentUniqueFilter
+  set: CommentUniqueFilter
+  update: CommentUpdate
+  updateMany: CommentFilter
+}
+
+input UserUpdateFollowersRelation {
+  connect: FollowUniqueFilter
+  create: FollowCreate
+  delete: FollowUniqueFilter
+  deleteMany: FollowFilter
+  disconnect: FollowUniqueFilter
+  set: FollowUniqueFilter
+  update: FollowUpdate
+  updateMany: FollowFilter
+}
+
+input UserUpdateFollowingRelation {
+  connect: FollowUniqueFilter
+  create: FollowCreate
+  delete: FollowUniqueFilter
+  deleteMany: FollowFilter
+  disconnect: FollowUniqueFilter
+  set: FollowUniqueFilter
+  update: FollowUpdate
+  updateMany: FollowFilter
+}
+
+input UserUpdateMediaRelation {
+  connect: MediaUniqueFilter
+  create: MediaCreate
+  delete: MediaUniqueFilter
+  deleteMany: MediaFilter
+  disconnect: MediaUniqueFilter
+  set: MediaUniqueFilter
+  update: MediaUpdate
+  updateMany: MediaFilter
+}
+
+input UserUpdatePostsRelation {
+  connect: PostUniqueFilter
+  create: PostCreate
+  delete: PostUniqueFilter
+  deleteMany: PostFilter
+  disconnect: PostUniqueFilter
+  set: PostUniqueFilter
+  update: PostUpdate
+  updateMany: PostFilter
+}
+
+input UserUpdateProfileRelation {
+  connect: ProfileUniqueFilter
+  create: ProfileCreate
+  delete: Boolean
+  disconnect: Boolean
+  update: ProfileUpdate
 }"
 `;

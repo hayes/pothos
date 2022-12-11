@@ -341,9 +341,10 @@ schemaBuilder.prismaCreate = function prismaCreate<
         } else {
           fieldDefs[field] = t.field({
             required: fieldModel.isRequired,
-            type: fieldModel.isList
-              ? [fieldOption as InputRef<unknown>]
-              : (fieldOption as InputRef<unknown>),
+            type:
+              fieldModel.isList && fieldModel.kind !== 'object'
+                ? [fieldOption as InputRef<unknown>]
+                : (fieldOption as InputRef<unknown>),
           });
         }
       });
@@ -422,6 +423,9 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
     name ?? `${nameFromType(type, this)}Create${capitalize(relation)}Relation`,
   );
 
+  const model = getModel(type, this);
+  const fieldModel = model.fields.find((field) => field.name === relation)!;
+
   ref.implement({
     ...options,
     extensions: {
@@ -443,7 +447,9 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
         } else {
           fieldDefs[field] = t.field({
             required: false,
-            type: fieldOption as InputRef<unknown>,
+            type: fieldModel.isList
+              ? (fieldOption as InputRef<unknown>)
+              : [fieldOption as InputRef<unknown>],
           });
         }
       });

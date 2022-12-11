@@ -278,7 +278,15 @@ export interface PrismaUpdateOneRelationFields<
   Relation extends Model['RelationName'],
   Model extends PrismaModelTypes,
 > {
-  Update?: InputWithShape<
+  create?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { create?: unknown } extends {
+      create?: infer T;
+    }
+      ? T
+      : never
+  >;
+  update?: InputWithShape<
     Types,
     Model['Update'][Relation & keyof Model['Update']] & { update?: unknown } extends {
       update?: infer T;
@@ -294,6 +302,8 @@ export interface PrismaUpdateOneRelationFields<
       ? T
       : never
   >;
+  delete?: InputWithShape<Types, boolean>;
+  disconnect?: InputWithShape<Types, boolean>;
 }
 
 export interface PrismaUpdateManyRelationOptions<
@@ -314,10 +324,34 @@ export interface PrismaUpdateManyRelationFields<
   Relation extends Model['RelationName'],
   Model extends PrismaModelTypes,
 > {
-  Update?: InputWithShape<
+  create?: InputWithShape<
     Types,
-    Model['Update'][Relation & keyof Model['Update']] & { update?: unknown } extends {
-      update?: infer T;
+    Model['Update'][Relation & keyof Model['Update']] & { create?: unknown } extends {
+      create?: infer T;
+    }
+      ? T
+      : never
+  >;
+  set?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { set?: unknown } extends {
+      set?: infer T;
+    }
+      ? T
+      : never
+  >;
+  disconnect?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { disconnect?: unknown } extends {
+      disconnect?: infer T;
+    }
+      ? T
+      : never
+  >;
+  delete?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { delete?: unknown } extends {
+      delete?: infer T;
     }
       ? T
       : never
@@ -326,6 +360,30 @@ export interface PrismaUpdateManyRelationFields<
     Types,
     Model['Update'][Relation & keyof Model['Update']] & { connect?: unknown } extends {
       connect?: infer T;
+    }
+      ? T
+      : never
+  >;
+  update?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { update?: unknown } extends {
+      update?: infer T;
+    }
+      ? T
+      : never
+  >;
+  updateMany?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { updateMany?: unknown } extends {
+      updateMany?: infer T;
+    }
+      ? T
+      : never
+  >;
+  deleteMany?: InputWithShape<
+    Types,
+    Model['Update'][Relation & keyof Model['Update']] & { deleteMany?: unknown } extends {
+      deleteMany?: infer T;
     }
       ? T
       : never

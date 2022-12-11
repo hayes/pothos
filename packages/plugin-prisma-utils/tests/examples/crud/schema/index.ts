@@ -24,6 +24,39 @@ builder.queryType({
   }),
 });
 
+builder.mutationType({
+  fields: (t) => ({
+    createUser: t.prismaField({
+      type: 'User',
+      args: { input: t.arg({ type: generator.getCreateInput('User'), required: true }) },
+      resolve: (query, _, args) =>
+        prisma.user.create({
+          ...query,
+          data: {
+            ...args.input,
+          },
+        }),
+    }),
+    updateUser: t.prismaField({
+      type: 'User',
+      args: {
+        where: t.arg({ type: generator.getWhereUnique('User'), required: true }),
+        data: t.arg({ type: generator.getUpdateInput('User'), required: true }),
+      },
+      resolve: (query, _, args) =>
+        prisma.user.update({
+          ...query,
+          where: {
+            ...args.where,
+          },
+          data: {
+            ...args.data,
+          },
+        }),
+    }),
+  }),
+});
+
 builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),

@@ -90,7 +90,9 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
             .filter(
               (field) =>
                 field.isUnique ||
-                model.uniqueIndexes.some((index) => index.fields.includes(field.name)),
+                field.isId ||
+                model.uniqueIndexes.some((index) => index.fields.includes(field.name)) ||
+                model.primaryKey?.fields.includes(field.name),
             )
             .forEach((field) => {
               let type;
@@ -181,7 +183,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 type = this.getEnum(field.type);
                 break;
               case 'object':
-                // type = this.getCreateInput(field.type as Name);
+                type = this.getCreateRelationInput(modelName, field.name);
                 break;
               case 'unsupported':
                 break;
@@ -196,7 +198,102 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
 
           return fields as {};
         },
-      });
+      }) as InputObjectRef<(Types['PrismaTypes'][Name] & PrismaModelTypes)['Create']>;
+    });
+  }
+
+  getCreateRelationInput<
+    Name extends keyof Types['PrismaTypes'] & string,
+    Relation extends Model['RelationName'],
+    Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+      ? Types['PrismaTypes'][Name]
+      : never,
+  >(modelName: Name, relation: Relation) {
+    return this.getRef(`${modelName}${capitalize(relation)}`, 'CreateRelationInput', () => {
+      const model = getModel(modelName, this.builder);
+      return this.builder.prismaCreateRelation(modelName, relation, {
+        fields: () => {
+          const relationModel = model.fields.find((field) => field.name === relation)!.type;
+          return {
+            create: this.getCreateInput(relationModel as Name),
+            connect: this.getWhereUnique(relationModel as Name),
+          };
+        },
+      } as never) as InputObjectRef<NonNullable<Model['Create'][Relation & keyof Model['Update']]>>;
+    });
+  }
+
+  getUpdateInput<Name extends keyof Types['PrismaTypes'] & string>(modelName: Name) {
+    return this.getRef(modelName, 'UpdateInput', () => {
+      const model = getModel(modelName, this.builder);
+      return this.builder.prismaUpdate(modelName, {
+        fields: (t) => {
+          const fields: Record<string, InputType<Types>> = {};
+
+          model.fields.forEach((field) => {
+            let type;
+            switch (field.kind) {
+              case 'scalar':
+                type = this.mapScalarType(field.type) as InputType<Types>;
+                break;
+              case 'enum':
+                type = this.getEnum(field.type);
+                break;
+              case 'object':
+                type = this.getUpdateRelationInput(modelName, field.name);
+                break;
+              case 'unsupported':
+                break;
+              default:
+                throw new Error(`Unknown field kind ${field.kind}`);
+            }
+
+            if (type) {
+              fields[field.name] = type;
+            }
+          });
+
+          return fields as {};
+        },
+      }) as InputObjectRef<(Types['PrismaTypes'][Name] & PrismaModelTypes)['Update']>;
+    });
+  }
+
+  getUpdateRelationInput<
+    Name extends keyof Types['PrismaTypes'] & string,
+    Relation extends Model['RelationName'],
+    Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
+      ? Types['PrismaTypes'][Name]
+      : never,
+  >(modelName: Name, relation: Relation) {
+    return this.getRef(`${modelName}${capitalize(relation)}`, 'UpdateRelationInput', () => {
+      const model = getModel(modelName, this.builder);
+      return this.builder.prismaUpdateRelation(modelName, relation, {
+        fields: () => {
+          const relationField = model.fields.find((field) => field.name === relation)!;
+
+          if (relationField.isList) {
+            return {
+              create: this.getCreateInput(relationField.type as Name),
+              set: this.getWhereUnique(relationField.type as Name),
+              disconnect: this.getWhereUnique(relationField.type as Name),
+              delete: this.getWhereUnique(relationField.type as Name),
+              connect: this.getWhereUnique(relationField.type as Name),
+              update: this.getUpdateInput(relationField.type as Name),
+              updateMany: this.getWhere(relationField.type as Name),
+              deleteMany: this.getWhere(relationField.type as Name),
+            };
+          }
+
+          return {
+            create: this.getCreateInput(relationField.type as Name),
+            update: this.getUpdateInput(relationField.type as Name),
+            connect: this.getWhereUnique(relationField.type as Name),
+            disconnect: 'Boolean',
+            delete: 'Boolean',
+          };
+        },
+      } as never) as InputObjectRef<NonNullable<Model['Update'][Relation & keyof Model['Update']]>>;
     });
   }
 
@@ -271,4 +368,8 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
 
     return ref as T;
   }
+}
+
+function capitalize(str: string) {
+  return str[0].toUpperCase() + str.slice(1);
 }
