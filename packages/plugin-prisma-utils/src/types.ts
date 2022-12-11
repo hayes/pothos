@@ -99,7 +99,7 @@ export interface PrismaWhereUniqueOptions<
 }
 
 export type PrismaWhereUniqueFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
-  [K in keyof Model['WhereUnique']]?: PrismaWhereFieldType<Types, Model, K>;
+  [K in keyof Model['WhereUnique']]?: PrismaWhereUniqueFieldType<Types, Model, K>;
 };
 
 export type PrismaWhereFieldType<
@@ -112,6 +112,17 @@ export type PrismaWhereFieldType<
       | InputWithShape<Types, Model['Shape'][K]>
       | InputRef<Model['Where'][K]>
       | InputFieldRef<Model['Where'][K] | null | undefined>;
+
+export type PrismaWhereUniqueFieldType<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  K extends keyof Model['Where'],
+> = K extends Model['RelationName']
+  ? InputRef<Model['WhereUnique'][K]> | InputFieldRef<Model['WhereUnique'][K]>
+  :
+      | InputWithShape<Types, Model['Shape'][K]>
+      | InputRef<Model['WhereUnique'][K]>
+      | InputFieldRef<Model['WhereUnique'][K] | null | undefined>;
 
 type InputWithShape<Types extends SchemaTypes, T> =
   | InputRef<T>

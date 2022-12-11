@@ -340,7 +340,11 @@ schemaBuilder.prismaCreate = function prismaCreate<
           fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
         } else {
           fieldDefs[field] = t.field({
-            required: fieldModel.isRequired,
+            required:
+              fieldModel.isRequired &&
+              !fieldModel.isList &&
+              !fieldModel.hasDefaultValue &&
+              !fieldModel.isUpdatedAt,
             type:
               fieldModel.isList && fieldModel.kind !== 'object'
                 ? [fieldOption as InputRef<unknown>]
@@ -448,8 +452,8 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
           fieldDefs[field] = t.field({
             required: false,
             type: fieldModel.isList
-              ? (fieldOption as InputRef<unknown>)
-              : [fieldOption as InputRef<unknown>],
+              ? [fieldOption as InputRef<unknown>]
+              : (fieldOption as InputRef<unknown>),
           });
         }
       });
@@ -491,6 +495,8 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
       const fieldMap = typeof fields === 'function' ? fields(t) : fields;
+      const model = getModel(type, this);
+      const fieldModel = model.fields.find((field) => field.name === relation)!;
 
       Object.keys(fieldMap).forEach((field) => {
         const fieldOption = fieldMap[field as keyof typeof fieldMap]!;
@@ -503,7 +509,9 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
         } else {
           fieldDefs[field] = t.field({
             required: false,
-            type: fieldOption as InputRef<unknown>,
+            type: fieldModel.isList
+              ? [fieldOption as InputRef<unknown>]
+              : (fieldOption as InputRef<unknown>),
           });
         }
       });

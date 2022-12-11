@@ -134,6 +134,7 @@ type QueryGamesConnectionEdge {
 type QueryTeamsConnection {
   edges: [QueryTeamsConnectionEdge]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type QueryTeamsConnectionEdge {
@@ -147,6 +148,7 @@ type Team implements Node {
   id: ID!
   name: String!
   players: [Player!]!
+  playersConnection(after: String, before: String, first: Int, last: Int): TeamPlayersConnection!
   points(after: String, before: String, first: Int, last: Int): TeamPointsConnection!
   updatedAt: DateTime!
 }
@@ -159,6 +161,17 @@ type TeamGamesConnection {
 type TeamGamesConnectionEdge {
   cursor: String!
   node: Game!
+}
+
+type TeamPlayersConnection {
+  edges: [TeamPlayersConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type TeamPlayersConnectionEdge {
+  cursor: String!
+  node: Player!
 }
 
 type TeamPointsConnection {
