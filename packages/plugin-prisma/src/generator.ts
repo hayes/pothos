@@ -3,7 +3,7 @@
 /* eslint-disable no-magic-numbers */
 /* eslint-disable no-nested-ternary */
 import { mkdir, writeFile } from 'fs';
-import { dirname, resolve as resolvePath } from 'path';
+import { dirname, join, resolve as resolvePath } from 'path';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import { DMMF, generatorHandler } from '@prisma/generator-helper';
 
@@ -51,7 +51,7 @@ generatorHandler({
       await generateOutput(
         options.dmmf,
         prismaTypes,
-        prismaLocation.replace('../', '../../'),
+        join(prismaLocation.replace('../', '../../'), 'index.js'),
         outputLocation.replace('/generated.ts', '/esm/generated.ts'),
       );
     }
