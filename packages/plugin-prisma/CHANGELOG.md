@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.38.1
+
+### Patch Changes
+
+- 943cb073: import from @prisma/client/index.js for esm generated types
+
 ## 3.38.0
 
 ### Minor Changes
