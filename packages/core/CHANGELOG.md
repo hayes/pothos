@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.23.2
+
+### Patch Changes
+
+- b1cabe44: Fix types for nullable inputs in non-strict mode
+
 ## 3.23.1
 
 ### Patch Changes
