@@ -371,6 +371,25 @@ builder.queryField('nestedLists', (t) =>
   }),
 );
 
+builder
+  .objectRef<{ bool?: boolean; bool2: boolean; boolList?: [boolean] }>('TestExposeNullable')
+  .implement({
+    fields: (t) => ({
+      bool: t.exposeBoolean('bool', { nullable: true }),
+      bList: t.exposeBooleanList('boolList', { nullable: { items: true, list: true } }),
+      blist2: t.expose('boolList', { type: ['Boolean'], nullable: true }),
+    }),
+  });
+
+builder
+  .objectRef<{ list: readonly string[]; optionalList?: readonly string[] }>('TestExposeList')
+  .implement({
+    fields: (t) => ({
+      list: t.exposeStringList('list', { nullable: false }),
+      optionalList: t.exposeStringList('optionalList', { nullable: true }),
+    }),
+  });
+
 const schema = builder.toSchema();
 
 export default schema;

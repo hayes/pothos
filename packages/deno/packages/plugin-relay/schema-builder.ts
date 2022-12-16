@@ -30,12 +30,12 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
             }),
             startCursor: t.expose("startCursor", {
                 nullable: true,
-                ...startCursorFieldOptions,
+                ...(startCursorFieldOptions as {}),
                 type: cursorType,
             }) as never,
             endCursor: t.expose("endCursor", {
                 nullable: true,
-                ...endCursorFieldOptions,
+                ...(endCursorFieldOptions as {}),
                 type: cursorType,
             }) as never,
         }),
@@ -151,9 +151,9 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 };
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
     verifyRef(param);
-    const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
+    const interfacesWithNode: () => InterfaceParam<SchemaTypes>[] = () => [
         this.nodeInterfaceRef(),
-        ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
+        ...(typeof interfaces === "function" ? interfaces() : interfaces ?? []),
     ];
     let nodeName!: string;
     const ref = this.objectType<[
@@ -183,7 +183,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
                     return false;
                 }
                 : undefined),
-        interfaces: interfacesWithNode as [
+        interfaces: interfacesWithNode as () => [
         ],
     }, fields);
     this.configStore.onTypeConfig(ref, (nodeConfig) => {

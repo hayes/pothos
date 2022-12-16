@@ -2,7 +2,7 @@
 import { defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import FieldRef from '../refs/field.ts';
 import type { FieldKind, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam, } from '../types/index.ts';
-import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
+import { FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
 import { typeFromParam } from '../utils/index.ts';
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
     typename: string;
@@ -60,7 +60,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         });
         return ref;
     }
-    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>>(name: Name, { extensions, ...options }: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends keyof ParentShape & string>(name: Name, { extensions, ...options }: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         return this.createField({
             ...options,
             extensions: {

@@ -78,6 +78,17 @@ type Subscription {
   event: String!
 }
 
+type TestExposeList {
+  list: [String!]!
+  optionalList: [String!]
+}
+
+type TestExposeNullable {
+  bList: [Boolean]
+  blist2: [Boolean!]
+  bool: Boolean
+}
+
 type User {
   defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
   displayName: String!

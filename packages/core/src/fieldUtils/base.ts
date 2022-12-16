@@ -6,7 +6,7 @@ import type {
   PothosInputFieldConfig,
   ShapeFromTypeParam,
 } from '../types';
-import { CompatibleTypes, FieldNullability, SchemaTypes, TypeParam } from '../types';
+import { FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
 
 export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
@@ -107,7 +107,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   protected exposeField<
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
-    Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>,
+    Name extends keyof ParentShape & string,
   >(
     name: Name,
     {

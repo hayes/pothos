@@ -86,7 +86,7 @@ declare global {
                 "ID"
             ], Nullable>>;
             node: <Args extends InputFieldMap, ResolveShape>(options: NodeFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<unknown>;
-            nodeList: <Args extends InputFieldMap, ResolveShape>(options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<unknown[]>;
+            nodeList: <Args extends InputFieldMap, ResolveShape>(options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<readonly unknown[]>;
             connection: <Type extends OutputType<Types>, Args extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, EdgeNullability extends FieldNullability<[
                 unknown
             ]> = Types["DefaultEdgesNullability"], NodeNullability extends boolean = Types["DefaultNodeNullability"]>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, (InputFieldMap extends Args ? {} : Args) & InputFieldsFromShape<DefaultConnectionArguments>, Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, FieldOptions extends {

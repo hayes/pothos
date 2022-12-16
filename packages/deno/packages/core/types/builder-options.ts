@@ -62,4 +62,24 @@ export type FieldKind = keyof PothosSchemaTypes.FieldOptionsByKind<SchemaTypes, 
 export type InputFieldKind = keyof PothosSchemaTypes.InputFieldOptionsByKind<SchemaTypes, InputRef<unknown>, boolean>;
 export type CompatibleTypes<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>> = {
     [K in keyof ParentShape]-?: ParentShape[K] extends ShapeFromTypeParam<Types, Type, Nullable> ? K : never;
-}[keyof ParentShape];
+}[keyof ParentShape] & string;
+export type ExposeNullability<Types extends SchemaTypes, Type extends TypeParam<Types>, ParentShape, Name extends keyof ParentShape, Nullable extends FieldNullability<Type>> = ParentShape[Name] extends ShapeFromTypeParam<Types, Type, Nullable> ? {
+    nullable?: Nullable & ExposeNullableOption<Types, Type, ParentShape, Name>;
+} : {
+    nullable: Nullable & ExposeNullableOption<Types, Type, ParentShape, Name>;
+};
+export type ExposeNullableOption<Types extends SchemaTypes, Type extends TypeParam<Types>, ParentShape, Name extends keyof ParentShape> = FieldNullability<Type> & (Type extends [
+    unknown
+] ? ParentShape[Name] extends readonly (infer T)[] | null | undefined ? T extends NonNullable<T> ? ParentShape[Name] extends NonNullable<ParentShape[Name]> ? boolean | {
+    items: boolean;
+    list: boolean;
+} : true | {
+    items: boolean;
+    list: true;
+} : ParentShape[Name] extends NonNullable<ParentShape[Name]> ? {
+    items: true;
+    list: boolean;
+} : {
+    items: true;
+    list: true;
+} : never : ParentShape[Name] extends NonNullable<ParentShape[Name]> ? boolean : true);

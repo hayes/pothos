@@ -71,12 +71,12 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
       }),
       startCursor: t.expose('startCursor', {
         nullable: true,
-        ...startCursorFieldOptions,
+        ...(startCursorFieldOptions as {}),
         type: cursorType,
       }) as never,
       endCursor: t.expose('endCursor', {
         nullable: true,
-        ...endCursorFieldOptions,
+        ...(endCursorFieldOptions as {}),
         type: cursorType,
       }) as never,
     }),
