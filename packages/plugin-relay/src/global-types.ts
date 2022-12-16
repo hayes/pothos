@@ -253,7 +253,7 @@ declare global {
         > extends infer FieldOptions
           ? ConnectionFieldOptions<
               Types,
-              FieldOptions extends { resolve: (parent: infer P, ...args: any[]) => unknown }
+              FieldOptions extends { resolve?: (parent: infer P, ...args: any[]) => unknown }
                 ? P
                 : unknown extends ResolveShape
                 ? ParentShape
