@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.30.1
+
+### Patch Changes
+
+- dbc32872: Fix a bug where `builder.node` crashed when the `interfaces` was provided as a function
+
 ## 3.30.0
 
 ### Minor Changes
