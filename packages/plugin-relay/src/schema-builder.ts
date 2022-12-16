@@ -218,9 +218,9 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
   verifyRef(param);
-  const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
+  const interfacesWithNode: () => InterfaceParam<SchemaTypes>[] = () => [
     this.nodeInterfaceRef(),
-    ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
+    ...(typeof interfaces === 'function' ? interfaces() : interfaces ?? []),
   ];
 
   let nodeName!: string;
@@ -256,7 +256,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
               return false;
             }
           : undefined),
-      interfaces: interfacesWithNode as [],
+      interfaces: interfacesWithNode as () => [],
     },
     fields,
   );

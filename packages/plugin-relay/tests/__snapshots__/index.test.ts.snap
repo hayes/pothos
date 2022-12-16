@@ -225,6 +225,28 @@ type SharedEdge {
 }"
 `;
 
+exports[`relay example schema > generates expected schema with additional interfaces 1`] = `
+"type Customer implements Node & User {
+  age: Int!
+  displayName: String!
+  id: ID!
+}
+
+interface Node {
+  id: ID!
+}
+
+type Query {
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+}
+
+interface User {
+  displayName: String!
+  id: ID!
+}"
+`;
+
 exports[`relay example schema > generates expected schema with globalConnectionFields 1`] = `
 "type Answer {
   count: Int!
