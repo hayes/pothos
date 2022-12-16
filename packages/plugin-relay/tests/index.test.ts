@@ -1,6 +1,7 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
 import schemaWithGlobalConnectionFields from './examples/global-connection-fields/schema';
+import schemaWithAdditionalInterfaces from './examples/node-with-interfaces/schema';
 import schema from './examples/relay/schema';
 
 describe('relay example schema', () => {
@@ -10,6 +11,10 @@ describe('relay example schema', () => {
 
   it('generates expected schema with globalConnectionFields', () => {
     expect(printSchema(schemaWithGlobalConnectionFields)).toMatchSnapshot();
+  });
+
+  it('generates expected schema with additional interfaces', () => {
+    expect(printSchema(schemaWithAdditionalInterfaces)).toMatchSnapshot();
   });
 
   describe('queries', () => {
