@@ -1,0 +1,172 @@
+input AddPlayerToTeamInput {
+  player: CreatePlayerInput!
+  teamId: ID!
+}
+
+input AddPlayersToTeamInput {
+  players: [CreatePlayerInput!]!
+  teamId: ID!
+}
+
+input CreateGame {
+  complete: Boolean
+  opponentName: String!
+  teamId: ID!
+}
+
+input CreatePlayerInput {
+  name: String!
+  number: Int!
+}
+
+input CreatePointInput {
+  gameId: ID!
+  playerIds: [ID!]!
+  scored: Boolean!
+  startedOnOffense: Boolean!
+}
+
+input CreateTeamInput {
+  name: String!
+  players: [CreatePlayerInput!]
+}
+
+"""
+A date-time string at UTC, such as 2007-12-03T10:15:30Z, compliant with the `date-time` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
+"""
+scalar DateTime
+
+type Game implements Node {
+  complete: Boolean!
+  createdAt: DateTime!
+  id: ID!
+  opponentName: String!
+  points: [Point!]!
+  score: GameScore!
+  team: Team!
+  updatedAt: DateTime!
+}
+
+type GameScore {
+  opponentScore: Int!
+  ownScore: Int!
+}
+
+type Mutation {
+  addPlayerToTeam(input: AddPlayerToTeamInput!): Team
+  addPlayersToTeam(input: AddPlayersToTeamInput!): Team
+  addPoint(input: CreatePointInput!): Point
+  createGame(input: CreateGame!): Game!
+  createTeam(input: CreateTeamInput!): Team
+}
+
+interface Node {
+  id: ID!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+type Player implements Node {
+  createdAt: DateTime!
+  games(after: String, before: String, first: Int, last: Int): PlayerGamesConnection!
+  id: ID!
+  name: String!
+  points(after: String, before: String, first: Int, last: Int): PlayerPointsConnection!
+  team: Team!
+  updatedAt: DateTime!
+}
+
+type PlayerGamesConnection {
+  edges: [PlayerGamesConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PlayerGamesConnectionEdge {
+  cursor: String!
+  node: Game!
+}
+
+type PlayerPointsConnection {
+  edges: [PlayerPointsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PlayerPointsConnectionEdge {
+  cursor: String!
+  node: Point!
+}
+
+type Point implements Node {
+  createdAt: DateTime!
+  game: Game!
+  id: ID!
+  players: [Player!]!
+  scored: Boolean!
+  startedOnOffense: Boolean!
+  team: Team!
+  updatedAt: DateTime!
+}
+
+type Query {
+  game(id: ID!): Game
+  games(after: String, before: String, first: Int, last: Int): QueryGamesConnection!
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  team(id: ID!): Team
+  teams(after: String, before: String, first: Int, last: Int): QueryTeamsConnection!
+}
+
+type QueryGamesConnection {
+  edges: [QueryGamesConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryGamesConnectionEdge {
+  cursor: String!
+  node: Game!
+}
+
+type QueryTeamsConnection {
+  edges: [QueryTeamsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryTeamsConnectionEdge {
+  cursor: String!
+  node: Team!
+}
+
+type Team implements Node {
+  createdAt: DateTime!
+  games(after: String, before: String, first: Int, last: Int): TeamGamesConnection!
+  id: ID!
+  name: String!
+  players: [Player!]!
+  points(after: String, before: String, first: Int, last: Int): TeamPointsConnection!
+  updatedAt: DateTime!
+}
+
+type TeamGamesConnection {
+  edges: [TeamGamesConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type TeamGamesConnectionEdge {
+  cursor: String!
+  node: Game!
+}
+
+type TeamPointsConnection {
+  edges: [TeamPointsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type TeamPointsConnectionEdge {
+  cursor: String!
+  node: Point!
+}
