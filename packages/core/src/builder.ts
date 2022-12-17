@@ -216,7 +216,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       extensions: options.extensions,
     };
 
-    this.configStore.addTypeConfig(config);
+    const ref = new ObjectRef<OutputShape<Types, 'Query'>, ParentShape<Types, 'Query'>>('Query');
+
+    this.configStore.addTypeConfig(config, ref);
 
     if (fields) {
       this.configStore.addFields('Query', () => fields(new QueryFieldBuilder(this)));
@@ -225,6 +227,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     if (options.fields) {
       this.configStore.addFields('Query', () => options.fields!(new QueryFieldBuilder(this)));
     }
+
+    return ref;
   }
 
   queryFields(fields: QueryFieldsShape<Types>) {

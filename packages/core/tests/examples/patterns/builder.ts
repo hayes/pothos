@@ -1,6 +1,9 @@
 import SchemaBuilder from '../../../src';
 
 export interface SchemaTypes {
+  Objects: {
+    Query: {};
+  };
   Scalars: {
     ID: {
       Input: string;

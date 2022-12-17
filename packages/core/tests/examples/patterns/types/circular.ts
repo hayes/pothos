@@ -12,10 +12,14 @@ A.implement({
   }),
 });
 
-builder.queryType({
+const query = builder.queryType({
   fields: (t) => ({
     circular: t.field({
       type: A,
+      resolve: () => ({}),
+    }),
+    query: t.field({
+      type: query,
       resolve: () => ({}),
     }),
   }),

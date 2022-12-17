@@ -26,6 +26,7 @@ type Mutation {
 
 type Query {
   circular: A!
+  query: Query!
 }
 
 type WithCommonFields1 {
