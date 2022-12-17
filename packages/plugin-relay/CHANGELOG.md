@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.30.2
+
+### Patch Changes
+
+- 92ccae6d: Fix a bug where the `t.connection` helper wasn't correctly inferring the shape of the
+  returned connection object when used on interfaces.
+
 ## 3.30.1
 
 ### Patch Changes
