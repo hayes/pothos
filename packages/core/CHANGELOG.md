@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.24.0
+
+### Minor Changes
+
+- c3db3bcd: Enable adding interfaces to connections and edges
+
+### Patch Changes
+
+- fd08a9d9: allow readonly lists to be exposed and improve inference of t.expose fields
+- 02072e1f: return a Ref from builder.queryType
+
 ## 3.23.2
 
 ### Patch Changes

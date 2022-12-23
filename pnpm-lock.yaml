@@ -62,7 +62,7 @@ importers:
       '@graphql-codegen/introspection': 2.2.1
       '@graphql-codegen/schema-ast': ^2.5.1
       '@graphql-typed-document-node/core': ^3.1.1
-      '@pothos/core': ^3.23.0
+      '@pothos/core': ^3.24.0
       '@pothos/plugin-dataloader': workspace:*
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-prisma-utils': workspace:*
@@ -100,9 +100,6 @@ importers:
       '@graphql-codegen/introspection': 2.2.1_graphql@16.6.0
       '@graphql-codegen/schema-ast': 2.5.1_graphql@16.6.0
       typescript: 4.9.3
-
-  examples/complex-app/prisma/client:
-    specifiers: {}
 
   examples/envelope-helix-fastify:
     specifiers:
@@ -269,13 +266,10 @@ importers:
       graphql: 16.6.0
       prisma: 4.7.1
 
-  examples/prisma-federation/prisma/client:
-    specifiers: {}
-
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@pothos/core': ^3.23.0
+      '@pothos/core': ^3.24.0
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-relay': workspace:*
       '@prisma/client': ^4.7.1
@@ -291,12 +285,6 @@ importers:
       graphql: 16.6.0
       graphql-yoga: 3.1.1_graphql@16.6.0
       prisma: 4.7.1
-
-  examples/prisma-relay/prisma/client:
-    specifiers: {}
-
-  examples/prisma/prisma/client:
-    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -582,13 +570,7 @@ importers:
   packages/plugin-prisma-utils/esm:
     specifiers: {}
 
-  packages/plugin-prisma-utils/tests/client:
-    specifiers: {}
-
   packages/plugin-prisma/esm:
-    specifiers: {}
-
-  packages/plugin-prisma/tests/client:
     specifiers: {}
 
   packages/plugin-relay:
@@ -631,9 +613,6 @@ importers:
       prisma: 4.7.1
 
   packages/plugin-scope-auth/esm:
-    specifiers: {}
-
-  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -742,9 +721,6 @@ importers:
       prisma: 4.7.1
 
   packages/plugin-with-input/esm:
-    specifiers: {}
-
-  packages/plugin-with-input/prisma/client:
     specifiers: {}
 
   packages/test-utils:
