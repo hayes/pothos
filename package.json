@@ -15,7 +15,7 @@
     "clean": "rm -rf ./{packages/*,examples*,website}/{tsconfig.*tsbuildinfo,lib,esm,dts,.turbo,.next} && git checkout -- 'packages/*/esm/*'",
     "ci": "pnpm turbo run build generate test type --concurrency=4 && pnpm run lint:ci",
     "ci:version": "changeset version && pnpm install --frozen-lockfile false",
-    "coverage": "pnpm run test --coverage",
+    "coverage": "pnpm run test -- --coverage",
     "format": "prettier",
     "lint": "eslint --cache '{packages,examples}/*/{src,test}/**.{ts,js}'",
     "lint:ci": "eslint --cache  '{packages,examples}/*/{src,test}/**.{ts,js}'",
@@ -52,7 +52,8 @@
     "turbo": "^1.6.3",
     "typescript": "4.9.3",
     "typescript-json-schema": "^0.55.0",
-    "vitest": "^0.25.3"
+    "vitest": "^0.25.3",
+    "@vitest/coverage-c8": "^0.25.8"
   },
   "resolutions": {
     "graphql": "16.6.0"
