@@ -120,13 +120,16 @@ declare global {
         ResolveReturnShape,
         EdgeNullability extends FieldNullability<[unknown]>,
         NodeNullability extends boolean,
+        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         connectionOptions: ConnectionObjectOptions<
           Types,
           Type,
           EdgeNullability,
           NodeNullability,
-          ResolveReturnShape
+          ResolveReturnShape,
+          ConnectionInterfaces
         > & {
           name: string;
           type: Type;
@@ -138,7 +141,13 @@ declare global {
                   cursor: string;
                   node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
                 }>
-              | (ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape> & {
+              | (ConnectionEdgeObjectOptions<
+                  Types,
+                  Type,
+                  NodeNullability,
+                  ResolveReturnShape,
+                  EdgeInterfaces
+                > & {
                   name?: string;
                 }),
           ]
@@ -148,12 +157,14 @@ declare global {
         Type extends OutputType<Types>,
         ResolveReturnShape,
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
+        Interfaces extends InterfaceParam<Types>[] = [],
       >(
         edgeOptions: ConnectionEdgeObjectOptions<
           Types,
           Type,
           NodeNullability,
-          ResolveReturnShape
+          ResolveReturnShape,
+          Interfaces
         > & {
           type: Type;
           name: string;
@@ -239,6 +250,8 @@ declare global {
         ResolveReturnShape,
         EdgeNullability extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
+        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         options: FieldOptionsFromKind<
           Types,
@@ -279,7 +292,8 @@ declare global {
                     Type,
                     EdgeNullability,
                     NodeNullability,
-                    ResolveReturnShape
+                    ResolveReturnShape,
+                    ConnectionInterfaces
                   >,
                   'edgesNullable'
                 >,
@@ -288,7 +302,13 @@ declare global {
                   cursor: string;
                   node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
                 }>
-              | ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape>,
+              | ConnectionEdgeObjectOptions<
+                  Types,
+                  Type,
+                  NodeNullability,
+                  ResolveReturnShape,
+                  EdgeInterfaces
+                >,
           ],
           0
         >
@@ -326,9 +346,11 @@ declare global {
       EdgeNullability extends FieldNullability<[unknown]>,
       NodeNullability extends boolean,
       Resolved,
-    > extends ObjectTypeOptions<
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > extends ObjectTypeWithInterfaceOptions<
         Types,
-        ConnectionShapeFromResolve<Types, Type, false, EdgeNullability, NodeNullability, Resolved>
+        ConnectionShapeFromResolve<Types, Type, false, EdgeNullability, NodeNullability, Resolved>,
+        Interfaces
       > {
       name?: string;
       edgesNullable?: EdgeNullability;
@@ -340,11 +362,13 @@ declare global {
       Type extends OutputType<Types>,
       NodeNullability extends boolean,
       Resolved,
-    > extends ObjectTypeOptions<
+      Interfaces extends InterfaceParam<Types>[] = [],
+    > extends ObjectTypeWithInterfaceOptions<
         Types,
         NonNullable<
           ConnectionShapeFromResolve<Types, Type, false, false, NodeNullability, Resolved>['edges']
-        >[number]
+        >[number],
+        Interfaces
       > {
       name?: string;
     }

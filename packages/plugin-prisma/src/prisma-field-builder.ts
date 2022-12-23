@@ -6,6 +6,7 @@ import {
   FieldKind,
   FieldRef,
   InputFieldMap,
+  InterfaceParam,
   isThenable,
   MaybePromise,
   NormalizeArgs,
@@ -106,6 +107,8 @@ export class PrismaObjectFieldBuilder<
         Nullable extends boolean,
         Args extends InputFieldMap,
         ResolveReturnShape,
+        ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+        EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         field: Field,
         options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
@@ -117,7 +120,8 @@ export class PrismaObjectFieldBuilder<
                   ObjectRef<Shape>,
                   false,
                   false,
-                  ResolveReturnShape
+                  ResolveReturnShape,
+                  ConnectionInterfaces
                 >
               | ObjectRef<
                   ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
@@ -127,7 +131,8 @@ export class PrismaObjectFieldBuilder<
                   Types,
                   ObjectRef<Shape>,
                   false,
-                  ResolveReturnShape
+                  ResolveReturnShape,
+                  EdgeInterfaces
                 >
               | ObjectRef<{
                   cursor: string;

@@ -20,7 +20,7 @@ declare global {
             isTypeOf?: GraphQLIsTypeOfFn<unknown, Types["Context"]>;
         }
         export interface ObjectTypeWithInterfaceOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[]> extends Omit<ObjectTypeOptions<Types, Shape>, "interfaces"> {
-            interfaces: (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
+            interfaces?: (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
         }
         export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> extends BaseTypeOptions<Types> {
         }

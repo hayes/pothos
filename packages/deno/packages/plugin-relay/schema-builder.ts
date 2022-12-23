@@ -1,6 +1,4 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
@@ -308,7 +306,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
         : false;
     this.objectType(connectionRef, {
         ...(this.options.relayOptions?.defaultConnectionTypeOptions as {}),
-        ...connectionOptions,
+        ...(connectionOptions as {}),
         fields: (t) => ({
             pageInfo: t.field({
                 nullable: false,
@@ -338,7 +336,6 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                                 this.options.relayOptions?.nodeFieldOptions?.nullable ??
                                 false,
                         },
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                         resolve: (con) => (con.edges?.map((edge) => edge?.node) ?? []) as never,
                     }),
                 }
