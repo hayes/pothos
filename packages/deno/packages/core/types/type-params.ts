@@ -71,10 +71,10 @@ export type ShapeFromTypeParam<Types extends SchemaTypes, Param extends TypePara
 ] ? ShapeFromListTypeParam<Types, Param, Nullable> : FieldNullability<Param> extends Nullable ? Types["DefaultFieldNullability"] extends true ? OutputShape<Types, Param> | null | undefined : OutputShape<Types, Param> : Nullable extends true ? OutputShape<Types, Param> | null | undefined : OutputShape<Types, Param>;
 export type ShapeFromListTypeParam<Types extends SchemaTypes, Param extends [
     OutputType<Types>
-], Nullable extends FieldNullability<Param>> = FieldNullability<Param> extends Nullable ? Types["DefaultFieldNullability"] extends true ? OutputShape<Types, Param[0]>[] | null | undefined : OutputShape<Types, Param[0]>[] : Nullable extends true ? OutputShape<Types, Param[0]>[] | null | undefined : Nullable extends false ? OutputShape<Types, Param[0]>[] : Nullable extends {
+], Nullable extends FieldNullability<Param>> = FieldNullability<Param> extends Nullable ? Types["DefaultFieldNullability"] extends true ? readonly OutputShape<Types, Param[0]>[] | null | undefined : readonly OutputShape<Types, Param[0]>[] : Nullable extends true ? readonly OutputShape<Types, Param[0]>[] | null | undefined : Nullable extends false ? readonly OutputShape<Types, Param[0]>[] : Nullable extends {
     list: infer List;
     items: infer Items;
-} ? Items extends boolean ? List extends true ? ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] | null | undefined : ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] : never : never;
+} ? Items extends boolean ? List extends true ? readonly ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] | null | undefined : readonly ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] : never : never;
 export type FieldNullability<Param> = boolean | (Param extends [
     unknown
 ] ? boolean | {

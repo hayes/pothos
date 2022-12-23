@@ -1,5 +1,6 @@
 import {
   CompatibleTypes,
+  ExposeNullability,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -20,7 +21,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeBoolean<
-    Name extends CompatibleTypes<Types, ParentShape, 'Boolean', Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, 'Boolean', true>,
     ResolveReturnShape,
     Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability'],
   >(
@@ -38,8 +39,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, 'Boolean', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -54,7 +56,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeFloat<
-    Name extends CompatibleTypes<Types, ParentShape, 'Float', Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, 'Float', true>,
     ResolveReturnShape,
     Nullable extends FieldNullability<'Float'> = Types['DefaultFieldNullability'],
   >(
@@ -72,8 +74,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, 'Float', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -88,7 +91,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeID<
-    Name extends CompatibleTypes<Types, ParentShape, 'ID', Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, 'ID', true>,
     ResolveReturnShape,
     Nullable extends FieldNullability<'ID'> = Types['DefaultFieldNullability'],
   >(
@@ -106,8 +109,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, 'ID', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -122,7 +126,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeInt<
-    Name extends CompatibleTypes<Types, ParentShape, 'Int', Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, 'Int', true>,
     ResolveReturnShape,
     Nullable extends FieldNullability<'Int'> = Types['DefaultFieldNullability'],
   >(
@@ -140,8 +144,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'args' | 'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, 'Int', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -156,7 +161,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeString<
-    Name extends CompatibleTypes<Types, ParentShape, 'String', Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, 'String', true>,
     ResolveReturnShape,
     Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability'],
   >(
@@ -174,8 +179,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, 'String', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -190,7 +196,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeBooleanList<
-    Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, ['Boolean'], { list: true; items: true }>,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability'],
   >(
@@ -208,8 +214,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, ['Boolean'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -224,7 +231,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeFloatList<
-    Name extends CompatibleTypes<Types, ParentShape, ['Float'], Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, ['Float'], { list: true; items: true }>,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability'],
   >(
@@ -242,8 +249,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, ['Float'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -258,7 +266,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeIDList<
-    Name extends CompatibleTypes<Types, ParentShape, ['ID'], Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, ['ID'], { list: true; items: true }>,
     ResolveReturnShape,
     Nullable extends FieldNullability<['ID']> = Types['DefaultFieldNullability'],
   >(
@@ -276,8 +284,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, ['ID'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -292,7 +301,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeIntList<
-    Name extends CompatibleTypes<Types, ParentShape, ['Int'], Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, ['Int'], { list: true; items: true }>,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability'],
   >(
@@ -310,8 +319,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, ['Int'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -326,7 +336,7 @@ export default class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   exposeStringList<
-    Name extends CompatibleTypes<Types, ParentShape, ['String'], Nullable>,
+    Name extends CompatibleTypes<Types, ParentShape, ['String'], { list: true; items: true }>,
     ResolveReturnShape,
     Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability'],
   >(
@@ -344,8 +354,9 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve' | 'type'
-        >,
+          'resolve' | 'type' | 'nullable'
+        > &
+          ExposeNullability<Types, ['String'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -363,9 +374,14 @@ export default class FieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, ParentShape, Type, Nullable>,
+    Name extends CompatibleTypes<
+      Types,
+      ParentShape,
+      Type,
+      Type extends [unknown] ? { list: true; items: true } : true
+    >,
   >(
-    name: Name,
+    name: Name extends keyof ParentShape ? Name : keyof ParentShape,
     ...args: NormalizeArgs<
       [
         options: Omit<
@@ -379,13 +395,22 @@ export default class FieldBuilder<
             ParentShape,
             ResolveReturnShape
           >,
-          'resolve'
-        >,
+          'resolve' | 'nullable'
+        > &
+          ExposeNullability<Types, Type, ParentShape, Name, Nullable>,
       ]
     >
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField(name, options);
+    return this.exposeField(
+      name as never as CompatibleTypes<
+        Types,
+        ParentShape,
+        Type,
+        Type extends [unknown] ? { list: true; items: true } : true
+      >,
+      options,
+    );
   }
 }

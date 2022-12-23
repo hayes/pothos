@@ -156,17 +156,20 @@ export type ShapeFromListTypeParam<
   Nullable extends FieldNullability<Param>,
 > = FieldNullability<Param> extends Nullable
   ? Types['DefaultFieldNullability'] extends true
-    ? OutputShape<Types, Param[0]>[] | null | undefined
-    : OutputShape<Types, Param[0]>[]
+    ? readonly OutputShape<Types, Param[0]>[] | null | undefined
+    : readonly OutputShape<Types, Param[0]>[]
   : Nullable extends true
-  ? OutputShape<Types, Param[0]>[] | null | undefined
+  ? readonly OutputShape<Types, Param[0]>[] | null | undefined
   : Nullable extends false
-  ? OutputShape<Types, Param[0]>[]
+  ? readonly OutputShape<Types, Param[0]>[]
   : Nullable extends { list: infer List; items: infer Items }
   ? Items extends boolean
     ? List extends true
-      ? ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[] | null | undefined
-      : ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
+      ?
+          | readonly ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
+          | null
+          | undefined
+      : readonly ShapeFromTypeParam<Types, Param[0], Items extends false ? false : true>[]
     : never
   : never;
 

@@ -230,7 +230,7 @@ declare global {
       ) => FieldRef<unknown>;
       nodeList: <Args extends InputFieldMap, ResolveShape>(
         options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>,
-      ) => FieldRef<unknown[]>;
+      ) => FieldRef<readonly unknown[]>;
       connection: <
         Type extends OutputType<Types>,
         Args extends InputFieldMap,

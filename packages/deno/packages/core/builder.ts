@@ -113,13 +113,15 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             pothosOptions: options as unknown as PothosSchemaTypes.QueryTypeOptions,
             extensions: options.extensions,
         };
-        this.configStore.addTypeConfig(config);
+        const ref = new ObjectRef<OutputShape<Types, "Query">, ParentShape<Types, "Query">>("Query");
+        this.configStore.addTypeConfig(config, ref);
         if (fields) {
             this.configStore.addFields("Query", () => fields(new QueryFieldBuilder(this)));
         }
         if (options.fields) {
             this.configStore.addFields("Query", () => options.fields!(new QueryFieldBuilder(this)));
         }
+        return ref;
     }
     queryFields(fields: QueryFieldsShape<Types>) {
         this.configStore.addFields("Query", () => fields(new QueryFieldBuilder(this)));
