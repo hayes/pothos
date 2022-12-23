@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.39.0
+
+### Minor Changes
+
+- c3db3bcd: Enable adding interfaces to connections and edges
+
 ## 3.38.1
 
 ### Patch Changes

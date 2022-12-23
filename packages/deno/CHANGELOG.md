@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.31.0
+
+### Minor Changes
+
+- c3db3bcd: Enable adding interfaces to connections and edges
+
+### Patch Changes
+
+- fd08a9d9: allow readonly lists to be exposed and improve inference of t.expose fields
+
 ## 3.30.2
 
 ### Patch Changes
