@@ -45,7 +45,7 @@ declare global {
       Shape = unknown,
       Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[],
     > extends Omit<ObjectTypeOptions<Types, Shape>, 'interfaces'> {
-      interfaces:
+      interfaces?:
         | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
         | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
     }

@@ -233,6 +233,8 @@ declare global {
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
             Shape = Type extends PrismaObjectRef<PrismaModelTypes, infer S> ? S : Model['Shape'],
+            ConnectionInterfaces extends InterfaceParam<Types>[] = [],
+            EdgeInterfaces extends InterfaceParam<Types>[] = [],
           >(
             options: PrismaConnectionFieldOptions<
               Types,
@@ -253,11 +255,18 @@ declare global {
                       ObjectRef<Shape>,
                       false,
                       false,
-                      ResolveReturnShape
+                      ResolveReturnShape,
+                      ConnectionInterfaces
                     >
                   | ObjectRef<ShapeFromConnection<ConnectionShapeHelper<Types, Shape, false>>>,
                 edgeOptions:
-                  | ConnectionEdgeObjectOptions<Types, ObjectRef<Shape>, false, ResolveReturnShape>
+                  | ConnectionEdgeObjectOptions<
+                      Types,
+                      ObjectRef<Shape>,
+                      false,
+                      ResolveReturnShape,
+                      EdgeInterfaces
+                    >
                   | ObjectRef<{
                       cursor: string;
                       node?: Shape | null | undefined;
@@ -334,6 +343,7 @@ declare global {
       EdgeNullability extends FieldNullability<[unknown]>,
       NodeNullability extends boolean,
       Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
     > {}
 
     export interface ConnectionEdgeObjectOptions<
@@ -341,6 +351,7 @@ declare global {
       Type extends OutputType<Types>,
       NodeNullability extends boolean,
       Resolved,
+      Interfaces extends InterfaceParam<Types>[] = [],
     > {}
 
     export interface DefaultConnectionArguments {

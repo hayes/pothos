@@ -1,6 +1,4 @@
 // @ts-nocheck
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
@@ -151,9 +149,9 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 };
 schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
     verifyRef(param);
-    const interfacesWithNode: InterfaceParam<SchemaTypes>[] = [
+    const interfacesWithNode: () => InterfaceParam<SchemaTypes>[] = () => [
         this.nodeInterfaceRef(),
-        ...((interfaces ?? []) as InterfaceParam<SchemaTypes>[]),
+        ...(typeof interfaces === "function" ? interfaces() : interfaces ?? []),
     ];
     let nodeName!: string;
     const ref = this.objectType<[
@@ -183,7 +181,7 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
                     return false;
                 }
                 : undefined),
-        interfaces: interfacesWithNode as [
+        interfaces: interfacesWithNode as () => [
         ],
     }, fields);
     this.configStore.onTypeConfig(ref, (nodeConfig) => {
@@ -308,7 +306,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
         : false;
     this.objectType(connectionRef, {
         ...(this.options.relayOptions?.defaultConnectionTypeOptions as {}),
-        ...connectionOptions,
+        ...(connectionOptions as {}),
         fields: (t) => ({
             pageInfo: t.field({
                 nullable: false,
@@ -338,7 +336,6 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                                 this.options.relayOptions?.nodeFieldOptions?.nullable ??
                                 false,
                         },
-                        // eslint-disable-next-line @typescript-eslint/no-unsafe-call
                         resolve: (con) => (con.edges?.map((edge) => edge?.node) ?? []) as never,
                     }),
                 }

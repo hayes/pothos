@@ -1,5 +1,3 @@
-/* eslint-disable @typescript-eslint/no-unsafe-return */
-/* eslint-disable @typescript-eslint/no-unsafe-member-access */
 import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   createContextCache,
@@ -464,7 +462,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
 
   this.objectType(connectionRef, {
     ...(this.options.relayOptions?.defaultConnectionTypeOptions as {}),
-    ...connectionOptions,
+    ...(connectionOptions as {}),
     fields: (t) => ({
       pageInfo: t.field({
         nullable: false,
@@ -491,7 +489,6 @@ schemaBuilderProto.connectionObject = function connectionObject(
                   this.options.relayOptions?.nodeFieldOptions?.nullable ??
                   false,
               },
-              // eslint-disable-next-line @typescript-eslint/no-unsafe-call
               resolve: (con) => (con.edges?.map((edge) => edge?.node) ?? []) as never,
             }),
           }
