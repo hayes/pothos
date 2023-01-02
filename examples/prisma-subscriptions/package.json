@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "2.4.17",
+  "name": "@pothos-examples/prisma-subscriptions",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "seed": "prisma migrate reset -f",
+    "start": "node -r @swc-node/register src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "prisma": {
+    "seed": "node -r @swc-node/register prisma/seed.ts"
+  },
+  "dependencies": {
+    "@faker-js/faker": "^7.6.0",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-prisma": "workspace:*",
+    "@prisma/client": "^4.7.1",
+    "graphql": "16.6.0",
+    "graphql-subscriptions": "^2.0.0",
+    "graphql-yoga": "3.1.1",
+    "prisma": "^4.7.1"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}

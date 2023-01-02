@@ -1,0 +1,43 @@
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+generator client {
+  provider = "prisma-client-js"
+  // Generate into custom location because this repo has multiple prisma schemas
+  output   = "./client"
+}
+
+generator pothos {
+  provider     = "prisma-pothos-types"
+  // Match client output location from above
+  clientOutput = "./client"
+  output       = "./generated.d.ts"
+}
+
+model User {
+  id        Int       @id @default(autoincrement())
+  firstName String
+  lastName  String
+  posts     Post[]
+  comments  Comment[]
+}
+
+model Post {
+  id       Int       @id @default(autoincrement())
+  title    String
+  content  String
+  author   User      @relation(fields: [authorId], references: [id])
+  comments Comment[]
+  authorId Int
+}
+
+model Comment {
+  id       Int    @id @default(autoincrement())
+  comment  String
+  author   User   @relation(fields: [authorId], references: [id])
+  post     Post   @relation(fields: [postId], references: [id])
+  authorId Int
+  postId   Int
+}
