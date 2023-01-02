@@ -33,6 +33,7 @@ model Post {
   comments  Comment[]
   authorId  Int
   media     PostMedia[]
+  views     Decimal     @default(0)
 }
 
 model Media {

@@ -65,6 +65,79 @@ describe('prisma', () => {
     `);
   });
 
+  it('queries decimals', async () => {
+    const query = gql`
+      query {
+        me {
+          posts(limit: 2) {
+            id
+            views
+            viewsFloat
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "posts": [
+              {
+                "id": "250",
+                "views": "0",
+                "viewsFloat": 0,
+              },
+              {
+                "id": "249",
+                "views": "0",
+                "viewsFloat": 0,
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
   it('queries for a list of records', async () => {
     const query = gql`
       query {

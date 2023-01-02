@@ -550,6 +550,7 @@ importers:
       '@prisma/client': ^4.7.1
       '@prisma/generator-helper': ^4.7.1
       graphql: 16.6.0
+      graphql-scalars: ^1.20.1
       graphql-tag: ^2.12.6
       prisma: ^4.7.1
     dependencies:
@@ -563,6 +564,7 @@ importers:
       '@pothos/test-utils': link:../test-utils
       '@prisma/client': 4.7.1_prisma@4.7.1
       graphql: 16.6.0
+      graphql-scalars: 1.20.1_graphql@16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
       prisma: 4.7.1
 

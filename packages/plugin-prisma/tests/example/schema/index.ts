@@ -133,12 +133,13 @@ const User = builder.prismaNode('User', {
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
+        limit: t.arg.int(),
       },
       query: (args) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
-        take: 10,
+        take: args.limit ?? 10,
       }),
       resolve: (query, user) =>
         prisma.post.findMany({
@@ -436,6 +437,10 @@ const PostRef = builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.id({
       resolve: (parent) => parent.id,
+    }),
+    views: t.expose('views', { type: 'Decimal' }),
+    viewsFloat: t.float({
+      resolve: (parent) => parent.views.toNumber(),
     }),
     title: t.exposeString('title'),
     content: t.exposeString('content', {

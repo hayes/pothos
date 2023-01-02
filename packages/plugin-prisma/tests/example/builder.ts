@@ -3,10 +3,10 @@ import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
-// eslint-disable-next-line import/no-named-as-default
 import PrismaPlugin from '../../src';
 // eslint-disable-next-line import/no-useless-path-segments
 import { Prisma, PrismaClient } from '../client/index';
+import { Decimal } from '../client/runtime';
 import PrismaTypes from '../generated';
 
 export const prisma = new PrismaClient({
@@ -30,7 +30,13 @@ export const prisma = new PrismaClient({
   ],
 });
 
-export default new SchemaBuilder<{
+const builder = new SchemaBuilder<{
+  Scalars: {
+    Decimal: {
+      Input: Decimal;
+      Output: Decimal;
+    };
+  };
   Context: {
     user: { id: number };
   };
@@ -51,3 +57,16 @@ export default new SchemaBuilder<{
     defaultTypes: [Error],
   },
 });
+
+builder.scalarType('Decimal', {
+  serialize: (value) => value.toString(),
+  parseValue: (value) => {
+    if (typeof value !== 'string') {
+      throw new TypeError('Decimal must be a string');
+    }
+
+    return new Decimal(value);
+  },
+});
+
+export default builder;
