@@ -614,6 +614,105 @@ use
 
 `builder.prismaObjectField` or `builder.prismaObjectFields` instead.
 
+## Type variants
+
+The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
+Additional types are called `variants`. You will always need to have a "Primary" variant (defined as
+described above). Additional variants can be defined by providing a `variant` option instead of a
+`name` option when creating the type:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+});
+```
+
+You can define variant fields that reference one variant from another:
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // Using the model name ('User') will reference the primary variant
+    user: t.variant('User'),
+  });
+});
+
+const User = builder.prismaNode('User', {
+  id: {
+    resolve: (user) => user.id,
+  },
+  fields: (t) => ({
+    // To reference another variant, use the returned object Ref instead of the model name:
+    viewer: t.variant(Viewer, {
+      // return null for viewer if the parent User is not the current user
+      isNull: (user, args, ctx) => user.id !== ctx.user.id,
+    }),
+    email: t.exposeString('email'),
+  }),
+});
+```
+
+You can also use variants when defining relations by providing a `type` option:
+
+```typescript
+const PostDraft = builder.prismaNode('Post', {
+  variant: 'PostDraft'
+  // This set's what database field to use for the nodes id field
+  id: { field: 'id' },
+  // fields work just like they do for builder.prismaObject
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    drafts: t.relation('posts', {
+      // This will cause this relation to use the PostDraft variant rather than the default Post variant
+      type: PostDraft,
+      query: { where: { draft: true } },
+    }),
+  });
+});
+```
+
+You may run into circular reference issues if you use 2 prisma object refs to reference each other.
+To avoid this, you can split out the field definition for one of the relationships using
+`builder.prismaObjectField`
+
+```typescript
+const Viewer = builder.prismaObject('User', {
+  variant: 'Viewer',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    user: t.variant(User),
+  });
+});
+
+const User = builder.prismaNode('User', {
+  interfaces: [Named],
+  id: {
+    resolve: (user) => user.id,
+  },
+  fields: (t) => ({
+    email: t.exposeString('email'),
+  }),
+});
+
+// Viewer references the `User` ref in its field definiton,
+// referencing the `User` in fields would cause a circular type issue
+builder.prismaObjectField(Viewer, 'user', t.variant(User));
+```
+
+This same workaround applies when defining relations using variants.
+
 ## Selecting fields from a nested GraphQL field
 
 By default, the `nestedSelection` function will return selections based on the type of the current
@@ -734,275 +833,74 @@ const Media = builder.prismaObject('Media', {
 });
 ```
 
-## Indirect relations as connections
+## Optimized queries without `t.prismaField`
 
-Creating connections from indirect relations is a little more involved, but can be acheived using
-`prismaConnectionHelpers` with a normal `t.connection` field.
+In some cases, it may be useful to get an optimized query for fields where you can't use
+`t.prismaField`.
+
+This may be required for combining with other plugins, or because your query does not directly
+return a `PrismaObject`. In these cases, you can use the `queryFromInfo` helper. An example of this
+might be a mutation that wraps the prisma object in a result type.
 
 ```typescript
-// Create a prisma object for the node type of your connection
-const Media = builder.prismaObject('Media', {
-  select: {
-    id: true,
-  },
+const Post = builder.prismaObject('Post', {...});
+
+builder.objectRef<{
+  success: boolean;
+  post?: Post
+  }>('CreatePostResult').implement({
   fields: (t) => ({
-    url: t.exposeString('url'),
+    success: t.boolean(),
+    post: t.field({
+      type: Post,
+      nullable:
+      resolve: (result) => result.post,
+    }),
   }),
 });
 
-// Create connection helpers for the media type.  This will allow you
-// to use the normal t.connection with a prisma type
-const mediaConnectionHelpers = prismaConnectionHelpers(
-  builder,
-  'PostMedia', // this should be the the join table
+builder.mutationField(
+  'createPost',
   {
-    cursor: 'id',
-    select: (nodeSelection) => ({
-      // select the relation to the media node using the nodeSelection function
-      media: nodeSelection({
-        // optionally specify fields to select by default for the node
-        select: {
-          id: true,
-          posts: true,
-        },
-      }),
+    args: (t) => ({
+      title: t.string({ required: true }),
+      ...
     }),
-    // resolve the node from the edge
-    resolveNode: (postMedia) => postMedia.media,
-    // additional/optional options
-    maxSize: 100,
-    defaultSize: 20,
   },
-);
+  {
+    resolve: async (parent, args, context, info) => {
+      if (!validateCreatePostArgs(args)) {
+        return {
+          success: false,
+        }
+      }
 
-builder.prismaObjectField('Post', 'mediaConnection', (t) =>
-  t.connection({
-    // The type for the Node
-    type: Media,
-    // since we are not using t.relatedConnection we need to manually
-    // include the selections for our connection
-    select: (args, ctx, nestedSelection) => ({
-      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-    }),
-    resolve: (post, args, ctx) =>
-      // This helper takes a list of nodes and formats them for the connection
-      mediaConnectionHelpers.resolve(
-        // map results to the list of edges
-        post.media,
-        args,
-        ctx,
-      ),
-  }),
-);
-```
-
-The above example assumes that you are paginating a relation to a join table, where the pagination
-args are applied based on the relation to that join table, but the nodes themselves are nested
-deeper.
-
-`prismaConnectionHelpers` can also be used to manually create a connection where the edge and
-connections share the same model, and pagination happens directly on a relation to nodes type (even
-if that relation is nested).
-
-```ts
-const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
-  cursor: 'id',
-});
-
-const SelectPost = builder.prismaObject('Post', {
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    comments: t.connection({
-      type: commentConnectionHelpers.ref,
-      select: (args, ctx, nestedSelection) => ({
-        comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
-      }),
-      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
-    }),
-  }),
-});
-```
-
-## Sharing Connections objects
-
-You can create reusable connection objects by using `builder.connectionObject`.
-
-These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
-`t.connection`
-
-Shared edges can also be created using `t.edgeObject`
-
-```typescript
-const CommentConnection = builder.connectionObject({
-  type: Comment,
-  // or
-  type: commentConnectionHelpers.ref,
-  name: 'CommentConnection',
-});
-
-builder.prismaObject('Post', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    ...
-    commentsConnection: t.relatedConnection(
-      'comments',
-      { cursor: 'id' },
-      // The connection object ref can be passed in place of the connection objectoptions
-      CommentConnection
-    ),
-  }),
-});
-```
-
-## Extending connection edges
-
-In some cases you may want to expose some data from an indirect connection on the edge object.
-
-```typescript
-const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
-  cursor: 'id',
-  select: (nodeSelection) => ({
-    // select the relation to the media node using the nodeSelection function
-    media: nodeSelection({}),
-    // Select additional fields from the join table
-    createdAt: true,
-  }),
-  // resolve the node from the edge
-  resolveNode: (postMedia) => postMedia.media,
-});
-
-builder.prismaObjectFields('Post', (t) => ({
-  manualMediaConnection: t.connection(
-    {
-      type: Media,
-      select: (args, ctx, nestedSelection) => ({
-        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
-        select: {
-          media: nestedSelection({}, ['edges', 'node']),
-        },
-      }),
-
-      resolve: (post, args, ctx) =>
-        mediaConnectionHelpers.resolve(
-          post.media.map(({ media }) => media),
-          args,
-          ctx,
-        ),
-    },
-    {},
-    // options for the edge object
-    {
-      // define the additional fields on the edge object
-      fields: (edge) => ({
-        createdAt: edge.field({
-          type: 'DateTime',
-          // the parent shape for edge fields is inferred from the connections resolve function
-          resolve: (media) => media.createdAt,
+      const post = prisma.city.create({
+        ...queryFromInfo({
+          context,
+          info,
+          // nested path where the selections for this type can be found
+          path: ['post']
+          // optionally you can pass a custom initial selection, genereally you wouldn't need this
+          // but if the field at `path` is not selected, the initial selection set may be empty
+          select: {
+            comments: true,
+          },
         }),
-      }),
+        data: {
+          title: args.input.title,
+          ...
+        },
+      });
+
+      return {
+        success: true,
+        post,
+      }
     },
-  ),
-}));
-```
-
-## Type variants
-
-The prisma plugin supports defining multiple GraphQL types based on the same prisma model.
-Additional types are called `variants`. You will always need to have a "Primary" variant (defined as
-described above). Additional variants can be defined by providing a `variant` option instead of a
-`name` option when creating the type:
-
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-});
-```
-
-You can define variant fields that reference one variant from another:
-
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    // Using the model name ('User') will reference the primary variant
-    user: t.variant('User'),
-  });
-});
-
-const User = builder.prismaNode('User', {
-  id: {
-    resolve: (user) => user.id,
   },
-  fields: (t) => ({
-    // To reference another variant, use the returned object Ref instead of the model name:
-    viewer: t.variant(Viewer, {
-      // return null for viewer if the parent User is not the current user
-      isNull: (user, args, ctx) => user.id !== ctx.user.id,
-    }),
-    email: t.exposeString('email'),
-  }),
-});
+);
 ```
-
-You can also use variants when defining relations by providing a `type` option:
-
-```typescript
-const PostDraft = builder.prismaNode('Post', {
-  variant: 'PostDraft'
-  // This set's what database field to use for the nodes id field
-  id: { field: 'id' },
-  // fields work just like they do for builder.prismaObject
-  fields: (t) => ({
-    title: t.exposeString('title'),
-    author: t.relation('author'),
-  }),
-});
-
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    drafts: t.relation('posts', {
-      // This will cause this relation to use the PostDraft variant rather than the default Post variant
-      type: PostDraft,
-      query: { where: { draft: true } },
-    }),
-  });
-});
-```
-
-You may run into circular reference issues if you use 2 prisma object refs to reference each other.
-To avoid this, you can split out the field definition for one of the relationships using
-`builder.prismaObjectField`
-
-```typescript
-const Viewer = builder.prismaObject('User', {
-  variant: 'Viewer',
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    user: t.variant(User),
-  });
-});
-
-const User = builder.prismaNode('User', {
-  interfaces: [Named],
-  id: {
-    resolve: (user) => user.id,
-  },
-  fields: (t) => ({
-    email: t.exposeString('email'),
-  }),
-});
-
-// Viewer references the `User` ref in its field definiton,
-// referencing the `User` in fields would cause a circular type issue
-builder.prismaObjectField(Viewer, 'user', t.variant(User));
-```
-
-This same workaround applies when defining relations using variants.
 
 ## Relay integration
 
@@ -1139,6 +1037,188 @@ builder.prismaNode('User', {
   filtering and sorting logic that will be merged into the query for the relation.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
   `relationCount` above for more details.
+
+### Indirect relations as connections
+
+Creating connections from indirect relations is a little more involved, but can be acheived using
+`prismaConnectionHelpers` with a normal `t.connection` field.
+
+```typescript
+// Create a prisma object for the node type of your connection
+const Media = builder.prismaObject('Media', {
+  select: {
+    id: true,
+  },
+  fields: (t) => ({
+    url: t.exposeString('url'),
+  }),
+});
+
+// Create connection helpers for the media type.  This will allow you
+// to use the normal t.connection with a prisma type
+const mediaConnectionHelpers = prismaConnectionHelpers(
+  builder,
+  'PostMedia', // this should be the the join table
+  {
+    cursor: 'id',
+    select: (nodeSelection) => ({
+      // select the relation to the media node using the nodeSelection function
+      media: nodeSelection({
+        // optionally specify fields to select by default for the node
+        select: {
+          id: true,
+          posts: true,
+        },
+      }),
+    }),
+    // resolve the node from the edge
+    resolveNode: (postMedia) => postMedia.media,
+    // additional/optional options
+    maxSize: 100,
+    defaultSize: 20,
+  },
+);
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    // The type for the Node
+    type: Media,
+    // since we are not using t.relatedConnection we need to manually
+    // include the selections for our connection
+    select: (args, ctx, nestedSelection) => ({
+      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+    }),
+    resolve: (post, args, ctx) =>
+      // This helper takes a list of nodes and formats them for the connection
+      mediaConnectionHelpers.resolve(
+        // map results to the list of edges
+        post.media,
+        args,
+        ctx,
+      ),
+  }),
+);
+```
+
+The above example assumes that you are paginating a relation to a join table, where the pagination
+args are applied based on the relation to that join table, but the nodes themselves are nested
+deeper.
+
+`prismaConnectionHelpers` can also be used to manually create a connection where the edge and
+connections share the same model, and pagination happens directly on a relation to nodes type (even
+if that relation is nested).
+
+```ts
+const commentConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+});
+
+const SelectPost = builder.prismaObject('Post', {
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    comments: t.connection({
+      type: commentConnectionHelpers.ref,
+      select: (args, ctx, nestedSelection) => ({
+        comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (parent, args, ctx) => commentConnectionHelpers.resolve(parent.comments, args, ctx),
+    }),
+  }),
+});
+```
+
+### Sharing Connections objects
+
+You can create reusable connection objects by using `builder.connectionObject`.
+
+These connection objects can be used with `t.prismaConnection`, `t.relatedConnection`, or
+`t.connection`
+
+Shared edges can also be created using `t.edgeObject`
+
+```typescript
+const CommentConnection = builder.connectionObject({
+  type: Comment,
+  // or
+  type: commentConnectionHelpers.ref,
+  name: 'CommentConnection',
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    ...
+    commentsConnection: t.relatedConnection(
+      'comments',
+      { cursor: 'id' },
+      // The connection object ref can be passed in place of the connection objectoptions
+      CommentConnection
+    ),
+  }),
+});
+```
+
+### Extending connection edges
+
+In some cases you may want to expose some data from an indirect connection on the edge object.
+
+```typescript
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  select: (nodeSelection) => ({
+    // select the relation to the media node using the nodeSelection function
+    media: nodeSelection({}),
+    // Select additional fields from the join table
+    createdAt: true,
+  }),
+  // resolve the node from the edge
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectFields('Post', (t) => ({
+  manualMediaConnection: t.connection(
+    {
+      type: Media,
+      select: (args, ctx, nestedSelection) => ({
+        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        select: {
+          media: nestedSelection({}, ['edges', 'node']),
+        },
+      }),
+
+      resolve: (post, args, ctx) =>
+        mediaConnectionHelpers.resolve(
+          post.media.map(({ media }) => media),
+          args,
+          ctx,
+        ),
+    },
+    {},
+    // options for the edge object
+    {
+      // define the additional fields on the edge object
+      fields: (edge) => ({
+        createdAt: edge.field({
+          type: 'DateTime',
+          // the parent shape for edge fields is inferred from the connections resolve function
+          resolve: (media) => media.createdAt,
+        }),
+      }),
+    },
+  ),
+}));
+```
+
+### Relay Utils
+
+#### `parsePrismaCursor` and `formatPrismaCursor`
+
+These functions can be used to manually parse and format cursors that are compatible with prisma
+connections.
+
+Parsing a cursor will return the value from the column used for the cursor (often the `id`), this
+value may be an array or object when a compound index is used as the cursor. Similarly, to format a
+cursor, you must provide the column(s) that make up the cursor.
 
 ## Using Prisma without a plugin
 

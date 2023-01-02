@@ -567,26 +567,26 @@ const builder = new SchemaBuilder({
       resolve: (root, { id }, context, info, resolveNode) => {
         // use custom loading for User nodes
         if (id.typename === 'User') {
-          return customUserLoader(id)
+          return customUserLoader(id);
         }
 
         // fallback to normal loading for everything else
-        return resolveNode(id)
-      }
+        return resolveNode(id);
+      },
     },
     nodesQueryOptions: {
       resolve: (root, { ids }, context, info, resolveNodes) => {
         return ids.map((id) => {
           if (id.typename === 'User') {
-            return customNodeLoader(id)
+            return customNodeLoader(id);
           }
 
           // it would be more efficient to load all the nodes at once
           // but it is important to ensure the resolver returns nodes in the right order
           // we are resolving nodes one at a time here for simplicity
-          return resolveNodes([id])
-        })
-      }
+          return resolveNodes([id]);
+        });
+      },
     },
   },
 });

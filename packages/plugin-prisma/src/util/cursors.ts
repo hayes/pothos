@@ -23,7 +23,11 @@ export function formatCursorChunk(value: unknown) {
   }
 }
 
-export function formatCursor(fields: string | string[]) {
+export function formatPrismaCursor(record: Record<string, unknown>, fields: string | string[]) {
+  return cursorFormatter(fields)(record);
+}
+
+export function cursorFormatter(fields: string | string[]) {
   return (value: Record<string, unknown>) => {
     if (typeof fields === 'string') {
       return encodeBase64(`GPC:${formatCursorChunk(value[fields])}`);
@@ -33,7 +37,7 @@ export function formatCursor(fields: string | string[]) {
   };
 }
 
-export function parseRawCursor(cursor: unknown) {
+export function parsePrismaCursor(cursor: unknown) {
   if (typeof cursor !== 'string') {
     throw new TypeError('Cursor must be a string');
   }
@@ -178,7 +182,7 @@ export function serializeID(id: unknown, dataType: string) {
 
 export function parseCompositeCursor(fields: string[]) {
   return (cursor: unknown) => {
-    const parsed = parseRawCursor(cursor) as unknown[];
+    const parsed = parsePrismaCursor(cursor) as unknown[];
 
     if (!Array.isArray(parsed)) {
       throw new TypeError(`Expected compound cursor to contain an array, but got ${parsed}`);
@@ -320,14 +324,14 @@ export function getCursorFormatter<Types extends SchemaTypes>(
   const modelData = getModel(name, builder);
   const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
   if (primaryKey === cursor) {
-    return formatCursor(modelData.primaryKey!.fields);
+    return cursorFormatter(modelData.primaryKey!.fields);
   }
 
   const uniqueIndex = modelData.uniqueIndexes.find(
     (idx) => (idx.name ?? idx.fields.join('_')) === cursor,
   );
 
-  return formatCursor(uniqueIndex?.fields ?? cursor);
+  return cursorFormatter(uniqueIndex?.fields ?? cursor);
 }
 
 export function getCursorParser<Types extends SchemaTypes>(
@@ -338,7 +342,7 @@ export function getCursorParser<Types extends SchemaTypes>(
   const modelData = getModel(name, builder);
   const primaryKey = modelData.primaryKey?.name ?? modelData.primaryKey?.fields.join('_');
 
-  let parser = parseRawCursor;
+  let parser = parsePrismaCursor;
 
   if (primaryKey === cursor) {
     parser = parseCompositeCursor(modelData.primaryKey!.fields);
