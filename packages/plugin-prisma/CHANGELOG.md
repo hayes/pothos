@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.40.0
+
+### Minor Changes
+
+- 75d13217: Export utils for formatting prisma cursors
+
 ## 3.39.0
 
 ### Minor Changes
