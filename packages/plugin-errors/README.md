@@ -98,7 +98,38 @@ errors plugin will automatically resolve to the corresponding error object type.
 - `defaultTypes`: An array of Error classes to include in every field with error handling.
 - `directResult`: Sets the default for `directResult` option on fields (only affects non-list
   fields)
-- `defaultGetTypeName`: A function to modify how type names are generated. (e.g. maybe you don't want to the 'Query'/'Mutation' prefix in your types, you could customize that using this function.)
+- `defaultResultOptions`: Sets the defaults for `result` option on fields.
+  - `name`: Function to generate a custom name on the generated result types.
+      ```ts
+      export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+        plugins: [ErrorPlugin, ValidationPlugin],
+        errorOptions: {
+          defaultTypes: [Error],
+          defaultResultOptions: {
+            name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+          },
+          defaultUnionOptions: {
+            name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+          },
+        },
+      });
+      ```
+- `defaultUnionOptions`: Sets the defaults for `result` option on fields.
+  - `name`: Function to generate a custom name on the generated union types.
+      ```ts
+      export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+        plugins: [ErrorPlugin, ValidationPlugin],
+        errorOptions: {
+          defaultTypes: [Error],
+          defaultResultOptions: {
+            name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+          },
+          defaultUnionOptions: {
+            name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+          },
+        },
+      });
+      ```
 
 ### Options on Fields
 

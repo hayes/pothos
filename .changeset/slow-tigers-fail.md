@@ -1,5 +1,5 @@
 ---
-'@pothos/plugin-errors': patch
+'@pothos/plugin-errors': minor
 ---
 
 Add `defaultGetTypeName` option to `@pothos/plugin-errors`, this option allows customizing the
@@ -7,12 +7,17 @@ generated type names by this plugin.
 
 An example usage of this:
 
-```typescript
+```ts
 export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
   plugins: [ErrorPlugin, ValidationPlugin],
   errorOptions: {
     defaultTypes: [Error],
-    defaultGetTypeName: ({ fieldName, kind }) => `${fieldName}${kind}`,
+    defaultResultOptions: {
+      name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+    },
+    defaultUnionOptions: {
+      name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+    },
   },
 });
 ```

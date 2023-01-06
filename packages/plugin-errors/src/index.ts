@@ -22,8 +22,10 @@ export function capitalize(s: string) {
   return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
 
-export const getTypeName: GetTypeName = ({ parentTypeName, fieldName, kind }) => `${parentTypeName}${fieldName}${kind}`
-
+export const defaultGetResultName: GetTypeName = ({ parentTypeName, fieldName }) =>
+  `${parentTypeName}${fieldName}Success`;
+export const defaultGetUnionName: GetTypeName = ({ parentTypeName, fieldName }) =>
+  `${parentTypeName}${fieldName}Result`;
 
 export const unwrapError = Symbol.for('Pothos.unwrapErrors');
 
@@ -86,24 +88,32 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return fieldConfig;
     }
 
-    /**
-     * NOTES
-     * An argument on builder to configure output type names could work, but we need to figure which argument it would need.
-     * 1. Are all names build using a similar template? in this case it's `${operationType}${fieldName}${SomePostFix}`
-     *    - If they are, we could easily make this function global, if not, it may have to be per plugin instead?
-     */
-    const getNameFn = errorBuilderOptions?.defaultGetTypeName ?? getTypeName
+    const { name: getResultName = defaultGetResultName, ...defaultResultOptions } =
+      errorBuilderOptions?.defaultResultOptions ?? {
+        name: defaultGetResultName,
+      };
+    const { name: getUnionName = defaultGetUnionName, ...defaultUnionOptions } =
+      errorBuilderOptions?.defaultUnionOptions ?? {
+        name: defaultGetUnionName,
+      };
+
     const parentTypeName = this.buildCache.getTypeConfig(fieldConfig.parentType).name;
 
     const {
       types = [],
       result: {
-        name: resultName = getNameFn({parentTypeName, fieldName: capitalize(fieldConfig.name), kind: 'Success'}),
+        name: resultName = getResultName({
+          parentTypeName,
+          fieldName: capitalize(fieldConfig.name),
+        }),
         fields: resultFieldOptions,
         ...resultObjectOptions
       } = {} as never,
       union: {
-        name: unionName = getNameFn({parentTypeName, fieldName: capitalize(fieldConfig.name), kind: 'Result'}),
+        name: unionName = getUnionName({
+          parentTypeName,
+          fieldName: capitalize(fieldConfig.name),
+        }),
         ...unionOptions
       } = {} as never,
       dataField: { name: dataFieldName = 'data', ...dataField } = {} as never,
@@ -138,7 +148,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         resultType = this.builder.objectRef<unknown>(resultName);
 
         resultType.implement({
-          ...errorBuilderOptions?.defaultResultOptions,
+          ...defaultResultOptions,
           ...resultObjectOptions,
           fields: (t) => ({
             ...resultFieldOptions?.(t),
@@ -161,7 +171,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       return this.builder.unionType(unionName, {
         types: [...errorTypes, resultType],
         resolveType: (obj) => errorTypeMap.get(obj as {}) ?? resultType,
-        ...errorBuilderOptions?.defaultUnionOptions,
+        ...defaultUnionOptions,
         ...unionOptions,
         extensions: {
           ...unionOptions.extensions,

@@ -15,6 +15,11 @@ export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
   plugins: [ErrorPlugin, ValidationPlugin],
   errorOptions: {
     defaultTypes: [Error],
-    defaultGetTypeName: ({ fieldName, kind }) => `${fieldName}_CUSTOM_NAME_${kind}`,
+    defaultResultOptions: {
+      name: ({ fieldName }) => `${fieldName}_CUSTOM_RESULT_NAME`,
+    },
+    defaultUnionOptions: {
+      name: ({ fieldName }) => `${fieldName}_CUSTOM_UNION_NAME`,
+    },
   },
 });

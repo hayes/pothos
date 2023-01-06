@@ -3,7 +3,7 @@ import { gql } from 'graphql-tag';
 import { builder, builderWithCustomErrorTypeNames } from './example/builder';
 import { createSchema } from './example/schema';
 
-const schema = createSchema(builder)
+const schema = createSchema(builder);
 
 describe('errors plugin', () => {
   it('generates expected schema', () => {
@@ -170,11 +170,11 @@ describe('errors plugin', () => {
   });
 
   it('supports generating custom names', () => {
-    const schema = createSchema(builderWithCustomErrorTypeNames)
-    expect(printSchema(schema)).toMatchSnapshot();
+    const schemaWithCustomTypeNames = createSchema(builderWithCustomErrorTypeNames);
+    expect(printSchema(schemaWithCustomTypeNames)).toMatchSnapshot();
 
     expect(() => {
       builderWithCustomErrorTypeNames.toSchema();
     }).not.toThrow();
-  })
+  });
 });
