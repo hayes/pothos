@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-with-input",
-  "version": "3.9.7",
+  "version": "3.10.0",
   "description": "A Pothos plugin for defining fields with input objects",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
