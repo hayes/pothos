@@ -13,10 +13,10 @@ export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
   errorOptions: {
     defaultTypes: [Error],
     defaultResultOptions: {
-      name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+            name: ({ parentTypeName, fieldName }) => `${fieldName}_CustomResult`,
     },
     defaultUnionOptions: {
-      name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+            name: ({ parentTypeName, fieldName }) => `${fieldName}_CustomUnion`,
     },
   },
 });
