@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.33.0
+
+### Minor Changes
+
+- 85687927: Added support for running authScopes when a subscroption is created rather than when
+  subscription values are resolved
+
 ## 3.32.0
 
 ### Minor Changes
