@@ -149,3 +149,24 @@ type User {
   id: ID!
 }"
 `;
+
+exports[`example schema generates expected schema 2`] = `
+"input DefaultInput {
+  example: Boolean!
+}
+
+input OverwriteInput {
+  example: Boolean!
+}
+
+type Query {
+  default(
+    """input arg"""
+    input: DefaultInput
+  ): Boolean!
+  overwrite(
+    """input arg"""
+    input: OverwriteInput!
+  ): Boolean!
+}"
+`;

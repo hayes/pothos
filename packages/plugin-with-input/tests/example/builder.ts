@@ -24,7 +24,7 @@ export default new SchemaBuilder<{
   },
 });
 
-const builderWithNonRequireInputs = new SchemaBuilder<{
+export const builderWithNonRequireInputs = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
   WithInputArgRequired: false;
   Scalars: {
@@ -33,6 +33,17 @@ const builderWithNonRequireInputs = new SchemaBuilder<{
 }>({
   plugins: [ValidationPlugin, WithInputPlugin],
   withInput: {
+    typeOptions: {
+      name: ({ parentTypeName, fieldName }) => {
+        const capitalizedFieldName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}`;
+        // This will remove the default Query/Mutation prefix from the input type name
+        if (parentTypeName === 'Query' || parentTypeName === 'Mutation') {
+          return `${capitalizedFieldName}Input`;
+        }
+
+        return `${parentTypeName}${capitalizedFieldName}Input`;
+      },
+    },
     argOptions: {
       required: false,
       description: 'input arg',

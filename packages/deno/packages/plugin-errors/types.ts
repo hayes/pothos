@@ -1,13 +1,17 @@
 // @ts-nocheck
 import { EmptyToOptional, FieldNullability, Normalize, SchemaTypes, TypeParam } from '../core/index.ts';
+export type GetTypeName = (options: {
+    parentTypeName: string;
+    fieldName: string;
+}) => string;
 export interface ErrorsPluginOptions<Types extends SchemaTypes> {
     defaultTypes?: (new (...args: any[]) => Error)[];
     directResult?: boolean;
     defaultUnionOptions?: Normalize<Omit<PothosSchemaTypes.UnionTypeOptions<Types>, "resolveType" | "types"> & {
-        name?: string;
+        name?: GetTypeName;
     }>;
     defaultResultOptions?: Normalize<Omit<PothosSchemaTypes.ObjectTypeOptions<Types, {}>, "interfaces" | "isTypeOf"> & {
-        name?: string;
+        name?: GetTypeName;
     }>;
 }
 export type ErrorFieldOptions<Types extends SchemaTypes, Type extends TypeParam<Types>, Shape, Nullable extends FieldNullability<Type>> = EmptyToOptional<{

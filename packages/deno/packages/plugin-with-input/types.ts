@@ -4,7 +4,12 @@ export interface WithInputBuilderOptions<Types extends SchemaTypes> {
     argOptions?: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>, "type" | "required"> & {
         required?: Types["WithInputArgRequired"];
     };
-    typeOptions?: Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, "fields">;
+    typeOptions?: Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, "fields"> & {
+        name?: (options: {
+            parentTypeName: string;
+            fieldName: string;
+        }) => string;
+    };
 }
 export type WithInputInputOptions<Types extends SchemaTypes, Fields extends InputFieldMap, InputName extends string> = Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>, "fields"> & {
     name?: string;

@@ -131,7 +131,7 @@ If you are using the prisma plugin you can use `t.prismaFieldWithInput` to add p
 input objects:
 
 ```typescript
-builder.queryField('prismaFieldWithInput', (t) =>
+builder.queryField('user', (t) =>
   t.prismaFieldWithInput({
     type: 'User',
     input: {
@@ -147,4 +147,29 @@ builder.queryField('prismaFieldWithInput', (t) =>
       }),
   }),
 );
+```
+
+### Customizing the default naming conventions
+
+If you want to customize how the default input type names are generated you can provide a name
+callback in `withInput.typeOptions`:
+
+```typescript
+import WithInputPlugin from '@pothos/plugin-with-input';
+const builder = new SchemaBuilder({
+  plugins: [WithInputPlugin],
+  withInput: {
+    typeOptions: {
+      name: ({ parentTypeName, fieldName }) => {
+        const capitalizedFieldName = `${fieldName[0].toUpperCase()}${fieldName.slice(1)}`;
+        // This will remove the default Query/Mutation prefix from the input type name
+        if (parentTypeName === 'Query' || parentTypeName === 'Mutation') {
+          return `${capitalizedFieldName}Input`;
+        }
+
+        return `${parentTypeName}${capitalizedFieldName}Input`;
+      },
+    },
+  },
+});
 ```

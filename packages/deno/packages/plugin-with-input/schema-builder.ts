@@ -4,8 +4,15 @@ const rootBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFie
 function capitalize(s: string) {
     return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;
 }
+function defaultGetName({ parentTypeName, fieldName, }: {
+    parentTypeName: string;
+    fieldName: string;
+}) {
+    return `${parentTypeName}${capitalize(fieldName)}Input`;
+}
 rootBuilderProto.fieldWithInput = function fieldWithInput({ typeOptions: { name: typeName, ...typeOptions } = {}, argOptions: { name: argName = "input", ...argOptions } = {}, args, input, ...fieldOptions }) {
     const inputRef = this.builder.inputRef(typeName ?? `UnnamedWithInputOn${this.typename}`);
+    const { name: getTypeName = defaultGetName, ...defaultTypeOptions } = this.builder.options.withInput?.typeOptions ?? {};
     const fieldRef = this.field({
         args: {
             ...args,
@@ -19,10 +26,10 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({ typeOptions: { name:
         ...fieldOptions,
     } as never);
     this.builder.configStore.onFieldUse(fieldRef, (config) => {
-        const name = typeName ?? `${this.typename}${capitalize(config.name)}Input`;
+        const name = typeName ?? getTypeName({ parentTypeName: this.typename, fieldName: config.name });
         this.builder.inputType(name, {
             fields: () => input,
-            ...this.builder.options.withInput?.typeOptions,
+            ...defaultTypeOptions,
             ...typeOptions,
         } as never);
         this.builder.configStore.associateRefWithName(inputRef, name);

@@ -100,36 +100,36 @@ errors plugin will automatically resolve to the corresponding error object type.
   fields)
 - `defaultResultOptions`: Sets the defaults for `result` option on fields.
   - `name`: Function to generate a custom name on the generated result types.
-      ```ts
-      export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
-        plugins: [ErrorPlugin, ValidationPlugin],
-        errorOptions: {
-          defaultTypes: [Error],
-          defaultResultOptions: {
-            name: ({ parentTypeName, fieldName }) => `${fieldName}_CustomResult`,
-          },
-          defaultUnionOptions: {
-            name: ({ parentTypeName, fieldName }) => `${fieldName}_CustomUnion`,
-          },
+    ```ts
+    export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin, ValidationPlugin],
+      errorOptions: {
+        defaultTypes: [Error],
+        defaultResultOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
         },
-      });
-      ```
+        defaultUnionOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+        },
+      },
+    });
+    ```
 - `defaultUnionOptions`: Sets the defaults for `result` option on fields.
   - `name`: Function to generate a custom name on the generated union types.
-      ```ts
-      export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
-        plugins: [ErrorPlugin, ValidationPlugin],
-        errorOptions: {
-          defaultTypes: [Error],
-          defaultResultOptions: {
-            name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
-          },
-          defaultUnionOptions: {
-            name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
-          },
+    ```ts
+    export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
+      plugins: [ErrorPlugin, ValidationPlugin],
+      errorOptions: {
+        defaultTypes: [Error],
+        defaultResultOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
         },
-      });
-      ```
+        defaultUnionOptions: {
+          name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
+        },
+      },
+    });
+    ```
 
 ### Options on Fields
 
@@ -177,7 +177,6 @@ const ErrorInterface = builder.interfaceRef<Error>('Error').implement({
 
 builder.objectType(Error, {
   name: 'BaseError',
-  isTypeOf: (obj) => obj instanceof Error,
   interfaces: [ErrorInterface],
 });
 
@@ -195,7 +194,6 @@ class LengthError extends Error {
 builder.objectType(LengthError, {
   name: 'LengthError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof LengthError,
   fields: (t) => ({
     minLength: t.exposeInt('minLength'),
   }),
@@ -289,7 +287,6 @@ const ZodFieldError = builder
 builder.objectType(ZodError, {
   name: 'ZodError',
   interfaces: [ErrorInterface],
-  isTypeOf: (obj) => obj instanceof ZodError,
   fields: (t) => ({
     fieldErrors: t.field({
       type: [ZodFieldError],

@@ -1,10 +1,12 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
+import { builderWithNonRequireInputs } from './example/builder';
 import schema from './example/schema';
 
 describe('example schema', () => {
   it('generates expected schema', () => {
     expect(printSchema(schema)).toMatchSnapshot();
+    expect(printSchema(builderWithNonRequireInputs.toSchema({}))).toMatchSnapshot();
   });
 
   describe('query', () => {
