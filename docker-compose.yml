@@ -1,0 +1,22 @@
+version: '3.9'
+
+services:
+  db:
+    image: postgres:13
+
+    restart: always
+
+    container_name: pothos-prisma-utils-postgres
+
+    ports:
+      - '5455:5432'
+
+    volumes:
+      - ./test/postgres-data:/var/lib/postgresql/data
+
+    environment:
+      POSTGRES_USER: prisma
+
+      POSTGRES_PASSWORD: prisma
+
+      POSTGRES_DB: tests

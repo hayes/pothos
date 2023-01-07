@@ -1,3 +1,6 @@
+import { writeFileSync } from 'fs';
+import { resolve } from 'path';
+import { printSchema } from 'graphql';
 import builder, { prisma } from '../builder';
 import { PrismaCrudGenerator } from '../generator';
 
@@ -98,4 +101,9 @@ builder.prismaObject('User', {
   }),
 });
 
-export default builder.toSchema();
+export const schema = builder.toSchema();
+
+// eslint-disable-next-line unicorn/prefer-module
+writeFileSync(resolve(__dirname, '../schema.graphql'), printSchema(schema));
+
+export default schema;

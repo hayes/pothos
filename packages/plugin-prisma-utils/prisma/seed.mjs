@@ -10,13 +10,13 @@ const now = Date.UTC(2012, 11, 12);
 
 console.log('creating users and posts');
 async function main() {
-  for (let i = 0; i < 100; ++i) {
+  for (let i = 0; i < 25; ++i) {
     const firstName = faker.name.firstName();
     const lastName = faker.name.lastName();
     const email = faker.internet.email(firstName, lastName);
     const posts = [];
 
-    for (let j = 0; j < 250; ++j) {
+    for (let j = 0; j < 25; ++j) {
       posts.push({
         createdAt: new Date(now + i * 500 + j),
         title: faker.lorem.sentence(),
@@ -36,10 +36,8 @@ async function main() {
       });
     }
 
-    await prisma.user.upsert({
-      where: { email },
-      update: {},
-      create: {
+    await prisma.user.create({
+      data: {
         name: `${firstName} ${lastName}`,
         email,
         profile: {
@@ -57,7 +55,7 @@ async function main() {
   const users = await prisma.user.findMany({});
 
   const postRows = await prisma.post.findMany({
-    take: 1000,
+    take: 100,
   });
 
   console.log('creating comments');
@@ -87,7 +85,7 @@ async function main() {
       followers.push(
         faker.datatype.number({
           min: 1,
-          max: 100,
+          max: 25,
         }),
       );
     }

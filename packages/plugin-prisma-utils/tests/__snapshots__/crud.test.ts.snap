@@ -1,7 +1,29 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`generate crud > generates schema 1`] = `
-"type Comment {
+"enum Category {
+  CULTURE
+  SCIENCE
+  SPORTS
+  TECH
+}
+
+input CategoryFilter {
+  equals: Category
+  in: [Category!]
+  is: Category
+  isNot: Category
+  not: CategoryFilter
+  notIn: [Category!]
+}
+
+input CategoryListFilter {
+  every: CategoryFilter
+  none: CategoryFilter
+  some: CategoryFilter
+}
+
+type Comment {
   author: User!
   content: String!
   id: ID!
@@ -341,31 +363,37 @@ input PostCreateMediaRelation {
 }
 
 input PostCreateWithoutAuthorInput {
+  categories: [[Category!]!]
   comments: PostCreateCommentsRelation
   content: String
   createdAt: DateTime
   id: Int
   media: PostCreateMediaRelation
+  tags: [[String!]!]
   title: String!
   updatedAt: DateTime
 }
 
 input PostCreateWithoutCommentsInput {
   author: PostCreateAuthorRelation!
+  categories: [[Category!]!]
   content: String
   createdAt: DateTime
   id: Int
   media: PostCreateMediaRelation
+  tags: [[String!]!]
   title: String!
   updatedAt: DateTime
 }
 
 input PostCreateWithoutMediaInput {
   author: PostCreateAuthorRelation!
+  categories: [[Category!]!]
   comments: PostCreateCommentsRelation
   content: String
   createdAt: DateTime
   id: Int
+  tags: [[String!]!]
   title: String!
   updatedAt: DateTime
 }
@@ -373,11 +401,13 @@ input PostCreateWithoutMediaInput {
 input PostFilter {
   author: UserFilter
   authorId: IntFilter
+  categories: CategoryListFilter
   comments: CommentListFilter
   content: StringFilter
   createdAt: DateTimeFilter
   id: IntFilter
   media: PostMediaListFilter
+  tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
 }
@@ -483,12 +513,14 @@ input PostMediaWithoutPostFilter {
 input PostOrderBy {
   author: UserOrderBy
   authorId: OrderBy
+  categories: OrderBy
   comments: CommentOrderBy
   content: OrderBy
   createdAt: OrderBy
   id: OrderBy
   media: PostMediaOrderBy
   published: OrderBy
+  tags: OrderBy
   title: OrderBy
   updatedAt: OrderBy
 }
@@ -549,41 +581,49 @@ input PostUpdateMediaRelationUpdateMany {
 }
 
 input PostUpdateWithoutAuthorInput {
+  categories: [[Category!]!]
   comments: [PostUpdateCommentsRelation!]
   content: String
   createdAt: DateTime
   id: Int
   media: [PostUpdateMediaRelation!]
+  tags: [[String!]!]
   title: String
   updatedAt: DateTime
 }
 
 input PostUpdateWithoutCommentsInput {
   author: PostUpdateAuthorRelation
+  categories: [[Category!]!]
   content: String
   createdAt: DateTime
   id: Int
   media: [PostUpdateMediaRelation!]
+  tags: [[String!]!]
   title: String
   updatedAt: DateTime
 }
 
 input PostUpdateWithoutMediaInput {
   author: PostUpdateAuthorRelation
+  categories: [[Category!]!]
   comments: [PostUpdateCommentsRelation!]
   content: String
   createdAt: DateTime
   id: Int
+  tags: [[String!]!]
   title: String
   updatedAt: DateTime
 }
 
 input PostWithoutAuthorFilter {
+  categories: CategoryListFilter
   comments: CommentListFilter
   content: StringFilter
   createdAt: DateTimeFilter
   id: IntFilter
   media: PostMediaListFilter
+  tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
 }
@@ -635,6 +675,12 @@ input StringFilter {
   not: StringFilter
   notIn: [String!]
   startsWith: String
+}
+
+input StringListFilter {
+  every: StringFilter
+  none: StringFilter
+  some: StringFilter
 }
 
 type User {
