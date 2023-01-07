@@ -10,13 +10,13 @@ const now = Date.UTC(2012, 11, 12);
 
 console.log('creating users and posts');
 async function main() {
-  for (let i = 0; i < 25; ++i) {
+  for (let i = 0; i < 10; ++i) {
     const firstName = faker.name.firstName();
     const lastName = faker.name.lastName();
     const email = faker.internet.email(firstName, lastName);
     const posts = [];
 
-    for (let j = 0; j < 25; ++j) {
+    for (let j = 0; j < 5; ++j) {
       posts.push({
         createdAt: new Date(now + i * 500 + j),
         title: faker.lorem.sentence(),
@@ -81,11 +81,11 @@ async function main() {
 
   for (const user of users) {
     const followers = [];
-    for (let i = 0; i < 15; i++) {
+    for (let i = 0; i < 3; i++) {
       followers.push(
         faker.datatype.number({
           min: 1,
-          max: 25,
+          max: 9,
         }),
       );
     }

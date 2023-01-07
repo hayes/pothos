@@ -11,9 +11,6 @@ services:
     ports:
       - '5455:5432'
 
-    volumes:
-      - ./test/postgres-data:/var/lib/postgresql/data
-
     environment:
       POSTGRES_USER: prisma
 

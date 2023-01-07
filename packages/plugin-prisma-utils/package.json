@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "generate": "prisma generate",
+    "generate": "prisma migrate reset -f",
     "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
