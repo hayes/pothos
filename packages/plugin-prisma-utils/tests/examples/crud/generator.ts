@@ -1,4 +1,11 @@
-import { BaseEnum, EnumRef, InputObjectRef, InputType, SchemaTypes } from '@pothos/core';
+import {
+  BaseEnum,
+  EnumRef,
+  InputObjectRef,
+  InputType,
+  InputTypeParam,
+  SchemaTypes,
+} from '@pothos/core';
 import { getModel, PrismaModelTypes } from '@pothos/plugin-prisma';
 import { FilterOps } from '../../../src';
 import { Prisma } from '../../client';
@@ -188,7 +195,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
       return this.builder.prismaCreate(modelName, {
         name: fullName,
         fields: (t) => {
-          const fields: Record<string, InputType<Types>> = {};
+          const fields: Record<string, InputTypeParam<Types>> = {};
           const withoutFields = model.fields.filter((field) => without?.includes(field.name));
           const relationIds = model.fields.flatMap((field) => field.relationFromFields ?? []);
 
@@ -218,7 +225,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               }
 
               if (type) {
-                fields[field.name] = type;
+                fields[field.name] = field.isList && field.kind !== 'object' ? [type] : type;
               }
             });
 
@@ -243,10 +250,10 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
           const relatedModel = getModel(relationField.type, this.builder);
           const relatedFieldName = relatedModel.fields.find(
             (field) => field.relationName === relationField.relationName,
-          );
+          )!;
 
           return {
-            create: this.getCreateInput(relatedModel.name as Name, [relatedFieldName!.name]),
+            create: this.getCreateInput(relatedModel.name as Name, [relatedFieldName.name]),
             connect: this.getWhereUnique(relatedModel.name as Name),
           };
         },
@@ -266,7 +273,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
       return this.builder.prismaUpdate(modelName, {
         name: fullName,
         fields: () => {
-          const fields: Record<string, InputType<Types>> = {};
+          const fields: Record<string, InputTypeParam<Types>> = {};
           const withoutFields = model.fields.filter((field) => without?.includes(field.name));
           const relationIds = model.fields.flatMap((field) => field.relationFromFields ?? []);
 
@@ -296,7 +303,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               }
 
               if (type) {
-                fields[field.name] = type;
+                fields[field.name] = field.isList && field.kind !== 'object' ? [type] : type;
               }
             });
 
@@ -330,8 +337,14 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               disconnect: this.getWhereUnique(relationField.type as Name),
               delete: this.getWhereUnique(relationField.type as Name),
               connect: this.getWhereUnique(relationField.type as Name),
-              update: this.getUpdateInput(relationField.type as Name, [relatedFieldName]),
-              updateMany: this.getWhere(relationField.type as Name, [relatedFieldName]),
+              update: {
+                where: this.getWhereUnique(relationField.type as Name),
+                data: this.getUpdateInput(relationField.type as Name, [relatedFieldName]),
+              },
+              updateMany: {
+                where: this.getWhere(relationField.type as Name, [relatedFieldName]),
+                data: this.getUpdateInput(relationField.type as Name, [relatedFieldName]),
+              },
               deleteMany: this.getWhere(relationField.type as Name, [relatedFieldName]),
             };
           }

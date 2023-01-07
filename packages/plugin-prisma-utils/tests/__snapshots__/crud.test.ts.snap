@@ -269,8 +269,18 @@ input MediaUpdatePostsRelation {
   deleteMany: [PostMediaWithoutMediaFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
-  update: [PostMediaUpdateWithoutMediaInput!]
-  updateMany: [PostMediaWithoutMediaFilter!]
+  update: [MediaUpdatePostsRelationUpdate!]
+  updateMany: [MediaUpdatePostsRelationUpdateMany!]
+}
+
+input MediaUpdatePostsRelationUpdate {
+  data: PostMediaUpdateWithoutMediaInput
+  where: PostMediaUniqueFilter
+}
+
+input MediaUpdatePostsRelationUpdateMany {
+  data: PostMediaUpdateWithoutMediaInput
+  where: PostMediaWithoutMediaFilter
 }
 
 input MediaUpdateUploadedByRelation {
@@ -503,8 +513,18 @@ input PostUpdateCommentsRelation {
   deleteMany: [CommentWithoutPostFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
-  update: [CommentUpdateWithoutPostInput!]
-  updateMany: [CommentWithoutPostFilter!]
+  update: [PostUpdateCommentsRelationUpdate!]
+  updateMany: [PostUpdateCommentsRelationUpdateMany!]
+}
+
+input PostUpdateCommentsRelationUpdate {
+  data: CommentUpdateWithoutPostInput
+  where: CommentUniqueFilter
+}
+
+input PostUpdateCommentsRelationUpdateMany {
+  data: CommentUpdateWithoutPostInput
+  where: CommentWithoutPostFilter
 }
 
 input PostUpdateMediaRelation {
@@ -514,8 +534,18 @@ input PostUpdateMediaRelation {
   deleteMany: [PostMediaWithoutPostFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
-  update: [PostMediaUpdateWithoutPostInput!]
-  updateMany: [PostMediaWithoutPostFilter!]
+  update: [PostUpdateMediaRelationUpdate!]
+  updateMany: [PostUpdateMediaRelationUpdateMany!]
+}
+
+input PostUpdateMediaRelationUpdate {
+  data: PostMediaUpdateWithoutPostInput
+  where: PostMediaUniqueFilter
+}
+
+input PostUpdateMediaRelationUpdateMany {
+  data: PostMediaUpdateWithoutPostInput
+  where: PostMediaWithoutPostFilter
 }
 
 input PostUpdateWithoutAuthorInput {
@@ -748,8 +778,18 @@ input UserUpdateCommentsRelation {
   deleteMany: [CommentWithoutAuthorFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
-  update: [CommentUpdateWithoutAuthorInput!]
-  updateMany: [CommentWithoutAuthorFilter!]
+  update: [UserUpdateCommentsRelationUpdate!]
+  updateMany: [UserUpdateCommentsRelationUpdateMany!]
+}
+
+input UserUpdateCommentsRelationUpdate {
+  data: CommentUpdateWithoutAuthorInput
+  where: CommentUniqueFilter
+}
+
+input UserUpdateCommentsRelationUpdateMany {
+  data: CommentUpdateWithoutAuthorInput
+  where: CommentWithoutAuthorFilter
 }
 
 input UserUpdateFollowersRelation {
@@ -759,8 +799,18 @@ input UserUpdateFollowersRelation {
   deleteMany: [FollowWithoutToFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
-  update: [FollowUpdateWithoutToInput!]
-  updateMany: [FollowWithoutToFilter!]
+  update: [UserUpdateFollowersRelationUpdate!]
+  updateMany: [UserUpdateFollowersRelationUpdateMany!]
+}
+
+input UserUpdateFollowersRelationUpdate {
+  data: FollowUpdateWithoutToInput
+  where: FollowUniqueFilter
+}
+
+input UserUpdateFollowersRelationUpdateMany {
+  data: FollowUpdateWithoutToInput
+  where: FollowWithoutToFilter
 }
 
 input UserUpdateFollowingRelation {
@@ -770,8 +820,18 @@ input UserUpdateFollowingRelation {
   deleteMany: [FollowWithoutFromFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
-  update: [FollowUpdateWithoutFromInput!]
-  updateMany: [FollowWithoutFromFilter!]
+  update: [UserUpdateFollowingRelationUpdate!]
+  updateMany: [UserUpdateFollowingRelationUpdateMany!]
+}
+
+input UserUpdateFollowingRelationUpdate {
+  data: FollowUpdateWithoutFromInput
+  where: FollowUniqueFilter
+}
+
+input UserUpdateFollowingRelationUpdateMany {
+  data: FollowUpdateWithoutFromInput
+  where: FollowWithoutFromFilter
 }
 
 input UserUpdateInput {
@@ -793,8 +853,18 @@ input UserUpdateMediaRelation {
   deleteMany: [MediaWithoutUploadedByFilter!]
   disconnect: [MediaUniqueFilter!]
   set: [MediaUniqueFilter!]
-  update: [MediaUpdateWithoutUploadedByInput!]
-  updateMany: [MediaWithoutUploadedByFilter!]
+  update: [UserUpdateMediaRelationUpdate!]
+  updateMany: [UserUpdateMediaRelationUpdateMany!]
+}
+
+input UserUpdateMediaRelationUpdate {
+  data: MediaUpdateWithoutUploadedByInput
+  where: MediaUniqueFilter
+}
+
+input UserUpdateMediaRelationUpdateMany {
+  data: MediaUpdateWithoutUploadedByInput
+  where: MediaWithoutUploadedByFilter
 }
 
 input UserUpdatePostsRelation {
@@ -804,8 +874,18 @@ input UserUpdatePostsRelation {
   deleteMany: [PostWithoutAuthorFilter!]
   disconnect: [PostUniqueFilter!]
   set: [PostUniqueFilter!]
-  update: [PostUpdateWithoutAuthorInput!]
-  updateMany: [PostWithoutAuthorFilter!]
+  update: [UserUpdatePostsRelationUpdate!]
+  updateMany: [UserUpdatePostsRelationUpdateMany!]
+}
+
+input UserUpdatePostsRelationUpdate {
+  data: PostUpdateWithoutAuthorInput
+  where: PostUniqueFilter
+}
+
+input UserUpdatePostsRelationUpdateMany {
+  data: PostUpdateWithoutAuthorInput
+  where: PostWithoutAuthorFilter
 }
 
 input UserUpdateProfileRelation {

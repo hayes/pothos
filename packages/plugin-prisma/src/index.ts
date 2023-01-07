@@ -24,7 +24,7 @@ const pluginName = 'prisma' as const;
 
 export default pluginName;
 
-export { formatPrismaCursor, parsePrismaCursor, queryFromInfo, getModel, getRefFromModel };
+export { formatPrismaCursor, getModel, getRefFromModel, parsePrismaCursor, queryFromInfo };
 
 export type PrismaObjectFieldBuilder<
   Types extends SchemaTypes,

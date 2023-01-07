@@ -40,6 +40,7 @@ export type TypesForRelation<
     ? Types['PrismaTypes'][Name] & PrismaModelTypes
     : never
   : never;
+export type Enumerable<T> = T | T[];
 
 export type PrismaOrderByFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
   [K in keyof Model['OrderBy'] as K extends Model['ListRelations']
@@ -375,22 +376,35 @@ export interface PrismaUpdateManyRelationFields<
       ? T
       : never
   >;
-  update?: InputWithShape<
-    Types,
-    Model['Update'][Relation & keyof Model['Update']] & { update?: unknown } extends {
-      update?: infer T;
-    }
-      ? T
-      : never
-  >;
-  updateMany?: InputWithShape<
-    Types,
-    Model['Update'][Relation & keyof Model['Update']] & { updateMany?: unknown } extends {
-      updateMany?: infer T;
-    }
-      ? T
-      : never
-  >;
+  update?: Model['Update'][Relation & keyof Model['Update']] & {
+    update?: { data: unknown; where: unknown };
+  } extends {
+    update?: {
+      data: infer D;
+      where: infer W;
+    };
+  }
+    ? {
+        name?: string;
+        data: InputWithShape<Types, D>;
+        where: InputWithShape<Types, W>;
+      }
+    : never;
+  updateMany?: Model['Update'][Relation & keyof Model['Update']] & {
+    updateMany?: { data: unknown; where: unknown };
+  } extends {
+    update?: {
+      data: infer D;
+      where: infer W;
+    };
+  }
+    ? {
+        name?: string;
+        data: InputWithShape<Types, D>;
+        where: InputWithShape<Types, W>;
+      }
+    : never;
+
   deleteMany?: InputWithShape<
     Types,
     Model['Update'][Relation & keyof Model['Update']] & { deleteMany?: unknown } extends {

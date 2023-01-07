@@ -506,6 +506,28 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
 
         if (fieldOption instanceof InputFieldRef) {
           fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
+        } else if (fieldModel.isList && (field === 'update' || field === 'updateMany')) {
+          const {
+            name: nestedName = `${ref.name}U${field.slice(1)}`,
+            where: whereType,
+            data: dataType,
+          } = fieldOption as {
+            name?: string;
+            where: InputRef<unknown> | InputFieldRef<SchemaTypes>;
+            data: InputRef<unknown> | InputFieldRef<SchemaTypes>;
+          };
+
+          const nestedRef = this.inputType(nestedName, {
+            fields: (t2) => ({
+              where: whereType instanceof InputFieldRef ? whereType : t2.field({ type: whereType }),
+              data: dataType instanceof InputFieldRef ? dataType : t2.field({ type: dataType }),
+            }),
+          });
+
+          fieldDefs[field] = t.field({
+            required: false,
+            type: [nestedRef],
+          });
         } else {
           fieldDefs[field] = t.field({
             required: false,
