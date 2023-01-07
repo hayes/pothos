@@ -225,7 +225,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               }
 
               if (type) {
-                fields[field.name] = field.isList && field.kind !== 'object' ? [type] : type;
+                fields[field.name] = type;
               }
             });
 
@@ -303,7 +303,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               }
 
               if (type) {
-                fields[field.name] = field.isList && field.kind !== 'object' ? [type] : type;
+                fields[field.name] = type;
               }
             });
 
@@ -353,8 +353,8 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
             create: this.getCreateInput(relationField.type as Name, [relatedFieldName]),
             update: this.getUpdateInput(relationField.type as Name, [relatedFieldName]),
             connect: this.getWhereUnique(relationField.type as Name),
-            disconnect: 'Boolean',
-            delete: 'Boolean',
+            disconnect: relationField.isRequired ? undefined : 'Boolean',
+            delete: relationField.isRequired ? undefined : 'Boolean',
           };
         },
       } as never) as InputObjectRef<NonNullable<Model['Update'][Relation & keyof Model['Update']]>>;

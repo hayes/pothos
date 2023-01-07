@@ -30,12 +30,12 @@ type Comment {
   post: Post!
 }
 
-input CommentCreateAuthorRelation {
+input CommentCreateAuthorRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutCommentsInput
 }
 
-input CommentCreatePostRelation {
+input CommentCreatePostRelationInput {
   connect: PostUniqueFilter
   create: PostCreateWithoutCommentsInput
 }
@@ -44,11 +44,11 @@ input CommentCreateWithoutAuthorInput {
   content: String!
   createdAt: DateTime
   id: Int
-  post: CommentCreatePostRelation!
+  post: CommentCreatePostRelationInput!
 }
 
 input CommentCreateWithoutPostInput {
-  author: CommentCreateAuthorRelation!
+  author: CommentCreateAuthorRelationInput!
   content: String!
   createdAt: DateTime
   id: Int
@@ -85,19 +85,15 @@ input CommentUniqueFilter {
   id: Int
 }
 
-input CommentUpdateAuthorRelation {
+input CommentUpdateAuthorRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutCommentsInput
-  delete: Boolean
-  disconnect: Boolean
   update: UserUpdateWithoutCommentsInput
 }
 
-input CommentUpdatePostRelation {
+input CommentUpdatePostRelationInput {
   connect: PostUniqueFilter
   create: PostCreateWithoutCommentsInput
-  delete: Boolean
-  disconnect: Boolean
   update: PostUpdateWithoutCommentsInput
 }
 
@@ -105,11 +101,11 @@ input CommentUpdateWithoutAuthorInput {
   content: String
   createdAt: DateTime
   id: Int
-  post: CommentUpdatePostRelation
+  post: CommentUpdatePostRelationInput
 }
 
 input CommentUpdateWithoutPostInput {
-  author: CommentUpdateAuthorRelation
+  author: CommentUpdateAuthorRelationInput
   content: String
   createdAt: DateTime
   id: Int
@@ -146,22 +142,22 @@ input DateTimeFilter {
   notIn: [DateTime!]
 }
 
-input FollowCreateFromRelation {
+input FollowCreateFromRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutFollowingInput
 }
 
-input FollowCreateToRelation {
+input FollowCreateToRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutFollowersInput
 }
 
 input FollowCreateWithoutFromInput {
-  to: FollowCreateToRelation!
+  to: FollowCreateToRelationInput!
 }
 
 input FollowCreateWithoutToInput {
-  from: FollowCreateFromRelation!
+  from: FollowCreateFromRelationInput!
 }
 
 input FollowFilter {
@@ -189,28 +185,24 @@ input FollowUniqueFilter {
   toId: Int
 }
 
-input FollowUpdateFromRelation {
+input FollowUpdateFromRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutFollowingInput
-  delete: Boolean
-  disconnect: Boolean
   update: UserUpdateWithoutFollowingInput
 }
 
-input FollowUpdateToRelation {
+input FollowUpdateToRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutFollowersInput
-  delete: Boolean
-  disconnect: Boolean
   update: UserUpdateWithoutFollowersInput
 }
 
 input FollowUpdateWithoutFromInput {
-  to: FollowUpdateToRelation
+  to: FollowUpdateToRelationInput
 }
 
 input FollowUpdateWithoutToInput {
-  from: FollowUpdateFromRelation
+  from: FollowUpdateFromRelationInput
 }
 
 input FollowWithoutFromFilter {
@@ -236,25 +228,25 @@ input IntFilter {
   notIn: [Int!]
 }
 
-input MediaCreatePostsRelation {
+input MediaCreatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMediaInput!]
 }
 
-input MediaCreateUploadedByRelation {
+input MediaCreateUploadedByRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutMediaInput
 }
 
 input MediaCreateWithoutPostsInput {
   id: Int
-  uploadedBy: MediaCreateUploadedByRelation
+  uploadedBy: MediaCreateUploadedByRelationInput
   url: String!
 }
 
 input MediaCreateWithoutUploadedByInput {
   id: Int
-  posts: MediaCreatePostsRelation
+  posts: MediaCreatePostsRelationInput
   url: String!
 }
 
@@ -284,28 +276,28 @@ input MediaUniqueFilter {
   id: Int
 }
 
-input MediaUpdatePostsRelation {
+input MediaUpdatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMediaInput!]
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutMediaFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
-  update: [MediaUpdatePostsRelationUpdate!]
-  updateMany: [MediaUpdatePostsRelationUpdateMany!]
+  update: [MediaUpdatePostsRelationInputUpdate!]
+  updateMany: [MediaUpdatePostsRelationInputUpdateMany!]
 }
 
-input MediaUpdatePostsRelationUpdate {
+input MediaUpdatePostsRelationInputUpdate {
   data: PostMediaUpdateWithoutMediaInput
   where: PostMediaUniqueFilter
 }
 
-input MediaUpdatePostsRelationUpdateMany {
+input MediaUpdatePostsRelationInputUpdateMany {
   data: PostMediaUpdateWithoutMediaInput
   where: PostMediaWithoutMediaFilter
 }
 
-input MediaUpdateUploadedByRelation {
+input MediaUpdateUploadedByRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutMediaInput
   delete: Boolean
@@ -315,13 +307,13 @@ input MediaUpdateUploadedByRelation {
 
 input MediaUpdateWithoutPostsInput {
   id: Int
-  uploadedBy: MediaUpdateUploadedByRelation
+  uploadedBy: MediaUpdateUploadedByRelationInput
   url: String
 }
 
 input MediaUpdateWithoutUploadedByInput {
   id: Int
-  posts: [MediaUpdatePostsRelation!]
+  posts: MediaUpdatePostsRelationInput
   url: String
 }
 
@@ -332,7 +324,10 @@ input MediaWithoutUploadedByFilter {
 }
 
 type Mutation {
+  createPost(input: PostCreateInput!): Post!
   createUser(input: UserCreateInput!): User!
+  updateManyPosts(data: PostUpdateInput!, where: PostFilter): Int!
+  updatePost(data: PostUpdateInput!, where: PostUniqueFilter!): Post!
   updateUser(data: UserUpdateInput!, where: UserUniqueFilter!): User!
 }
 
@@ -343,57 +338,75 @@ enum OrderBy {
 
 type Post {
   author: User!
+  categories: [Category!]!
   comments(filter: CommentFilter, orderBy: CommentOrderBy): [Comment!]!
+  createdAt: DateTime!
   id: ID!
+  tags: [String!]!
+  title: String!
+  updatedAt: DateTime!
 }
 
-input PostCreateAuthorRelation {
+input PostCreateAuthorRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutPostsInput
 }
 
-input PostCreateCommentsRelation {
+input PostCreateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutPostInput!]
 }
 
-input PostCreateMediaRelation {
+input PostCreateInput {
+  author: PostCreateAuthorRelationInput!
+  categories: [Category!]
+  comments: PostCreateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostCreateMediaRelationInput
+  tags: [String!]
+  title: String!
+  updatedAt: DateTime
+}
+
+input PostCreateMediaRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutPostInput!]
 }
 
 input PostCreateWithoutAuthorInput {
-  categories: [[Category!]!]
-  comments: PostCreateCommentsRelation
+  categories: [Category!]
+  comments: PostCreateCommentsRelationInput
   content: String
   createdAt: DateTime
   id: Int
-  media: PostCreateMediaRelation
-  tags: [[String!]!]
+  media: PostCreateMediaRelationInput
+  tags: [String!]
   title: String!
   updatedAt: DateTime
 }
 
 input PostCreateWithoutCommentsInput {
-  author: PostCreateAuthorRelation!
-  categories: [[Category!]!]
+  author: PostCreateAuthorRelationInput!
+  categories: [Category!]
   content: String
   createdAt: DateTime
   id: Int
-  media: PostCreateMediaRelation
-  tags: [[String!]!]
+  media: PostCreateMediaRelationInput
+  tags: [String!]
   title: String!
   updatedAt: DateTime
 }
 
 input PostCreateWithoutMediaInput {
-  author: PostCreateAuthorRelation!
-  categories: [[Category!]!]
-  comments: PostCreateCommentsRelation
+  author: PostCreateAuthorRelationInput!
+  categories: [Category!]
+  comments: PostCreateCommentsRelationInput
   content: String
   createdAt: DateTime
   id: Int
-  tags: [[String!]!]
+  tags: [String!]
   title: String!
   updatedAt: DateTime
 }
@@ -418,12 +431,12 @@ input PostListFilter {
   some: PostFilter
 }
 
-input PostMediaCreateMediaRelation {
+input PostMediaCreateMediaRelationInput {
   connect: MediaUniqueFilter
   create: MediaCreateWithoutPostsInput
 }
 
-input PostMediaCreatePostRelation {
+input PostMediaCreatePostRelationInput {
   connect: PostUniqueFilter
   create: PostCreateWithoutMediaInput
 }
@@ -431,12 +444,12 @@ input PostMediaCreatePostRelation {
 input PostMediaCreateWithoutMediaInput {
   id: Int
   order: Int!
-  post: PostMediaCreatePostRelation!
+  post: PostMediaCreatePostRelationInput!
 }
 
 input PostMediaCreateWithoutPostInput {
   id: Int
-  media: PostMediaCreateMediaRelation!
+  media: PostMediaCreateMediaRelationInput!
   order: Int!
 }
 
@@ -468,31 +481,27 @@ input PostMediaUniqueFilter {
   id: Int
 }
 
-input PostMediaUpdateMediaRelation {
+input PostMediaUpdateMediaRelationInput {
   connect: MediaUniqueFilter
   create: MediaCreateWithoutPostsInput
-  delete: Boolean
-  disconnect: Boolean
   update: MediaUpdateWithoutPostsInput
 }
 
-input PostMediaUpdatePostRelation {
+input PostMediaUpdatePostRelationInput {
   connect: PostUniqueFilter
   create: PostCreateWithoutMediaInput
-  delete: Boolean
-  disconnect: Boolean
   update: PostUpdateWithoutMediaInput
 }
 
 input PostMediaUpdateWithoutMediaInput {
   id: Int
   order: Int
-  post: PostMediaUpdatePostRelation
+  post: PostMediaUpdatePostRelationInput
 }
 
 input PostMediaUpdateWithoutPostInput {
   id: Int
-  media: PostMediaUpdateMediaRelation
+  media: PostMediaUpdateMediaRelationInput
   order: Int
 }
 
@@ -530,88 +539,99 @@ input PostUniqueFilter {
   id: Int
 }
 
-input PostUpdateAuthorRelation {
+input PostUpdateAuthorRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutPostsInput
-  delete: Boolean
-  disconnect: Boolean
   update: UserUpdateWithoutPostsInput
 }
 
-input PostUpdateCommentsRelation {
+input PostUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutPostInput!]
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutPostFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
-  update: [PostUpdateCommentsRelationUpdate!]
-  updateMany: [PostUpdateCommentsRelationUpdateMany!]
+  update: [PostUpdateCommentsRelationInputUpdate!]
+  updateMany: [PostUpdateCommentsRelationInputUpdateMany!]
 }
 
-input PostUpdateCommentsRelationUpdate {
+input PostUpdateCommentsRelationInputUpdate {
   data: CommentUpdateWithoutPostInput
   where: CommentUniqueFilter
 }
 
-input PostUpdateCommentsRelationUpdateMany {
+input PostUpdateCommentsRelationInputUpdateMany {
   data: CommentUpdateWithoutPostInput
   where: CommentWithoutPostFilter
 }
 
-input PostUpdateMediaRelation {
+input PostUpdateInput {
+  author: PostUpdateAuthorRelationInput
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostUpdateMediaRelationInput
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateMediaRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutPostInput!]
   delete: [PostMediaUniqueFilter!]
   deleteMany: [PostMediaWithoutPostFilter!]
   disconnect: [PostMediaUniqueFilter!]
   set: [PostMediaUniqueFilter!]
-  update: [PostUpdateMediaRelationUpdate!]
-  updateMany: [PostUpdateMediaRelationUpdateMany!]
+  update: [PostUpdateMediaRelationInputUpdate!]
+  updateMany: [PostUpdateMediaRelationInputUpdateMany!]
 }
 
-input PostUpdateMediaRelationUpdate {
+input PostUpdateMediaRelationInputUpdate {
   data: PostMediaUpdateWithoutPostInput
   where: PostMediaUniqueFilter
 }
 
-input PostUpdateMediaRelationUpdateMany {
+input PostUpdateMediaRelationInputUpdateMany {
   data: PostMediaUpdateWithoutPostInput
   where: PostMediaWithoutPostFilter
 }
 
 input PostUpdateWithoutAuthorInput {
-  categories: [[Category!]!]
-  comments: [PostUpdateCommentsRelation!]
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
   content: String
   createdAt: DateTime
   id: Int
-  media: [PostUpdateMediaRelation!]
-  tags: [[String!]!]
+  media: PostUpdateMediaRelationInput
+  tags: [String!]
   title: String
   updatedAt: DateTime
 }
 
 input PostUpdateWithoutCommentsInput {
-  author: PostUpdateAuthorRelation
-  categories: [[Category!]!]
+  author: PostUpdateAuthorRelationInput
+  categories: [Category!]
   content: String
   createdAt: DateTime
   id: Int
-  media: [PostUpdateMediaRelation!]
-  tags: [[String!]!]
+  media: PostUpdateMediaRelationInput
+  tags: [String!]
   title: String
   updatedAt: DateTime
 }
 
 input PostUpdateWithoutMediaInput {
-  author: PostUpdateAuthorRelation
-  categories: [[Category!]!]
-  comments: [PostUpdateCommentsRelation!]
+  author: PostUpdateAuthorRelationInput
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
   content: String
   createdAt: DateTime
   id: Int
-  tags: [[String!]!]
+  tags: [String!]
   title: String
   updatedAt: DateTime
 }
@@ -658,6 +678,7 @@ input ProfileUpdateWithoutUserInput {
 }
 
 type Query {
+  post(where: PostUniqueFilter!): Post
   posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
 }
 
@@ -691,101 +712,101 @@ type User {
   posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
 }
 
-input UserCreateCommentsRelation {
+input UserCreateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutAuthorInput!]
 }
 
-input UserCreateFollowersRelation {
+input UserCreateFollowersRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutToInput!]
 }
 
-input UserCreateFollowingRelation {
+input UserCreateFollowingRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutFromInput!]
 }
 
 input UserCreateInput {
-  Media: UserCreateMediaRelation
-  comments: UserCreateCommentsRelation
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
   email: String!
-  followers: UserCreateFollowersRelation
-  following: UserCreateFollowingRelation
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
   id: Int
   name: String
-  posts: UserCreatePostsRelation
-  profile: UserCreateProfileRelation
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
 }
 
-input UserCreateMediaRelation {
+input UserCreateMediaRelationInput {
   connect: [MediaUniqueFilter!]
   create: [MediaCreateWithoutUploadedByInput!]
 }
 
-input UserCreatePostsRelation {
+input UserCreatePostsRelationInput {
   connect: [PostUniqueFilter!]
   create: [PostCreateWithoutAuthorInput!]
 }
 
-input UserCreateProfileRelation {
+input UserCreateProfileRelationInput {
   connect: ProfileUniqueFilter
   create: ProfileCreateWithoutUserInput
 }
 
 input UserCreateWithoutCommentsInput {
-  Media: UserCreateMediaRelation
+  Media: UserCreateMediaRelationInput
   email: String!
-  followers: UserCreateFollowersRelation
-  following: UserCreateFollowingRelation
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
   id: Int
   name: String
-  posts: UserCreatePostsRelation
-  profile: UserCreateProfileRelation
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
 }
 
 input UserCreateWithoutFollowersInput {
-  Media: UserCreateMediaRelation
-  comments: UserCreateCommentsRelation
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
   email: String!
-  following: UserCreateFollowingRelation
+  following: UserCreateFollowingRelationInput
   id: Int
   name: String
-  posts: UserCreatePostsRelation
-  profile: UserCreateProfileRelation
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
 }
 
 input UserCreateWithoutFollowingInput {
-  Media: UserCreateMediaRelation
-  comments: UserCreateCommentsRelation
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
   email: String!
-  followers: UserCreateFollowersRelation
+  followers: UserCreateFollowersRelationInput
   id: Int
   name: String
-  posts: UserCreatePostsRelation
-  profile: UserCreateProfileRelation
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
 }
 
 input UserCreateWithoutMediaInput {
-  comments: UserCreateCommentsRelation
+  comments: UserCreateCommentsRelationInput
   email: String!
-  followers: UserCreateFollowersRelation
-  following: UserCreateFollowingRelation
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
   id: Int
   name: String
-  posts: UserCreatePostsRelation
-  profile: UserCreateProfileRelation
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
 }
 
 input UserCreateWithoutPostsInput {
-  Media: UserCreateMediaRelation
-  comments: UserCreateCommentsRelation
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
   email: String!
-  followers: UserCreateFollowersRelation
-  following: UserCreateFollowingRelation
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
   id: Int
   name: String
-  profile: UserCreateProfileRelation
+  profile: UserCreateProfileRelationInput
 }
 
 input UserFilter {
@@ -817,124 +838,124 @@ input UserUniqueFilter {
   id: Int
 }
 
-input UserUpdateCommentsRelation {
+input UserUpdateCommentsRelationInput {
   connect: [CommentUniqueFilter!]
   create: [CommentCreateWithoutAuthorInput!]
   delete: [CommentUniqueFilter!]
   deleteMany: [CommentWithoutAuthorFilter!]
   disconnect: [CommentUniqueFilter!]
   set: [CommentUniqueFilter!]
-  update: [UserUpdateCommentsRelationUpdate!]
-  updateMany: [UserUpdateCommentsRelationUpdateMany!]
+  update: [UserUpdateCommentsRelationInputUpdate!]
+  updateMany: [UserUpdateCommentsRelationInputUpdateMany!]
 }
 
-input UserUpdateCommentsRelationUpdate {
+input UserUpdateCommentsRelationInputUpdate {
   data: CommentUpdateWithoutAuthorInput
   where: CommentUniqueFilter
 }
 
-input UserUpdateCommentsRelationUpdateMany {
+input UserUpdateCommentsRelationInputUpdateMany {
   data: CommentUpdateWithoutAuthorInput
   where: CommentWithoutAuthorFilter
 }
 
-input UserUpdateFollowersRelation {
+input UserUpdateFollowersRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutToInput!]
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutToFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
-  update: [UserUpdateFollowersRelationUpdate!]
-  updateMany: [UserUpdateFollowersRelationUpdateMany!]
+  update: [UserUpdateFollowersRelationInputUpdate!]
+  updateMany: [UserUpdateFollowersRelationInputUpdateMany!]
 }
 
-input UserUpdateFollowersRelationUpdate {
+input UserUpdateFollowersRelationInputUpdate {
   data: FollowUpdateWithoutToInput
   where: FollowUniqueFilter
 }
 
-input UserUpdateFollowersRelationUpdateMany {
+input UserUpdateFollowersRelationInputUpdateMany {
   data: FollowUpdateWithoutToInput
   where: FollowWithoutToFilter
 }
 
-input UserUpdateFollowingRelation {
+input UserUpdateFollowingRelationInput {
   connect: [FollowUniqueFilter!]
   create: [FollowCreateWithoutFromInput!]
   delete: [FollowUniqueFilter!]
   deleteMany: [FollowWithoutFromFilter!]
   disconnect: [FollowUniqueFilter!]
   set: [FollowUniqueFilter!]
-  update: [UserUpdateFollowingRelationUpdate!]
-  updateMany: [UserUpdateFollowingRelationUpdateMany!]
+  update: [UserUpdateFollowingRelationInputUpdate!]
+  updateMany: [UserUpdateFollowingRelationInputUpdateMany!]
 }
 
-input UserUpdateFollowingRelationUpdate {
+input UserUpdateFollowingRelationInputUpdate {
   data: FollowUpdateWithoutFromInput
   where: FollowUniqueFilter
 }
 
-input UserUpdateFollowingRelationUpdateMany {
+input UserUpdateFollowingRelationInputUpdateMany {
   data: FollowUpdateWithoutFromInput
   where: FollowWithoutFromFilter
 }
 
 input UserUpdateInput {
-  Media: [UserUpdateMediaRelation!]
-  comments: [UserUpdateCommentsRelation!]
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
   email: String
-  followers: [UserUpdateFollowersRelation!]
-  following: [UserUpdateFollowingRelation!]
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
   id: Int
   name: String
-  posts: [UserUpdatePostsRelation!]
-  profile: UserUpdateProfileRelation
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
 }
 
-input UserUpdateMediaRelation {
+input UserUpdateMediaRelationInput {
   connect: [MediaUniqueFilter!]
   create: [MediaCreateWithoutUploadedByInput!]
   delete: [MediaUniqueFilter!]
   deleteMany: [MediaWithoutUploadedByFilter!]
   disconnect: [MediaUniqueFilter!]
   set: [MediaUniqueFilter!]
-  update: [UserUpdateMediaRelationUpdate!]
-  updateMany: [UserUpdateMediaRelationUpdateMany!]
+  update: [UserUpdateMediaRelationInputUpdate!]
+  updateMany: [UserUpdateMediaRelationInputUpdateMany!]
 }
 
-input UserUpdateMediaRelationUpdate {
+input UserUpdateMediaRelationInputUpdate {
   data: MediaUpdateWithoutUploadedByInput
   where: MediaUniqueFilter
 }
 
-input UserUpdateMediaRelationUpdateMany {
+input UserUpdateMediaRelationInputUpdateMany {
   data: MediaUpdateWithoutUploadedByInput
   where: MediaWithoutUploadedByFilter
 }
 
-input UserUpdatePostsRelation {
+input UserUpdatePostsRelationInput {
   connect: [PostUniqueFilter!]
   create: [PostCreateWithoutAuthorInput!]
   delete: [PostUniqueFilter!]
   deleteMany: [PostWithoutAuthorFilter!]
   disconnect: [PostUniqueFilter!]
   set: [PostUniqueFilter!]
-  update: [UserUpdatePostsRelationUpdate!]
-  updateMany: [UserUpdatePostsRelationUpdateMany!]
+  update: [UserUpdatePostsRelationInputUpdate!]
+  updateMany: [UserUpdatePostsRelationInputUpdateMany!]
 }
 
-input UserUpdatePostsRelationUpdate {
+input UserUpdatePostsRelationInputUpdate {
   data: PostUpdateWithoutAuthorInput
   where: PostUniqueFilter
 }
 
-input UserUpdatePostsRelationUpdateMany {
+input UserUpdatePostsRelationInputUpdateMany {
   data: PostUpdateWithoutAuthorInput
   where: PostWithoutAuthorFilter
 }
 
-input UserUpdateProfileRelation {
+input UserUpdateProfileRelationInput {
   connect: ProfileUniqueFilter
   create: ProfileCreateWithoutUserInput
   delete: Boolean
@@ -943,57 +964,57 @@ input UserUpdateProfileRelation {
 }
 
 input UserUpdateWithoutCommentsInput {
-  Media: [UserUpdateMediaRelation!]
+  Media: UserUpdateMediaRelationInput
   email: String
-  followers: [UserUpdateFollowersRelation!]
-  following: [UserUpdateFollowingRelation!]
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
   id: Int
   name: String
-  posts: [UserUpdatePostsRelation!]
-  profile: UserUpdateProfileRelation
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
 }
 
 input UserUpdateWithoutFollowersInput {
-  Media: [UserUpdateMediaRelation!]
-  comments: [UserUpdateCommentsRelation!]
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
   email: String
-  following: [UserUpdateFollowingRelation!]
+  following: UserUpdateFollowingRelationInput
   id: Int
   name: String
-  posts: [UserUpdatePostsRelation!]
-  profile: UserUpdateProfileRelation
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
 }
 
 input UserUpdateWithoutFollowingInput {
-  Media: [UserUpdateMediaRelation!]
-  comments: [UserUpdateCommentsRelation!]
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
   email: String
-  followers: [UserUpdateFollowersRelation!]
+  followers: UserUpdateFollowersRelationInput
   id: Int
   name: String
-  posts: [UserUpdatePostsRelation!]
-  profile: UserUpdateProfileRelation
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
 }
 
 input UserUpdateWithoutMediaInput {
-  comments: [UserUpdateCommentsRelation!]
+  comments: UserUpdateCommentsRelationInput
   email: String
-  followers: [UserUpdateFollowersRelation!]
-  following: [UserUpdateFollowingRelation!]
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
   id: Int
   name: String
-  posts: [UserUpdatePostsRelation!]
-  profile: UserUpdateProfileRelation
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
 }
 
 input UserUpdateWithoutPostsInput {
-  Media: [UserUpdateMediaRelation!]
-  comments: [UserUpdateCommentsRelation!]
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
   email: String
-  followers: [UserUpdateFollowersRelation!]
-  following: [UserUpdateFollowingRelation!]
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
   id: Int
   name: String
-  profile: UserUpdateProfileRelation
+  profile: UserUpdateProfileRelationInput
 }"
 `;

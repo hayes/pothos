@@ -315,7 +315,7 @@ schemaBuilder.prismaCreate = function prismaCreate<
     : never,
   Fields = {},
 >(type: Name, { name, fields, ...options }: PrismaCreateOptions<SchemaTypes, Model, Fields>) {
-  const ref = this.inputRef<Model['Create']>(name ?? `${nameFromType(type, this)}Create`);
+  const ref = this.inputRef<Model['Create']>(name ?? `${nameFromType(type, this)}CreateInput`);
   const model = getModel(type, this);
 
   ref.implement({
@@ -367,7 +367,7 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
     : never,
   Fields = {},
 >(type: Name, { name, fields, ...options }: PrismaUpdateOptions<SchemaTypes, Model, Fields>) {
-  const ref = this.inputRef<Model['Update']>(name ?? `${nameFromType(type, this)}Update`);
+  const ref = this.inputRef<Model['Update']>(name ?? `${nameFromType(type, this)}UpdateInput`);
   const model = getModel(type, this);
 
   ref.implement({
@@ -392,9 +392,10 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
         } else {
           fieldDefs[field] = t.field({
             required: false,
-            type: fieldModel.isList
-              ? [fieldOption as InputRef<unknown>]
-              : (fieldOption as InputRef<unknown>),
+            type:
+              fieldModel.isList && fieldModel.kind !== 'object'
+                ? [fieldOption as InputRef<unknown>]
+                : (fieldOption as InputRef<unknown>),
           });
         }
       });
@@ -424,7 +425,7 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
     : PrismaCreateOneRelationOptions<SchemaTypes, Relation, Model>,
 ) {
   const ref = this.inputRef(
-    name ?? `${nameFromType(type, this)}Create${capitalize(relation)}Relation`,
+    name ?? `${nameFromType(type, this)}Create${capitalize(relation)}RelationInput`,
   );
 
   const model = getModel(type, this);
@@ -483,7 +484,7 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
     : PrismaUpdateOneRelationOptions<SchemaTypes, Relation, Model>,
 ) {
   const ref = this.inputRef(
-    name ?? `${nameFromType(type, this)}Update${capitalize(relation)}Relation`,
+    name ?? `${nameFromType(type, this)}Update${capitalize(relation)}RelationInput`,
   );
 
   ref.implement({

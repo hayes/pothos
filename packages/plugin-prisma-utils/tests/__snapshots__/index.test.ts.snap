@@ -17,7 +17,7 @@ input IntFilter {
 }
 
 type Mutation {
-  createUser(data: UserCreate!): User!
+  createUser(data: UserCreateInput!): User!
 }
 
 enum OrderBy {
@@ -29,7 +29,7 @@ type Post {
   id: ID!
 }
 
-input PostCreate {
+input PostCreateInput {
   title: String!
 }
 
@@ -84,15 +84,15 @@ type User {
   posts: [Post!]!
 }
 
-input UserCreate {
+input UserCreateInput {
   email: String!
   name: String
-  posts: UserCreatePostsRelation
+  posts: UserCreatePostsRelationInput
 }
 
-input UserCreatePostsRelation {
+input UserCreatePostsRelationInput {
   connect: [PostWhereUnique!]
-  create: [PostCreate!]
+  create: [PostCreateInput!]
 }
 
 input UserFilter {

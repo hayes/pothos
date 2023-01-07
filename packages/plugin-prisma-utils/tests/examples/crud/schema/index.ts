@@ -1,6 +1,7 @@
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { printSchema } from 'graphql';
+import { Category } from '../../../client';
 import builder, { prisma } from '../builder';
 import { PrismaCrudGenerator } from '../generator';
 
@@ -13,6 +14,16 @@ builder.scalarType('DateTime', {
 
 builder.queryType({
   fields: (t) => ({
+    post: t.prismaField({
+      type: 'Post',
+      nullable: true,
+      args: { where: t.arg({ type: generator.getWhereUnique('Post'), required: true }) },
+      resolve: (query, _, args) =>
+        prisma.post.findUnique({
+          ...query,
+          where: args.where,
+        }),
+    }),
     posts: t.prismaField({
       type: ['Post'],
       args: generator.findManyArgs('Post'),
@@ -57,12 +68,59 @@ builder.mutationType({
           },
         }),
     }),
+    createPost: t.prismaField({
+      type: 'Post',
+      args: { input: t.arg({ type: generator.getCreateInput('Post'), required: true }) },
+      resolve: (query, _, args) =>
+        prisma.post.create({
+          ...query,
+          data: {
+            ...args.input,
+          },
+        }),
+    }),
+    updatePost: t.prismaField({
+      type: 'Post',
+      args: {
+        where: t.arg({ type: generator.getWhereUnique('Post'), required: true }),
+        data: t.arg({ type: generator.getUpdateInput('Post'), required: true }),
+      },
+      resolve: (query, _, args) =>
+        prisma.post.update({
+          ...query,
+          where: {
+            ...args.where,
+          },
+          data: {
+            ...args.data,
+          },
+        }),
+    }),
+    updateManyPosts: t.int({
+      args: {
+        where: t.arg({ type: generator.getWhere('Post') }),
+        data: t.arg({ type: generator.getUpdateInput('Post'), required: true }),
+      },
+      resolve: async (_, args) => {
+        const result = await prisma.post.updateMany({
+          where: args.where ?? undefined,
+          data: args.data,
+        });
+
+        return result.count;
+      },
+    }),
   }),
 });
 
 builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    createdAt: t.expose('createdAt', { type: 'DateTime' }),
+    updatedAt: t.expose('updatedAt', { type: 'DateTime' }),
+    tags: t.exposeStringList('tags'),
+    categories: t.expose('categories', { type: [Category] }),
     author: t.relation('author'),
     comments: t.relation('comments', {
       args: generator.findManyArgs('Comment'),
