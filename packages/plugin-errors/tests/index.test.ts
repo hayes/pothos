@@ -1,7 +1,9 @@
 import { execute, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
-import builder from './example/builder';
-import schema from './example/schema';
+import { builder, builderWithCustomErrorTypeNames } from './example/builder';
+import { createSchema } from './example/schema';
+
+const schema = createSchema(builder);
 
 describe('errors plugin', () => {
   it('generates expected schema', () => {
@@ -165,5 +167,14 @@ describe('errors plugin', () => {
         },
       }
     `);
+  });
+
+  it('supports generating custom names', () => {
+    const schemaWithCustomTypeNames = createSchema(builderWithCustomErrorTypeNames);
+    expect(printSchema(schemaWithCustomTypeNames)).toMatchSnapshot();
+
+    expect(() => {
+      builderWithCustomErrorTypeNames.toSchema();
+    }).not.toThrow();
   });
 });
