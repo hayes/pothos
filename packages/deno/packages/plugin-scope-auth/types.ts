@@ -7,6 +7,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
     cacheKey?: (value: unknown) => unknown;
     runScopesOnType?: boolean;
     treatErrorsAsUnauthorized?: boolean;
+    authorizeOnSubscribe?: boolean;
 }
 export interface BuiltInScopes<Types extends SchemaTypes> {
     $all?: true extends true ? AuthScopeMap<Types> : never;

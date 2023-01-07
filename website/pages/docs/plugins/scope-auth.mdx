@@ -58,6 +58,11 @@ const builder = new SchemaBuilder<{
     // scope loader with argument
     customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
   }),
+  scopeAuthOptions: {
+    // Recommended when using subscriptions
+    // when this is not set, auth checks are run when event is resolved rather than when the subscription is created
+    authorizeOnSubscribe: true,
+  },
 });
 ```
 

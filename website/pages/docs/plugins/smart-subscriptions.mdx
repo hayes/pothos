@@ -5,12 +5,12 @@ menu: Plugins
 description: Smart subscriptions plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Smart Subscriptions Plugin
 
@@ -20,11 +20,14 @@ smart subscription.
 
 The basic flow of a smart subscription is:
 
-1. Run the query the smart subscription is based on and push the initial result of that query to the subscription
+1. Run the query the smart subscription is based on and push the initial result of that query to the
+   subscription
 
-2. As the query is resolved, register any subscriptions defined on fields or types that where used in the query
+2. As the query is resolved, register any subscriptions defined on fields or types that where used
+   in the query
 
-3. When any of the subscriptions are triggered, re-execute the query and push the updated data to the subscription.
+3. When any of the subscriptions are triggered, re-execute the query and push the updated data to
+   the subscription.
 
 There are additional options which will allow only the sub-tree of a field/type that triggered a
 fetch to re-resolved.

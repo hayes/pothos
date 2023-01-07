@@ -14,7 +14,30 @@ builder.queryField('currentId', (t) =>
 );
 
 builder.mutationType();
-builder.subscriptionType();
+
+builder.subscriptionType({
+  fields: (t) => ({
+    count: t.int({
+      authScopes: {
+        loggedIn: true,
+      },
+      async *subscribe(root, args, context) {
+        if (!context.user) {
+          throw new Error('Should have run auth first');
+        }
+
+        for (let i = 0; i < 3; i += 1) {
+          yield new Promise<number>((resolve) => {
+            setTimeout(() => {
+              resolve(i);
+            }, 10);
+          });
+        }
+      },
+      resolve: (count) => count,
+    }),
+  }),
+});
 
 const ObjForAdmin = builder.objectRef<{}>('ObjForAdmin').implement({
   authScopes: {

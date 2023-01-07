@@ -37,6 +37,9 @@ const builder = new SchemaBuilder<{
   prisma: {
     client: db,
   },
+  scopeAuthOptions: {
+    authorizeOnSubscribe: true,
+  },
   authScopes: async (context) => ({
     loggedIn: !!context.user,
     admin: !!context.user?.roles.includes('admin'),
