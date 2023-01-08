@@ -11,6 +11,7 @@ jobs:
   version:
     timeout-minutes: 15
     runs-on: ubuntu-latest
+
     services:
       # Label used to access the service container
       postgres:
