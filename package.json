@@ -68,7 +68,7 @@
     "url": "https://github.com/hayes/pothos/issues"
   },
   "homepage": "https://pothos-graphql.dev",
-  "packageManager": "pnpm@7.0.1",
+  "packageManager": "pnpm@7.16.1",
   "pnpm": {
     "peerDependencyRules": {
       "ignoreMissing": [
