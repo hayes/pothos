@@ -30,7 +30,7 @@ Scalar fields can be defined a couple of different ways:
 builder.queryType({
   fields: t => ({
     name: t.field({
-      description: 'Name field'
+      description: 'Name field',
       type: 'String',
       resolve: () => 'Gina',
     }),
