@@ -1,4 +1,4 @@
-import { Prisma, PrismaClient, User } from '@prisma/client';
+import { User } from '../prisma/client';
 import { IncomingMessage, ServerResponse } from 'http';
 import { db } from './db';
 import { PubSub } from 'graphql-subscriptions';
