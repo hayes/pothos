@@ -101,6 +101,9 @@ importers:
       '@graphql-codegen/schema-ast': 2.5.1_graphql@16.6.0
       typescript: 4.9.3
 
+  examples/complex-app/prisma/client:
+    specifiers: {}
+
   examples/envelope-helix-fastify:
     specifiers:
       '@envelop/core': ^3.0.4
@@ -266,6 +269,9 @@ importers:
       graphql: 16.6.0
       prisma: 4.7.1
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
@@ -286,6 +292,53 @@ importers:
       graphql-yoga: 3.1.1_graphql@16.6.0
       prisma: 4.7.1
 
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma-smart-subscriptions-apollo:
+    specifiers:
+      '@apollo/server': ^4.3.0
+      '@faker-js/faker': ^7.6.0
+      '@pothos/core': workspace:*
+      '@pothos/plugin-prisma': workspace:*
+      '@pothos/plugin-smart-subscriptions': workspace:*
+      '@prisma/client': ^4.7.1
+      '@types/body-parser': ^1.19.2
+      '@types/cors': ^2.8.13
+      '@types/express': ^4.17.15
+      '@types/ws': ^8.5.4
+      body-parser: ^1.20.1
+      cors: ^2.8.5
+      express: ^4.18.2
+      graphql: 16.6.0
+      graphql-subscriptions: ^2.0.0
+      graphql-ws: ^5.11.2
+      prisma: ^4.7.1
+      ws: ^8.12.0
+    dependencies:
+      '@apollo/server': 4.3.0_graphql@16.6.0
+      '@faker-js/faker': 7.6.0
+      '@pothos/core': link:../../packages/core
+      '@pothos/plugin-prisma': link:../../packages/plugin-prisma
+      '@pothos/plugin-smart-subscriptions': link:../../packages/plugin-smart-subscriptions
+      '@prisma/client': 4.7.1_prisma@4.7.1
+      body-parser: 1.20.1
+      cors: 2.8.5
+      express: 4.18.2
+      graphql: 16.6.0
+      graphql-subscriptions: 2.0.0_graphql@16.6.0
+      graphql-ws: 5.11.2_graphql@16.6.0
+      prisma: 4.7.1
+      ws: 8.12.0
+    devDependencies:
+      '@types/body-parser': 1.19.2
+      '@types/cors': 2.8.13
+      '@types/express': 4.17.15
+      '@types/ws': 8.5.4
+
+  examples/prisma-smart-subscriptions-apollo/prisma/client:
+    specifiers: {}
+
   examples/prisma-subscriptions:
     specifiers:
       '@faker-js/faker': ^7.6.0
@@ -305,6 +358,12 @@ importers:
       graphql-subscriptions: 2.0.0_graphql@16.6.0
       graphql-yoga: 3.1.1_graphql@16.6.0
       prisma: 4.7.1
+
+  examples/prisma-subscriptions/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -592,7 +651,13 @@ importers:
   packages/plugin-prisma-utils/esm:
     specifiers: {}
 
+  packages/plugin-prisma-utils/tests/client:
+    specifiers: {}
+
   packages/plugin-prisma/esm:
+    specifiers: {}
+
+  packages/plugin-prisma/tests/client:
     specifiers: {}
 
   packages/plugin-relay:
@@ -635,6 +700,9 @@ importers:
       prisma: 4.7.1
 
   packages/plugin-scope-auth/esm:
+    specifiers: {}
+
+  packages/plugin-scope-auth/prisma/client:
     specifiers: {}
 
   packages/plugin-simple-objects:
@@ -743,6 +811,9 @@ importers:
       prisma: 4.7.1
 
   packages/plugin-with-input/esm:
+    specifiers: {}
+
+  packages/plugin-with-input/prisma/client:
     specifiers: {}
 
   packages/test-utils:
@@ -1093,7 +1164,7 @@ packages:
     dependencies:
       '@apollo/usage-reporting-protobuf': 4.0.2
       '@apollo/utils.fetcher': 2.0.0
-      '@apollo/utils.keyvaluecache': 2.0.1
+      '@apollo/utils.keyvaluecache': 2.1.0
       '@apollo/utils.logger': 2.0.0
       graphql: 16.6.0
 
@@ -1133,6 +1204,44 @@ packages:
     transitivePeerDependencies:
       - encoding
       - supports-color
+
+  /@apollo/server/4.3.0_graphql@16.6.0:
+    resolution: {integrity: sha512-M30z/hExJtvqGE4UFJTa0W7FoRPPXmEjrrHK16+v63hE+deH1gYiXq0MdXKvMdoQhQQqnv09jo9mDDEpMBJvjg==}
+    engines: {node: '>=14.16.0'}
+    peerDependencies:
+      graphql: ^16.6.0 || ^16.5.0
+    dependencies:
+      '@apollo/cache-control-types': 1.0.2_graphql@16.6.0
+      '@apollo/server-gateway-interface': 1.0.7_graphql@16.6.0
+      '@apollo/usage-reporting-protobuf': 4.0.2
+      '@apollo/utils.createhash': 2.0.0
+      '@apollo/utils.fetcher': 2.0.0
+      '@apollo/utils.isnodelike': 2.0.0
+      '@apollo/utils.keyvaluecache': 2.1.0
+      '@apollo/utils.logger': 2.0.0
+      '@apollo/utils.usagereporting': 2.0.0_graphql@16.6.0
+      '@apollo/utils.withrequired': 2.0.0
+      '@graphql-tools/schema': 9.0.10_graphql@16.6.0
+      '@josephg/resolvable': 1.0.1
+      '@types/express': 4.17.15
+      '@types/express-serve-static-core': 4.17.31
+      '@types/node-fetch': 2.6.2
+      async-retry: 1.3.3
+      body-parser: 1.20.1
+      cors: 2.8.5
+      express: 4.18.2
+      graphql: 16.6.0
+      loglevel: 1.8.1
+      lru-cache: 7.14.1
+      negotiator: 0.6.3
+      node-abort-controller: 3.0.1
+      node-fetch: 2.6.7
+      uuid: 9.0.0
+      whatwg-mimetype: 3.0.0
+    transitivePeerDependencies:
+      - encoding
+      - supports-color
+    dev: false
 
   /@apollo/subgraph/2.2.1_graphql@16.6.0:
     resolution: {integrity: sha512-fAm7KXr54/5mDA2mhR36AI8rwiaPGHpT9s51t8mOpnKNpX8vc9KrdlPqCAF88LKVxKRZBDTNjlD5sRgx0tQl5w==}
@@ -1188,6 +1297,13 @@ packages:
 
   /@apollo/utils.keyvaluecache/2.0.1:
     resolution: {integrity: sha512-F1v3m2pMXPD3rb2+F79qklBBFtNSWssV+8YJIAI0iLxRxoNdDAzfrBFUseUaBaeen/e5mR54QkeNCiq8EvQ/Eg==}
+    engines: {node: '>=14'}
+    dependencies:
+      '@apollo/utils.logger': 2.0.0
+      lru-cache: 7.14.1
+
+  /@apollo/utils.keyvaluecache/2.1.0:
+    resolution: {integrity: sha512-WBNI4H1dGX2fHMk5j4cJo7mlXWn1X6DYCxQ50IvmI7Xv7Y4QKiA5EwbLOCITh9OIZQrVX7L0ASBSgTt6jYx/cg==}
     engines: {node: '>=14'}
     dependencies:
       '@apollo/utils.logger': 2.0.0
@@ -4828,6 +4944,12 @@ packages:
     dependencies:
       '@types/node': 18.11.10
 
+  /@types/cors/2.8.13:
+    resolution: {integrity: sha512-RG8AStHlUiV5ysZQKq97copd2UmVYw3/pRMLefISZ3S1hK104Cwm7iLQ3fTKx+lsUH2CE8FlLaYeEA2LSeqYUA==}
+    dependencies:
+      '@types/node': 18.11.10
+    dev: true
+
   /@types/cross-spawn/6.0.2:
     resolution: {integrity: sha512-KuwNhp3eza+Rhu8IFI5HUXRP0LIhqH5cAjubUvGXXthh4YYBuP2ntwEX+Cz8GJoZUHlKo247wPWOfA9LYEq4cw==}
     dependencies:
@@ -4859,6 +4981,14 @@ packages:
 
   /@types/express/4.17.14:
     resolution: {integrity: sha512-TEbt+vaPFQ+xpxFLFssxUDXj5cWCxZJjIcB7Yg0k0GMHGtgtQgpvx/MUQUeAkNbA9AAGrwkAsoeItdTgS7FMyg==}
+    dependencies:
+      '@types/body-parser': 1.19.2
+      '@types/express-serve-static-core': 4.17.31
+      '@types/qs': 6.9.7
+      '@types/serve-static': 1.15.0
+
+  /@types/express/4.17.15:
+    resolution: {integrity: sha512-Yv0k4bXGOH+8a+7bELd2PqHQsuiANB+A8a4gnQrkRWzrkKlb6KHaVvyXhqs04sVW/OWlbPyYxRgYlIXLfrufMQ==}
     dependencies:
       '@types/body-parser': 1.19.2
       '@types/express-serve-static-core': 4.17.31
@@ -5078,6 +5208,12 @@ packages:
 
   /@types/ws/8.5.3:
     resolution: {integrity: sha512-6YOoWjruKj1uLf3INHH7D3qTXwFfEsg1kf3c0uDdSBJwfa/llkwIjrAGV7j7mVgGNbzTQ3HiHKKDXl6bJPD97w==}
+    dependencies:
+      '@types/node': 18.11.10
+    dev: true
+
+  /@types/ws/8.5.4:
+    resolution: {integrity: sha512-zdQDHKUgcX/zBc4GrwsE/7dVdAD8JR4EuiAXiiUhhfyIJXXb2+PrGshFyeXWQPMmmZ2XxgaqclgpIC7eTXc1mg==}
     dependencies:
       '@types/node': 18.11.10
     dev: true
@@ -9161,7 +9297,6 @@ packages:
       graphql: '>=0.11 <=16 || ^16.5.0'
     dependencies:
       graphql: 16.6.0
-    dev: true
 
   /graphql-yoga/3.1.1_graphql@16.6.0:
     resolution: {integrity: sha512-XgqQM1IurPPsO0HU00evqhiHIta8oghJ/1bSkHOPbTZeGELqb0VV/j7ureGHz5S+vCvNHulzW+YuIfaaph00iQ==}
@@ -15449,6 +15584,19 @@ packages:
       utf-8-validate:
         optional: true
     dev: true
+
+  /ws/8.12.0:
+    resolution: {integrity: sha512-kU62emKIdKVeEIOIKVegvqpXMSTAMLJozpHZaJNDYqBjzlSYXQGviYwN1osDLJ9av68qHd4a2oSjd7yD4pacig==}
+    engines: {node: '>=10.0.0'}
+    peerDependencies:
+      bufferutil: ^4.0.1
+      utf-8-validate: '>=5.0.2'
+    peerDependenciesMeta:
+      bufferutil:
+        optional: true
+      utf-8-validate:
+        optional: true
+    dev: false
 
   /xtend/4.0.2:
     resolution: {integrity: sha512-LKYU1iAXJXUgAXn9URjiu+MWhyUXHsvfp7mcuYm9dSUKK0/CjtrUwFAxD82/mCWbtLsGjFIad0wIsod4zrTAEQ==}
