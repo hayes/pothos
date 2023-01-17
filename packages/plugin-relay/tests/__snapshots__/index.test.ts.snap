@@ -237,7 +237,10 @@ interface Node {
 }
 
 type Query {
+  \\"\\"\\"node query\\"\\"\\"
   node(id: ID!): Node
+
+  \\"\\"\\"nodes query\\"\\"\\"
   nodes(ids: [ID!]!): [Node]!
 }
 
@@ -376,12 +379,6 @@ type Query {
   extraNode: Node
   inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
-
-  \\"\\"\\"node query\\"\\"\\"
-  node(id: ID!): Node
-
-  \\"\\"\\"nodes query\\"\\"\\"
-  nodes(ids: [ID!]!): [Node]!
   nullableNumbers(after: String, before: String, first: Int, last: Int): QueryNullableNumbersConnection
   numbers(after: String, before: String, first: Int, last: Int): QueryNumbersConnection!
   oddNumbers(after: String, before: String, first: Int, last: Int): QueryOddNumbersConnection!

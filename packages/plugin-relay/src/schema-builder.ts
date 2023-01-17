@@ -143,73 +143,81 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     }),
   });
 
-  const resolveNodeFn = this.options.relayOptions?.nodeQueryOptions?.resolve;
+  const nodeQueryOptions = this.options.relayOptions?.nodeQueryOptions;
 
-  this.queryField(
-    'node',
-    (t) =>
+  if (nodeQueryOptions !== false) {
+    const resolveNodeFn = nodeQueryOptions?.resolve;
+
+    this.queryField(
+      'node',
+      (t) =>
+        t.field({
+          nullable: true,
+          ...this.options.relayOptions.nodeQueryOptions,
+          type: ref as InterfaceRef<unknown>,
+          args: {
+            id: t.arg.globalID({ required: true }),
+          },
+          resolve: resolveNodeFn
+            ? (root, args, context, info) =>
+                resolveNodeFn(
+                  root,
+                  args as { id: { id: string; typename: string } },
+                  context,
+                  info,
+                  async (ids) =>
+                    (
+                      await resolveNodes(this, context, info, [
+                        args.id as { id: string; typename: string },
+                      ])
+                    )[0],
+                ) as never
+            : async (root, args, context, info) =>
+                (
+                  await resolveNodes(this, context, info, [
+                    args.id as { id: string; typename: string },
+                  ])
+                )[0],
+        }) as FieldRef<unknown>,
+    );
+  }
+
+  const nodesQueryOptions = this.options.relayOptions?.nodesQueryOptions;
+
+  if (nodesQueryOptions !== false) {
+    const resolveNodesFn = nodesQueryOptions?.resolve;
+
+    this.queryField('nodes', (t) =>
       t.field({
-        nullable: true,
-        ...this.options.relayOptions.nodeQueryOptions,
-        type: ref as InterfaceRef<unknown>,
-        args: {
-          id: t.arg.globalID({ required: true }),
+        nullable: {
+          list: false,
+          items: true,
         },
-        resolve: resolveNodeFn
+        ...this.options.relayOptions.nodesQueryOptions,
+        type: [ref],
+        args: {
+          ids: t.arg.globalIDList({ required: true }),
+        },
+        resolve: resolveNodesFn
           ? (root, args, context, info) =>
-              resolveNodeFn(
+              resolveNodesFn(
                 root,
-                args as { id: { id: string; typename: string } },
+                args as { ids: { id: string; typename: string }[] },
                 context,
                 info,
-                async (ids) =>
-                  (
-                    await resolveNodes(this, context, info, [
-                      args.id as { id: string; typename: string },
-                    ])
-                  )[0],
+                (ids) =>
+                  resolveNodes(this, context, info, args.ids as { id: string; typename: string }[]),
               ) as never
-          : async (root, args, context, info) =>
-              (
-                await resolveNodes(this, context, info, [
-                  args.id as { id: string; typename: string },
-                ])
-              )[0],
-      }) as FieldRef<unknown>,
-  );
-
-  const resolveNodesFn = this.options.relayOptions?.nodesQueryOptions?.resolve;
-
-  this.queryField('nodes', (t) =>
-    t.field({
-      nullable: {
-        list: false,
-        items: true,
-      },
-      ...this.options.relayOptions.nodesQueryOptions,
-      type: [ref],
-      args: {
-        ids: t.arg.globalIDList({ required: true }),
-      },
-      resolve: resolveNodesFn
-        ? (root, args, context, info) =>
-            resolveNodesFn(
-              root,
-              args as { ids: { id: string; typename: string }[] },
-              context,
-              info,
-              (ids) =>
-                resolveNodes(this, context, info, args.ids as { id: string; typename: string }[]),
-            ) as never
-        : (root, args, context, info) =>
-            resolveNodes(
-              this,
-              context,
-              info,
-              args.ids as { id: string; typename: string }[],
-            ) as never,
-    }),
-  );
+          : (root, args, context, info) =>
+              resolveNodes(
+                this,
+                context,
+                info,
+                args.ids as { id: string; typename: string }[],
+              ) as never,
+      }),
+    );
+  }
 
   return ref;
 };

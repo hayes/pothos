@@ -12,5 +12,12 @@ export default new SchemaBuilder<{
   DefaultNodeNullability: true;
 }>({
   plugins: [RelayPlugin],
-  relayOptions: {},
+  relayOptions: {
+    nodeQueryOptions: {
+      description: 'node query',
+    },
+    nodesQueryOptions: {
+      description: 'nodes query',
+    },
+  },
 });

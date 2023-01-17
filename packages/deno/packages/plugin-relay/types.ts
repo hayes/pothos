@@ -9,7 +9,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     brandLoadedObjects?: boolean;
     nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, "fields">;
     pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
-    nodeQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
+    nodeQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
         id: InputFieldRef<InputShape<Types, "ID">>;
     }, Promise<unknown>>, "args" | "resolve" | "type"> & {
         resolve?: (parent: Types["Root"], args: {
@@ -21,8 +21,8 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
             id: string;
             typename: string;
         }) => Promise<unknown>) => MaybePromise<unknown>;
-    };
-    nodesQueryOptions: Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
+    });
+    nodesQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
     ], FieldNullability<[
         unknown
@@ -38,7 +38,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
             id: string;
             typename: string;
         }[]) => Promise<unknown[]>) => MaybePromise<MaybePromise<unknown>[]>;
-    };
+    });
     mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>, "fields" | "type">;
     clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", boolean>, "type">;
     clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "resolve" | "type">;
