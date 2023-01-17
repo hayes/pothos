@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.34.0
+
+### Minor Changes
+
+- 5c6e0abb: Add option for disabling node and nodes fields
+
 ## 3.33.0
 
 ### Minor Changes

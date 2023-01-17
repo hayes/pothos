@@ -1,5 +1,17 @@
 # @pothos-examples/complex-app
 
+## 1.4.22
+
+### Patch Changes
+
+- Updated dependencies [5c6e0abb]
+- Updated dependencies [5c6e0abb]
+  - @pothos/plugin-relay@3.33.0
+  - @pothos/plugin-prisma@3.40.1
+  - @pothos/plugin-dataloader@3.13.0
+  - @pothos/plugin-scope-auth@3.17.0
+  - @pothos/plugin-prisma-utils@0.5.0
+
 ## 1.4.21
 
 ### Patch Changes
