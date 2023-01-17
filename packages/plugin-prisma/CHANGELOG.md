@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.40.1
+
+### Patch Changes
+
+- 5c6e0abb: Add placeholder generated file with instructions to run `prisma generate`
+
 ## 3.40.0
 
 ### Minor Changes
