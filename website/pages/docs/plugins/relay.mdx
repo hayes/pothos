@@ -50,8 +50,10 @@ The `relayOptions` object passed to builder can contain the following properties
 - `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults behavior due to
   legacy reasons is `String` for everything except for connection arguments which use `ID`.
   Overwriting this default is highly encouraged.
-- `nodeQueryOptions`: Options for the `node` field on the query object
-- `nodesQueryOptions`: Options for the `nodes` field on the query object
+- `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
+  field
+- `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
+  field
 - `nodeTypeOptions`: Options for the `Node` interface type
 - `pageInfoTypeOptions`: Options for the `TypeInfo` object type
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects
@@ -581,26 +583,26 @@ const builder = new SchemaBuilder({
       resolve: (root, { id }, context, info, resolveNode) => {
         // use custom loading for User nodes
         if (id.typename === 'User') {
-          return customUserLoader(id)
+          return customUserLoader(id);
         }
 
         // fallback to normal loading for everything else
-        return resolveNode(id)
-      }
+        return resolveNode(id);
+      },
     },
     nodesQueryOptions: {
       resolve: (root, { ids }, context, info, resolveNodes) => {
         return ids.map((id) => {
           if (id.typename === 'User') {
-            return customNodeLoader(id)
+            return customNodeLoader(id);
           }
 
           // it would be more efficient to load all the nodes at once
           // but it is important to ensure the resolver returns nodes in the right order
           // we are resolving nodes one at a time here for simplicity
-          return resolveNodes([id])
-        })
-      }
+          return resolveNodes([id]);
+        });
+      },
     },
   },
 });

@@ -27,12 +27,8 @@ export default new SchemaBuilder<{
     },
     clientMutationId: 'omit',
     cursorType: 'String',
-    nodeQueryOptions: {
-      description: 'node query',
-    },
-    nodesQueryOptions: {
-      description: 'nodes query',
-    },
+    nodeQueryOptions: false,
+    nodesQueryOptions: false,
     nodeTypeOptions: {
       description: 'node type',
     },
