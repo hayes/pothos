@@ -52,7 +52,7 @@ builder.objectType(Giraffe, {
 });
 ```
 
-The first argument is an `ObjectParam`, in this case the class that represent our giraffes. This is
+The first argument is an `ObjectParam`, in this case the class that represents our giraffes. This is
 used to convey type information about our underlying data, so that fields can know what properties
 are available on the parent object.
 
@@ -68,9 +68,9 @@ builder.objectType(Giraffe, {
     name: t.exposeString('name', {}),
     age: t.int({
       resolve: (parent) => {
-        // Do some date math to get an aproximate age from a birthday
+        // Do some date math to get an approximate age from a birthday
         const ageDifMs = Date.now() - parent.birthday.getTime();
-        const ageDate = new Date(ageDifMs); // miliseconds from epoch
+        const ageDate = new Date(ageDifMs); // milliseconds from epoch
         return Math.abs(ageDate.getUTCFullYear() - 1970);
       },
     }),
@@ -84,7 +84,7 @@ builder.objectType(Giraffe, {
 In Pothos we never automatically expose properties from the underlying data. Each property we want
 to add in our schema needs to be explicitly defined. The `fields` property in options object should
 be a function that accepts one argument (a [FieldBuilder](../api/field-builder)) and returns an
-object who's keys are the field names, and who's values are `FieldRefs`created by the
+object whose keys are the field names, and whose values are `FieldRefs` created by the
 [FieldBuilder](../api/field-builder). Fields are explained in more detail in the
 [fields guide](./fields).
 
@@ -109,7 +109,7 @@ this case the Giraffe class. `builder.objectType` also returns a `Ref` object th
 
 ### Create a server
 
-Pothos schemas build into a plain schema that uses types from the `graphql`package. This means it
+Pothos schemas build into a plain schema that uses types from the `graphql` package. This means it
 should be compatible with most of the popular GraphQL server implementations for node. In this guide
 we will use `graphql-yoga` but you can use whatever server you want.
 
