@@ -17,8 +17,9 @@ db.$use(async (params, next) => {
     params.action === 'createMany'
   ) {
     console.log(`🚀 ${params.action} ${params.model}`);
-    pubsub.publish(`dbUpdated${model}`, {});
+    void pubsub.publish(`dbUpdated${model}`, {});
   }
   // See results here
+  // eslint-disable-next-line @typescript-eslint/no-unsafe-return
   return result;
 });

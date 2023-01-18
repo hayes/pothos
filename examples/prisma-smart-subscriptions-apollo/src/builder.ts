@@ -4,9 +4,9 @@ import SmartSubscriptionsPlugin, {
   subscribeOptionsFromIterator,
 } from '@pothos/plugin-smart-subscriptions';
 import type PrismaTypes from '../prisma/generated';
+import { Context } from './context';
 import { db } from './db';
 import { pubsub } from './pubsub';
-import { Context } from './context';
 
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
@@ -17,8 +17,6 @@ export const builder = new SchemaBuilder<{
     client: db,
   },
   smartSubscriptions: {
-    ...subscribeOptionsFromIterator((name, context) => {
-      return pubsub.asyncIterator(name);
-    }),
+    ...subscribeOptionsFromIterator((name, context) => pubsub.asyncIterator(name)),
   },
 });

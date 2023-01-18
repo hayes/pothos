@@ -1,11 +1,12 @@
-import { User } from '../prisma/client';
 import { IncomingMessage, ServerResponse } from 'http';
-import { db } from './db';
 import { PubSub } from 'graphql-subscriptions';
+// eslint-disable-next-line import/no-relative-packages
+import { User } from '../prisma/client';
+import { db } from './db';
 
-type SelectType = {
+interface SelectType {
   select?: Record<string, string>;
-};
+}
 
 export interface Context {
   db: typeof db;
@@ -35,6 +36,6 @@ export async function createContext({
     request: req,
     response: res,
     select: {},
-    user: undefined, //await getUserByToken(req),
+    user: (await db.user.findFirst()) ?? undefined,
   };
 }

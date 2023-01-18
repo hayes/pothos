@@ -1,12 +1,12 @@
+import { createServer } from 'node:http';
+import * as bodyParser from 'body-parser';
+import * as cors from 'cors';
+import * as express from 'express';
+import { useServer } from 'graphql-ws/lib/use/ws';
+import { WebSocketServer } from 'ws';
 import { ApolloServer } from '@apollo/server';
 import { expressMiddleware } from '@apollo/server/express4';
 import { ApolloServerPluginDrainHttpServer } from '@apollo/server/plugin/drainHttpServer';
-import * as express from 'express';
-import { createServer } from 'node:http';
-import { WebSocketServer } from 'ws';
-import { useServer } from 'graphql-ws/lib/use/ws';
-import * as bodyParser from 'body-parser';
-import * as cors from 'cors';
 import { createContext, defaultContext } from './context';
 import { schema as schemaPothos } from './schema';
 
@@ -34,6 +34,7 @@ const server = new ApolloServer({
   plugins: [
     ApolloServerPluginDrainHttpServer({ httpServer }),
     {
+      // eslint-disable-next-line @typescript-eslint/require-await
       async serverWillStart() {
         return {
           async drainServer() {

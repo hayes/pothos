@@ -37,10 +37,9 @@ builder.queryFields((t) => ({
   countManyUser: t.field({
     type: 'Int',
     smartSubscription: true,
-    subscribe: (subscriptions, root, args, ctx, info) => subscriptions.register('dbUpdatedUser'),
-    resolve: (root, args, ctx, info) => {
-      return ctx.db.user.count();
-    },
+    subscribe: (subscriptions, root, args, ctx, info) =>
+      void subscriptions.register('dbUpdatedUser'),
+    resolve: (root, args, ctx, info) => ctx.db.user.count(),
   }),
 }));
 
