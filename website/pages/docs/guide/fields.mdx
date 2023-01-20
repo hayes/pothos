@@ -16,7 +16,7 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 Fields for [Object](./objects) and [Interface](./interfaces) types are defined using a shape
 function. This is a function that takes a [FieldBuilder](../api/field-builder) as an argument, and
-returns an object who's keys are field names, and who's values are fields created by the
+returns an object whose keys are field names, and whose values are fields created by the
 [FieldBuilder](../api/field-builder). These examples will mostly add fields to the `Query` type, but
 the topics covered in this guide should apply to any object or interface type.
 
@@ -40,7 +40,7 @@ builder.queryType({
 
 ### Convenience methods
 
-Convenience methods are just a wrapper around the `field` method, that omit the `type` option.
+Convenience methods are just wrappers around the `field` method that omit the `type` option.
 
 ```typescript
 builder.queryType({
@@ -86,7 +86,7 @@ For types not described in the `SchemaTypes` type provided to the builder, inclu
 not be added there like [Unions](./unions) and [Enums](./enums), you can use a `Ref` returned by the
 builder method that created them in the `type` parameter. For types created using a class
 \([Objects](./enums) or [Interfaces](./interfaces)\) or [Enums](./enums) created using a typescript
-enum, you can also use the the `class` or `enum` that was used to define them.
+enum, you can also use the `class` or `enum` that was used to define them.
 
 ```typescript
 const LengthUnit = builder.enumType('LengthUnit', {
@@ -173,7 +173,7 @@ example above shows how you can make list items nullable.
 ## Exposing fields from the underlying data
 
 Some GraphQL implementations have a concept of "default resolvers" that can automatically resolve
-field that have a property of the same name in the underlying data. In Pothos, these relationships
+fields that have a property of the same name in the underlying data. In Pothos, these relationships
 need to be explicitly defined, but there are helper methods that make exposing fields easier.
 
 These helpers are not available for root types \(Query, Mutation and Subscription\), but will work
@@ -206,7 +206,7 @@ The available expose helpers are:
 
 ## Arguments
 
-Arguments for a field can defined in the options for a field:
+Arguments for a field can be defined in the options for a field:
 
 ```typescript
 builder.queryType({
@@ -234,7 +234,7 @@ For more information see the [Arguments Guide](./args).
 
 In addition to being able to define fields when defining types, you can also add additional fields
 independently. This is useful for breaking up types with a lot of fields into multiple files, or
-co-locating fields with their type \(eg. add all query/mutation fields for a type in the same file
+co-locating fields with their type \(e.g., add all query/mutation fields for a type in the same file
 where the type is defined\).
 
 ```typescript
@@ -252,7 +252,7 @@ builder.objectField(Giraffe, 'ageInDogYears', (t) =>
 );
 ```
 
-To see all they methods available for defining fields see the [SchemaBuilder API](./schema-builder)
+To see all the methods available for defining fields see the [SchemaBuilder API](./schema-builder)
 
 ## Nested Lists
 
