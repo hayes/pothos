@@ -1,34 +1,24 @@
-import {
-  getGraphQLParameters,
-  processRequest,
-  renderGraphiQL,
-  sendResult,
-  shouldRenderGraphiQL,
-} from 'graphql-helix';
-import { NextApiHandler } from 'next/types';
+/** GraphQL API entrypoint */
+
+import { createYoga } from 'graphql-yoga';
+import type { NextApiRequest, NextApiResponse } from 'next';
 import { schema } from '../../graphql/schema';
 
-export default (async (req, res) => {
-  const request = {
-    body: req.body as object,
-    headers: req.headers,
-    method: req.method!,
-    query: req.query,
-  };
+export const config = {
+  api: {
+    // Disable body parsing (required for file uploads)
+    bodyParser: false,
+  },
+};
 
-  if (shouldRenderGraphiQL(request)) {
-    res.send(renderGraphiQL({ endpoint: '/api/graphql' }));
-  } else {
-    const { operationName, query, variables } = getGraphQLParameters(request);
-
-    const result = await processRequest({
-      operationName,
-      query,
-      variables,
-      request,
-      schema,
-    });
-
-    void sendResult(result, res);
-  }
-}) as NextApiHandler;
+export default createYoga<{
+  req: NextApiRequest;
+  res: NextApiResponse;
+}>({
+  schema,
+  graphqlEndpoint: '/api/graphql',
+  context: (ctx) => ({
+    // Note: you can use 'ctx.req' if you need access to the default Next.js 'req' object
+    user: { id: Number.parseInt(ctx.request.headers.get('x-user-id') ?? '1', 10) },
+  }),
+});

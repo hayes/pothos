@@ -15,7 +15,7 @@
     "@pothos/core": "workspace:*",
     "@tanstack/react-query": "^4.19.0",
     "graphql": "16.6.0",
-    "graphql-helix": "^1.13.0",
+    "graphql-yoga": "3.1.1",
     "graphql-tag": "^2.12.6",
     "next": "13.0.6",
     "react": "18.2.0",
