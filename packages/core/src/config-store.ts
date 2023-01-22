@@ -197,7 +197,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         );
       }
 
-      throw new Error(`Missing definition for for ${String(ref)}`);
+      throw new Error(`Missing definition for ${String(ref)}`);
     }
 
     const config = this.fieldRefs.get(ref)!(name, parentField, typeConfig);
