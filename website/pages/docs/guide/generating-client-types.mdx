@@ -18,7 +18,7 @@ Pothos does not have a built in mechanism for generating types to use with a cli
 [graphql-code-generator](https://www.graphql-code-generator.com/) can be configured to consume a
 schema directly from your typescript files.
 
-## export your schema
+## Export your schema
 
 The first thing you will need is a file that exports your built schema. The schema should be
 exported as `schema` or as the default export. This will be used to generate your client types, but
@@ -59,7 +59,7 @@ yarn add -D @graphql-codegen/client-preset
 
 ### Configure the codegen to import your schema
 
-Create a codegen.ts file in the root of your project:
+Create a `codegen.ts` file in the root of your project:
 
 ```typescript
 import type { CodegenConfig } from '@graphql-codegen/cli';
@@ -115,6 +115,24 @@ const config: CodegenConfig = {
 };
 
 export default config;
+```
+
+## Adding scalars
+
+If you are using scalars (e.g. from `graphql-scalars`), you will need to add them to
+`codegen.ts` or else they will resolve to `any`. Here is an example for `UUID` and
+`DateTime`:
+
+```typescript
+const config: CodegenConfig = {
+  ...,
+  config: {
+    scalars: {
+      UUID: 'string',
+      DateTime: 'Date',
+    },
+  },
+};
 ```
 
 ## Alternatives
