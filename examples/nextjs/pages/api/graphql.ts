@@ -17,4 +17,8 @@ export default createYoga<{
 }>({
   schema,
   graphqlEndpoint: '/api/graphql',
+  context: (ctx) => ({
+    // Note: you can use 'ctx.req' if you need access to the default Next.js 'req' object
+    user: { id: Number.parseInt(ctx.request.headers.get('x-user-id') ?? '1', 10) },
+  }),
 });
