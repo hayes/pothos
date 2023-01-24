@@ -137,7 +137,7 @@ export function resolveArrayConnection<T>(
 ): ConnectionShape<
   SchemaTypes,
   NonNullable<T>,
-  boolean,
+  false,
   T extends NonNullable<T> ? false : { list: false; items: true },
   false
 > {

@@ -99,7 +99,7 @@ export function cursorToOffset(cursor: string): number {
 export function offsetToCursor(offset: number): string {
     return encodeBase64(`${OFFSET_CURSOR_PREFIX}${offset}`);
 }
-export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, NonNullable<T>, boolean, T extends NonNullable<T> ? false : {
+export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): ConnectionShape<SchemaTypes, NonNullable<T>, false, T extends NonNullable<T> ? false : {
     list: false;
     items: true;
 }, false> {
