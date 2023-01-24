@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.34.1
+
+### Patch Changes
+
+- be5bff07: Update `resolveArrayConnection` return type to reflect that it always returns a non-null
+  `ConnectionShape`
+
 ## 3.34.0
 
 ### Minor Changes
