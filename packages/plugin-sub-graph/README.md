@@ -63,9 +63,6 @@ const combinedSchema = builder.toSchema({ subGraph: ['Internal', 'Public'] });
   to being part of the same sub-graph as their parent type. Only applies when type does not have
   `defaultSubGraphsForFields` set.
 
-You can mock any field by adding a mock in the options passed to `builder.toSchema` under
-`mocks.{typeName}.{fieldName}`.
-
 ### Usage
 
 ```typescript
