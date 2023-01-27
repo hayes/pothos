@@ -43,9 +43,10 @@ building the schema:
 ```typescript
 const builder = new SchemaBuilder({
   plugins: [ComplexityPlugin],
-  defaultComplexity: 1,
-  defaultListMultiplier: 10,
+
   complexity: {
+    defaultComplexity: 1,
+    defaultListMultiplier: 10,
     limit: {
       complexity: 500,
       depth: 10,
