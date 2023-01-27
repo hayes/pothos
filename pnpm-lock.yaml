@@ -730,12 +730,12 @@ importers:
     specifiers:
       '@types/node': ^18.11.18
       graphql: 16.6.0
-      graphql-yoga: 3.3.0
+      graphql-yoga: 3.4.0
       ts-morph: ^17.0.1
       yargs: ^17.7.1
     dependencies:
       graphql: 16.6.0
-      graphql-yoga: 3.3.0_kedzoti4cg6xiecsge2tvwy5ne
+      graphql-yoga: 3.4.0_kedzoti4cg6xiecsge2tvwy5ne
       ts-morph: 17.0.1
       yargs: 17.7.1
     devDependencies:
@@ -3116,17 +3116,17 @@ packages:
       - utf-8-validate
     dev: true
 
-  /@graphql-tools/executor/0.0.11_graphql@16.6.0:
-    resolution: {integrity: sha512-GjtXW0ZMGZGKad6A1HXFPArkfxE0AIpznusZuQdy4laQx+8Ut3Zx8SAFJNnDfZJ2V5kU29B5Xv3Fr0/DiMBHOQ==}
+  /@graphql-tools/executor/0.0.12_graphql@16.6.0:
+    resolution: {integrity: sha512-bWpZcYRo81jDoTVONTnxS9dDHhEkNVjxzvFCH4CRpuyzD3uL+5w3MhtxIh24QyWm4LvQ4f+Bz3eMV2xU2I5+FA==}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^16.5.0
     dependencies:
-      '@graphql-tools/utils': 9.1.3_graphql@16.6.0
+      '@graphql-tools/utils': 9.1.4_graphql@16.6.0
       '@graphql-typed-document-node/core': 3.1.1_graphql@16.6.0
       '@repeaterjs/repeater': 3.0.4
       graphql: 16.6.0
       tslib: 2.5.0
-      value-or-promise: 1.0.11
+      value-or-promise: 1.0.12
     dev: false
 
   /@graphql-tools/executor/0.0.15_graphql@16.6.0:
@@ -3446,7 +3446,7 @@ packages:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^16.5.0
     dependencies:
       graphql: 16.6.0
-      tslib: 2.5.0
+      tslib: 2.4.1
     dev: true
 
   /@graphql-tools/utils/8.9.0_graphql@16.6.0:
@@ -3458,8 +3458,8 @@ packages:
       tslib: 2.5.0
     dev: false
 
-  /@graphql-tools/utils/9.1.3_graphql@16.6.0:
-    resolution: {integrity: sha512-bbJyKhs6awp1/OmP+WKA1GOyu9UbgZGkhIj5srmiMGLHohEOKMjW784Sk0BZil1w2x95UPu0WHw6/d/HVCACCg==}
+  /@graphql-tools/utils/9.1.4_graphql@16.6.0:
+    resolution: {integrity: sha512-hgIeLt95h9nQgQuzbbdhuZmh+8WV7RZ/6GbTj6t3IU4Zd2zs9yYJ2jgW/krO587GMOY8zCwrjNOMzD40u3l7Vg==}
     peerDependencies:
       graphql: ^14.0.0 || ^15.0.0 || ^16.0.0 || ^17.0.0 || ^16.5.0
     dependencies:
@@ -5584,8 +5584,8 @@ packages:
   /@whatwg-node/events/0.0.2:
     resolution: {integrity: sha512-WKj/lI4QjnLuPrim0cfO7i+HsDSXHxNv1y0CrJhdntuO3hxWZmnXCwNDnwOvry11OjRin6cgWNF+j/9Pn8TN4w==}
 
-  /@whatwg-node/fetch/0.6.1:
-    resolution: {integrity: sha512-sG39WLvcJxGZ+gDstnLSXR2IcnuvIOB51KxCFo0mEhFW0q2u8fZgolr0HPkL+zXwOJsnmT+9V3IRcqLnTXdqVQ==}
+  /@whatwg-node/fetch/0.6.2:
+    resolution: {integrity: sha512-fCUycF1W+bI6XzwJFnbdDuxIldfKM3w8+AzVCLGlucm0D+AQ8ZMm2j84hdcIhfV6ZdE4Y1HFVrHosAxdDZ+nPw==}
     dependencies:
       '@peculiar/webcrypto': 1.4.1
       abort-controller: 3.0.0
@@ -5645,13 +5645,13 @@ packages:
       fast-url-parser: 1.1.3
       tslib: 2.5.0
 
-  /@whatwg-node/server/0.5.4_@types+node@18.15.3:
-    resolution: {integrity: sha512-JDMmRyyQXdXOzPY2hhJNR+n4K3F2+LuReHbnF81oi+pnNAgHiffr6s9ZGVI3bO9p/Hv/3v0ur3VaMmTPGtxdUA==}
+  /@whatwg-node/server/0.5.8_@types+node@18.15.3:
+    resolution: {integrity: sha512-29f2Ijk663Hr6hF5GU5a8ELGQVbNMMDBWF1lTdpIKGyLrLJTKixarp6COEyEN5H9tGzIRUQar9Z76A+Jb9DyzQ==}
     peerDependencies:
       '@types/node': ^18.0.6
     dependencies:
       '@types/node': 18.15.3
-      '@whatwg-node/fetch': 0.6.1
+      '@whatwg-node/fetch': 0.6.2
       tslib: 2.5.0
     transitivePeerDependencies:
       - encoding
@@ -9763,20 +9763,20 @@ packages:
     dependencies:
       graphql: 16.6.0
 
-  /graphql-yoga/3.3.0_kedzoti4cg6xiecsge2tvwy5ne:
-    resolution: {integrity: sha512-xkxenHhwQ5RWmjp7iNVYl0oIsVzt3wZb2GRXESiFYoRMl8pRSzuVlGvdVejEVWi6TWYHvYAF2LvuKrm1on4Gzw==}
+  /graphql-yoga/3.4.0_kedzoti4cg6xiecsge2tvwy5ne:
+    resolution: {integrity: sha512-Cjx60mmpoK1qL/sLdM285VdAOQyJBKLuC6oMZrfO8QleneNtu0nDOM6Efv5m0IrRYSONEMtIYA7eNr0u/cCBfg==}
     peerDependencies:
       graphql: ^15.2.0 || ^16.0.0 || ^16.5.0
     dependencies:
       '@envelop/core': 3.0.4
       '@envelop/parser-cache': 5.0.6_a6sekiasy2tqr6d5gj7n2wtjli
       '@envelop/validation-cache': 5.1.0_a6sekiasy2tqr6d5gj7n2wtjli
-      '@graphql-tools/executor': 0.0.11_graphql@16.6.0
+      '@graphql-tools/executor': 0.0.12_graphql@16.6.0
       '@graphql-tools/schema': 9.0.17_graphql@16.6.0
       '@graphql-tools/utils': 9.2.1_graphql@16.6.0
       '@graphql-yoga/subscription': 3.1.0
-      '@whatwg-node/fetch': 0.6.1
-      '@whatwg-node/server': 0.5.4_@types+node@18.15.3
+      '@whatwg-node/fetch': 0.6.2
+      '@whatwg-node/server': 0.5.8_@types+node@18.15.3
       dset: 3.1.2
       graphql: 16.6.0
       tslib: 2.5.0

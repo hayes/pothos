@@ -291,14 +291,13 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
           return;
         }
 
-        if (fieldOption instanceof InputFieldRef) {
-          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
-        } else {
-          fieldDefs[field] = t.field({
-            required: false,
-            type: fieldOption as InputRef<unknown>,
-          });
-        }
+        fieldDefs[field] =
+          fieldOption instanceof InputFieldRef
+            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            : t.field({
+                required: false,
+                type: fieldOption as InputRef<unknown>,
+              });
       });
 
       return fieldDefs as never;
@@ -336,21 +335,20 @@ schemaBuilder.prismaCreate = function prismaCreate<
           return;
         }
 
-        if (fieldOption instanceof InputFieldRef) {
-          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
-        } else {
-          fieldDefs[field] = t.field({
-            required:
-              fieldModel.isRequired &&
-              !fieldModel.isList &&
-              !fieldModel.hasDefaultValue &&
-              !fieldModel.isUpdatedAt,
-            type:
-              fieldModel.isList && fieldModel.kind !== 'object'
-                ? [fieldOption as InputRef<unknown>]
-                : (fieldOption as InputRef<unknown>),
-          });
-        }
+        fieldDefs[field] =
+          fieldOption instanceof InputFieldRef
+            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            : t.field({
+                required:
+                  fieldModel.isRequired &&
+                  !fieldModel.isList &&
+                  !fieldModel.hasDefaultValue &&
+                  !fieldModel.isUpdatedAt,
+                type:
+                  fieldModel.isList && fieldModel.kind !== 'object'
+                    ? [fieldOption as InputRef<unknown>]
+                    : (fieldOption as InputRef<unknown>),
+              });
       });
 
       return fieldDefs as never;
@@ -387,17 +385,16 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
           return;
         }
 
-        if (fieldOption instanceof InputFieldRef) {
-          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
-        } else {
-          fieldDefs[field] = t.field({
-            required: false,
-            type:
-              fieldModel.isList && fieldModel.kind !== 'object'
-                ? [fieldOption as InputRef<unknown>]
-                : (fieldOption as InputRef<unknown>),
-          });
-        }
+        fieldDefs[field] =
+          fieldOption instanceof InputFieldRef
+            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            : t.field({
+                required: false,
+                type:
+                  fieldModel.isList && fieldModel.kind !== 'object'
+                    ? [fieldOption as InputRef<unknown>]
+                    : (fieldOption as InputRef<unknown>),
+              });
       });
 
       return fieldDefs as never;
@@ -447,16 +444,15 @@ schemaBuilder.prismaCreateRelation = function prismaCreateRelation<
           return;
         }
 
-        if (fieldOption instanceof InputFieldRef) {
-          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
-        } else {
-          fieldDefs[field] = t.field({
-            required: false,
-            type: fieldModel.isList
-              ? [fieldOption as InputRef<unknown>]
-              : (fieldOption as InputRef<unknown>),
-          });
-        }
+        fieldDefs[field] =
+          fieldOption instanceof InputFieldRef
+            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            : t.field({
+                required: false,
+                type: fieldModel.isList
+                  ? [fieldOption as InputRef<unknown>]
+                  : (fieldOption as InputRef<unknown>),
+              });
       });
 
       return fieldDefs as never;
