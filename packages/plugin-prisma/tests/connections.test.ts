@@ -1965,4 +1965,105 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('queryInfo with manual connection', async () => {
+    const query = gql`
+      query {
+        namedConnection(first: 2) {
+          edges {
+            node {
+              ... on User {
+                id
+                postsConnection(first: 1) {
+                  edges {
+                    node {
+                      title
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "namedConnection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "VXNlcjox",
+                  "postsConnection": {
+                    "edges": [
+                      {
+                        "node": {
+                          "title": "Ipsa blanditiis voluptatibus.",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+              {
+                "node": {
+                  "id": "VXNlcjoy",
+                  "postsConnection": {
+                    "edges": [
+                      {
+                        "node": {
+                          "title": "Nam magnam pariatur id animi ut quae.",
+                        },
+                      },
+                    ],
+                  },
+                },
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "orderBy": {
+              "id": "asc",
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

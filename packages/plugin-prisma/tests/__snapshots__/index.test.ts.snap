@@ -157,6 +157,7 @@ type Query {
   manualConnection(after: ID, before: ID, first: Int, last: Int): QueryManualConnection!
   me: User
   named: [Named]
+  namedConnection(after: ID, before: ID, first: Int, last: Int): QueryNamedConnection!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   post(id: ID!): Post
@@ -185,6 +186,16 @@ type QueryManualConnection {
 type QueryManualConnectionEdge {
   cursor: String!
   node: Post!
+}
+
+type QueryNamedConnection {
+  edges: [QueryNamedConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryNamedConnectionEdge {
+  cursor: String!
+  node: Named!
 }
 
 type QueryPostsBigIntCursorConnection {

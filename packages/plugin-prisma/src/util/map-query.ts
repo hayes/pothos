@@ -362,7 +362,14 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
           path.map((n) => (typeof n === 'string' ? { name: n } : n)),
           subPath,
           (resolvedType, resolvedField, nested) => {
-            addTypeSelectionsForField(resolvedType, context, info, state, resolvedField, nested);
+            addTypeSelectionsForField(
+              typeName ? type : resolvedType,
+              context,
+              info,
+              state,
+              resolvedField,
+              nested,
+            );
           },
         );
       },

@@ -1,5 +1,10 @@
 /* eslint-disable no-underscore-dangle */
-import { resolveCursorConnection, ResolveCursorConnectionArgs } from '@pothos/plugin-relay';
+import {
+  resolveArrayConnection,
+  resolveCursorConnection,
+  ResolveCursorConnectionArgs,
+  resolveOffsetConnection,
+} from '@pothos/plugin-relay';
 import { prismaConnectionHelpers } from '../../../src';
 import { queryFromInfo } from '../../../src/util/map-query';
 import { Post } from '../../client';
@@ -919,6 +924,27 @@ builder.queryField('blog', (t) =>
         }),
         pages: [1, 2, 3],
       };
+    },
+  }),
+);
+
+builder.queryField('namedConnection', (t) =>
+  t.connection({
+    type: Named,
+    resolve: async (_, args, context, info) => {
+      const users = await prisma.user.findMany({
+        orderBy: {
+          id: 'asc',
+        },
+        ...queryFromInfo({
+          context,
+          info,
+          typeName: 'User',
+          path: ['edges', 'node'],
+        }),
+      });
+
+      return resolveArrayConnection({ args }, User.addBrand(users));
     },
   }),
 );
