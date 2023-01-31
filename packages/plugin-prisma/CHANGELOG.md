@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.40.2
+
+### Patch Changes
+
+- 98c6e801: Fix issue when using path and typeName together in resolveQueryFromInfo
+
 ## 3.40.1
 
 ### Patch Changes
