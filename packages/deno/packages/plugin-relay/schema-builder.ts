@@ -291,7 +291,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, i
         payloadType: payloadRef,
     } as never;
 };
-schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable, ...connectionOptions }, edgeOptionsOrRef) {
+schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable, edgesField, ...connectionOptions }, edgeOptionsOrRef) {
     verifyRef(type);
     const { edgesFieldOptions: { nullable: edgesNullable = { items: true, list: false }, ...edgesFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relayOptions;
     const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
@@ -326,6 +326,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                     items: true;
                 },
                 ...edgesFieldOptions,
+                ...edgesField,
                 type: [edgeRef],
                 resolve: (parent) => parent.edges as [
                 ],
@@ -356,7 +357,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
     globalConnectionFieldsMap.get(this)?.forEach((fieldFn) => void fieldFn(connectionRef));
     return connectionRef as never;
 };
-schemaBuilderProto.edgeObject = function edgeObject({ type, name: edgeName, nodeNullable: nodeFieldNullable, ...edgeOptions }) {
+schemaBuilderProto.edgeObject = function edgeObject({ type, name: edgeName, nodeNullable: nodeFieldNullable, nodeField, ...edgeOptions }) {
     verifyRef(type);
     const { cursorType = "String", cursorFieldOptions = {} as never, nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never, } = this.options.relayOptions;
     const edgeRef = this.objectRef<{
@@ -374,6 +375,7 @@ schemaBuilderProto.edgeObject = function edgeObject({ type, name: edgeName, node
             node: t.field({
                 nullable: nodeFieldNullable ?? nodeNullable,
                 ...nodeFieldOptions,
+                ...nodeField,
                 type,
                 resolve: (parent) => parent.node as never,
             }),
