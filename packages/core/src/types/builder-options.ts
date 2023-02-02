@@ -265,7 +265,7 @@ export type ExposeNullableOption<
 > = FieldNullability<Type> &
   (Type extends [unknown]
     ? ParentShape[Name] extends readonly (infer T)[] | null | undefined
-      ? T extends NonNullable<T>
+      ? [T] extends [NonNullable<T>]
         ? ParentShape[Name] extends NonNullable<ParentShape[Name]>
           ? boolean | { items: boolean; list: boolean }
           : true | { items: boolean; list: true }
