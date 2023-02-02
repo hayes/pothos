@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.24.1
+
+### Patch Changes
+
+- 3021b43a: Fix an issue with detecting field nullability caused by an incorrrectly distributed type
+
 ## 3.24.0
 
 ### Minor Changes
