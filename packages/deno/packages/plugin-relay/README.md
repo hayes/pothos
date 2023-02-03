@@ -207,6 +207,7 @@ builder.queryFields((t) => ({
         // define extra fields on Connection
         // We need to use a new variable for the connection field builder (eg tc) to get the correct types
       }),
+      edgesField: {} // optional, allows customizing the edges field on the Connection Object
       // Other options for connection object can be added here
     },
     {
@@ -216,6 +217,7 @@ builder.queryFields((t) => ({
         // define extra fields on Edge
         // We need to use a new variable for the connection field builder (eg te) to get the correct types
       }),
+      nodeField: {} // optional, allows customizing the node field on the Edge Object
     },
   ),
 }));

@@ -31,6 +31,7 @@ import {
   GlobalIDInputShape,
   GlobalIDListFieldOptions,
   GlobalIDListInputFieldOptions,
+  GlobalIDShape,
   InputShapeWithClientMutationId,
   NodeFieldOptions,
   NodeListFieldOptions,
@@ -355,6 +356,17 @@ declare global {
       name?: string;
       edgesNullable?: EdgeNullability;
       nodeNullable?: NodeNullability;
+      edgesField?: Omit<
+        ObjectFieldOptions<
+          Types,
+          {},
+          ObjectRef<{}>,
+          Types['DefaultNodeNullability'],
+          {},
+          GlobalIDShape<Types> | string
+        >,
+        'args' | 'nullable' | 'resolve' | 'type'
+      >;
     }
 
     export interface ConnectionEdgeObjectOptions<
@@ -371,6 +383,17 @@ declare global {
         Interfaces
       > {
       name?: string;
+      nodeField?: Omit<
+        ObjectFieldOptions<
+          Types,
+          {},
+          ObjectRef<{}>,
+          Types['DefaultNodeNullability'],
+          {},
+          GlobalIDShape<Types> | string
+        >,
+        'args' | 'nullable' | 'resolve' | 'type'
+      >;
     }
 
     export interface DefaultConnectionArguments {

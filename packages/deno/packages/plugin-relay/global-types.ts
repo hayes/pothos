@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-import { ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
+import { ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, GlobalIDShape, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
 import type { DefaultEdgesNullability, PothosRelayPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
@@ -120,10 +120,12 @@ declare global {
             name?: string;
             edgesNullable?: EdgeNullability;
             nodeNullable?: NodeNullability;
+            edgesField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
         }
         export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, NodeNullability extends boolean, Resolved, Interfaces extends InterfaceParam<Types>[] = [
         ]> extends ObjectTypeWithInterfaceOptions<Types, NonNullable<ConnectionShapeFromResolve<Types, Type, false, false, NodeNullability, Resolved>["edges"]>[number], Interfaces> {
             name?: string;
+            nodeField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
         }
         export interface DefaultConnectionArguments {
             first?: number | null | undefined;

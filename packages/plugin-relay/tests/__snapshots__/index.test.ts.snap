@@ -188,6 +188,7 @@ type QueryOddNumbersConnectionEdge {
 }
 
 type QueryPollsConnection {
+  \\"\\"\\"edgesField test description\\"\\"\\"
   edges: [QueryPollsConnectionEdge]!
   extraConnectionField: String!
   pageInfo: PageInfo!
@@ -196,6 +197,8 @@ type QueryPollsConnection {
 type QueryPollsConnectionEdge {
   cursor: String!
   extraEdgeField: Int!
+
+  \\"\\"\\"nodeField test description\\"\\"\\"
   node: Poll!
 }
 

@@ -114,7 +114,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             if (this.pendingFields.has(ref)) {
                 throw new Error(`Missing implementation for ${this.describeRef(this.pendingFields.get(ref)!)}`);
             }
-            throw new Error(`Missing definition for for ${String(ref)}`);
+            throw new Error(`Missing definition for ${String(ref)}`);
         }
         const config = this.fieldRefs.get(ref)!(name, parentField, typeConfig);
         if (kind && config.graphqlKind !== kind) {

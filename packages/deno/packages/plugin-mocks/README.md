@@ -1,6 +1,6 @@
 # Mocks Plugin for Pothos
 
-A simple plugin for adding resolver mocks to a graphQL schema.
+A simple plugin for adding resolver mocks to a GraphQL schema.
 
 ## Usage
 
@@ -21,7 +21,7 @@ const builder = new SchemaBuilder({
 
 ### Adding mocks
 
-You can mock any field by adding a mock in the options passed to `builder.builSchema` under
+You can mock any field by adding a mock in the options passed to `builder.toSchema` under
 `mocks.{typeName}.{fieldName}`.
 
 ```typescript
@@ -44,7 +44,7 @@ builder.toSchema({
 });
 ```
 
-Mocks will replace the resolve functions any time a mocked field is executed. A schema can be build
+Mocks will replace the resolve functions any time a mocked field is executed. A schema can be built
 multiple times with different mocks.
 
 ### Adding mocks for subscribe functions

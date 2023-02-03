@@ -428,6 +428,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
     name: connectionName,
     edgesNullable: edgesNullableField,
     nodeNullable,
+    edgesField,
     ...connectionOptions
   },
   edgeOptionsOrRef,
@@ -481,6 +482,7 @@ schemaBuilderProto.connectionObject = function connectionObject(
       edges: t.field({
         nullable: (edgesNullableField ?? edgesNullable) as { list: false; items: true },
         ...edgesFieldOptions,
+        ...edgesField,
         type: [edgeRef],
         resolve: (parent) => parent.edges as [],
       }),
@@ -520,6 +522,7 @@ schemaBuilderProto.edgeObject = function edgeObject({
   type,
   name: edgeName,
   nodeNullable: nodeFieldNullable,
+  nodeField,
   ...edgeOptions
 }) {
   verifyRef(type);
@@ -552,6 +555,7 @@ schemaBuilderProto.edgeObject = function edgeObject({
       node: t.field({
         nullable: nodeFieldNullable ?? nodeNullable,
         ...nodeFieldOptions,
+        ...nodeField,
         type,
         resolve: (parent) => parent.node as never,
       }),
