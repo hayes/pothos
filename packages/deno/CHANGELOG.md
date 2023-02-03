@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.35.0
+
+### Minor Changes
+
+- 252ba5fb: Add nodeField and edgesField options to edge/connection builders
+
 ## 3.34.1
 
 ### Patch Changes
