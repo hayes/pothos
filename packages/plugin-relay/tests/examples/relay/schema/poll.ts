@@ -119,6 +119,9 @@ builder.queryField('pollsConnection', (t) =>
     },
     {
       name: 'QueryPollsConnection',
+      edgesField: {
+        description: 'edgesField test description',
+      },
       fields: (t) => ({
         extraConnectionField: t.string({
           resolve: (parent) => parent.extra,
@@ -127,6 +130,9 @@ builder.queryField('pollsConnection', (t) =>
     },
     {
       name: 'QueryPollsConnectionEdge',
+      nodeField: {
+        description: 'nodeField test description',
+      },
       fields: (t) => ({
         extraEdgeField: t.int({
           resolve: (parent) => parent.extra,

@@ -120,16 +120,12 @@ declare global {
             name?: string;
             edgesNullable?: EdgeNullability;
             nodeNullable?: NodeNullability;
-            edgesField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> & {
-                nullable?: Types["DefaultNodeNullability"];
-            };
+            edgesField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
         }
         export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, NodeNullability extends boolean, Resolved, Interfaces extends InterfaceParam<Types>[] = [
         ]> extends ObjectTypeWithInterfaceOptions<Types, NonNullable<ConnectionShapeFromResolve<Types, Type, false, false, NodeNullability, Resolved>["edges"]>[number], Interfaces> {
             name?: string;
-            nodeField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> & {
-                nullable?: Types["DefaultNodeNullability"];
-            };
+            nodeField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
         }
         export interface DefaultConnectionArguments {
             first?: number | null | undefined;

@@ -366,9 +366,7 @@ declare global {
           GlobalIDShape<Types> | string
         >,
         'args' | 'nullable' | 'resolve' | 'type'
-      > & {
-        nullable?: Types['DefaultNodeNullability'];
-      };
+      >;
     }
 
     export interface ConnectionEdgeObjectOptions<
@@ -395,9 +393,7 @@ declare global {
           GlobalIDShape<Types> | string
         >,
         'args' | 'nullable' | 'resolve' | 'type'
-      > & {
-        nullable?: Types['DefaultNodeNullability'];
-      };
+      >;
     }
 
     export interface DefaultConnectionArguments {
