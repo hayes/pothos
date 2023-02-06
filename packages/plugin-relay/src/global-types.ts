@@ -22,6 +22,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@pothos/core';
+import { NodeRef, relayIDShapeKey } from './node-ref';
 import {
   ConnectionShape,
   ConnectionShapeForType,
@@ -77,11 +78,15 @@ declare global {
       pageInfoRef: () => ObjectRef<PageInfoShape>;
       nodeInterfaceRef: () => InterfaceRef<unknown>;
 
-      node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(
+      node: <
+        Interfaces extends InterfaceParam<Types>[],
+        Param extends ObjectParam<Types>,
+        IDShape = string,
+      >(
         param: Param,
-        options: NodeObjectOptions<Types, Param, Interfaces>,
+        options: NodeObjectOptions<Types, Param, Interfaces, IDShape>,
         fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>,
-      ) => ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>;
+      ) => NodeRef<OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
 
       globalConnectionFields: (
         fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>,
@@ -188,12 +193,21 @@ declare global {
         >;
       };
 
-      globalID: <Req extends boolean>(
-        ...args: NormalizeArgs<[options: GlobalIDInputFieldOptions<Types, Req, Kind>]>
-      ) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>, Kind>;
+      globalID: <
+        Req extends boolean,
+        For extends NodeRef<unknown, unknown, unknown> = NodeRef<unknown, unknown, string>,
+      >(
+        ...args: NormalizeArgs<[options: GlobalIDInputFieldOptions<Types, Req, Kind, For>]>
+      ) => InputFieldRef<
+        InputShapeFromTypeParam<Types, GlobalIDInputShape<For[typeof relayIDShapeKey]>, Req>,
+        Kind
+      >;
 
-      globalIDList: <Req extends FieldRequiredness<['ID']>>(
-        ...args: NormalizeArgs<[options: GlobalIDListInputFieldOptions<Types, Req, Kind>]>
+      globalIDList: <
+        Req extends FieldRequiredness<['ID']>,
+        For extends NodeRef<unknown, unknown, unknown> = NodeRef<unknown, unknown, string>,
+      >(
+        ...args: NormalizeArgs<[options: GlobalIDListInputFieldOptions<Types, Req, Kind, For>]>
       ) => InputFieldRef<
         InputShapeFromTypeParam<
           Types,

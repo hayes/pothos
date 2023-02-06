@@ -134,6 +134,7 @@ type Query {
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   numberRef: NumberRef!
+  numberThingByID(id: ID!): Number!
   numbers(after: ID, before: ID, first: Int, last: Int): QueryNumbersConnection!
   oddNumbers(after: ID, before: ID, first: Int, last: Int): QueryOddNumbersConnection!
   poll(id: Int!): Poll

@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from 'graphql';
 import { SchemaTypes } from '@pothos/core';
 import { decodeGlobalID, encodeGlobalID } from './global-ids';
 
@@ -18,10 +19,28 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   globalID: string,
   ctx: object,
+  info: GraphQLResolveInfo,
+  types?: string[] | null,
 ) {
-  if (builder.options.relayOptions.decodeGlobalID) {
-    return builder.options.relayOptions.decodeGlobalID(globalID, ctx);
+  const decoded = builder.options.relayOptions.decodeGlobalID
+    ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)
+    : decodeGlobalID(globalID);
+
+  if (types && !types.includes(decoded.typename)) {
+    throw new Error(`ID: ${globalID} is not of type: ${types.join(', ')}`);
   }
 
-  return decodeGlobalID(globalID);
+  const parseID = info.schema.getType(decoded.typename)?.extensions?.pothosParseGlobalID as (
+    id: string,
+    ctx: object,
+  ) => string;
+
+  if (!parseID) {
+    return decoded;
+  }
+
+  return {
+    ...decoded,
+    id: parseID(decoded.id, ctx),
+  };
 }

@@ -2,7 +2,7 @@ import './global-types';
 import './field-builder';
 import './input-field-builder';
 import './schema-builder';
-import { GraphQLFieldResolver } from 'graphql';
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   createInputValueMapper,
@@ -12,6 +12,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { internalDecodeGlobalID } from './utils/internal';
 
+export * from './node-ref';
 export * from './types';
 export * from './utils';
 
@@ -26,7 +27,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       if (inputField.extensions?.isRelayGlobalID) {
-        return true;
+        return (inputField.extensions?.relayGlobalIDFor ?? true) as true | string[];
       }
 
       return null;
@@ -38,12 +39,18 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
 
     const argMapper = createInputValueMapper(
       argMappings,
-      (globalID, mappings, ctx: Types['Context']) =>
-        internalDecodeGlobalID(this.builder, String(globalID), ctx),
+      (globalID, mappings, ctx: Types['Context'], info: GraphQLResolveInfo) =>
+        internalDecodeGlobalID(
+          this.builder,
+          String(globalID),
+          ctx,
+          info,
+          Array.isArray(mappings.value) ? mappings.value : null,
+        ),
     );
 
     return (parent, args, context, info) =>
-      resolver(parent, argMapper(args, undefined, context), context, info);
+      resolver(parent, argMapper(args, undefined, context, info), context, info);
   }
 
   override wrapSubscribe(
@@ -52,7 +59,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
   ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       if (inputField.extensions?.isRelayGlobalID) {
-        return true;
+        return (inputField.extensions?.relayGlobalIDFor ?? true) as true | string[];
       }
 
       return null;
@@ -64,12 +71,18 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
 
     const argMapper = createInputValueMapper(
       argMappings,
-      (globalID, mappings, ctx: Types['Context']) =>
-        internalDecodeGlobalID(this.builder, String(globalID), ctx),
+      (globalID, mappings, ctx: Types['Context'], info: GraphQLResolveInfo) =>
+        internalDecodeGlobalID(
+          this.builder,
+          String(globalID),
+          ctx,
+          info,
+          Array.isArray(mappings.value) ? mappings.value : null,
+        ),
     );
 
     return (parent, args, context, info) =>
-      subscribe(parent, argMapper(args, undefined, context), context, info);
+      subscribe(parent, argMapper(args, undefined, context, info), context, info);
   }
 }
 

@@ -18,29 +18,33 @@ const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.Input
 >;
 
 inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequiredness<['ID']>>(
-  options: GlobalIDListInputFieldOptions<
-    DefaultSchemaTypes,
-    Req,
-    'Arg' | 'InputObject'
-  > = {} as never,
+  {
+    for: forTypes,
+    ...options
+  }: GlobalIDListInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
 ): InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>> {
   return this.idList({
     ...options,
     extensions: {
       ...options.extensions,
       isRelayGlobalID: true,
+      relayGlobalIDFor: (forTypes && (Array.isArray(forTypes) ? forTypes : [forTypes])) ?? null,
     },
   }) as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>>;
 };
 
 inputFieldBuilder.globalID = function globalID<Req extends boolean>(
-  options: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
+  {
+    for: forTypes,
+    ...options
+  }: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
 ) {
   return this.id({
     ...options,
     extensions: {
       ...options.extensions,
       isRelayGlobalID: true,
+      relayGlobalIDFor: (forTypes && (Array.isArray(forTypes) ? forTypes : [forTypes])) ?? null,
     },
   }) as unknown as InputFieldRef<
     InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>
