@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.10.1
+
+### Patch Changes
+
+- 372260ec: Fix bug that prevented prisma from correctly including selections when using the
+  directResult option from the errors plugin
+
 ## 3.10.0
 
 ### Minor Changes
