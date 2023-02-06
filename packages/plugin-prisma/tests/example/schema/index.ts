@@ -3,7 +3,6 @@ import {
   resolveArrayConnection,
   resolveCursorConnection,
   ResolveCursorConnectionArgs,
-  resolveOffsetConnection,
 } from '@pothos/plugin-relay';
 import { prismaConnectionHelpers } from '../../../src';
 import { queryFromInfo } from '../../../src/util/map-query';
@@ -129,6 +128,10 @@ const User = builder.prismaNode('User', {
       nullable: true,
     }),
     profileWithErrors: t.relation('profile', { nullable: true, errors: {} }),
+    directProfileWithErrors: t.relation('profile', {
+      nullable: true,
+      errors: { directResult: true },
+    }),
     postCount: t.relationCount('posts'),
     publishedCount: t.relationCount('posts', {
       where: {

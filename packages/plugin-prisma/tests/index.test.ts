@@ -661,4 +661,88 @@ describe('prisma', () => {
       ]
     `);
   });
+
+  it('queries direct results with errors plugin', async () => {
+    const query = gql`
+      query {
+        usersWithError {
+          __typename
+          ... on Error {
+            message
+          }
+          ... on QueryUsersWithErrorSuccess {
+            data {
+              name
+              directProfileWithErrors {
+                ... on Error {
+                  message
+                }
+                ... on Profile {
+                  bio
+                  user {
+                    id
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+      variableValues: {
+        oldest: true,
+      },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "usersWithError": {
+            "__typename": "QueryUsersWithErrorSuccess",
+            "data": [
+              {
+                "directProfileWithErrors": {
+                  "bio": "Debitis perspiciatis unde sunt.",
+                  "user": {
+                    "id": "VXNlcjox",
+                  },
+                },
+                "name": "Maurine Ratke",
+              },
+              {
+                "directProfileWithErrors": null,
+                "name": "Kyle Schoen",
+              },
+            ],
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
+                  "user": true,
+                },
+              },
+            },
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

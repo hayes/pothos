@@ -323,6 +323,7 @@ type User implements Named & Node {
   commentedPosts: [Post!]!
   commentedPostsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentedPostsConnection!
   commentsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentsConnection!
+  directProfileWithErrors: UserDirectProfileWithErrorsResult
   email: String!
   following(after: ID, before: ID, first: Int, last: Int): UserFollowingConnection!
   id: ID!
@@ -358,6 +359,8 @@ type UserCommentsConnectionEdge {
   cursor: String!
   node: Comment!
 }
+
+union UserDirectProfileWithErrorsResult = BaseError | Profile
 
 type UserFollowingConnection {
   edges: [UserFollowingConnectionEdge]!

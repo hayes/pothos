@@ -55,7 +55,7 @@ function addTypeSelectionsForField(
     pothosPrismaIndirectInclude?: IndirectInclude;
   };
 
-  if (pothosPrismaIndirectInclude) {
+  if (pothosPrismaIndirectInclude && pothosPrismaIndirectInclude.path.length > 0) {
     resolveIndirectInclude(
       type,
       info,
@@ -66,6 +66,16 @@ function addTypeSelectionsForField(
         addTypeSelectionsForField(resolvedType, context, info, state, field, path);
       },
     );
+  } else if (pothosPrismaIndirectInclude) {
+    addTypeSelectionsForField(
+      info.schema.getType(pothosPrismaIndirectInclude.getType())!,
+      context,
+      info,
+      state,
+      selection,
+      indirectPath,
+    );
+    return;
   }
 
   if (!isObjectType(type)) {
