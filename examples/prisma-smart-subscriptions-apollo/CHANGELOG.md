@@ -1,5 +1,11 @@
 # @pothos-examples/prisma-smart-subscriptions-apollo
 
+## 2.5.0
+
+### Minor Changes
+
+- 0eb6cb94: Update federation plugin to work with apollo/federation@2.3
+
 ## 2.4.21
 
 ### Patch Changes

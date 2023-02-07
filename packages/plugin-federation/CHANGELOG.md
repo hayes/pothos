@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.8.0
+
+### Minor Changes
+
+- 0eb6cb94: Update federation plugin to work with apollo/federation@2.3
+
 ## 3.7.0
 
 ### Minor Changes
