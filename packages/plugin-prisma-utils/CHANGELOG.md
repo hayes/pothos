@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.6.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
 ## 0.5.0
 
 ### Minor Changes

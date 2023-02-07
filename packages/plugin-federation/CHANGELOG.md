@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.9.0
+
+### Minor Changes
+
+- bce97784: Add `linkUrl` option to buildSubGraphSchema
+
 ## 3.8.0
 
 ### Minor Changes

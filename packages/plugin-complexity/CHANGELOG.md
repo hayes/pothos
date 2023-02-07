@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.12.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
 ## 3.11.7
 
 ### Patch Changes

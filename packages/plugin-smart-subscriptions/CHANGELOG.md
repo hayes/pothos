@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.0
+
+### Minor Changes
+
+- bf0385ae: Add new PothosError classes
+
 ## 3.6.7
 
 ### Patch Changes
