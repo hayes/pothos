@@ -57,7 +57,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
       directives: {
         ...(options?.extensions?.directives as {}),
         link: {
-          url: 'https://specs.apollo.dev/federation/v2.3',
+          url: linkUrl,
           import: [
             '@key',
             '@shareable',
