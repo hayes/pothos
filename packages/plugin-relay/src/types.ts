@@ -348,6 +348,7 @@ export type NodeObjectOptions<
   Types extends SchemaTypes,
   Param extends ObjectParam<Types>,
   Interfaces extends InterfaceParam<Types>[],
+  IDShape = string,
 > = NodeBaseObjectOptionsForParam<Types, Param, Interfaces> & {
   id: Omit<
     FieldOptionsFromKind<
@@ -361,23 +362,25 @@ export type NodeObjectOptions<
       MaybePromise<OutputShape<Types, 'ID'>>
     >,
     'args' | 'nullable' | 'type'
-  >;
+  > & {
+    parse?: (id: string, ctx: Types['Context']) => IDShape;
+  };
   brandLoadedObjects?: boolean;
   loadOne?: (
-    id: string,
+    id: IDShape,
     context: Types['Context'],
   ) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
   loadMany?: (
-    ids: string[],
+    ids: IDShape[],
     context: Types['Context'],
   ) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
   loadWithoutCache?: (
-    id: string,
+    id: IDShape,
     context: Types['Context'],
     info: GraphQLResolveInfo,
   ) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
   loadManyWithoutCache?: (
-    ids: string[],
+    ids: IDShape[],
     context: Types['Context'],
   ) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
 };
@@ -415,13 +418,19 @@ export type GlobalIDInputFieldOptions<
   Types extends SchemaTypes,
   Req extends boolean,
   Kind extends 'Arg' | 'InputObject',
-> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'>;
+  For = unknown,
+> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'> & {
+  for?: For | For[];
+};
 
 export type GlobalIDListInputFieldOptions<
   Types extends SchemaTypes,
   Req extends FieldRequiredness<['ID']>,
   Kind extends 'Arg' | 'InputObject',
-> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'>;
+  For = unknown,
+> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'> & {
+  for?: For | For[];
+};
 
 export type NodeIDFieldOptions<
   Types extends SchemaTypes,
@@ -554,10 +563,10 @@ export type NodeListFieldOptions<
   >;
 };
 
-export interface GlobalIDInputShape {
+export interface GlobalIDInputShape<T = string> {
   [inputShapeKey]: {
     typename: string;
-    id: string;
+    id: T;
   };
 }
 

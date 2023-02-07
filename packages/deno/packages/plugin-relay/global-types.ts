@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { NodeRef } from './node-ref.ts';
 import { ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, GlobalIDShape, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
 import type { DefaultEdgesNullability, PothosRelayPlugin } from './index.ts';
 declare global {
@@ -29,7 +30,7 @@ declare global {
         export interface SchemaBuilder<Types extends SchemaTypes> {
             pageInfoRef: () => ObjectRef<PageInfoShape>;
             nodeInterfaceRef: () => InterfaceRef<unknown>;
-            node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) => ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>;
+            node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>, IDShape = string>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces, IDShape>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) => NodeRef<OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
             globalConnectionFields: (fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>) => void;
             globalConnectionField: (name: string, field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>) => void;
             relayMutationField: <Fields extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, Interfaces extends InterfaceParam<Types>[], InputName extends string = "input">(name: string, inputOptions: InputObjectRef<unknown> | RelayMutationInputOptions<Types, Fields, InputName>, fieldOptions: RelayMutationFieldOptions<Types, Fields, Nullable, InputName, ResolveShape, ResolveReturnShape>, payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>) => {
@@ -65,18 +66,18 @@ declare global {
             connectionArgs: () => {
                 [K in keyof DefaultConnectionArguments]-?: InputFieldRef<DefaultConnectionArguments[K], Kind>;
             };
-            globalID: <Req extends boolean>(...args: NormalizeArgs<[
-                options: GlobalIDInputFieldOptions<Types, Req, Kind>
-            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape, Req>, Kind>;
+            globalID: <Req extends boolean, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
+                options: GlobalIDInputFieldOptions<Types, Req, Kind, For>
+            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape<For extends NodeRef<unknown, unknown, infer T> ? T : string>, Req>, Kind>;
             globalIDList: <Req extends FieldRequiredness<[
                 "ID"
-            ]>>(...args: NormalizeArgs<[
-                options: GlobalIDListInputFieldOptions<Types, Req, Kind>
+            ]>, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
+                options: GlobalIDListInputFieldOptions<Types, Req, Kind, For>
             ]>) => InputFieldRef<InputShapeFromTypeParam<Types, [
                 {
                     [inputShapeKey]: {
                         typename: string;
-                        id: string;
+                        id: For extends NodeRef<unknown, unknown, infer T> ? T : string;
                     };
                 }
             ], Req>, Kind>;

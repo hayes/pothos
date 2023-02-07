@@ -3,7 +3,10 @@ import {
   InputFieldBuilder,
   InputFieldRef,
   InputShapeFromTypeParam,
+  ObjectRef,
+  SchemaTypes,
 } from '@pothos/core';
+import { NodeRef } from './node-ref';
 import {
   GlobalIDInputFieldOptions,
   GlobalIDInputShape,
@@ -18,33 +21,51 @@ const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.Input
 >;
 
 inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequiredness<['ID']>>(
-  options: GlobalIDListInputFieldOptions<
-    DefaultSchemaTypes,
-    Req,
-    'Arg' | 'InputObject'
-  > = {} as never,
-): InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>> {
+  {
+    for: forTypes,
+    ...options
+  }: GlobalIDListInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
+) {
   return this.idList({
     ...options,
     extensions: {
       ...options.extensions,
       isRelayGlobalID: true,
+      relayGlobalIDFor:
+        (
+          (forTypes &&
+            (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[]
+        )?.map((type: ObjectRef<SchemaTypes>) => ({
+          typename: this.builder.configStore.getTypeConfig(type).name,
+          parse: type instanceof NodeRef ? type.parseId : undefined,
+        })) ?? null,
     },
-  }) as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>>;
+  }) as never;
 };
 
 inputFieldBuilder.globalID = function globalID<Req extends boolean>(
-  options: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
+  {
+    for: forTypes,
+    ...options
+  }: GlobalIDInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
 ) {
   return this.id({
     ...options,
     extensions: {
       ...options.extensions,
       isRelayGlobalID: true,
+      relayGlobalIDFor:
+        (
+          (forTypes &&
+            (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[]
+        )?.map((type: ObjectRef<SchemaTypes>) => ({
+          typename: this.builder.configStore.getTypeConfig(type).name,
+          parse: type instanceof NodeRef ? type.parseId : undefined,
+        })) ?? null,
     },
   }) as unknown as InputFieldRef<
     InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>
-  >;
+  > as never;
 };
 
 inputFieldBuilder.connectionArgs = function connectionArgs() {

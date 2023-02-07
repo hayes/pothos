@@ -15,11 +15,11 @@ export async function resolveNodes<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
-  globalIDs: ({ id: string; typename: string } | null | undefined)[],
+  globalIDs: ({ id: unknown; typename: string } | null | undefined)[],
 ): Promise<MaybePromise<unknown>[]> {
   const requestCache = getRequestCache(context);
-  const idsByType: Record<string, Set<string>> = {};
-  const results: Record<string, unknown> = {};
+  const idsByType: Record<string, Set<unknown>> = {};
+  const results: Record<string, MaybePromise<unknown>> = {};
 
   globalIDs.forEach((globalID, i) => {
     if (globalID == null) {
@@ -74,12 +74,12 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
-  ids: string[],
+  ids: unknown[],
   type: OutputType<Types> | string,
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
   const config = builder.configStore.getTypeConfig(type, 'Object');
-  const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, []>;
+  const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [], unknown>;
 
   if (options.loadMany) {
     const loadManyPromise = Promise.resolve(options.loadMany(ids, context));

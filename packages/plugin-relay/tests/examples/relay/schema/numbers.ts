@@ -17,11 +17,12 @@ class BatchLoadableNumberThing {
   }
 }
 
-builder.node(NumberThing, {
+const NumberThingRef = builder.node(NumberThing, {
   id: {
     resolve: (n) => n.id,
+    parse: (id) => Number.parseInt(id, 10),
   },
-  loadOne: (id) => new NumberThing(Number.parseInt(id, 10)),
+  loadOne: (id) => new NumberThing(id),
   name: 'Number',
   fields: (t) => ({
     number: t.exposeInt('id', {}),
@@ -204,4 +205,26 @@ builder.queryField('sharedEdgeConnection', (t) =>
     {},
     SharedEdge,
   ),
+);
+
+builder.queryField('numberThingByID', (t) =>
+  t.field({
+    type: NumberThing,
+    nullable: true,
+    args: {
+      id: t.arg.globalID({ required: true, for: [NumberThingRef] }),
+    },
+    resolve: (root, args) => new NumberThing(args.id.id),
+  }),
+);
+
+builder.queryField('numberThingsByIDs', (t) =>
+  t.field({
+    type: [NumberThing],
+    nullable: true,
+    args: {
+      ids: t.arg.globalIDList({ required: true, for: [NumberThingRef] }),
+    },
+    resolve: (root, args) => args.ids.map(({ id }) => new NumberThing(id)),
+  }),
 );

@@ -14,6 +14,7 @@ import SchemaBuilder, {
   SchemaTypes,
   verifyRef,
 } from '@pothos/core';
+import { NodeRef } from './node-ref';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 
@@ -222,7 +223,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
   return ref;
 };
 
-schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
+schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...options }, fields) {
   verifyRef(param);
   const interfacesWithNode: () => InterfaceParam<SchemaTypes>[] = () => [
     this.nodeInterfaceRef(),
@@ -235,6 +236,10 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     param,
     {
       ...(options as {}),
+      extensions: {
+        ...extensions,
+        pothosParseGlobalID: id.parse,
+      },
       isTypeOf:
         options.isTypeOf ??
         (typeof param === 'function'
@@ -274,18 +279,24 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
       t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
         nullable: false,
         ...this.options.relayOptions.idFieldOptions,
-        ...options.id,
+        ...id,
         args: {},
         resolve: async (parent, args, context, info) => ({
           type: nodeConfig.name,
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          id: await options.id.resolve(parent, args, context, info),
+          id: await id.resolve(parent, args, context, info),
         }),
       }),
     );
   });
 
-  return ref;
+  const nodeRef = new NodeRef(ref.name, {
+    parseId: id.parse,
+  });
+
+  this.configStore.associateRefWithName(nodeRef, ref.name);
+
+  return nodeRef as never;
 };
 
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {

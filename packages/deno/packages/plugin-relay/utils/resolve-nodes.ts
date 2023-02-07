@@ -4,12 +4,12 @@ import { brandWithType, createContextCache, MaybePromise, ObjectParam, OutputTyp
 import { NodeObjectOptions } from '../types.ts';
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, globalIDs: ({
-    id: string;
+    id: unknown;
     typename: string;
 } | null | undefined)[]): Promise<MaybePromise<unknown>[]> {
     const requestCache = getRequestCache(context);
-    const idsByType: Record<string, Set<string>> = {};
-    const results: Record<string, unknown> = {};
+    const idsByType: Record<string, Set<unknown>> = {};
+    const results: Record<string, MaybePromise<unknown>> = {};
     globalIDs.forEach((globalID, i) => {
         if (globalID == null) {
             return;
@@ -39,11 +39,11 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
     }));
     return globalIDs.map((globalID) => globalID == null ? null : results[`${globalID.typename}:${globalID.id}`] ?? null);
 }
-export async function resolveUncachedNodesForType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, ids: string[], type: OutputType<Types> | string): Promise<unknown[]> {
+export async function resolveUncachedNodesForType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, ids: unknown[], type: OutputType<Types> | string): Promise<unknown[]> {
     const requestCache = getRequestCache(context);
     const config = builder.configStore.getTypeConfig(type, "Object");
     const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [
-    ]>;
+    ], unknown>;
     if (options.loadMany) {
         const loadManyPromise = Promise.resolve(options.loadMany(ids, context));
         return Promise.all(ids.map((id, i) => {
