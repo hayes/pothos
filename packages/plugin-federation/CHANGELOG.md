@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.9.1
+
+### Patch Changes
+
+- dfe34dae: correctly set linkUrl
+
 ## 3.9.0
 
 ### Minor Changes

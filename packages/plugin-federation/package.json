@@ -1,7 +1,7 @@
 {
   "name": "@pothos/plugin-federation",
   "description": "A Pothos plugin for implementing apollo federation subGraphs",
-  "version": "3.9.0",
+  "version": "3.9.1",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
