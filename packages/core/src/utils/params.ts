@@ -1,4 +1,5 @@
 import type ConfigStore from '../config-store';
+import { PothosSchemaError } from '../errors';
 import BaseTypeRef from '../refs/base';
 import InputListRef from '../refs/input-list';
 import ListRef from '../refs/list';
@@ -60,7 +61,7 @@ export function typeFromParam<Types extends SchemaTypes>(
     };
   }
 
-  throw new Error(`Expected input param ${name} to be an output type but got ${kind}`);
+  throw new PothosSchemaError(`Expected input param ${name} to be an output type but got ${kind}`);
 }
 
 export function unwrapInputFieldType<Types extends SchemaTypes>(
@@ -113,7 +114,7 @@ export function inputTypeFromParam<Types extends SchemaTypes>(
     };
   }
 
-  throw new Error(
+  throw new PothosSchemaError(
     `Expected input param ${name} to be an InputObject, Enum, or Scalar but got ${kind}`,
   );
 }

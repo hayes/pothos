@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosSchemaError, SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
 import { GetTypeName } from './types.ts';
 export * from './types.ts';
 const pluginName = "errors";
@@ -88,7 +88,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
                 resultType = fieldConfig.pothosOptions.type as ImplementableObjectRef<Types, unknown>;
                 const resultConfig = this.builder.configStore.getTypeConfig(resultType);
                 if (resultConfig.graphqlKind !== "Object") {
-                    throw new TypeError(`Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`);
+                    throw new PothosSchemaError(`Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`);
                 }
             }
             else {

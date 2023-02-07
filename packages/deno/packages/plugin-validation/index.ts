@@ -2,7 +2,7 @@
 import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
-import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, PothosInputFieldType, PothosOutputFieldConfig, resolveInputTypeConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, PothosInputFieldType, PothosOutputFieldConfig, PothosSchemaError, PothosValidationError, resolveInputTypeConfig, SchemaTypes, } from '../core/index.ts';
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
 import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types.ts';
 export * from './types.ts';
@@ -67,8 +67,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
                 catch (error: unknown) {
                     const errorOrMessage = validationError(error as zod.ZodError, value as Record<string, unknown>, ctx, info);
                     if (typeof errorOrMessage === "string") {
-                        // eslint-disable-next-line unicorn/prefer-type-error
-                        throw new Error(errorOrMessage);
+                        throw new PothosValidationError(errorOrMessage);
                     }
                     throw errorOrMessage;
                 }
@@ -91,7 +90,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
         }
         if (type?.kind === "List") {
             if (options && !isArrayValidator(options)) {
-                throw new Error(`Expected valid array validator for ${fieldName}`);
+                throw new PothosSchemaError(`Expected valid array validator for ${fieldName}`);
             }
             const items = options?.items
                 ? this.createValidator(options.items, type.type, fieldName)

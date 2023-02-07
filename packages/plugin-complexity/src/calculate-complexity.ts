@@ -16,6 +16,7 @@ import {
   Kind,
   SelectionSetNode,
 } from 'graphql';
+import { PothosValidationError } from '@pothos/core';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults';
 
 import type { ComplexityResult, FieldComplexity } from '.';
@@ -48,7 +49,7 @@ function complexityFromField(
   if (field) {
     complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
   } else if (!fieldName.startsWith('__')) {
-    throw new Error(`Unknown field selected (${type.name}.${fieldName})`);
+    throw new PothosValidationError(`Unknown field selected (${type.name}.${fieldName})`);
   }
 
   if (typeof complexityOption === 'function') {
@@ -100,7 +101,7 @@ export function calculateComplexity(ctx: {}, info: GraphQLResolveInfo) {
   const operationType = info.schema.getType(operationName);
 
   if (!operationType || !isOutputType(operationType)) {
-    throw new Error(`Unsupported operation ${operationName}`);
+    throw new PothosValidationError(`Unsupported operation ${operationName}`);
   }
 
   return complexityFromSelectionSet(ctx, info, info.operation.selectionSet, operationType);
@@ -123,11 +124,13 @@ function complexityFromFragment(
     : type;
 
   if (!isOutputType(fragmentType)) {
-    throw new TypeError(`Expected Type ${type.name} to be an Output type`);
+    throw new PothosValidationError(`Expected Type ${type.name} to be an Output type`);
   }
 
   if (!fragmentType) {
-    throw new Error(`Missing type from fragment ${fragment.typeCondition?.name.value}`);
+    throw new PothosValidationError(
+      `Missing type from fragment ${fragment.typeCondition?.name.value}`,
+    );
   }
 
   return complexityFromSelectionSet(ctx, info, fragment.selectionSet, fragmentType);
@@ -153,7 +156,7 @@ export function complexityFromSelectionSet(
       const fragment = info.fragments[selection.name.value];
 
       if (!fragment) {
-        throw new Error(`Missing fragment ${selection.name.value}`);
+        throw new PothosValidationError(`Missing fragment ${selection.name.value}`);
       }
 
       selectionResult = complexityFromFragment(ctx, info, fragment, type);

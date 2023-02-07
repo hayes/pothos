@@ -1,4 +1,5 @@
 import type BuildCache from '../build-cache';
+import { PothosSchemaError } from '../errors';
 import {
   PothosInputFieldConfig,
   PothosInputFieldType,
@@ -52,7 +53,9 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(
     return config;
   }
 
-  throw new TypeError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
+  throw new PothosSchemaError(
+    `Unexpected config type ${config.kind} for input ref ${String(type.ref)}`,
+  );
 }
 
 export function mapInputFields<Types extends SchemaTypes, T>(

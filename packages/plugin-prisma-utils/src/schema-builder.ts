@@ -6,6 +6,7 @@ import SchemaBuilder, {
   InputRef,
   InputShapeFromTypeParam,
   InputType,
+  PothosSchemaError,
   SchemaTypes,
 } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
@@ -272,5 +273,5 @@ function nameFromType<Types extends SchemaTypes>(
     return type.name;
   }
 
-  throw new Error(`Unable to determine name for type ${String(type)}`);
+  throw new PothosSchemaError(`Unable to determine name for type ${String(type)}`);
 }

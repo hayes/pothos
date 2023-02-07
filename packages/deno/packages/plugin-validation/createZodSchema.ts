@@ -1,5 +1,6 @@
 // @ts-nocheck
 import * as zod from 'https://cdn.skypack.dev/zod@v1.11.17?dts';
+import { PothosSchemaError } from '../core/index.ts';
 import { ArrayValidationOptions, BaseValidationOptions, NumberValidationOptions, RefineConstraint, StringValidationOptions, ValidationOptionUnion, } from './types.ts';
 const baseValidations = ["refine", "schema"] as const;
 const numberValidations = [
@@ -225,7 +226,7 @@ export default function createZodSchema(optionsOrConstraint: RefineConstraint | 
         typeValidators.push(createArrayValidator(options, items));
     }
     if (typeValidators.length === 0) {
-        throw new Error(`No type validator can implement every constraint in (${Object.keys(options)})`);
+        throw new PothosSchemaError(`No type validator can implement every constraint in (${Object.keys(options)})`);
     }
     return combine([...typeValidators], required);
 }

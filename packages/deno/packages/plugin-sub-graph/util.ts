@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLType } from 'https://cdn.skypack.dev/graphql?dts';
+import { PothosSchemaError } from '../core/index.ts';
 export function replaceType<T extends GraphQLType>(type: T, newTypes: Map<string, GraphQLNamedType>, referencedBy: string, subGraphs: string[]): T {
     if (type instanceof GraphQLNonNull) {
         return new GraphQLNonNull(replaceType(type.ofType as GraphQLType, newTypes, referencedBy, subGraphs)) as T;
@@ -9,7 +10,7 @@ export function replaceType<T extends GraphQLType>(type: T, newTypes: Map<string
     }
     const newType = newTypes.get((type as GraphQLNamedType).name);
     if (!newType) {
-        throw new Error(`${(type as GraphQLNamedType).name} (referenced by ${referencedBy}) does not exist in subGraph (${subGraphs})`);
+        throw new PothosSchemaError(`${(type as GraphQLNamedType).name} (referenced by ${referencedBy}) does not exist in subGraph (${subGraphs})`);
     }
     return newType as T;
 }

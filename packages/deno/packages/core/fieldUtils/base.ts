@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
+import { PothosSchemaError } from '../errors.ts';
 import FieldRef from '../refs/field.ts';
 import type { FieldKind, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam, } from '../types/index.ts';
 import { FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
@@ -31,7 +32,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
                 resolve?: (...argList: unknown[]) => unknown;
             }).resolve ??
                 (() => {
-                    throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+                    throw new PothosSchemaError(`Not implemented: No resolver found for ${this.typename}.${name}`);
                 });
             if (options.extensions?.pothosExposedField === name) {
                 resolve = defaultFieldResolver as typeof resolve;

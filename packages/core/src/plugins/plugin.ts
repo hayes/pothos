@@ -5,6 +5,7 @@ import {
   GraphQLTypeResolver,
 } from 'graphql';
 import type BuildCache from '../build-cache';
+import { PothosError } from '../errors';
 import type {
   PothosEnumValueConfig,
   PothosInputFieldConfig,
@@ -168,7 +169,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
    * @return {object} - The data object for the current request
    */
   protected createRequestData(context: Types['Context']): T {
-    throw new Error('createRequestData not implemented');
+    throw new PothosError('createRequestData not implemented');
   }
 
   /**

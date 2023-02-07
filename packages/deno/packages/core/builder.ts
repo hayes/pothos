@@ -2,6 +2,7 @@
 import { GraphQLBoolean, GraphQLDirective, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLObjectType, GraphQLScalarSerializer, GraphQLScalarType, GraphQLSchema, GraphQLString, GraphQLTypeResolver, lexicographicSortSchema, } from 'https://cdn.skypack.dev/graphql?dts';
 import BuildCache from './build-cache.ts';
 import ConfigStore from './config-store.ts';
+import { PothosError, PothosSchemaError } from './errors.ts';
 import InputFieldBuilder from './fieldUtils/input.ts';
 import InterfaceFieldBuilder from './fieldUtils/interface.ts';
 import MutationFieldBuilder from './fieldUtils/mutation.ts';
@@ -38,7 +39,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
     static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(name: T, plugin: PluginConstructorMap<SchemaTypes>[T]) {
         if (!this.allowPluginReRegistration && this.plugins[name]) {
-            throw new Error(`Received multiple implementations for plugin ${name}`);
+            throw new PothosError(`Received multiple implementations for plugin ${name}`);
         }
         this.plugins[name] = plugin;
     }
@@ -53,7 +54,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
                 name: string;
             }).name;
         if (name === "Query" || name === "Mutation" || name === "Subscription") {
-            throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
+            throw new PothosSchemaError(`Invalid object name ${name} use .create${name}Type() instead`);
         }
         const ref = param instanceof BaseTypeRef
             ? (param as ObjectRef<OutputShape<Types, Param>, ParentShape<Types, Param>>)

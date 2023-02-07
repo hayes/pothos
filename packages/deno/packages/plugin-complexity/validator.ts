@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { FragmentDefinitionNode, GraphQLError, Kind, ValidationRule } from 'https://cdn.skypack.dev/graphql?dts';
+import { PothosValidationError } from '../core/index.ts';
 import { complexityFromSelectionSet } from './calculate-complexity.ts';
 export function createComplexityRule({ variableValues, context, maxComplexity, maxBreadth, maxDepth, validate, onResult, }: {
     context: object;
@@ -36,7 +37,7 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
                 enter: (node) => {
                     const type = schema.getRootType(node.operation);
                     if (!type) {
-                        throw new Error(`Could not find root type for operation ${node.operation}`);
+                        throw new PothosValidationError(`Could not find root type for operation ${node.operation}`);
                     }
                     const complexity = complexityFromSelectionSet(context, {
                         fragments,

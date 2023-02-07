@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { MaybePromise, SchemaTypes } from '../core/index.ts';
+import { MaybePromise, PothosValidationError, SchemaTypes } from '../core/index.ts';
 import type SubscriptionCache from './cache.ts';
 import FieldSubscriptionManager from './manager/field.ts';
 import TypeSubscriptionManager from './manager/type.ts';
@@ -39,7 +39,7 @@ export default class CacheNode<Types extends SchemaTypes> {
     replaceValue(value: unknown, key: number | string) {
         if (typeof key === "number") {
             if (!Array.isArray(this.value)) {
-                throw new TypeError("Expected value of CacheNode for list path to be an array");
+                throw new PothosValidationError("Expected value of CacheNode for list path to be an array");
             }
             this.cache.invalidPaths.push(`${this.path}.${key}`);
             this.value[key] = value;

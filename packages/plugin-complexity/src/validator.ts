@@ -1,4 +1,5 @@
 import { FragmentDefinitionNode, GraphQLError, Kind, ValidationRule } from 'graphql';
+import { PothosValidationError } from '@pothos/core';
 import { complexityFromSelectionSet } from './calculate-complexity';
 
 export function createComplexityRule({
@@ -46,7 +47,9 @@ export function createComplexityRule({
           const type = schema.getRootType(node.operation);
 
           if (!type) {
-            throw new Error(`Could not find root type for operation ${node.operation}`);
+            throw new PothosValidationError(
+              `Could not find root type for operation ${node.operation}`,
+            );
           }
 
           const complexity = complexityFromSelectionSet(

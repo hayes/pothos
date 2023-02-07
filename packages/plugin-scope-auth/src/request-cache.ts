@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { GraphQLResolveInfo } from 'graphql';
-import { isThenable, MaybePromise, Path, SchemaTypes } from '@pothos/core';
+import { isThenable, MaybePromise, Path, PothosValidationError, SchemaTypes } from '@pothos/core';
 import {
   AuthFailure,
   AuthScopeFailureType,
@@ -152,7 +152,7 @@ export default class RequestCache<Types extends SchemaTypes> {
       const loader = scopes[name];
 
       if (typeof loader !== 'function') {
-        throw new TypeError(
+        throw new PothosValidationError(
           `Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`,
         );
       }

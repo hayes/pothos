@@ -1,5 +1,5 @@
 // @ts-nocheck
-import SchemaBuilder, { InterfaceParam, ObjectParam, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import SchemaBuilder, { InterfaceParam, ObjectParam, PothosSchemaError, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 import { ImplementableLoadableNodeRef } from './refs/index.ts';
 import { ImplementableLoadableInterfaceRef } from './refs/interface.ts';
 import { ImplementableLoadableObjectRef } from './refs/object.ts';
@@ -64,7 +64,7 @@ const TloadableNode = schemaBuilderProto.loadableNode;
 schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, options: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
     if (typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
         .nodeInterfaceRef !== "function") {
-        throw new TypeError("builder.loadableNode requires @pothos/plugin-relay to be installed");
+        throw new PothosSchemaError("builder.loadableNode requires @pothos/plugin-relay to be installed");
     }
     const name = typeof nameOrRef === "string"
         ? nameOrRef

@@ -5,6 +5,7 @@ import SchemaBuilder, {
   FieldRef,
   InterfaceRef,
   OutputType,
+  PothosError,
   SchemaTypes,
 } from '@pothos/core';
 import { PrismaObjectFieldBuilder } from './field-builder';
@@ -87,7 +88,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     : ModelLoader.getFindUniqueForField(nodeRef, type, fieldName, this);
 
   if (!interfaceRef) {
-    throw new TypeError('builder.prismaNode requires @pothos/plugin-relay to be installed');
+    throw new PothosError('builder.prismaNode requires @pothos/plugin-relay to be installed');
   }
 
   const extendedOptions = {

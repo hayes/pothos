@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { PothosSchemaError, PothosValidationError } from '../errors.ts';
 import InputListRef from '../refs/input-list.ts';
 import ListRef from '../refs/list.ts';
 import { InputType, InputTypeParam, OutputType, SchemaTypes, typeBrandKey, TypeParam, } from '../types/index.ts';
@@ -13,7 +14,7 @@ export function assertNever(value: never): never {
 }
 export function assertArray(value: unknown): value is unknown[] {
     if (!Array.isArray(value)) {
-        throw new TypeError("List resolvers must return arrays");
+        throw new PothosValidationError("List resolvers must return arrays");
     }
     return true;
 }
@@ -24,7 +25,7 @@ export function isThenable(value: unknown): value is Promise<unknown> {
 }
 export function verifyRef(ref: unknown) {
     if (ref === undefined) {
-        throw new Error(`Received undefined as a type ref.
+        throw new PothosSchemaError(`Received undefined as a type ref.
 
 This is often caused by a circular import
 If this ref is imported from a file that re-exports it (like index.ts)
@@ -37,11 +38,11 @@ export function verifyInterfaces(interfaces: unknown) {
         return;
     }
     if (!Array.isArray(interfaces)) {
-        throw new TypeError("interfaces must be an array or function");
+        throw new PothosSchemaError("interfaces must be an array or function");
     }
     for (const iface of interfaces) {
         if (iface === undefined) {
-            throw new Error(`Received undefined in list of interfaces.
+            throw new PothosSchemaError(`Received undefined in list of interfaces.
 
 This is often caused by a circular import
 If this ref is imported from a file that re-exports it (like index.ts)

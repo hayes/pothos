@@ -1,7 +1,7 @@
 // @ts-nocheck
 import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, ContextCache, createContextCache, PothosOutputFieldConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, ContextCache, createContextCache, PothosOutputFieldConfig, PothosValidationError, SchemaTypes, } from '../core/index.ts';
 import { calculateComplexity } from './calculate-complexity.ts';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
 import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './types.ts';
@@ -21,15 +21,15 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
         this.builder.options.complexity?.complexityError ??
         ((kind, { depth, breadth, complexity, maxBreadth, maxComplexity, maxDepth }) => {
             if (kind === ComplexityErrorKind.Depth) {
-                return new Error(`Query exceeds maximum depth (depth: ${depth}, max: ${maxDepth})`);
+                return new PothosValidationError(`Query exceeds maximum depth (depth: ${depth}, max: ${maxDepth})`);
             }
             if (kind === ComplexityErrorKind.Breadth) {
-                return new Error(`Query exceeds maximum breadth (breadth: ${breadth}, max: ${maxBreadth})`);
+                return new PothosValidationError(`Query exceeds maximum breadth (breadth: ${breadth}, max: ${maxBreadth})`);
             }
             if (kind === ComplexityErrorKind.Complexity) {
-                return new Error(`Query exceeds maximum complexity (complexity: ${complexity}, max: ${maxComplexity})`);
+                return new PothosValidationError(`Query exceeds maximum complexity (complexity: ${complexity}, max: ${maxComplexity})`);
             }
-            throw new Error("Unexpected complexity error kind");
+            throw new PothosValidationError("Unexpected complexity error kind");
         });
     complexityCache: ContextCache<ComplexityResult, Types["Context"], [
         GraphQLResolveInfo

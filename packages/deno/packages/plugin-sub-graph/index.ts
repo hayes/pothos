@@ -2,7 +2,7 @@
 /* eslint-disable prefer-destructuring */
 import './global-types.ts';
 import { getNamedType, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLUnionType, isInterfaceType, isNonNullType, isObjectType, } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, PothosInputFieldConfig, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, PothosInputFieldConfig, PothosOutputFieldConfig, PothosSchemaError, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
 import { replaceType } from './util.ts';
 const pluginName = "subGraph" as const;
 export default pluginName;
@@ -123,7 +123,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
                     const argSubGraphs = argConfig.extensions?.subGraphs as string[] | undefined;
                     if (argSubGraphs && !intersect(argSubGraphs, subGraphs)) {
                         if (isNonNullType(argConfig.type)) {
-                            throw new Error(`argument ${argConfig.name} of ${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}.${fieldName}`);
+                            throw new PothosSchemaError(`argument ${argConfig.name} of ${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}.${fieldName}`);
                         }
                         return;
                     }
@@ -158,7 +158,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
                 const fieldSubGraphs = fieldConfig.extensions?.subGraphs as string[] | undefined;
                 if (fieldSubGraphs && !intersect(fieldSubGraphs, subGraphs)) {
                     if (isNonNullType(fieldConfig.type)) {
-                        throw new Error(`${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}`);
+                        throw new PothosSchemaError(`${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}`);
                     }
                     return;
                 }

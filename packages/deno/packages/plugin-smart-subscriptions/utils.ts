@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { createContextCache } from '../core/index.ts';
+import { createContextCache, PothosSchemaError } from '../core/index.ts';
 import type { SmartSubscriptionOptions } from './types.ts';
 export function rootName(path: GraphQLResolveInfo["path"]): string {
     if (path.prev) {
@@ -21,7 +21,7 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
             const itr = createIterator(name, context);
             const map = iterators(context)!;
             if (map.has(name)) {
-                throw new Error(`Can't create multiple subscriptions for the same event name ${name}`);
+                throw new PothosSchemaError(`Can't create multiple subscriptions for the same event name ${name}`);
             }
             map.set(name, itr);
             try {

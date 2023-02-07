@@ -1,4 +1,5 @@
 import * as zod from 'zod';
+import { PothosSchemaError } from '@pothos/core';
 import {
   ArrayValidationOptions,
   BaseValidationOptions,
@@ -311,7 +312,7 @@ export default function createZodSchema(
   }
 
   if (typeValidators.length === 0) {
-    throw new Error(
+    throw new PothosSchemaError(
       `No type validator can implement every constraint in (${Object.keys(options)})`,
     );
   }

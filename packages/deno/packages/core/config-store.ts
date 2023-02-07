@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-redundant-type-constituents */
 /* eslint-disable node/no-callback-literal */
 import { GraphQLBoolean, GraphQLFloat, GraphQLID, GraphQLInt, GraphQLScalarType, GraphQLString, } from 'https://cdn.skypack.dev/graphql?dts';
+import { PothosError, PothosSchemaError } from './errors.ts';
 import BaseTypeRef from './refs/base.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
 import FieldRef from './refs/field.ts';
@@ -60,7 +61,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
                 typeConfig.kind === "Query" ||
                 typeConfig.kind === "Mutation" ||
                 typeConfig.kind === "Subscription") {
-                throw new Error(`Can not add interfaces to ${typeName} because it is a ${typeConfig.kind}`);
+                throw new PothosSchemaError(`Can not add interfaces to ${typeName} because it is a ${typeConfig.kind}`);
             }
             typeConfig.interfaces = [
                 ...typeConfig.interfaces,
@@ -74,7 +75,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     // We need to be able to resolve the types kind before configuring the field
     typeParam: InputTypeParam<Types> | TypeParam<Types>, args: InputFieldMap, getConfig: (name: string, parentField: string | undefined, typeConfig: PothosTypeConfig) => PothosFieldConfig<Types>) {
         if (this.fieldRefs.has(ref)) {
-            throw new Error(`FieldRef ${String(ref)} has already been added to config store`);
+            throw new PothosSchemaError(`FieldRef ${String(ref)} has already been added to config store`);
         }
         const typeRefOrName = unwrapListParam(typeParam);
         const argRefs = Object.keys(args).map((argName) => {
@@ -112,13 +113,13 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }> {
         if (!this.fieldRefs.has(ref)) {
             if (this.pendingFields.has(ref)) {
-                throw new Error(`Missing implementation for ${this.describeRef(this.pendingFields.get(ref)!)}`);
+                throw new PothosSchemaError(`Missing implementation for ${this.describeRef(this.pendingFields.get(ref)!)}`);
             }
-            throw new Error(`Missing definition for ${String(ref)}`);
+            throw new PothosSchemaError(`Missing definition for ${String(ref)}`);
         }
         const config = this.fieldRefs.get(ref)!(name, parentField, typeConfig);
         if (kind && config.graphqlKind !== kind) {
-            throw new TypeError(`Expected ref for field named ${name} to resolve to a ${kind} type, but got ${config.graphqlKind}`);
+            throw new PothosError(`Expected ref for field named ${name} to resolve to a ${kind} type, but got ${config.graphqlKind}`);
         }
         return config as Extract<PothosFieldConfig<Types>, {
             graphqlKind: T;
@@ -126,7 +127,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     associateRefWithName(ref: ConfigurableRef<Types>, name: string) {
         if (!this.typeConfigs.has(name)) {
-            throw new Error(`${name} has not been implemented yet`);
+            throw new PothosSchemaError(`${name} has not been implemented yet`);
         }
         this.refsToName.set(ref, name);
         if (this.pendingRefResolutions.has(ref)) {
@@ -138,7 +139,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     addTypeConfig(config: PothosTypeConfig, ref?: ConfigurableRef<Types>) {
         const { name } = config;
         if (this.typeConfigs.has(name)) {
-            throw new Error(`Duplicate typename: Another type with name ${name} already exists.`);
+            throw new PothosSchemaError(`Duplicate typename: Another type with name ${name} already exists.`);
         }
         this.typeConfigs.set(config.name, config);
         if (ref) {
@@ -154,7 +155,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         let config: PothosTypeConfig;
         if (typeof ref === "string") {
             if (!this.typeConfigs.has(ref)) {
-                throw new Error(`Type ${String(ref)} has not been implemented`);
+                throw new PothosSchemaError(`Type ${String(ref)} has not been implemented`);
             }
             config = this.typeConfigs.get(ref)!;
         }
@@ -162,13 +163,13 @@ export default class ConfigStore<Types extends SchemaTypes> {
             config = this.typeConfigs.get(this.refsToName.get(ref)!)!;
         }
         else if (ref instanceof ListRef || ref instanceof InputListRef) {
-            throw new TypeError(`Expected a base type but got a ${ref.kind} of ${String(ref.listType)}`);
+            throw new PothosSchemaError(`Expected a base type but got a ${ref.kind} of ${String(ref.listType)}`);
         }
         else {
-            throw new TypeError(`Ref ${String(ref)} has not been implemented`);
+            throw new PothosSchemaError(`Ref ${String(ref)} has not been implemented`);
         }
         if (kind && config.graphqlKind !== kind) {
-            throw new TypeError(`Expected ref to resolve to a ${kind} type, but got ${config.kind}`);
+            throw new PothosSchemaError(`Expected ref to resolve to a ${kind} type, but got ${config.kind}`);
         }
         return config as Extract<PothosTypeConfig, {
             kind: T;
@@ -177,7 +178,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     getInputTypeRef(ref: ConfigurableRef<Types> | string) {
         if (ref instanceof BaseTypeRef) {
             if (ref.kind !== "InputObject" && ref.kind !== "Enum" && ref.kind !== "Scalar") {
-                throw new TypeError(`Expected ${ref.name} to be an input type but got ${ref.kind}`);
+                throw new PothosSchemaError(`Expected ${ref.name} to be an input type but got ${ref.kind}`);
             }
             return ref as InputRef;
         }
@@ -190,7 +191,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
                 if (config.graphqlKind !== "InputObject" &&
                     config.graphqlKind !== "Enum" &&
                     config.graphqlKind !== "Scalar") {
-                    throw new TypeError(`Expected ${config.name} to be an input type but got ${config.graphqlKind}`);
+                    throw new PothosSchemaError(`Expected ${config.name} to be an input type but got ${config.graphqlKind}`);
                 }
                 const newRef = new InputTypeRef(config.graphqlKind, config.name);
                 this.refsToName.set(newRef, config.name);
@@ -202,10 +203,10 @@ export default class ConfigStore<Types extends SchemaTypes> {
     getOutputTypeRef(ref: ConfigurableRef<Types> | string) {
         if (ref instanceof BaseTypeRef) {
             if (ref.kind === "InputObject" || ref.kind === "InputList") {
-                throw new TypeError(`Expected ${ref.name} to be an output type but got ${ref.kind}`);
+                throw new PothosSchemaError(`Expected ${ref.name} to be an output type but got ${ref.kind}`);
             }
             if (ref.kind === "List") {
-                throw new TypeError(`Expected ${ref.name} to be a base type but got a ${ref.kind}`);
+                throw new PothosSchemaError(`Expected ${ref.name} to be a base type but got a ${ref.kind}`);
             }
             return ref as OutputRef;
         }
@@ -216,7 +217,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             if (this.typeConfigs.has(ref)) {
                 const config = this.typeConfigs.get(ref)!;
                 if (config.graphqlKind === "InputObject") {
-                    throw new TypeError(`Expected ${config.name} to be an output type but got ${config.graphqlKind}`);
+                    throw new PothosSchemaError(`Expected ${config.name} to be an output type but got ${config.graphqlKind}`);
                 }
                 const newRef = new OutputTypeRef(config.graphqlKind, config.name);
                 this.refsToName.set(newRef, config.name);
@@ -227,7 +228,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     onTypeConfig(ref: ConfigurableRef<Types>, cb: (config: PothosTypeConfig) => void) {
         if (!ref) {
-            throw new Error(`${String(ref)} is not a valid type ref`);
+            throw new PothosSchemaError(`${String(ref)} is not a valid type ref`);
         }
         if (this.refsToName.has(ref)) {
             cb(this.getTypeConfig(ref));
@@ -236,7 +237,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
             cb(this.typeConfigs.get(ref)!);
         }
         else if (!this.pending) {
-            throw new Error(`Ref ${String(ref)} has not been implemented`);
+            throw new PothosSchemaError(`Ref ${String(ref)} has not been implemented`);
         }
         else if (this.pendingRefResolutions.has(ref)) {
             this.pendingRefResolutions.get(ref)!.push(cb);
@@ -263,7 +264,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         }
         const fields = this.fields.get(name)!;
         if (kind && typeConfig.graphqlKind !== kind) {
-            throw new TypeError(`Expected ${name} to be a ${kind} type, but found ${typeConfig.graphqlKind}`);
+            throw new PothosSchemaError(`Expected ${name} to be a ${kind} type, but found ${typeConfig.graphqlKind}`);
         }
         return fields as Map<string, Extract<PothosFieldConfig<Types>, {
             graphqlKind: T;
@@ -275,7 +276,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
         this.addFieldFns = [];
         fns.forEach((fn) => void fn());
         if (this.pendingRefResolutions.size > 0) {
-            throw new Error(`Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
+            throw new PothosSchemaError(`Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
                 .map((ref) => this.describeRef(ref))
                 .join(", ")}).`);
         }
@@ -333,10 +334,10 @@ export default class ConfigStore<Types extends SchemaTypes> {
         const fieldConfig = this.createFieldConfig(field, fieldName, typeConfig);
         const existingFields = this.getFields(typeConfig.name);
         if (existingFields.has(fieldName)) {
-            throw new Error(`Duplicate field definition for field ${fieldName} in ${typeConfig.name}`);
+            throw new PothosSchemaError(`Duplicate field definition for field ${fieldName} in ${typeConfig.name}`);
         }
         if (fieldConfig.graphqlKind !== typeConfig.graphqlKind) {
-            throw new TypeError(`${typeConfig.name}.${fieldName} was defined as a ${fieldConfig.graphqlKind} field but ${typeConfig.name} is a ${typeConfig.graphqlKind}`);
+            throw new PothosSchemaError(`${typeConfig.name}.${fieldName} was defined as a ${fieldConfig.graphqlKind} field but ${typeConfig.name} is a ${typeConfig.graphqlKind}`);
         }
         existingFields.set(fieldName, fieldConfig);
         if (!this.fieldRefsToConfigs.has(field)) {

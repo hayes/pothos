@@ -3,7 +3,7 @@ import './global-types.ts';
 import './schema-builder.ts';
 import './field-builders.ts';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { BasePlugin, FieldKind, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosQueryTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
+import SchemaBuilder, { BasePlugin, FieldKind, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosQueryTypeConfig, PothosSchemaError, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
 import { isTypeOfHelper } from './is-type-of-helper.ts';
 import { resolveHelper } from './resolve-helper.ts';
 import { createFieldAuthScopesStep, createFieldGrantScopesStep, createResolveStep, createTypeAuthScopesStep, createTypeGrantScopesStep, } from './steps.ts';
@@ -20,7 +20,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         }
         const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
         if (typeConfig.graphqlKind !== "Object" && typeConfig.graphqlKind !== "Interface") {
-            throw new Error(`Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`);
+            throw new PothosSchemaError(`Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`);
         }
         const authorizedOnSubscribe = !!this.builder.options.scopeAuthOptions?.authorizeOnSubscribe &&
             typeConfig.kind === "Subscription";
@@ -44,7 +44,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         }
         const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
         if (typeConfig.graphqlKind !== "Object" && typeConfig.graphqlKind !== "Interface") {
-            throw new Error(`Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`);
+            throw new PothosSchemaError(`Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`);
         }
         if (!this.builder.options.scopeAuthOptions?.authorizeOnSubscribe ||
             typeConfig.kind !== "Subscription") {

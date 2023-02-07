@@ -1,5 +1,11 @@
 /* eslint-disable no-nested-ternary */
-import { decodeBase64, encodeBase64, MaybePromise, SchemaTypes } from '@pothos/core';
+import {
+  decodeBase64,
+  encodeBase64,
+  MaybePromise,
+  PothosValidationError,
+  SchemaTypes,
+} from '@pothos/core';
 import { getModel } from './datamodel';
 import { DMMFField } from './get-client';
 
@@ -19,7 +25,7 @@ export function formatCursorChunk(value: unknown) {
     case 'bigint':
       return `I:${value}`;
     default:
-      throw new TypeError(`Unsupported cursor type ${typeof value}`);
+      throw new PothosValidationError(`Unsupported cursor type ${typeof value}`);
   }
 }
 
@@ -39,7 +45,7 @@ export function cursorFormatter(fields: string | string[]) {
 
 export function parsePrismaCursor(cursor: unknown) {
   if (typeof cursor !== 'string') {
-    throw new TypeError('Cursor must be a string');
+    throw new PothosValidationError('Cursor must be a string');
   }
 
   try {
@@ -59,10 +65,10 @@ export function parsePrismaCursor(cursor: unknown) {
         // eslint-disable-next-line node/no-unsupported-features/es-builtins
         return BigInt(value);
       default:
-        throw new TypeError(`Invalid cursor type ${type}`);
+        throw new PothosValidationError(`Invalid cursor type ${type}`);
     }
   } catch {
-    throw new Error(`Invalid cursor: ${cursor}`);
+    throw new PothosValidationError(`Invalid cursor: ${cursor}`);
   }
 }
 
@@ -120,7 +126,7 @@ export function getDefaultIDSerializer<Types extends SchemaTypes>(
     return (parent) => JSON.stringify(fields.map((f) => serializeID(parent[f.name], f.kind)));
   }
 
-  throw new Error(`Unable to find ${fieldName} for model ${modelName}`);
+  throw new PothosValidationError(`Unable to find ${fieldName} for model ${modelName}`);
 }
 
 export function getDefaultIDParser<Types extends SchemaTypes>(
@@ -129,7 +135,7 @@ export function getDefaultIDParser<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ): (id: string) => unknown {
   if (!fieldName) {
-    throw new Error('Missing field name');
+    throw new PothosValidationError('Missing field name');
   }
   const model = getModel(modelName, builder);
 
@@ -149,14 +155,14 @@ export function getDefaultIDParser<Types extends SchemaTypes>(
   }
 
   if (!fields) {
-    throw new Error(`Unable to find ${fieldName} for model ${modelName}`);
+    throw new PothosValidationError(`Unable to find ${fieldName} for model ${modelName}`);
   }
 
   return (id) => {
     const parts = JSON.parse(id) as unknown;
 
     if (!Array.isArray(parts)) {
-      throw new TypeError(`Invalid id received for ${fieldName} of ${modelName}`);
+      throw new PothosValidationError(`Invalid id received for ${fieldName} of ${modelName}`);
     }
 
     const result: Record<string, unknown> = {};
@@ -185,7 +191,9 @@ export function parseCompositeCursor(fields: string[]) {
     const parsed = parsePrismaCursor(cursor) as unknown[];
 
     if (!Array.isArray(parsed)) {
-      throw new TypeError(`Expected compound cursor to contain an array, but got ${parsed}`);
+      throw new PothosValidationError(
+        `Expected compound cursor to contain an array, but got ${parsed}`,
+      );
     }
 
     const record: Record<string, unknown> = {};
@@ -220,23 +228,29 @@ export function prismaCursorConnectionQuery({
 }: PrismaCursorConnectionQueryOptions) {
   const { before, after, first, last } = args;
   if (first != null && first < 0) {
-    throw new TypeError('Argument "first" must be a non-negative integer');
+    throw new PothosValidationError('Argument "first" must be a non-negative integer');
   }
 
   if (last != null && last < 0) {
-    throw new Error('Argument "last" must be a non-negative integer');
+    throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
   if (before && after) {
-    throw new Error('Arguments "before" and "after" are not supported at the same time');
+    throw new PothosValidationError(
+      'Arguments "before" and "after" are not supported at the same time',
+    );
   }
 
   if (before != null && first != null) {
-    throw new Error('Arguments "before" and "first" are not supported at the same time');
+    throw new PothosValidationError(
+      'Arguments "before" and "first" are not supported at the same time',
+    );
   }
 
   if (after != null && last != null) {
-    throw new Error('Arguments "after" and "last" are not supported at the same time');
+    throw new PothosValidationError(
+      'Arguments "after" and "last" are not supported at the same time',
+    );
   }
 
   const cursor = before ?? after;

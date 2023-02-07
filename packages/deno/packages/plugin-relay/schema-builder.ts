@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
+import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { NodeRef } from './node-ref.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
@@ -88,7 +88,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
             [this.options.relayOptions?.idFieldName ?? "id"]: t.globalID({
                 nullable: false,
                 resolve: (parent) => {
-                    throw new Error("id field not implemented");
+                    throw new PothosValidationError("id field not implemented");
                 },
             }),
         }),

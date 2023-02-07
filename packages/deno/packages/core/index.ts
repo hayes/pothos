@@ -20,6 +20,7 @@ import InternalObjectRef from './refs/object.ts';
 import InternalScalarRef from './refs/scalar.ts';
 import InternalUnionRef from './refs/union.ts';
 import type { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types/index.ts';
+export * from './errors.ts';
 export * from './plugins/index.ts';
 export * from './types/index.ts';
 export * from './utils/index.ts';

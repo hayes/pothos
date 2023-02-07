@@ -11,6 +11,7 @@ import SchemaBuilder, {
   ObjectParam,
   ObjectRef,
   OutputRef,
+  PothosValidationError,
   SchemaTypes,
   verifyRef,
 } from '@pothos/core';
@@ -138,7 +139,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
       [this.options.relayOptions?.idFieldName ?? 'id']: t.globalID({
         nullable: false,
         resolve: (parent) => {
-          throw new Error('id field not implemented');
+          throw new PothosValidationError('id field not implemented');
         },
       }),
     }),

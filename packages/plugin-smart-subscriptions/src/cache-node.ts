@@ -1,4 +1,4 @@
-import { MaybePromise, SchemaTypes } from '@pothos/core';
+import { MaybePromise, PothosValidationError, SchemaTypes } from '@pothos/core';
 import type SubscriptionCache from './cache';
 import FieldSubscriptionManager from './manager/field';
 import TypeSubscriptionManager from './manager/type';
@@ -63,7 +63,7 @@ export default class CacheNode<Types extends SchemaTypes> {
   replaceValue(value: unknown, key: number | string) {
     if (typeof key === 'number') {
       if (!Array.isArray(this.value)) {
-        throw new TypeError('Expected value of CacheNode for list path to be an array');
+        throw new PothosValidationError('Expected value of CacheNode for list path to be an array');
       }
 
       this.cache.invalidPaths.push(`${this.path}.${key}`);
