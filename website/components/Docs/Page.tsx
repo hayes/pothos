@@ -50,7 +50,7 @@ const components = {
   Alert,
 };
 
-const useIsomorphicLayoutEffect = typeof window !== 'undefined' ? useLayoutEffect : useEffect;
+const useIsomorphicLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect;
 
 export function DocsPage({ children, nav }: { children?: React.ReactNode; nav: TableOfContents }) {
   const bodyRef = useRef<HTMLDivElement | null>(null);
