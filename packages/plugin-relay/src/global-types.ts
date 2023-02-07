@@ -22,7 +22,7 @@ import {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@pothos/core';
-import { NodeRef, relayIDShapeKey } from './node-ref';
+import { NodeRef } from './node-ref';
 import {
   ConnectionShape,
   ConnectionShapeForType,
@@ -193,20 +193,18 @@ declare global {
         >;
       };
 
-      globalID: <
-        Req extends boolean,
-        For extends NodeRef<unknown, unknown, unknown> = NodeRef<unknown, unknown, string>,
-      >(
+      globalID: <Req extends boolean, For extends ObjectParam<Types>>(
         ...args: NormalizeArgs<[options: GlobalIDInputFieldOptions<Types, Req, Kind, For>]>
       ) => InputFieldRef<
-        InputShapeFromTypeParam<Types, GlobalIDInputShape<For[typeof relayIDShapeKey]>, Req>,
+        InputShapeFromTypeParam<
+          Types,
+          GlobalIDInputShape<For extends NodeRef<unknown, unknown, infer T> ? T : string>,
+          Req
+        >,
         Kind
       >;
 
-      globalIDList: <
-        Req extends FieldRequiredness<['ID']>,
-        For extends NodeRef<unknown, unknown, unknown> = NodeRef<unknown, unknown, string>,
-      >(
+      globalIDList: <Req extends FieldRequiredness<['ID']>, For extends ObjectParam<Types>>(
         ...args: NormalizeArgs<[options: GlobalIDListInputFieldOptions<Types, Req, Kind, For>]>
       ) => InputFieldRef<
         InputShapeFromTypeParam<
@@ -215,7 +213,7 @@ declare global {
             {
               [inputShapeKey]: {
                 typename: string;
-                id: For[typeof relayIDShapeKey];
+                id: For extends NodeRef<unknown, unknown, infer T> ? T : string;
               };
             },
           ],

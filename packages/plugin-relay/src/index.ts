@@ -45,7 +45,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
           String(globalID),
           ctx,
           info,
-          Array.isArray(mappings.value) ? mappings.value : null,
+          Array.isArray(mappings.value) ? mappings.value : false,
         ),
     );
 
@@ -77,7 +77,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
           String(globalID),
           ctx,
           info,
-          Array.isArray(mappings.value) ? mappings.value : null,
+          Array.isArray(mappings.value) ? mappings.value : false,
         ),
     );
 

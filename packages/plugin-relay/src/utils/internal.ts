@@ -20,27 +20,36 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   globalID: string,
   ctx: object,
   info: GraphQLResolveInfo,
-  types?: string[] | null,
+  parseIdsForTypes: boolean | string[],
 ) {
   const decoded = builder.options.relayOptions.decodeGlobalID
     ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)
     : decodeGlobalID(globalID);
 
+<<<<<<< HEAD
   if (types && !types.includes(decoded.typename)) {
     throw new Error(`ID: ${globalID} is not of type: ${types.join(', ')}`);
+=======
+  if (Array.isArray(parseIdsForTypes) && !parseIdsForTypes.includes(decoded.typename)) {
+    throw new PothosValidationError(
+      `ID: ${globalID} is not of type: ${parseIdsForTypes.join(', ')}`,
+    );
+>>>>>>> ec530aba (Handle non-NodeRef parameters in 'for' and only decode when 'for' is present)
   }
 
-  const parseID = info.schema.getType(decoded.typename)?.extensions?.pothosParseGlobalID as (
-    id: string,
-    ctx: object,
-  ) => string;
+  if (parseIdsForTypes !== false) {
+    const parseID = info.schema.getType(decoded.typename)?.extensions?.pothosParseGlobalID as (
+      id: string,
+      ctx: object,
+    ) => string;
 
-  if (!parseID) {
-    return decoded;
+    if (parseID) {
+      return {
+        ...decoded,
+        id: parseID(decoded.id, ctx),
+      };
+    }
   }
 
-  return {
-    ...decoded,
-    id: parseID(decoded.id, ctx),
-  };
+  return decoded;
 }

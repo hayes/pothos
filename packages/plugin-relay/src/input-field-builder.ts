@@ -24,7 +24,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
     for: forTypes,
     ...options
   }: GlobalIDListInputFieldOptions<DefaultSchemaTypes, Req, 'Arg' | 'InputObject'> = {} as never,
-): InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>> {
+) {
   return this.idList({
     ...options,
     extensions: {
@@ -38,7 +38,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
           (type: ObjectRef<SchemaTypes>) => this.builder.configStore.getTypeConfig(type).name,
         ) ?? null,
     },
-  }) as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>>;
+  }) as never;
 };
 
 inputFieldBuilder.globalID = function globalID<Req extends boolean>(
@@ -62,7 +62,7 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>(
     },
   }) as unknown as InputFieldRef<
     InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>
-  >;
+  > as never;
 };
 
 inputFieldBuilder.connectionArgs = function connectionArgs() {
