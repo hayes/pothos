@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.35.0
+
+### Minor Changes
+
+- 1c73b585: Add new parse option for id field on nodes, and a `for` option on globalID args
+- bf0385ae: Add new PothosError classes
+
 ## 3.34.0
 
 ### Minor Changes
