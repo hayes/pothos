@@ -36,7 +36,9 @@ const UserType = builder.objectRef<User>('User').implement({
   fields: (t) => ({
     id: t.exposeID('id'),
     name: t.exposeString('name'),
-    username: t.exposeString('username'),
+    username: t.exposeString('username', {
+      shareable: true,
+    }),
   }),
 });
 

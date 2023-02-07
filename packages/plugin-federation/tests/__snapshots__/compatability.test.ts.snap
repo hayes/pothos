@@ -1,13 +1,8 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
 exports[`federation compatibility generates expected schema 1`] = `
-"directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
-
-directive @link(import: [link__Import], url: String!) on SCHEMA
-
-directive @override(from: String!) on FIELD_DEFINITION
-
-directive @shareable on FIELD_DEFINITION | OBJECT
+"extend schema
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override"])
 
 type Product
   @key(fields: "sku package")
@@ -45,33 +40,11 @@ type User
   email: String! @external
   totalProductsCreated: Int @external
   name: String @override(from: "users")
-}
-
-scalar link__Import"
+}"
 `;
 
 exports[`federation compatibility generates expected schema 2`] = `
-"directive @extends on INTERFACE | OBJECT
-
-directive @external on FIELD_DEFINITION | OBJECT
-
-directive @inaccessible on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
-
-directive @key(fields: String!, resolvable: Boolean = true) repeatable on INTERFACE | OBJECT
-
-directive @link(import: [link__Import], url: String!) on SCHEMA
-
-directive @override(from: String!) on FIELD_DEFINITION
-
-directive @provides(fields: String!) on FIELD_DEFINITION
-
-directive @requires(fields: String!) on FIELD_DEFINITION
-
-directive @shareable on FIELD_DEFINITION | OBJECT
-
-directive @tag(name: String!) repeatable on ARGUMENT_DEFINITION | ENUM | ENUM_VALUE | FIELD_DEFINITION | INPUT_FIELD_DEFINITION | INPUT_OBJECT | INTERFACE | OBJECT | SCALAR | UNION
-
-type Product {
+"type Product {
   createdBy: User
   dimensions: ProductDimension
   id: ID!
@@ -112,7 +85,5 @@ type _Service {
   The sdl representing the federated service capabilities. Includes federation directives, removes federation types, and includes rest of full schema after schema directives have been applied
   """
   sdl: String
-}
-
-scalar link__Import"
+}"
 `;

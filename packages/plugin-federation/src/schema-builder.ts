@@ -10,7 +10,6 @@ import {
   lexicographicSortSchema,
 } from 'graphql';
 import { printSubgraphSchema } from '@apollo/subgraph';
-import { federationDirectives } from '@apollo/subgraph/dist/directives';
 import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/types';
 import SchemaBuilder, { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ExternalEntityRef } from './external-ref';
@@ -54,10 +53,20 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
       ...options.extensions,
       directives: {
         ...(options?.extensions?.directives as {}),
-        // link: {
-        //   url: 'https://specs.apollo.dev/federation/v2.0',
-        //   import: ['@key', '@shareable'],
-        // },
+        link: {
+          url: 'https://specs.apollo.dev/federation/v2.3',
+          import: [
+            '@key',
+            '@shareable',
+            '@inaccessible',
+            '@tag',
+            '@provides',
+            '@requires',
+            '@external',
+            '@extends',
+            '@override',
+          ],
+        },
       },
     },
   });
@@ -69,6 +78,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
   const entityTypes = Object.values(types).filter(
     (type) => isObjectType(type) && hasDirective(type, 'key'),
   );
+
   const hasEntities = entityTypes.length > 0;
 
   const updatedEntityType = new GraphQLUnionType({
@@ -101,7 +111,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
     mutation: schema.getType('Mutation') as GraphQLObjectType,
     subscription: schema.getType('Subscription') as GraphQLObjectType,
     extensions: schema.extensions,
-    directives: [...schema.getDirectives(), ...federationDirectives],
+    directives: schema.getDirectives(),
     extensionASTNodes: schema.extensionASTNodes,
     types: [
       ...Object.values(types).filter((type) => type.name !== 'Query'),
