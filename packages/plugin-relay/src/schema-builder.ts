@@ -14,6 +14,7 @@ import SchemaBuilder, {
   SchemaTypes,
   verifyRef,
 } from '@pothos/core';
+import { NodeRef } from './node-ref';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types';
 import { capitalize, resolveNodes } from './utils';
 
@@ -289,7 +290,13 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
     );
   });
 
-  return ref as never;
+  const nodeRef = new NodeRef(ref.name, {
+    parseId: id.parse,
+  });
+
+  this.configStore.associateRefWithName(nodeRef, ref.name);
+
+  return nodeRef as never;
 };
 
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {

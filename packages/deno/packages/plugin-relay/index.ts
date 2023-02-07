@@ -15,7 +15,10 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
             if (inputField.extensions?.isRelayGlobalID) {
-                return (inputField.extensions?.relayGlobalIDFor ?? true) as true | string[];
+                return (inputField.extensions?.relayGlobalIDFor ?? true) as true | {
+                    typename: string;
+                    parseId: (id: string, ctx: object) => unknown;
+                }[];
             }
             return null;
         });
@@ -28,7 +31,10 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
             if (inputField.extensions?.isRelayGlobalID) {
-                return (inputField.extensions?.relayGlobalIDFor ?? true) as true | string[];
+                return (inputField.extensions?.relayGlobalIDFor ?? true) as true | {
+                    typename: string;
+                    parseId: (id: string, ctx: object) => unknown;
+                }[];
             }
             return null;
         });

@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, SchemaTypes, verifyRef, } from '../core/index.ts';
+import { NodeRef } from './node-ref.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
@@ -208,7 +209,11 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
             }),
         }));
     });
-    return ref as never;
+    const nodeRef = new NodeRef(ref.name, {
+        parseId: id.parse,
+    });
+    this.configStore.associateRefWithName(nodeRef, ref.name);
+    return nodeRef as never;
 };
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
     const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {

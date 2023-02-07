@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { FieldRequiredness, InputFieldBuilder, InputFieldRef, InputShapeFromTypeParam, ObjectRef, SchemaTypes, } from '../core/index.ts';
+import { NodeRef } from './node-ref.ts';
 import { GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListInputFieldOptions, } from './types.ts';
 type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
@@ -12,7 +13,10 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
             ...options.extensions,
             isRelayGlobalID: true,
             relayGlobalIDFor: ((forTypes &&
-                (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => this.builder.configStore.getTypeConfig(type).name) ?? null,
+                (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
+                typename: this.builder.configStore.getTypeConfig(type).name,
+                parse: type instanceof NodeRef ? type.parseId : undefined,
+            })) ?? null,
         },
     }) as never;
 };
@@ -23,7 +27,10 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>({ for: forTy
             ...options.extensions,
             isRelayGlobalID: true,
             relayGlobalIDFor: ((forTypes &&
-                (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => this.builder.configStore.getTypeConfig(type).name) ?? null,
+                (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
+                typename: this.builder.configStore.getTypeConfig(type).name,
+                parse: type instanceof NodeRef ? type.parseId : undefined,
+            })) ?? null,
         },
     }) as unknown as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>> as never;
 };
