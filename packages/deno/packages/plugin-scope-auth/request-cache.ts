@@ -1,7 +1,7 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { isThenable, MaybePromise, Path, SchemaTypes } from '../core/index.ts';
+import { isThenable, MaybePromise, Path, PothosValidationError, SchemaTypes } from '../core/index.ts';
 import { AuthFailure, AuthScopeFailureType, AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction, } from './types.ts';
 import { cacheKey, canCache } from './util.ts';
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -96,7 +96,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         if (!cache.has(key)) {
             const loader = scopes[name];
             if (typeof loader !== "function") {
-                throw new TypeError(`Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`);
+                throw new PothosValidationError(`Attempted to evaluate scope ${String(name)} as scope loader, but it is not a function`);
             }
             let result;
             if (this.treatErrorsAsUnauthorized) {

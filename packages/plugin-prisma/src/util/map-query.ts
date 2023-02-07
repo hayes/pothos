@@ -14,6 +14,7 @@ import {
   Kind,
   SelectionSetNode,
 } from 'graphql';
+import { PothosValidationError } from '@pothos/core';
 import {
   FieldSelection,
   IncludeMap,
@@ -161,7 +162,9 @@ function resolveIndirectInclude(
         continue;
 
       default:
-        throw new Error(`Unsupported selection kind ${(selection as { kind: string }).kind}`);
+        throw new PothosValidationError(
+          `Unsupported selection kind ${(selection as { kind: string }).kind}`,
+        );
     }
   }
 }
@@ -206,7 +209,9 @@ function addNestedSelections(
         continue;
 
       default:
-        throw new Error(`Unsupported selection kind ${(selection as { kind: string }).kind}`);
+        throw new PothosValidationError(
+          `Unsupported selection kind ${(selection as { kind: string }).kind}`,
+        );
     }
   }
 }
@@ -226,7 +231,7 @@ function addFieldSelection(
   const field = type.getFields()[selection.name.value];
 
   if (!field) {
-    throw new Error(`Unknown field ${selection.name.value} on ${type.name}`);
+    throw new PothosValidationError(`Unknown field ${selection.name.value} on ${type.name}`);
   }
 
   const fieldSelect = field.extensions?.pothosPrismaSelect as FieldSelection | undefined;
@@ -403,7 +408,7 @@ export function selectionStateFromInfo(
   const state = createStateForType(type, info);
 
   if (!isObjectType(type)) {
-    throw new Error('Prisma plugin can only resolve includes for object types');
+    throw new PothosValidationError('Prisma plugin can only resolve includes for object types');
   }
 
   addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
@@ -445,20 +450,20 @@ function normalizeInclude(path: string[], type: GraphQLNamedType) {
   const normalized: { name: string; type: string }[] = [];
 
   if (!isObjectType(currentType)) {
-    throw new Error(`Expected ${currentType} to be an Object type`);
+    throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
   }
 
   for (const fieldName of path) {
     const field: GraphQLField<unknown, unknown> = currentType.getFields()[fieldName];
 
     if (!field) {
-      throw new Error(`Expected ${currentType} to have a field ${fieldName}`);
+      throw new PothosValidationError(`Expected ${currentType} to have a field ${fieldName}`);
     }
 
     currentType = getNamedType(field.type);
 
     if (!isObjectType(currentType)) {
-      throw new Error(`Expected ${currentType} to be an Object type`);
+      throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
     }
 
     normalized.push({ name: fieldName, type: currentType.name });

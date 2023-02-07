@@ -20,6 +20,7 @@ import InternalScalarRef from './refs/scalar';
 import InternalUnionRef from './refs/union';
 import type { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
 
+export * from './errors';
 export * from './plugins';
 export * from './types';
 export * from './utils';

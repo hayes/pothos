@@ -25,6 +25,7 @@ import {
 } from 'graphql';
 import type SchemaBuilder from './builder';
 import ConfigStore from './config-store';
+import { PothosError, PothosSchemaError } from './errors';
 import { BasePlugin, MergedPlugins } from './plugins';
 import BuiltinScalarRef from './refs/builtin-scalar';
 import { ImplementableInputObjectRef } from './refs/input-object';
@@ -101,7 +102,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       ).constructor.plugins[pluginName];
 
       if (!Plugin) {
-        throw new Error(`No plugin named ${pluginName} was registered`);
+        throw new PothosError(`No plugin named ${pluginName} was registered`);
       }
 
       plugins[pluginName] = new Plugin(this, pluginName);
@@ -134,7 +135,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     const builtType = this.types.get(typeConfig.name) as GraphQLInputObjectType | undefined;
 
     if (!builtType) {
-      throw new Error(`Input type ${typeConfig.name} has not been built yet`);
+      throw new PothosSchemaError(`Input type ${typeConfig.name} has not been built yet`);
     }
 
     const fields = builtType.getFields();
@@ -259,7 +260,7 @@ export default class BuildCache<Types extends SchemaTypes> {
 
   private addType(ref: string, type: GraphQLNamedType) {
     if (this.types.has(ref)) {
-      throw new Error(
+      throw new PothosSchemaError(
         `reference or name has already been used to create another type (${type.name})`,
       );
     }
@@ -429,7 +430,7 @@ export default class BuildCache<Types extends SchemaTypes> {
       return this.getInterfaceFields(type);
     }
 
-    throw new Error(`Type ${type.name} does not have fields to resolve`);
+    throw new PothosSchemaError(`Type ${type.name} does not have fields to resolve`);
   }
 
   private getInputFields(type: GraphQLInputObjectType): GraphQLInputFieldConfigMap {
@@ -458,7 +459,7 @@ export default class BuildCache<Types extends SchemaTypes> {
     const type = this.getType(ref);
 
     if (type instanceof GraphQLInputObjectType) {
-      throw new TypeError(
+      throw new PothosSchemaError(
         `Expected ${String(ref)} to be an output type but it was defined as an InputObject`,
       );
     }
@@ -470,23 +471,23 @@ export default class BuildCache<Types extends SchemaTypes> {
     const type = this.getType(ref);
 
     if (!type) {
-      throw new TypeError(`Missing implementation of for type ${String(ref)}`);
+      throw new PothosSchemaError(`Missing implementation of for type ${String(ref)}`);
     }
 
     if (type instanceof GraphQLObjectType) {
-      throw new TypeError(
+      throw new PothosSchemaError(
         `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLObjectType`,
       );
     }
 
     if (type instanceof GraphQLInterfaceType) {
-      throw new TypeError(
+      throw new PothosSchemaError(
         `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLInterfaceType`,
       );
     }
 
     if (type instanceof GraphQLUnionType) {
-      throw new TypeError(
+      throw new PothosSchemaError(
         `Expected ${String(ref)} to be an input type but it was defined as an GraphQLUnionType`,
       );
     }
@@ -538,7 +539,7 @@ export default class BuildCache<Types extends SchemaTypes> {
         break;
     }
 
-    throw new Error(`Expected ${String(ref)} to be of type ${kind}`);
+    throw new PothosSchemaError(`Expected ${String(ref)} to be of type ${kind}`);
   }
 
   private buildObject(

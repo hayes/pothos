@@ -1,6 +1,7 @@
 import SchemaBuilder, {
   InterfaceParam,
   ObjectParam,
+  PothosSchemaError,
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@pothos/core';
@@ -142,7 +143,9 @@ schemaBuilderProto.loadableNode = function loadableNode<
     typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
       .nodeInterfaceRef !== 'function'
   ) {
-    throw new TypeError('builder.loadableNode requires @pothos/plugin-relay to be installed');
+    throw new PothosSchemaError(
+      'builder.loadableNode requires @pothos/plugin-relay to be installed',
+    );
   }
 
   const name =

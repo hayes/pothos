@@ -5,6 +5,7 @@ import SchemaBuilder, {
   ImplementableObjectRef,
   PothosObjectTypeConfig,
   PothosOutputFieldConfig,
+  PothosSchemaError,
   SchemaTypes,
   sortClasses,
   typeBrandKey,
@@ -140,7 +141,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         const resultConfig = this.builder.configStore.getTypeConfig(resultType);
 
         if (resultConfig.graphqlKind !== 'Object') {
-          throw new TypeError(
+          throw new PothosSchemaError(
             `Field ${parentTypeName}.${fieldConfig.name} must return an ObjectType when 'directResult' is set to true`,
           );
         }

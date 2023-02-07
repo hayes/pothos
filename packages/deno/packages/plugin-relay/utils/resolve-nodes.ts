@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { brandWithType, createContextCache, MaybePromise, ObjectParam, OutputType, SchemaTypes, } from '../../core/index.ts';
+import { brandWithType, createContextCache, MaybePromise, ObjectParam, OutputType, PothosValidationError, SchemaTypes, } from '../../core/index.ts';
 import { NodeObjectOptions } from '../types.ts';
 const getRequestCache = createContextCache(() => new Map<string, MaybePromise<unknown>>());
 export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, globalIDs: ({
@@ -73,5 +73,5 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(bui
     if (options.loadWithoutCache) {
         return Promise.all(ids.map((id) => Promise.resolve(options.loadWithoutCache!(id, context, info))));
     }
-    throw new Error(`${config.name} does not support loading by id`);
+    throw new PothosValidationError(`${config.name} does not support loading by id`);
 }

@@ -1,4 +1,5 @@
 import { GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLType } from 'graphql';
+import { PothosSchemaError } from '@pothos/core';
 
 export function replaceType<T extends GraphQLType>(
   type: T,
@@ -19,7 +20,7 @@ export function replaceType<T extends GraphQLType>(
   const newType = newTypes.get((type as GraphQLNamedType).name);
 
   if (!newType) {
-    throw new Error(
+    throw new PothosSchemaError(
       `${
         (type as GraphQLNamedType).name
       } (referenced by ${referencedBy}) does not exist in subGraph (${subGraphs})`,

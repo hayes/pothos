@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { createContextCache } from '@pothos/core';
+import { createContextCache, PothosSchemaError } from '@pothos/core';
 import type { SmartSubscriptionOptions } from './types';
 
 export function rootName(path: GraphQLResolveInfo['path']): string {
@@ -30,7 +30,9 @@ export function subscribeOptionsFromIterator<T, Context extends object = object>
       const map = iterators(context)!;
 
       if (map.has(name)) {
-        throw new Error(`Can't create multiple subscriptions for the same event name ${name}`);
+        throw new PothosSchemaError(
+          `Can't create multiple subscriptions for the same event name ${name}`,
+        );
       }
 
       map.set(name, itr);

@@ -5,6 +5,7 @@ import {
   MaybePromise,
   ObjectParam,
   OutputType,
+  PothosValidationError,
   SchemaTypes,
 } from '@pothos/core';
 import { NodeObjectOptions } from '../types';
@@ -129,5 +130,5 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
     );
   }
 
-  throw new Error(`${config.name} does not support loading by id`);
+  throw new PothosValidationError(`${config.name} does not support loading by id`);
 }

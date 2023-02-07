@@ -21,6 +21,7 @@ import SchemaBuilder, {
   BasePlugin,
   PothosInputFieldConfig,
   PothosOutputFieldConfig,
+  PothosSchemaError,
   PothosTypeConfig,
   SchemaTypes,
 } from '@pothos/core';
@@ -198,7 +199,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
 
           if (argSubGraphs && !intersect(argSubGraphs, subGraphs)) {
             if (isNonNullType(argConfig.type)) {
-              throw new Error(
+              throw new PothosSchemaError(
                 `argument ${argConfig.name} of ${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}.${fieldName}`,
               );
             }
@@ -257,7 +258,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
 
         if (fieldSubGraphs && !intersect(fieldSubGraphs, subGraphs)) {
           if (isNonNullType(fieldConfig.type)) {
-            throw new Error(
+            throw new PothosSchemaError(
               `${type.name}.${fieldName} is NonNull and must be in included in all sub-graphs that include ${type.name}`,
             );
           }

@@ -10,6 +10,7 @@ import SchemaBuilder, {
   PothosObjectTypeConfig,
   PothosOutputFieldConfig,
   PothosQueryTypeConfig,
+  PothosSchemaError,
   PothosSubscriptionTypeConfig,
   PothosUnionTypeConfig,
   RootFieldBuilder,
@@ -46,7 +47,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
 
     if (typeConfig.graphqlKind !== 'Object' && typeConfig.graphqlKind !== 'Interface') {
-      throw new Error(
+      throw new PothosSchemaError(
         `Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`,
       );
     }
@@ -95,7 +96,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     const typeConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
 
     if (typeConfig.graphqlKind !== 'Object' && typeConfig.graphqlKind !== 'Interface') {
-      throw new Error(
+      throw new PothosSchemaError(
         `Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`,
       );
     }

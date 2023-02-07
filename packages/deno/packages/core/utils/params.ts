@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type ConfigStore from '../config-store.ts';
+import { PothosSchemaError } from '../errors.ts';
 import BaseTypeRef from '../refs/base.ts';
 import InputListRef from '../refs/input-list.ts';
 import ListRef from '../refs/list.ts';
@@ -39,7 +40,7 @@ export function typeFromParam<Types extends SchemaTypes>(param: TypeParam<Types>
             nullable,
         };
     }
-    throw new Error(`Expected input param ${name} to be an output type but got ${kind}`);
+    throw new PothosSchemaError(`Expected input param ${name} to be an output type but got ${kind}`);
 }
 export function unwrapInputFieldType<Types extends SchemaTypes>(type: PothosInputFieldType<Types>): InputType<Types> {
     if (type.kind === "List") {
@@ -76,5 +77,5 @@ export function inputTypeFromParam<Types extends SchemaTypes>(param: InputTypePa
             required,
         };
     }
-    throw new Error(`Expected input param ${name} to be an InputObject, Enum, or Scalar but got ${kind}`);
+    throw new PothosSchemaError(`Expected input param ${name} to be an InputObject, Enum, or Scalar but got ${kind}`);
 }

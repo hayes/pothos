@@ -1,4 +1,5 @@
 import { defaultFieldResolver } from 'graphql';
+import { PothosSchemaError } from '../errors';
 import FieldRef from '../refs/field';
 import type {
   FieldKind,
@@ -67,7 +68,9 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
         let resolve =
           (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
           (() => {
-            throw new Error(`Not implemented: No resolver found for ${this.typename}.${name}`);
+            throw new PothosSchemaError(
+              `Not implemented: No resolver found for ${this.typename}.${name}`,
+            );
           });
 
         if (options.extensions?.pothosExposedField === name) {

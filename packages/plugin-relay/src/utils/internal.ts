@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { SchemaTypes } from '@pothos/core';
+import { PothosValidationError, SchemaTypes } from '@pothos/core';
 import { decodeGlobalID, encodeGlobalID } from './global-ids';
 
 export function internalEncodeGlobalID<Types extends SchemaTypes>(
@@ -29,7 +29,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   if (Array.isArray(parseIdsForTypes)) {
     const entry = parseIdsForTypes.find(({ typename }) => typename === decoded.typename);
     if (!entry) {
-      throw new Error(
+      throw new PothosValidationError(
         `ID: ${globalID} is not of type: ${parseIdsForTypes
           .map(({ typename }) => typename)
           .join(', ')}`,

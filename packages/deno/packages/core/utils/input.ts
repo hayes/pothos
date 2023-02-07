@@ -1,5 +1,6 @@
 // @ts-nocheck
 import type BuildCache from '../build-cache.ts';
+import { PothosSchemaError } from '../errors.ts';
 import { PothosInputFieldConfig, PothosInputFieldType, PothosTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { unwrapInputFieldType } from './params.ts';
 export interface InputTypeFieldsMapping<Types extends SchemaTypes, T> {
@@ -34,7 +35,7 @@ export function resolveInputTypeConfig<Types extends SchemaTypes>(type: PothosIn
     if (config.kind === "Enum" || config.kind === "Scalar" || config.kind === "InputObject") {
         return config;
     }
-    throw new TypeError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
+    throw new PothosSchemaError(`Unexpected config type ${config.kind} for input ref ${String(type.ref)}`);
 }
 export function mapInputFields<Types extends SchemaTypes, T>(inputs: Record<string, PothosInputFieldConfig<Types>>, buildCache: BuildCache<Types>, mapper: (config: PothosInputFieldConfig<Types>) => T | null): InputFieldsMapping<Types, T> | null {
     const filterMappings = new Map<InputFieldsMapping<Types, T>, InputFieldsMapping<Types, T>>();

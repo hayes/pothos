@@ -1,5 +1,6 @@
 // @ts-nocheck
 import { FieldNode, FragmentDefinitionNode, getArgumentValues, getNamedType, GraphQLField, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLOutputType, GraphQLResolveInfo, InlineFragmentNode, isInterfaceType, isObjectType, isOutputType, Kind, SelectionSetNode, } from 'https://cdn.skypack.dev/graphql?dts';
+import { PothosValidationError } from '../core/index.ts';
 import { DEFAULT_COMPLEXITY, DEFAULT_LIST_MULTIPLIER } from './defaults.ts';
 import type { ComplexityResult, FieldComplexity } from './index.ts';
 function isListType(type: GraphQLOutputType): boolean {
@@ -21,7 +22,7 @@ function complexityFromField(ctx: {}, info: PartialInfo, selection: FieldNode, t
         complexityOption = field.extensions?.complexity as FieldComplexity<{}, {}> | undefined;
     }
     else if (!fieldName.startsWith("__")) {
-        throw new Error(`Unknown field selected (${type.name}.${fieldName})`);
+        throw new PothosValidationError(`Unknown field selected (${type.name}.${fieldName})`);
     }
     if (typeof complexityOption === "function") {
         const args = getArgumentValues(field as GraphQLField<unknown, unknown>, selection, info.variableValues) as Record<string, unknown>;
@@ -53,7 +54,7 @@ export function calculateComplexity(ctx: {}, info: GraphQLResolveInfo) {
         .toUpperCase()}${info.operation.operation.slice(1)}`;
     const operationType = info.schema.getType(operationName);
     if (!operationType || !isOutputType(operationType)) {
-        throw new Error(`Unsupported operation ${operationName}`);
+        throw new PothosValidationError(`Unsupported operation ${operationName}`);
     }
     return complexityFromSelectionSet(ctx, info, info.operation.selectionSet, operationType);
 }
@@ -67,10 +68,10 @@ function complexityFromFragment(ctx: {}, info: PartialInfo, fragment: FragmentDe
         ? info.schema.getType(fragment.typeCondition.name.value)
         : type;
     if (!isOutputType(fragmentType)) {
-        throw new TypeError(`Expected Type ${type.name} to be an Output type`);
+        throw new PothosValidationError(`Expected Type ${type.name} to be an Output type`);
     }
     if (!fragmentType) {
-        throw new Error(`Missing type from fragment ${fragment.typeCondition?.name.value}`);
+        throw new PothosValidationError(`Missing type from fragment ${fragment.typeCondition?.name.value}`);
     }
     return complexityFromSelectionSet(ctx, info, fragment.selectionSet, fragmentType);
 }
@@ -88,7 +89,7 @@ export function complexityFromSelectionSet(ctx: {}, info: PartialInfo, selection
         else if (selection.kind === Kind.FRAGMENT_SPREAD) {
             const fragment = info.fragments[selection.name.value];
             if (!fragment) {
-                throw new Error(`Missing fragment ${selection.name.value}`);
+                throw new PothosValidationError(`Missing fragment ${selection.name.value}`);
             }
             selectionResult = complexityFromFragment(ctx, info, fragment, type);
         }

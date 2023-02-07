@@ -14,6 +14,7 @@ import {
 } from 'graphql';
 import BuildCache from './build-cache';
 import ConfigStore from './config-store';
+import { PothosError, PothosSchemaError } from './errors';
 import InputFieldBuilder from './fieldUtils/input';
 import InterfaceFieldBuilder from './fieldUtils/interface';
 import MutationFieldBuilder from './fieldUtils/mutation';
@@ -111,7 +112,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     plugin: PluginConstructorMap<SchemaTypes>[T],
   ) {
     if (!this.allowPluginReRegistration && this.plugins[name]) {
-      throw new Error(`Received multiple implementations for plugin ${name}`);
+      throw new PothosError(`Received multiple implementations for plugin ${name}`);
     }
 
     this.plugins[name] = plugin;
@@ -131,7 +132,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         : (options as { name?: string }).name ?? (param as { name: string }).name;
 
     if (name === 'Query' || name === 'Mutation' || name === 'Subscription') {
-      throw new Error(`Invalid object name ${name} use .create${name}Type() instead`);
+      throw new PothosSchemaError(`Invalid object name ${name} use .create${name}Type() instead`);
     }
 
     const ref =

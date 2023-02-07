@@ -15,7 +15,7 @@ const getGlobalThis = () => {
         return window;
     if (typeof global !== "undefined")
         return global;
-    if (typeof this !== "undefined")
+    if (this !== undefined)
         return this!;
     throw new Error("Unable to locate global `this`");
 };

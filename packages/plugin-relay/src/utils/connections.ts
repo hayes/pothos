@@ -1,4 +1,10 @@
-import { decodeBase64, encodeBase64, MaybePromise, SchemaTypes } from '@pothos/core';
+import {
+  decodeBase64,
+  encodeBase64,
+  MaybePromise,
+  PothosValidationError,
+  SchemaTypes,
+} from '@pothos/core';
 import { ConnectionShape, DefaultConnectionArguments } from '../types';
 
 interface ResolveOffsetConnectionOptions {
@@ -40,11 +46,11 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   const afterOffset = after ? cursorToOffset(after) : 0;
 
   if (first != null && first < 0) {
-    throw new TypeError('Argument "first" must be a non-negative integer');
+    throw new PothosValidationError('Argument "first" must be a non-negative integer');
   }
 
   if (last != null && last < 0) {
-    throw new Error('Argument "last" must be a non-negative integer');
+    throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
   let startOffset = after ? afterOffset + 1 : 0;
@@ -55,7 +61,9 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   }
   if (last != null) {
     if (endOffset === Number.POSITIVE_INFINITY) {
-      throw new Error('Argument "last" can only be used in combination with "before" or "first"');
+      throw new PothosValidationError(
+        'Argument "last" can only be used in combination with "before" or "first"',
+      );
     }
     startOffset = Math.max(startOffset, endOffset - last);
   }
@@ -121,7 +129,7 @@ export function cursorToOffset(cursor: string): number {
   const string = decodeBase64(cursor);
 
   if (!string.startsWith(OFFSET_CURSOR_PREFIX)) {
-    throw new Error(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
+    throw new PothosValidationError(`Invalid offset cursor ${OFFSET_CURSOR_PREFIX}`);
   }
 
   return Number.parseInt(string.slice(OFFSET_CURSOR_PREFIX.length), 10);
@@ -174,11 +182,11 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
   const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
 
   if (first != null && first < 0) {
-    throw new TypeError('Argument "first" must be a non-negative integer');
+    throw new PothosValidationError('Argument "first" must be a non-negative integer');
   }
 
   if (last != null && last < 0) {
-    throw new Error('Argument "last" must be a non-negative integer');
+    throw new PothosValidationError('Argument "last" must be a non-negative integer');
   }
 
   const limit = Math.min(first ?? last ?? defaultSize, maxSize) + 1;

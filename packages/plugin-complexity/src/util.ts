@@ -6,6 +6,7 @@ import {
   OperationDefinitionNode,
   parse,
 } from 'graphql';
+import { PothosValidationError } from '@pothos/core';
 import { complexityFromSelectionSet } from './calculate-complexity';
 
 export function complexityFromQuery(
@@ -23,7 +24,7 @@ export function complexityFromQuery(
   ) as OperationDefinitionNode;
 
   if (!operation) {
-    throw new Error('No operation found');
+    throw new PothosValidationError('No operation found');
   }
 
   const fragments = parsedQuery.definitions.reduce<GraphQLResolveInfo['fragments']>(
@@ -43,7 +44,7 @@ export function complexityFromQuery(
   );
 
   if (!rootType) {
-    throw new Error(`No root type found for operation ${operation.operation}`);
+    throw new PothosValidationError(`No root type found for operation ${operation.operation}`);
   }
 
   const info = {

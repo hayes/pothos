@@ -1,4 +1,4 @@
-import { ObjectRef, SchemaTypes } from '@pothos/core';
+import { ObjectRef, PothosSchemaError, SchemaTypes } from '@pothos/core';
 import { PrismaObjectRef } from '../object-ref';
 import { PrismaClient, PrismaDelegate, PrismaModelTypes } from '../types';
 import { getDMMF } from './get-client';
@@ -38,7 +38,9 @@ export function getRelation<Types extends SchemaTypes>(
   const fieldData = getFieldData(name, builder, relation);
 
   if (fieldData.kind !== 'object') {
-    throw new Error(`Field ${relation} of model '${name}' is not a relation (${fieldData.kind})`);
+    throw new PothosSchemaError(
+      `Field ${relation} of model '${name}' is not a relation (${fieldData.kind})`,
+    );
   }
 
   return fieldData;
@@ -54,7 +56,7 @@ export function getFieldData<Types extends SchemaTypes>(
   const fieldData = modelData.fields.find((field) => field.name === fieldName);
 
   if (!fieldData) {
-    throw new Error(`Field '${fieldName}' not found in model '${name}'`);
+    throw new PothosSchemaError(`Field '${fieldName}' not found in model '${name}'`);
   }
 
   return fieldData;
@@ -68,7 +70,7 @@ export function getModel<Types extends SchemaTypes>(
   const modelData = dmmf.datamodel.models.find((model) => model.name === name);
 
   if (!modelData) {
-    throw new Error(`Model '${name}' not found in DMMF`);
+    throw new PothosSchemaError(`Model '${name}' not found in DMMF`);
   }
 
   return modelData;
@@ -81,7 +83,7 @@ export function getDelegateFromModel(client: PrismaClient, model: string) {
     lowerCase in client ? (client as PrismaClient & Record<string, unknown>)[lowerCase] : null;
 
   if (!delegate) {
-    throw new Error(`Unable to find delegate for model ${model}`);
+    throw new PothosSchemaError(`Unable to find delegate for model ${model}`);
   }
 
   return delegate as PrismaDelegate;

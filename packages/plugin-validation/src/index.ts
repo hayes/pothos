@@ -7,6 +7,8 @@ import SchemaBuilder, {
   PothosInputFieldConfig,
   PothosInputFieldType,
   PothosOutputFieldConfig,
+  PothosSchemaError,
+  PothosValidationError,
   resolveInputTypeConfig,
   SchemaTypes,
 } from '@pothos/core';
@@ -120,8 +122,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
           );
 
           if (typeof errorOrMessage === 'string') {
-            // eslint-disable-next-line unicorn/prefer-type-error
-            throw new Error(errorOrMessage);
+            throw new PothosValidationError(errorOrMessage);
           }
 
           throw errorOrMessage;
@@ -171,7 +172,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 
     if (type?.kind === 'List') {
       if (options && !isArrayValidator(options)) {
-        throw new Error(`Expected valid array validator for ${fieldName}`);
+        throw new PothosSchemaError(`Expected valid array validator for ${fieldName}`);
       }
 
       const items = options?.items

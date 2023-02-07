@@ -1,4 +1,4 @@
-import { createContextCache, ObjectRef, SchemaTypes } from '@pothos/core';
+import { createContextCache, ObjectRef, PothosSchemaError, SchemaTypes } from '@pothos/core';
 import { getDelegateFromModel, getModel } from './util/datamodel';
 import { getClient } from './util/get-client';
 import {
@@ -45,7 +45,7 @@ export class ModelLoader {
           modelName,
           findUnique === null
             ? () => {
-                throw new Error(`Missing findUnique for ${ref.name}`);
+                throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
               }
             : findUnique ?? this.getDefaultFindUnique(ref, modelName, builder),
         ),
@@ -108,7 +108,7 @@ export class ModelLoader {
     }
 
     if (!findBy) {
-      throw new Error(`Missing findUnique for ${ref.name}`);
+      throw new PothosSchemaError(`Missing findUnique for ${ref.name}`);
     }
 
     return findBy;
@@ -161,7 +161,7 @@ export class ModelLoader {
       .find((idx) => (idx!.name ?? idx!.fields.join('_')) === cursor);
 
     if (!index) {
-      throw new Error(`Can't find "${cursor}" field or index for ${ref.name}`);
+      throw new PothosSchemaError(`Can't find "${cursor}" field or index for ${ref.name}`);
     }
 
     const selection: Record<string, boolean> = {};
@@ -205,7 +205,7 @@ export class ModelLoader {
     }
 
     if (!findBy) {
-      throw new Error(`Unable to find field or index for ${fieldName} of ${ref.name}`);
+      throw new PothosSchemaError(`Unable to find field or index for ${fieldName} of ${ref.name}`);
     }
 
     return this.getFindUnique(findBy);

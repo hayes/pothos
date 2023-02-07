@@ -1,6 +1,7 @@
 // @ts-nocheck
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLSchema, GraphQLTypeResolver, } from 'https://cdn.skypack.dev/graphql?dts';
 import type BuildCache from '../build-cache.ts';
+import { PothosError } from '../errors.ts';
 import type { PothosEnumValueConfig, PothosInputFieldConfig, PothosInterfaceTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosTypeConfig, PothosUnionTypeConfig, SchemaTypes, } from '../types/index.ts';
 import { createContextCache } from '../utils/context-cache.ts';
 const runCache = new WeakMap<{}, Map<unknown, unknown>>();
@@ -113,7 +114,7 @@ export class BasePlugin<Types extends SchemaTypes, T extends object = object> {
      * @return {object} - The data object for the current request
      */
     protected createRequestData(context: Types["Context"]): T {
-        throw new Error("createRequestData not implemented");
+        throw new PothosError("createRequestData not implemented");
     }
     /**
      * Returns a data object for the current request.  requires `createRequestData` to be implemented

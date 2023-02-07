@@ -5,6 +5,7 @@ import SchemaBuilder, {
   ContextCache,
   createContextCache,
   PothosOutputFieldConfig,
+  PothosValidationError,
   SchemaTypes,
 } from '@pothos/core';
 import { calculateComplexity } from './calculate-complexity';
@@ -34,20 +35,24 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     this.builder.options.complexity?.complexityError ??
     ((kind, { depth, breadth, complexity, maxBreadth, maxComplexity, maxDepth }) => {
       if (kind === ComplexityErrorKind.Depth) {
-        return new Error(`Query exceeds maximum depth (depth: ${depth}, max: ${maxDepth})`);
+        return new PothosValidationError(
+          `Query exceeds maximum depth (depth: ${depth}, max: ${maxDepth})`,
+        );
       }
 
       if (kind === ComplexityErrorKind.Breadth) {
-        return new Error(`Query exceeds maximum breadth (breadth: ${breadth}, max: ${maxBreadth})`);
+        return new PothosValidationError(
+          `Query exceeds maximum breadth (breadth: ${breadth}, max: ${maxBreadth})`,
+        );
       }
 
       if (kind === ComplexityErrorKind.Complexity) {
-        return new Error(
+        return new PothosValidationError(
           `Query exceeds maximum complexity (complexity: ${complexity}, max: ${maxComplexity})`,
         );
       }
 
-      throw new Error('Unexpected complexity error kind');
+      throw new PothosValidationError('Unexpected complexity error kind');
     });
 
   complexityCache: ContextCache<ComplexityResult, Types['Context'], [GraphQLResolveInfo]> =
