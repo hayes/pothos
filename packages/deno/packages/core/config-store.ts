@@ -47,11 +47,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
     addInterfaces(typeName: string, interfaces: InterfaceParam<Types>[] | (() => InterfaceParam<Types>[])) {
         if (typeof interfaces === "function" && this.pending) {
-            if (!this.pendingInterfaces.has(typeName)) {
-                this.pendingInterfaces.set(typeName, [interfaces]);
+            if (this.pendingInterfaces.has(typeName)) {
+                this.pendingInterfaces.get(typeName)!.push(interfaces);
             }
             else {
-                this.pendingInterfaces.get(typeName)!.push(interfaces);
+                this.pendingInterfaces.set(typeName, [interfaces]);
             }
         }
         else {

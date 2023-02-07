@@ -12,10 +12,11 @@ information on federation, see the
 
 ### Install
 
-You will need to install the plugin, as well as `@apollo/subgraph`
+You will need to install the plugin, as well as the directives plugin (`@pothos/plugin-directives`)
+and `@apollo/subgraph`
 
 ```bash
-yarn add @pothos/plugin-federation @apollo/subgraph
+yarn add @pothos/plugin-federation @pothos/plugin-directives @apollo/subgraph
 ```
 
 You will likely want to install @apollo/server as well, but it is not required if you want to use a
@@ -28,10 +29,11 @@ yarn add @apollo/server
 ### Setup
 
 ```typescript
+import DirectivePlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 const builder = new SchemaBuilder({
   // If you are using other plugins, the federation plugin should be listed after plugins like auth that wrap resolvers
-  plugins: [FederationPlugin],
+  plugins: [DirectivePlugin, FederationPlugin],
 });
 ```
 
@@ -162,7 +164,10 @@ ReviewType.implement({
 
 ```typescript
 // Use new `toSubGraphSchema` method to add subGraph specific types and queries to the schema
-const schema = builder.toSubGraphSchema({});
+const schema = builder.toSubGraphSchema({
+  // defaults to v2.3
+  linkUrl: 'https://specs.apollo.dev/federation/v2.3',
+});
 
 const server = new ApolloServer({
   schema,
@@ -179,3 +184,10 @@ startStandaloneServer(server, { listen: { port: 4000 } })
 
 For a functional example that combines multiple graphs built with Pothos into a single schema see
 [https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)
+
+### Printing the schema
+
+If you are printing the schema as a string for any reason, and then using the printed schema for
+Apollo Federation(submitting if using Managed Federation, or composing manually with `rover`), you
+must use `printSubgraphSchema`(from `@apollo/subgraph`) or another compatible way of printing the
+schema(that includes directives) in order for it to work.

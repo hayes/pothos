@@ -24,7 +24,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
         const options = fieldConfig.pothosOptions;
-        if (!options.directives) {
+        if (!options.directives && !fieldConfig.extensions?.directives) {
             return fieldConfig;
         }
         return {
@@ -37,7 +37,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
         const options = valueConfig.pothosOptions;
-        if (!options.directives) {
+        if (!options.directives && !valueConfig.extensions?.directives) {
             return valueConfig;
         }
         return {
@@ -50,7 +50,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
     }
     override onTypeConfig(typeConfig: PothosTypeConfig) {
         const options = typeConfig.pothosOptions;
-        if (!options.directives) {
+        if (!options.directives && !typeConfig.extensions?.directives) {
             return typeConfig;
         }
         return {

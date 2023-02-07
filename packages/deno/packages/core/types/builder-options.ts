@@ -70,7 +70,11 @@ export type ExposeNullability<Types extends SchemaTypes, Type extends TypeParam<
 };
 export type ExposeNullableOption<Types extends SchemaTypes, Type extends TypeParam<Types>, ParentShape, Name extends keyof ParentShape> = FieldNullability<Type> & (Type extends [
     unknown
-] ? ParentShape[Name] extends readonly (infer T)[] | null | undefined ? T extends NonNullable<T> ? ParentShape[Name] extends NonNullable<ParentShape[Name]> ? boolean | {
+] ? ParentShape[Name] extends readonly (infer T)[] | null | undefined ? [
+    T
+] extends [
+    NonNullable<T>
+] ? ParentShape[Name] extends NonNullable<ParentShape[Name]> ? boolean | {
     items: boolean;
     list: boolean;
 } : true | {

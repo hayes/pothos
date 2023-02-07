@@ -83,7 +83,11 @@ declare global {
 
       selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
 
-      toSubGraphSchema: (options: BuildSchemaOptions<Types>) => GraphQLSchema;
+      toSubGraphSchema: (
+        options: BuildSchemaOptions<Types> & {
+          linkUrl?: string;
+        },
+      ) => GraphQLSchema;
 
       asEntity: <Param extends ObjectRef<unknown>, KeySelection extends Selection<object>>(
         param: Param,

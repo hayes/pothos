@@ -46,7 +46,10 @@ schemaBuilderProto.externalRef = function externalRef<
   return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, key, resolveReference);
 };
 
-schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(options) {
+schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
+  linkUrl = 'https://specs.apollo.dev/federation/v2.3',
+  ...options
+}) {
   const schema = this.toSchema({
     ...options,
     extensions: {

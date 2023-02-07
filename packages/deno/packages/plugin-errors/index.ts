@@ -121,7 +121,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
                     getDataloader,
                     pothosPrismaIndirectInclude: {
                         getType: () => typeName,
-                        path: [{ type: resultName, name: dataFieldName }],
+                        path: directResult ? [] : [{ type: resultName, name: dataFieldName }],
                     },
                 },
             });
@@ -140,7 +140,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
         };
     }
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
-        const pothosErrors = fieldConfig.extensions?.pothosErrors as typeof Error[] | undefined;
+        const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
         if (!pothosErrors) {
             return resolver;
         }

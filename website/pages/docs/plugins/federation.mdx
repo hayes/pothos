@@ -178,7 +178,10 @@ ReviewType.implement({
 
 ```typescript
 // Use new `toSubGraphSchema` method to add subGraph specific types and queries to the schema
-const schema = builder.toSubGraphSchema({});
+const schema = builder.toSubGraphSchema({
+  // defaults to v2.3
+  linkUrl: 'https://specs.apollo.dev/federation/v2.3',
+});
 
 const server = new ApolloServer({
   schema,
