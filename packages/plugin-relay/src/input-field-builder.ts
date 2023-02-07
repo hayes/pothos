@@ -3,6 +3,8 @@ import {
   InputFieldBuilder,
   InputFieldRef,
   InputShapeFromTypeParam,
+  ObjectRef,
+  SchemaTypes,
 } from '@pothos/core';
 import {
   GlobalIDInputFieldOptions,
@@ -28,7 +30,13 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
     extensions: {
       ...options.extensions,
       isRelayGlobalID: true,
-      relayGlobalIDFor: (forTypes && (Array.isArray(forTypes) ? forTypes : [forTypes])) ?? null,
+      relayGlobalIDFor:
+        (
+          (forTypes &&
+            (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[]
+        )?.map(
+          (type: ObjectRef<SchemaTypes>) => this.builder.configStore.getTypeConfig(type).name,
+        ) ?? null,
     },
   }) as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, [GlobalIDInputShape], Req>>;
 };
@@ -44,7 +52,13 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>(
     extensions: {
       ...options.extensions,
       isRelayGlobalID: true,
-      relayGlobalIDFor: (forTypes && (Array.isArray(forTypes) ? forTypes : [forTypes])) ?? null,
+      relayGlobalIDFor:
+        (
+          (forTypes &&
+            (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[]
+        )?.map(
+          (type: ObjectRef<SchemaTypes>) => this.builder.configStore.getTypeConfig(type).name,
+        ) ?? null,
     },
   }) as unknown as InputFieldRef<
     InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>

@@ -508,4 +508,62 @@ describe('relay example schema', () => {
       `);
     });
   });
+
+  describe('parsing global ids', () => {
+    it('parses ids', async () => {
+      const query = gql`
+        query {
+          numberThingByID(id: "TnVtYmVyOjE=") {
+            id
+            number
+          }
+          numberThingsByIDs(ids: ["TnVtYmVyOjE=", "TnVtYmVyOjI="]) {
+            id
+            number
+          }
+          invalid: numberThingByID(id: "T3RoZXI6Mg==") {
+            id
+            number
+          }
+          invalidList: numberThingsByIDs(ids: ["T3RoZXI6Mg=="]) {
+            id
+            number
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: {},
+      });
+
+      expect(result).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "invalid": null,
+            "invalidList": null,
+            "numberThingByID": {
+              "id": "TnVtYmVyOjE=",
+              "number": 1,
+            },
+            "numberThingsByIDs": [
+              {
+                "id": "TnVtYmVyOjE=",
+                "number": 1,
+              },
+              {
+                "id": "TnVtYmVyOjI=",
+                "number": 2,
+              },
+            ],
+          },
+          "errors": [
+            [GraphQLError: ID: T3RoZXI6Mg== is not of type: Number],
+            [GraphQLError: ID: T3RoZXI6Mg== is not of type: Number],
+          ],
+        }
+      `);
+    });
+  });
 });

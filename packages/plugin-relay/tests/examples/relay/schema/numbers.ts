@@ -210,9 +210,21 @@ builder.queryField('sharedEdgeConnection', (t) =>
 builder.queryField('numberThingByID', (t) =>
   t.field({
     type: NumberThing,
+    nullable: true,
     args: {
       id: t.arg.globalID({ required: true, for: [NumberThingRef] }),
     },
     resolve: (root, args) => new NumberThing(args.id.id),
+  }),
+);
+
+builder.queryField('numberThingsByIDs', (t) =>
+  t.field({
+    type: [NumberThing],
+    nullable: true,
+    args: {
+      ids: t.arg.globalIDList({ required: true, for: [NumberThingRef] }),
+    },
+    resolve: (root, args) => args.ids.map(({ id }) => new NumberThing(id)),
   }),
 );

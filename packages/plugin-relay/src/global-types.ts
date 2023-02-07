@@ -215,7 +215,7 @@ declare global {
             {
               [inputShapeKey]: {
                 typename: string;
-                id: string;
+                id: For[typeof relayIDShapeKey];
               };
             },
           ],
