@@ -153,7 +153,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     }
     return ref;
 };
-schemaBuilderProto.node = function node(param, { interfaces, ...options }, fields) {
+schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...options }, fields) {
     verifyRef(param);
     const interfacesWithNode: () => InterfaceParam<SchemaTypes>[] = () => [
         this.nodeInterfaceRef(),
@@ -163,6 +163,10 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
     const ref = this.objectType<[
     ], ObjectParam<SchemaTypes>>(param, {
         ...(options as {}),
+        extensions: {
+            ...extensions,
+            pothosParseGlobalID: id.parse,
+        },
         isTypeOf: options.isTypeOf ??
             (typeof param === "function"
                 ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
@@ -195,16 +199,16 @@ schemaBuilderProto.node = function node(param, { interfaces, ...options }, field
         this.objectField(ref, this.options.relayOptions.idFieldName ?? "id", (t) => t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
             nullable: false,
             ...this.options.relayOptions.idFieldOptions,
-            ...options.id,
+            ...id,
             args: {},
             resolve: async (parent, args, context, info) => ({
                 type: nodeConfig.name,
                 // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                id: await options.id.resolve(parent, args, context, info),
+                id: await id.resolve(parent, args, context, info),
             }),
         }));
     });
-    return ref;
+    return ref as never;
 };
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
     const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {

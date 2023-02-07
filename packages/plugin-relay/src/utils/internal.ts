@@ -26,15 +26,8 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
     ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)
     : decodeGlobalID(globalID);
 
-<<<<<<< HEAD
-  if (types && !types.includes(decoded.typename)) {
-    throw new Error(`ID: ${globalID} is not of type: ${types.join(', ')}`);
-=======
   if (Array.isArray(parseIdsForTypes) && !parseIdsForTypes.includes(decoded.typename)) {
-    throw new PothosValidationError(
-      `ID: ${globalID} is not of type: ${parseIdsForTypes.join(', ')}`,
-    );
->>>>>>> ec530aba (Handle non-NodeRef parameters in 'for' and only decode when 'for' is present)
+    throw new Error(`ID: ${globalID} is not of type: ${parseIdsForTypes.join(', ')}`);
   }
 
   if (parseIdsForTypes !== false) {
