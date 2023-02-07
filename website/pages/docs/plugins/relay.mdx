@@ -130,6 +130,28 @@ globalIDs used in arguments expect the client to send a globalID string, but wil
 converted to an object with 2 properties (`id` and `typename`) before they are passed to your
 resolver in the arguments object.
 
+#### Limiting global ID args to specific types
+
+`globalID` input's can be configured to validate the type of the globalID. This is useful if you
+only want to accept IDs for specific node types.
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    fieldThatAcceptsGlobalID: t.boolean({
+      args: {
+        id: t.arg.globalID({
+          for: SomeType,
+          // or allow multiple types
+          for: [TypeOne, TypeTwo],
+          required: true,
+        }),
+      },
+    }),
+  }),
+});
+```
+
 ### Creating Nodes
 
 To create objects that extend the `Node` interface, you can use the new `builder.node` method.
@@ -181,6 +203,24 @@ using an `instanceof` check, and falls back to checking the constructor property
 The means that for many cases if you are using classes in your type parameters, and all your values
 are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
 better to explicitly define that behavior.
+
+#### parsing node ids
+
+By default all node ids are parsed as string. This behavior can be customized by providing a custom
+parse function for your node's ID field:
+
+```ts
+builder.node(NumberThing, {
+  // define an id field
+  id: {
+    resolve: (num) => num.id,
+    parse: (id) => Number.parseInt(id, 10),
+  },
+  // the ID is now a number
+  loadOne: (id) => new NumberThing(id),
+  ...
+});
+```
 
 ### Creating Connections
 
