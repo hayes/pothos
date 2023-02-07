@@ -1,5 +1,18 @@
 # @pothos-examples/relay
 
+## 2.7.0
+
+### Minor Changes
+
+- 0eb6cb94: Update federation plugin to work with apollo/federation@2.3
+
+### Patch Changes
+
+- Updated dependencies [0eb6cb94]
+- Updated dependencies [0eb6cb94]
+  - @pothos/plugin-federation@3.8.0
+  - @pothos/plugin-directives@3.9.2
+
 ## 2.6.24
 
 ### Patch Changes

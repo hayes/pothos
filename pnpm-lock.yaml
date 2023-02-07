@@ -101,9 +101,6 @@ importers:
       '@graphql-codegen/schema-ast': 3.0.0_graphql@16.6.0
       typescript: 4.9.5
 
-  examples/complex-app/prisma/client:
-    specifiers: {}
-
   examples/envelope-helix-fastify:
     specifiers:
       '@envelop/core': ^3.0.4
@@ -269,9 +266,6 @@ importers:
       graphql: 16.6.0
       prisma: 4.9.0
 
-  examples/prisma-federation/prisma/client:
-    specifiers: {}
-
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
@@ -291,9 +285,6 @@ importers:
       graphql: 16.6.0
       graphql-yoga: 3.5.1_graphql@16.6.0
       prisma: 4.9.0
-
-  examples/prisma-relay/prisma/client:
-    specifiers: {}
 
   examples/prisma-smart-subscriptions-apollo:
     specifiers:
@@ -336,9 +327,6 @@ importers:
       '@types/express': 4.17.17
       '@types/ws': 8.5.4
 
-  examples/prisma-smart-subscriptions-apollo/prisma/client:
-    specifiers: {}
-
   examples/prisma-subscriptions:
     specifiers:
       '@faker-js/faker': ^7.6.0
@@ -358,12 +346,6 @@ importers:
       graphql-subscriptions: 2.0.0_graphql@16.6.0
       graphql-yoga: 3.5.1_graphql@16.6.0
       prisma: 4.9.0
-
-  examples/prisma-subscriptions/prisma/client:
-    specifiers: {}
-
-  examples/prisma/prisma/client:
-    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -422,9 +404,6 @@ importers:
       '@pothos/test-utils': link:../test-utils
       '@types/yargs': 17.0.22
 
-  packages/converter/esm:
-    specifiers: {}
-
   packages/core:
     specifiers:
       '@pothos/test-utils': workspace:*
@@ -436,9 +415,6 @@ importers:
       graphql: 16.6.0
       graphql-scalars: 1.20.1_graphql@16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/core/esm:
-    specifiers: {}
 
   packages/deno:
     specifiers:
@@ -462,9 +438,6 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
 
-  packages/plugin-authz/esm:
-    specifiers: {}
-
   packages/plugin-complexity:
     specifiers:
       '@pothos/core': workspace:*
@@ -476,9 +449,6 @@ importers:
       '@pothos/test-utils': link:../test-utils
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-complexity/esm:
-    specifiers: {}
 
   packages/plugin-dataloader:
     specifiers:
@@ -498,9 +468,6 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
 
-  packages/plugin-dataloader/esm:
-    specifiers: {}
-
   packages/plugin-directives:
     specifiers:
       '@graphql-tools/utils': ^9.2.1
@@ -519,9 +486,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       rate-limiter-flexible: 2.4.1
 
-  packages/plugin-directives/esm:
-    specifiers: {}
-
   packages/plugin-errors:
     specifiers:
       '@pothos/core': workspace:*
@@ -538,9 +502,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       zod: 3.20.2
 
-  packages/plugin-errors/esm:
-    specifiers: {}
-
   packages/plugin-example:
     specifiers:
       '@pothos/core': workspace:*
@@ -552,9 +513,6 @@ importers:
       '@pothos/test-utils': link:../test-utils
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-example/esm:
-    specifiers: {}
 
   packages/plugin-federation:
     specifiers:
@@ -580,9 +538,6 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
 
-  packages/plugin-federation/esm:
-    specifiers: {}
-
   packages/plugin-mocks:
     specifiers:
       '@pothos/core': workspace:*
@@ -594,9 +549,6 @@ importers:
       '@pothos/test-utils': link:../test-utils
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-mocks/esm:
-    specifiers: {}
 
   packages/plugin-prisma:
     specifiers:
@@ -648,18 +600,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       prisma: 4.9.0
 
-  packages/plugin-prisma-utils/esm:
-    specifiers: {}
-
-  packages/plugin-prisma-utils/tests/client:
-    specifiers: {}
-
-  packages/plugin-prisma/esm:
-    specifiers: {}
-
-  packages/plugin-prisma/tests/client:
-    specifiers: {}
-
   packages/plugin-relay:
     specifiers:
       '@pothos/core': workspace:*
@@ -675,9 +615,6 @@ importers:
       graphql: 16.6.0
       graphql-subscriptions: 2.0.0_graphql@16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-relay/esm:
-    specifiers: {}
 
   packages/plugin-scope-auth:
     specifiers:
@@ -699,12 +636,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       prisma: 4.9.0
 
-  packages/plugin-scope-auth/esm:
-    specifiers: {}
-
-  packages/plugin-scope-auth/prisma/client:
-    specifiers: {}
-
   packages/plugin-simple-objects:
     specifiers:
       '@pothos/core': workspace:*
@@ -716,9 +647,6 @@ importers:
       '@pothos/test-utils': link:../test-utils
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-simple-objects/esm:
-    specifiers: {}
 
   packages/plugin-smart-subscriptions:
     specifiers:
@@ -733,9 +661,6 @@ importers:
       graphql: 16.6.0
       graphql-subscriptions: 2.0.0_graphql@16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-smart-subscriptions/esm:
-    specifiers: {}
 
   packages/plugin-sub-graph:
     specifiers:
@@ -755,9 +680,6 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
 
-  packages/plugin-sub-graph/esm:
-    specifiers: {}
-
   packages/plugin-tracing:
     specifiers:
       '@pothos/core': workspace:*
@@ -769,9 +691,6 @@ importers:
       '@pothos/test-utils': link:../test-utils
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
-
-  packages/plugin-tracing/esm:
-    specifiers: {}
 
   packages/plugin-validation:
     specifiers:
@@ -786,9 +705,6 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
       zod: 3.20.2
-
-  packages/plugin-validation/esm:
-    specifiers: {}
 
   packages/plugin-with-input:
     specifiers:
@@ -810,12 +726,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       prisma: 4.9.0
 
-  packages/plugin-with-input/esm:
-    specifiers: {}
-
-  packages/plugin-with-input/prisma/client:
-    specifiers: {}
-
   packages/test-utils:
     specifiers:
       graphql: 16.6.0
@@ -827,9 +737,6 @@ importers:
       graphql-helix: 1.13.0_graphql@16.6.0
       ts-morph: 17.0.1
       yargs: 17.6.2
-
-  packages/test-utils/esm:
-    specifiers: {}
 
   packages/tracing-newrelic:
     specifiers:
@@ -850,9 +757,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       graphql-yoga: 3.5.1_graphql@16.6.0
       newrelic: 9.9.0
-
-  packages/tracing-newrelic/esm:
-    specifiers: {}
 
   packages/tracing-opentelemetry:
     specifiers:
@@ -890,9 +794,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       graphql-yoga: 3.5.1_graphql@16.6.0
 
-  packages/tracing-opentelemetry/esm:
-    specifiers: {}
-
   packages/tracing-sentry:
     specifiers:
       '@pothos/core': workspace:*
@@ -913,9 +814,6 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       graphql-yoga: 3.5.1_graphql@16.6.0
 
-  packages/tracing-sentry/esm:
-    specifiers: {}
-
   packages/tracing-xray:
     specifiers:
       '@pothos/core': workspace:*
@@ -933,9 +831,6 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
       graphql-yoga: 3.5.1_graphql@16.6.0
-
-  packages/tracing-xray/esm:
-    specifiers: {}
 
   website:
     specifiers:

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.9.2
+
+### Patch Changes
+
+- 0eb6cb94: Fix bug that ignored directives added directly via extensions in some locations
+
 ## 3.9.1
 
 ### Patch Changes

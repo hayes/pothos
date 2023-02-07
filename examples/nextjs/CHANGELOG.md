@@ -1,5 +1,11 @@
 # @pothos-examples/nextjs
 
+## 2.6.0
+
+### Minor Changes
+
+- 0eb6cb94: Update federation plugin to work with apollo/federation@2.3
+
 ## 2.5.14
 
 ### Patch Changes
