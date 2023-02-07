@@ -20,6 +20,7 @@ module.exports = {
     '@typescript-eslint/no-namespace': 'off',
     '@typescript-eslint/no-use-before-define': 'off',
     '@typescript-eslint/sort-type-union-intersection-members': 'off',
+    '@typescript-eslint/key-spacing': 'off',
   },
   overrides: [
     {

@@ -102,10 +102,10 @@ export default class ConfigStore<Types extends SchemaTypes> {
     interfaces: InterfaceParam<Types>[] | (() => InterfaceParam<Types>[]),
   ) {
     if (typeof interfaces === 'function' && this.pending) {
-      if (!this.pendingInterfaces.has(typeName)) {
-        this.pendingInterfaces.set(typeName, [interfaces]);
-      } else {
+      if (this.pendingInterfaces.has(typeName)) {
         this.pendingInterfaces.get(typeName)!.push(interfaces);
+      } else {
+        this.pendingInterfaces.set(typeName, [interfaces]);
       }
     } else {
       const typeConfig = this.getTypeConfig(typeName);

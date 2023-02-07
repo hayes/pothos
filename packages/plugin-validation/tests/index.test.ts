@@ -66,7 +66,7 @@ describe('validation', () => {
       {
         "data": null,
         "errors": [
-          [GraphQLError: recursive.recurse.number: Number must be less than or equal to 5, recursive.float: Invalid input, recursive.recurse.float: Invalid input, odd: number must be odd, contactInfo.email: no example.com email addresses, enum1: Invalid input, contactInfo.phone: String must contain at least 12 character(s), contactInfo.phone: Invalid, contactInfo.aliases: Aliases should be capitalized, contactInfo.name: Name should be capitalized, recursive.recurse.recurse: number must not be 3, contactInfo.aliases: contactInfo should include at least 2 aliases],
+          [GraphQLError: recursive.recurse.number: Number must be less than or equal to 5, recursive.float: Invalid input, recursive.recurse.float: Invalid input, odd: number must be odd, contactInfo.email: no example.com email addresses, enum1: Invalid input, contactInfo.phone: String must contain exactly 12 character(s), contactInfo.phone: Invalid, contactInfo.aliases: Aliases should be capitalized, contactInfo.name: Name should be capitalized, recursive.recurse.recurse: number must not be 3, contactInfo.aliases: contactInfo should include at least 2 aliases],
         ],
       }
     `);

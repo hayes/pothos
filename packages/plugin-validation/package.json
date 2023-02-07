@@ -48,7 +48,7 @@
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.6.0",
     "graphql-tag": "^2.12.6",
-    "zod": "^3.19.1"
+    "zod": "^3.20.2"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

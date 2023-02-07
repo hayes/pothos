@@ -46,7 +46,7 @@
     "@pothos/plugin-errors": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "dataloader": "^2.1.0",
+    "dataloader": "^2.2.1",
     "graphql": "16.6.0",
     "graphql-tag": "^2.12.6"
   },

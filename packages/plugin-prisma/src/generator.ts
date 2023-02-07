@@ -40,7 +40,7 @@ generatorHandler({
     const prismaLocation =
       config.clientOutput ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
-        .value;
+        .value!;
 
     const outputLocation = options.generator.output?.value ?? defaultOutput;
     const prismaTypes = buildTypes(options.dmmf);

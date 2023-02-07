@@ -202,7 +202,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
-    const pothosErrors = fieldConfig.extensions?.pothosErrors as typeof Error[] | undefined;
+    const pothosErrors = fieldConfig.extensions?.pothosErrors as (typeof Error)[] | undefined;
 
     if (!pothosErrors) {
       return resolver;

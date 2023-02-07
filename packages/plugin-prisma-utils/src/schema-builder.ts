@@ -236,14 +236,13 @@ schemaBuilder.prismaWhere = function prismaWhere<
           return;
         }
 
-        if (fieldOption instanceof InputFieldRef) {
-          fieldDefs[field] = fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>;
-        } else {
-          fieldDefs[field] = t.field({
-            required: false,
-            type: fieldOption as InputRef<unknown>,
-          });
-        }
+        fieldDefs[field] =
+          fieldOption instanceof InputFieldRef
+            ? (fieldOption as InputFieldRef<SchemaTypes, 'InputObject'>)
+            : t.field({
+                required: false,
+                type: fieldOption as InputRef<unknown>,
+              });
       });
 
       return fieldDefs as never;

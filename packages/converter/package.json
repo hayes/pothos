@@ -48,7 +48,7 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@types/yargs": "^17.0.15"
+    "@types/yargs": "^17.0.22"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }
