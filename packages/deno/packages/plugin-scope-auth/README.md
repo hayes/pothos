@@ -13,8 +13,11 @@ yarn add @pothos/plugin-scope-auth
 
 #### IMPORTANT
 
-When using `scope-auth` with other plugins, make sure that the `scope-auth` plugin is listed first
-to ensure that other plugins that wrap resolvers do not execute first.
+When using `scope-auth` with other plugins, the `scope-auth` plugin should generally be listed first
+to ensure that other plugins that wrap resolvers do not execute before the `scope-auth` logic.
+However, exceptions do exist where it is desirable for a plugin to run before `scope-auth`. For
+instance, putting the [relay plugin](https://pothos-graphql.dev/docs/plugins/relay) before the
+`scope-auth` plugin results in the `authScopes` function correctly receiving parsed `globalID`s.
 
 ### Setup
 
