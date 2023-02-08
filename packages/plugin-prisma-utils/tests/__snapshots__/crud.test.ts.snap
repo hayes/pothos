@@ -1,7 +1,16 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`generate crud > generates schema 1`] = `
-"enum Category {
+"input BooleanFilter {
+  equals: Boolean
+  in: [Boolean!]
+  is: Boolean
+  isNot: Boolean
+  not: BooleanFilter
+  notIn: [Boolean!]
+}
+
+enum Category {
   CULTURE
   SCIENCE
   SPORTS
@@ -365,6 +374,7 @@ input PostCreateInput {
   createdAt: DateTime
   id: Int
   media: PostCreateMediaRelationInput
+  published: Boolean
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -382,6 +392,7 @@ input PostCreateWithoutAuthorInput {
   createdAt: DateTime
   id: Int
   media: PostCreateMediaRelationInput
+  published: Boolean
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -394,6 +405,7 @@ input PostCreateWithoutCommentsInput {
   createdAt: DateTime
   id: Int
   media: PostCreateMediaRelationInput
+  published: Boolean
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -406,6 +418,7 @@ input PostCreateWithoutMediaInput {
   content: String
   createdAt: DateTime
   id: Int
+  published: Boolean
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -420,6 +433,7 @@ input PostFilter {
   createdAt: DateTimeFilter
   id: IntFilter
   media: PostMediaListFilter
+  published: BooleanFilter
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
@@ -574,6 +588,7 @@ input PostUpdateInput {
   createdAt: DateTime
   id: Int
   media: PostUpdateMediaRelationInput
+  published: Boolean
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -607,6 +622,7 @@ input PostUpdateWithoutAuthorInput {
   createdAt: DateTime
   id: Int
   media: PostUpdateMediaRelationInput
+  published: Boolean
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -619,6 +635,7 @@ input PostUpdateWithoutCommentsInput {
   createdAt: DateTime
   id: Int
   media: PostUpdateMediaRelationInput
+  published: Boolean
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -631,6 +648,7 @@ input PostUpdateWithoutMediaInput {
   content: String
   createdAt: DateTime
   id: Int
+  published: Boolean
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -643,6 +661,7 @@ input PostWithoutAuthorFilter {
   createdAt: DateTimeFilter
   id: IntFilter
   media: PostMediaListFilter
+  published: BooleanFilter
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
