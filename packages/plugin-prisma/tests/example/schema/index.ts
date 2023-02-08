@@ -263,12 +263,34 @@ builder.prismaObjectFields('Post', (t) => ({
   manualMediaConnection: t.connection(
     {
       type: Media,
+      args: {
+        inverted: t.arg.boolean(),
+      },
       select: (args, ctx, nestedSelection) => ({
-        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        _count: {
+          select: {
+            media: true,
+          },
+        },
+        media: {
+          orderBy: {
+            post: {
+              createdAt: args.inverted ? 'desc' : 'asc',
+            },
+          },
+          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        },
       }),
-      resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+      resolve: (post, args, ctx) => ({
+        totalCount: post._count.media,
+        ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+      }),
     },
-    {},
+    {
+      fields: (con) => ({
+        totalCount: con.exposeInt('totalCount'),
+      }),
+    },
     {
       fields: (edge) => ({
         order: edge.int({

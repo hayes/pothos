@@ -83,11 +83,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
 
               const filter = field.kind === 'object' ? type : this.getFilter(type);
 
-              if (field.isList) {
-                fields[field.name] = this.getListFilter(filter);
-              } else {
-                fields[field.name] = filter;
-              }
+              fields[field.name] = field.isList ? this.getListFilter(filter) : filter;
             });
 
           return fields as {};

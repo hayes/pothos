@@ -1,0 +1,1016 @@
+enum Category {
+  CULTURE
+  SCIENCE
+  SPORTS
+  TECH
+}
+
+input CategoryFilter {
+  equals: Category
+  in: [Category!]
+  is: Category
+  isNot: Category
+  not: CategoryFilter
+  notIn: [Category!]
+}
+
+input CategoryListFilter {
+  every: CategoryFilter
+  none: CategoryFilter
+  some: CategoryFilter
+}
+
+type Comment {
+  author: User!
+  content: String!
+  id: ID!
+  post: Post!
+}
+
+input CommentCreateAuthorRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutCommentsInput
+}
+
+input CommentCreatePostRelationInput {
+  connect: PostUniqueFilter
+  create: PostCreateWithoutCommentsInput
+}
+
+input CommentCreateWithoutAuthorInput {
+  content: String!
+  createdAt: DateTime
+  id: Int
+  post: CommentCreatePostRelationInput!
+}
+
+input CommentCreateWithoutPostInput {
+  author: CommentCreateAuthorRelationInput!
+  content: String!
+  createdAt: DateTime
+  id: Int
+}
+
+input CommentFilter {
+  author: UserFilter
+  authorId: IntFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input CommentListFilter {
+  every: CommentFilter
+  none: CommentFilter
+  some: CommentFilter
+}
+
+input CommentOrderBy {
+  author: UserOrderBy
+  authorId: OrderBy
+  content: OrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  post: PostOrderBy
+  postId: OrderBy
+}
+
+input CommentUniqueFilter {
+  createdAt: DateTime
+  id: Int
+}
+
+input CommentUpdateAuthorRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutCommentsInput
+  update: UserUpdateWithoutCommentsInput
+}
+
+input CommentUpdatePostRelationInput {
+  connect: PostUniqueFilter
+  create: PostCreateWithoutCommentsInput
+  update: PostUpdateWithoutCommentsInput
+}
+
+input CommentUpdateWithoutAuthorInput {
+  content: String
+  createdAt: DateTime
+  id: Int
+  post: CommentUpdatePostRelationInput
+}
+
+input CommentUpdateWithoutPostInput {
+  author: CommentUpdateAuthorRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+}
+
+input CommentWithoutAuthorFilter {
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input CommentWithoutPostFilter {
+  author: UserFilter
+  authorId: IntFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+}
+
+scalar DateTime
+
+input DateTimeFilter {
+  equals: DateTime
+  gt: DateTime
+  gte: DateTime
+  in: [DateTime!]
+  is: DateTime
+  isNot: DateTime
+  lt: DateTime
+  lte: DateTime
+  not: DateTimeFilter
+  notIn: [DateTime!]
+}
+
+input FollowCreateFromRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutFollowingInput
+}
+
+input FollowCreateToRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutFollowersInput
+}
+
+input FollowCreateWithoutFromInput {
+  to: FollowCreateToRelationInput!
+}
+
+input FollowCreateWithoutToInput {
+  from: FollowCreateFromRelationInput!
+}
+
+input FollowFilter {
+  from: UserFilter
+  fromId: IntFilter
+  to: UserFilter
+  toId: IntFilter
+}
+
+input FollowListFilter {
+  every: FollowFilter
+  none: FollowFilter
+  some: FollowFilter
+}
+
+input FollowOrderBy {
+  from: UserOrderBy
+  fromId: OrderBy
+  to: UserOrderBy
+  toId: OrderBy
+}
+
+input FollowUniqueFilter {
+  fromId: Int
+  toId: Int
+}
+
+input FollowUpdateFromRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutFollowingInput
+  update: UserUpdateWithoutFollowingInput
+}
+
+input FollowUpdateToRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutFollowersInput
+  update: UserUpdateWithoutFollowersInput
+}
+
+input FollowUpdateWithoutFromInput {
+  to: FollowUpdateToRelationInput
+}
+
+input FollowUpdateWithoutToInput {
+  from: FollowUpdateFromRelationInput
+}
+
+input FollowWithoutFromFilter {
+  to: UserFilter
+  toId: IntFilter
+}
+
+input FollowWithoutToFilter {
+  from: UserFilter
+  fromId: IntFilter
+}
+
+input IntFilter {
+  equals: Int
+  gt: Int
+  gte: Int
+  in: [Int!]
+  is: Int
+  isNot: Int
+  lt: Int
+  lte: Int
+  not: IntFilter
+  notIn: [Int!]
+}
+
+input MediaCreatePostsRelationInput {
+  connect: [PostMediaUniqueFilter!]
+  create: [PostMediaCreateWithoutMediaInput!]
+}
+
+input MediaCreateUploadedByRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutMediaInput
+}
+
+input MediaCreateWithoutPostsInput {
+  id: Int
+  uploadedBy: MediaCreateUploadedByRelationInput
+  url: String!
+}
+
+input MediaCreateWithoutUploadedByInput {
+  id: Int
+  posts: MediaCreatePostsRelationInput
+  url: String!
+}
+
+input MediaFilter {
+  id: IntFilter
+  posts: PostMediaListFilter
+  uploadedBy: UserFilter
+  uploadedById: IntFilter
+  url: StringFilter
+}
+
+input MediaListFilter {
+  every: MediaFilter
+  none: MediaFilter
+  some: MediaFilter
+}
+
+input MediaOrderBy {
+  id: OrderBy
+  posts: PostMediaOrderBy
+  uploadedBy: UserOrderBy
+  uploadedById: OrderBy
+  url: OrderBy
+}
+
+input MediaUniqueFilter {
+  id: Int
+}
+
+input MediaUpdatePostsRelationInput {
+  connect: [PostMediaUniqueFilter!]
+  create: [PostMediaCreateWithoutMediaInput!]
+  delete: [PostMediaUniqueFilter!]
+  deleteMany: [PostMediaWithoutMediaFilter!]
+  disconnect: [PostMediaUniqueFilter!]
+  set: [PostMediaUniqueFilter!]
+  update: [MediaUpdatePostsRelationInputUpdate!]
+  updateMany: [MediaUpdatePostsRelationInputUpdateMany!]
+}
+
+input MediaUpdatePostsRelationInputUpdate {
+  data: PostMediaUpdateWithoutMediaInput
+  where: PostMediaUniqueFilter
+}
+
+input MediaUpdatePostsRelationInputUpdateMany {
+  data: PostMediaUpdateWithoutMediaInput
+  where: PostMediaWithoutMediaFilter
+}
+
+input MediaUpdateUploadedByRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutMediaInput
+  delete: Boolean
+  disconnect: Boolean
+  update: UserUpdateWithoutMediaInput
+}
+
+input MediaUpdateWithoutPostsInput {
+  id: Int
+  uploadedBy: MediaUpdateUploadedByRelationInput
+  url: String
+}
+
+input MediaUpdateWithoutUploadedByInput {
+  id: Int
+  posts: MediaUpdatePostsRelationInput
+  url: String
+}
+
+input MediaWithoutUploadedByFilter {
+  id: IntFilter
+  posts: PostMediaListFilter
+  url: StringFilter
+}
+
+type Mutation {
+  createPost(input: PostCreateInput!): Post!
+  createUser(input: UserCreateInput!): User!
+  updateManyPosts(data: PostUpdateInput!, where: PostFilter): Int!
+  updatePost(data: PostUpdateInput!, where: PostUniqueFilter!): Post!
+  updateUser(data: UserUpdateInput!, where: UserUniqueFilter!): User!
+}
+
+enum OrderBy {
+  Asc
+  Desc
+}
+
+type Post {
+  author: User!
+  categories: [Category!]!
+  comments(filter: CommentFilter, orderBy: CommentOrderBy): [Comment!]!
+  createdAt: DateTime!
+  id: ID!
+  tags: [String!]!
+  title: String!
+  updatedAt: DateTime!
+}
+
+input PostCreateAuthorRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutPostsInput
+}
+
+input PostCreateCommentsRelationInput {
+  connect: [CommentUniqueFilter!]
+  create: [CommentCreateWithoutPostInput!]
+}
+
+input PostCreateInput {
+  author: PostCreateAuthorRelationInput!
+  categories: [Category!]
+  comments: PostCreateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostCreateMediaRelationInput
+  tags: [String!]
+  title: String!
+  updatedAt: DateTime
+}
+
+input PostCreateMediaRelationInput {
+  connect: [PostMediaUniqueFilter!]
+  create: [PostMediaCreateWithoutPostInput!]
+}
+
+input PostCreateWithoutAuthorInput {
+  categories: [Category!]
+  comments: PostCreateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostCreateMediaRelationInput
+  tags: [String!]
+  title: String!
+  updatedAt: DateTime
+}
+
+input PostCreateWithoutCommentsInput {
+  author: PostCreateAuthorRelationInput!
+  categories: [Category!]
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostCreateMediaRelationInput
+  tags: [String!]
+  title: String!
+  updatedAt: DateTime
+}
+
+input PostCreateWithoutMediaInput {
+  author: PostCreateAuthorRelationInput!
+  categories: [Category!]
+  comments: PostCreateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  tags: [String!]
+  title: String!
+  updatedAt: DateTime
+}
+
+input PostFilter {
+  author: UserFilter
+  authorId: IntFilter
+  categories: CategoryListFilter
+  comments: CommentListFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  media: PostMediaListFilter
+  tags: StringListFilter
+  title: StringFilter
+  updatedAt: DateTimeFilter
+}
+
+input PostListFilter {
+  every: PostFilter
+  none: PostFilter
+  some: PostFilter
+}
+
+input PostMediaCreateMediaRelationInput {
+  connect: MediaUniqueFilter
+  create: MediaCreateWithoutPostsInput
+}
+
+input PostMediaCreatePostRelationInput {
+  connect: PostUniqueFilter
+  create: PostCreateWithoutMediaInput
+}
+
+input PostMediaCreateWithoutMediaInput {
+  id: Int
+  order: Int!
+  post: PostMediaCreatePostRelationInput!
+}
+
+input PostMediaCreateWithoutPostInput {
+  id: Int
+  media: PostMediaCreateMediaRelationInput!
+  order: Int!
+}
+
+input PostMediaFilter {
+  id: IntFilter
+  media: MediaFilter
+  mediaId: IntFilter
+  order: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input PostMediaListFilter {
+  every: PostMediaFilter
+  none: PostMediaFilter
+  some: PostMediaFilter
+}
+
+input PostMediaOrderBy {
+  id: OrderBy
+  media: MediaOrderBy
+  mediaId: OrderBy
+  order: OrderBy
+  post: PostOrderBy
+  postId: OrderBy
+}
+
+input PostMediaUniqueFilter {
+  id: Int
+}
+
+input PostMediaUpdateMediaRelationInput {
+  connect: MediaUniqueFilter
+  create: MediaCreateWithoutPostsInput
+  update: MediaUpdateWithoutPostsInput
+}
+
+input PostMediaUpdatePostRelationInput {
+  connect: PostUniqueFilter
+  create: PostCreateWithoutMediaInput
+  update: PostUpdateWithoutMediaInput
+}
+
+input PostMediaUpdateWithoutMediaInput {
+  id: Int
+  order: Int
+  post: PostMediaUpdatePostRelationInput
+}
+
+input PostMediaUpdateWithoutPostInput {
+  id: Int
+  media: PostMediaUpdateMediaRelationInput
+  order: Int
+}
+
+input PostMediaWithoutMediaFilter {
+  id: IntFilter
+  order: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input PostMediaWithoutPostFilter {
+  id: IntFilter
+  media: MediaFilter
+  mediaId: IntFilter
+  order: IntFilter
+}
+
+input PostOrderBy {
+  author: UserOrderBy
+  authorId: OrderBy
+  categories: OrderBy
+  comments: CommentOrderBy
+  content: OrderBy
+  createdAt: OrderBy
+  id: OrderBy
+  media: PostMediaOrderBy
+  published: OrderBy
+  tags: OrderBy
+  title: OrderBy
+  updatedAt: OrderBy
+}
+
+input PostUniqueFilter {
+  createdAt: DateTime
+  id: Int
+}
+
+input PostUpdateAuthorRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutPostsInput
+  update: UserUpdateWithoutPostsInput
+}
+
+input PostUpdateCommentsRelationInput {
+  connect: [CommentUniqueFilter!]
+  create: [CommentCreateWithoutPostInput!]
+  delete: [CommentUniqueFilter!]
+  deleteMany: [CommentWithoutPostFilter!]
+  disconnect: [CommentUniqueFilter!]
+  set: [CommentUniqueFilter!]
+  update: [PostUpdateCommentsRelationInputUpdate!]
+  updateMany: [PostUpdateCommentsRelationInputUpdateMany!]
+}
+
+input PostUpdateCommentsRelationInputUpdate {
+  data: CommentUpdateWithoutPostInput
+  where: CommentUniqueFilter
+}
+
+input PostUpdateCommentsRelationInputUpdateMany {
+  data: CommentUpdateWithoutPostInput
+  where: CommentWithoutPostFilter
+}
+
+input PostUpdateInput {
+  author: PostUpdateAuthorRelationInput
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostUpdateMediaRelationInput
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateMediaRelationInput {
+  connect: [PostMediaUniqueFilter!]
+  create: [PostMediaCreateWithoutPostInput!]
+  delete: [PostMediaUniqueFilter!]
+  deleteMany: [PostMediaWithoutPostFilter!]
+  disconnect: [PostMediaUniqueFilter!]
+  set: [PostMediaUniqueFilter!]
+  update: [PostUpdateMediaRelationInputUpdate!]
+  updateMany: [PostUpdateMediaRelationInputUpdateMany!]
+}
+
+input PostUpdateMediaRelationInputUpdate {
+  data: PostMediaUpdateWithoutPostInput
+  where: PostMediaUniqueFilter
+}
+
+input PostUpdateMediaRelationInputUpdateMany {
+  data: PostMediaUpdateWithoutPostInput
+  where: PostMediaWithoutPostFilter
+}
+
+input PostUpdateWithoutAuthorInput {
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostUpdateMediaRelationInput
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateWithoutCommentsInput {
+  author: PostUpdateAuthorRelationInput
+  categories: [Category!]
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostUpdateMediaRelationInput
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateWithoutMediaInput {
+  author: PostUpdateAuthorRelationInput
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostWithoutAuthorFilter {
+  categories: CategoryListFilter
+  comments: CommentListFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  media: PostMediaListFilter
+  tags: StringListFilter
+  title: StringFilter
+  updatedAt: DateTimeFilter
+}
+
+input ProfileCreateWithoutUserInput {
+  bio: String
+  id: Int
+}
+
+input ProfileFilter {
+  bio: StringFilter
+  id: IntFilter
+  user: UserFilter
+  userId: IntFilter
+}
+
+input ProfileOrderBy {
+  bio: OrderBy
+  id: OrderBy
+  user: UserOrderBy
+  userId: OrderBy
+}
+
+input ProfileUniqueFilter {
+  id: Int
+  userId: Int
+}
+
+input ProfileUpdateWithoutUserInput {
+  bio: String
+  id: Int
+}
+
+type Query {
+  post(where: PostUniqueFilter!): Post
+  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
+}
+
+input StringFilter {
+  contains: String
+  endsWith: String
+  equals: String
+  gt: String
+  gte: String
+  in: [String!]
+  is: String
+  isNot: String
+  lt: String
+  lte: String
+  not: StringFilter
+  notIn: [String!]
+  startsWith: String
+}
+
+input StringListFilter {
+  every: StringFilter
+  none: StringFilter
+  some: StringFilter
+}
+
+type User {
+  comments: [Comment!]!
+  email: String!
+  id: ID!
+  name: String
+  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
+}
+
+input UserCreateCommentsRelationInput {
+  connect: [CommentUniqueFilter!]
+  create: [CommentCreateWithoutAuthorInput!]
+}
+
+input UserCreateFollowersRelationInput {
+  connect: [FollowUniqueFilter!]
+  create: [FollowCreateWithoutToInput!]
+}
+
+input UserCreateFollowingRelationInput {
+  connect: [FollowUniqueFilter!]
+  create: [FollowCreateWithoutFromInput!]
+}
+
+input UserCreateInput {
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
+  email: String!
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
+}
+
+input UserCreateMediaRelationInput {
+  connect: [MediaUniqueFilter!]
+  create: [MediaCreateWithoutUploadedByInput!]
+}
+
+input UserCreatePostsRelationInput {
+  connect: [PostUniqueFilter!]
+  create: [PostCreateWithoutAuthorInput!]
+}
+
+input UserCreateProfileRelationInput {
+  connect: ProfileUniqueFilter
+  create: ProfileCreateWithoutUserInput
+}
+
+input UserCreateWithoutCommentsInput {
+  Media: UserCreateMediaRelationInput
+  email: String!
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
+}
+
+input UserCreateWithoutFollowersInput {
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
+  email: String!
+  following: UserCreateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
+}
+
+input UserCreateWithoutFollowingInput {
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
+  email: String!
+  followers: UserCreateFollowersRelationInput
+  id: Int
+  name: String
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
+}
+
+input UserCreateWithoutMediaInput {
+  comments: UserCreateCommentsRelationInput
+  email: String!
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserCreatePostsRelationInput
+  profile: UserCreateProfileRelationInput
+}
+
+input UserCreateWithoutPostsInput {
+  Media: UserCreateMediaRelationInput
+  comments: UserCreateCommentsRelationInput
+  email: String!
+  followers: UserCreateFollowersRelationInput
+  following: UserCreateFollowingRelationInput
+  id: Int
+  name: String
+  profile: UserCreateProfileRelationInput
+}
+
+input UserFilter {
+  Media: MediaListFilter
+  comments: CommentListFilter
+  email: StringFilter
+  followers: FollowListFilter
+  following: FollowListFilter
+  id: IntFilter
+  name: StringFilter
+  posts: PostListFilter
+  profile: ProfileFilter
+}
+
+input UserOrderBy {
+  Media: MediaOrderBy
+  comments: CommentOrderBy
+  email: OrderBy
+  followers: FollowOrderBy
+  following: FollowOrderBy
+  id: OrderBy
+  name: OrderBy
+  posts: PostOrderBy
+  profile: ProfileOrderBy
+}
+
+input UserUniqueFilter {
+  email: String
+  id: Int
+}
+
+input UserUpdateCommentsRelationInput {
+  connect: [CommentUniqueFilter!]
+  create: [CommentCreateWithoutAuthorInput!]
+  delete: [CommentUniqueFilter!]
+  deleteMany: [CommentWithoutAuthorFilter!]
+  disconnect: [CommentUniqueFilter!]
+  set: [CommentUniqueFilter!]
+  update: [UserUpdateCommentsRelationInputUpdate!]
+  updateMany: [UserUpdateCommentsRelationInputUpdateMany!]
+}
+
+input UserUpdateCommentsRelationInputUpdate {
+  data: CommentUpdateWithoutAuthorInput
+  where: CommentUniqueFilter
+}
+
+input UserUpdateCommentsRelationInputUpdateMany {
+  data: CommentUpdateWithoutAuthorInput
+  where: CommentWithoutAuthorFilter
+}
+
+input UserUpdateFollowersRelationInput {
+  connect: [FollowUniqueFilter!]
+  create: [FollowCreateWithoutToInput!]
+  delete: [FollowUniqueFilter!]
+  deleteMany: [FollowWithoutToFilter!]
+  disconnect: [FollowUniqueFilter!]
+  set: [FollowUniqueFilter!]
+  update: [UserUpdateFollowersRelationInputUpdate!]
+  updateMany: [UserUpdateFollowersRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowersRelationInputUpdate {
+  data: FollowUpdateWithoutToInput
+  where: FollowUniqueFilter
+}
+
+input UserUpdateFollowersRelationInputUpdateMany {
+  data: FollowUpdateWithoutToInput
+  where: FollowWithoutToFilter
+}
+
+input UserUpdateFollowingRelationInput {
+  connect: [FollowUniqueFilter!]
+  create: [FollowCreateWithoutFromInput!]
+  delete: [FollowUniqueFilter!]
+  deleteMany: [FollowWithoutFromFilter!]
+  disconnect: [FollowUniqueFilter!]
+  set: [FollowUniqueFilter!]
+  update: [UserUpdateFollowingRelationInputUpdate!]
+  updateMany: [UserUpdateFollowingRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowingRelationInputUpdate {
+  data: FollowUpdateWithoutFromInput
+  where: FollowUniqueFilter
+}
+
+input UserUpdateFollowingRelationInputUpdateMany {
+  data: FollowUpdateWithoutFromInput
+  where: FollowWithoutFromFilter
+}
+
+input UserUpdateInput {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateMediaRelationInput {
+  connect: [MediaUniqueFilter!]
+  create: [MediaCreateWithoutUploadedByInput!]
+  delete: [MediaUniqueFilter!]
+  deleteMany: [MediaWithoutUploadedByFilter!]
+  disconnect: [MediaUniqueFilter!]
+  set: [MediaUniqueFilter!]
+  update: [UserUpdateMediaRelationInputUpdate!]
+  updateMany: [UserUpdateMediaRelationInputUpdateMany!]
+}
+
+input UserUpdateMediaRelationInputUpdate {
+  data: MediaUpdateWithoutUploadedByInput
+  where: MediaUniqueFilter
+}
+
+input UserUpdateMediaRelationInputUpdateMany {
+  data: MediaUpdateWithoutUploadedByInput
+  where: MediaWithoutUploadedByFilter
+}
+
+input UserUpdatePostsRelationInput {
+  connect: [PostUniqueFilter!]
+  create: [PostCreateWithoutAuthorInput!]
+  delete: [PostUniqueFilter!]
+  deleteMany: [PostWithoutAuthorFilter!]
+  disconnect: [PostUniqueFilter!]
+  set: [PostUniqueFilter!]
+  update: [UserUpdatePostsRelationInputUpdate!]
+  updateMany: [UserUpdatePostsRelationInputUpdateMany!]
+}
+
+input UserUpdatePostsRelationInputUpdate {
+  data: PostUpdateWithoutAuthorInput
+  where: PostUniqueFilter
+}
+
+input UserUpdatePostsRelationInputUpdateMany {
+  data: PostUpdateWithoutAuthorInput
+  where: PostWithoutAuthorFilter
+}
+
+input UserUpdateProfileRelationInput {
+  connect: ProfileUniqueFilter
+  create: ProfileCreateWithoutUserInput
+  delete: Boolean
+  disconnect: Boolean
+  update: ProfileUpdateWithoutUserInput
+}
+
+input UserUpdateWithoutCommentsInput {
+  Media: UserUpdateMediaRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutFollowersInput {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutFollowingInput {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutMediaInput {
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutPostsInput {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  profile: UserUpdateProfileRelationInput
+}
