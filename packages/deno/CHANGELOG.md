@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.37.0
+
+### Minor Changes
+
+- ec411ea1: Allow / unwrap Promises in "expose" type fields
+
 ## 3.36.0
 
 ### Minor Changes
