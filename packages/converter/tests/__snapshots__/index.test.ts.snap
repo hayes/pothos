@@ -180,6 +180,10 @@ builder.objectType('Giraffe', {
             type: 'Int',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
+        favoriteFood: t.field({
+            type: 'String',
+            resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
+        }),
         name: t.field({
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -393,6 +397,7 @@ input Example2 {
 
 type Giraffe implements Animal {
   age: Int!
+  favoriteFood: String!
   name: String!
   species: String
 }
