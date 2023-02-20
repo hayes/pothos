@@ -34,6 +34,10 @@ class Giraffe extends Animal {
     this.name = name;
     this.age = age;
   }
+
+  get favoriteFood() {
+    return Promise.resolve('acacia trees');
+  }
 }
 
 const builder = new SchemaBuilder<Types>({});
@@ -58,6 +62,7 @@ builder.objectType(Giraffe, {
   fields: (t) => ({
     name: t.exposeString('name', {}),
     age: t.exposeInt('age', {}),
+    favoriteFood: t.exposeString('favoriteFood'),
   }),
 });
 
