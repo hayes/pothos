@@ -81,10 +81,16 @@ declare global {
         options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
       ) => ImplementableLoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
-      loadableNodeRef: <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
+      loadableNodeRef: <
+        Shape extends object,
+        IDShape extends bigint | number | string = string,
+        Key extends bigint | number | string = IDShape,
+        CacheKey = Key,
+      >(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, Key>,
-      ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, Key, CacheKey>;
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey> &
+          LoadableNodeId<Types, Shape, IDShape>,
+      ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>;
 
       loadableUnion: <
         Key extends bigint | number | string,
@@ -101,15 +107,24 @@ declare global {
             Shape extends NameOrRef extends ObjectParam<Types>
               ? ShapeFromTypeParam<Types, NameOrRef, false>
               : object,
-            Key extends bigint | number | string,
             Interfaces extends InterfaceParam<Types>[],
             NameOrRef extends ObjectParam<Types> | string,
+            IDShape extends bigint | number | string = string,
+            Key extends bigint | number | string = IDShape,
             CacheKey = Key,
           >(
             nameOrRef: NameOrRef,
-            options: LoadableNodeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+            options: LoadableNodeOptions<
+              Types,
+              Shape,
+              Interfaces,
+              NameOrRef,
+              IDShape,
+              Key,
+              CacheKey
+            >,
           ) => Omit<
-            ImplementableLoadableNodeRef<Types, Key | Shape, Shape, Key, CacheKey>,
+            ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>,
             'implement'
           >
         : '@pothos/plugin-relay is required to use this method';

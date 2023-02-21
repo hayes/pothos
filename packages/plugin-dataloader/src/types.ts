@@ -183,9 +183,10 @@ export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object,
 export type LoadableNodeOptions<
   Types extends SchemaTypes,
   Shape extends object,
-  Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
-  CacheKey,
+  IDShape extends bigint | number | string = string,
+  Key extends bigint | number | string = IDShape,
+  CacheKey = Key,
 > = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> &
-  LoadableNodeId<Types, Shape, Key>;
+  LoadableNodeId<Types, Shape, IDShape>;
