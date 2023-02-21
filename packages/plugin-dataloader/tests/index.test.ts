@@ -170,6 +170,35 @@ describe('dataloader', () => {
       expect(result).toMatchSnapshot();
     });
 
+    it('query with global ids', async () => {
+      const query = gql`
+        query {
+          loadableParse {
+            id
+            idNumber
+          }
+          loadableParseNodes(
+            ids: [
+              "TG9hZGFibGVQYXJzZVRlc3Q6MQ=="
+              "TG9hZGFibGVQYXJzZVRlc3Q6Mg=="
+              "TG9hZGFibGVQYXJzZVRlc3Q6MTA="
+            ]
+          ) {
+            id
+            idNumber
+          }
+        }
+      `;
+
+      const result = await execute({
+        schema,
+        document: query,
+        contextValue: createContext(),
+      });
+
+      expect(result).toMatchSnapshot();
+    });
+
     it('query with errors', async () => {
       const query = gql`
         query {

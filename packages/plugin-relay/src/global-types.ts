@@ -198,7 +198,7 @@ declare global {
       ) => InputFieldRef<
         InputShapeFromTypeParam<
           Types,
-          GlobalIDInputShape<For extends NodeRef<unknown, unknown, infer T> ? T : string>,
+          GlobalIDInputShape<For extends { parseId?: (...args: any[]) => infer T } ? T : string>,
           Req
         >,
         Kind
@@ -213,7 +213,7 @@ declare global {
             {
               [inputShapeKey]: {
                 typename: string;
-                id: For extends NodeRef<unknown, unknown, infer T> ? T : string;
+                id: For extends { parseId?: (...args: any[]) => infer T } ? T : string;
               };
             },
           ],

@@ -34,6 +34,11 @@ interface Error {
   message: String!
 }
 
+type LoadableParseTest implements Node {
+  id: ID!
+  idNumber: Int!
+}
+
 interface Node {
   id: ID!
 }
@@ -72,6 +77,8 @@ type Query {
   fromContext3: User!
   fromContext4: [User!]!
   fromContext5: [User!]!
+  loadableParse: LoadableParseTest!
+  loadableParseNodes(ids: [ID!]): [LoadableParseTest!]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   nullableUser(id: String): NullableUser
@@ -252,6 +259,31 @@ exports[`dataloader > queries > query with errors 1`] = `
       "id": "789",
     },
   ],
+}
+`;
+
+exports[`dataloader > queries > query with global ids 1`] = `
+{
+  "data": {
+    "loadableParse": {
+      "id": "TG9hZGFibGVQYXJzZVRlc3Q6MQ==",
+      "idNumber": 1,
+    },
+    "loadableParseNodes": [
+      {
+        "id": "TG9hZGFibGVQYXJzZVRlc3Q6MQ==",
+        "idNumber": 1,
+      },
+      {
+        "id": "TG9hZGFibGVQYXJzZVRlc3Q6Mg==",
+        "idNumber": 2,
+      },
+      {
+        "id": "TG9hZGFibGVQYXJzZVRlc3Q6MTA=",
+        "idNumber": 10,
+      },
+    ],
+  },
 }
 `;
 

@@ -83,7 +83,7 @@ declare global {
 
       loadableNodeRef: <Shape extends object, Key extends bigint | number | string, CacheKey = Key>(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape>,
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, Key>,
       ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableUnion: <
@@ -108,7 +108,10 @@ declare global {
           >(
             nameOrRef: NameOrRef,
             options: LoadableNodeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
-          ) => Omit<LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>, 'implement'>
+          ) => Omit<
+            ImplementableLoadableNodeRef<Types, Key | Shape, Shape, Key, CacheKey>,
+            'implement'
+          >
         : '@pothos/plugin-relay is required to use this method';
     }
 

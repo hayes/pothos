@@ -68,7 +68,9 @@ declare global {
             };
             globalID: <Req extends boolean, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
                 options: GlobalIDInputFieldOptions<Types, Req, Kind, For>
-            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape<For extends NodeRef<unknown, unknown, infer T> ? T : string>, Req>, Kind>;
+            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape<For extends {
+                parseId?: (...args: any[]) => infer T;
+            } ? T : string>, Req>, Kind>;
             globalIDList: <Req extends FieldRequiredness<[
                 "ID"
             ]>, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
@@ -77,7 +79,9 @@ declare global {
                 {
                     [inputShapeKey]: {
                         typename: string;
-                        id: For extends NodeRef<unknown, unknown, infer T> ? T : string;
+                        id: For extends {
+                            parseId?: (...args: any[]) => infer T;
+                        } ? T : string;
                     };
                 }
             ], Req>, Kind>;

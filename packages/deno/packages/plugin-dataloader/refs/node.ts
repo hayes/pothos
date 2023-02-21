@@ -4,10 +4,12 @@ import { FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes } from '../
 import { DataLoaderOptions, LoadableNodeId } from '../types.ts';
 import { ImplementableLoadableObjectRef } from './object.ts';
 export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, Shape extends object, Key extends bigint | number | string, CacheKey> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
+    parseId: ((id: string, ctx: object) => Key) | undefined;
     private idOptions;
-    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { id, ...options }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape>) {
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { id, ...options }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, Key>) {
         super(builder, name, options);
         this.idOptions = id;
+        this.parseId = id.parse;
         this.builder.configStore.onTypeConfig(this, (config) => {
             const nodeInterface = (this.builder as PothosSchemaTypes.SchemaBuilder<Types> & {
                 nodeInterfaceRef: () => InterfaceRef<unknown>;

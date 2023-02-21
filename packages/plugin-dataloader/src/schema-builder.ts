@@ -159,7 +159,13 @@ schemaBuilderProto.loadableNode = function loadableNode<
     options,
   );
 
-  ref.implement(options);
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosParseGlobalID: options.id.parse,
+    },
+  });
 
   if (typeof nameOrRef !== 'string') {
     this.configStore.associateRefWithName(nameOrRef, name);

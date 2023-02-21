@@ -74,7 +74,13 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
             name: string;
         }).name;
     const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, options);
-    ref.implement(options);
+    ref.implement({
+        ...options,
+        extensions: {
+            ...options.extensions,
+            pothosParseGlobalID: options.id.parse,
+        },
+    });
     if (typeof nameOrRef !== "string") {
         this.configStore.associateRefWithName(nameOrRef, name);
     }
