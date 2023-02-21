@@ -320,7 +320,7 @@ const UserNode = builder.loadableNode('UserNode', {
   id: {
     resolve: (user) => user.id,
   },
-  // For loadable objects we always need to include an isTypeOf check
+  // For loadable nodes, we need to include an isTypeOf check if the first arg is a string
   isTypeOf: (obj) => obj instanceof User,
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
   fields: (t) => ({}),

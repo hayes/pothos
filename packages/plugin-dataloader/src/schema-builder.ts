@@ -161,7 +161,6 @@ schemaBuilderProto.loadableNode = function loadableNode<
     options,
   );
 
-  // ref.implement(options);
   ref.implement({
     ...options,
     isTypeOf:
