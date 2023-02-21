@@ -319,8 +319,12 @@ exports[`dataloader > queries > valid queries 1`] = `
     "classThing": {
       "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjEyMw==",
     },
+    "classThingNode": {
+      "__typename": "ClassLoadableThing",
+      "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjE=",
+    },
     "classThingRef": {
-      "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjEyMw==",
+      "id": "Q2xhc3NMb2FkYWJsZVRoaW5nOjE=",
     },
     "counts": [
       {
