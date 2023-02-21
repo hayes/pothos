@@ -25,7 +25,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
         if (!argMappings) {
             return resolver;
         }
-        const argMapper = createInputValueMapper(argMappings, (globalID, mappings, ctx: Types["Context"], info: GraphQLResolveInfo) => internalDecodeGlobalID(this.builder, String(globalID), ctx, info, Array.isArray(mappings.value) ? mappings.value : false));
+        const argMapper = createInputValueMapper(argMappings, (globalID, mappings, ctx: Types["Context"], info: GraphQLResolveInfo) => internalDecodeGlobalID(this.builder, String(globalID), ctx, info, Array.isArray(mappings.value) ? mappings.value : true));
         return (parent, args, context, info) => resolver(parent, argMapper(args, undefined, context, info), context, info);
     }
     override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
