@@ -6,7 +6,7 @@ class NumberThing {
 
   constructor(n: number) {
     if (typeof n !== 'number') {
-      throw new Error(`Expected NumberThing to receive number, saw ${typeof n} ${n}`);
+      throw new TypeError(`Expected NumberThing to receive number, saw ${typeof n} ${n}`);
     }
     this.id = n;
   }
@@ -17,7 +17,9 @@ class BatchLoadableNumberThing {
 
   constructor(n: number) {
     if (typeof n !== 'number') {
-      throw new Error(`Expected BatchLoadableNumberThing to receive number, saw ${typeof n} ${n}`);
+      throw new TypeError(
+        `Expected BatchLoadableNumberThing to receive number, saw ${typeof n} ${n}`,
+      );
     }
     this.id = n;
   }
