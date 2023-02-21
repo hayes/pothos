@@ -55,7 +55,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
             const globalID = typeof rawID === "string"
                 ? internalDecodeGlobalID(this.builder, rawID, context, info, true)
                 : rawID && {
-                    id: String(rawID.id),
+                    id: rawID.id,
                     typename: this.builder.configStore.getTypeConfig(rawID.type).name,
                 };
             return (await resolveNodes(this.builder, context, info, [globalID]))[0];
