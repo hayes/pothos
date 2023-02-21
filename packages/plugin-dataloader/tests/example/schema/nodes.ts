@@ -102,7 +102,6 @@ builder.queryFields((t) => ({
     args: {
       ids: t.arg.globalIDList({ for: [LoadableParseRef] }),
     },
-    // TODO: type & implement this correctly based on the "for"
     resolve: (source, args) => args.ids?.map((id) => id.id) ?? [],
   }),
 }));
