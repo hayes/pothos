@@ -34,7 +34,7 @@ export interface PothosInterfaceTypeConfig extends Omit<GraphQLInterfaceTypeConf
 export interface PothosUnionTypeConfig extends Omit<GraphQLUnionTypeConfig<unknown, object>, "types"> {
     kind: "Union";
     graphqlKind: "Union";
-    types: ObjectParam<SchemaTypes>[];
+    types: ObjectParam<SchemaTypes>[] | (() => ObjectParam<SchemaTypes>[]);
     pothosOptions: PothosSchemaTypes.UnionTypeOptions;
 }
 export interface PothosEnumTypeConfig extends GraphQLEnumTypeConfig {

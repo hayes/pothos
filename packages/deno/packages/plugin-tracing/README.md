@@ -767,13 +767,7 @@ import { schema } from './schema';
 
 const yoga = createYoga({
   schema,
-  plugins: [
-    useSentry({
-      // Disable resolver tracking since this is covered by the pothos tracing plugin
-      // If all resolvers are being traced, you could use the Sentry envelop plug instead of the pothos tracing plugin
-      trackResolvers: false,
-    }),
-  ],
+  plugins: [useSentry({})],
 });
 
 const server = createServer(yoga);

@@ -42,7 +42,7 @@ declare global {
             resolveType?: ResolveType & ((parent: Shape, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
         }
         export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>, ResolveType = unknown> extends BaseTypeOptions<Types> {
-            types: Member[];
+            types: Member[] | (() => Member[]);
             resolveType?: ResolveType & ((parent: ParentShape<Types, Member>, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<Member | string | null | undefined>);
         }
         export interface ScalarTypeOptions<Types extends SchemaTypes = SchemaTypes, ScalarInputShape = unknown, ScalarOutputShape = unknown> extends BaseTypeOptions<Types> {

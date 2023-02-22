@@ -443,7 +443,10 @@ export default class BuildCache<Types extends SchemaTypes> {
                 pothosOptions: config.pothosOptions,
                 pothosConfig: config,
             },
-            types: () => config.types.map((member) => this.getTypeOfKind(member, "Object")),
+            types: () => {
+                const types = typeof config.types === "function" ? config.types() : config.types;
+                return types.map((member) => this.getTypeOfKind(member, "Object"));
+            },
             resolveType: this.plugin.wrapResolveType(resolveType, config),
         });
     }

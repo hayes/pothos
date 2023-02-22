@@ -98,7 +98,7 @@ declare global {
       Member extends ObjectParam<Types> = ObjectParam<Types>,
       ResolveType = unknown,
     > extends BaseTypeOptions<Types> {
-      types: Member[];
+      types: Member[] | (() => Member[]);
       resolveType?: ResolveType &
         ((
           parent: ParentShape<Types, Member>,

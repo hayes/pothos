@@ -26,6 +26,7 @@ import type {
   InputType,
   InputTypeParam,
   InterfaceParam,
+  ObjectParam,
   OutputRef,
   OutputType,
   PothosFieldConfig,
@@ -62,6 +63,8 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private pendingInterfaces = new Map<string, (() => InterfaceParam<Types>[])[]>();
 
+  private pendingUnionTypes = new Map<string, (() => ObjectParam<Types>[])[]>();
+
   private pendingRefResolutions = new Map<
     ConfigurableRef<Types>,
     ((config: PothosTypeConfig) => void)[]
@@ -96,6 +99,31 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }
 
     return this.refsToName.has(typeParam);
+  }
+
+  addUnionTypes(typeName: string, unionTypes: ObjectParam<Types>[] | (() => ObjectParam<Types>[])) {
+    if (typeof unionTypes === 'function' && this.pending) {
+      if (this.pendingUnionTypes.has(typeName)) {
+        this.pendingUnionTypes.get(typeName)!.push(unionTypes);
+      } else {
+        this.pendingUnionTypes.set(typeName, [unionTypes]);
+      }
+    } else {
+      const typeConfig = this.getTypeConfig(typeName);
+
+      if (typeConfig.graphqlKind !== 'Union') {
+        throw new PothosSchemaError(
+          `Can not add types to ${typeName} because it is a ${typeConfig.kind}`,
+        );
+      }
+
+      typeConfig.types = [
+        ...typeConfig.types,
+        ...((typeof unionTypes === 'function'
+          ? unionTypes()
+          : unionTypes) as ObjectParam<SchemaTypes>[]),
+      ];
+    }
   }
 
   addInterfaces(
@@ -426,6 +454,12 @@ export default class ConfigStore<Types extends SchemaTypes> {
           .map((ref) => this.describeRef(ref))
           .join(', ')}).`,
       );
+    }
+
+    for (const [typeName, unionFns] of this.pendingUnionTypes) {
+      for (const fn of unionFns) {
+        this.addUnionTypes(typeName, fn);
+      }
     }
 
     for (const [typeName, interfacesFns] of this.pendingInterfaces) {
