@@ -257,13 +257,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             kind: "Union",
             graphqlKind: "Union",
             name,
-            types: (options.types || []) as ObjectParam<SchemaTypes>[] | (() => ObjectParam<SchemaTypes>[]),
+            types: [],
             description: options.description,
             resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
             pothosOptions: options as unknown as PothosSchemaTypes.UnionTypeOptions,
             extensions: options.extensions,
         };
         this.configStore.addTypeConfig(config, ref);
+        this.configStore.addUnionTypes(name, options.types);
         return ref;
     }
     enumType<Param extends EnumParam, Values extends EnumValues<Types>>(param: Param, options: EnumTypeOptions<Types, Param, Values>) {

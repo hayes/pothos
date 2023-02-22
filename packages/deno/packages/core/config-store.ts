@@ -11,7 +11,7 @@ import InputFieldRef from './refs/input-field.ts';
 import InputListRef from './refs/input-list.ts';
 import ListRef from './refs/list.ts';
 import OutputTypeRef from './refs/output.ts';
-import type { ConfigurableRef, FieldMap, GraphQLFieldKind, InputFieldMap, InputRef, InputType, InputTypeParam, InterfaceParam, OutputRef, OutputType, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, SchemaTypes, TypeParam, } from './types/index.ts';
+import type { ConfigurableRef, FieldMap, GraphQLFieldKind, InputFieldMap, InputRef, InputType, InputTypeParam, InterfaceParam, ObjectParam, OutputRef, OutputType, PothosFieldConfig, PothosObjectTypeConfig, PothosTypeConfig, SchemaTypes, TypeParam, } from './types/index.ts';
 import { unwrapListParam } from './utils/index.ts';
 export default class ConfigStore<Types extends SchemaTypes> {
     typeConfigs = new Map<string, PothosTypeConfig>();
@@ -23,6 +23,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, PothosFieldConfig<Types>[]>();
     private pendingFields = new Map<FieldRef | InputFieldRef, InputType<Types> | OutputType<Types>>();
     private pendingInterfaces = new Map<string, (() => InterfaceParam<Types>[])[]>();
+    private pendingUnionTypes = new Map<string, (() => ObjectParam<Types>[])[]>();
     private pendingRefResolutions = new Map<ConfigurableRef<Types>, ((config: PothosTypeConfig) => void)[]>();
     private fieldRefCallbacks = new Map<FieldRef | InputFieldRef, ((config: PothosFieldConfig<Types>) => void)[]>();
     private pending = true;
@@ -45,6 +46,28 @@ export default class ConfigStore<Types extends SchemaTypes> {
             return this.typeConfigs.has(typeParam);
         }
         return this.refsToName.has(typeParam);
+    }
+    addUnionTypes(typeName: string, unionTypes: ObjectParam<Types>[] | (() => ObjectParam<Types>[])) {
+        if (typeof unionTypes === "function" && this.pending) {
+            if (this.pendingUnionTypes.has(typeName)) {
+                this.pendingUnionTypes.get(typeName)!.push(unionTypes);
+            }
+            else {
+                this.pendingUnionTypes.set(typeName, [unionTypes]);
+            }
+        }
+        else {
+            const typeConfig = this.getTypeConfig(typeName);
+            if (typeConfig.graphqlKind !== "Union") {
+                throw new PothosSchemaError(`Can not add types to ${typeName} because it is a ${typeConfig.kind}`);
+            }
+            typeConfig.types = [
+                ...typeConfig.types,
+                ...((typeof unionTypes === "function"
+                    ? unionTypes()
+                    : unionTypes) as ObjectParam<SchemaTypes>[]),
+            ];
+        }
     }
     addInterfaces(typeName: string, interfaces: InterfaceParam<Types>[] | (() => InterfaceParam<Types>[])) {
         if (typeof interfaces === "function" && this.pending) {
@@ -279,6 +302,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
             throw new PothosSchemaError(`Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
                 .map((ref) => this.describeRef(ref))
                 .join(", ")}).`);
+        }
+        for (const [typeName, unionFns] of this.pendingUnionTypes) {
+            for (const fn of unionFns) {
+                this.addUnionTypes(typeName, fn);
+            }
         }
         for (const [typeName, interfacesFns] of this.pendingInterfaces) {
             for (const fn of interfacesFns) {
