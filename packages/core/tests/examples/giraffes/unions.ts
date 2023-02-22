@@ -14,7 +14,7 @@ const GiraffeNumericFact = builder.objectType('GiraffeNumericFact', {
 });
 
 const GiraffeFact = builder.unionType('GiraffeFact', {
-  types: ['GiraffeStringFact', GiraffeNumericFact],
+  types: () => ['GiraffeStringFact', GiraffeNumericFact],
   resolveType: (fact) => {
     switch (fact.factKind) {
       case 'number':

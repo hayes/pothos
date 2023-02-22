@@ -248,20 +248,23 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
     unionType<Member extends ObjectParam<Types>, ResolveType>(name: string, options: PothosSchemaTypes.UnionTypeOptions<Types, Member, ResolveType>) {
         const ref = new UnionRef<AbstractReturnShape<Types, Member, ResolveType>, ParentShape<Types, Member>>(name);
-        options.types.forEach((type) => {
-            verifyRef(type);
-        });
+        if (Array.isArray(options.types)) {
+            options.types.forEach((type) => {
+                verifyRef(type);
+            });
+        }
         const config: PothosUnionTypeConfig = {
             kind: "Union",
             graphqlKind: "Union",
             name,
-            types: (options.types || []) as ObjectParam<SchemaTypes>[],
+            types: [],
             description: options.description,
             resolveType: options.resolveType as GraphQLTypeResolver<unknown, object>,
             pothosOptions: options as unknown as PothosSchemaTypes.UnionTypeOptions,
             extensions: options.extensions,
         };
         this.configStore.addTypeConfig(config, ref);
+        this.configStore.addUnionTypes(name, options.types);
         return ref;
     }
     enumType<Param extends EnumParam, Values extends EnumValues<Types>>(param: Param, options: EnumTypeOptions<Types, Param, Values>) {
