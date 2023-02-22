@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.36.0
+
+### Minor Changes
+
+- d60cb49e: handle string contining ':' in global ID
+
 ## 3.35.0
 
 ### Minor Changes
