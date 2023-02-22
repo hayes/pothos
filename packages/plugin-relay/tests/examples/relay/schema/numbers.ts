@@ -1,6 +1,17 @@
 import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
+class IDWithColon {
+  id: string;
+
+  constructor(id: string) {
+    if (!id.includes(':')) {
+      throw new TypeError(`Expected id to have a colon, saw ${id}`);
+    }
+    this.id = id;
+  }
+}
+
 class NumberThing {
   id: number;
 
@@ -16,6 +27,16 @@ class BatchLoadableNumberThing {
     this.id = n;
   }
 }
+
+const IDWithColonRef = builder.node(IDWithColon, {
+  name: 'IDWithColon',
+  id: {
+    resolve: (n) => n.id,
+  },
+  fields: (t) => ({
+    idString: t.exposeString('id'),
+  }),
+});
 
 const NumberThingRef = builder.node(NumberThing, {
   id: {
@@ -205,6 +226,26 @@ builder.queryField('sharedEdgeConnection', (t) =>
     {},
     SharedEdge,
   ),
+);
+
+builder.queryField('idWithColon', (t) =>
+  t.field({
+    type: IDWithColonRef,
+    args: {
+      id: t.arg.globalID({ required: true, for: [IDWithColonRef] }),
+    },
+    resolve: (root, args) => new IDWithColon(args.id.id),
+  }),
+);
+
+builder.queryField('idsWithColon', (t) =>
+  t.field({
+    type: [IDWithColonRef],
+    args: {
+      ids: t.arg.globalIDList({ required: true, for: [IDWithColonRef] }),
+    },
+    resolve: (root, args) => args.ids.map((id) => new IDWithColon(id.id)),
+  }),
 );
 
 builder.queryField('numberThingByID', (t) =>
