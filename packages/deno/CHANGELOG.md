@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.39.0
+
+### Minor Changes
+
+- 22041db0: Add default isTypeOf for loadableNode
+- 68c94e4f: Support parsing globalIDs for loadableNode
+
+### Patch Changes
+
+- d2b02b79: Fix a few issues with globalID parsing
+
 ## 3.38.0
 
 ### Minor Changes
