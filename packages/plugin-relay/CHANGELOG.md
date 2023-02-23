@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.37.0
+
+### Minor Changes
+
+- 68c94e4f: Support parsing globalIDs for loadableNode
+
+### Patch Changes
+
+- d2b02b79: Fix a few issues with globalID parsing
+
 ## 3.36.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.41.1
+
+### Patch Changes
+
+- 592ffd3b: Fix name option for prismaNode
+
 ## 3.41.0
 
 ### Minor Changes
