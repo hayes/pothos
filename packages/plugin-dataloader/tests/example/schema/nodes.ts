@@ -11,21 +11,25 @@ const UserNode = builder.loadableNodeRef('UserNode', {
   load: (keys: string[], context: ContextType) => {
     countCall(context, userNodeCounts, keys.length);
     return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+      keys.map((id) =>
+        Number(id) > 0 ? { objType: 'UserNode', id: Number(id) } : new Error(`Invalid ID ${id}`),
+      ),
     );
   },
 });
 
 builder.objectType(UserNode, {
   interfaces: [TestInterface],
-  isTypeOf: (obj) =>
-    typeof obj === 'object' && obj !== null && Object.prototype.hasOwnProperty.call(obj, 'id'),
+  isTypeOf: (obj) => (obj as any).objType === 'UserNode',
   fields: (t) => ({}),
 });
 
 class ClassThing {
-  id: number = 123;
+  id: number;
   name: string = 'some name';
+  constructor(id = 123) {
+    this.id = id;
+  }
 }
 
 const ClassThingRef = builder.loadableNode(ClassThing, {
@@ -36,7 +40,8 @@ const ClassThingRef = builder.loadableNode(ClassThing, {
   },
   loaderOptions: { maxBatchSize: 20 },
   // eslint-disable-next-line @typescript-eslint/require-await
-  load: async (keys: string[], context: ContextType) => [new ClassThing()],
+  load: async (keys: string[], context: ContextType) =>
+    keys.map((k) => new ClassThing(Number.parseInt(k, 10))),
   fields: (t) => ({}),
 });
 

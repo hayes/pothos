@@ -1,5 +1,6 @@
 // @ts-nocheck
-import SchemaBuilder, { InterfaceParam, ObjectParam, PothosSchemaError, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
+import SchemaBuilder, { InterfaceParam, ObjectParam, OutputRef, PothosSchemaError, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 import { ImplementableLoadableNodeRef } from './refs/index.ts';
 import { ImplementableLoadableInterfaceRef } from './refs/interface.ts';
 import { ImplementableLoadableObjectRef } from './refs/object.ts';
@@ -74,7 +75,33 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
             name: string;
         }).name;
     const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, options);
-    ref.implement(options);
+    ref.implement({
+        ...options,
+        isTypeOf: options.isTypeOf ??
+            (typeof nameOrRef === "function"
+                ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
+                    if (!maybeNode) {
+                        return false;
+                    }
+                    if (maybeNode instanceof (nameOrRef as Function)) {
+                        return true;
+                    }
+                    const proto = Object.getPrototypeOf(maybeNode) as {
+                        constructor: unknown;
+                    };
+                    try {
+                        if (proto?.constructor) {
+                            const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
+                            return config.name === name;
+                        }
+                    }
+                    catch {
+                        // ignore
+                    }
+                    return false;
+                }
+                : undefined),
+    });
     if (typeof nameOrRef !== "string") {
         this.configStore.associateRefWithName(nameOrRef, name);
     }
