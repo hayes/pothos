@@ -11,7 +11,7 @@ export default new SchemaBuilder<{ Context: ContextType }>({
     nodeQueryOptions: {},
     nodesQueryOptions: {},
   },
-  plugins: [ErrorsPlugin, DataloaderPlugin, RelayPlugin],
+  plugins: [RelayPlugin, ErrorsPlugin, DataloaderPlugin],
   errorOptions: {
     defaultTypes: [Error],
   },
