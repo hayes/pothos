@@ -41,7 +41,8 @@ const ClassThingRef = builder.loadableNode(ClassThing, {
   },
   loaderOptions: { maxBatchSize: 20 },
   // eslint-disable-next-line @typescript-eslint/require-await
-  load: async (keys, context: ContextType) => [new ClassThing()],
+  load: async (keys, context: ContextType) =>
+    keys.map((k) => new ClassThing(Number.parseInt(k, 10))),
   fields: (t) => ({}),
 });
 
