@@ -158,7 +158,12 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
           ...this.options.relayOptions.nodeQueryOptions,
           type: ref as InterfaceRef<unknown>,
           args: {
-            id: t.arg.globalID({ required: true }),
+            id: t.arg.globalID({
+              required: true,
+              extensions: {
+                alwaysParse: true,
+              },
+            }),
           },
           resolve: resolveNodeFn
             ? (root, args, context, info) =>
@@ -198,7 +203,12 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
         ...this.options.relayOptions.nodesQueryOptions,
         type: [ref],
         args: {
-          ids: t.arg.globalIDList({ required: true }),
+          ids: t.arg.globalIDList({
+            required: true,
+            extensions: {
+              alwaysParse: true,
+            },
+          }),
         },
         resolve: resolveNodesFn
           ? (root, args, context, info) =>
