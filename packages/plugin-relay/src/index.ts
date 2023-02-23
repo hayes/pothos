@@ -28,7 +28,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       if (inputField.extensions?.isRelayGlobalID) {
         return (inputField.extensions?.relayGlobalIDFor ??
-          inputField.extensions?.alwaysParse ??
+          inputField.extensions?.relayGlobalIDAlwaysParse ??
           false) as boolean | { typename: string; parseId: (id: string, ctx: object) => unknown }[];
       }
 

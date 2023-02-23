@@ -161,7 +161,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
             id: t.arg.globalID({
               required: true,
               extensions: {
-                alwaysParse: true,
+                relayGlobalIDAlwaysParse: true,
               },
             }),
           },
@@ -206,7 +206,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
           ids: t.arg.globalIDList({
             required: true,
             extensions: {
-              alwaysParse: true,
+              relayGlobalIDAlwaysParse: true,
             },
           }),
         },
