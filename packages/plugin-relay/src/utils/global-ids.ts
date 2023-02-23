@@ -5,11 +5,12 @@ export function encodeGlobalID(typename: string, id: bigint | number | string) {
 }
 
 export function decodeGlobalID(globalID: string) {
-  const [typename, id] = decodeBase64(globalID).split(':');
+  const decoded = decodeBase64(globalID).split(':');
+  const [typename, id] = decoded;
 
   if (!typename || !id) {
     throw new PothosValidationError(`Invalid global ID: ${globalID}`);
   }
 
-  return { typename, id };
+  return { typename, id: decoded.length > 2 ? decoded.slice(1).join(':') : id };
 }

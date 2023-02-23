@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.27.0
+
+### Minor Changes
+
+- 42bf6190: Allow unionType to receive types as a thunk
+
 ## 3.26.0
 
 ### Minor Changes

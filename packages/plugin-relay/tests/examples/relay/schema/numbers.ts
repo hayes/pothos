@@ -1,6 +1,17 @@
 import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
+class IDWithColon {
+  id: string;
+
+  constructor(id: string) {
+    if (!id.includes(':')) {
+      throw new TypeError(`Expected id to have a colon, saw ${id}`);
+    }
+    this.id = id;
+  }
+}
+
 class NumberThing {
   id: number;
 
@@ -24,6 +35,16 @@ class BatchLoadableNumberThing {
     this.id = n;
   }
 }
+
+const IDWithColonRef = builder.node(IDWithColon, {
+  name: 'IDWithColon',
+  id: {
+    resolve: (n) => n.id,
+  },
+  fields: (t) => ({
+    idString: t.exposeString('id'),
+  }),
+});
 
 const NumberThingRef = builder.node(NumberThing, {
   id: {
@@ -215,6 +236,26 @@ builder.queryField('sharedEdgeConnection', (t) =>
   ),
 );
 
+builder.queryField('idWithColon', (t) =>
+  t.field({
+    type: IDWithColonRef,
+    args: {
+      id: t.arg.globalID({ required: true, for: [IDWithColonRef] }),
+    },
+    resolve: (root, args) => new IDWithColon(args.id.id),
+  }),
+);
+
+builder.queryField('idsWithColon', (t) =>
+  t.field({
+    type: [IDWithColonRef],
+    args: {
+      ids: t.arg.globalIDList({ required: true, for: [IDWithColonRef] }),
+    },
+    resolve: (root, args) => args.ids.map((id) => new IDWithColon(id.id)),
+  }),
+);
+
 builder.queryField('numberThingByID', (t) =>
   t.field({
     type: NumberThing,
@@ -234,5 +275,40 @@ builder.queryField('numberThingsByIDs', (t) =>
       ids: t.arg.globalIDList({ required: true, for: [NumberThingRef] }),
     },
     resolve: (root, args) => args.ids.map(({ id }) => new NumberThing(id)),
+  }),
+);
+
+const IDResult = builder
+  .objectRef<{
+    id: unknown;
+    typename: string;
+    arg: string;
+  }>('IDResult')
+  .implement({
+    fields: (t) => ({
+      id: t.string({
+        resolve: (n) => String(n.id),
+      }),
+      typename: t.exposeString('typename', {}),
+      arg: t.exposeString('arg', {}),
+      idType: t.string({
+        resolve: (n) => typeof n.id,
+      }),
+    }),
+  });
+
+builder.queryField('echoIDs', (t) =>
+  t.field({
+    type: [IDResult],
+    args: {
+      globalID: t.arg.globalID({ required: true }),
+      numberThingID: t.arg.globalID({ required: true, for: [NumberThingRef] }),
+      genericNumberThingID: t.arg.globalID({ required: true, for: [NumberThing] }),
+    },
+    resolve: (_, args) => [
+      { ...args.globalID, arg: 'globalID' },
+      { ...args.numberThingID, arg: 'numberThingID' },
+      { ...args.genericNumberThingID, arg: 'genericNumberThingID' },
+    ],
   }),
 );

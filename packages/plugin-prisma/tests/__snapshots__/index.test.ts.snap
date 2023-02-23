@@ -61,11 +61,6 @@ type FindUniqueRelations {
   withUniqueNode: WithUniqueNode!
 }
 
-type Follow {
-  from: User!
-  to: User!
-}
-
 type Media {
   url: String!
 }
@@ -300,7 +295,7 @@ type SelectUserFollowingConnection {
 
 type SelectUserFollowingConnectionEdge {
   cursor: String!
-  node: Follow!
+  node: UserFollow!
 }
 
 type SelectUserPostsConnection {
@@ -362,6 +357,11 @@ type UserCommentsConnectionEdge {
 
 union UserDirectProfileWithErrorsResult = BaseError | Profile
 
+type UserFollow {
+  from: User!
+  to: User!
+}
+
 type UserFollowingConnection {
   edges: [UserFollowingConnectionEdge]!
   pageInfo: PageInfo!
@@ -369,7 +369,7 @@ type UserFollowingConnection {
 
 type UserFollowingConnectionEdge {
   cursor: String!
-  node: Follow!
+  node: UserFollow!
 }
 
 union UserOrProfile = Profile | User

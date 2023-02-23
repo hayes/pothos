@@ -1,6 +1,8 @@
+import type { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   InterfaceParam,
   ObjectParam,
+  OutputRef,
   PothosSchemaError,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -166,6 +168,33 @@ schemaBuilderProto.loadableNode = function loadableNode<
       ...options.extensions,
       pothosParseGlobalID: options.id.parse,
     },
+    isTypeOf:
+      options.isTypeOf ??
+      (typeof nameOrRef === 'function'
+        ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
+            if (!maybeNode) {
+              return false;
+            }
+
+            if (maybeNode instanceof (nameOrRef as Function)) {
+              return true;
+            }
+
+            const proto = Object.getPrototypeOf(maybeNode) as { constructor: unknown };
+
+            try {
+              if (proto?.constructor) {
+                const config = this.configStore.getTypeConfig(proto.constructor as OutputRef);
+
+                return config.name === name;
+              }
+            } catch {
+              // ignore
+            }
+
+            return false;
+          }
+        : undefined),
   });
 
   if (typeof nameOrRef !== 'string') {

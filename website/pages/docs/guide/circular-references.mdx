@@ -45,7 +45,7 @@ loaded, these types of Circular imports should work without causing any issues.
 import { Post } from './post'
 
 export const User = builder.objectType('User', {
-    fields: t => ({ posts: t.t.expose('posts', { type: [Post]}) }),
+    fields: t => ({ posts: t.expose('posts', { type: [Post]}) }),
 })
 
 // post.ts

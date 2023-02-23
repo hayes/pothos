@@ -3,10 +3,10 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes } from '../../core/index.ts';
 import { DataLoaderOptions, LoadableNodeId } from '../types.ts';
 import { ImplementableLoadableObjectRef } from './object.ts';
-export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, Shape extends object, Key extends bigint | number | string, CacheKey> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
-    parseId: ((id: string, ctx: object) => Key) | undefined;
+export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, Shape extends object, IDShape extends bigint | number | string = string, Key extends bigint | number | string = IDShape, CacheKey = Key> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
+    parseId: ((id: string, ctx: object) => IDShape) | undefined;
     private idOptions;
-    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { id, ...options }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, Key>) {
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { id, ...options }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, IDShape>) {
         super(builder, name, options);
         this.idOptions = id;
         this.parseId = id.parse;

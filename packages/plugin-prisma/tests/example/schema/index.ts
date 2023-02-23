@@ -107,6 +107,7 @@ const ViewerNode = builder.prismaNode('User', {
 });
 
 builder.prismaObject('Follow', {
+  name: 'UserFollow',
   fields: (t) => ({
     to: t.relation('to'),
     from: t.relation('from'),

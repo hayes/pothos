@@ -295,7 +295,7 @@ all types in SchemaTypes, or import the actual implementation of each interface 
 ```typescript
 type UnionTypeOptions = {
   description?: string;
-  types: Member[];
+  types: Member[] | (() => Member[]);
   resolveType: (parent: UnionShape, context) => MaybePromise<GraphQLObjectType | TypeName>;
 };
 ```

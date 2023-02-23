@@ -158,6 +158,10 @@ describe('dataloader', () => {
           threeToMany: oneToMany(id: 3) {
             id
           }
+          classThingNode: node(id: "Q2xhc3NMb2FkYWJsZVRoaW5nOjE=") {
+            __typename
+            id
+          }
         }
       `;
 
