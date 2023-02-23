@@ -55,7 +55,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
             const globalID = typeof rawID === "string"
                 ? internalDecodeGlobalID(this.builder, rawID, context, info, true)
                 : rawID && {
-                    id: String(rawID.id),
+                    id: rawID.id,
                     typename: this.builder.configStore.getTypeConfig(rawID.type).name,
                 };
             return (await resolveNodes(this.builder, context, info, [globalID]))[0];
@@ -80,7 +80,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
             const globalIds = rawIds.map((id) => typeof id === "string"
                 ? internalDecodeGlobalID(this.builder, id, context, info, true)
                 : id && {
-                    id: String(id.id),
+                    id: id.id,
                     typename: this.builder.configStore.getTypeConfig(id.type).name,
                 });
             return resolveNodes(this.builder, context, info, globalIds);

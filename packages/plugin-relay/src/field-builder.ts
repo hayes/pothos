@@ -128,7 +128,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
         typeof rawID === 'string'
           ? internalDecodeGlobalID(this.builder, rawID, context, info, true)
           : rawID && {
-              id: String(rawID.id),
+              id: rawID.id,
               typename: this.builder.configStore.getTypeConfig(rawID.type).name,
             };
 
@@ -165,7 +165,7 @@ fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
         typeof id === 'string'
           ? internalDecodeGlobalID(this.builder, id, context, info, true)
           : id && {
-              id: String(id.id),
+              id: id.id,
               typename: this.builder.configStore.getTypeConfig(id.type).name,
             },
       );

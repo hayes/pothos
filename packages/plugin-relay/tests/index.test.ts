@@ -537,6 +537,16 @@ describe('relay example schema', () => {
             id
             number
           }
+          echoIDs(
+            globalID: "TnVtYmVyOjE="
+            numberThingID: "TnVtYmVyOjE="
+            genericNumberThingID: "TnVtYmVyOjE="
+          ) {
+            id
+            typename
+            arg
+            idType
+          }
         }
       `;
 
@@ -549,6 +559,26 @@ describe('relay example schema', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "data": {
+            "echoIDs": [
+              {
+                "arg": "globalID",
+                "id": "1",
+                "idType": "string",
+                "typename": "Number",
+              },
+              {
+                "arg": "numberThingID",
+                "id": "1",
+                "idType": "number",
+                "typename": "Number",
+              },
+              {
+                "arg": "genericNumberThingID",
+                "id": "1",
+                "idType": "string",
+                "typename": "Number",
+              },
+            ],
             "idWithColon": {
               "id": "SURXaXRoQ29sb246MTp0ZXN0",
               "idString": "1:test",

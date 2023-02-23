@@ -16,6 +16,9 @@ class NumberThing {
   id: number;
 
   constructor(n: number) {
+    if (typeof n !== 'number') {
+      throw new TypeError(`Expected NumberThing to receive number, saw ${typeof n} ${n}`);
+    }
     this.id = n;
   }
 }
@@ -24,6 +27,11 @@ class BatchLoadableNumberThing {
   id: number;
 
   constructor(n: number) {
+    if (typeof n !== 'number') {
+      throw new TypeError(
+        `Expected BatchLoadableNumberThing to receive number, saw ${typeof n} ${n}`,
+      );
+    }
     this.id = n;
   }
 }
@@ -267,5 +275,40 @@ builder.queryField('numberThingsByIDs', (t) =>
       ids: t.arg.globalIDList({ required: true, for: [NumberThingRef] }),
     },
     resolve: (root, args) => args.ids.map(({ id }) => new NumberThing(id)),
+  }),
+);
+
+const IDResult = builder
+  .objectRef<{
+    id: unknown;
+    typename: string;
+    arg: string;
+  }>('IDResult')
+  .implement({
+    fields: (t) => ({
+      id: t.string({
+        resolve: (n) => String(n.id),
+      }),
+      typename: t.exposeString('typename', {}),
+      arg: t.exposeString('arg', {}),
+      idType: t.string({
+        resolve: (n) => typeof n.id,
+      }),
+    }),
+  });
+
+builder.queryField('echoIDs', (t) =>
+  t.field({
+    type: [IDResult],
+    args: {
+      globalID: t.arg.globalID({ required: true }),
+      numberThingID: t.arg.globalID({ required: true, for: [NumberThingRef] }),
+      genericNumberThingID: t.arg.globalID({ required: true, for: [NumberThing] }),
+    },
+    resolve: (_, args) => [
+      { ...args.globalID, arg: 'globalID' },
+      { ...args.numberThingID, arg: 'numberThingID' },
+      { ...args.genericNumberThingID, arg: 'genericNumberThingID' },
+    ],
   }),
 );

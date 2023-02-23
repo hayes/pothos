@@ -15,7 +15,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
             relayGlobalIDFor: ((forTypes &&
                 (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
                 typename: this.builder.configStore.getTypeConfig(type).name,
-                parse: type instanceof NodeRef ? type.parseId : undefined,
+                parseId: type instanceof NodeRef ? type.parseId : undefined,
             })) ?? null,
         },
     }) as never;
@@ -29,7 +29,7 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>({ for: forTy
             relayGlobalIDFor: ((forTypes &&
                 (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
                 typename: this.builder.configStore.getTypeConfig(type).name,
-                parse: type instanceof NodeRef ? type.parseId : undefined,
+                parseId: type instanceof NodeRef ? type.parseId : undefined,
             })) ?? null,
         },
     }) as unknown as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>> as never;

@@ -46,6 +46,13 @@ input GlobalIDInput {
   otherList: [OtherInput!] = [{someField: \\"abc\\"}]
 }
 
+type IDResult {
+  arg: String!
+  id: String!
+  idType: String!
+  typename: String!
+}
+
 type IDWithColon implements Node {
   id: ID!
   idString: String!
@@ -133,6 +140,7 @@ type PollAnswersUsingOffsetConnectionEdge {
 type Query {
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
   cursorConnection(after: ID, before: ID, first: Int, last: Int): QueryCursorConnection!
+  echoIDs(genericNumberThingID: ID!, globalID: ID!, numberThingID: ID!): [IDResult!]!
   extraNode: Node
   idWithColon(id: ID!): IDWithColon!
   idsWithColon(ids: [ID!]!): [IDWithColon!]!

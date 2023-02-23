@@ -27,9 +27,9 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
   ): GraphQLFieldResolver<unknown, Types['Context'], object> {
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       if (inputField.extensions?.isRelayGlobalID) {
-        return (inputField.extensions?.relayGlobalIDFor ?? true) as
-          | true
-          | { typename: string; parseId: (id: string, ctx: object) => unknown }[];
+        return (inputField.extensions?.relayGlobalIDFor ??
+          inputField.extensions?.relayGlobalIDAlwaysParse ??
+          false) as boolean | { typename: string; parseId: (id: string, ctx: object) => unknown }[];
       }
 
       return null;
@@ -42,13 +42,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     const argMapper = createInputValueMapper(
       argMappings,
       (globalID, mappings, ctx: Types['Context'], info: GraphQLResolveInfo) =>
-        internalDecodeGlobalID(
-          this.builder,
-          String(globalID),
-          ctx,
-          info,
-          Array.isArray(mappings.value) ? mappings.value : false,
-        ),
+        internalDecodeGlobalID(this.builder, String(globalID), ctx, info, mappings.value ?? false),
     );
 
     return (parent, args, context, info) =>
