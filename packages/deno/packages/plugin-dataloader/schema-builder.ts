@@ -62,7 +62,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<Key extends Dataloader
     return ref;
 };
 const TloadableNode = schemaBuilderProto.loadableNode;
-schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Key extends DataloaderKey, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, CacheKey = Key>(this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, options: LoadableNodeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>) {
+schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef extends ObjectParam<SchemaTypes> ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> : object, Interfaces extends InterfaceParam<SchemaTypes>[], NameOrRef extends ObjectParam<SchemaTypes> | string, IDShape extends bigint | number | string = string, Key extends bigint | number | string = IDShape, CacheKey = Key>(this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, nameOrRef: NameOrRef, options: LoadableNodeOptions<SchemaTypes, Shape, Interfaces, NameOrRef, IDShape, Key, CacheKey>) {
     if (typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
         .nodeInterfaceRef !== "function") {
         throw new PothosSchemaError("builder.loadableNode requires @pothos/plugin-relay to be installed");
@@ -74,9 +74,13 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
         }).name ?? (nameOrRef as {
             name: string;
         }).name;
-    const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, options);
+    const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(this, name, options);
     ref.implement({
         ...options,
+        extensions: {
+            ...options.extensions,
+            pothosParseGlobalID: options.id.parse,
+        },
         isTypeOf: options.isTypeOf ??
             (typeof nameOrRef === "function"
                 ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {

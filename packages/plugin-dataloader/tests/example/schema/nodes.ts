@@ -37,12 +37,37 @@ const ClassThingRef = builder.loadableNode(ClassThing, {
   interfaces: [TestInterface],
   id: {
     resolve: (user) => user.id,
+    parse: (id) => id,
   },
   loaderOptions: { maxBatchSize: 20 },
   // eslint-disable-next-line @typescript-eslint/require-await
-  load: async (keys: string[], context: ContextType) =>
+  load: async (keys, context: ContextType) =>
     keys.map((k) => new ClassThing(Number.parseInt(k, 10))),
   fields: (t) => ({}),
+});
+
+class LoadableParseTest {
+  readonly id: number;
+  constructor(id: number) {
+    if (typeof id !== 'number') {
+      throw new TypeError(`Expected id to be a number, saw ${id}`);
+    }
+    this.id = id;
+  }
+}
+
+const LoadableParseRef = builder.loadableNode(LoadableParseTest, {
+  name: 'LoadableParseTest',
+  id: {
+    resolve: (user) => user.id,
+    parse: (id) => Number.parseInt(id, 10),
+  },
+  loaderOptions: { maxBatchSize: 20 },
+  // eslint-disable-next-line @typescript-eslint/require-await
+  load: async (keys, context: ContextType) => keys.map((k) => new LoadableParseTest(k)),
+  fields: (t) => ({
+    idNumber: t.exposeInt('id'),
+  }),
 });
 
 builder.queryFields((t) => ({
@@ -72,5 +97,16 @@ builder.queryFields((t) => ({
   classThingRef: t.field({
     type: ClassThingRef,
     resolve: () => '1',
+  }),
+  loadableParse: t.field({
+    type: LoadableParseRef,
+    resolve: () => 1,
+  }),
+  loadableParseNodes: t.field({
+    type: [LoadableParseRef],
+    args: {
+      ids: t.arg.globalIDList({ for: [LoadableParseRef] }),
+    },
+    resolve: (source, args) => args.ids?.map((id) => id.id) ?? [],
   }),
 }));

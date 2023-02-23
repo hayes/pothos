@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { FieldRequiredness, InputFieldBuilder, InputFieldRef, InputShapeFromTypeParam, ObjectRef, SchemaTypes, } from '../core/index.ts';
-import { NodeRef } from './node-ref.ts';
 import { GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListInputFieldOptions, } from './types.ts';
 type DefaultSchemaTypes = PothosSchemaTypes.ExtendDefaultTypes<{}>;
 const inputFieldBuilder = InputFieldBuilder.prototype as PothosSchemaTypes.InputFieldBuilder<DefaultSchemaTypes, "Arg" | "InputObject">;
@@ -15,7 +14,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
             relayGlobalIDFor: ((forTypes &&
                 (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
                 typename: this.builder.configStore.getTypeConfig(type).name,
-                parseId: type instanceof NodeRef ? type.parseId : undefined,
+                parseId: "parseId" in type ? type.parseId : undefined,
             })) ?? null,
         },
     }) as never;
@@ -29,7 +28,7 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>({ for: forTy
             relayGlobalIDFor: ((forTypes &&
                 (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[])?.map((type: ObjectRef<SchemaTypes>) => ({
                 typename: this.builder.configStore.getTypeConfig(type).name,
-                parseId: type instanceof NodeRef ? type.parseId : undefined,
+                parseId: "parseId" in type ? type.parseId : undefined,
             })) ?? null,
         },
     }) as unknown as InputFieldRef<InputShapeFromTypeParam<DefaultSchemaTypes, GlobalIDInputShape, Req>> as never;

@@ -162,7 +162,7 @@ export interface LoadableRef<K, V, C> {
   getDataloader: (context: C) => DataLoader<K, V>;
 }
 
-export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object> {
+export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object, IDShape> {
   id: Omit<
     FieldOptionsFromKind<
       Types,
@@ -175,15 +175,18 @@ export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object>
       MaybePromise<OutputShape<Types, 'ID'>>
     >,
     'args' | 'nullable' | 'type'
-  >;
+  > & {
+    parse?: (id: string, ctx: Types['Context']) => IDShape;
+  };
 }
 
 export type LoadableNodeOptions<
   Types extends SchemaTypes,
   Shape extends object,
-  Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
-  CacheKey,
+  IDShape extends bigint | number | string = string,
+  Key extends bigint | number | string = IDShape,
+  CacheKey = Key,
 > = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> &
-  LoadableNodeId<Types, Shape>;
+  LoadableNodeId<Types, Shape, IDShape>;

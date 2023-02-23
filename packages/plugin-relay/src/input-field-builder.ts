@@ -6,7 +6,6 @@ import {
   ObjectRef,
   SchemaTypes,
 } from '@pothos/core';
-import { NodeRef } from './node-ref';
 import {
   GlobalIDInputFieldOptions,
   GlobalIDInputShape,
@@ -37,7 +36,7 @@ inputFieldBuilder.globalIDList = function globalIDList<Req extends FieldRequired
             (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[]
         )?.map((type: ObjectRef<SchemaTypes>) => ({
           typename: this.builder.configStore.getTypeConfig(type).name,
-          parseId: type instanceof NodeRef ? type.parseId : undefined,
+          parseId: 'parseId' in type ? type.parseId : undefined,
         })) ?? null,
     },
   }) as never;
@@ -60,7 +59,7 @@ inputFieldBuilder.globalID = function globalID<Req extends boolean>(
             (Array.isArray(forTypes) ? forTypes : [forTypes])) as ObjectRef<SchemaTypes>[]
         )?.map((type: ObjectRef<SchemaTypes>) => ({
           typename: this.builder.configStore.getTypeConfig(type).name,
-          parseId: type instanceof NodeRef ? type.parseId : undefined,
+          parseId: 'parseId' in type ? type.parseId : undefined,
         })) ?? null,
     },
   }) as unknown as InputFieldRef<

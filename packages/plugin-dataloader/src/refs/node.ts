@@ -7,9 +7,11 @@ export class ImplementableLoadableNodeRef<
   Types extends SchemaTypes,
   RefShape,
   Shape extends object,
-  Key extends bigint | number | string,
-  CacheKey,
+  IDShape extends bigint | number | string = string,
+  Key extends bigint | number | string = IDShape,
+  CacheKey = Key,
 > extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
+  parseId: ((id: string, ctx: object) => IDShape) | undefined;
   private idOptions;
 
   constructor(
@@ -18,10 +20,11 @@ export class ImplementableLoadableNodeRef<
     {
       id,
       ...options
-    }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape>,
+    }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, IDShape>,
   ) {
     super(builder, name, options);
     this.idOptions = id;
+    this.parseId = id.parse;
 
     this.builder.configStore.onTypeConfig(this, (config) => {
       const nodeInterface = (
