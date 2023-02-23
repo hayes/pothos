@@ -93,6 +93,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
 
   const extendedOptions = {
     ...options,
+    name,
     variant,
     interfaces: [interfaceRef],
     findUnique,
