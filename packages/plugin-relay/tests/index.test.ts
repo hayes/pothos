@@ -513,6 +513,14 @@ describe('relay example schema', () => {
     it('parses ids', async () => {
       const query = gql`
         query {
+          idWithColon(id: "SURXaXRoQ29sb246MTp0ZXN0") {
+            id
+            idString
+          }
+          idsWithColon(ids: ["SURXaXRoQ29sb246MTp0ZXN0", "SURXaXRoQ29sb246Mjp0ZXN0OmV4YW1wbGU="]) {
+            id
+            idString
+          }
           numberThingByID(id: "TnVtYmVyOjE=") {
             id
             number
@@ -569,6 +577,20 @@ describe('relay example schema', () => {
                 "id": "1",
                 "idType": "string",
                 "typename": "Number",
+              },
+            ],
+            "idWithColon": {
+              "id": "SURXaXRoQ29sb246MTp0ZXN0",
+              "idString": "1:test",
+            },
+            "idsWithColon": [
+              {
+                "id": "SURXaXRoQ29sb246MTp0ZXN0",
+                "idString": "1:test",
+              },
+              {
+                "id": "SURXaXRoQ29sb246Mjp0ZXN0OmV4YW1wbGU=",
+                "idString": "2:test:example",
               },
             ],
             "invalid": null,
