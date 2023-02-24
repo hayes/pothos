@@ -2,7 +2,15 @@
 
 exports[`federation accounts schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override"])
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@interfaceObject"])
+
+type Media
+  @key(fields: "id")
+  @interfaceObject
+{
+  id: ID
+  test: String
+}
 
 type Query {
   me: User
@@ -18,7 +26,12 @@ type User
 `;
 
 exports[`federation accounts schema generates expected schema 2`] = `
-"type Query {
+"type Media {
+  id: ID
+  test: String
+}
+
+type Query {
   _entities(representations: [_Any!]!): [_Entity]!
   _service: _Service!
   me: User
@@ -32,7 +45,7 @@ type User {
 
 scalar _Any
 
-union _Entity = User
+union _Entity = Media | User
 
 type _Service {
   """
@@ -86,10 +99,28 @@ type _Service {
 
 exports[`federation products schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override"])
+  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@composeDirective"])
+  @link(url: "https://myspecs.dev/myCustomDirective/v1.0", import: ["@custom"])
+  @composeDirective(name: "@custom")
+
+directive @custom on INTERFACE | OBJECT
+
+interface Media
+  @key(fields: "id")
+{
+  id: ID
+}
+
+type Post implements Media
+  @key(fields: "id")
+{
+  id: ID
+  title: String
+}
 
 type Product
   @key(fields: "upc")
+  @custom
 {
   upc: String
   name: String
@@ -98,12 +129,24 @@ type Product
 }
 
 type Query {
+  post: Post
   topProducts(first: Int): [Product!]
 }"
 `;
 
 exports[`federation products schema generates expected schema 2`] = `
-"type Product {
+"directive @custom on INTERFACE | OBJECT
+
+interface Media {
+  id: ID
+}
+
+type Post implements Media {
+  id: ID
+  title: String
+}
+
+type Product {
   name: String
   price: Float
   upc: String
@@ -113,12 +156,13 @@ exports[`federation products schema generates expected schema 2`] = `
 type Query {
   _entities(representations: [_Any!]!): [_Entity]!
   _service: _Service!
+  post: Post
   topProducts(first: Int = 5): [Product!]
 }
 
 scalar _Any
 
-union _Entity = Product
+union _Entity = Post | Product
 
 type _Service {
   """

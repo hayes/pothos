@@ -14,6 +14,7 @@ import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/t
 import SchemaBuilder, { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ExternalEntityRef } from './external-ref';
 import { Selection, SelectionFromShape, selectionShapeKey } from './types';
+import { mergeDirectives } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -50,27 +51,40 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
   linkUrl = 'https://specs.apollo.dev/federation/v2.3',
   ...options
 }) {
+  const hasInterfaceObjects = [...(entityMapping.get(this)?.values() ?? [])].some(
+    (m) => m.interfaceObject,
+  );
   const schema = this.toSchema({
     ...options,
     extensions: {
       ...options.extensions,
-      directives: {
-        ...(options?.extensions?.directives as {}),
-        link: {
-          url: linkUrl,
-          import: [
-            '@key',
-            '@shareable',
-            '@inaccessible',
-            '@tag',
-            '@provides',
-            '@requires',
-            '@external',
-            '@extends',
-            '@override',
-          ],
+      directives: mergeDirectives(options?.extensions?.directives as {}, [
+        {
+          name: 'link',
+          args: {
+            url: linkUrl,
+            import: [
+              '@key',
+              '@shareable',
+              '@inaccessible',
+              '@tag',
+              '@provides',
+              '@requires',
+              '@external',
+              '@extends',
+              '@override',
+              options.composeDirectives ? '@composeDirective' : null,
+              hasInterfaceObjects ? '@interfaceObject' : null,
+            ].filter(Boolean),
+          },
         },
-      },
+        ...(options.composeDirectives?.map((name) => ({
+          name: 'composeDirective',
+          args: {
+            name,
+          },
+        })) ?? []),
+      ]),
     },
   });
   const queryType = schema.getType('Query') as GraphQLObjectType | undefined;
@@ -137,6 +151,7 @@ export const entityMapping = new WeakMap<
     string,
     {
       key: Selection<object> | Selection<object>[];
+      interfaceObject?: boolean;
       resolveReference: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
     }
   >

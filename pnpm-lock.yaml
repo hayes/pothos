@@ -243,8 +243,8 @@ importers:
   examples/prisma-federation:
     specifiers:
       '@apollo/gateway': 2.3.1
-      '@apollo/server': ^4.3.3
-      '@apollo/subgraph': 2.3.1
+      '@apollo/server': ^4.4.0
+      '@apollo/subgraph': 2.3.2
       '@faker-js/faker': ^7.6.0
       '@pothos/core': workspace:*
       '@pothos/plugin-directives': workspace:*
@@ -255,8 +255,8 @@ importers:
       prisma: ^4.9.0
     dependencies:
       '@apollo/gateway': 2.3.1_graphql@16.6.0
-      '@apollo/server': 4.3.3_graphql@16.6.0
-      '@apollo/subgraph': 2.3.1_graphql@16.6.0
+      '@apollo/server': 4.4.0_graphql@16.6.0
+      '@apollo/subgraph': 2.3.2_graphql@16.6.0
       '@faker-js/faker': 7.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-directives': link:../../packages/plugin-directives
@@ -288,7 +288,7 @@ importers:
 
   examples/prisma-smart-subscriptions-apollo:
     specifiers:
-      '@apollo/server': ^4.3.3
+      '@apollo/server': ^4.4.0
       '@faker-js/faker': ^7.6.0
       '@pothos/core': workspace:*
       '@pothos/plugin-prisma': workspace:*
@@ -307,7 +307,7 @@ importers:
       prisma: ^4.9.0
       ws: ^8.12.0
     dependencies:
-      '@apollo/server': 4.3.3_graphql@16.6.0
+      '@apollo/server': 4.4.0_graphql@16.6.0
       '@faker-js/faker': 7.6.0
       '@pothos/core': link:../../packages/core
       '@pothos/plugin-prisma': link:../../packages/plugin-prisma
@@ -517,8 +517,8 @@ importers:
   packages/plugin-federation:
     specifiers:
       '@apollo/gateway': ^2.3.1
-      '@apollo/server': ^4.3.3
-      '@apollo/subgraph': 2.3.1
+      '@apollo/server': ^4.4.0
+      '@apollo/subgraph': 2.3.2
       '@graphql-tools/utils': ^9.2.1
       '@pothos/core': workspace:*
       '@pothos/plugin-directives': workspace:*
@@ -528,8 +528,8 @@ importers:
       graphql-tag: ^2.12.6
     devDependencies:
       '@apollo/gateway': 2.3.1_graphql@16.6.0
-      '@apollo/server': 4.3.3_graphql@16.6.0
-      '@apollo/subgraph': 2.3.1_graphql@16.6.0
+      '@apollo/server': 4.4.0_graphql@16.6.0
+      '@apollo/subgraph': 2.3.2_graphql@16.6.0
       '@graphql-tools/utils': 9.2.1_graphql@16.6.0
       '@pothos/core': link:../core
       '@pothos/plugin-directives': link:../plugin-directives
@@ -978,6 +978,16 @@ packages:
       graphql: 16.6.0
       js-levenshtein: 1.1.6
 
+  /@apollo/federation-internals/2.3.2_graphql@16.6.0:
+    resolution: {integrity: sha512-XtXQag8sV75BoNlzu6ci5mn2U+QGNZdkRB8Igi5e31VqnBx4XSdvbyx6Ht1lvYru9GCYx6OqGWZqqPqAXG72/Q==}
+    engines: {node: '>=14.15.0'}
+    peerDependencies:
+      graphql: ^16.5.0
+    dependencies:
+      chalk: 4.1.2
+      graphql: 16.6.0
+      js-levenshtein: 1.1.6
+
   /@apollo/gateway/2.3.1_graphql@16.6.0:
     resolution: {integrity: sha512-kkZP591To697XL8rH6JOvStOU7URcHInKWEU2q3Llimwt4Gm1mlshlNNnlRiHy2ri6tim0/wL1qLBtFG2LUfDQ==}
     engines: {node: '>=14.15.0'}
@@ -1063,8 +1073,8 @@ packages:
       '@apollo/utils.logger': 2.0.0
       graphql: 16.6.0
 
-  /@apollo/server/4.3.3_graphql@16.6.0:
-    resolution: {integrity: sha512-2nigGTgXCAUk2PHHGybtofyuuVAA/QUZwRJzwuCbRFgY1fKkMT7J4fUPwNcA809lDlZyyYphcQnM/vQNbeiu6w==}
+  /@apollo/server/4.4.0_graphql@16.6.0:
+    resolution: {integrity: sha512-hjFq8fB3tO6jnvNj2030IUDlxjpKAHvcjXq0PhpdSzjRggZlAMVr9REqvn6Ni++lF/80T/Na+YYZW4L+gedHaQ==}
     engines: {node: '>=14.16.0'}
     peerDependencies:
       graphql: ^16.6.0 || ^16.5.0
@@ -1085,12 +1095,12 @@ packages:
       '@types/express-serve-static-core': 4.17.33
       '@types/node-fetch': 2.6.2
       async-retry: 1.3.3
-      body-parser: 1.20.1
+      body-parser: 1.20.2
       cors: 2.8.5
       express: 4.18.2
       graphql: 16.6.0
       loglevel: 1.8.1
-      lru-cache: 7.14.1
+      lru-cache: 7.17.0
       negotiator: 0.6.3
       node-abort-controller: 3.1.1
       node-fetch: 2.6.9
@@ -1100,14 +1110,14 @@ packages:
       - encoding
       - supports-color
 
-  /@apollo/subgraph/2.3.1_graphql@16.6.0:
-    resolution: {integrity: sha512-xn9SZm1sJNJLfyqtXV8ZxI0tQSsikkjExGCoEfXYqHINDucXRqHtPVlCv5G6k0xhrDQhmmzlvGMzsCuWsUAv4Q==}
+  /@apollo/subgraph/2.3.2_graphql@16.6.0:
+    resolution: {integrity: sha512-PYSVD+tx49EVjII25Ip1QsrOCn/Bmh7KBqoqZsp/AT/8yGbqX5j9oAeRH37QcOxbl8TXBcJBDKbPO/KzUln1Dg==}
     engines: {node: '>=14.15.0'}
     peerDependencies:
       graphql: ^16.5.0
     dependencies:
       '@apollo/cache-control-types': 1.0.2_graphql@16.6.0
-      '@apollo/federation-internals': 2.3.1_graphql@16.6.0
+      '@apollo/federation-internals': 2.3.2_graphql@16.6.0
       graphql: 16.6.0
 
   /@apollo/usage-reporting-protobuf/4.0.2:
@@ -6358,6 +6368,25 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
+  /body-parser/1.20.2:
+    resolution: {integrity: sha512-ml9pReCu3M61kGlqoTm2umSXTlRTuGTx0bfYj+uIUKKYycG5NtSbeetV3faSU6R7ajOPw0g/J1PvK4qNy7s5bA==}
+    engines: {node: '>= 0.8', npm: 1.2.8000 || >= 1.4.16}
+    dependencies:
+      bytes: 3.1.2
+      content-type: 1.0.5
+      debug: 2.6.9
+      depd: 2.0.0
+      destroy: 1.2.0
+      http-errors: 2.0.0
+      iconv-lite: 0.4.24
+      on-finished: 2.4.1
+      qs: 6.11.0
+      raw-body: 2.5.2
+      type-is: 1.6.18
+      unpipe: 1.0.0
+    transitivePeerDependencies:
+      - supports-color
+
   /brace-expansion/1.1.11:
     resolution: {integrity: sha512-iCuPHDFgrHX7H2vEI/5xpz07zSHB00TpugqhmYtVmMO6518mCuRMoOYFldEBl0g187ufozdaHgWKcYFb61qGiA==}
     dependencies:
@@ -11598,6 +11627,10 @@ packages:
     resolution: {integrity: sha512-ysxwsnTKdAx96aTRdhDOCQfDgbHnt8SK0KY8SEjO0wHinhWOFTESbjVCMPbU1uGXg/ch4lifqx0wfjOawU2+WA==}
     engines: {node: '>=12'}
 
+  /lru-cache/7.17.0:
+    resolution: {integrity: sha512-zSxlVVwOabhVyTi6E8gYv2cr6bXK+8ifYz5/uyJb9feXX6NACVDwY4p5Ut3WC3Ivo/QhpARHU3iujx2xGAYHbQ==}
+    engines: {node: '>=12'}
+
   /lru_map/0.3.3:
     resolution: {integrity: sha512-Pn9cox5CsMYngeDbmChANltQl+5pi6XmTrraMSzhPmMBbmgcxmqWry0U3PGapCU1yB4/LqCcom7qhHZiF/jGfQ==}
     dev: true
@@ -13614,6 +13647,15 @@ packages:
 
   /raw-body/2.5.1:
     resolution: {integrity: sha512-qqJBtEyVgS0ZmPGdCFPWJ3FreoqvG4MVQln/kCgF7Olq95IbOp0/BWyMwbdtn4VTvkM8Y7khCQ2Xgk/tcrCXig==}
+    engines: {node: '>= 0.8'}
+    dependencies:
+      bytes: 3.1.2
+      http-errors: 2.0.0
+      iconv-lite: 0.4.24
+      unpipe: 1.0.0
+
+  /raw-body/2.5.2:
+    resolution: {integrity: sha512-8zGqypfENjCIqGhgXToC8aB2r7YrBX+AQAfIPs/Mlk+BtPTztOvTS01NRW/3Eh60J+a48lt8qsCzirQ6loCVfA==}
     engines: {node: '>= 0.8'}
     dependencies:
       bytes: 3.1.2

@@ -62,6 +62,10 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
         };
     }
     override afterBuild(schema: GraphQLSchema) {
+        schema.extensions = {
+            ...schema.extensions,
+            directives: this.normalizeDirectives(this.mergeDirectives((schema.extensions?.directives as Record<string, {}>) ?? {}, this.options.schemaDirectives as unknown as Record<string, {}>)),
+        };
         mockAst(schema);
         return schema;
     }

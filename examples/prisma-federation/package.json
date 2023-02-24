@@ -15,8 +15,8 @@
   },
   "dependencies": {
     "@apollo/gateway": "2.3.1",
-    "@apollo/server": "^4.3.3",
-    "@apollo/subgraph": "2.3.1",
+    "@apollo/server": "^4.4.0",
+    "@apollo/subgraph": "2.3.2",
     "@faker-js/faker": "^7.6.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
