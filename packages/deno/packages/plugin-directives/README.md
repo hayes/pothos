@@ -50,7 +50,7 @@ an object type representing the arguments the directive accepts.
 
 The valid locations for directives are:
 
-- `ARGUMENT_DEFINITION` \|
+- `ARGUMENT_DEFINITION`
 - `ENUM_VALUE`
 - `ENUM`
 - `FIELD_DEFINITION`
@@ -104,3 +104,11 @@ supported locations using one of the following 2 formats:
 
 Each of these applies the same 2 directives. The first format is preferred, especially when using
 directives that are sensitive to ordering, or can be repeated multiple times for the same location.
+
+## Applying directives
+
+For most locations (On fields and types) the options object for the field or type will have a
+`directives` option which can be used to define directives.
+
+To apply `SCHEMA` directives, you can use the `schemaDirectives` option on the `toSchema` method.
+`directives` on `toSchema` is reserved for the Directive implementations.

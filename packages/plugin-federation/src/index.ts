@@ -42,6 +42,7 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
         directives: mergeDirectives(typeConfig.extensions?.directives as [], [
           ...(entityConfig ? keyDirective(entityConfig.key) : []),
           ...commonDirectives,
+          ...(entityConfig?.interfaceObject ? [{ name: 'interfaceObject', args: {} }] : []),
         ]),
       },
     };

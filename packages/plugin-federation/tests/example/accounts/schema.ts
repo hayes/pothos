@@ -56,4 +56,19 @@ builder.queryType({
   }),
 });
 
+const Media = builder.objectRef<{ id: string }>('Media').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    test: t.string({
+      resolve: (media) => 'test field from interfaceObject',
+    }),
+  }),
+});
+
+builder.asEntity(Media, {
+  interfaceObject: true,
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (ref) => ref,
+});
+
 export const schema = builder.toSubGraphSchema({});

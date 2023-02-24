@@ -117,5 +117,9 @@ declare global {
     export interface EnumValueConfig<Types extends SchemaTypes = SchemaTypes> {
       directives?: Directives<Types, 'ENUM_VALUE'>;
     }
+
+    export interface BuildSchemaOptions<Types extends SchemaTypes> {
+      schemaDirectives?: Directives<Types, 'SCHEMA'>;
+    }
   }
 }

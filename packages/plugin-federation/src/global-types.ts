@@ -86,13 +86,18 @@ declare global {
       toSubGraphSchema: (
         options: BuildSchemaOptions<Types> & {
           linkUrl?: string;
+          composeDirectives?: `@${string}`[];
         },
       ) => GraphQLSchema;
 
-      asEntity: <Param extends ObjectRef<unknown>, KeySelection extends Selection<object>>(
+      asEntity: <
+        Param extends ObjectRef<unknown> | InterfaceRef<unknown>,
+        KeySelection extends Selection<object>,
+      >(
         param: Param,
         options: {
           key: KeySelection | KeySelection[];
+          interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
           resolveReference: (
             parent: KeySelection[typeof selectionShapeKey],
             context: Types['Context'],

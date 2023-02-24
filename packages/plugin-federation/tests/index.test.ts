@@ -1,8 +1,8 @@
+import axios from 'axios';
+import { printSchema } from 'graphql';
 import { ApolloServer } from '@apollo/server';
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { printSubgraphSchema } from '@apollo/subgraph';
-import axios from 'axios';
-import { printSchema } from 'graphql';
 import { schema as accountsSchema } from './example/accounts/schema';
 import { createGateway } from './example/gateway';
 import { schema as inventorySchema } from './example/inventory/schema';
