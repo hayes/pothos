@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.10.0
+
+### Minor Changes
+
+- 487b810a: Add support for @interfaceObject and @composeDirective
+- 487b810a: Add schemaDirectives option to `toSchema` for defining SCHEMA directives
+
 ## 3.9.2
 
 ### Patch Changes
