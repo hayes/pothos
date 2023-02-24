@@ -1,5 +1,11 @@
 # @pothos-examples/prisma-smart-subscriptions-apollo
 
+## 2.6.0
+
+### Minor Changes
+
+- 487b810a: Add support for @interfaceObject and @composeDirective
+
 ## 2.5.4
 
 ### Patch Changes

@@ -1,5 +1,18 @@
 # @pothos-examples/relay
 
+## 2.8.0
+
+### Minor Changes
+
+- 487b810a: Add support for @interfaceObject and @composeDirective
+
+### Patch Changes
+
+- Updated dependencies [487b810a]
+- Updated dependencies [487b810a]
+  - @pothos/plugin-directives@3.10.0
+  - @pothos/plugin-federation@3.10.0
+
 ## 2.7.5
 
 ### Patch Changes

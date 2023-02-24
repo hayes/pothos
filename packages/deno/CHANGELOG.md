@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.40.0
+
+### Minor Changes
+
+- 487b810a: Add support for @interfaceObject and @composeDirective
+
 ## 3.39.0
 
 ### Minor Changes
