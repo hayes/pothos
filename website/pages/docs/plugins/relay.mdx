@@ -192,7 +192,7 @@ builder.node(NumberThing, {
 the `Node` interface the first time it is used. The `resolve` function for `id` should return a
 number or string, which will be converted to a globalID. The relay plugin adds to new query fields
 `node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
-provided `loadOne` or `laodMany` method. Each node will only be loaded once by id, and cached if the
+provided `loadOne` or `loadMany` method. Each node will only be loaded once by id, and cached if the
 same node is loaded multiple times inn the same request. You can provide `loadWithoutCache` or
 `loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
 datasource like a dataloader.
