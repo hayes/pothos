@@ -455,7 +455,7 @@ builder.prismaObject('User', {
 
 The returned query object will be added to the include section of the `query` argument that gets
 passed into the first argument of the parent `t.prismaField`, and can include things like `where`,
-`skip`, `take`, abd `orderBy`. The `query` function will be passed the arguments for the field, and
+`skip`, `take`, and `orderBy`. The `query` function will be passed the arguments for the field, and
 the context for the current request. Because it is used for pre-loading data, and solving n+1
 issues, it can not be passed the `parent` object because it may not be loaded yet.
 
