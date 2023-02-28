@@ -122,10 +122,13 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           type.name,
           new GraphQLObjectType({
             ...typeConfig,
-            interfaces: () =>
-              typeConfig.interfaces
-                .filter((iface) => newTypes.has(iface.name))
-                .map((iface) => replaceType(iface, newTypes, typeConfig.name, subGraphs)),
+            interfaces: () => [
+              ...new Set(
+                typeConfig.interfaces
+                  .filter((iface) => newTypes.has(iface.name))
+                  .map((iface) => replaceType(iface, newTypes, typeConfig.name, subGraphs)),
+              ),
+            ],
             fields: this.filterFields(type, newTypes, subGraphs),
           }),
         );
