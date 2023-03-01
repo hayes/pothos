@@ -2020,11 +2020,21 @@ describe('prisma', () => {
           "action": "findUniqueOrThrow",
           "args": {
             "include": {
+              "_count": {
+                "select": {
+                  "media": true,
+                },
+              },
               "media": {
                 "cursor": {
                   "postId_mediaId": {
                     "mediaId": 1,
                     "postId": 1,
+                  },
+                },
+                "orderBy": {
+                  "post": {
+                    "createdAt": "asc",
                   },
                 },
                 "select": {

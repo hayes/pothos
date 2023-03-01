@@ -99,7 +99,7 @@ type Post {
   content: String
   createdAt: String!
   id: ID!
-  manualMediaConnection(after: ID, before: ID, first: Int, last: Int): PostManualMediaConnection!
+  manualMediaConnection(after: ID, before: ID, first: Int, inverted: Boolean, last: Int): PostManualMediaConnection!
   media: [Media!]!
   mediaConnection(after: ID, before: ID, first: Int, last: Int): MediaConnection!
   ownComments: [Comment!]!
@@ -115,6 +115,7 @@ type Post {
 type PostManualMediaConnection {
   edges: [PostManualMediaConnectionEdge]!
   pageInfo: PageInfo!
+  totalCount: Int!
 }
 
 type PostManualMediaConnectionEdge {

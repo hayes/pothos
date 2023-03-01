@@ -1,5 +1,7 @@
 import ts from 'typescript';
+import { PothosSchemaError } from '@pothos/core';
 import * as Prisma from '../../client';
+import { capitalize, mapFields, parse, printExpression, printStatements } from './util';
 
 const filterOps = ['equals', 'in', 'notIn', 'not', 'is', 'isNot'] as const;
 const sortableFilterProps = ['lt', 'lte', 'gt', 'gte'] as const;
@@ -7,11 +9,154 @@ const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith'] as 
 const sortableTypes = ['String', 'Int', 'Float', 'DateTime', 'BigInt'] as const;
 const listOps = ['every', 'some', 'none'] as const;
 
-const dmmf = Prisma.Prisma.dmmf;
+const { dmmf } = Prisma.Prisma;
 
 class PrismaGenerator {
   statements: ts.Statement[] = [];
   addedTypes: Set<string> = new Set();
+
+  addWhere(type: string, without: string[] = []) {
+    const withoutName = without.map((typeName) => `Without${capitalize(typeName)}`).join('');
+
+    const name = `${type}${withoutName}Filter`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(type);
+
+    const withoutFields = model.fields.filter((field) => without?.includes(field.name));
+
+    const fields = mapFields(model, (field) => {
+      if (
+        withoutFields.some(
+          (f) => f.name === field.name || f.relationFromFields?.includes(field.name),
+        )
+      ) {
+        return null;
+      }
+
+      let filter: string | undefined;
+
+      if (field.kind === 'scalar') {
+        filter = this.addPrismaFilter(field.type);
+      }
+
+      if (field.kind === 'enum') {
+        this.addEnum(field.type);
+        filter = this.addPrismaFilter(field.type);
+      }
+
+      if (field.kind === 'object') {
+        filter = this.addWhere(field.type);
+      }
+
+      if (filter) {
+        return parse`({ ${field.name}: ${
+          field.isList ? this.addPrismaListFilter(field.type, filter) : filter
+        }})`;
+      }
+
+      return null;
+    });
+
+    this.statements.push(
+      ...parse/* ts */ `
+      const ${name} = builder.prismaFilter('${type}', {
+        name: '${name}',
+        fields: (t) => (${printExpression(fields)})
+      });
+    `,
+    );
+
+    return name;
+  }
+
+  addWhereUnique(type: string) {
+    const name = `${type}UniqueFilter`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(type);
+
+    const fields = mapFields(model, (field) => {
+      let filter: string | undefined;
+
+      if (field.kind === 'scalar') {
+        filter = this.addPrismaFilter(field.type);
+      }
+
+      if (field.kind === 'enum') {
+        this.addEnum(field.type);
+        filter = this.addPrismaFilter(field.type);
+      }
+
+      if (field.kind === 'object') {
+        filter = this.addWhere(field.type);
+      }
+
+      if (filter) {
+        return parse`({ ${field.name}: ${
+          field.isList ? this.addPrismaListFilter(field.type, filter) : filter
+        }})`;
+      }
+
+      return null;
+    });
+
+    this.statements.push(
+      ...parse/* ts */ `
+      const ${name} = builder.prismaFilter('${type}', {
+        name: '${name}',
+        fields: (t) => (${printExpression(fields)})
+      });
+    `,
+    );
+
+    return name;
+  }
+
+  addOrderBy(type: string) {
+    const name = `${type}OrderBy`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(type);
+
+    const fields = mapFields(model, (field) => {
+      if (field.kind === 'scalar' || field.kind === 'enum') {
+        return parse`({ ${field.name}: true })`;
+      }
+
+      if (field.kind === 'object') {
+        return parse`({ ${field.name}: ${this.addOrderBy(field.type)}})`;
+      }
+
+      return null;
+    });
+
+    this.statements.push(
+      ...parse/* ts */ `
+      const ${name} = builder.prismaFilter('${type}', {
+        name: '${name}',
+        fields: (t) => (${printExpression(fields)})
+      });
+    `,
+    );
+
+    return name;
+  }
 
   addPrismaFilter(type: string) {
     const name = `${type}Filter`;
@@ -19,6 +164,8 @@ class PrismaGenerator {
     if (this.addedTypes.has(name)) {
       return name;
     }
+    this.addedTypes.add(name);
+
     const ops: string[] = [...filterOps];
 
     if (type === 'String') {
@@ -41,14 +188,13 @@ class PrismaGenerator {
     return name;
   }
 
-  addPrismaListFilter(type: string) {
+  addPrismaListFilter(type: string, filter: string) {
     const name = `${type}ListFilter`;
 
     if (this.addedTypes.has(name)) {
       return name;
     }
-
-    const filter = this.addPrismaFilter(type);
+    this.addedTypes.add(name);
 
     const ops: string[] = [...listOps];
 
@@ -68,6 +214,7 @@ class PrismaGenerator {
     if (this.addedTypes.has(name)) {
       return name;
     }
+    this.addedTypes.add(name);
 
     this.statements.push(
       ...parse/* ts */ `
@@ -83,95 +230,18 @@ class PrismaGenerator {
 
 const generator = new PrismaGenerator();
 
-generator.addPrismaListFilter('String');
-generator.addEnum('Role');
+generator.addWhere('User');
+generator.addWhereUnique('User');
+generator.addOrderBy('User');
 
 console.log(printStatements(generator.statements));
 
-function updateOptionNode(
-  statement: ts.Node,
-  name: string,
-  cb: (value: ts.PropertyAssignment) => ts.PropertyAssignment,
-) {
-  if (!ts.isVariableStatement(statement)) {
-    throw new Error(`Unexpected statement kind: ${statement.kind}`);
+function getModel(name: string) {
+  const modelData = dmmf.datamodel.models.find((model) => model.name === name);
+
+  if (!modelData) {
+    throw new PothosSchemaError(`Model '${name}' not found in DMMF`);
   }
 
-  const expression = statement.declarationList.declarations[0].initializer;
-
-  if (!expression || !ts.isCallExpression(expression)) {
-    throw new Error(`Unable to find call expression for statement kind ${statement.kind}`);
-  }
-
-  return ts.factory.updateVariableStatement(
-    statement,
-    statement.modifiers,
-    ts.factory.updateVariableDeclarationList(statement.declarationList, [
-      ts.factory.updateVariableDeclaration(
-        statement.declarationList.declarations[0],
-        statement.declarationList.declarations[0].name,
-        statement.declarationList.declarations[0].exclamationToken,
-        statement.declarationList.declarations[0].type,
-        ts.factory.updateCallExpression(
-          expression,
-          expression.expression,
-          expression.typeArguments,
-          expression.arguments.map((arg, i) => {
-            if (i !== 1) {
-              return arg;
-            }
-
-            if (!ts.isObjectLiteralExpression(arg)) {
-              throw new Error(`Unexpected options argument kind: ${arg.kind}`);
-            }
-
-            return ts.factory.updateObjectLiteralExpression(
-              arg,
-              arg.properties.map((prop) => {
-                if (!ts.isPropertyAssignment(prop)) {
-                  return prop;
-                }
-
-                if (ts.isIdentifier(prop.name) && prop.name.escapedText === name) {
-                  return cb(prop);
-                }
-
-                return prop;
-              }),
-            );
-          }),
-        ),
-      ),
-    ]),
-  );
-}
-
-function printStatements(statements: ts.Statement[]) {
-  const nodes = ts.factory.createNodeArray(statements);
-  const printer = ts.createPrinter({});
-  const sourcefile = ts.createSourceFile(
-    'file.ts',
-    '',
-    ts.ScriptTarget.ESNext,
-    false,
-    ts.ScriptKind.TS,
-  );
-
-  return printer.printList(ts.ListFormat.SourceFileStatements, nodes, sourcefile);
-}
-
-function parse(strings: TemplateStringsArray, ...values: unknown[]) {
-  const source = strings.reduce(
-    (acc, str, i) => `${acc}${str}${i < values.length ? String(values[i]) : ''}`,
-    '',
-  );
-
-  const lines = source.replace(/^\s/m, '').split('\n');
-  const firstLine = lines[0];
-  const indent = firstLine.match(/^\s*/)?.[0] ?? '';
-  const unIndented = lines.map((line) => line.replace(indent, '')).join('\n');
-
-  const sourceFile = ts.createSourceFile('file.ts', unIndented, ts.ScriptTarget.Latest, false);
-
-  return [...sourceFile.statements.values()];
+  return modelData;
 }
