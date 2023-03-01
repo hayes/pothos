@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.41.3
+
+### Patch Changes
+
+- 853f3cfb: Fix hasPreviousPage for connections using only last
+
 ## 3.41.2
 
 ### Patch Changes
