@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.41.2
+
+### Patch Changes
+
+- 687c6e2d: Fix `last` when used without `before`
+
 ## 3.41.1
 
 ### Patch Changes
