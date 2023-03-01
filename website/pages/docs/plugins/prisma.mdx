@@ -958,7 +958,7 @@ builder.queryType({
         type: 'Post',
         cursor: 'id',
         resolve: (query, parent, args, context, info) => prisma.post.findMany({ ...query }),
-      }),
+      },
       {}, // optional options for the Connection type
       {}, // optional options for the Edge type),
     ),
