@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.27.1
+
+### Patch Changes
+
+- f2259558: Fix duplicate interfaces when building a schema multiple times
+
 ## 3.27.0
 
 ### Minor Changes
