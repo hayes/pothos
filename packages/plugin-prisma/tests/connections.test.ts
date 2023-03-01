@@ -605,7 +605,7 @@ describe('prisma', () => {
             "pageInfo": {
               "endCursor": "R1BDOk46MTAw",
               "hasNextPage": false,
-              "hasPreviousPage": false,
+              "hasPreviousPage": true,
               "startCursor": "R1BDOk46OTY=",
             },
           },

@@ -284,7 +284,7 @@ export function wrapConnectionResult<T extends {}>(
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : args.before ? gotFullResults : false;
+  const hasPreviousPage = args.after ? true : args.before || args.last ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;
