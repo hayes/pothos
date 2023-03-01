@@ -261,7 +261,7 @@ export function prismaCursorConnectionQuery({
 
   let take = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
 
-  if (before) {
+  if (before || last) {
     take = -take;
   }
 
@@ -283,7 +283,7 @@ export function wrapConnectionResult<T extends {}>(
   resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(take);
-  const hasNextPage = args.before ? true : gotFullResults;
+  const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
   const hasPreviousPage = args.after ? true : args.before ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)

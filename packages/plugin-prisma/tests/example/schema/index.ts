@@ -953,4 +953,6 @@ builder.queryField('namedConnection', (t) =>
   }),
 );
 
+// const Image = builder.objectRef<{ url: string }>('Image').implement({});
+
 export default builder.toSchema();
