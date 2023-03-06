@@ -41,7 +41,7 @@ export type MergedScalars<PartialTypes extends Partial<PothosSchemaTypes.UserSch
 
 export interface DefaultScalars {
   String: { Input: string; Output: string };
-  ID: { Input: number | string; Output: number | string };
+  ID: { Input: number | string | bigint; Output: number | string | bigint };
   Int: { Input: number; Output: number };
   Float: { Input: number; Output: number };
   Boolean: { Input: boolean; Output: boolean };
