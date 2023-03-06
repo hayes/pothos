@@ -36,6 +36,30 @@ class BatchLoadableNumberThing {
   }
 }
 
+const BigIntExampleRef = builder.node('BigIntExample', {
+  id: {
+    resolve: (n) => n.id,
+    parse: BigInt,
+  },
+  fields: (t) => ({
+    rawId: t.string({
+      resolve: (o) => o.id.toString(),
+    }),
+  }),
+});
+
+builder.queryField('bigIntExample', (t) =>
+  t.field({
+    type: BigIntExampleRef,
+    args: {
+      id: t.arg.globalID({ required: true, for: [BigIntExampleRef] }),
+    },
+    resolve: (root, args) => ({
+      id: args.id.id,
+    }),
+  }),
+);
+
 const IDWithColonRef = builder.node(IDWithColon, {
   name: 'IDWithColon',
   id: {

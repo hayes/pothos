@@ -513,6 +513,10 @@ describe('relay example schema', () => {
     it('parses ids', async () => {
       const query = gql`
         query {
+          bigIntExample(id: "QmlnSW50RXhhbXBsZToxMDAwMDAwMDAwMDAwMDAwMDAwMA==") {
+            id
+            rawId
+          }
           idWithColon(id: "SURXaXRoQ29sb246MTp0ZXN0") {
             id
             idString
@@ -559,6 +563,10 @@ describe('relay example schema', () => {
       expect(result).toMatchInlineSnapshot(`
         {
           "data": {
+            "bigIntExample": {
+              "id": "QmlnSW50RXhhbXBsZToxMDAwMDAwMDAwMDAwMDAwMDAwMA==",
+              "rawId": "10000000000000000000",
+            },
             "echoIDs": [
               {
                 "arg": "globalID",

@@ -8,6 +8,7 @@ export default new SchemaBuilder<{
   Objects: {
     Poll: Poll;
     Answer: { id: number; value: string; count: number };
+    BigIntExample: { id: bigint };
   };
   Context: ContextType;
 }>({

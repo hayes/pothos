@@ -12,6 +12,11 @@ type BatchNumber implements Node {
   number: Int!
 }
 
+type BigIntExample implements Node {
+  id: ID!
+  rawId: String!
+}
+
 type CursorObject {
   id: ID!
 }
@@ -139,6 +144,7 @@ type PollAnswersUsingOffsetConnectionEdge {
 
 type Query {
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
+  bigIntExample(id: ID!): BigIntExample!
   cursorConnection(after: ID, before: ID, first: Int, last: Int): QueryCursorConnection!
   echoIDs(genericNumberThingID: ID!, globalID: ID!, numberThingID: ID!): [IDResult!]!
   extraNode: Node
