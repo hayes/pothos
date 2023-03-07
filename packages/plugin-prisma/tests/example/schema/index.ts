@@ -119,6 +119,7 @@ const User = builder.prismaNode('User', {
   id: {
     field: 'id',
   },
+  nullable: true,
   fields: (t) => ({
     viewer: t.variant(Viewer, {
       isNull: (user, args, ctx) => user.id !== ctx.user.id,

@@ -73,6 +73,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
     findUnique: rawFindUnique,
     name,
     variant,
+    nullable,
     ...options
   }: PrismaNodeOptions<SchemaTypes, PrismaModelTypes, [], never, {}, {}, undefined>,
 ) {
@@ -105,14 +106,14 @@ schemaBuilderProto.prismaNode = function prismaNode(
       const query = queryFromInfo({ context, info, typeName });
       const delegate = getDelegateFromModel(getClient(this, context), type);
 
-      const record = await (delegate.findUniqueOrThrow
+      const record = await (delegate.findUniqueOrThrow && !nullable
         ? delegate.findUniqueOrThrow({
             ...query,
             where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
           } as never)
         : delegate.findUnique({
             ...query,
-            rejectOnNotFound: true,
+            rejectOnNotFound: nullable ? false : true,
             where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
           } as never));
 
