@@ -947,7 +947,7 @@ builder.prismaNode('Post', {
 
 When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
 the database, the default behaviour is to throw an error. There are some scenarios where it is
-preferrable to return null instead of throwing an error. For this you can add the `nullable: true`
+preferrable to return `null` instead of throwing an error. For this you can add the `nullable: true`
 option:
 
 ```typescript
