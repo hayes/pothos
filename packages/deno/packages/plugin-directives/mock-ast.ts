@@ -2,7 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unnecessary-type-assertion */
 /* eslint-disable no-param-reassign */
 import './global-types.ts';
-import { ArgumentNode, ConstDirectiveNode, DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, OperationTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
+import { ArgumentNode, astFromValue, ConstDirectiveNode, ConstValueNode, DirectiveNode, EnumValueDefinitionNode, FieldDefinitionNode, GraphQLArgument, GraphQLEnumType, GraphQLEnumValue, GraphQLField, GraphQLFieldMap, GraphQLInputField, GraphQLInputFieldMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLList, GraphQLNonNull, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLType, GraphQLUnionType, InputValueDefinitionNode, Kind, ListTypeNode, NamedTypeNode, OperationTypeNode, parseValue, TypeNode, ValueNode, } from 'https://cdn.skypack.dev/graphql?dts';
 import type { DirectiveList } from './types.ts';
 export default function mockAst(schema: GraphQLSchema) {
     const types = schema.getTypeMap();
@@ -175,11 +175,13 @@ function fieldNodes(fields: GraphQLFieldMap<unknown, unknown>): FieldDefinitionN
 function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode[] {
     return Object.keys(fields).map((fieldName) => {
         const field: GraphQLInputField = fields[fieldName];
+        const defaultValueNode = astFromValue(field.defaultValue, field.type) as ConstValueNode;
         field.astNode = {
             kind: Kind.INPUT_VALUE_DEFINITION,
             description: field.description ? { kind: Kind.STRING, value: field.description } : undefined,
             name: { kind: Kind.NAME, value: fieldName },
             type: typeNode(field.type),
+            defaultValue: field.defaultValue === undefined ? undefined : defaultValueNode,
             directives: directiveNodes(field.extensions?.directives as DirectiveList, field.deprecationReason),
         };
         return field.astNode!;
@@ -187,11 +189,13 @@ function inputFieldNodes(fields: GraphQLInputFieldMap): InputValueDefinitionNode
 }
 function argumentNodes(args: readonly GraphQLArgument[]): InputValueDefinitionNode[] {
     return args.map((arg): InputValueDefinitionNode => {
+        const defaultValueNode = astFromValue(arg.defaultValue, arg.type) as ConstValueNode;
         arg.astNode = {
             kind: Kind.INPUT_VALUE_DEFINITION,
             description: arg.description ? { kind: Kind.STRING, value: arg.description } : undefined,
             name: { kind: Kind.NAME, value: arg.name },
             type: typeNode(arg.type),
+            defaultValue: arg.defaultValue === undefined ? undefined : defaultValueNode,
             directives: directiveNodes(arg.extensions?.directives as DirectiveList, arg.deprecationReason),
         };
         return arg.astNode;
