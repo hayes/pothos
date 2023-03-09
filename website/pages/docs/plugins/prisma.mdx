@@ -931,13 +931,29 @@ builder.prismaNode('Post', {
 ```
 
 If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
-`findUnique` option that can be used to load the node by it's id. This is generally not necissary.
+`findUnique` option that can be used to load the node by it's id. This is generally not necessary.
 
 ```typescript
 builder.prismaNode('Post', {
   id: { resolve: (post) => String(post.id) },
   // The return value will be passed as the `where` of a `prisma.post.findUnique`
   findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
+the database, the default behaviour is to throw an error. There are some scenarios where it is
+preferrable to return null instead of throwing an error. For this you can add the `nullable: true`
+option:
+
+```typescript
+builder.prismaNode('Post', {
+  id: { resolve: (post) => String(post.id) },
+  nullable: true,
   fields: (t) => ({
     title: t.exposeString('title'),
     author: t.relation('author'),
