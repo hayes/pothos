@@ -90,7 +90,7 @@ describe('prisma', () => {
     `);
   });
 
-  it.only('query for nullable single node', async () => {
+  it('query for nullable single node', async () => {
     const query = gql`
       query {
         node(id: "VXNlcjoxMDAw") {
