@@ -1,6 +1,44 @@
 import { rateLimitDirective } from 'graphql-rate-limit-directive';
 import builder from '../builder';
 
+const myInput = builder.inputType('MyInput', {
+  fields: (t) => ({
+    id: t.id({ required: true }),
+    idWithDefault: t.id({ required: false, defaultValue: '123' }),
+    booleanWithDefault: t.boolean({ required: false, defaultValue: false }),
+    enumWithDefault: t.field({
+      defaultValue: 2,
+      type: myEnum,
+    }),
+    stringWithDefault: t.string({ required: false, defaultValue: 'default string' }),
+    ids: t.idList({ required: true }),
+    idsWithDefault: t.idList({ required: false, defaultValue: ['123', '456'] }),
+  }),
+});
+
+const myOtherInput = builder.inputType('MyOtherInput', {
+  fields: (t) => ({
+    booleanWithDefault: t.boolean({ required: false, defaultValue: false }),
+  }),
+});
+
+const myEnum = builder.enumType('EN', {
+  directives: {
+    e: { foo: 123 },
+  },
+  values: {
+    ONE: {
+      value: 1,
+      directives: {
+        ev: { foo: 123 },
+      },
+    },
+    TWO: {
+      value: 2,
+    },
+  },
+});
+
 builder.queryType({
   directives: {
     o: {
@@ -27,6 +65,8 @@ builder.queryType({
             a: { foo: 123 },
           },
         }),
+        myOtherInput: t.arg({ type: myOtherInput, required: false, defaultValue: {} }),
+        myInput: t.arg({ type: myInput, required: false }),
       },
       resolve: () => 'hi',
     }),
@@ -72,20 +112,6 @@ builder.unionType('UN', {
     throw new Error('Not implemented');
   },
   types: [Obj],
-});
-
-builder.enumType('EN', {
-  directives: {
-    e: { foo: 123 },
-  },
-  values: {
-    ONE: {
-      value: 1,
-      directives: {
-        ev: { foo: 123 },
-      },
-    },
-  },
 });
 
 builder.scalarType('Date', {
