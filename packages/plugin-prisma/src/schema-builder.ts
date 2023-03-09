@@ -113,7 +113,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
           } as never)
         : delegate.findUnique({
             ...query,
-            rejectOnNotFound: nullable ? false : true,
+            ...(nullable ? {} : { rejectOnNotFound: true }),
             where: rawFindUnique ? rawFindUnique(id, context) : { [fieldName]: idParser!(id) },
           } as never));
 
