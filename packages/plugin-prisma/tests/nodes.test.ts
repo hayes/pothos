@@ -69,7 +69,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUniqueOrThrow",
+          "action": "findUnique",
           "args": {
             "include": {
               "profile": {
@@ -208,7 +208,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUniqueOrThrow",
+          "action": "findUnique",
           "args": {
             "include": {
               "profile": {
@@ -226,7 +226,7 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findUniqueOrThrow",
+          "action": "findUnique",
           "args": {
             "include": {
               "profile": {
@@ -322,7 +322,7 @@ describe('prisma', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findUniqueOrThrow",
+          "action": "findUnique",
           "args": {
             "include": {
               "posts": {

@@ -130,7 +130,7 @@ type Product
 
 type Query {
   post: Post
-  topProducts(first: Int): [Product!]
+  topProducts(first: Int = 5): [Product!]
 }"
 `;
 
