@@ -145,15 +145,11 @@ schemaBuilderProto.prismaNode = function prismaNode(
           ...idOptions,
           nullable: false,
           args: {},
-          resolve: async (
-            parent: never,
-            args: object,
-            context: object,
-            info: GraphQLResolveInfo,
-          ) => ({
-            type: nodeConfig.name,
-            id: await resolve(parent, context),
-          }),
+          resolve: (parent: never, args: object, context: object, info: GraphQLResolveInfo) =>
+            this.completeValue(resolve(parent, context), (id) => ({
+              type: nodeConfig.name,
+              id,
+            })),
         }),
     );
   });

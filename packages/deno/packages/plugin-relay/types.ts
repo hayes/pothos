@@ -20,7 +20,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         }, context: Types["Context"], info: GraphQLResolveInfo, resolveNode: (id: {
             id: string;
             typename: string;
-        }) => Promise<unknown>) => MaybePromise<unknown>;
+        }) => MaybePromise<unknown>) => MaybePromise<unknown>;
     });
     nodesQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
@@ -100,13 +100,13 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
 export type ConnectionShape<Types extends SchemaTypes, T, Nullable, EdgesNullable extends FieldNullability<[
     unknown
 ]> = Types["DefaultEdgesNullability"], NodeNullable extends boolean = Types["DefaultNodeNullability"]> = (Nullable extends false ? never : null | undefined) | (Types["Connection"] & {
-    pageInfo: PageInfoShape;
-    edges: ShapeFromListTypeParam<Types, [
+    pageInfo: MaybePromise<PageInfoShape>;
+    edges: MaybePromise<ShapeFromListTypeParam<Types, [
         ObjectRef<{
             cursor: string;
             node: NodeNullable extends false ? T : T | null | undefined;
         }>
-    ], EdgesNullable>;
+    ], EdgesNullable>>;
 });
 export type ConnectionShapeFromBaseShape<Types extends SchemaTypes, Shape, Nullable extends boolean> = ConnectionShape<Types, Shape, Nullable>;
 export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, EdgeNullability extends FieldNullability<[

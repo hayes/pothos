@@ -72,7 +72,13 @@ import type {
   SubscriptionFieldThunk,
   ValuesFromEnum,
 } from './types';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
+import {
+  isPromiseLike,
+  normalizeEnumValues,
+  valuesFromEnum,
+  verifyInterfaces,
+  verifyRef,
+} from './utils';
 
 export default class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -610,5 +616,47 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return options.sortSchema === false
       ? processedSchema
       : lexicographicSortSchema(processedSchema);
+  }
+
+  /**
+   * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
+   * Promise if not required.
+   */
+  completeValue<T, R>(
+    valOrPromise: PromiseLike<T> | T,
+    onSuccess: (completedVal: T) => R,
+  ): R | Awaited<R> | Promise<Awaited<R>> | Promise<Awaited<R>>;
+
+  /**
+   * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
+   * Promise if not required.
+   */
+  completeValue<T, R, E>(
+    valOrPromise: PromiseLike<T> | T,
+    onSuccess: (completedVal: T) => R,
+    onError: (err: unknown) => E,
+  ): R | Awaited<R> | Promise<Awaited<R>> | Promise<Awaited<R>>;
+
+  /**
+   * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
+   * Promise if not required.
+   */
+  completeValue<T, R>(
+    valOrPromise: PromiseLike<T> | T,
+    onSuccess: (completedVal: T) => R,
+    onError?: (errVal: unknown) => R,
+  ) {
+    if (isPromiseLike(valOrPromise)) {
+      return valOrPromise.then(onSuccess, onError);
+    }
+    // No need to handle onError, this should just be a try/catch inside the `onSuccess` block
+    const result = onSuccess(valOrPromise);
+
+    // If the result of the synchronous call is a promise, we want to unwrap it, for
+    // the return value types consistency
+    if (isPromiseLike(result)) {
+      return result.then((o) => o);
+    }
+    return result;
   }
 }

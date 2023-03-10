@@ -60,15 +60,14 @@ export class ImplementableLoadableNodeRef<
             ...this.idOptions,
             nullable: false,
             args: {},
-            resolve: async (
-              parent: Shape,
-              args: object,
-              context: object,
-              info: GraphQLResolveInfo,
-            ) => ({
-              type: config.name,
-              id: await this.idOptions.resolve(parent, args, context, info),
-            }),
+            resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) =>
+              this.builder.completeValue(
+                this.idOptions.resolve(parent, args, context, info),
+                (globalId) => ({
+                  type: config.name,
+                  id: globalId,
+                }),
+              ),
           }),
       );
     });

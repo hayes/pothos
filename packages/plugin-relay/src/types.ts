@@ -62,7 +62,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           },
           context: Types['Context'],
           info: GraphQLResolveInfo,
-          resolveNode: (id: { id: string; typename: string }) => Promise<unknown>,
+          resolveNode: (id: { id: string; typename: string }) => MaybePromise<unknown>,
         ) => MaybePromise<unknown>;
       });
   nodesQueryOptions:

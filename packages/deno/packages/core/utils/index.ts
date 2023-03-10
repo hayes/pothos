@@ -104,3 +104,6 @@ export function unwrapInputListParam<Types extends SchemaTypes>(param: InputType
     }
     return param;
 }
+export function isPromiseLike<T>(value: unknown): value is PromiseLike<T> {
+    return Boolean(typeof value === "object" && value && "then" in value && typeof value.then === "function");
+}
