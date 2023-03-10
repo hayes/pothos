@@ -62,7 +62,7 @@ importers:
       '@graphql-codegen/introspection': 3.0.0
       '@graphql-codegen/schema-ast': ^3.0.0
       '@graphql-typed-document-node/core': ^3.1.1
-      '@pothos/core': ^3.25.0
+      '@pothos/core': ^3.28.0
       '@pothos/plugin-dataloader': workspace:*
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-prisma-utils': workspace:*
@@ -269,7 +269,7 @@ importers:
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
-      '@pothos/core': ^3.25.0
+      '@pothos/core': ^3.28.0
       '@pothos/plugin-prisma': workspace:*
       '@pothos/plugin-relay': workspace:*
       '@prisma/client': ^4.9.0
