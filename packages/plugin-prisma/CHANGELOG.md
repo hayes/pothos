@@ -1,5 +1,13 @@
 # Change Log
 
+## 3.43.0
+
+### Minor Changes
+
+- e8d75349: - allow connection fields (edges / pageInfo) to be promises
+  - add completeValue helper to core for unwrapping MaybePromise values
+  - set nodes as null if edges is null and the field permits a null return
+
 ## 3.42.0
 
 ### Minor Changes
