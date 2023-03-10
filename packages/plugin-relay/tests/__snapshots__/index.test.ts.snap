@@ -101,6 +101,7 @@ type Poll implements Node {
   answers: [Answer!]!
   answersConnection(after: ID, before: ID, first: Int, last: Int): PollAnswersConnection!
   answersUsingOffset(after: ID, before: ID, first: Int, last: Int): PollAnswersUsingOffsetConnection!
+  answersWithPromises(after: ID, before: ID, first: Int, last: Int): PollAnswersWithPromisesConnection!
   answersWithoutHelpers(after: ID, before: ID, first: Int, last: Int): PollAnswersCon!
   id: ID!
   question: String!
@@ -133,6 +134,16 @@ type PollAnswersUsingOffsetConnection {
 }
 
 type PollAnswersUsingOffsetConnectionEdge {
+  cursor: String!
+  node: Answer!
+}
+
+type PollAnswersWithPromisesConnection {
+  edges: [PollAnswersWithPromisesConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type PollAnswersWithPromisesConnectionEdge {
   cursor: String!
   node: Answer!
 }

@@ -282,16 +282,18 @@ export type ConnectionShape<
 > =
   | (Nullable extends false ? never : null | undefined)
   | (Types['Connection'] & {
-      pageInfo: PageInfoShape;
-      edges: ShapeFromListTypeParam<
-        Types,
-        [
-          ObjectRef<{
-            cursor: string;
-            node: NodeNullable extends false ? T : T | null | undefined;
-          }>,
-        ],
-        EdgesNullable
+      pageInfo: MaybePromise<PageInfoShape>;
+      edges: MaybePromise<
+        ShapeFromListTypeParam<
+          Types,
+          [
+            ObjectRef<{
+              cursor: string;
+              node: NodeNullable extends false ? T : T | null | undefined;
+            }>,
+          ],
+          EdgesNullable
+        >
       >;
     });
 
