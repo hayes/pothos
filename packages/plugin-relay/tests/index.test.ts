@@ -484,10 +484,6 @@ describe('relay example schema', () => {
         contextValue: {},
       });
 
-      if (result.errors?.length) {
-        console.log(result.errors.map((e) => e.stack));
-      }
-
       expect(result).toMatchInlineSnapshot(`
         {
           "data": {
