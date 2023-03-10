@@ -1,3 +1,7 @@
+export type RemoveAwaitedProps<T> = {
+  [K in keyof T]: Awaited<T[K]>;
+};
+
 export type MaybePromise<T> = Promise<T> | T;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any

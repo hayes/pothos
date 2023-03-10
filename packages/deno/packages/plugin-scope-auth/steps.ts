@@ -64,7 +64,7 @@ export function createResolveStep<Types extends SchemaTypes>(resolver: GraphQLFi
         run: (state, parent, args, context, info, setResolved) => {
             const result: unknown = resolver(parent, args, context, info);
             if (isThenable(result)) {
-                return result.then((resolved) => {
+                return Promise.resolve(result).then((resolved) => {
                     setResolved(resolved);
                     return null;
                 });

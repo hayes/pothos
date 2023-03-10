@@ -149,6 +149,7 @@ type PollAnswersWithPromisesConnectionEdge {
 }
 
 type Query {
+  associatingReturnType(after: ID, before: ID, first: Int, last: Int): QueryAssociatingReturnTypeConnection!
   batchNumbers(after: ID, before: ID, first: Int, last: Int): QueryBatchNumbersConnection!
   cursorConnection(after: ID, before: ID, first: Int, last: Int): QueryCursorConnection!
   echoIDs(genericNumberThingID: ID!, globalID: ID!, numberThingID: ID!): [IDResult!]!
@@ -171,6 +172,18 @@ type Query {
   sharedConnection(after: ID, before: ID, first: Int, last: Int): SharedConnection
   sharedConnectionAndEdge(after: ID, before: ID, complexity: Int, first: Int, last: Int): SharedConnectionAndEdge!
   sharedEdgeConnection(after: ID, before: ID, first: Int, last: Int): QuerySharedEdgeConnection!
+}
+
+type QueryAssociatingReturnTypeConnection {
+  connectionField: Int
+  edges: [QueryAssociatingReturnTypeConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type QueryAssociatingReturnTypeConnectionEdge {
+  cursor: String!
+  edgeField: Int
+  node: BatchNumber!
 }
 
 type QueryBatchNumbersConnection {

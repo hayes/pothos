@@ -1,4 +1,7 @@
 // @ts-nocheck
+export type RemoveAwaitedProps<T> = {
+    [K in keyof T]: Awaited<T[K]>;
+};
 export type MaybePromise<T> = Promise<T> | T;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;

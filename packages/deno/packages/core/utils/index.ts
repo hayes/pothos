@@ -18,7 +18,7 @@ export function assertArray(value: unknown): value is unknown[] {
     }
     return true;
 }
-export function isThenable(value: unknown): value is Promise<unknown> {
+export function isThenable(value: unknown): value is PromiseLike<unknown> {
     return !!(value &&
         (typeof value === "object" || typeof value === "function") &&
         typeof (value as Record<string, unknown>).then === "function");
@@ -104,23 +104,20 @@ export function unwrapInputListParam<Types extends SchemaTypes>(param: InputType
     }
     return param;
 }
-function isPromiseLike<T>(value: unknown): value is PromiseLike<T> {
-    return Boolean(typeof value === "object" && value && "then" in value && typeof value.then === "function");
-}
 /**
  * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
  * Promise if not required.
  */
 export function completeValue<T, R>(valOrPromise: PromiseLike<T> | T, onSuccess: (completedVal: T) => R, onError?: (errVal: unknown) => R): R | Promise<R> {
-    if (isPromiseLike(valOrPromise)) {
+    if (isThenable(valOrPromise)) {
         return Promise.resolve(valOrPromise).then(onSuccess, onError);
     }
     // No need to handle onError, this should just be a try/catch inside the `onSuccess` block
     const result = onSuccess(valOrPromise);
-    // If the result of the synchronous call is a promise, we want to unwrap it, for
-    // the return value types consistency
-    if (isPromiseLike(result)) {
-        return Promise.resolve(result).then((o) => o);
+    // If the result of the synchronous call is a promise like, convert to a promise
+    // for consistency
+    if (isThenable(result)) {
+        return Promise.resolve(result);
     }
     return result;
 }

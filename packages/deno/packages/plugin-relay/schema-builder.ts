@@ -361,7 +361,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                                 this.options.relayOptions?.nodeFieldOptions?.nullable ??
                                 false,
                         },
-                        resolve: (con) => completeValue(con.edges, (edges) => edges?.map((e) => e.node) ?? []) as never,
+                        resolve: (con) => completeValue(con.edges, (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : [])) as never,
                     }),
                 }
                 : {}),

@@ -3,6 +3,7 @@ import {
   encodeBase64,
   MaybePromise,
   PothosValidationError,
+  RemoveAwaitedProps,
   SchemaTypes,
 } from '@pothos/core';
 import { ConnectionShape, DefaultConnectionArguments } from '../types';
@@ -87,12 +88,14 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
   options: ResolveOffsetConnectionOptions,
   resolve: (params: { offset: number; limit: number }) => U & (MaybePromise<T[] | null> | null),
 ): Promise<
-  ConnectionShape<
-    SchemaTypes,
-    NonNullable<T>,
-    U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
-    T extends NonNullable<T> ? false : { list: false; items: true },
-    false
+  RemoveAwaitedProps<
+    ConnectionShape<
+      SchemaTypes,
+      NonNullable<T>,
+      U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
+      T extends NonNullable<T> ? false : { list: false; items: true },
+      false
+    >
   >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
@@ -142,12 +145,14 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
   array: T[],
-): ConnectionShape<
-  SchemaTypes,
-  NonNullable<T>,
-  false,
-  T extends NonNullable<T> ? false : { list: false; items: true },
-  false
+): RemoveAwaitedProps<
+  ConnectionShape<
+    SchemaTypes,
+    NonNullable<T>,
+    false,
+    T extends NonNullable<T> ? false : { list: false; items: true },
+    false
+  >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
@@ -210,7 +215,7 @@ export async function resolveCursorConnection<
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,
-): Promise<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>> {
+): Promise<RemoveAwaitedProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
     parseCurserArgs(options);
 

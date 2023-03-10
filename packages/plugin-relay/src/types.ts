@@ -273,29 +273,45 @@ export interface GlobalIDShape<Types extends SchemaTypes> {
   type: OutputType<Types> | string;
 }
 
+export type ConnectionEdgesShape<
+  Types extends SchemaTypes,
+  T,
+  NodeNullable extends boolean,
+  EdgesNullable extends FieldNullability<[unknown]>,
+> = ShapeFromListTypeParam<
+  Types,
+  [
+    ObjectRef<{
+      cursor: string;
+      node: NodeNullable extends false ? T : T | null | undefined;
+    }>,
+  ],
+  EdgesNullable
+>;
+
+export interface ConnectionResultShape<
+  Types extends SchemaTypes,
+  T,
+  EdgesNullable extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
+  NodeNullable extends boolean = Types['DefaultNodeNullability'],
+> {
+  pageInfo: MaybePromise<PageInfoShape>;
+  edges: MaybePromise<ConnectionEdgesShape<Types, T, NodeNullable, EdgesNullable>>;
+}
+
 export type ConnectionShape<
   Types extends SchemaTypes,
   T,
   Nullable,
   EdgesNullable extends FieldNullability<[unknown]> = Types['DefaultEdgesNullability'],
   NodeNullable extends boolean = Types['DefaultNodeNullability'],
-> =
-  | (Nullable extends false ? never : null | undefined)
-  | (Types['Connection'] & {
-      pageInfo: MaybePromise<PageInfoShape>;
-      edges: MaybePromise<
-        ShapeFromListTypeParam<
-          Types,
-          [
-            ObjectRef<{
-              cursor: string;
-              node: NodeNullable extends false ? T : T | null | undefined;
-            }>,
-          ],
-          EdgesNullable
-        >
-      >;
-    });
+  ConnectionResult extends ConnectionResultShape<
+    Types,
+    T,
+    EdgesNullable,
+    NodeNullable
+  > = ConnectionResultShape<Types, T, EdgesNullable, NodeNullable>,
+> = (Nullable extends false ? never : null | undefined) | (Types['Connection'] & ConnectionResult);
 
 export type ConnectionShapeFromBaseShape<
   Types extends SchemaTypes,
@@ -309,12 +325,24 @@ export type ConnectionShapeForType<
   Nullable extends boolean,
   EdgeNullability extends FieldNullability<[unknown]>,
   NodeNullability extends boolean,
+  ConnectionResult extends ConnectionResultShape<
+    Types,
+    ShapeFromTypeParam<Types, Type, false>,
+    EdgeNullability,
+    NodeNullability
+  > = ConnectionResultShape<
+    Types,
+    ShapeFromTypeParam<Types, Type, false>,
+    EdgeNullability,
+    NodeNullability
+  >,
 > = ConnectionShape<
   Types,
   ShapeFromTypeParam<Types, Type, false>,
   Nullable,
   EdgeNullability,
-  NodeNullability
+  NodeNullability,
+  ConnectionResult
 >;
 
 export type ConnectionShapeFromResolve<
@@ -324,6 +352,17 @@ export type ConnectionShapeFromResolve<
   EdgeNullability extends FieldNullability<[unknown]>,
   NodeNullability extends boolean,
   Resolved,
+  ConnectionResult extends ConnectionResultShape<
+    Types,
+    ShapeFromTypeParam<Types, Type, false>,
+    EdgeNullability,
+    NodeNullability
+  > = ConnectionResultShape<
+    Types,
+    ShapeFromTypeParam<Types, Type, false>,
+    EdgeNullability,
+    NodeNullability
+  >,
 > = Resolved extends Promise<infer T>
   ? NonNullable<T> extends ConnectionShapeForType<
       Types,
@@ -333,10 +372,31 @@ export type ConnectionShapeFromResolve<
       NodeNullability
     >
     ? NonNullable<T>
-    : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>
-  : Resolved extends ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>
+    : ConnectionShapeForType<
+        Types,
+        Type,
+        Nullable,
+        EdgeNullability,
+        NodeNullability,
+        ConnectionResult
+      >
+  : Resolved extends ConnectionShapeForType<
+      Types,
+      Type,
+      Nullable,
+      EdgeNullability,
+      NodeNullability,
+      ConnectionResult
+    >
   ? NonNullable<Resolved>
-  : ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>;
+  : ConnectionShapeForType<
+      Types,
+      Type,
+      Nullable,
+      EdgeNullability,
+      NodeNullability,
+      ConnectionResult
+    >;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 
