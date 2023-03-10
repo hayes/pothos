@@ -1,8 +1,12 @@
 import {
   execute,
   GraphQLEnumType,
+  GraphQLInputField,
+  GraphQLInputFieldMap,
   GraphQLInputObjectType,
   GraphQLObjectType,
+  InputValueDefinitionNode,
+  Kind,
   lexicographicSortSchema,
   printSchema,
 } from 'graphql';
@@ -40,6 +44,50 @@ describe('extends example schema', () => {
     expect(
       (types.In as GraphQLInputObjectType).getFields().test.extensions?.directives,
     ).toStrictEqual({ if: { foo: 123 } });
+  });
+
+  it('constructs the astNode with defaultValue for inputs and args', () => {
+    const types = schema.getTypeMap();
+
+    const testField = (types.Query as GraphQLObjectType).getFields().test;
+
+    const arg1 = testField.args[0];
+    const myInput = testField.args[1];
+    const myOtherInput = testField.args[2];
+
+    expect(arg1.astNode?.defaultValue).toBeUndefined();
+    expect(myInput.astNode?.defaultValue).toBeUndefined();
+    expect(myOtherInput.astNode?.defaultValue).toBeDefined();
+    expect(myOtherInput.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.OBJECT,
+      fields: [],
+    });
+
+    const MyInput = (types.MyInput as GraphQLInputObjectType).getFields();
+
+    expect(MyInput.booleanWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.BOOLEAN,
+      value: false,
+    });
+    expect(MyInput.enumWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.ENUM,
+      value: 'TWO',
+    });
+    expect(MyInput.idWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.INT,
+      value: '123',
+    });
+    expect(MyInput.stringWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.STRING,
+      value: 'default string',
+    });
+    expect(MyInput.idsWithDefault.astNode?.defaultValue).toStrictEqual({
+      kind: Kind.LIST,
+      values: [
+        { kind: Kind.INT, value: '123' },
+        { kind: Kind.INT, value: '456' },
+      ],
+    });
   });
 
   it('gatsby format', () => {

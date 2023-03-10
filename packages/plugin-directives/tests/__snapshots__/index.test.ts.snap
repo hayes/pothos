@@ -5,6 +5,7 @@ exports[`extends example schema generates expected schema 1`] = `
 
 enum EN {
   ONE
+  TWO
 }
 
 interface IF {
@@ -15,12 +16,26 @@ input In {
   test: String
 }
 
+input MyInput {
+  booleanWithDefault: Boolean = false
+  enumWithDefault: EN = TWO
+  id: ID!
+  idWithDefault: ID = 123
+  ids: [ID!]!
+  idsWithDefault: [ID!] = [123, 456]
+  stringWithDefault: String = "default string"
+}
+
+input MyOtherInput {
+  booleanWithDefault: Boolean = false
+}
+
 type Obj {
   field: String!
 }
 
 type Query {
-  test(arg1: String): String!
+  test(arg1: String, myInput: MyInput, myOtherInput: MyOtherInput = {}): String!
 }
 
 union UN = Obj"

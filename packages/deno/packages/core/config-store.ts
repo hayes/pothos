@@ -296,19 +296,23 @@ export default class ConfigStore<Types extends SchemaTypes> {
     prepareForBuild() {
         this.pending = false;
         const fns = this.addFieldFns;
+        const interfaces = this.pendingInterfaces;
+        const unions = this.pendingUnionTypes;
         this.addFieldFns = [];
+        this.pendingInterfaces = new Map();
+        this.pendingUnionTypes = new Map();
         fns.forEach((fn) => void fn());
         if (this.pendingRefResolutions.size > 0) {
             throw new PothosSchemaError(`Missing implementations for some references (${[...this.pendingRefResolutions.keys()]
                 .map((ref) => this.describeRef(ref))
                 .join(", ")}).`);
         }
-        for (const [typeName, unionFns] of this.pendingUnionTypes) {
+        for (const [typeName, unionFns] of unions) {
             for (const fn of unionFns) {
                 this.addUnionTypes(typeName, fn);
             }
         }
-        for (const [typeName, interfacesFns] of this.pendingInterfaces) {
+        for (const [typeName, interfacesFns] of interfaces) {
             for (const fn of interfacesFns) {
                 this.addInterfaces(typeName, fn);
             }
