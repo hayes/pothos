@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.42.0
+
+### Minor Changes
+
+- 384bc124: Add nullability option to prismaNode
+
 ## 3.41.3
 
 ### Patch Changes
