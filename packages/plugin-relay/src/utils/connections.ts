@@ -3,10 +3,15 @@ import {
   encodeBase64,
   MaybePromise,
   PothosValidationError,
-  RemoveAwaitedProps,
   SchemaTypes,
 } from '@pothos/core';
 import { ConnectionShape, DefaultConnectionArguments } from '../types';
+
+// Since we know the return types of the connection helpers, we can
+// remove the MaybePromise wrappers on the ConnectionResult shape
+type RemoveMaybePromiseProps<T> = {
+  [K in keyof T]: Awaited<T[K]>;
+};
 
 interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;
@@ -88,7 +93,7 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
   options: ResolveOffsetConnectionOptions,
   resolve: (params: { offset: number; limit: number }) => U & (MaybePromise<T[] | null> | null),
 ): Promise<
-  RemoveAwaitedProps<
+  RemoveMaybePromiseProps<
     ConnectionShape<
       SchemaTypes,
       NonNullable<T>,
@@ -145,7 +150,7 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
   array: T[],
-): RemoveAwaitedProps<
+): RemoveMaybePromiseProps<
   ConnectionShape<
     SchemaTypes,
     NonNullable<T>,
@@ -215,7 +220,9 @@ export async function resolveCursorConnection<
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,
-): Promise<RemoveAwaitedProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
+): Promise<
+  RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
+> {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
     parseCurserArgs(options);
 

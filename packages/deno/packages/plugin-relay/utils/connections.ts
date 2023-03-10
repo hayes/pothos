@@ -1,6 +1,11 @@
 // @ts-nocheck
-import { decodeBase64, encodeBase64, MaybePromise, PothosValidationError, RemoveAwaitedProps, SchemaTypes, } from '../../core/index.ts';
+import { decodeBase64, encodeBase64, MaybePromise, PothosValidationError, SchemaTypes, } from '../../core/index.ts';
 import { ConnectionShape, DefaultConnectionArguments } from '../types.ts';
+// Since we know the return types of the connection helpers, we can
+// remove the MaybePromise wrappers on the ConnectionResult shape
+type RemoveMaybePromiseProps<T> = {
+    [K in keyof T]: Awaited<T[K]>;
+};
 interface ResolveOffsetConnectionOptions {
     args: DefaultConnectionArguments;
     defaultSize?: number;
@@ -63,7 +68,7 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
 export async function resolveOffsetConnection<T, U extends Promise<T[] | null> | T[] | null>(options: ResolveOffsetConnectionOptions, resolve: (params: {
     offset: number;
     limit: number;
-}) => U & (MaybePromise<T[] | null> | null)): Promise<RemoveAwaitedProps<ConnectionShape<SchemaTypes, NonNullable<T>, U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true, T extends NonNullable<T> ? false : {
+}) => U & (MaybePromise<T[] | null> | null)): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NonNullable<T>, U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true, T extends NonNullable<T> ? false : {
     list: false;
     items: true;
 }, false>>> {
@@ -99,7 +104,7 @@ export function cursorToOffset(cursor: string): number {
 export function offsetToCursor(offset: number): string {
     return encodeBase64(`${OFFSET_CURSOR_PREFIX}${offset}`);
 }
-export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): RemoveAwaitedProps<ConnectionShape<SchemaTypes, NonNullable<T>, false, T extends NonNullable<T> ? false : {
+export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NonNullable<T>, false, T extends NonNullable<T> ? false : {
     list: false;
     items: true;
 }, false>> {
@@ -145,7 +150,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
     };
 }
 type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;
-export async function resolveCursorConnection<U extends Promise<unknown[] | null> | unknown[] | null>(options: ResolveCursorConnectionOptions<NodeType<U>>, resolve: (params: ResolveCursorConnectionArgs) => U): Promise<RemoveAwaitedProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
+export async function resolveCursorConnection<U extends Promise<unknown[] | null> | unknown[] | null>(options: ResolveCursorConnectionOptions<NodeType<U>>, resolve: (params: ResolveCursorConnectionArgs) => U): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
     const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } = parseCurserArgs(options);
     const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
     if (!nodes) {
