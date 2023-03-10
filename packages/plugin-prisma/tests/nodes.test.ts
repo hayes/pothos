@@ -19,7 +19,7 @@ describe('prisma', () => {
     await prisma.$disconnect();
   });
 
-  it('query for multiple nodes', async () => {
+  it('query for single node', async () => {
     const query = gql`
       query {
         node(id: "VXNlcjox") {
@@ -90,7 +90,66 @@ describe('prisma', () => {
     `);
   });
 
-  it('query for single node', async () => {
+  it('query for nullable single node', async () => {
+    const query = gql`
+      query {
+        node(id: "VXNlcjoxMDAw") {
+          __typename
+          id
+          ... on User {
+            name
+            email
+            profile {
+              id
+              bio
+              user {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1000 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "node": null,
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "profile": {
+                "include": {
+                  "user": true,
+                },
+              },
+            },
+            "where": {
+              "id": 1000,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('query for multiple nodes', async () => {
     const query = gql`
       query {
         nodes(ids: ["VXNlcjox", "VXNlcjoy"]) {

@@ -281,7 +281,9 @@ export type PrismaNodeOptions<
         select: Model['Select'] & Select;
         include?: never;
       }
-  );
+  ) & {
+    nullable?: boolean;
+  };
 
 type QueryForField<
   Types extends SchemaTypes,
