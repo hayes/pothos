@@ -24,6 +24,7 @@ import {
 } from '@pothos/core';
 import { NodeRef } from './node-ref';
 import {
+  ConnectionResultShape,
   ConnectionShape,
   ConnectionShapeForType,
   ConnectionShapeFromResolve,
@@ -265,6 +266,17 @@ declare global {
         NodeNullability extends boolean = Types['DefaultNodeNullability'],
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
+        ConnectionResult extends ConnectionResultShape<
+          Types,
+          ShapeFromTypeParam<Types, Type, false>,
+          EdgeNullability,
+          NodeNullability
+        > = ConnectionResultShape<
+          Types,
+          ShapeFromTypeParam<Types, Type, false>,
+          EdgeNullability,
+          NodeNullability
+        >,
       >(
         options: FieldOptionsFromKind<
           Types,
@@ -289,7 +301,8 @@ declare global {
               EdgeNullability,
               NodeNullability,
               Args,
-              ResolveReturnShape
+              ResolveReturnShape,
+              ConnectionResult
             > &
               Omit<FieldOptions, 'args' | 'resolve' | 'type'>
           : never,
@@ -297,7 +310,14 @@ declare global {
           [
             connectionOptions:
               | ObjectRef<
-                  ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability>
+                  ConnectionShapeForType<
+                    Types,
+                    Type,
+                    false,
+                    EdgeNullability,
+                    NodeNullability,
+                    ConnectionResult
+                  >
                 >
               | Omit<
                   ConnectionObjectOptions<
@@ -339,6 +359,17 @@ declare global {
       NodeNullability extends boolean,
       Args extends InputFieldMap,
       ResolveReturnShape,
+      ConnectionResult extends ConnectionResultShape<
+        Types,
+        ShapeFromTypeParam<Types, Type, false>,
+        EdgeNullability,
+        NodeNullability
+      > = ConnectionResultShape<
+        Types,
+        ShapeFromTypeParam<Types, Type, false>,
+        EdgeNullability,
+        NodeNullability
+      >,
     > {
       type: Type;
       args?: Args;
@@ -348,7 +379,14 @@ declare global {
         ParentShape,
         InputShapeFromFields<Args> & DefaultConnectionArguments,
         Types['Context'],
-        ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>,
+        ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        >,
         ResolveReturnShape
       >;
     }
@@ -360,9 +398,28 @@ declare global {
       NodeNullability extends boolean,
       Resolved,
       Interfaces extends InterfaceParam<Types>[] = [],
+      ConnectionResult extends ConnectionResultShape<
+        Types,
+        ShapeFromTypeParam<Types, Type, false>,
+        EdgeNullability,
+        NodeNullability
+      > = ConnectionResultShape<
+        Types,
+        ShapeFromTypeParam<Types, Type, false>,
+        EdgeNullability,
+        NodeNullability
+      >,
     > extends ObjectTypeWithInterfaceOptions<
         Types,
-        ConnectionShapeFromResolve<Types, Type, false, EdgeNullability, NodeNullability, Resolved>,
+        ConnectionShapeFromResolve<
+          Types,
+          Type,
+          false,
+          EdgeNullability,
+          NodeNullability,
+          Resolved,
+          ConnectionResult
+        >,
         Interfaces
       > {
       name?: string;
@@ -390,7 +447,16 @@ declare global {
     > extends ObjectTypeWithInterfaceOptions<
         Types,
         NonNullable<
-          ConnectionShapeFromResolve<Types, Type, false, false, NodeNullability, Resolved>['edges']
+          Awaited<
+            ConnectionShapeFromResolve<
+              Types,
+              Type,
+              false,
+              false,
+              NodeNullability,
+              Resolved
+            >['edges']
+          >
         >[number],
         Interfaces
       > {

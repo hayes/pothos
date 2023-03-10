@@ -1,11 +1,13 @@
 import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
+  completeValue,
   createContextCache,
   FieldRef,
   getTypeBrand,
   InputObjectRef,
   InterfaceParam,
   InterfaceRef,
+  MaybePromise,
   ObjectFieldsShape,
   ObjectFieldThunk,
   ObjectParam,
@@ -172,19 +174,19 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                   args as { id: { id: string; typename: string } },
                   context,
                   info,
-                  async (ids) =>
-                    (
-                      await resolveNodes(this, context, info, [
+                  (ids) =>
+                    completeValue(
+                      resolveNodes(this, context, info, [
                         args.id as { id: string; typename: string },
-                      ])
-                    )[0],
+                      ]),
+                      (nodes) => nodes[0],
+                    ),
                 ) as never
-            : async (root, args, context, info) =>
-                (
-                  await resolveNodes(this, context, info, [
-                    args.id as { id: string; typename: string },
-                  ])
-                )[0],
+            : (root, args, context, info) =>
+                completeValue(
+                  resolveNodes(this, context, info, [args.id as { id: string; typename: string }]),
+                  (nodes) => nodes[0],
+                ),
         }) as FieldRef<unknown>,
     );
   }
@@ -287,16 +289,17 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
     nodeName = nodeConfig.name;
 
     this.objectField(ref, this.options.relayOptions.idFieldName ?? 'id', (t) =>
-      t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
+      t.globalID<{}, false, MaybePromise<GlobalIDShape<SchemaTypes>>>({
         nullable: false,
         ...this.options.relayOptions.idFieldOptions,
         ...id,
         args: {},
-        resolve: async (parent, args, context, info) => ({
-          type: nodeConfig.name,
+        resolve: (parent, args, context, info): MaybePromise<GlobalIDShape<SchemaTypes>> =>
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          id: await id.resolve(parent, args, context, info),
-        }),
+          completeValue(id.resolve(parent, args, context, info), (globalId) => ({
+            type: nodeConfig.name,
+            id: globalId,
+          })),
       }),
     );
   });
@@ -521,7 +524,11 @@ schemaBuilderProto.connectionObject = function connectionObject(
                   this.options.relayOptions?.nodeFieldOptions?.nullable ??
                   false,
               },
-              resolve: (con) => (con.edges?.map((edge) => edge?.node) ?? []) as never,
+              resolve: (con) =>
+                completeValue(
+                  con.edges,
+                  (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : []),
+                ) as never,
             }),
           }
         : {}),

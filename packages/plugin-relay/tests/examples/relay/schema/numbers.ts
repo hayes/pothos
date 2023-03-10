@@ -1,4 +1,4 @@
-import { resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
+import { PageInfoShape, resolveArrayConnection, resolveOffsetConnection } from '../../../../src';
 import builder from '../builder';
 
 class IDWithColon {
@@ -147,6 +147,74 @@ builder.queryFields((t) => ({
     type: NumberRef,
     resolve: () => ({ id: 123 }),
   }),
+}));
+
+class AssociatingReturnTypeExample {
+  constructor(
+    // eslint-disable-next-line @typescript-eslint/no-parameter-properties
+    readonly config: {
+      edges: readonly { cursor: string; node: BatchLoadableNumberThing }[];
+      pageInfo: PageInfoShape;
+    },
+  ) {}
+
+  get foo() {
+    return 1;
+  }
+
+  get edges() {
+    return this.config.edges.map((e) => ({
+      ...e,
+      bar: 1,
+    }));
+  }
+
+  get pageInfo() {
+    return Promise.resolve(this.config.pageInfo);
+  }
+}
+
+builder.queryFields((t) => ({
+  associatingReturnType: t.connection(
+    {
+      type: BatchLoadableNumberThing,
+      resolve: (parent, args) => {
+        const numbers: BatchLoadableNumberThing[] = [];
+
+        for (let i = 0; i < 200; i += 1) {
+          numbers.push(new BatchLoadableNumberThing(i));
+        }
+
+        return new AssociatingReturnTypeExample(resolveArrayConnection({ args }, numbers));
+      },
+    },
+    {
+      fields: (u) => ({
+        connectionField: u.int({
+          nullable: true,
+          resolve: (parent) => {
+            if (!parent.foo) {
+              throw new Error('Expected to receive AssociatingReturnTypeExample');
+            }
+            return parent.edges.length;
+          },
+        }),
+      }),
+    },
+    {
+      fields: (u) => ({
+        edgeField: u.int({
+          nullable: true,
+          resolve: (parent) => {
+            if (parent.bar !== 1) {
+              throw new Error('Expected to receive AssociatingReturnTypeExample');
+            }
+            return parent?.node.id;
+          },
+        }),
+      }),
+    },
+  ),
 }));
 
 const SharedConnection = builder.connectionObject(

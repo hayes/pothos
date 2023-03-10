@@ -7,6 +7,12 @@ import {
 } from '@pothos/core';
 import { ConnectionShape, DefaultConnectionArguments } from '../types';
 
+// Since we know the return types of the connection helpers, we can
+// remove the MaybePromise wrappers on the ConnectionResult shape
+type RemoveMaybePromiseProps<T> = {
+  [K in keyof T]: Awaited<T[K]>;
+};
+
 interface ResolveOffsetConnectionOptions {
   args: DefaultConnectionArguments;
   defaultSize?: number;
@@ -87,12 +93,14 @@ export async function resolveOffsetConnection<T, U extends Promise<T[] | null> |
   options: ResolveOffsetConnectionOptions,
   resolve: (params: { offset: number; limit: number }) => U & (MaybePromise<T[] | null> | null),
 ): Promise<
-  ConnectionShape<
-    SchemaTypes,
-    NonNullable<T>,
-    U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
-    T extends NonNullable<T> ? false : { list: false; items: true },
-    false
+  RemoveMaybePromiseProps<
+    ConnectionShape<
+      SchemaTypes,
+      NonNullable<T>,
+      U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true,
+      T extends NonNullable<T> ? false : { list: false; items: true },
+      false
+    >
   >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
@@ -142,12 +150,14 @@ export function offsetToCursor(offset: number): string {
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
   array: T[],
-): ConnectionShape<
-  SchemaTypes,
-  NonNullable<T>,
-  false,
-  T extends NonNullable<T> ? false : { list: false; items: true },
-  false
+): RemoveMaybePromiseProps<
+  ConnectionShape<
+    SchemaTypes,
+    NonNullable<T>,
+    false,
+    T extends NonNullable<T> ? false : { list: false; items: true },
+    false
+  >
 > {
   const { limit, offset, expectedSize, hasPreviousPage, hasNextPage } = offsetForArgs(options);
 
@@ -210,7 +220,9 @@ export async function resolveCursorConnection<
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,
-): Promise<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>> {
+): Promise<
+  RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>
+> {
   const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } =
     parseCurserArgs(options);
 

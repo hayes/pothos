@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
+import SchemaBuilder, { completeValue, createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, MaybePromise, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { NodeRef } from './node-ref.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
@@ -114,18 +114,16 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                         id: string;
                         typename: string;
                     };
-                }, context, info, async (ids) => (await resolveNodes(this, context, info, [
+                }, context, info, (ids) => completeValue(resolveNodes(this, context, info, [
                     args.id as {
                         id: string;
                         typename: string;
                     },
-                ]))[0]) as never
-                : async (root, args, context, info) => (await resolveNodes(this, context, info, [
-                    args.id as {
+                ]), (nodes) => nodes[0])) as never
+                : (root, args, context, info) => completeValue(resolveNodes(this, context, info, [args.id as {
                         id: string;
                         typename: string;
-                    },
-                ]))[0],
+                    }]), (nodes) => nodes[0]),
         }) as FieldRef<unknown>);
     }
     const nodesQueryOptions = this.options.relayOptions?.nodesQueryOptions;
@@ -207,16 +205,17 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
     }, fields);
     this.configStore.onTypeConfig(ref, (nodeConfig) => {
         nodeName = nodeConfig.name;
-        this.objectField(ref, this.options.relayOptions.idFieldName ?? "id", (t) => t.globalID<{}, false, Promise<GlobalIDShape<SchemaTypes>>>({
+        this.objectField(ref, this.options.relayOptions.idFieldName ?? "id", (t) => t.globalID<{}, false, MaybePromise<GlobalIDShape<SchemaTypes>>>({
             nullable: false,
             ...this.options.relayOptions.idFieldOptions,
             ...id,
             args: {},
-            resolve: async (parent, args, context, info) => ({
+            resolve: (parent, args, context, info): MaybePromise<GlobalIDShape<SchemaTypes>> => 
+            // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
+            completeValue(id.resolve(parent, args, context, info), (globalId) => ({
                 type: nodeConfig.name,
-                // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-                id: await id.resolve(parent, args, context, info),
-            }),
+                id: globalId,
+            })),
         }));
     });
     const nodeRef = new NodeRef(ref.name, {
@@ -362,7 +361,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                                 this.options.relayOptions?.nodeFieldOptions?.nullable ??
                                 false,
                         },
-                        resolve: (con) => (con.edges?.map((edge) => edge?.node) ?? []) as never,
+                        resolve: (con) => completeValue(con.edges, (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : [])) as never,
                     }),
                 }
                 : {}),

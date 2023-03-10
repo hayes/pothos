@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes } from '../../core/index.ts';
+import { completeValue, FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes, } from '../../core/index.ts';
 import { DataLoaderOptions, LoadableNodeId } from '../types.ts';
 import { ImplementableLoadableObjectRef } from './object.ts';
 export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, Shape extends object, IDShape extends bigint | number | string = string, Key extends bigint | number | string = IDShape, CacheKey = Key> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
@@ -39,10 +39,10 @@ export class ImplementableLoadableNodeRef<Types extends SchemaTypes, RefShape, S
                 ...this.idOptions,
                 nullable: false,
                 args: {},
-                resolve: async (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) => ({
+                resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) => completeValue(this.idOptions.resolve(parent, args, context, info), (globalId) => ({
                     type: config.name,
-                    id: await this.idOptions.resolve(parent, args, context, info),
-                }),
+                    id: globalId,
+                })),
             }));
         });
     }

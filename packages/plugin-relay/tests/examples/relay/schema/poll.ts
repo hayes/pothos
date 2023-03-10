@@ -48,6 +48,27 @@ builder.node('Poll', {
           parent.answers.slice(offset, offset + limit),
         ),
     }),
+    answersWithPromises: t.connection({
+      type: 'Answer',
+      resolve: (parent, args) => ({
+        get edges() {
+          return Promise.resolve([
+            {
+              cursor: 'xyz',
+              node: parent.answers[0],
+            },
+          ]);
+        },
+        get pageInfo() {
+          return Promise.resolve({
+            hasNextPage: false,
+            hasPreviousPage: false,
+            startCursor: 'abc',
+            endCursor: 'def',
+          });
+        },
+      }),
+    }),
     answersWithoutHelpers: t.connection(
       {
         type: 'Answer',
