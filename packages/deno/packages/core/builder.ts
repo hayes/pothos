@@ -17,7 +17,7 @@ import ObjectRef, { ImplementableObjectRef } from './refs/object.ts';
 import ScalarRef from './refs/scalar.ts';
 import UnionRef from './refs/union.ts';
 import type { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeArgs, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, OutputType, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
-import { isPromiseLike, normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef, } from './utils/index.ts';
+import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
     static allowPluginReRegistration = false;
@@ -378,32 +378,5 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         return options.sortSchema === false
             ? processedSchema
             : lexicographicSortSchema(processedSchema);
-    }
-    /**
-     * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
-     * Promise if not required.
-     */
-    completeValue<T, R>(valOrPromise: PromiseLike<T> | T, onSuccess: (completedVal: T) => R): R | Awaited<R> | Promise<Awaited<R>> | Promise<Awaited<R>>;
-    /**
-     * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
-     * Promise if not required.
-     */
-    completeValue<T, R, E>(valOrPromise: PromiseLike<T> | T, onSuccess: (completedVal: T) => R, onError: (err: unknown) => E): R | Awaited<R> | Promise<Awaited<R>> | Promise<Awaited<R>>;
-    /**
-     * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
-     * Promise if not required.
-     */
-    completeValue<T, R>(valOrPromise: PromiseLike<T> | T, onSuccess: (completedVal: T) => R, onError?: (errVal: unknown) => R) {
-        if (isPromiseLike(valOrPromise)) {
-            return valOrPromise.then(onSuccess, onError);
-        }
-        // No need to handle onError, this should just be a try/catch inside the `onSuccess` block
-        const result = onSuccess(valOrPromise);
-        // If the result of the synchronous call is a promise, we want to unwrap it, for
-        // the return value types consistency
-        if (isPromiseLike(result)) {
-            return result.then((o) => o);
-        }
-        return result;
     }
 }

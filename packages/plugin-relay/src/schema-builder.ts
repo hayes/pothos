@@ -1,5 +1,6 @@
 import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
+  completeValue,
   createContextCache,
   FieldRef,
   getTypeBrand,
@@ -174,7 +175,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                   context,
                   info,
                   (ids) =>
-                    this.completeValue(
+                    completeValue(
                       resolveNodes(this, context, info, [
                         args.id as { id: string; typename: string },
                       ]),
@@ -182,7 +183,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                     ),
                 ) as never
             : (root, args, context, info) =>
-                this.completeValue(
+                completeValue(
                   resolveNodes(this, context, info, [args.id as { id: string; typename: string }]),
                   (nodes) => nodes[0],
                 ),
@@ -293,9 +294,9 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
         ...this.options.relayOptions.idFieldOptions,
         ...id,
         args: {},
-        resolve: (parent, args, context, info) =>
+        resolve: (parent, args, context, info): MaybePromise<GlobalIDShape<SchemaTypes>> =>
           // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-          this.completeValue(id.resolve(parent, args, context, info), (globalId) => ({
+          completeValue(id.resolve(parent, args, context, info), (globalId) => ({
             type: nodeConfig.name,
             id: globalId,
           })),
@@ -524,8 +525,9 @@ schemaBuilderProto.connectionObject = function connectionObject(
                   false,
               },
               resolve: (con) =>
-                this.completeValue(con.edges, (edges) =>
-                  edges?.map((e) => e.node) ?? edgeListNullable ? null : [],
+                completeValue(
+                  con.edges,
+                  (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : []),
                 ) as never,
             }),
           }

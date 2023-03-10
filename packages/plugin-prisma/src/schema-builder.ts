@@ -2,6 +2,7 @@ import './global-types';
 import { GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   brandWithType,
+  completeValue,
   FieldRef,
   InterfaceRef,
   OutputType,
@@ -146,7 +147,7 @@ schemaBuilderProto.prismaNode = function prismaNode(
           nullable: false,
           args: {},
           resolve: (parent: never, args: object, context: object, info: GraphQLResolveInfo) =>
-            this.completeValue(resolve(parent, context), (id) => ({
+            completeValue(resolve(parent, context), (id) => ({
               type: nodeConfig.name,
               id,
             })),

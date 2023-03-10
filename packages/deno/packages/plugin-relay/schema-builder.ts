@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, MaybePromise, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
+import SchemaBuilder, { completeValue, createContextCache, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, MaybePromise, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { NodeRef } from './node-ref.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
@@ -114,13 +114,13 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                         id: string;
                         typename: string;
                     };
-                }, context, info, (ids) => this.completeValue(resolveNodes(this, context, info, [
+                }, context, info, (ids) => completeValue(resolveNodes(this, context, info, [
                     args.id as {
                         id: string;
                         typename: string;
                     },
                 ]), (nodes) => nodes[0])) as never
-                : (root, args, context, info) => this.completeValue(resolveNodes(this, context, info, [args.id as {
+                : (root, args, context, info) => completeValue(resolveNodes(this, context, info, [args.id as {
                         id: string;
                         typename: string;
                     }]), (nodes) => nodes[0]),
@@ -210,9 +210,9 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
             ...this.options.relayOptions.idFieldOptions,
             ...id,
             args: {},
-            resolve: (parent, args, context, info) => 
+            resolve: (parent, args, context, info): MaybePromise<GlobalIDShape<SchemaTypes>> => 
             // eslint-disable-next-line @typescript-eslint/no-unsafe-argument
-            this.completeValue(id.resolve(parent, args, context, info), (globalId) => ({
+            completeValue(id.resolve(parent, args, context, info), (globalId) => ({
                 type: nodeConfig.name,
                 id: globalId,
             })),
@@ -361,7 +361,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                                 this.options.relayOptions?.nodeFieldOptions?.nullable ??
                                 false,
                         },
-                        resolve: (con) => this.completeValue(con.edges, (edges) => edges?.map((e) => e.node) ?? edgeListNullable ? null : []) as never,
+                        resolve: (con) => completeValue(con.edges, (edges) => edges?.map((e) => e.node) ?? []) as never,
                     }),
                 }
                 : {}),

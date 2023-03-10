@@ -1,5 +1,11 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { FieldRef, InterfaceRef, PothosObjectTypeConfig, SchemaTypes } from '@pothos/core';
+import {
+  completeValue,
+  FieldRef,
+  InterfaceRef,
+  PothosObjectTypeConfig,
+  SchemaTypes,
+} from '@pothos/core';
 import { DataLoaderOptions, LoadableNodeId } from '../types';
 import { ImplementableLoadableObjectRef } from './object';
 
@@ -61,13 +67,10 @@ export class ImplementableLoadableNodeRef<
             nullable: false,
             args: {},
             resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) =>
-              this.builder.completeValue(
-                this.idOptions.resolve(parent, args, context, info),
-                (globalId) => ({
-                  type: config.name,
-                  id: globalId,
-                }),
-              ),
+              completeValue(this.idOptions.resolve(parent, args, context, info), (globalId) => ({
+                type: config.name,
+                id: globalId,
+              })),
           }),
       );
     });
