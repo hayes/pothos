@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.10.1
+
+### Patch Changes
+
+- 671a9935: Add ast nodes for defaultalues for args and input fields
+
 ## 3.10.0
 
 ### Minor Changes
