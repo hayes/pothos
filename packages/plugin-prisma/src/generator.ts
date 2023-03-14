@@ -241,14 +241,20 @@ function buildTypes(dmmf: DMMF.Document) {
                           ts.factory.createLiteralTypeNode(ts.factory.createNull()),
                         ]),
                   ),
+                  // ts.factory.createPropertySignature(
+                  //   [],
+                  //   'Types',
+                  //   undefined,
+                  //   ts.factory.createIndexedAccessTypeNode(
+                  //     ts.factory.createTypeReferenceNode('PrismaTypes'),
+                  //     ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
+                  //   ),
+                  // ),
                   ts.factory.createPropertySignature(
                     [],
-                    'Types',
+                    'Name',
                     undefined,
-                    ts.factory.createIndexedAccessTypeNode(
-                      ts.factory.createTypeReferenceNode('PrismaTypes'),
-                      ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
-                    ),
+                    ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
                   ),
                 ]),
               );

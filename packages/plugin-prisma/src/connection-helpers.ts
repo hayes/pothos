@@ -25,7 +25,7 @@ export function prismaConnectionHelpers<
   Shape = RefOrType extends PrismaObjectRef<PrismaModelTypes, infer T> ? T : Model['Shape'],
   EdgeShape = Model['Include'] extends Select
     ? Shape
-    : ShapeFromSelection<Model, { select: Select }>,
+    : ShapeFromSelection<Types, Model, { select: Select }>,
   NodeShape = EdgeShape,
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,

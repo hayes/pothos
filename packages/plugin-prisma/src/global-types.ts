@@ -114,9 +114,12 @@ declare global {
           FindUnique,
           Include,
           Select,
-          ShapeFromSelection<Model, { select: Select; include: Include }>
+          ShapeFromSelection<Types, Model, { select: Select; include: Include }>
         >,
-      ) => PrismaObjectRef<Model, ShapeFromSelection<Model, { select: Select; include: Include }>>;
+      ) => PrismaObjectRef<
+        Model,
+        ShapeFromSelection<Types, Model, { select: Select; include: Include }>
+      >;
 
       prismaObjectField: <
         Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
@@ -165,6 +168,7 @@ declare global {
               Include,
               Select,
               ShapeFromSelection<
+                Types,
                 PrismaModelTypes & Types['PrismaTypes'][Name],
                 { select: Select; include: Include }
               >,
@@ -173,6 +177,7 @@ declare global {
           ) => PrismaNodeRef<
             Types['PrismaTypes'][Name] & PrismaModelTypes,
             ShapeFromSelection<
+              Types,
               PrismaModelTypes & Types['PrismaTypes'][Name],
               { select: Select; include: Include }
             >

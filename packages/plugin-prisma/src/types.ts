@@ -49,7 +49,8 @@ export interface PrismaModelTypes {
     string,
     {
       Shape: unknown;
-      Types: PrismaModelTypes;
+      Name: string;
+      // Types: PrismaModelTypes;
     }
   >;
 }
@@ -78,6 +79,7 @@ export type PrismaObjectFieldOptions<
     ? ParentShape
     : ParentShape &
         ShapeFromSelection<
+          Types,
           ExtractModel<Types, ParentShape>,
           { select: Select extends (...args: any[]) => infer S ? S : Select }
         >,
@@ -123,12 +125,16 @@ interface BaseSelection {
 
 export type SelectedKeys<T> = { [K in keyof T]: T[K] extends false ? never : K }[keyof T];
 
-export type ShapeFromSelection<Model extends PrismaModelTypes, Selection> = Normalize<
+export type ShapeFromSelection<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Selection,
+> = Normalize<
   Selection extends BaseSelection
     ? unknown extends Selection['select']
-      ? Model['Shape'] & RelationShapeFromInclude<Model, Selection['include']>
+      ? Model['Shape'] & RelationShapeFromInclude<Types, Model, Selection['include']>
       : Pick<Model['Shape'], SelectedKeys<Selection['select']>> &
-          RelationShapeFromInclude<Model, Selection['select']> &
+          RelationShapeFromInclude<Types, Model, Selection['select']> &
           ('_count' extends keyof Selection['select']
             ? ShapeFromCount<Selection['select']['_count']>
             : {})
@@ -141,13 +147,22 @@ export type ShapeFromCount<Selection> = Selection extends true
   ? { _count: { [K in keyof Counts]: number } }
   : never;
 
-type RelationShapeFromInclude<Model extends PrismaModelTypes, Include> = Normalize<{
+export type TypesFromName<
+  Types extends SchemaTypes,
+  Name extends string,
+> = Name extends keyof Types['PrismaTypes'] ? Types['PrismaTypes'][Name] & PrismaModelTypes : never;
+
+type RelationShapeFromInclude<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Include,
+> = Normalize<{
   [K in SelectedKeys<Include> as K extends Model['RelationName']
     ? K
     : never]: K extends keyof Model['Relations']
     ? Model['Relations'][K]['Shape'] extends unknown[]
-      ? ShapeFromSelection<Model['Relations'][K]['Types'], Include[K]>[]
-      : ShapeFromSelection<Model['Relations'][K]['Types'], Include[K]>
+      ? ShapeFromSelection<Types, TypesFromName<Types, Model['Relations'][K]['Name']>, Include[K]>[]
+      : ShapeFromSelection<Types, TypesFromName<Types, Model['Relations'][K]['Name']>, Include[K]>
     : unknown;
 }>;
 
@@ -372,7 +387,7 @@ export type RelatedFieldOptions<
         >;
       }) & {
     description?: string | false;
-    type?: PrismaObjectRef<Model['Relations'][Field]['Types']>;
+    type?: PrismaObjectRef<TypesFromName<Types, Model['Relations'][Field]['Name']>>;
     query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
   };
 
@@ -643,7 +658,7 @@ export type RelatedConnectionOptions<
     ? {
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        type?: PrismaObjectRef<Model['Relations'][Field]['Types']>;
+        type?: PrismaObjectRef<TypesFromName<Types, Model['Relations'][Field]['Name']>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
