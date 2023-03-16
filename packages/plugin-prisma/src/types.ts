@@ -147,10 +147,15 @@ export type ShapeFromCount<Selection> = Selection extends true
   ? { _count: { [K in keyof Counts]: number } }
   : never;
 
-export type TypesFromName<
+export type TypesForRelation<
   Types extends SchemaTypes,
-  Name extends string,
-> = Name extends keyof Types['PrismaTypes'] ? Types['PrismaTypes'][Name] & PrismaModelTypes : never;
+  Model extends PrismaModelTypes,
+  Relation extends keyof Model['Relations'],
+> = Model['Relations'][Relation]['Name'] extends infer Name
+  ? Name extends keyof Types['PrismaTypes']
+    ? Types['PrismaTypes'][Name] & PrismaModelTypes
+    : never
+  : never;
 
 type RelationShapeFromInclude<
   Types extends SchemaTypes,
@@ -161,8 +166,8 @@ type RelationShapeFromInclude<
     ? K
     : never]: K extends keyof Model['Relations']
     ? Model['Relations'][K]['Shape'] extends unknown[]
-      ? ShapeFromSelection<Types, TypesFromName<Types, Model['Relations'][K]['Name']>, Include[K]>[]
-      : ShapeFromSelection<Types, TypesFromName<Types, Model['Relations'][K]['Name']>, Include[K]>
+      ? ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>[]
+      : ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>
     : unknown;
 }>;
 
@@ -387,7 +392,7 @@ export type RelatedFieldOptions<
         >;
       }) & {
     description?: string | false;
-    type?: PrismaObjectRef<TypesFromName<Types, Model['Relations'][Field]['Name']>>;
+    type?: PrismaObjectRef<TypesForRelation<Types, Model, Field>>;
     query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
   };
 
@@ -658,7 +663,7 @@ export type RelatedConnectionOptions<
     ? {
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        type?: PrismaObjectRef<TypesFromName<Types, Model['Relations'][Field]['Name']>>;
+        type?: PrismaObjectRef<TypesForRelation<Types, Model, Field>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

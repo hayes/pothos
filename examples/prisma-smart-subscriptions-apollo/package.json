@@ -14,20 +14,20 @@
     "seed": "node -r @swc-node/register prisma/seed.ts"
   },
   "dependencies": {
-    "@apollo/server": "^4.4.0",
+    "@apollo/server": "^4.5.0",
     "@faker-js/faker": "^7.6.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-smart-subscriptions": "workspace:*",
-    "@prisma/client": "^4.9.0",
-    "body-parser": "^1.20.1",
+    "@prisma/client": "^4.11.0",
+    "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "graphql": "16.6.0",
     "graphql-subscriptions": "^2.0.0",
-    "graphql-ws": "^5.11.3",
-    "prisma": "^4.9.0",
-    "ws": "^8.12.0"
+    "graphql-ws": "^5.12.0",
+    "prisma": "^4.11.0",
+    "ws": "^8.13.0"
   },
   "publishConfig": {
     "access": "public"

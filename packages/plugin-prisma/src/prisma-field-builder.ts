@@ -26,7 +26,7 @@ import {
   RelationCountOptions,
   SelectionMap,
   ShapeFromConnection,
-  TypesFromName,
+  TypesForRelation,
   VariantFieldOptions,
 } from './types';
 import {
@@ -386,7 +386,7 @@ export class PrismaObjectFieldBuilder<
           Types,
           Shape,
           NeedsResolve,
-          TypesFromName<Types, Model['Relations'][Field]['Name']>['Where']
+          TypesForRelation<Types, Model, Field>['Where']
         >,
       ]
     >

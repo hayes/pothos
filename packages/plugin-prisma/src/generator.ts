@@ -9,11 +9,12 @@ import { DMMF, generatorHandler } from '@prisma/generator-helper';
 
 const MIN_TS_VERSION = [4, 5, 2];
 
-function checkTSVersion() {
-  const versionParts = version.split(/[.-]/g);
+const versionParts = version.split(/[.-]/g).map((part) => Number.parseInt(part, 10));
+const modifiersArg = (versionParts[0] >= 5 ? [] : [[]]) as [];
 
+function checkTSVersion() {
   for (let i = 0; i < 3; i += 1) {
-    const part = Number.parseInt(versionParts[i], 10);
+    const part = versionParts[i];
     if (part < MIN_TS_VERSION[i]) {
       throw new Error(
         `@pothos/plugin-prisma requires typescript version >${MIN_TS_VERSION.join('.')}`,
@@ -65,7 +66,7 @@ async function generateOutput(
   outputLocation: string,
 ) {
   const importStatement = ts.factory.createImportDeclaration(
-    [],
+    ...modifiersArg,
     [],
     ts.factory.createImportClause(
       true,
@@ -241,15 +242,6 @@ function buildTypes(dmmf: DMMF.Document) {
                           ts.factory.createLiteralTypeNode(ts.factory.createNull()),
                         ]),
                   ),
-                  // ts.factory.createPropertySignature(
-                  //   [],
-                  //   'Types',
-                  //   undefined,
-                  //   ts.factory.createIndexedAccessTypeNode(
-                  //     ts.factory.createTypeReferenceNode('PrismaTypes'),
-                  //     ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
-                  //   ),
-                  // ),
                   ts.factory.createPropertySignature(
                     [],
                     'Name',
@@ -266,7 +258,7 @@ function buildTypes(dmmf: DMMF.Document) {
   });
 
   return ts.factory.createInterfaceDeclaration(
-    [],
+    ...modifiersArg,
     [
       ts.factory.createModifier(SyntaxKind.ExportKeyword),
       ts.factory.createModifier(SyntaxKind.DefaultKeyword),

@@ -31,20 +31,25 @@ export interface FilterShape<T> {
 
 export type FilterOps = keyof FilterShape<unknown>;
 
-export type TypesFromName<
+export type TypesForRelation<
   Types extends SchemaTypes,
-  Name extends string,
-> = Name extends keyof Types['PrismaTypes'] ? Types['PrismaTypes'][Name] & PrismaModelTypes : never;
+  Model extends PrismaModelTypes,
+  Relation extends keyof Model['Relations'],
+> = Model['Relations'][Relation]['Name'] extends infer Name
+  ? Name extends keyof Types['PrismaTypes']
+    ? Types['PrismaTypes'][Name] & PrismaModelTypes
+    : never
+  : never;
 
 export type PrismaOrderByFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
   [K in keyof Model['OrderBy'] as K extends Model['ListRelations']
     ? never
     : K]?: K extends Model['RelationName']
     ?
-        | InputRef<TypesFromName<Types, Model['Relations'][K]['Name']>['OrderBy']>
+        | InputRef<TypesForRelation<Types, Model, K>['OrderBy']>
         | (() => PothosSchemaTypes.InputFieldOptions<
             Types,
-            InputRef<TypesFromName<Types, Model['Relations'][K]['Name']>['OrderBy']>
+            InputRef<TypesForRelation<Types, Model, K>['OrderBy']>
           >)
     : boolean | (() => Omit<PothosSchemaTypes.InputFieldOptions<Types>, 'type'>);
 };

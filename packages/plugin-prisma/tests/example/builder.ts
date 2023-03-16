@@ -6,7 +6,6 @@ import SimpleObjects from '@pothos/plugin-simple-objects';
 import PrismaPlugin from '../../src';
 // eslint-disable-next-line import/no-useless-path-segments
 import { Prisma, PrismaClient } from '../client/index';
-import { Decimal } from '../client/runtime';
 import PrismaTypes from '../generated';
 
 export const prisma = new PrismaClient({
@@ -33,8 +32,8 @@ export const prisma = new PrismaClient({
 const builder = new SchemaBuilder<{
   Scalars: {
     Decimal: {
-      Input: Decimal;
-      Output: Decimal;
+      Input: Prisma.Decimal;
+      Output: Prisma.Decimal;
     };
   };
   Context: {
@@ -65,7 +64,7 @@ builder.scalarType('Decimal', {
       throw new TypeError('Decimal must be a string');
     }
 
-    return new Decimal(value);
+    return new Prisma.Decimal(value);
   },
 });
 

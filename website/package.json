@@ -8,21 +8,21 @@
     "start": "next start"
   },
   "dependencies": {
-    "@heroicons/react": "^2.0.14",
+    "@heroicons/react": "^2.0.16",
     "@jsdevtools/rehype-toc": "^3.0.2",
-    "@mdx-js/loader": "2.2.1",
-    "@mdx-js/mdx": "^2.2.1",
-    "@mdx-js/react": "^2.2.1",
-    "@next/mdx": "^13.1.6",
+    "@mdx-js/loader": "2.3.0",
+    "@mdx-js/mdx": "^2.3.0",
+    "@mdx-js/react": "^2.3.0",
+    "@next/mdx": "^13.2.4",
     "@pothos/core": "workspace:*",
     "@tailwindcss/typography": "^0.5.9",
-    "@tanstack/react-query": "^4.24.4",
+    "@tanstack/react-query": "^4.26.1",
     "dotenv": "^16.0.3",
     "gray-matter": "^4.0.3",
     "highlight.js": "^11.7.0",
     "highlightjs-graphql": "^1.0.2",
     "just-debounce": "^1.1.0",
-    "next": "^13.1.6",
+    "next": "^13.2.4",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "rehype-highlight": "^6.0.0",
@@ -30,7 +30,7 @@
     "rehype-stringify": "^9.0.3",
     "remark": "^14.0.2",
     "remark-frontmatter": "4.0.1",
-    "remark-mdx": "^2.2.1",
+    "remark-mdx": "^2.3.0",
     "remark-mdx-frontmatter": "^2.1.1",
     "remark-rehype": "^10.1.0",
     "remark-retext": "^5.0.1",
@@ -39,11 +39,11 @@
   "devDependencies": {
     "@boost/module": "^4.0.0",
     "@types/mdast": "^3.0.10",
-    "@types/react": "^18.0.27",
+    "@types/react": "^18.0.28",
     "@types/tailwindcss": "^3.1.0",
-    "autoprefixer": "^10.4.13",
+    "autoprefixer": "^10.4.14",
     "postcss": "^8.4.21",
-    "tailwindcss": "^3.2.4"
+    "tailwindcss": "^3.2.7"
   },
   "version": null
 }
