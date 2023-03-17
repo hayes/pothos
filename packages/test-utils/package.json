@@ -34,7 +34,7 @@
   },
   "dependencies": {
     "graphql": "16.6.0",
-    "graphql-yoga": "3.4.0",
+    "graphql-yoga": "3.7.3",
     "ts-morph": "^17.0.1",
     "yargs": "^17.7.1"
   },
