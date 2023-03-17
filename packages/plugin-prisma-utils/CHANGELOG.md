@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.7.0
+
+### Minor Changes
+
+- 07bf6d4f: Simplify how relations are defined in PrismaTypes
+
 ## 0.6.0
 
 ### Minor Changes

@@ -1,5 +1,13 @@
 # @pothos-examples/prisma-smart-subscriptions-apollo
 
+## 2.6.6
+
+### Patch Changes
+
+- Updated dependencies [07bf6d4f]
+- Updated dependencies [93bd2842]
+  - @pothos/plugin-prisma@3.44.0
+
 ## 2.6.5
 
 ### Patch Changes

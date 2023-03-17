@@ -1,5 +1,15 @@
 # @pothos-examples/complex-app
 
+## 1.4.34
+
+### Patch Changes
+
+- Updated dependencies [07bf6d4f]
+- Updated dependencies [93bd2842]
+  - @pothos/plugin-prisma-utils@0.7.0
+  - @pothos/plugin-prisma@3.44.0
+  - @pothos/plugin-scope-auth@3.18.0
+
 ## 1.4.33
 
 ### Patch Changes
