@@ -26,7 +26,7 @@ export const prisma = new PrismaClient({
   ],
 });
 
-export default new SchemaBuilder<{
+export const builder = new SchemaBuilder<{
   Context: {
     user: { id: number };
   };

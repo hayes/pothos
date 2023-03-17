@@ -587,7 +587,9 @@ importers:
       '@prisma/client': ^4.11.0
       '@prisma/generator-helper': ^4.11.0
       graphql: 16.6.0
+      graphql-scalars: ^1.20.4
       graphql-tag: ^2.12.6
+      prettier: ^2.8.4
       prisma: ^4.11.0
     dependencies:
       '@prisma/generator-helper': 4.11.0
@@ -597,7 +599,9 @@ importers:
       '@pothos/test-utils': link:../test-utils
       '@prisma/client': 4.11.0_prisma@4.11.0
       graphql: 16.6.0
+      graphql-scalars: 1.20.4_graphql@16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
+      prettier: 2.8.4
       prisma: 4.11.0
 
   packages/plugin-relay:

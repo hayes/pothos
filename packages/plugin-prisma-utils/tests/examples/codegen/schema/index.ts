@@ -1,162 +1,123 @@
 import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { printSchema } from 'graphql';
-import builder from '../builder';
-// import { PrismaCrudGenerator } from '../generator';
+import { DateTimeResolver } from 'graphql-scalars';
+import { builder, prisma } from '../builder';
+import {
+  CommentFilter,
+  CommentOrderBy,
+  PostFilter,
+  PostOrderBy,
+  UserFilter,
+  UserOrderBy,
+  UserUniqueFilter,
+} from './prisma-inputs';
 
-// const generator = new PrismaCrudGenerator(builder);
+builder.addScalarType('DateTime', DateTimeResolver, {});
 
-builder.scalarType('DateTime', {
-  serialize: (value) => value.toISOString(),
-  parseValue: (value) => (typeof value === 'number' ? new Date(value) : new Date(String(value))),
+builder.queryType({
+  fields: (t) => ({
+    user: t.prismaField({
+      type: 'User',
+      args: {
+        where: t.arg({ type: UserUniqueFilter, required: true }),
+      },
+      nullable: true,
+      resolve: (query, root, args, ctx) =>
+        prisma.user.findUnique({
+          ...query,
+          where: args.where,
+        }),
+    }),
+    users: t.prismaField({
+      type: ['User'],
+      args: {
+        filter: t.arg({ type: UserFilter, required: true, defaultValue: {} }),
+        orderBy: t.arg({
+          type: UserOrderBy,
+          required: true,
+          defaultValue: {
+            id: 'asc',
+          },
+        }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.user.findMany({
+          ...query,
+          where: args.filter,
+          orderBy: args.orderBy,
+        }),
+    }),
+  }),
 });
 
-// builder.queryType({
-//   fields: (t) => ({
-//     post: t.prismaField({
-//       type: 'Post',
-//       nullable: true,
-//       args: { where: t.arg({ type: generator.getWhereUnique('Post'), required: true }) },
-//       resolve: (query, _, args) =>
-//         prisma.post.findUnique({
-//           ...query,
-//           where: args.where,
-//         }),
-//     }),
-//     posts: t.prismaField({
-//       type: ['Post'],
-//       args: generator.findManyArgs('Post'),
-//       resolve: (query, _, args) =>
-//         prisma.post.findMany({
-//           ...query,
-//           where: args.filter ?? undefined,
-//           orderBy: args.orderBy ?? undefined,
-//           take: 3,
-//         }),
-//     }),
-//   }),
-// });
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    name: t.exposeString('name', { nullable: true }),
+    email: t.exposeString('email'),
+    posts: t.relation('posts', {
+      args: {
+        filter: t.arg({ type: PostFilter, required: true, defaultValue: {} }),
+        orderBy: t.arg({
+          type: PostOrderBy,
+          required: true,
+          defaultValue: {
+            id: 'asc',
+          },
+        }),
+      },
+      query: (args) => ({
+        where: args.filter,
+        orderBy: args.orderBy,
+      }),
+    }),
+    profile: t.relation('profile'),
+  }),
+});
 
-// builder.mutationType({
-//   fields: (t) => ({
-//     createUser: t.prismaField({
-//       type: 'User',
-//       args: { input: t.arg({ type: generator.getCreateInput('User'), required: true }) },
-//       resolve: (query, _, args) =>
-//         prisma.user.create({
-//           ...query,
-//           data: {
-//             ...args.input,
-//           },
-//         }),
-//     }),
-//     updateUser: t.prismaField({
-//       type: 'User',
-//       args: {
-//         where: t.arg({ type: generator.getWhereUnique('User'), required: true }),
-//         data: t.arg({ type: generator.getUpdateInput('User'), required: true }),
-//       },
-//       resolve: (query, _, args) =>
-//         prisma.user.update({
-//           ...query,
-//           where: {
-//             ...args.where,
-//           },
-//           data: {
-//             ...args.data,
-//           },
-//         }),
-//     }),
-//     createPost: t.prismaField({
-//       type: 'Post',
-//       args: { input: t.arg({ type: generator.getCreateInput('Post'), required: true }) },
-//       resolve: (query, _, args) =>
-//         prisma.post.create({
-//           ...query,
-//           data: {
-//             ...args.input,
-//           },
-//         }),
-//     }),
-//     updatePost: t.prismaField({
-//       type: 'Post',
-//       args: {
-//         where: t.arg({ type: generator.getWhereUnique('Post'), required: true }),
-//         data: t.arg({ type: generator.getUpdateInput('Post'), required: true }),
-//       },
-//       resolve: (query, _, args) =>
-//         prisma.post.update({
-//           ...query,
-//           where: {
-//             ...args.where,
-//           },
-//           data: {
-//             ...args.data,
-//           },
-//         }),
-//     }),
-//     updateManyPosts: t.int({
-//       args: {
-//         where: t.arg({ type: generator.getWhere('Post') }),
-//         data: t.arg({ type: generator.getUpdateInput('Post'), required: true }),
-//       },
-//       resolve: async (_, args) => {
-//         const result = await prisma.post.updateMany({
-//           where: args.where ?? undefined,
-//           data: args.data,
-//         });
+builder.prismaObject('Profile', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    bio: t.exposeString('bio', { nullable: true }),
+    user: t.relation('user'),
+  }),
+});
 
-//         return result.count;
-//       },
-//     }),
-//   }),
-// });
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+    content: t.exposeString('content', { nullable: true }),
+    published: t.exposeBoolean('published'),
+    author: t.relation('author'),
+    comments: t.relation('comments', {
+      args: {
+        filter: t.arg({ type: CommentFilter, required: true, defaultValue: {} }),
+        orderBy: t.arg({
+          type: CommentOrderBy,
+          required: true,
+          defaultValue: {
+            id: 'asc',
+          },
+        }),
+      },
+      query: (args) => ({
+        where: args.filter,
+        orderBy: args.orderBy,
+      }),
+    }),
+  }),
+});
 
-// builder.prismaObject('Post', {
-//   fields: (t) => ({
-//     id: t.exposeID('id'),
-//     title: t.exposeString('title'),
-//     createdAt: t.expose('createdAt', { type: 'DateTime' }),
-//     updatedAt: t.expose('updatedAt', { type: 'DateTime' }),
-//     tags: t.exposeStringList('tags'),
-//     categories: t.expose('categories', { type: [Category] }),
-//     author: t.relation('author'),
-//     comments: t.relation('comments', {
-//       args: generator.findManyArgs('Comment'),
-//       query: (args) => ({
-//         where: args.filter ?? undefined,
-//         orderBy: args.orderBy ?? undefined,
-//         take: 2,
-//       }),
-//     }),
-//   }),
-// });
-
-// builder.prismaObject('Comment', {
-//   fields: (t) => ({
-//     id: t.exposeID('id'),
-//     content: t.exposeString('content'),
-//     author: t.relation('author'),
-//     post: t.relation('post'),
-//   }),
-// });
-
-// builder.prismaObject('User', {
-//   fields: (t) => ({
-//     id: t.exposeID('id'),
-//     name: t.exposeString('name', { nullable: true }),
-//     email: t.exposeString('email'),
-//     comments: t.relation('comments'),
-//     posts: t.relation('posts', {
-//       args: generator.findManyArgs('Post'),
-//       query: (args) => ({
-//         where: args.filter ?? undefined,
-//         orderBy: args.orderBy ?? undefined,
-//         take: 2,
-//       }),
-//     }),
-//   }),
-// });
+builder.prismaObject('Comment', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    content: t.exposeString('content'),
+    author: t.relation('author'),
+    post: t.relation('post'),
+  }),
+});
 
 export const schema = builder.toSchema();
 

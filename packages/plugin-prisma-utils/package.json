@@ -15,7 +15,8 @@
     }
   },
   "scripts": {
-    "generate": "prisma migrate reset -f",
+    "generate": "prisma migrate reset -f && ts-node tests/examples/codegen/generator.ts && pnpm schema",
+    "schema": "ts-node tests/examples/codegen/schema/index.ts && ts-node tests/examples/crud/schema/index.ts",
     "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
@@ -59,7 +60,9 @@
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^4.11.0",
     "graphql": "16.6.0",
+    "graphql-scalars": "^1.20.4",
     "graphql-tag": "^2.12.6",
+    "prettier": "^2.8.4",
     "prisma": "^4.11.0"
   }
 }

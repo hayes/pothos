@@ -1,3 +1,9 @@
+/* eslint-disable unicorn/no-process-exit */
+/* eslint-disable no-process-exit */
+/* eslint-disable unicorn/prefer-module */
+import { writeFileSync } from 'fs';
+import { resolve } from 'path';
+import { format, resolveConfig } from 'prettier';
 import ts from 'typescript';
 import { PothosSchemaError } from '@pothos/core';
 import * as Prisma from '../../client';
@@ -15,6 +21,205 @@ class PrismaGenerator {
   statements: ts.Statement[] = [];
   addedTypes: Set<string> = new Set();
 
+  addCreate(type: string, without: string[] = []) {
+    const withoutName = without.map((typeName) => `Without${capitalize(typeName)}`).join('');
+    const name = `${type}Create${withoutName}`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(type);
+    const withoutFields = model.fields.filter((field) => without?.includes(field.name));
+
+    const fields = mapFields(model, (field) => {
+      if (
+        withoutFields.some(
+          (f) => f.name === field.name || f.relationFromFields?.includes(field.name),
+        )
+      ) {
+        return null;
+      }
+
+      let filter: string | undefined;
+
+      if (field.kind === 'scalar') {
+        filter = `'${field.type}'`;
+      }
+
+      if (field.kind === 'enum') {
+        filter = this.addEnum(field.type);
+      }
+
+      if (field.kind === 'object') {
+        filter = this.addCreateRelation(model.name, field.name);
+      }
+
+      if (filter) {
+        return parse`({ ${field.name}: ${filter}})`;
+      }
+
+      return null;
+    });
+
+    this.statements.push(
+      ...parse/* ts */ `
+      export const ${name}: InputObjectRef<Prisma.Prisma.${type}Create${withoutName}Input> = builder.prismaCreate('${type}', {
+        name: '${name}',
+        fields: () => (${printExpression(fields)})
+      });
+    `,
+    );
+
+    return name;
+  }
+
+  addCreateRelation(modelName: string, relation: string) {
+    const name = `${modelName}${capitalize(relation)}`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(modelName);
+    const relationField = model.fields.find((field) => field.name === relation)!;
+    const relatedModel = getModel(relationField.type);
+    const relatedFieldName = relatedModel.fields.find(
+      (field) => field.relationName === relationField.relationName,
+    )!;
+
+    this.statements.push(
+      ...parse/* ts */ `
+      export const ${name} = builder.prismaCreateRelation('${modelName}', '${relation}', {
+        fields: () => ({
+          create: ${this.addCreate(relatedModel.name, [relatedFieldName.name])},
+          connect: ${this.addWhereUnique(relatedModel.name)},
+        })
+      });
+    `,
+    );
+
+    return name;
+  }
+
+  addUpdate(type: string, without: string[] = []) {
+    const withoutName = without.map((typeName) => `Without${capitalize(typeName)}`).join('');
+    const name = `${type}Update${withoutName}`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(type);
+    const withoutFields = model.fields.filter((field) => without?.includes(field.name));
+
+    const fields = mapFields(model, (field) => {
+      if (
+        withoutFields.some(
+          (f) => f.name === field.name || f.relationFromFields?.includes(field.name),
+        )
+      ) {
+        return null;
+      }
+
+      let filter: string | undefined;
+
+      if (field.kind === 'scalar') {
+        filter = `'${field.type}'`;
+      }
+
+      if (field.kind === 'enum') {
+        filter = this.addEnum(field.type);
+      }
+
+      if (field.kind === 'object') {
+        filter = this.addUpdateRelation(model.name, field.name);
+      }
+
+      if (filter) {
+        return parse`({ ${field.name}: ${filter}})`;
+      }
+
+      return null;
+    });
+
+    this.statements.push(
+      ...parse/* ts */ `
+      export const ${name}: InputObjectRef<Prisma.Prisma.${type}Update${withoutName}Input> = builder.prismaUpdate('${type}', {
+        name: '${name}',
+        fields: () => (${printExpression(fields)})
+      });
+    `,
+    );
+
+    return name;
+  }
+
+  addUpdateRelation(modelName: string, relation: string) {
+    const name = `${modelName}${capitalize(relation)}`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+
+    this.addedTypes.add(name);
+
+    const model = getModel(modelName);
+    const relationField = model.fields.find((field) => field.name === relation)!;
+    const relatedModel = getModel(relationField.type);
+    const relatedFieldName = relatedModel.fields.find(
+      (field) => field.relationName === relationField.relationName,
+    )!;
+    const relatedField = relatedModel.fields.find((field) => field.name === relatedFieldName.name)!;
+    const relatedFieldIsList = relatedField.kind === 'object' && relatedField.list;
+
+    if (relationField.isList) {
+      this.statements.push(
+        ...parse/* ts */ `
+        export const ${name} = builder.prismaUpdateRelation('${modelName}', '${relation}', {
+          fields: () => ({
+            create: ${this.addCreate(relatedModel.name, [relatedFieldName.name])},
+            set: ${this.addWhereUnique(relatedModel.name)},
+            disconnect: ${this.addWhereUnique(relatedModel.name)},
+            delete: ${this.addWhereUnique(relatedModel.name)},
+            connect: ${this.addWhereUnique(relatedModel.name)},
+            update: {
+              where: ${this.addWhereUnique(relatedModel.name)},
+              data: ${this.addUpdate(relatedModel.name, [relatedFieldName.name])},
+            },
+            updateMany: {
+              where: ${this.addWhere(relatedModel.name, [relatedFieldName.name])},
+              data: ${this.addUpdate(relatedModel.name, [relatedFieldName.name])},
+            },
+            deleteMany: ${this.addWhere(relatedModel.name, [relatedFieldName.name])},
+          })
+        });
+      `,
+      );
+    } else {
+      this.statements.push(
+        ...parse/* ts */ `
+      export const ${name} = builder.prismaUpdateRelation('${modelName}', '${relation}', {
+        fields: () => ({
+          create: ${this.addCreate(relatedModel.name, [relatedFieldName.name])},
+          update: ${this.addUpdate(relatedModel.name, [relatedFieldName.name])},
+          connect: ${this.addWhereUnique(relatedModel.name)},
+          ${relatedFieldIsList ? 'disconnect: true, delete: true,' : ''}
+        })
+      });
+    `,
+      );
+    }
+
+    return name;
+  }
+
   addWhere(type: string, without: string[] = []) {
     const withoutName = without.map((typeName) => `Without${capitalize(typeName)}`).join('');
 
@@ -23,6 +228,8 @@ class PrismaGenerator {
     if (this.addedTypes.has(name)) {
       return name;
     }
+
+    const index = this.statements.length;
 
     this.addedTypes.add(name);
 
@@ -46,8 +253,7 @@ class PrismaGenerator {
       }
 
       if (field.kind === 'enum') {
-        this.addEnum(field.type);
-        filter = this.addPrismaFilter(field.type);
+        filter = this.addPrismaFilter(field.type, this.addEnum(field.type));
       }
 
       if (field.kind === 'object') {
@@ -63,11 +269,13 @@ class PrismaGenerator {
       return null;
     });
 
-    this.statements.push(
+    this.statements.splice(
+      index,
+      0,
       ...parse/* ts */ `
-      const ${name} = builder.prismaFilter('${type}', {
+      export const ${name}: InputObjectRef<Prisma.Prisma.${type}WhereInput> = builder.prismaWhere('${type}', {
         name: '${name}',
-        fields: (t) => (${printExpression(fields)})
+        fields: () => (${printExpression(fields)})
       });
     `,
     );
@@ -113,9 +321,9 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      const ${name} = builder.prismaFilter('${type}', {
+      export const ${name} = builder.prismaWhereUnique('${type}', {
         name: '${name}',
-        fields: (t) => (${printExpression(fields)})
+        fields: () => (${printExpression(fields)})
       });
     `,
     );
@@ -148,9 +356,9 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      const ${name} = builder.prismaFilter('${type}', {
+      export const ${name}: InputObjectRef<Prisma.Prisma.${type}OrderByWithRelationInput> = builder.prismaOrderBy('${type}', {
         name: '${name}',
-        fields: (t) => (${printExpression(fields)})
+        fields: () => (${printExpression(fields)})
       });
     `,
     );
@@ -158,7 +366,7 @@ class PrismaGenerator {
     return name;
   }
 
-  addPrismaFilter(type: string) {
+  addPrismaFilter(type: string, ref = `'${type}'`) {
     const name = `${type}Filter`;
 
     if (this.addedTypes.has(name)) {
@@ -178,7 +386,7 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      const ${name} = builder.prismaFilter('${type}', {
+      export const ${name} = builder.prismaFilter(${ref}, {
         name: '${name}',
         ops: [${ops.map((op) => `'${op}'`).join(', ')}],
       });
@@ -200,7 +408,7 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      const ${name} = builder.prismaListFilter(${filter}, {
+      export const ${name} = builder.prismaListFilter(${filter}, {
         name: '${name}',
         ops: [${ops.map((op) => `'${op}'`).join(', ')}],
       });
@@ -212,7 +420,7 @@ class PrismaGenerator {
 
   addEnum(name: string) {
     if (this.addedTypes.has(name)) {
-      return name;
+      return `Prisma.${name}`;
     }
     this.addedTypes.add(name);
 
@@ -224,17 +432,9 @@ class PrismaGenerator {
     `,
     );
 
-    return name;
+    return `Prisma.${name}`;
   }
 }
-
-const generator = new PrismaGenerator();
-
-generator.addWhere('User');
-generator.addWhereUnique('User');
-generator.addOrderBy('User');
-
-console.log(printStatements(generator.statements));
 
 function getModel(name: string) {
   const modelData = dmmf.datamodel.models.find((model) => model.name === name);
@@ -244,4 +444,41 @@ function getModel(name: string) {
   }
 
   return modelData;
+}
+
+const generator = new PrismaGenerator();
+
+dmmf.datamodel.enums.forEach((enumData) => {
+  generator.addEnum(enumData.name);
+});
+
+dmmf.datamodel.models.forEach((model) => {
+  generator.addWhere(model.name);
+  generator.addWhereUnique(model.name);
+  generator.addOrderBy(model.name);
+  generator.addCreate(model.name);
+  generator.addUpdate(model.name);
+});
+
+const generated = printStatements(generator.statements);
+
+printCode().catch((error: unknown) => {
+  console.error(error);
+
+  process.exit(1);
+});
+
+async function printCode() {
+  const config = await resolveConfig(__dirname);
+  const formatted = format(
+    /* ts */ `
+  import { InputObjectRef } from '@pothos/core';
+  import * as Prisma from '../../../client';
+  import { builder } from '../builder';
+
+  ${generated}`,
+    { ...config, parser: 'typescript' },
+  );
+
+  writeFileSync(resolve(__dirname, './schema/prisma-inputs.ts'), formatted);
 }
