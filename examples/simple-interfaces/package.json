@@ -12,7 +12,7 @@
     "@faker-js/faker": "^7.6.0",
     "@pothos/core": "workspace:*",
     "graphql": "16.6.0",
-    "graphql-yoga": "3.5.1"
+    "graphql-yoga": "3.7.3"
   },
   "publishConfig": {
     "access": "public"

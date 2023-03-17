@@ -6,7 +6,8 @@ generates:
     plugins:
       - schema-ast
   components/__generated__/types.generated.ts:
-    - typescript
+    plugins:
+      - typescript
   components/:
     preset: near-operation-file
     presetConfig:
