@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.44.0
+
+### Minor Changes
+
+- 07bf6d4f: Simplify how relations are defined in PrismaTypes
+- 93bd2842: Support typescript@5.0
+
 ## 3.43.0
 
 ### Minor Changes
