@@ -77,7 +77,7 @@ class PrismaGenerator {
   }
 
   addCreateRelation(modelName: string, relation: string) {
-    const name = `${modelName}${capitalize(relation)}`;
+    const name = `${modelName}Create${capitalize(relation)}`;
 
     if (this.addedTypes.has(name)) {
       return name;
@@ -162,7 +162,7 @@ class PrismaGenerator {
   }
 
   addUpdateRelation(modelName: string, relation: string) {
-    const name = `${modelName}${capitalize(relation)}`;
+    const name = `${modelName}Update${capitalize(relation)}`;
 
     if (this.addedTypes.has(name)) {
       return name;

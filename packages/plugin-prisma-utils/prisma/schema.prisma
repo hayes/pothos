@@ -14,7 +14,7 @@ generator pothos {
   provider     = "prisma-pothos-types"
   clientOutput = "../tests/client"
   output       = "../tests/generated.ts"
-  features     = ["prisma-utils"]
+  prismaUtils  = true
 }
 
 model Post {

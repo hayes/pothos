@@ -393,7 +393,7 @@ export interface PrismaUpdateManyRelationFields<
   updateMany?: Model['Update'][Relation & keyof Model['Update']] & {
     updateMany?: { data: unknown; where: unknown };
   } extends {
-    update?: {
+    updateMany?: {
       data: infer D;
       where: infer W;
     };

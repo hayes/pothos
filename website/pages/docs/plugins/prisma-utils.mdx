@@ -1,3 +1,17 @@
+---
+name: Prisma plugin-utils
+title: Prisma utils for creating input types
+menu: Plugins
+description: Prisma utils for creating input types
+---
+
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
+
+export default DocsPage;
+
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
+
 # Prisma utils for Pothos
 
 This package is highly experimental and not recommended for production use

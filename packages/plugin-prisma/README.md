@@ -302,7 +302,7 @@ builder.queryType({
 });
 ```
 
-This method works just like th normal `t.field` method with a couple of differences:
+This method works just like the normal `t.field` method with a couple of differences:
 
 1. The `type` option must contain the name of the prisma model (eg. `User` or `[User]` for a list
    field).
@@ -441,7 +441,7 @@ builder.prismaObject('User', {
 
 The returned query object will be added to the include section of the `query` argument that gets
 passed into the first argument of the parent `t.prismaField`, and can include things like `where`,
-`skip`, `take`, abd `orderBy`. The `query` function will be passed the arguments for the field, and
+`skip`, `take`, and `orderBy`. The `query` function will be passed the arguments for the field, and
 the context for the current request. Because it is used for pre-loading data, and solving n+1
 issues, it can not be passed the `parent` object because it may not be loaded yet.
 
@@ -917,13 +917,29 @@ builder.prismaNode('Post', {
 ```
 
 If you need to customize how ids are formatted, you can add a resolver for the `id`, and provide a
-`findUnique` option that can be used to load the node by it's id. This is generally not necissary.
+`findUnique` option that can be used to load the node by it's id. This is generally not necessary.
 
 ```typescript
 builder.prismaNode('Post', {
   id: { resolve: (post) => String(post.id) },
   // The return value will be passed as the `where` of a `prisma.post.findUnique`
   findUnique: (id) => ({ id: Number.parseInt(id, 10) }),
+  fields: (t) => ({
+    title: t.exposeString('title'),
+    author: t.relation('author'),
+  }),
+});
+```
+
+When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
+the database, the default behaviour is to throw an error. There are some scenarios where it is
+preferrable to return `null` instead of throwing an error. For this you can add the `nullable: true`
+option:
+
+```typescript
+builder.prismaNode('Post', {
+  id: { resolve: (post) => String(post.id) },
+  nullable: true,
   fields: (t) => ({
     title: t.exposeString('title'),
     author: t.relation('author'),
@@ -944,7 +960,7 @@ builder.queryType({
         type: 'Post',
         cursor: 'id',
         resolve: (query, parent, args, context, info) => prisma.post.findMany({ ...query }),
-      }),
+      },
       {}, // optional options for the Connection type
       {}, // optional options for the Edge type),
     ),
@@ -1333,3 +1349,8 @@ incase it does not.
 
 There are other patterns like data loaders than can be used to reduce n+1 issues, and make your
 graph more efficient, but they are too complex to describe here.
+
+## Input types
+
+To create input types compatible with the prisma client, you can check out the
+[prisma-utils plugin](https://pothos-graphql.dev/docs/plugins/prisma-utils)

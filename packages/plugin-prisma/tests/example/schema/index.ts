@@ -53,13 +53,13 @@ const Viewer = builder.prismaObject('User', {
       },
     }),
     postCount: t.int({
-      select: {
+      select: () => ({
         _count: {
           select: {
             posts: true,
           },
         },
-      },
+      }),
       resolve: (user) => user._count.posts,
     }),
     postPreviews: t.field({
@@ -165,7 +165,7 @@ const User = builder.prismaNode('User', {
         published: t.arg.boolean(),
       },
       query: (args) => ({
-        ...(args.published != null ? { where: { published: true } } : {}),
+        ...(args.published == null ? {} : { where: { published: true } }),
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },

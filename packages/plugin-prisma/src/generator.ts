@@ -12,11 +12,6 @@ const MIN_TS_VERSION = [4, 5, 2];
 const versionParts = version.split(/[.-]/g).map((part) => Number.parseInt(part, 10));
 const modifiersArg = (versionParts[0] >= 5 ? [] : [[]]) as [];
 
-interface GeneratorConfig {
-  clientOutput?: string;
-  features?: string[];
-}
-
 function checkTSVersion() {
   for (let i = 0; i < 3; i += 1) {
     const part = versionParts[i];
@@ -42,7 +37,7 @@ generatorHandler({
   }),
   onGenerate: async (options) => {
     checkTSVersion();
-    const config = options.generator.config as GeneratorConfig;
+    const config = options.generator.config as { clientOutput?: string; prismaUtils?: string };
     const prismaLocation =
       config.clientOutput ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
@@ -125,7 +120,7 @@ async function generateOutput(
   });
 }
 
-function buildTypes(dmmf: DMMF.Document, config: GeneratorConfig) {
+function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
   function getOrderByTypeName(type: string) {
     const possibleTypes = [
       `${type}OrderByWithRelationInput`,
@@ -143,7 +138,7 @@ function buildTypes(dmmf: DMMF.Document, config: GeneratorConfig) {
     return orderBy.name;
   }
 
-  const prismaUtils = config.features?.includes('prisma-utils');
+  const prismaUtils = config.prismaUtils === 'true';
 
   const modelTypes = dmmf.datamodel.models.map((model) => {
     const relations = model.fields.filter((field) => !!field.relationName);
@@ -214,7 +209,20 @@ function buildTypes(dmmf: DMMF.Document, config: GeneratorConfig) {
                 ts.factory.createTypeReferenceNode(`Prisma.${model.name}UpdateInput`),
               ),
             ]
-          : []),
+          : [
+              ts.factory.createPropertySignature(
+                [],
+                'Create',
+                undefined,
+                ts.factory.createTypeLiteralNode([]),
+              ),
+              ts.factory.createPropertySignature(
+                [],
+                'Update',
+                undefined,
+                ts.factory.createTypeLiteralNode([]),
+              ),
+            ]),
         ts.factory.createPropertySignature(
           [],
           'RelationName',

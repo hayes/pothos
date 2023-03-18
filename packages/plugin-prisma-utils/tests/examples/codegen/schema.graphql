@@ -109,13 +109,57 @@ input CommentUniqueFilter {
 }
 
 input CommentUpdate {
-  author: CommentCreateAuthorRelationInput
+  author: CommentUpdateAuthorRelationInput
   authorId: Int
   content: String
   createdAt: DateTime
   id: Int
-  post: CommentCreatePostRelationInput
+  post: CommentUpdatePostRelationInput
   postId: Int
+}
+
+input CommentUpdateAuthorRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutComments
+  update: UserUpdateWithoutComments
+}
+
+input CommentUpdatePostRelationInput {
+  connect: PostUniqueFilter
+  create: PostCreateWithoutComments
+  update: PostUpdateWithoutComments
+}
+
+input CommentUpdateWithoutAuthor {
+  content: String
+  createdAt: DateTime
+  id: Int
+  post: CommentUpdatePostRelationInput
+  postId: Int
+}
+
+input CommentUpdateWithoutPost {
+  author: CommentUpdateAuthorRelationInput
+  authorId: Int
+  content: String
+  createdAt: DateTime
+  id: Int
+}
+
+input CommentWithoutAuthorFilter {
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input CommentWithoutPostFilter {
+  author: UserFilter
+  authorId: IntFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
 }
 
 """
@@ -266,16 +310,132 @@ input FindUniqueRelationsUniqueFilter {
 
 input FindUniqueRelationsUpdate {
   id: String
-  withCompositeID: FindUniqueRelationsCreateWithCompositeIDRelationInput
+  withCompositeID: FindUniqueRelationsUpdateWithCompositeIDRelationInput
   withCompositeID_a: String
   withCompositeID_b: String
-  withCompositeUnique: FindUniqueRelationsCreateWithCompositeUniqueRelationInput
+  withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUniqueRelationInput
   withCompositeUnique_a: String
   withCompositeUnique_b: String
-  withID: FindUniqueRelationsCreateWithIDRelationInput
+  withID: FindUniqueRelationsUpdateWithIDRelationInput
   withID_id: String
-  withUnique: FindUniqueRelationsCreateWithUniqueRelationInput
+  withUnique: FindUniqueRelationsUpdateWithUniqueRelationInput
   withUnique_id: String
+}
+
+input FindUniqueRelationsUpdateWithCompositeIDRelationInput {
+  connect: WithCompositeIDUniqueFilter
+  create: WithCompositeIDCreateWithoutFindUniqueRelations
+  update: WithCompositeIDUpdateWithoutFindUniqueRelations
+}
+
+input FindUniqueRelationsUpdateWithCompositeUniqueRelationInput {
+  connect: WithCompositeUniqueUniqueFilter
+  create: WithCompositeUniqueCreateWithoutFindUniqueRelations
+  update: WithCompositeUniqueUpdateWithoutFindUniqueRelations
+}
+
+input FindUniqueRelationsUpdateWithIDRelationInput {
+  connect: WithIDUniqueFilter
+  create: WithIDCreateWithoutFindUniqueRelations
+  update: WithIDUpdateWithoutFindUniqueRelations
+}
+
+input FindUniqueRelationsUpdateWithUniqueRelationInput {
+  connect: WithUniqueUniqueFilter
+  create: WithUniqueCreateWithoutFindUniqueRelations
+  update: WithUniqueUpdateWithoutFindUniqueRelations
+}
+
+input FindUniqueRelationsUpdateWithoutWithCompositeID {
+  id: String
+  withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUniqueRelationInput
+  withCompositeUnique_a: String
+  withCompositeUnique_b: String
+  withID: FindUniqueRelationsUpdateWithIDRelationInput
+  withID_id: String
+  withUnique: FindUniqueRelationsUpdateWithUniqueRelationInput
+  withUnique_id: String
+}
+
+input FindUniqueRelationsUpdateWithoutWithCompositeUnique {
+  id: String
+  withCompositeID: FindUniqueRelationsUpdateWithCompositeIDRelationInput
+  withCompositeID_a: String
+  withCompositeID_b: String
+  withID: FindUniqueRelationsUpdateWithIDRelationInput
+  withID_id: String
+  withUnique: FindUniqueRelationsUpdateWithUniqueRelationInput
+  withUnique_id: String
+}
+
+input FindUniqueRelationsUpdateWithoutWithID {
+  id: String
+  withCompositeID: FindUniqueRelationsUpdateWithCompositeIDRelationInput
+  withCompositeID_a: String
+  withCompositeID_b: String
+  withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUniqueRelationInput
+  withCompositeUnique_a: String
+  withCompositeUnique_b: String
+  withUnique: FindUniqueRelationsUpdateWithUniqueRelationInput
+  withUnique_id: String
+}
+
+input FindUniqueRelationsUpdateWithoutWithUnique {
+  id: String
+  withCompositeID: FindUniqueRelationsUpdateWithCompositeIDRelationInput
+  withCompositeID_a: String
+  withCompositeID_b: String
+  withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUniqueRelationInput
+  withCompositeUnique_a: String
+  withCompositeUnique_b: String
+  withID: FindUniqueRelationsUpdateWithIDRelationInput
+  withID_id: String
+}
+
+input FindUniqueRelationsWithoutWithCompositeIDFilter {
+  id: StringFilter
+  withCompositeUnique: WithCompositeUniqueFilter
+  withCompositeUnique_a: StringFilter
+  withCompositeUnique_b: StringFilter
+  withID: WithIDFilter
+  withID_id: StringFilter
+  withUnique: WithUniqueFilter
+  withUnique_id: StringFilter
+}
+
+input FindUniqueRelationsWithoutWithCompositeUniqueFilter {
+  id: StringFilter
+  withCompositeID: WithCompositeIDFilter
+  withCompositeID_a: StringFilter
+  withCompositeID_b: StringFilter
+  withID: WithIDFilter
+  withID_id: StringFilter
+  withUnique: WithUniqueFilter
+  withUnique_id: StringFilter
+}
+
+input FindUniqueRelationsWithoutWithIDFilter {
+  id: StringFilter
+  withCompositeID: WithCompositeIDFilter
+  withCompositeID_a: StringFilter
+  withCompositeID_b: StringFilter
+  withCompositeUnique: WithCompositeUniqueFilter
+  withCompositeUnique_a: StringFilter
+  withCompositeUnique_b: StringFilter
+  withUnique: WithUniqueFilter
+  withUnique_id: StringFilter
+}
+
+input FindUniqueRelationsWithoutWithUniqueFilter {
+  id: StringFilter
+  withCompositeID: WithCompositeIDFilter
+  withCompositeID_a: StringFilter
+  withCompositeID_b: StringFilter
+  withCompositeUnique: WithCompositeUniqueFilter
+  withCompositeUnique_a: StringFilter
+  withCompositeUnique_b: StringFilter
+  withID: WithIDFilter
+  withID_id: StringFilter
 }
 
 input FollowCreate {
@@ -333,10 +493,42 @@ input FollowUniqueFilter {
 }
 
 input FollowUpdate {
-  from: FollowCreateFromRelationInput
+  from: FollowUpdateFromRelationInput
   fromId: Int
-  to: FollowCreateToRelationInput
+  to: FollowUpdateToRelationInput
   toId: Int
+}
+
+input FollowUpdateFromRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutFollowing
+  update: UserUpdateWithoutFollowing
+}
+
+input FollowUpdateToRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutFollowers
+  update: UserUpdateWithoutFollowers
+}
+
+input FollowUpdateWithoutFrom {
+  to: FollowUpdateToRelationInput
+  toId: Int
+}
+
+input FollowUpdateWithoutTo {
+  from: FollowUpdateFromRelationInput
+  fromId: Int
+}
+
+input FollowWithoutFromFilter {
+  to: UserFilter
+  toId: IntFilter
+}
+
+input FollowWithoutToFilter {
+  from: UserFilter
+  fromId: IntFilter
 }
 
 input IntFilter {
@@ -415,10 +607,56 @@ input MediaUniqueFilter {
 
 input MediaUpdate {
   id: Int
-  posts: MediaCreatePostsRelationInput
-  uploadedBy: MediaCreateUploadedByRelationInput
+  posts: MediaUpdatePostsRelationInput
+  uploadedBy: MediaUpdateUploadedByRelationInput
   uploadedById: Int
   url: String
+}
+
+input MediaUpdatePostsRelationInput {
+  connect: [PostMediaUniqueFilter!]
+  create: [PostMediaCreateWithoutMedia!]
+  delete: [PostMediaUniqueFilter!]
+  deleteMany: [PostMediaWithoutMediaFilter!]
+  disconnect: [PostMediaUniqueFilter!]
+  set: [PostMediaUniqueFilter!]
+  update: [MediaUpdatePostsRelationInputUpdate!]
+  updateMany: [MediaUpdatePostsRelationInputUpdateMany!]
+}
+
+input MediaUpdatePostsRelationInputUpdate {
+  data: PostMediaUpdateWithoutMedia
+  where: PostMediaUniqueFilter
+}
+
+input MediaUpdatePostsRelationInputUpdateMany {
+  data: PostMediaUpdateWithoutMedia
+  where: PostMediaWithoutMediaFilter
+}
+
+input MediaUpdateUploadedByRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutMedia
+  update: UserUpdateWithoutMedia
+}
+
+input MediaUpdateWithoutPosts {
+  id: Int
+  uploadedBy: MediaUpdateUploadedByRelationInput
+  uploadedById: Int
+  url: String
+}
+
+input MediaUpdateWithoutUploadedBy {
+  id: Int
+  posts: MediaUpdatePostsRelationInput
+  url: String
+}
+
+input MediaWithoutUploadedByFilter {
+  id: IntFilter
+  posts: PostMediaListFilter
+  url: StringFilter
 }
 
 enum OrderBy {
@@ -595,11 +833,51 @@ input PostMediaUniqueFilter {
 
 input PostMediaUpdate {
   id: Int
-  media: PostMediaCreateMediaRelationInput
+  media: PostMediaUpdateMediaRelationInput
   mediaId: Int
   order: Int
-  post: PostMediaCreatePostRelationInput
+  post: PostMediaUpdatePostRelationInput
   postId: Int
+}
+
+input PostMediaUpdateMediaRelationInput {
+  connect: MediaUniqueFilter
+  create: MediaCreateWithoutPosts
+  update: MediaUpdateWithoutPosts
+}
+
+input PostMediaUpdatePostRelationInput {
+  connect: PostUniqueFilter
+  create: PostCreateWithoutMedia
+  update: PostUpdateWithoutMedia
+}
+
+input PostMediaUpdateWithoutMedia {
+  id: Int
+  order: Int
+  post: PostMediaUpdatePostRelationInput
+  postId: Int
+}
+
+input PostMediaUpdateWithoutPost {
+  id: Int
+  media: PostMediaUpdateMediaRelationInput
+  mediaId: Int
+  order: Int
+}
+
+input PostMediaWithoutMediaFilter {
+  id: IntFilter
+  order: IntFilter
+  post: PostFilter
+  postId: IntFilter
+}
+
+input PostMediaWithoutPostFilter {
+  id: IntFilter
+  media: MediaFilter
+  mediaId: IntFilter
+  order: IntFilter
 }
 
 input PostOrderBy {
@@ -633,18 +911,120 @@ input PostUniqueFilter {
 }
 
 input PostUpdate {
-  author: PostCreateAuthorRelationInput
+  author: PostUpdateAuthorRelationInput
   authorId: Int
   categories: [Category!]
-  comments: PostCreateCommentsRelationInput
+  comments: PostUpdateCommentsRelationInput
   content: String
   createdAt: DateTime
   id: Int
-  media: PostCreateMediaRelationInput
+  media: PostUpdateMediaRelationInput
   published: Boolean
   tags: [String!]
   title: String
   updatedAt: DateTime
+}
+
+input PostUpdateAuthorRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutPosts
+  update: UserUpdateWithoutPosts
+}
+
+input PostUpdateCommentsRelationInput {
+  connect: [CommentUniqueFilter!]
+  create: [CommentCreateWithoutPost!]
+  delete: [CommentUniqueFilter!]
+  deleteMany: [CommentWithoutPostFilter!]
+  disconnect: [CommentUniqueFilter!]
+  set: [CommentUniqueFilter!]
+  update: [PostUpdateCommentsRelationInputUpdate!]
+  updateMany: [PostUpdateCommentsRelationInputUpdateMany!]
+}
+
+input PostUpdateCommentsRelationInputUpdate {
+  data: CommentUpdateWithoutPost
+  where: CommentUniqueFilter
+}
+
+input PostUpdateCommentsRelationInputUpdateMany {
+  data: CommentUpdateWithoutPost
+  where: CommentWithoutPostFilter
+}
+
+input PostUpdateMediaRelationInput {
+  connect: [PostMediaUniqueFilter!]
+  create: [PostMediaCreateWithoutPost!]
+  delete: [PostMediaUniqueFilter!]
+  deleteMany: [PostMediaWithoutPostFilter!]
+  disconnect: [PostMediaUniqueFilter!]
+  set: [PostMediaUniqueFilter!]
+  update: [PostUpdateMediaRelationInputUpdate!]
+  updateMany: [PostUpdateMediaRelationInputUpdateMany!]
+}
+
+input PostUpdateMediaRelationInputUpdate {
+  data: PostMediaUpdateWithoutPost
+  where: PostMediaUniqueFilter
+}
+
+input PostUpdateMediaRelationInputUpdateMany {
+  data: PostMediaUpdateWithoutPost
+  where: PostMediaWithoutPostFilter
+}
+
+input PostUpdateWithoutAuthor {
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostUpdateMediaRelationInput
+  published: Boolean
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateWithoutComments {
+  author: PostUpdateAuthorRelationInput
+  authorId: Int
+  categories: [Category!]
+  content: String
+  createdAt: DateTime
+  id: Int
+  media: PostUpdateMediaRelationInput
+  published: Boolean
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostUpdateWithoutMedia {
+  author: PostUpdateAuthorRelationInput
+  authorId: Int
+  categories: [Category!]
+  comments: PostUpdateCommentsRelationInput
+  content: String
+  createdAt: DateTime
+  id: Int
+  published: Boolean
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
+}
+
+input PostWithoutAuthorFilter {
+  categories: CategoryListFilter
+  comments: CommentListFilter
+  content: StringFilter
+  createdAt: DateTimeFilter
+  id: IntFilter
+  media: PostMediaListFilter
+  published: BooleanFilter
+  tags: StringListFilter
+  title: StringFilter
+  updatedAt: DateTimeFilter
 }
 
 type Profile {
@@ -694,8 +1074,19 @@ input ProfileUniqueFilter {
 input ProfileUpdate {
   bio: String
   id: Int
-  user: ProfileCreateUserRelationInput
+  user: ProfileUpdateUserRelationInput
   userId: Int
+}
+
+input ProfileUpdateUserRelationInput {
+  connect: UserUniqueFilter
+  create: UserCreateWithoutProfile
+  update: UserUpdateWithoutProfile
+}
+
+input ProfileUpdateWithoutUser {
+  bio: String
+  id: Int
 }
 
 type Query {
@@ -903,15 +1294,192 @@ input UserUniqueFilter {
 }
 
 input UserUpdate {
-  Media: UserCreateMediaRelationInput
-  comments: UserCreateCommentsRelationInput
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
   email: String
-  followers: UserCreateFollowersRelationInput
-  following: UserCreateFollowingRelationInput
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
   id: Int
   name: String
-  posts: UserCreatePostsRelationInput
-  profile: UserCreateProfileRelationInput
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateCommentsRelationInput {
+  connect: [CommentUniqueFilter!]
+  create: [CommentCreateWithoutAuthor!]
+  delete: [CommentUniqueFilter!]
+  deleteMany: [CommentWithoutAuthorFilter!]
+  disconnect: [CommentUniqueFilter!]
+  set: [CommentUniqueFilter!]
+  update: [UserUpdateCommentsRelationInputUpdate!]
+  updateMany: [UserUpdateCommentsRelationInputUpdateMany!]
+}
+
+input UserUpdateCommentsRelationInputUpdate {
+  data: CommentUpdateWithoutAuthor
+  where: CommentUniqueFilter
+}
+
+input UserUpdateCommentsRelationInputUpdateMany {
+  data: CommentUpdateWithoutAuthor
+  where: CommentWithoutAuthorFilter
+}
+
+input UserUpdateFollowersRelationInput {
+  connect: [FollowUniqueFilter!]
+  create: [FollowCreateWithoutTo!]
+  delete: [FollowUniqueFilter!]
+  deleteMany: [FollowWithoutToFilter!]
+  disconnect: [FollowUniqueFilter!]
+  set: [FollowUniqueFilter!]
+  update: [UserUpdateFollowersRelationInputUpdate!]
+  updateMany: [UserUpdateFollowersRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowersRelationInputUpdate {
+  data: FollowUpdateWithoutTo
+  where: FollowUniqueFilter
+}
+
+input UserUpdateFollowersRelationInputUpdateMany {
+  data: FollowUpdateWithoutTo
+  where: FollowWithoutToFilter
+}
+
+input UserUpdateFollowingRelationInput {
+  connect: [FollowUniqueFilter!]
+  create: [FollowCreateWithoutFrom!]
+  delete: [FollowUniqueFilter!]
+  deleteMany: [FollowWithoutFromFilter!]
+  disconnect: [FollowUniqueFilter!]
+  set: [FollowUniqueFilter!]
+  update: [UserUpdateFollowingRelationInputUpdate!]
+  updateMany: [UserUpdateFollowingRelationInputUpdateMany!]
+}
+
+input UserUpdateFollowingRelationInputUpdate {
+  data: FollowUpdateWithoutFrom
+  where: FollowUniqueFilter
+}
+
+input UserUpdateFollowingRelationInputUpdateMany {
+  data: FollowUpdateWithoutFrom
+  where: FollowWithoutFromFilter
+}
+
+input UserUpdateMediaRelationInput {
+  connect: [MediaUniqueFilter!]
+  create: [MediaCreateWithoutUploadedBy!]
+  delete: [MediaUniqueFilter!]
+  deleteMany: [MediaWithoutUploadedByFilter!]
+  disconnect: [MediaUniqueFilter!]
+  set: [MediaUniqueFilter!]
+  update: [UserUpdateMediaRelationInputUpdate!]
+  updateMany: [UserUpdateMediaRelationInputUpdateMany!]
+}
+
+input UserUpdateMediaRelationInputUpdate {
+  data: MediaUpdateWithoutUploadedBy
+  where: MediaUniqueFilter
+}
+
+input UserUpdateMediaRelationInputUpdateMany {
+  data: MediaUpdateWithoutUploadedBy
+  where: MediaWithoutUploadedByFilter
+}
+
+input UserUpdatePostsRelationInput {
+  connect: [PostUniqueFilter!]
+  create: [PostCreateWithoutAuthor!]
+  delete: [PostUniqueFilter!]
+  deleteMany: [PostWithoutAuthorFilter!]
+  disconnect: [PostUniqueFilter!]
+  set: [PostUniqueFilter!]
+  update: [UserUpdatePostsRelationInputUpdate!]
+  updateMany: [UserUpdatePostsRelationInputUpdateMany!]
+}
+
+input UserUpdatePostsRelationInputUpdate {
+  data: PostUpdateWithoutAuthor
+  where: PostUniqueFilter
+}
+
+input UserUpdatePostsRelationInputUpdateMany {
+  data: PostUpdateWithoutAuthor
+  where: PostWithoutAuthorFilter
+}
+
+input UserUpdateProfileRelationInput {
+  connect: ProfileUniqueFilter
+  create: ProfileCreateWithoutUser
+  update: ProfileUpdateWithoutUser
+}
+
+input UserUpdateWithoutComments {
+  Media: UserUpdateMediaRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutFollowers {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutFollowing {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutMedia {
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutPosts {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  profile: UserUpdateProfileRelationInput
+}
+
+input UserUpdateWithoutProfile {
+  Media: UserUpdateMediaRelationInput
+  comments: UserUpdateCommentsRelationInput
+  email: String
+  followers: UserUpdateFollowersRelationInput
+  following: UserUpdateFollowingRelationInput
+  id: Int
+  name: String
+  posts: UserUpdatePostsRelationInput
 }
 
 input WithCompositeIDCreate {
@@ -949,7 +1517,33 @@ input WithCompositeIDUniqueFilter {
 }
 
 input WithCompositeIDUpdate {
-  FindUniqueRelations: WithCompositeIDCreateFindUniqueRelationsRelationInput
+  FindUniqueRelations: WithCompositeIDUpdateFindUniqueRelationsRelationInput
+  a: String
+  b: String
+}
+
+input WithCompositeIDUpdateFindUniqueRelationsRelationInput {
+  connect: [FindUniqueRelationsUniqueFilter!]
+  create: [FindUniqueRelationsCreateWithoutWithCompositeID!]
+  delete: [FindUniqueRelationsUniqueFilter!]
+  deleteMany: [FindUniqueRelationsWithoutWithCompositeIDFilter!]
+  disconnect: [FindUniqueRelationsUniqueFilter!]
+  set: [FindUniqueRelationsUniqueFilter!]
+  update: [WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdate!]
+  updateMany: [WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdate {
+  data: FindUniqueRelationsUpdateWithoutWithCompositeID
+  where: FindUniqueRelationsUniqueFilter
+}
+
+input WithCompositeIDUpdateFindUniqueRelationsRelationInputUpdateMany {
+  data: FindUniqueRelationsUpdateWithoutWithCompositeID
+  where: FindUniqueRelationsWithoutWithCompositeIDFilter
+}
+
+input WithCompositeIDUpdateWithoutFindUniqueRelations {
   a: String
   b: String
 }
@@ -994,7 +1588,34 @@ input WithCompositeUniqueUniqueFilter {
 }
 
 input WithCompositeUniqueUpdate {
-  FindUniqueRelations: WithCompositeUniqueCreateFindUniqueRelationsRelationInput
+  FindUniqueRelations: WithCompositeUniqueUpdateFindUniqueRelationsRelationInput
+  a: String
+  b: String
+  c: String
+}
+
+input WithCompositeUniqueUpdateFindUniqueRelationsRelationInput {
+  connect: [FindUniqueRelationsUniqueFilter!]
+  create: [FindUniqueRelationsCreateWithoutWithCompositeUnique!]
+  delete: [FindUniqueRelationsUniqueFilter!]
+  deleteMany: [FindUniqueRelationsWithoutWithCompositeUniqueFilter!]
+  disconnect: [FindUniqueRelationsUniqueFilter!]
+  set: [FindUniqueRelationsUniqueFilter!]
+  update: [WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdate!]
+  updateMany: [WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdate {
+  data: FindUniqueRelationsUpdateWithoutWithCompositeUnique
+  where: FindUniqueRelationsUniqueFilter
+}
+
+input WithCompositeUniqueUpdateFindUniqueRelationsRelationInputUpdateMany {
+  data: FindUniqueRelationsUpdateWithoutWithCompositeUnique
+  where: FindUniqueRelationsWithoutWithCompositeUniqueFilter
+}
+
+input WithCompositeUniqueUpdateWithoutFindUniqueRelations {
   a: String
   b: String
   c: String
@@ -1030,7 +1651,32 @@ input WithIDUniqueFilter {
 }
 
 input WithIDUpdate {
-  FindUniqueRelations: WithIDCreateFindUniqueRelationsRelationInput
+  FindUniqueRelations: WithIDUpdateFindUniqueRelationsRelationInput
+  id: String
+}
+
+input WithIDUpdateFindUniqueRelationsRelationInput {
+  connect: [FindUniqueRelationsUniqueFilter!]
+  create: [FindUniqueRelationsCreateWithoutWithID!]
+  delete: [FindUniqueRelationsUniqueFilter!]
+  deleteMany: [FindUniqueRelationsWithoutWithIDFilter!]
+  disconnect: [FindUniqueRelationsUniqueFilter!]
+  set: [FindUniqueRelationsUniqueFilter!]
+  update: [WithIDUpdateFindUniqueRelationsRelationInputUpdate!]
+  updateMany: [WithIDUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithIDUpdateFindUniqueRelationsRelationInputUpdate {
+  data: FindUniqueRelationsUpdateWithoutWithID
+  where: FindUniqueRelationsUniqueFilter
+}
+
+input WithIDUpdateFindUniqueRelationsRelationInputUpdateMany {
+  data: FindUniqueRelationsUpdateWithoutWithID
+  where: FindUniqueRelationsWithoutWithIDFilter
+}
+
+input WithIDUpdateWithoutFindUniqueRelations {
   id: String
 }
 
@@ -1064,6 +1710,31 @@ input WithUniqueUniqueFilter {
 }
 
 input WithUniqueUpdate {
-  FindUniqueRelations: WithUniqueCreateFindUniqueRelationsRelationInput
+  FindUniqueRelations: WithUniqueUpdateFindUniqueRelationsRelationInput
+  id: String
+}
+
+input WithUniqueUpdateFindUniqueRelationsRelationInput {
+  connect: [FindUniqueRelationsUniqueFilter!]
+  create: [FindUniqueRelationsCreateWithoutWithUnique!]
+  delete: [FindUniqueRelationsUniqueFilter!]
+  deleteMany: [FindUniqueRelationsWithoutWithUniqueFilter!]
+  disconnect: [FindUniqueRelationsUniqueFilter!]
+  set: [FindUniqueRelationsUniqueFilter!]
+  update: [WithUniqueUpdateFindUniqueRelationsRelationInputUpdate!]
+  updateMany: [WithUniqueUpdateFindUniqueRelationsRelationInputUpdateMany!]
+}
+
+input WithUniqueUpdateFindUniqueRelationsRelationInputUpdate {
+  data: FindUniqueRelationsUpdateWithoutWithUnique
+  where: FindUniqueRelationsUniqueFilter
+}
+
+input WithUniqueUpdateFindUniqueRelationsRelationInputUpdateMany {
+  data: FindUniqueRelationsUpdateWithoutWithUnique
+  where: FindUniqueRelationsWithoutWithUniqueFilter
+}
+
+input WithUniqueUpdateWithoutFindUniqueRelations {
   id: String
 }
