@@ -282,7 +282,7 @@ These generated types can be used in your schema as shown
 ### Dynamic generator
 
 You can find an example
-[dynamic generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/generator.ts)
+[dynamic generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/generator.ts)
 
 This generator exports a class that can be used to dynamically create input types for your builder
 as shown
