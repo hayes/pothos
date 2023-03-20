@@ -14,19 +14,12 @@ enum Category {
   TECH
 }
 
-input CategoryFilter {
-  equals: Category
-  in: [Category!]
-  is: Category
-  isNot: Category
-  not: CategoryFilter
-  notIn: [Category!]
-}
-
 input CategoryListFilter {
-  every: CategoryFilter
-  none: CategoryFilter
-  some: CategoryFilter
+  equals: [Category!]
+  has: Category
+  hasEvery: [Category!]
+  hasSome: [Category!]
+  isEmpty: Boolean
 }
 
 type Comment {
@@ -99,13 +92,8 @@ input CommentOrderBy {
 }
 
 input CommentUniqueFilter {
-  author: UserFilter
-  authorId: IntFilter
-  content: StringFilter
-  createdAt: DateTimeFilter
-  id: IntFilter
-  post: PostFilter
-  postId: IntFilter
+  createdAt: DateTime
+  id: Int
 }
 
 input CommentUpdate {
@@ -295,17 +283,7 @@ input FindUniqueRelationsOrderBy {
 }
 
 input FindUniqueRelationsUniqueFilter {
-  id: StringFilter
-  withCompositeID: WithCompositeIDFilter
-  withCompositeID_a: StringFilter
-  withCompositeID_b: StringFilter
-  withCompositeUnique: WithCompositeUniqueFilter
-  withCompositeUnique_a: StringFilter
-  withCompositeUnique_b: StringFilter
-  withID: WithIDFilter
-  withID_id: StringFilter
-  withUnique: WithUniqueFilter
-  withUnique_id: StringFilter
+  id: String
 }
 
 input FindUniqueRelationsUpdate {
@@ -486,10 +464,7 @@ input FollowOrderBy {
 }
 
 input FollowUniqueFilter {
-  from: UserFilter
-  fromId: IntFilter
-  to: UserFilter
-  toId: IntFilter
+  compositeID: Int
 }
 
 input FollowUpdate {
@@ -542,6 +517,14 @@ input IntFilter {
   lte: Int
   not: IntFilter
   notIn: [Int!]
+}
+
+input IntListFilter {
+  equals: [Int!]
+  has: Int
+  hasEvery: [Int!]
+  hasSome: [Int!]
+  isEmpty: Boolean
 }
 
 input MediaCreate {
@@ -598,11 +581,7 @@ input MediaOrderBy {
 }
 
 input MediaUniqueFilter {
-  id: IntFilter
-  posts: PostMediaListFilter
-  uploadedBy: UserFilter
-  uploadedById: IntFilter
-  url: StringFilter
+  id: Int
 }
 
 input MediaUpdate {
@@ -659,6 +638,15 @@ input MediaWithoutUploadedByFilter {
   url: StringFilter
 }
 
+type Mutation {
+  createPost(data: PostCreate!): Post!
+  createUser(data: UserCreate!): User!
+  deletePost(where: PostUniqueFilter!): Post!
+  deleteUser(where: UserUniqueFilter!): User!
+  updatePost(data: PostUpdate!, where: PostUniqueFilter!): Post!
+  updateUser(data: UserUpdate!, where: UserUniqueFilter!): User!
+}
+
 enum OrderBy {
   Asc
   Desc
@@ -683,6 +671,7 @@ input PostCreate {
   id: Int
   media: PostCreateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -711,6 +700,7 @@ input PostCreateWithoutAuthor {
   id: Int
   media: PostCreateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -725,6 +715,7 @@ input PostCreateWithoutComments {
   id: Int
   media: PostCreateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -739,6 +730,7 @@ input PostCreateWithoutMedia {
   createdAt: DateTime
   id: Int
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -754,6 +746,7 @@ input PostFilter {
   id: IntFilter
   media: PostMediaListFilter
   published: BooleanFilter
+  ratings: IntListFilter
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
@@ -823,12 +816,7 @@ input PostMediaOrderBy {
 }
 
 input PostMediaUniqueFilter {
-  id: IntFilter
-  media: MediaFilter
-  mediaId: IntFilter
-  order: IntFilter
-  post: PostFilter
-  postId: IntFilter
+  id: Int
 }
 
 input PostMediaUpdate {
@@ -890,24 +878,15 @@ input PostOrderBy {
   id: OrderBy
   media: PostMediaOrderBy
   published: OrderBy
+  ratings: OrderBy
   tags: OrderBy
   title: OrderBy
   updatedAt: OrderBy
 }
 
 input PostUniqueFilter {
-  author: UserFilter
-  authorId: IntFilter
-  categories: CategoryListFilter
-  comments: CommentListFilter
-  content: StringFilter
-  createdAt: DateTimeFilter
-  id: IntFilter
-  media: PostMediaListFilter
-  published: BooleanFilter
-  tags: StringListFilter
-  title: StringFilter
-  updatedAt: DateTimeFilter
+  createdAt: DateTime
+  id: Int
 }
 
 input PostUpdate {
@@ -920,6 +899,7 @@ input PostUpdate {
   id: Int
   media: PostUpdateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -981,6 +961,7 @@ input PostUpdateWithoutAuthor {
   id: Int
   media: PostUpdateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -995,6 +976,7 @@ input PostUpdateWithoutComments {
   id: Int
   media: PostUpdateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -1009,6 +991,7 @@ input PostUpdateWithoutMedia {
   createdAt: DateTime
   id: Int
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -1022,6 +1005,7 @@ input PostWithoutAuthorFilter {
   id: IntFilter
   media: PostMediaListFilter
   published: BooleanFilter
+  ratings: IntListFilter
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
@@ -1065,10 +1049,8 @@ input ProfileOrderBy {
 }
 
 input ProfileUniqueFilter {
-  bio: StringFilter
-  id: IntFilter
-  user: UserFilter
-  userId: IntFilter
+  id: Int
+  userId: Int
 }
 
 input ProfileUpdate {
@@ -1111,9 +1093,11 @@ input StringFilter {
 }
 
 input StringListFilter {
-  every: StringFilter
-  none: StringFilter
-  some: StringFilter
+  equals: [String!]
+  has: String
+  hasEvery: [String!]
+  hasSome: [String!]
+  isEmpty: Boolean
 }
 
 input UnrelatedCreate {
@@ -1132,8 +1116,7 @@ input UnrelatedOrderBy {
 }
 
 input UnrelatedUniqueFilter {
-  id: IntFilter
-  name: StringFilter
+  id: Int
 }
 
 input UnrelatedUpdate {
@@ -1282,15 +1265,8 @@ input UserOrderBy {
 }
 
 input UserUniqueFilter {
-  Media: MediaListFilter
-  comments: CommentListFilter
-  email: StringFilter
-  followers: FollowListFilter
-  following: FollowListFilter
-  id: IntFilter
-  name: StringFilter
-  posts: PostListFilter
-  profile: ProfileFilter
+  email: String
+  id: Int
 }
 
 input UserUpdate {
@@ -1511,9 +1487,7 @@ input WithCompositeIDOrderBy {
 }
 
 input WithCompositeIDUniqueFilter {
-  FindUniqueRelations: FindUniqueRelationsListFilter
-  a: StringFilter
-  b: StringFilter
+  a_b: String
 }
 
 input WithCompositeIDUpdate {
@@ -1581,10 +1555,9 @@ input WithCompositeUniqueOrderBy {
 }
 
 input WithCompositeUniqueUniqueFilter {
-  FindUniqueRelations: FindUniqueRelationsListFilter
-  a: StringFilter
-  b: StringFilter
-  c: StringFilter
+  a_b: String
+  a_c: String
+  c: String
 }
 
 input WithCompositeUniqueUpdate {
@@ -1646,8 +1619,7 @@ input WithIDOrderBy {
 }
 
 input WithIDUniqueFilter {
-  FindUniqueRelations: FindUniqueRelationsListFilter
-  id: StringFilter
+  id: String
 }
 
 input WithIDUpdate {
@@ -1705,8 +1677,7 @@ input WithUniqueOrderBy {
 }
 
 input WithUniqueUniqueFilter {
-  FindUniqueRelations: FindUniqueRelationsListFilter
-  id: StringFilter
+  id: String
 }
 
 input WithUniqueUpdate {

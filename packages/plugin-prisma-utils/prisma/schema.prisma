@@ -30,6 +30,7 @@ model Post {
   media      PostMedia[]
   tags       String[]
   categories Category[]
+  ratings    Int[]
 }
 
 enum Category {

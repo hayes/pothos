@@ -237,6 +237,12 @@ input IntFilter {
   notIn: [Int!]
 }
 
+input IntListFilter {
+  every: IntFilter
+  none: IntFilter
+  some: IntFilter
+}
+
 input MediaCreatePostsRelationInput {
   connect: [PostMediaUniqueFilter!]
   create: [PostMediaCreateWithoutMediaInput!]
@@ -375,6 +381,7 @@ input PostCreateInput {
   id: Int
   media: PostCreateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -393,6 +400,7 @@ input PostCreateWithoutAuthorInput {
   id: Int
   media: PostCreateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -406,6 +414,7 @@ input PostCreateWithoutCommentsInput {
   id: Int
   media: PostCreateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -419,6 +428,7 @@ input PostCreateWithoutMediaInput {
   createdAt: DateTime
   id: Int
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String!
   updatedAt: DateTime
@@ -434,6 +444,7 @@ input PostFilter {
   id: IntFilter
   media: PostMediaListFilter
   published: BooleanFilter
+  ratings: IntListFilter
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
@@ -543,6 +554,7 @@ input PostOrderBy {
   id: OrderBy
   media: PostMediaOrderBy
   published: OrderBy
+  ratings: OrderBy
   tags: OrderBy
   title: OrderBy
   updatedAt: OrderBy
@@ -589,6 +601,7 @@ input PostUpdateInput {
   id: Int
   media: PostUpdateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -623,6 +636,7 @@ input PostUpdateWithoutAuthorInput {
   id: Int
   media: PostUpdateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -636,6 +650,7 @@ input PostUpdateWithoutCommentsInput {
   id: Int
   media: PostUpdateMediaRelationInput
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -649,6 +664,7 @@ input PostUpdateWithoutMediaInput {
   createdAt: DateTime
   id: Int
   published: Boolean
+  ratings: [Int!]
   tags: [String!]
   title: String
   updatedAt: DateTime
@@ -662,6 +678,7 @@ input PostWithoutAuthorFilter {
   id: IntFilter
   media: PostMediaListFilter
   published: BooleanFilter
+  ratings: IntListFilter
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter

@@ -6,11 +6,16 @@ import { builder, prisma } from '../builder';
 import {
   CommentFilter,
   CommentOrderBy,
+  PostCreate,
   PostFilter,
   PostOrderBy,
+  PostUniqueFilter,
+  PostUpdate,
+  UserCreate,
   UserFilter,
   UserOrderBy,
   UserUniqueFilter,
+  UserUpdate,
 } from './prisma-inputs';
 
 builder.addScalarType('DateTime', DateTimeResolver, {});
@@ -116,6 +121,81 @@ builder.prismaObject('Comment', {
     content: t.exposeString('content'),
     author: t.relation('author'),
     post: t.relation('post'),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    createUser: t.prismaField({
+      type: 'User',
+      args: {
+        data: t.arg({ type: UserCreate, required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.user.create({
+          ...query,
+          data: args.data,
+        }),
+    }),
+    updateUser: t.prismaField({
+      type: 'User',
+      args: {
+        where: t.arg({ type: UserUniqueFilter, required: true }),
+        data: t.arg({ type: UserUpdate, required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.user.update({
+          ...query,
+          where: args.where,
+          data: args.data,
+        }),
+    }),
+    deleteUser: t.prismaField({
+      type: 'User',
+      args: {
+        where: t.arg({ type: UserUniqueFilter, required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.user.delete({
+          ...query,
+          where: args.where,
+        }),
+    }),
+    createPost: t.prismaField({
+      type: 'Post',
+      args: {
+        data: t.arg({ type: PostCreate, required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.post.create({
+          ...query,
+          data: args.data,
+        }),
+    }),
+    updatePost: t.prismaField({
+      type: 'Post',
+      args: {
+        where: t.arg({ type: PostUniqueFilter, required: true }),
+        data: t.arg({ type: PostUpdate, required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.post.update({
+          ...query,
+          where: args.where,
+          data: args.data,
+        }),
+    }),
+    deletePost: t.prismaField({
+      type: 'Post',
+      args: {
+        where: t.arg({ type: PostUniqueFilter, required: true }),
+      },
+      resolve: (query, root, args, ctx) =>
+        prisma.post.delete({
+          ...query,
+          where: args.where,
+        }),
+    }),
   }),
 });
 

@@ -63,6 +63,7 @@
     "graphql-scalars": "^1.20.4",
     "graphql-tag": "^2.12.6",
     "prettier": "^2.8.4",
-    "prisma": "^4.11.0"
+    "prisma": "^4.11.0",
+    "ts-node": "^10.9.1"
   }
 }

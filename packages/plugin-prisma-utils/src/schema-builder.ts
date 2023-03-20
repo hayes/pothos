@@ -6,6 +6,7 @@ import SchemaBuilder, {
   InputRef,
   InputShapeFromTypeParam,
   InputType,
+  InputTypeParam,
   PothosSchemaError,
   SchemaTypes,
 } from '@pothos/core';
@@ -21,11 +22,13 @@ import {
   PrismaFilterOptions,
   PrismaListFilterOptions,
   PrismaOrderByOptions,
+  PrismaScalarListFilterOptions,
   PrismaUpdateManyRelationOptions,
   PrismaUpdateOneRelationOptions,
   PrismaUpdateOptions,
   PrismaWhereOptions,
   PrismaWhereUniqueOptions,
+  ScalarListOps,
 } from './types';
 
 export const schemaBuilder =
@@ -126,6 +129,69 @@ schemaBuilder.prismaListFilter = function prismaListFilter<
         fields[op] = t.field({
           required: false,
           type,
+          ...(opsOptions[op] as {}),
+        });
+      }
+
+      return fields as never;
+    },
+  });
+
+  return ref as never;
+};
+
+schemaBuilder.prismaScalarListFilter = function prismaScalarListFilter<
+  Type extends InputType<SchemaTypes>,
+  Ops extends OpsOptions<SchemaTypes, Type, ScalarListOps>,
+>(type: Type, { name, ops, ...options }: PrismaScalarListFilterOptions<SchemaTypes, Type, Ops>) {
+  let filterName = name;
+
+  if (!filterName) {
+    const typeName = nameFromType(type, this);
+
+    filterName = `${typeName}ListFilter`;
+  }
+
+  const ref = this.inputRef(filterName);
+  const opsOptions: Record<string, unknown> = Array.isArray(ops)
+    ? ((ops as readonly string[]).reduce<Record<string, {}>>((map, op) => {
+        // eslint-disable-next-line no-param-reassign
+        map[op] = {};
+        return map;
+      }, {}) as {})
+    : ops;
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+
+      for (const op of Object.keys(opsOptions)) {
+        let fieldType: InputTypeParam<SchemaTypes> = type;
+
+        switch (op) {
+          case 'has':
+            fieldType = type;
+            break;
+          case 'equals':
+          case 'hasSome':
+          case 'hasEvery':
+            fieldType = [type];
+            break;
+          case 'isEmpty':
+            fieldType = 'Boolean' as typeof fieldType;
+            break;
+          default:
+            throw new Error(`Invalid op ${op} for scalar list filter`);
+        }
+
+        fields[op] = t.field({
+          required: false,
+          type: fieldType,
           ...(opsOptions[op] as {}),
         });
       }

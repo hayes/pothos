@@ -7,13 +7,21 @@ import { format, resolveConfig } from 'prettier';
 import ts from 'typescript';
 import { PothosSchemaError } from '@pothos/core';
 import * as Prisma from '../../client';
-import { capitalize, mapFields, parse, printExpression, printStatements } from './util';
+import {
+  capitalize,
+  mapFields,
+  mapUniqueFields,
+  parse,
+  printExpression,
+  printStatements,
+} from './util';
 
 const filterOps = ['equals', 'in', 'notIn', 'not', 'is', 'isNot'] as const;
 const sortableFilterProps = ['lt', 'lte', 'gt', 'gte'] as const;
 const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith'] as const;
 const sortableTypes = ['String', 'Int', 'Float', 'DateTime', 'BigInt'] as const;
 const listOps = ['every', 'some', 'none'] as const;
+const scalarListOps = ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'] as const;
 
 const { dmmf } = Prisma.Prisma;
 
@@ -248,22 +256,34 @@ class PrismaGenerator {
 
       let filter: string | undefined;
 
-      if (field.kind === 'scalar') {
-        filter = this.addPrismaFilter(field.type);
-      }
+      if (field.isList) {
+        if (field.kind === 'scalar') {
+          filter = this.addPrismaScalarListFilter(field.type);
+        }
 
-      if (field.kind === 'enum') {
-        filter = this.addPrismaFilter(field.type, this.addEnum(field.type));
-      }
+        if (field.kind === 'enum') {
+          filter = this.addPrismaScalarListFilter(field.type, this.addEnum(field.type));
+        }
 
-      if (field.kind === 'object') {
-        filter = this.addWhere(field.type);
+        if (field.kind === 'object') {
+          filter = this.addPrismaListFilter(field.type, this.addWhere(field.type));
+        }
+      } else {
+        if (field.kind === 'scalar') {
+          filter = this.addPrismaFilter(field.type);
+        }
+
+        if (field.kind === 'enum') {
+          filter = this.addPrismaFilter(field.type, this.addEnum(field.type));
+        }
+
+        if (field.kind === 'object') {
+          filter = this.addWhere(field.type);
+        }
       }
 
       if (filter) {
-        return parse`({ ${field.name}: ${
-          field.isList ? this.addPrismaListFilter(field.type, filter) : filter
-        }})`;
+        return parse`({ ${field.name}: ${filter} })`;
       }
 
       return null;
@@ -294,30 +314,7 @@ class PrismaGenerator {
 
     const model = getModel(type);
 
-    const fields = mapFields(model, (field) => {
-      let filter: string | undefined;
-
-      if (field.kind === 'scalar') {
-        filter = this.addPrismaFilter(field.type);
-      }
-
-      if (field.kind === 'enum') {
-        this.addEnum(field.type);
-        filter = this.addPrismaFilter(field.type);
-      }
-
-      if (field.kind === 'object') {
-        filter = this.addWhere(field.type);
-      }
-
-      if (filter) {
-        return parse`({ ${field.name}: ${
-          field.isList ? this.addPrismaListFilter(field.type, filter) : filter
-        }})`;
-      }
-
-      return null;
-    });
+    const fields = mapUniqueFields(model, (field) => parse`({ ${field.name}: '${field.type}' })`);
 
     this.statements.push(
       ...parse/* ts */ `
@@ -387,6 +384,28 @@ class PrismaGenerator {
     this.statements.push(
       ...parse/* ts */ `
       export const ${name} = builder.prismaFilter(${ref}, {
+        name: '${name}',
+        ops: [${ops.map((op) => `'${op}'`).join(', ')}],
+      });
+    `,
+    );
+
+    return name;
+  }
+
+  addPrismaScalarListFilter(type: string, ref = `'${type}'`) {
+    const name = `${type}ListFilter`;
+
+    if (this.addedTypes.has(name)) {
+      return name;
+    }
+    this.addedTypes.add(name);
+
+    const ops: string[] = [...scalarListOps];
+
+    this.statements.push(
+      ...parse/* ts */ `
+      export const ${name} = builder.prismaScalarListFilter(${ref}, {
         name: '${name}',
         ops: [${ops.map((op) => `'${op}'`).join(', ')}],
       });

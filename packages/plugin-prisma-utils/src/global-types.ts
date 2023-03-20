@@ -12,11 +12,14 @@ import {
   PrismaFilterOptions,
   PrismaListFilterOptions,
   PrismaOrderByOptions,
+  PrismaScalarListFilterOptions,
   PrismaUpdateManyRelationOptions,
   PrismaUpdateOneRelationOptions,
   PrismaUpdateOptions,
   PrismaWhereOptions,
   PrismaWhereUniqueOptions,
+  ScalarListFilterShape,
+  ScalarListOps,
 } from './types';
 
 import type { PrismaUtilsPlugin } from '.';
@@ -41,6 +44,20 @@ declare global {
           true
         >;
       }>;
+
+      prismaScalarListFilter: <
+        Type extends InputType<Types>,
+        Ops extends OpsOptions<Types, Type, ScalarListOps>,
+      >(
+        type: Type,
+        options: PrismaScalarListFilterOptions<Types, Type, Ops>,
+      ) => InputObjectRef<
+        Pick<
+          ScalarListFilterShape<InputShapeFromTypeParam<Types, Type, true>>,
+          Ops extends readonly string[] ? Ops[number] : keyof Ops
+        >
+      >;
+
       prismaFilter: <Type extends InputType<Types>, Ops extends OpsOptions<Types, Type, FilterOps>>(
         type: Type,
         options: PrismaFilterOptions<Types, Type, Ops>,
@@ -65,10 +82,10 @@ declare global {
 
       prismaWhere: <
         Name extends keyof Types['PrismaTypes'],
+        Fields extends Partial<Record<keyof Model['Where'], unknown>>,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
-        Fields = {},
       >(
         type: Name,
         options: PrismaWhereOptions<Types, Model, Fields>,
@@ -76,10 +93,10 @@ declare global {
 
       prismaWhereUnique: <
         Name extends keyof Types['PrismaTypes'],
+        Fields extends Partial<Record<keyof Model['WhereUnique'], unknown>>,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
-        Fields = {},
       >(
         type: Name,
         options: PrismaWhereUniqueOptions<Types, Model, Fields>,
@@ -87,10 +104,10 @@ declare global {
 
       prismaCreate: <
         Name extends keyof Types['PrismaTypes'],
+        Fields extends Partial<Record<keyof Model['Create'], unknown>>,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
-        Fields = {},
       >(
         type: Name,
         options: PrismaCreateOptions<Types, Model, Fields>,
@@ -112,10 +129,10 @@ declare global {
 
       prismaUpdate: <
         Name extends keyof Types['PrismaTypes'],
+        Fields extends Partial<Record<keyof Model['Update'], unknown>>,
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes
           ? Types['PrismaTypes'][Name]
           : never,
-        Fields = {},
       >(
         type: Name,
         options: PrismaUpdateOptions<Types, Model, Fields>,
