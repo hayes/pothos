@@ -270,7 +270,7 @@ very repetitive. These utilities are designed to be building blocks for generato
 functions, so that you don't need to hand write these types yourself.
 
 Pothos does not currently ship an official generator for prisma types, but there are a couple of
-example generators that can be copied and modified to suite tour needs. These are intentionally
+example generators that can be copied and modified to suite your needs. These are intentionally
 somewhat limited in functionality and not written to be easily exported because they will be updated
 with breaking changes as these utilities are developed further. They are only intended as building
 blocks for you to build you own generators.
@@ -278,26 +278,26 @@ blocks for you to build you own generators.
 There are 2 main approaches:
 
 1. Static Generation: Types are generated and written as a typescript file which can be imported
-   form as part of your schema
+   from as part of your schema
 2. Dynamic Generation: Types are generated dynamically at runtime through helpers imported from your
    App
 
 ### Static generator:
 
-You can find an example static generator here:
-https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts
+You can find an
+[example static generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts)
 
-This generator will generate a file with input types for every table in your schema as shown here:
-https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/prisma-inputs.ts
+This generator will generate a file with input types for every table in your schema as shown
+[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/prisma-inputs.ts)
 
-These generated types can be used in your schema as shown here:
-https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/index.ts
+These generated types can be used in your schema as shown
+[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/index.ts)
 
 ### Dynamic generator
 
-You can find an example dynamic generator here:
-https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/generator.ts
+You can find an example
+[dynamic generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/generator.ts)
 
 This generator exports a class that can be used to dynamically create input types for your builder
-as shown here:
-https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20
+as shown
+[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20)
