@@ -2,6 +2,7 @@ import { writeFileSync } from 'fs';
 import { resolve } from 'path';
 import { printSchema } from 'graphql';
 import { DateTimeResolver } from 'graphql-scalars';
+import { Category } from '../../../client';
 import { builder, prisma } from '../builder';
 import {
   CommentFilter,
@@ -96,6 +97,8 @@ builder.prismaObject('Post', {
     content: t.exposeString('content', { nullable: true }),
     published: t.exposeBoolean('published'),
     author: t.relation('author'),
+    tags: t.exposeStringList('tags'),
+    categories: t.expose('categories', { type: [Category] }),
     comments: t.relation('comments', {
       args: {
         filter: t.arg({ type: CommentFilter, required: true, defaultValue: {} }),
@@ -195,6 +198,18 @@ builder.mutationType({
           ...query,
           where: args.where,
         }),
+    }),
+    deleteManyPosts: t.boolean({
+      args: {
+        where: t.arg({ type: PostFilter, required: true }),
+      },
+      resolve: async (root, args) => {
+        await prisma.post.deleteMany({
+          where: args.where,
+        });
+
+        return false;
+      },
     }),
   }),
 });

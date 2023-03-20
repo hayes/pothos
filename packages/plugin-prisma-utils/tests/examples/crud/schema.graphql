@@ -14,19 +14,12 @@ enum Category {
   TECH
 }
 
-input CategoryFilter {
-  equals: Category
-  in: [Category!]
-  is: Category
-  isNot: Category
-  not: CategoryFilter
-  notIn: [Category!]
-}
-
 input CategoryListFilter {
-  every: CategoryFilter
-  none: CategoryFilter
-  some: CategoryFilter
+  equals: [Category!]
+  has: Category
+  hasEvery: [Category!]
+  hasSome: [Category!]
+  isEmpty: Boolean
 }
 
 type Comment {
@@ -235,9 +228,11 @@ input IntFilter {
 }
 
 input IntListFilter {
-  every: IntFilter
-  none: IntFilter
-  some: IntFilter
+  equals: [Int!]
+  has: Int
+  hasEvery: [Int!]
+  hasSome: [Int!]
+  isEmpty: Boolean
 }
 
 input MediaCreatePostsRelationInput {
@@ -732,9 +727,11 @@ input StringFilter {
 }
 
 input StringListFilter {
-  every: StringFilter
-  none: StringFilter
-  some: StringFilter
+  equals: [String!]
+  has: String
+  hasEvery: [String!]
+  hasSome: [String!]
+  isEmpty: Boolean
 }
 
 type User {

@@ -641,6 +641,7 @@ input MediaWithoutUploadedByFilter {
 type Mutation {
   createPost(data: PostCreate!): Post!
   createUser(data: UserCreate!): User!
+  deleteManyPosts(where: PostFilter!): Boolean!
   deletePost(where: PostUniqueFilter!): Post!
   deleteUser(where: UserUniqueFilter!): User!
   updatePost(data: PostUpdate!, where: PostUniqueFilter!): Post!
@@ -654,10 +655,12 @@ enum OrderBy {
 
 type Post {
   author: User!
+  categories: [Category!]!
   comments(filter: CommentFilter! = {}, orderBy: CommentOrderBy! = {id: Asc}): [Comment!]!
   content: String
   id: ID!
   published: Boolean!
+  tags: [String!]!
   title: String!
 }
 

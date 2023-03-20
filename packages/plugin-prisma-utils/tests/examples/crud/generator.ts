@@ -15,6 +15,7 @@ const sortableFilterProps = ['lt', 'lte', 'gt', 'gte'] as const;
 const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith'] as const;
 const sortableTypes = ['String', 'Int', 'Float', 'DateTime', 'BigInt'] as const;
 const listOps = ['every', 'some', 'none'] as const;
+const scalarListOps = ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'] as const;
 
 export class PrismaCrudGenerator<Types extends SchemaTypes> {
   private builder;
@@ -48,7 +49,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
 
       return this.builder.prismaWhere(modelName, {
         name: fullName,
-        fields: () => {
+        fields: (() => {
           const fields: Record<string, InputType<Types>> = {};
           const withoutFields = model.fields.filter((field) => without?.includes(field.name));
 
@@ -63,13 +64,19 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               let type;
               switch (field.kind) {
                 case 'scalar':
-                  type = this.mapScalarType(field.type) as InputType<Types>;
+                  type = field.isList
+                    ? this.getScalarListFilter(this.mapScalarType(field.type) as InputType<Types>)
+                    : this.getFilter(this.mapScalarType(field.type) as InputType<Types>);
                   break;
                 case 'enum':
-                  type = this.getEnum(field.type);
+                  type = field.isList
+                    ? this.getScalarListFilter(this.getEnum(field.type))
+                    : this.getFilter(this.getEnum(field.type));
                   break;
                 case 'object':
-                  type = this.getWhere(field.type as Name);
+                  type = field.isList
+                    ? this.getListFilter(this.getWhere(field.type as Name))
+                    : this.getWhere(field.type as Name);
                   break;
                 case 'unsupported':
                   break;
@@ -81,13 +88,11 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                 return;
               }
 
-              const filter = field.kind === 'object' ? type : this.getFilter(type);
-
-              fields[field.name] = field.isList ? this.getListFilter(filter) : filter;
+              fields[field.name] = type;
             });
 
-          return fields as {};
-        },
+          return fields;
+        }) as never,
       }) as InputObjectRef<(Types['PrismaTypes'][Name] & PrismaModelTypes)['Where']>;
     });
   }
@@ -100,7 +105,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
 
       return this.builder.prismaWhereUnique(modelName, {
         name,
-        fields: () => {
+        fields: (() => {
           const fields: Record<string, InputType<Types>> = {};
 
           model.fields
@@ -121,8 +126,6 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
                   type = this.getEnum(field.type);
                   break;
                 case 'object':
-                  type = this.getWhere(field.type as Name);
-                  break;
                 case 'unsupported':
                   break;
                 default:
@@ -136,8 +139,8 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               fields[field.name] = type;
             });
 
-          return fields as {};
-        },
+          return fields;
+        }) as never,
       }) as InputObjectRef<(Types['PrismaTypes'][Name] & PrismaModelTypes)['WhereUnique']>;
     });
   }
@@ -190,7 +193,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
       const model = getModel(modelName, this.builder);
       return this.builder.prismaCreate(modelName, {
         name: fullName,
-        fields: (t) => {
+        fields: (() => {
           const fields: Record<string, InputTypeParam<Types>> = {};
           const withoutFields = model.fields.filter((field) => without?.includes(field.name));
           const relationIds = model.fields.flatMap((field) => field.relationFromFields ?? []);
@@ -225,8 +228,8 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               }
             });
 
-          return fields as {};
-        },
+          return fields;
+        }) as never,
       }) as InputObjectRef<(Types['PrismaTypes'][Name] & PrismaModelTypes)['Create']>;
     });
   }
@@ -268,7 +271,7 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
       const model = getModel(modelName, this.builder);
       return this.builder.prismaUpdate(modelName, {
         name: fullName,
-        fields: () => {
+        fields: (() => {
           const fields: Record<string, InputTypeParam<Types>> = {};
           const withoutFields = model.fields.filter((field) => without?.includes(field.name));
           const relationIds = model.fields.flatMap((field) => field.relationFromFields ?? []);
@@ -303,8 +306,8 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
               }
             });
 
-          return fields as {};
-        },
+          return fields;
+        }) as never,
       }) as InputObjectRef<(Types['PrismaTypes'][Name] & PrismaModelTypes)['Update']>;
     });
   }
@@ -374,8 +377,16 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
     });
   }
 
+  private getScalarListFilter(type: InputType<Types>) {
+    return this.getRef(type, `${String(type)}ListFilter`, () =>
+      this.builder.prismaScalarListFilter(type, {
+        ops: scalarListOps,
+      }),
+    );
+  }
+
   private getListFilter(type: InputType<Types>) {
-    return this.getRef(type, `${String(type)}Filter`, () =>
+    return this.getRef(type, `${String(type)}ListFilter`, () =>
       this.builder.prismaListFilter(type, {
         ops: listOps,
       }),
