@@ -1,5 +1,20 @@
 # @pothos-examples/complex-app
 
+## 1.5.0
+
+### Minor Changes
+
+- e5295551: Add initial support for mutation input in prisma utils
+
+### Patch Changes
+
+- Updated dependencies [e5295551]
+- Updated dependencies [72bd678a]
+- Updated dependencies [72bd678a]
+  - @pothos/plugin-prisma@3.45.0
+  - @pothos/plugin-prisma-utils@0.8.0
+  - @pothos/plugin-scope-auth@3.18.0
+
 ## 1.4.34
 
 ### Patch Changes

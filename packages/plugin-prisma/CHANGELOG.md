@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.45.0
+
+### Minor Changes
+
+- e5295551: Add initial support for mutation input in prisma utils
+- 72bd678a: Add new prismaUtils feature flag to the generator
+
 ## 3.44.0
 
 ### Minor Changes

@@ -1,5 +1,24 @@
 # @pothos/plugin-prisma-utils
 
+## 0.8.0
+
+### Minor Changes
+
+- e5295551: Add initial support for mutation input in prisma utils
+- 72bd678a: This change adds new methods for creating create and update input types
+
+  These new features require enabling a new flag in the pothos generator in your `prisma.schema`
+
+  ```
+  generator pothos {
+    provider     = "prisma-pothos-types"
+    // Enable prismaUtils feature
+    prismaUtils  = true
+  }
+  ```
+
+  See the update README.md for full details
+
 ## 0.7.0
 
 ### Minor Changes
