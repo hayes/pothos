@@ -1,8 +1,8 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 datasource db {
-  provider = "sqlite"
-  url      = "file:./dev.db"
+  provider = "postgresql"
+  url      = "postgresql://prisma:prisma@localhost:5455/tests?schema=prisma-utils"
 }
 
 generator client {
@@ -14,33 +14,44 @@ generator pothos {
   provider     = "prisma-pothos-types"
   clientOutput = "../tests/client"
   output       = "../tests/generated.ts"
+  prismaUtils  = true
 }
 
 model Post {
-  id        Int         @id @default(autoincrement())
-  createdAt DateTime    @unique @default(now())
-  updatedAt DateTime    @updatedAt
-  title     String
-  content   String?
-  published Boolean     @default(false)
-  author    User        @relation(fields: [authorId], references: [id])
-  comments  Comment[]
-  authorId  Int
-  media     PostMedia[]
+  id         Int         @id @default(autoincrement())
+  createdAt  DateTime    @unique @default(now())
+  updatedAt  DateTime    @updatedAt
+  title      String
+  content    String?
+  published  Boolean     @default(false)
+  author     User        @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  comments   Comment[]
+  authorId   Int
+  media      PostMedia[]
+  tags       String[]
+  categories Category[]
+  ratings    Int[]
+}
+
+enum Category {
+  TECH
+  SCIENCE
+  CULTURE
+  SPORTS
 }
 
 model Media {
   id           Int         @id @default(autoincrement())
   url          String
   posts        PostMedia[]
-  uploadedBy   User?       @relation(fields: [uploadedById], references: [id])
+  uploadedBy   User?       @relation(fields: [uploadedById], references: [id], onDelete: Cascade)
   uploadedById Int?
 }
 
 model PostMedia {
   id      Int   @id @default(autoincrement())
-  post    Post  @relation(fields: [postId], references: [id])
-  media   Media @relation(fields: [mediaId], references: [id])
+  post    Post  @relation(fields: [postId], references: [id], onDelete: Cascade)
+  media   Media @relation(fields: [mediaId], references: [id], onDelete: Cascade)
   postId  Int
   mediaId Int
   order   Int
@@ -50,8 +61,8 @@ model Comment {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @unique @default(now())
   content   String
-  author    User     @relation(fields: [authorId], references: [id])
-  post      Post     @relation(fields: [postId], references: [id])
+  author    User     @relation(fields: [authorId], references: [id], onDelete: Cascade)
+  post      Post     @relation(fields: [postId], references: [id], onDelete: Cascade)
   authorId  Int
   postId    Int
 }
@@ -59,7 +70,7 @@ model Comment {
 model Profile {
   id     Int     @id @default(autoincrement())
   bio    String?
-  user   User    @relation(fields: [userId], references: [id])
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   userId Int     @unique
 }
 
@@ -78,8 +89,8 @@ model User {
 model Follow {
   fromId Int
   toId   Int
-  from   User @relation("following", fields: [fromId], references: [id])
-  to     User @relation("followers", fields: [toId], references: [id])
+  from   User @relation("following", fields: [fromId], references: [id], onDelete: Cascade)
+  to     User @relation("followers", fields: [toId], references: [id], onDelete: Cascade)
 
   @@id([fromId, toId], name: "compositeID")
 }
@@ -123,16 +134,16 @@ model FindUniqueRelations {
   id String @id
 
   withID_id String
-  withID    WithID @relation(fields: [withID_id], references: [id])
+  withID    WithID @relation(fields: [withID_id], references: [id], onDelete: Cascade)
 
   withUnique_id String
-  withUnique    WithUnique @relation(fields: [withUnique_id], references: [id])
+  withUnique    WithUnique @relation(fields: [withUnique_id], references: [id], onDelete: Cascade)
 
   withCompositeID_a String
   withCompositeID_b String
-  withCompositeID   WithCompositeID @relation(fields: [withCompositeID_a, withCompositeID_b], references: [a, b])
+  withCompositeID   WithCompositeID @relation(fields: [withCompositeID_a, withCompositeID_b], references: [a, b], onDelete: Cascade)
 
   withCompositeUnique_a String
   withCompositeUnique_b String
-  withCompositeUnique   WithCompositeUnique @relation(fields: [withCompositeUnique_a, withCompositeUnique_b], references: [a, b])
+  withCompositeUnique   WithCompositeUnique @relation(fields: [withCompositeUnique_a, withCompositeUnique_b], references: [a, b], onDelete: Cascade)
 }

@@ -11,6 +11,8 @@ import SchemaBuilder, {
   unwrapInputFieldType,
 } from '@pothos/core';
 
+export * from './types';
+
 const pluginName = 'prismaUtils' as const;
 
 export default pluginName;

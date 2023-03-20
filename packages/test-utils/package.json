@@ -34,8 +34,11 @@
   },
   "dependencies": {
     "graphql": "16.6.0",
-    "graphql-helix": "^1.13.0",
+    "graphql-yoga": "3.7.3",
     "ts-morph": "^17.0.1",
     "yargs": "^17.7.1"
+  },
+  "devDependencies": {
+    "@types/node": "^18.11.18"
   }
 }

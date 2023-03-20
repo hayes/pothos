@@ -8,9 +8,13 @@ export interface DMMFField {
   name: string;
   isRequired: boolean;
   isList: boolean;
+  hasDefaultValue: boolean;
   isUnique: boolean;
   isId: boolean;
   documentation?: string;
+  relationName?: string;
+  relationFromFields?: string[];
+  isUpdatedAt?: boolean;
 }
 
 interface DMMF {

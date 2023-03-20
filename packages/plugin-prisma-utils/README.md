@@ -1,6 +1,49 @@
 # Prisma utils for Pothos
 
-This package is highly experimental and not ready for production use
+This package is highly experimental and not recommended for production use
+
+The plugin adds new helpers for creating prisma compatible input types. It is NOT required to use
+the normal prisma plugin.
+
+## Setup
+
+To use this plugin, you will need to enable prismaUtils option in the generator in your
+schema.prisma:
+
+```
+generator pothos {
+  provider     = "prisma-pothos-types"
+  // Enable prismaUtils feature
+  prismaUtils  = true
+}
+```
+
+Once this is enabled, you can add the plugin to your schema along with the normal prisma plugin:
+
+```ts
+import SchemaBuilder from '@pothos/core';
+import { PrismaClient } from '@prisma/client';
+import type PrismaTypes from '@pothos/plugin-prisma/generated';
+import PrismaPlugin from '@pothos/plugin-prisma';
+import PrismaUtils from '@pothos/plugin-prisma-utils';
+
+export const prisma = new PrismaClient({});
+
+export default new SchemaBuilder<{
+  Scalars: {
+    DateTime: {
+      Input: Date;
+      Output: Date;
+    };
+  };
+  PrismaTypes: PrismaTypes;
+}>({
+  plugins: [PrismaPlugin, PrismaUtils],
+  prisma: {
+    client: prisma,
+  },
+});
+```
 
 ## What can you do with this plugin
 
@@ -35,14 +78,6 @@ const MyEnumFilter = builder.prismaFilter(MyEnum, {
 });
 ```
 
-### Creating list filters
-
-```typescript
-const StringListFilter = builder.prismaListFilter(StringFilter, {
-  ops: ['every', 'some', 'none'],
-});
-```
-
 ### Creating filters for Prisma objects (compatible with a "where" clause)
 
 ```typescript
@@ -67,6 +102,23 @@ const PostFilter = builder.prismaWhere('Post', {
 });
 ```
 
+### Creating list filters for scalars
+
+```typescript
+export const StringListFilter = builder.prismaScalarListFilter('String', {
+  name: 'StringListFilter',
+  ops: ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'],
+});
+```
+
+### Creating list filters for Prisma objects
+
+```typescript
+const UserListFilter = builder.prismaListFilter(UserWhere, {
+  ops: ['every', 'some', 'none'],
+});
+```
+
 ### Creating OrderBy input types
 
 ```typescript
@@ -86,51 +138,152 @@ export const PostOrderBy = builder.prismaOrderBy('Post', {
 });
 ```
 
-## Using the building blocks above, you can create utils that create all your input types automatically
+### Inputs for create mutations
 
-```typescript
-const prismaArgs = argsForTypes(builder, ['Post', 'Comment', 'User']);
+You can use `builder.prismaCreate` to create input types for create mutations.
 
-builder.queryType({
-  fields: (t) => ({
-    posts: t.prismaField({
-      type: ['Post'],
-      args: prismaArgs.Post,
-      resolve: (query, _, args) =>
-        prisma.post.findMany({
-          ...query,
-          where: args.filter ?? undefined,
-          orderBy: args.orderBy ?? undefined,
-          take: 3,
-        }),
-    }),
+To get these types to work correctly for circular references, it is recommended to add explicit type
+annotations, but for simple types that do not have circular references the explicit types can be
+omitted.
+
+```ts
+import { InputObjectRef } from '@pothos/core';
+import { Prisma } from '@prisma/client';
+
+export const UserCreate: InputObjectRef<Prisma.UserCreateInput> = builder.prismaCreate('User', {
+  name: 'UserCreate',
+  fields: () => ({
+    // scalars
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    // inputs for relations need to be defined separately as shown below
+    profile: UserCreateProfile,
+    // create fields for list relations are defined just like normal relations.
+    // Pothos will automatically handle making the inputs lists
+    posts: UserCreatePosts,
   }),
 });
 
-builder.prismaObject('Post', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    author: t.relation('author'),
+export const UserCreateProfile = builder.prismaCreateRelation('User', 'profile', {
+  fields: () => ({
+    // created with builder.prismaCreate as shown above for User
+    create: ProfileCreateWithoutUser,
+    // created with builder.prismaWhere
+    connect: ProfileUniqueFilter,
   }),
 });
 
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    name: t.exposeString('name', { nullable: true }),
-    posts: t.relation('posts', {
-      args: prismaArgs.Post,
-      query: (args) => ({
-        where: args.filter ?? undefined,
-        orderBy: args.orderBy ?? undefined,
-        take: 2,
-      }),
-    }),
+export const UserCreatePosts = builder.prismaCreateRelation('User', 'posts', {
+  fields: () => ({
+    // created with builder.prismaCreate as shown above for User
+    create: PostCreateWithoutAuthor,
+    // created with builder.prismaWhere
+    connect: PostUniqueFilter,
   }),
 });
-
-export default builder.toSchema();
 ```
 
-To implement something like the above, you can look at the example provided
-[here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/generator.ts)
+### Inputs for update mutations
+
+You can use `builder.prismaUpdate` to Update input types for update mutations.
+
+To get these types to work correctly for circular references, it is recommended to add explicit type
+annotations, but for simple types that do not have circular references the explicit types can be
+omitted.
+
+```ts
+export const UserUpdate: InputObjectRef<Prisma.Prisma.UserUpdateInput> = builder.prismaUpdate(
+  'User',
+  {
+    name: 'UserUpdate',
+    fields: () => ({
+      id: 'Int',
+      email: 'String',
+      name: 'String',
+      // inputs for relations need to be defined separately as shown below
+      profile: UserUpdateProfile,
+      posts: UserUpdatePosts,
+    }),
+  },
+);
+
+export const UserUpdateProfile = builder.prismaUpdateRelation('User', 'profile', {
+  fields: () => ({
+    // created with builder.prismaCreate
+    create: ProfileCreateWithoutUser,
+    // created with builder.prismaUpdate
+    update: ProfileUpdateWithoutUser,
+    // created with builder.prismaWhereUnique
+    connect: ProfileUniqueFilter,
+  }),
+});
+
+export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
+  fields: () => ({
+    // Not all update methods need to be defined
+    // created with builder.prismaCreate
+    create: PostCreateWithoutAuthor,
+    // created with builder.prismaWhereUnique
+    set: PostUniqueFilter,
+    // created with builder.prismaWhereUnique
+    disconnect: PostUniqueFilter,
+    delete: PostUniqueFilter,
+    connect: PostUniqueFilter,
+
+    update: {
+      // created with builder.prismaWhereUnique
+      where: PostUniqueFilter,
+      // created with builder.prismaUpdate
+      data: PostUpdateWithoutAuthor,
+    },
+    updateMany: {
+      // created with builder.prismaWhere
+      where: PostWithoutAuthorFilter,
+      // created with builder.prismaUpdate
+      data: PostUpdateWithoutAuthor,
+    },
+    // created with builder.prismaWhere
+    deleteMany: PostWithoutAuthorFilter,
+  }),
+});
+```
+
+## Generators
+
+Manually defining all the different input types shown above for a large number of tables can become
+very repetitive. These utilities are designed to be building blocks for generators or utility
+functions, so that you don't need to hand write these types yourself.
+
+Pothos does not currently ship an official generator for prisma types, but there are a couple of
+example generators that can be copied and modified to suite tour needs. These are intentionally
+somewhat limited in functionality and not written to be easily exported because they will be updated
+with breaking changes as these utilities are developed further. They are only intended as building
+blocks for you to build you own generators.
+
+There are 2 main approaches:
+
+1. Static Generation: Types are generated and written as a typescript file which can be imported
+   form as part of your schema
+2. Dynamic Generation: Types are generated dynamically at runtime through helpers imported from your
+   App
+
+### Static generator:
+
+You can find an example static generator here:
+https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts
+
+This generator will generate a file with input types for every table in your schema as shown here:
+https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/prisma-inputs.ts
+
+These generated types can be used in your schema as shown here:
+https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/schema/index.ts
+
+### Dynamic generator
+
+You can find an example dynamic generator here:
+https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/generator.ts
+
+This generator exports a class that can be used to dynamically create input types for your builder
+as shown here:
+https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/crud/schema/index.ts#L9-L20

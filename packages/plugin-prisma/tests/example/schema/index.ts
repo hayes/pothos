@@ -53,13 +53,13 @@ const Viewer = builder.prismaObject('User', {
       },
     }),
     postCount: t.int({
-      select: {
+      select: () => ({
         _count: {
           select: {
             posts: true,
           },
         },
-      },
+      }),
       resolve: (user) => user._count.posts,
     }),
     postPreviews: t.field({
@@ -165,7 +165,7 @@ const User = builder.prismaNode('User', {
         published: t.arg.boolean(),
       },
       query: (args) => ({
-        ...(args.published != null ? { where: { published: true } } : {}),
+        ...(args.published == null ? {} : { where: { published: true } }),
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
@@ -263,12 +263,34 @@ builder.prismaObjectFields('Post', (t) => ({
   manualMediaConnection: t.connection(
     {
       type: Media,
+      args: {
+        inverted: t.arg.boolean(),
+      },
       select: (args, ctx, nestedSelection) => ({
-        media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        _count: {
+          select: {
+            media: true,
+          },
+        },
+        media: {
+          orderBy: {
+            post: {
+              createdAt: args.inverted ? 'desc' : 'asc',
+            },
+          },
+          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        },
       }),
-      resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+      resolve: (post, args, ctx) => ({
+        totalCount: post._count.media,
+        ...mediaConnectionHelpers.resolve(post.media, args, ctx),
+      }),
     },
-    {},
+    {
+      fields: (con) => ({
+        totalCount: con.exposeInt('totalCount'),
+      }),
+    },
     {
       fields: (edge) => ({
         order: edge.int({

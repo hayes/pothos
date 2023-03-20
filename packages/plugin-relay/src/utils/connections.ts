@@ -43,7 +43,7 @@ const OFFSET_CURSOR_PREFIX = 'OffsetConnection:';
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
 
-function offsetForArgs(options: ResolveOffsetConnectionOptions) {
+export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   const { before, after, first, last } = options.args;
 
   const defaultSize = options.defaultSize ?? DEFAULT_SIZE;

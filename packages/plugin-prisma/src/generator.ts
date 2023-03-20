@@ -37,14 +37,14 @@ generatorHandler({
   }),
   onGenerate: async (options) => {
     checkTSVersion();
-    const config = options.generator.config as { clientOutput?: string };
+    const config = options.generator.config as { clientOutput?: string; prismaUtils?: string };
     const prismaLocation =
       config.clientOutput ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
         .value!;
 
     const outputLocation = options.generator.output?.value ?? defaultOutput;
-    const prismaTypes = buildTypes(options.dmmf);
+    const prismaTypes = buildTypes(options.dmmf, config);
 
     await generateOutput(options.dmmf, prismaTypes, prismaLocation, outputLocation);
 
@@ -120,7 +120,7 @@ async function generateOutput(
   });
 }
 
-function buildTypes(dmmf: DMMF.Document) {
+function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
   function getOrderByTypeName(type: string) {
     const possibleTypes = [
       `${type}OrderByWithRelationInput`,
@@ -137,6 +137,8 @@ function buildTypes(dmmf: DMMF.Document) {
 
     return orderBy.name;
   }
+
+  const prismaUtils = config.prismaUtils === 'true';
 
   const modelTypes = dmmf.datamodel.models.map((model) => {
     const relations = model.fields.filter((field) => !!field.relationName);
@@ -192,6 +194,35 @@ function buildTypes(dmmf: DMMF.Document) {
           undefined,
           ts.factory.createTypeReferenceNode(`Prisma.${model.name}WhereInput`),
         ),
+        ...(prismaUtils
+          ? [
+              ts.factory.createPropertySignature(
+                [],
+                'Create',
+                undefined,
+                ts.factory.createTypeReferenceNode(`Prisma.${model.name}CreateInput`),
+              ),
+              ts.factory.createPropertySignature(
+                [],
+                'Update',
+                undefined,
+                ts.factory.createTypeReferenceNode(`Prisma.${model.name}UpdateInput`),
+              ),
+            ]
+          : [
+              ts.factory.createPropertySignature(
+                [],
+                'Create',
+                undefined,
+                ts.factory.createTypeLiteralNode([]),
+              ),
+              ts.factory.createPropertySignature(
+                [],
+                'Update',
+                undefined,
+                ts.factory.createTypeLiteralNode([]),
+              ),
+            ]),
         ts.factory.createPropertySignature(
           [],
           'RelationName',

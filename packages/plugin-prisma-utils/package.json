@@ -15,7 +15,8 @@
     }
   },
   "scripts": {
-    "generate": "prisma generate",
+    "generate": "prisma migrate reset -f && ts-node --transpile-only tests/examples/codegen/generator.ts && pnpm schema",
+    "schema": "ts-node --transpile-only tests/examples/codegen/schema/index.ts && ts-node --transpile-only tests/examples/crud/schema/index.ts",
     "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
     "build:clean": "git clean -dfX esm lib",
@@ -23,7 +24,7 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm prisma migrate reset -f && pnpm vitest --run --segfault-retry=3"
   },
   "repository": {
     "type": "git",
@@ -59,7 +60,10 @@
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^4.11.0",
     "graphql": "16.6.0",
+    "graphql-scalars": "^1.20.4",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.11.0"
+    "prettier": "^2.8.4",
+    "prisma": "^4.11.0",
+    "ts-node": "^10.9.1"
   }
 }
