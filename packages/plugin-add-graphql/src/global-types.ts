@@ -30,15 +30,15 @@ declare global {
       addGraphQLUnion: <Shape>(
         type: GraphQLUnionType,
         options: AddGraphQLUnionTypeOptions<Types, ObjectRef<Shape>>,
-      ) => UnionRef<unknown>;
+      ) => UnionRef<Shape>;
 
-      addGraphQLEnum: <Shape>(
+      addGraphQLEnum: <Shape extends string | number>(
         options: AddGraphQLEnumTypeOptions<Types, EnumValuesWithShape<Types, Shape>>,
-      ) => EnumRef<unknown>;
+      ) => EnumRef<Shape>;
 
       addGraphQLInput: <Shape extends {}>(
         options: AddGraphQLInputTypeOptions<Types, Shape>,
-      ) => InputTypeRef<unknown>;
+      ) => InputTypeRef<Shape>;
     }
   }
 }
