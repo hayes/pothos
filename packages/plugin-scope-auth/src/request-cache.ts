@@ -80,7 +80,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     return cb(scopes);
   }
 
-  saveGrantedScopes(scopes: string[], path: Path | undefined) {
+  saveGrantedScopes(scopes: readonly string[], path: Path | undefined) {
     const key = cacheKey(path);
 
     if (this.grantCache.has(key)) {
@@ -112,7 +112,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     type: string,
     parent: unknown,
     path: Path | undefined,
-    cb: () => MaybePromise<string[]>,
+    cb: () => MaybePromise<readonly string[]>,
   ) {
     if (!this.typeGrants.has(type)) {
       this.typeGrants.set(type, new Map<string, Promise<null>>());

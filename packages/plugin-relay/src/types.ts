@@ -85,7 +85,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           context: Types['Context'],
           info: GraphQLResolveInfo,
           resolveNodes: (ids: { id: string; typename: string }[]) => Promise<unknown[]>,
-        ) => MaybePromise<MaybePromise<unknown>[]>;
+        ) => MaybePromise<readonly MaybePromise<unknown>[]>;
       });
   mutationInputArgOptions: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>,
@@ -435,7 +435,7 @@ export type NodeObjectOptions<
   loadMany?: (
     ids: IDShape[],
     context: Types['Context'],
-  ) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+  ) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
   loadWithoutCache?: (
     id: IDShape,
     context: Types['Context'],
@@ -444,7 +444,7 @@ export type NodeObjectOptions<
   loadManyWithoutCache?: (
     ids: IDShape[],
     context: Types['Context'],
-  ) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+  ) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
 };
 
 export type GlobalIDFieldOptions<

@@ -186,7 +186,7 @@ export function serializeID(id: unknown, dataType: string) {
   }
 }
 
-export function parseCompositeCursor(fields: string[]) {
+export function parseCompositeCursor(fields: readonly string[]) {
   return (cursor: unknown) => {
     const parsed = parsePrismaCursor(cursor) as unknown[];
 
@@ -275,7 +275,7 @@ export function prismaCursorConnectionQuery({
 }
 
 export function wrapConnectionResult<T extends {}>(
-  results: T[],
+  results: readonly T[],
   args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
   cursor: (node: T) => string,
@@ -319,7 +319,12 @@ export function wrapConnectionResult<T extends {}>(
 export async function resolvePrismaCursorConnection<T extends {}>(
   options: ResolvePrismaCursorConnectionOptions,
   cursor: (node: T) => string,
-  resolve: (query: { include?: {}; cursor?: {}; take: number; skip: number }) => MaybePromise<T[]>,
+  resolve: (query: {
+    include?: {};
+    cursor?: {};
+    take: number;
+    skip: number;
+  }) => MaybePromise<readonly T[]>,
 ) {
   const query = prismaCursorConnectionQuery(options);
   const results = await resolve({

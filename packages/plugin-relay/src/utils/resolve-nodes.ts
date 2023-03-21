@@ -75,7 +75,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   context: object,
   info: GraphQLResolveInfo,
-  ids: unknown[],
+  ids: readonly unknown[],
   type: OutputType<Types> | string,
 ): Promise<unknown[]> {
   const requestCache = getRequestCache(context);
@@ -83,12 +83,12 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [], unknown>;
 
   if (options.loadMany) {
-    const loadManyPromise = Promise.resolve(options.loadMany(ids, context));
+    const loadManyPromise = Promise.resolve(options.loadMany(ids as unknown[], context));
 
     return Promise.all(
       ids.map((id, i) => {
         const entryPromise = loadManyPromise
-          .then((results: unknown[]) => results[i])
+          .then((results: readonly unknown[]) => results[i])
           .then((result: unknown) => {
             requestCache.set(`${config.name}:${id}`, result);
 
@@ -121,7 +121,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(
   }
 
   if (options.loadManyWithoutCache) {
-    return options.loadManyWithoutCache(ids, context);
+    return options.loadManyWithoutCache(ids as unknown[], context) as unknown[];
   }
 
   if (options.loadWithoutCache) {

@@ -89,9 +89,15 @@ export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
   };
 }
 
-export async function resolveOffsetConnection<T, U extends Promise<T[] | null> | T[] | null>(
+export async function resolveOffsetConnection<
+  T,
+  U extends Promise<readonly T[] | null> | readonly T[] | null,
+>(
   options: ResolveOffsetConnectionOptions,
-  resolve: (params: { offset: number; limit: number }) => U & (MaybePromise<T[] | null> | null),
+  resolve: (params: {
+    offset: number;
+    limit: number;
+  }) => U & (MaybePromise<readonly T[] | null> | null),
 ): Promise<
   RemoveMaybePromiseProps<
     ConnectionShape<
@@ -149,7 +155,7 @@ export function offsetToCursor(offset: number): string {
 
 export function resolveArrayConnection<T>(
   options: ResolveArrayConnectionOptions,
-  array: T[],
+  array: readonly T[],
 ): RemoveMaybePromiseProps<
   ConnectionShape<
     SchemaTypes,
@@ -216,7 +222,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
 type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;
 
 export async function resolveCursorConnection<
-  U extends Promise<unknown[] | null> | unknown[] | null,
+  U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,
 >(
   options: ResolveCursorConnectionOptions<NodeType<U>>,
   resolve: (params: ResolveCursorConnectionArgs) => U,

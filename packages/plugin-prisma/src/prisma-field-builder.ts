@@ -167,7 +167,13 @@ export class PrismaObjectFieldBuilder<
       extensions: {};
       description?: string;
       query: ((args: {}, ctx: {}) => {}) | {};
-      resolve: (query: {}, parent: unknown, args: {}, ctx: {}, info: {}) => MaybePromise<{}[]>;
+      resolve: (
+        query: {},
+        parent: unknown,
+        args: {},
+        ctx: {},
+        info: {},
+      ) => MaybePromise<readonly {}[]>;
     },
     connectionOptions = {},
     edgeOptions = {},

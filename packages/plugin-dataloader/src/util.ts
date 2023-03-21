@@ -2,7 +2,7 @@ import DataLoader, { Options } from 'dataloader';
 import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
 
 export function rejectErrors<T>(
-  val: MaybePromise<(Error | T)[]>,
+  val: MaybePromise<readonly (Error | T)[]>,
 ): MaybePromise<(Promise<T> | T)[]> {
   if (isThenable(val)) {
     return val.then(rejectErrors);
@@ -12,7 +12,7 @@ export function rejectErrors<T>(
 }
 
 export function loadAndSort<K, V, C>(
-  load: (keys: K[], context: C) => Promise<(Error | V)[]>,
+  load: (keys: K[], context: C) => Promise<readonly (Error | V)[]>,
   toKey: false | ((val: V) => K) | undefined,
 ) {
   if (!toKey) {
@@ -44,7 +44,7 @@ export function loadAndSort<K, V, C>(
 
 export function dataloaderGetter<K, V, C>(
   loaderOptions: Options<K, V, C> | undefined,
-  load: (keys: K[], context: SchemaTypes['Context']) => Promise<(Error | V)[]>,
+  load: (keys: K[], context: SchemaTypes['Context']) => Promise<readonly (Error | V)[]>,
   toKey: ((val: V) => K) | undefined,
   sort: boolean | ((val: V) => K) | undefined,
 ) {

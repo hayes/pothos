@@ -40,7 +40,7 @@ export type LoadableFieldOptions<
   load: (
     keys: Key[],
     context: Types['Context'],
-  ) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
+  ) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
   sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
   resolve: Resolver<
@@ -78,7 +78,7 @@ export type LoadableListFieldOptions<
   load: (
     keys: Key[],
     context: Types['Context'],
-  ) => Promise<(Error | ShapeFromTypeParam<Types, [Type], Nullable>)[]>;
+  ) => Promise<readonly (Error | ShapeFromTypeParam<Types, [Type], Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [Type], Nullable>, CacheKey>;
   sort?: (value: ShapeFromTypeParam<Types, [Type], false>) => Key;
   resolve: Resolver<
@@ -96,7 +96,7 @@ export type DataLoaderOptions<
   Key extends bigint | number | string,
   CacheKey,
 > = {
-  load: (keys: Key[], context: Types['Context']) => Promise<(Error | Shape)[]>;
+  load: (keys: Key[], context: Types['Context']) => Promise<readonly (Error | Shape)[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & (
   | {

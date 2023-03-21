@@ -61,7 +61,7 @@ export type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {}> 
 export type TypeGrantScopes<Types extends SchemaTypes, Parent> = (
   parent: Parent,
   context: Types['Context'],
-) => MaybePromise<string[]>;
+) => MaybePromise<readonly string[]>;
 
 export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}> =
   | string[]
@@ -70,7 +70,7 @@ export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}>
       args: Args,
       context: Types['Context'],
       info: GraphQLResolveInfo,
-    ) => MaybePromise<string[]>);
+    ) => MaybePromise<readonly string[]>);
 
 export enum AuthScopeFailureType {
   AuthScope = 'AuthScope',
