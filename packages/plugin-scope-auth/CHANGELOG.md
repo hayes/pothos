@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.19.0
+
+### Minor Changes
+
+- 1878d5d9: Allow readonly arrays in more places
+
 ## 3.18.0
 
 ### Minor Changes
