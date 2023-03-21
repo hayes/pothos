@@ -31,6 +31,7 @@
     "graphql-scalars": "^1.20.4",
     "graphql-yoga": "3.7.3",
     "prisma": "^4.11.0",
+    "react": "^18.2.0",
     "urql": "^3.0.4"
   },
   "publishConfig": {
@@ -41,6 +42,7 @@
     "@graphql-codegen/client-preset": "2.1.1",
     "@graphql-codegen/introspection": "3.0.1",
     "@graphql-codegen/schema-ast": "^3.0.1",
+    "@types/node": "^18.15.5",
     "typescript": "^5.0.2"
   }
 }

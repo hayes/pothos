@@ -72,7 +72,10 @@
   "pnpm": {
     "peerDependencyRules": {
       "ignoreMissing": [
-        "webpack"
+        "webpack",
+        "@babel/*",
+        "@eslint/*",
+        "@types/node"
       ],
       "allowedVersions": {
         "jest": "^28.1.0",
