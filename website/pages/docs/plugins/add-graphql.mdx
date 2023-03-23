@@ -1,3 +1,17 @@
+---
+name: Add GraphQL plugin
+title: Add GraphQL plugin
+menu: Plugins
+description: A plugin for adding existing GraphQL types to Pothos
+---
+
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
+
+export default DocsPage;
+
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
+
 # Add-GraphQL for Pothos
 
 This plugin makes it easy to integrate GraphQL types from existing schemas into your Pothos API

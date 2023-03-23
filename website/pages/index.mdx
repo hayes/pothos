@@ -33,7 +33,7 @@ methods that can take full advantage of the Pothos type system.
 
 ```typescript
 import { createYoga } from 'graphql-yoga';
-import { createServer } from 'node:http'
+import { createServer } from 'node:http';
 import SchemaBuilder from '@pothos/core';
 
 const builder = new SchemaBuilder({});
@@ -53,10 +53,10 @@ const yoga = createYoga({
   schema: builder.toSchema(),
 });
 
-const server = createServer(yoga)
+const server = createServer(yoga);
 
 server.listen(3000, () => {
-  console.log('Visit http://localhost:3000/graphql')
+  console.log('Visit http://localhost:3000/graphql');
 });
 ```
 
@@ -72,6 +72,10 @@ server.listen(3000, () => {
   applications, and is in use at some of the largest tech companies including Airbnb and Netflix.
 
 ## Plugins that make Pothos even better
+
+- [**Add GraphQL**](https://pothos-graphql.dev/docs/plugins/add-graphql)
+
+  Add existing GraphQL types to your schema
 
 - [**Auth**](https://pothos-graphql.dev/docs/plugins/scope-auth)
 

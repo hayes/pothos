@@ -57,6 +57,10 @@ server.listen(3000);
 
 ## Plugins that make Pothos even better
 
+- [**Add GraphQL**](https://pothos-graphql.dev/docs/plugins/add-graphql)
+
+  Add existing GraphQL types to your schema
+
 - [**Auth**](https://pothos-graphql.dev/docs/plugins/scope-auth)
 
   Add global, type level, or field level authorization checks to your schema
