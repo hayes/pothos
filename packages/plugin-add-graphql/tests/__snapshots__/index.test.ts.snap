@@ -2,10 +2,18 @@
 
 exports[`simple objects example schema > generates expected schema 1`] = `
 "type AddedUser implements Node {
-  bio: Profile
   id: ID!
   name: String
   posts: [Post!]
+  profile: Profile
+}
+
+type ExtraType {
+  extra: String
+}
+
+type ExtraTypeFromSchema {
+  extra: String
 }
 
 interface Node {
@@ -24,6 +32,8 @@ type Profile implements Node {
 }
 
 type Query {
+  extra: ExtraType!
+  extraFromSchema: ExtraTypeFromSchema!
   posts: [Post!]!
   user(id: ID!): AddedUser!
 }"

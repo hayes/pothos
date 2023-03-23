@@ -1,5 +1,6 @@
 import './global-types';
 import {
+  defaultFieldResolver,
   getNamedType,
   GraphQLEnumType,
   GraphQLInputObjectType,
@@ -46,33 +47,37 @@ const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaT
 
 export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
 
-function addReferencedType(
-  builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+export function addTypeToSchema<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  type: GraphQLNamedType,
+) {
+  if (builder.configStore.hasConfig(type.name as never)) {
+    return;
+  }
+
+  if (isObjectType(type)) {
+    builder.addGraphQLObject(type, {});
+  } else if (isInterfaceType(type)) {
+    builder.addGraphQLInterface(type, {});
+  } else if (isUnionType(type)) {
+    builder.addGraphQLUnion(type, {});
+  } else if (isEnumType(type)) {
+    builder.addGraphQLEnum(type, {});
+  } else if (isInputObjectType(type)) {
+    builder.addGraphQLInput(type, {});
+  } else if (isScalarType(type)) {
+    builder.addScalarType(type.name as never, type, {});
+  }
+}
+export function addReferencedType<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   type: GraphQLNamedType,
 ) {
   if (referencedTypes(builder).has(type)) {
     return;
   }
 
-  builder.configStore.onPrepare(() => {
-    if (builder.configStore.hasConfig(type.name as never)) {
-      return;
-    }
-
-    if (isObjectType(type)) {
-      builder.addGraphQLObject(type, {});
-    } else if (isInterfaceType(type)) {
-      builder.addGraphQLInterface(type, {});
-    } else if (isUnionType(type)) {
-      builder.addGraphQLUnion(type, {});
-    } else if (isEnumType(type)) {
-      builder.addGraphQLEnum(type, {});
-    } else if (isInputObjectType(type)) {
-      builder.addGraphQLInput(type, {});
-    } else if (isScalarType(type)) {
-      builder.addScalarType(type.name as never, type, {});
-    }
-  });
+  builder.configStore.onPrepare(() => void addTypeToSchema(builder, type));
 }
 
 function resolveOutputTypeRef(
@@ -190,7 +195,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
           args,
           description: field.description ?? undefined,
           deprecationReason: field.deprecationReason ?? undefined,
-          resolve: field.resolve as never,
+          resolve: (field.resolve ?? defaultFieldResolver) as never,
         });
       });
 

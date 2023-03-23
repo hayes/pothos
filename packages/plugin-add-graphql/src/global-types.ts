@@ -1,8 +1,11 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import {
   GraphQLEnumType,
   GraphQLInputObjectType,
   GraphQLInterfaceType,
+  GraphQLNamedType,
   GraphQLObjectType,
+  GraphQLSchema,
   GraphQLUnionType,
 } from 'graphql';
 import { InputTypeRef, SchemaTypes } from '@pothos/core';
@@ -22,6 +25,14 @@ declare global {
     export interface Plugins<Types extends SchemaTypes> {
       simpleObjects: PothosSimpleObjectsPlugin<Types>;
     }
+
+    export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      add?: {
+        schema?: GraphQLSchema;
+        types?: GraphQLNamedType[] | Record<string, GraphQLNamedType>;
+      };
+    }
+
     export interface SchemaBuilder<Types extends SchemaTypes> {
       addGraphQLObject: <Shape>(
         type: GraphQLObjectType<Shape>,

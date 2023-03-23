@@ -6,7 +6,7 @@ import {
   GraphQLObjectType,
   GraphQLString,
 } from 'graphql';
-import builder from '../builder';
+import { builder } from '../builder';
 
 const Node = new GraphQLInterfaceType({
   name: 'Node',
@@ -28,8 +28,9 @@ const User = new GraphQLObjectType<{ id: string; name: string; profile?: { bio?:
     name: {
       type: GraphQLString,
     },
-    bio: {
+    profile: {
       type: Profile,
+      resolve: () => ({ bio: 'example bio' }),
     },
     posts: {
       type: new GraphQLList(new GraphQLNonNull(Post)),
@@ -69,7 +70,12 @@ const Post = new GraphQLObjectType<{ id: string; title: string; content: string 
 const UserRef = builder.addGraphQLObject(User, {
   name: 'AddedUser',
 });
-const PostRef = builder.addGraphQLObject<{ id: string; title: string; content: string }>(Post, {
+
+const PostRef = builder.addGraphQLObject<{
+  id: string;
+  title: string;
+  content: string;
+}>(Post, {
   fields: (t) => ({
     // remove title field
     title: null,
@@ -93,6 +99,14 @@ builder.queryType({
     posts: t.field({
       type: [PostRef],
       resolve: () => [{ id: '123', title: 'title', content: 'content' }],
+    }),
+    extra: t.field({
+      type: 'ExtraType',
+      resolve: () => ({ extra: 'extra' }),
+    }),
+    extraFromSchema: t.field({
+      type: 'ExtraTypeFromSchema',
+      resolve: () => ({ extra: 'extra' }),
     }),
   }),
 });
