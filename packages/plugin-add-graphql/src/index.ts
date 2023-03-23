@@ -3,12 +3,12 @@ import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, { BasePlugin, SchemaTypes } from '@pothos/core';
 import { addTypeToSchema } from './schema-builder';
 
-const pluginName = 'simpleObjects' as const;
+const pluginName = 'addGraphQL' as const;
 
 export default pluginName;
 
 const builtInTypes = Object.keys(new GraphQLSchema({}).getTypeMap());
-export class PothosSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override beforeBuild(): void {
     const { schema, types } = this.builder.options.add ?? {};
 
@@ -25,4 +25,4 @@ export class PothosSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePl
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosSimpleObjectsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosAddGraphQLPlugin);

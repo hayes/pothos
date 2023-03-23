@@ -18,12 +18,12 @@ import {
   EnumValuesWithShape,
 } from './types';
 
-import type { PothosSimpleObjectsPlugin } from '.';
+import type { PothosAddGraphQLPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      simpleObjects: PothosSimpleObjectsPlugin<Types>;
+      addGraphQL: PothosAddGraphQLPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
