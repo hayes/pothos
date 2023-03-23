@@ -1,7 +1,7 @@
 {
-  "name": "@pothos/tracing-opentelemetry",
-  "version": "0.6.8",
-  "description": "Opentelemetry utilities for the Pothos tracing plugin",
+  "name": "@pothos/plugin-add-graphql",
+  "version": "3.0.0-alpha.0",
+  "description": "A Pothos plugin for adding existing GraphQL types to a Pothos schema",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
   "module": "./esm/index.js",
@@ -35,38 +35,21 @@
     "graphql",
     "schema",
     "typescript",
-    "tracing",
-    "telemetry",
-    "opentelemetry",
-    "logging",
+    "add",
+    "existing",
     "plugin"
   ],
   "publishConfig": {
     "access": "public"
   },
   "peerDependencies": {
-    "@opentelemetry/api": "*",
-    "@opentelemetry/semantic-conventions": "*",
     "@pothos/core": "*",
-    "@pothos/plugin-tracing": "*",
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@envelop/core": "^3.0.6",
-    "@envelop/opentelemetry": "^4.0.6",
-    "@opentelemetry/api": "^1.4.1",
-    "@opentelemetry/exporter-trace-otlp-http": "^0.36.1",
-    "@opentelemetry/instrumentation": "^0.36.1",
-    "@opentelemetry/instrumentation-http": "^0.36.1",
-    "@opentelemetry/resources": "^1.10.1",
-    "@opentelemetry/sdk-trace-base": "^1.10.1",
-    "@opentelemetry/sdk-trace-node": "^1.10.1",
-    "@opentelemetry/semantic-conventions": "^1.10.1",
     "@pothos/core": "workspace:*",
-    "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.6.0",
-    "graphql-tag": "^2.12.6",
-    "graphql-yoga": "3.7.3"
+    "graphql-tag": "^2.12.6"
   }
 }

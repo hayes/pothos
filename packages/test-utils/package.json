@@ -39,6 +39,6 @@
     "yargs": "^17.7.1"
   },
   "devDependencies": {
-    "@types/node": "^18.11.18"
+    "@types/node": "^18.15.5"
   }
 }

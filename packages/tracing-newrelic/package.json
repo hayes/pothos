@@ -57,6 +57,6 @@
     "graphql": "16.6.0",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "3.7.3",
-    "newrelic": "^9.12.1"
+    "newrelic": "^9.13.0"
   }
 }
