@@ -51,7 +51,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
 
   private fields = new Map<string, Map<string, PothosFieldConfig<Types>>>();
 
-  private addFieldFns: (() => void)[] = [];
+  private pendingActions: (() => void)[] = [];
 
   private refsToName = new Map<ConfigurableRef<Types>, string>();
 
@@ -60,10 +60,6 @@ export default class ConfigStore<Types extends SchemaTypes> {
   private fieldRefsToConfigs = new Map<FieldRef | InputFieldRef, PothosFieldConfig<Types>[]>();
 
   private pendingFields = new Map<FieldRef | InputFieldRef, InputType<Types> | OutputType<Types>>();
-
-  private pendingInterfaces = new Map<string, (() => InterfaceParam<Types>[])[]>();
-
-  private pendingUnionTypes = new Map<string, (() => ObjectParam<Types>[])[]>();
 
   private pendingRefResolutions = new Map<
     ConfigurableRef<Types>,
@@ -102,13 +98,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
   }
 
   addUnionTypes(typeName: string, unionTypes: ObjectParam<Types>[] | (() => ObjectParam<Types>[])) {
-    if (typeof unionTypes === 'function' && this.pending) {
-      if (this.pendingUnionTypes.has(typeName)) {
-        this.pendingUnionTypes.get(typeName)!.push(unionTypes);
-      } else {
-        this.pendingUnionTypes.set(typeName, [unionTypes]);
-      }
-    } else {
+    this.onPrepare(() => {
       const typeConfig = this.getTypeConfig(typeName);
 
       if (typeConfig.graphqlKind !== 'Union') {
@@ -123,20 +113,14 @@ export default class ConfigStore<Types extends SchemaTypes> {
           ? unionTypes()
           : unionTypes) as ObjectParam<SchemaTypes>[]),
       ];
-    }
+    });
   }
 
   addInterfaces(
     typeName: string,
     interfaces: InterfaceParam<Types>[] | (() => InterfaceParam<Types>[]),
   ) {
-    if (typeof interfaces === 'function' && this.pending) {
-      if (this.pendingInterfaces.has(typeName)) {
-        this.pendingInterfaces.get(typeName)!.push(interfaces);
-      } else {
-        this.pendingInterfaces.set(typeName, [interfaces]);
-      }
-    } else {
+    this.onPrepare(() => {
       const typeConfig = this.getTypeConfig(typeName);
 
       if (
@@ -156,7 +140,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
           ? interfaces()
           : interfaces) as InterfaceParam<SchemaTypes>[]),
       ];
-    }
+    });
   }
 
   addFieldRef(
@@ -442,15 +426,11 @@ export default class ConfigStore<Types extends SchemaTypes> {
   prepareForBuild() {
     this.pending = false;
 
-    const fns = this.addFieldFns;
-    const interfaces = this.pendingInterfaces;
-    const unions = this.pendingUnionTypes;
+    const { pendingActions } = this;
 
-    this.addFieldFns = [];
-    this.pendingInterfaces = new Map();
-    this.pendingUnionTypes = new Map();
+    this.pendingActions = [];
 
-    fns.forEach((fn) => void fn());
+    pendingActions.forEach((fn) => void fn());
 
     if (this.pendingRefResolutions.size > 0) {
       throw new PothosSchemaError(
@@ -459,17 +439,13 @@ export default class ConfigStore<Types extends SchemaTypes> {
           .join(', ')}).`,
       );
     }
+  }
 
-    for (const [typeName, unionFns] of unions) {
-      for (const fn of unionFns) {
-        this.addUnionTypes(typeName, fn);
-      }
-    }
-
-    for (const [typeName, interfacesFns] of interfaces) {
-      for (const fn of interfacesFns) {
-        this.addInterfaces(typeName, fn);
-      }
+  onPrepare(cb: () => void) {
+    if (this.pending) {
+      this.pendingActions.push(cb);
+    } else {
+      cb();
     }
   }
 
@@ -477,13 +453,12 @@ export default class ConfigStore<Types extends SchemaTypes> {
     typeRef: ConfigurableRef<Types>,
     fields: FieldMap | InputFieldMap | (() => FieldMap | InputFieldMap),
   ) {
-    if (this.pending) {
-      this.addFieldFns.push(() => void this.addFields(typeRef, fields));
-    } else {
-      this.onTypeConfig(typeRef, (config) => {
-        this.buildFields(typeRef, typeof fields === 'function' ? fields() : fields);
-      });
-    }
+    this.onPrepare(
+      () =>
+        void this.onTypeConfig(typeRef, (config) => {
+          this.buildFields(typeRef, typeof fields === 'function' ? fields() : fields);
+        }),
+    );
   }
 
   getImplementers(ref: ConfigurableRef<Types> | string) {

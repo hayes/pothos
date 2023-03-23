@@ -1,4 +1,10 @@
-import { GraphQLInterfaceType, GraphQLObjectType, GraphQLUnionType } from 'graphql';
+import {
+  GraphQLEnumType,
+  GraphQLInputObjectType,
+  GraphQLInterfaceType,
+  GraphQLObjectType,
+  GraphQLUnionType,
+} from 'graphql';
 import { InputTypeRef, SchemaTypes } from '@pothos/core';
 import {
   AddGraphQLEnumTypeOptions,
@@ -33,10 +39,12 @@ declare global {
       ) => UnionRef<Shape>;
 
       addGraphQLEnum: <Shape extends string | number>(
+        type: GraphQLEnumType,
         options: AddGraphQLEnumTypeOptions<Types, EnumValuesWithShape<Types, Shape>>,
       ) => EnumRef<Shape>;
 
       addGraphQLInput: <Shape extends {}>(
+        type: GraphQLInputObjectType,
         options: AddGraphQLInputTypeOptions<Types, Shape>,
       ) => InputTypeRef<Shape>;
     }

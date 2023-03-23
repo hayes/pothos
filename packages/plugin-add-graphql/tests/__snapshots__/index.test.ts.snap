@@ -1,0 +1,30 @@
+// Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
+
+exports[`simple objects example schema > generates expected schema 1`] = `
+"type AddedUser implements Node {
+  bio: Profile
+  id: ID!
+  name: String
+  posts: [Post!]
+}
+
+interface Node {
+  id: ID!
+}
+
+type Post implements Node {
+  content: String
+  id: ID!
+  postTitle: String!
+}
+
+type Profile implements Node {
+  bio: String
+  id: ID!
+}
+
+type Query {
+  posts: [Post!]!
+  user(id: ID!): AddedUser!
+}"
+`;

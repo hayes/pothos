@@ -44,9 +44,9 @@ export interface AddGraphQLInterfaceTypeOptions<Types extends SchemaTypes, Shape
 export interface AddGraphQLUnionTypeOptions<
   Types extends SchemaTypes,
   Member extends ObjectParam<Types> = ObjectParam<Types>,
-> extends Omit<PothosSchemaTypes.UnionTypeOptions<Types, Member>, 'members'> {
+> extends Omit<PothosSchemaTypes.UnionTypeOptions<Types, Member>, 'types'> {
   name?: string;
-  members?: Member[];
+  types?: Member[];
 }
 
 export interface AddGraphQLEnumTypeOptions<
