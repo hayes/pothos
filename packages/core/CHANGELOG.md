@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.29.0
+
+### Minor Changes
+
+- f9b0e2eb: Add onPrepare hook to buildCache
+
 ## 3.28.0
 
 ### Minor Changes
