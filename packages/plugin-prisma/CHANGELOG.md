@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.47.0
+
+### Minor Changes
+
+- 5ea5ce24: Allow t.relatedConnection to override take, skip, and cursor in the query option
+
 ## 3.46.0
 
 ### Minor Changes
