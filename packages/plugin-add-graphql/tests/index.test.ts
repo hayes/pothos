@@ -1,10 +1,76 @@
 import { execute, lexicographicSortSchema, printSchema } from 'graphql';
 import { gql } from 'graphql-tag';
+import extendSchema from './examples/extend/schema';
 import exampleSchema from './examples/simple/schema';
 
 describe('simple objects example schema', () => {
   it('generates expected schema', () => {
-    expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchSnapshot();
+    expect(printSchema(lexicographicSortSchema(exampleSchema))).toMatchInlineSnapshot(`
+      "type AddedUser implements Node {
+        id: ID!
+        name: String
+        posts: [Post!]
+        profile: Profile
+      }
+
+      type ExtraType {
+        extra: String
+      }
+
+      type ExtraTypeFromSchema {
+        extra: String
+      }
+
+      interface Node {
+        id: ID!
+      }
+
+      type Post implements Node {
+        content: String
+        id: ID!
+        postTitle: String!
+      }
+
+      type Profile implements Node {
+        bio: String
+        id: ID!
+      }
+
+      type Query {
+        extra: ExtraType!
+        extraFromSchema: ExtraTypeFromSchema!
+        posts: [Post!]!
+        user(id: ID!): AddedUser!
+      }"
+    `);
+    expect(printSchema(lexicographicSortSchema(extendSchema))).toMatchInlineSnapshot(`
+      "interface Node {
+        id: ID!
+      }
+
+      type Post implements Node {
+        content: String
+        id: ID!
+        title: String
+      }
+
+      type Profile implements Node {
+        bio: String
+        id: ID!
+      }
+
+      type Query {
+        posts: [Post!]!
+        user(id: ID!): User
+      }
+
+      type User implements Node {
+        id: ID!
+        name: String
+        posts: [Post!]
+        profile: Profile
+      }"
+    `);
   });
 
   it('resolves values from imported types', async () => {

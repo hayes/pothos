@@ -154,15 +154,13 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
   { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape>,
 ) {
-  const ref = this.objectRef<Shape>(options?.name ?? type.name);
-
-  ref.implement({
+  const typeOptions = {
     ...options,
     description: type.description ?? undefined,
     isTypeOf: type.isTypeOf as never,
     extensions: { ...type.extensions, ...extensions },
     interfaces: () => type.getInterfaces().map((i) => resolveOutputTypeRef(this, i)) as [],
-    fields: (t) => {
+    fields: (t: PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, Shape>) => {
       const existingFields = type.getFields();
       const newFields = fields?.(t) ?? {};
       const combinedFields: typeof newFields = {
@@ -180,9 +178,11 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
 
         const args: Record<string, InputFieldRef> = {};
 
-        for (const [argName, arg] of Object.entries(field.args)) {
-          args[argName] = t.arg({
-            ...resolveInputType(this, arg.type),
+        for (const { name, ...arg } of field.args) {
+          const input = resolveInputType(this, arg.type);
+
+          args[name] = t.arg({
+            ...input,
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
             defaultValue: arg.defaultValue,
@@ -201,9 +201,21 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
 
       return combinedFields as {};
     },
-  });
+  };
 
-  return ref;
+  switch (type.name) {
+    case 'Query':
+      this.queryType(typeOptions as never);
+      return 'Query' as never;
+    case 'Mutation':
+      this.mutationType(typeOptions as never);
+      return 'Mutation' as never;
+    case 'Subscription':
+      this.subscriptionType(typeOptions as never);
+      return 'Subscription' as never;
+    default:
+      return this.objectRef<Shape>(options?.name ?? type.name).implement(typeOptions as never);
+  }
 };
 
 proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
@@ -236,8 +248,8 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
 
         const args: Record<string, InputFieldRef> = {};
 
-        for (const [argName, arg] of Object.entries(field.args)) {
-          args[argName] = t.arg({
+        for (const { name, ...arg } of field.args) {
+          args[name] = t.arg({
             ...resolveInputType(this, arg.type),
             description: arg.description ?? undefined,
             deprecationReason: arg.deprecationReason ?? undefined,
