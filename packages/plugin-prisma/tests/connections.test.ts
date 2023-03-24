@@ -1646,6 +1646,81 @@ describe('prisma', () => {
     `);
   });
 
+  it('connection with skip and take', async () => {
+    const query = gql`
+      query {
+        me {
+          postsSkipConnection(take: 3, skip: 1) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "postsSkipConnection": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "2",
+                  },
+                },
+                {
+                  "node": {
+                    "id": "3",
+                  },
+                },
+              ],
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "skip": 1,
+                "take": 3,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
   it('connections with composite cursors', async () => {
     const query = gql`
       query {

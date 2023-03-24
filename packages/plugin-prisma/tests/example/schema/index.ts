@@ -171,6 +171,18 @@ const User = builder.prismaNode('User', {
         },
       }),
     }),
+    postsSkipConnection: t.relatedConnection('posts', {
+      totalCount: true,
+      cursor: 'createdAt',
+      args: {
+        skip: t.arg.int(),
+        take: t.arg.int(),
+      },
+      query: (args) => ({
+        skip: args.skip ?? undefined,
+        take: args.take ?? undefined,
+      }),
+    }),
     postsConnectionWithErrors: t.relatedConnection('posts', {
       errors: {},
       cursor: 'createdAt',
