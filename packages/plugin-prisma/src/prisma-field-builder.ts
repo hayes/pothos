@@ -151,7 +151,7 @@ export class PrismaObjectFieldBuilder<
     {
       maxSize,
       defaultSize,
-      cursor,
+      cursor: cursorValue,
       query,
       resolve,
       extensions,
@@ -182,24 +182,39 @@ export class PrismaObjectFieldBuilder<
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
     let typeName: string | undefined;
 
-    const formatCursor = getCursorFormatter(relationField.type, this.builder, cursor);
-    const parseCursor = getCursorParser(relationField.type, this.builder, cursor);
+    const formatCursor = getCursorFormatter(relationField.type, this.builder, cursorValue);
+    const parseCursor = getCursorParser(relationField.type, this.builder, cursorValue);
 
-    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => ({
-      ...((typeof query === 'function' ? query(args, ctx) : query) as {}),
-      ...prismaCursorConnectionQuery({
+    const getQuery = (args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => {
+      const connectionQuery = prismaCursorConnectionQuery({
         parseCursor,
         ctx,
         maxSize,
         defaultSize,
         args,
-      }),
-    });
+      });
+
+      const {
+        take = connectionQuery.take,
+        skip = connectionQuery.skip,
+        cursor = connectionQuery.cursor,
+        ...fieldQuery
+      } = ((typeof query === 'function' ? query(args, ctx) : query) ??
+        {}) as typeof connectionQuery;
+
+      return {
+        ...fieldQuery,
+        ...connectionQuery,
+        take,
+        skip,
+        ...(cursor ? { cursor } : {}),
+      };
+    };
 
     const cursorSelection = ModelLoader.getCursorSelection(
       ref,
       relationField.type,
-      cursor,
+      cursorValue,
       this.builder,
     );
 

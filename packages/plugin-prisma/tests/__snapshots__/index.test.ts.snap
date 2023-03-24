@@ -328,6 +328,7 @@ type User implements Named & Node {
   posts(limit: Int, oldestFirst: Boolean): [Post!]!
   postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean, published: Boolean): UserPostsConnection!
   postsConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): UserPostsConnectionWithErrorsResult!
+  postsSkipConnection(after: ID, before: ID, first: Int, last: Int, skip: Int, take: Int): UserPostsSkipConnection!
   prismaFieldComments: [Comment!]!
   profile: Profile
   profileThroughManualLookup: Profile
@@ -400,6 +401,17 @@ union UserPostsConnectionWithErrorsResult = BaseError | UserPostsConnectionWithE
 
 type UserPostsConnectionWithErrorsSuccess {
   data: UserPostsConnectionWithErrorsConnection!
+}
+
+type UserPostsSkipConnection {
+  edges: [UserPostsSkipConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserPostsSkipConnectionEdge {
+  cursor: String!
+  node: Post!
 }
 
 union UserProfileWithErrorsResult = BaseError | UserProfileWithErrorsSuccess
