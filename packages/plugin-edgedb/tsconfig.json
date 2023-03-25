@@ -1,0 +1,15 @@
+{
+  "compilerOptions": {
+    "noEmit": false,
+    "declaration": true,
+    "declarationMap": true,
+    "emitDeclarationOnly": true,
+    "outDir": "dts",
+    "rootDir": "src"
+  },
+  "include": [
+    "src/**/*",
+    "dbschema/**/*"
+  ],
+  "extends": "../../tsconfig.options.json"
+}

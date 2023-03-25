@@ -1,0 +1,57 @@
+{
+  "name": "@pothos/plugin-edgedb",
+  "version": "3.4.0",
+  "description": "An edgedb plugin for Pothos",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "types": "./dts/index.d.ts",
+    "import": "./esm/index.js",
+    "require": "./lib/index.js"
+  },
+  "scripts": {
+    "generate": "edgeql-js --output-dir tests/client/",
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:esm && pnpm build:dts",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
+    "build:esm": "swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../.config/esm-transformer.ts",
+    "test": "jest --runInBand"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "giraphql",
+    "pothos",
+    "graphql",
+    "schema",
+    "edgedb",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "peerDependencies": {
+    "@pothos/core": "*",
+    "graphql": ">=15.1.0"
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-complexity": "workspace:*",
+    "@pothos/plugin-errors": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-simple-objects": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "edgedb": "^0.21.3",
+    "graphql": "16.5.0",
+    "graphql-tag": "^2.12.6"
+  },
+  "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
+}

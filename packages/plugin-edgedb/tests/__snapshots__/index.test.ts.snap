@@ -1,0 +1,37 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`edgedb generates schema 1`] = `
+"scalar DateTime
+
+type ExplicitEdgeDBUser {
+  email: String!
+  id: ID!
+  name: String
+}
+
+type Post {
+  author: User!
+  content: String
+  createdAt: DateTime!
+  id: ID!
+  published: Boolean!
+  title: String!
+}
+
+type PostPreview {
+  id: ID!
+  preview: String
+}
+
+type Query {
+  me: ExplicitEdgeDBUser
+  users: [User!]
+}
+
+type User {
+  email: String!
+  id: ID!
+  name: String
+  posts: [Post!]!
+}"
+`;

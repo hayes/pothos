@@ -270,6 +270,9 @@ importers:
       graphql: 16.6.0
       prisma: 4.11.0
 
+  examples/prisma-federation/prisma/client:
+    specifiers: {}
+
   examples/prisma-relay:
     specifiers:
       '@faker-js/faker': ^7.6.0
@@ -350,6 +353,12 @@ importers:
       graphql-subscriptions: 2.0.0_graphql@16.6.0
       graphql-yoga: 3.7.3_graphql@16.6.0
       prisma: 4.11.0
+
+  examples/prisma-relay/prisma/client:
+    specifiers: {}
+
+  examples/prisma/prisma/client:
+    specifiers: {}
 
   examples/relay-windowed-pagination:
     specifiers:
@@ -504,6 +513,31 @@ importers:
       graphql-tag: 2.12.6_graphql@16.6.0
       rate-limiter-flexible: 2.4.1
 
+  packages/plugin-edgedb:
+    specifiers:
+      '@pothos/core': workspace:*
+      '@pothos/plugin-complexity': workspace:*
+      '@pothos/plugin-errors': workspace:*
+      '@pothos/plugin-relay': workspace:*
+      '@pothos/plugin-simple-objects': workspace:*
+      '@pothos/test-utils': workspace:*
+      edgedb: ^0.21.3
+      graphql: 16.5.0
+      graphql-tag: ^2.12.6
+    devDependencies:
+      '@pothos/core': link:../core
+      '@pothos/plugin-complexity': link:../plugin-complexity
+      '@pothos/plugin-errors': link:../plugin-errors
+      '@pothos/plugin-relay': link:../plugin-relay
+      '@pothos/plugin-simple-objects': link:../plugin-simple-objects
+      '@pothos/test-utils': link:../test-utils
+      edgedb: 0.21.3
+      graphql: 16.5.0
+      graphql-tag: 2.12.6_graphql@16.5.0
+
+  packages/plugin-edgedb/esm:
+    specifiers: {}
+
   packages/plugin-errors:
     specifiers:
       '@pothos/core': workspace:*
@@ -626,6 +660,9 @@ importers:
       ts-node: 10.9.1_typescript@5.0.2
       typescript: 5.0.2
 
+  packages/plugin-prisma/tests/client:
+    specifiers: {}
+
   packages/plugin-relay:
     specifiers:
       '@pothos/core': workspace:*
@@ -661,6 +698,9 @@ importers:
       graphql: 16.6.0
       graphql-tag: 2.12.6_graphql@16.6.0
       prisma: 4.11.0
+
+  packages/plugin-scope-auth/prisma/client:
+    specifiers: {}
 
   packages/plugin-simple-objects:
     specifiers:
@@ -7659,6 +7699,12 @@ packages:
 
   /eastasianwidth/0.2.0:
     resolution: {integrity: sha512-I88TYZWc9XiYHRQ4/3c5rjjfgkjhLyW2luGIheGERbNQ6OY7yTybanSpDXZa8y7VUP9YmDcYa+eyq4ca7iLqWA==}
+    dev: true
+
+  /edgedb/0.21.3:
+    resolution: {integrity: sha512-iFSvVRFpVVRaiMCFo3Cslol7C6xLD3mGM8MUWQYd8nSFvR2nsnyA2KjVmZw5MY0qZjdlm+8aJiCZffhjdtnLDw==}
+    engines: {node: '>= 10.0.0'}
+    hasBin: true
     dev: true
 
   /ee-first/1.1.1:
