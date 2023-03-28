@@ -9,6 +9,15 @@ const characterArgs = builder.args((t) => ({
   }),
 }));
 
+export const DeprecatedInput = builder.inputType('DeprecatedInput', {
+  fields: (t) => ({
+    id: t.id({
+      deprecationReason: 'its deprecated',
+      required: true,
+    }),
+  }),
+});
+
 builder.queryType({
   subGraphs: ['Public', 'Private'],
   defaultSubGraphsForFields: ['Private'],
@@ -25,11 +34,19 @@ builder.queryType({
           description:
             'If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.',
         }),
+        whatEpisode: t.arg({
+          type: DeprecatedInput,
+          required: false,
+          deprecationReason: 'Use `episode` instead.',
+          description:
+            'If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.',
+        }),
       },
       resolve: (_, { episode }) => getHero(episode),
     }),
     human: t.field({
       subGraphs: ['Public', 'Private'],
+      deprecationReason: 'Use `hero` instead.',
       type: 'Human',
       args: characterArgs,
       resolve: (_, { id }) => getHuman(id),

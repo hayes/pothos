@@ -4,7 +4,7 @@ exports[`subGraphs > Private graph 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -23,11 +23,15 @@ type CharacterFriendsConnectionEdge {
   node: Character!
 }
 
+input DeprecatedInput {
+  id: ID! @deprecated(reason: \\"its deprecated\\")
+}
+
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -68,7 +72,7 @@ input FunctionFilter {
 type Human implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -110,11 +114,16 @@ type Query {
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
+
+    \\"\\"\\"
+    If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
+    \\"\\"\\"
+    whatEpisode: DeprecatedInput @deprecated(reason: \\"Use \`episode\` instead.\\")
   ): QueryHeroResult!
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
-  ): Human!
+  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
   node: Node
 }
 
@@ -170,7 +179,7 @@ type Query {
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
-  ): Human!
+  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
   r2d2: Droid!
 }"
 `;
@@ -182,7 +191,7 @@ exports[`subGraphs > full graph 1`] = `
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -201,6 +210,10 @@ type CharacterFriendsConnectionEdge {
   node: Character!
 }
 
+input DeprecatedInput {
+  id: ID! @deprecated(reason: \\"its deprecated\\")
+}
+
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"Which movies they appear in.\\"\\"\\"
@@ -208,7 +221,7 @@ type Droid implements Character {
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -253,7 +266,7 @@ type Human implements Character {
 
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -295,11 +308,16 @@ type Query {
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
+
+    \\"\\"\\"
+    If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
+    \\"\\"\\"
+    whatEpisode: DeprecatedInput @deprecated(reason: \\"Use \`episode\` instead.\\")
   ): QueryHeroResult!
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
-  ): Human!
+  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
   node: Node
   r2d2: Droid!
 }
@@ -315,7 +333,7 @@ exports[`subGraphs > multiple 1`] = `
 "interface Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -334,11 +352,15 @@ type CharacterFriendsConnectionEdge {
   node: Character!
 }
 
+input DeprecatedInput {
+  id: ID! @deprecated(reason: \\"its deprecated\\")
+}
+
 \\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
 type Droid implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The id of the character\\"\\"\\"
   id: ID!
@@ -380,7 +402,7 @@ input FunctionFilter {
 type Human implements Character {
   \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
   friends: [Character]!
-  friendsConnection(after: String, before: String, first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
 
   \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
   homePlanet: String
@@ -422,11 +444,16 @@ type Query {
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     \\"\\"\\"
     episode: Episode!
+
+    \\"\\"\\"
+    If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
+    \\"\\"\\"
+    whatEpisode: DeprecatedInput @deprecated(reason: \\"Use \`episode\` instead.\\")
   ): QueryHeroResult!
   human(
     \\"\\"\\"id of the character\\"\\"\\"
     id: ID!
-  ): Human!
+  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
   node: Node
   r2d2: Droid!
 }
