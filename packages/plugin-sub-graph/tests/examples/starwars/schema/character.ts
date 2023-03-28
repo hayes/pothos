@@ -3,6 +3,7 @@ import { Character } from '../backing-models';
 import builder from '../builder';
 import { getFriends } from '../data';
 import { Episode } from './episode';
+import { DeprecatedInput } from './query';
 
 export default builder.interfaceType('Character', {
   subGraphs: ['Private', 'Public'],
@@ -20,6 +21,13 @@ export default builder.interfaceType('Character', {
     friendsConnection: t.connection({
       type: 'Character',
       subGraphs: ['Private'],
+      args: {
+        deprecatedInput: t.arg({
+          type: DeprecatedInput,
+          required: false,
+          deprecationReason: 'not a real input',
+        }),
+      },
       resolve: async (parent, args) =>
         resolveArrayConnection({ args }, (await Promise.all(getFriends(parent))) as Character[]),
     }),
