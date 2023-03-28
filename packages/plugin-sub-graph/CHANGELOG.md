@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.13.1
+
+### Patch Changes
+
+- 324027f8: Fix deprecation reasons missing for inputs and args in sub-graphs
+
 ## 3.13.0
 
 ### Minor Changes
