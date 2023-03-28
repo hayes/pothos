@@ -212,6 +212,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
             defaultValue: argConfig.defaultValue,
             extensions: argConfig.extensions,
             astNode: argConfig.astNode,
+            deprecationReason: fieldConfig.deprecationReason,
             type: replaceType(
               argConfig.type,
               newTypes,
@@ -271,6 +272,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           extensions: fieldConfig.extensions,
           astNode: fieldConfig.astNode,
           defaultValue: fieldConfig.defaultValue,
+          deprecationReason: fieldConfig.deprecationReason,
           type: replaceType(
             fieldConfig.type,
             newTypes,
