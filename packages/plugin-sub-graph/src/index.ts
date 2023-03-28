@@ -226,9 +226,9 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
           description: fieldConfig.description,
           resolve: fieldConfig.resolve,
           subscribe: fieldConfig.subscribe,
+          deprecationReason: fieldConfig.deprecationReason,
           extensions: fieldConfig.extensions,
           astNode: fieldConfig.astNode,
-          deprecationReason: fieldConfig.deprecationReason,
           type: replaceType(
             fieldConfig.type,
             newTypes,
