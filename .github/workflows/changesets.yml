@@ -68,7 +68,7 @@ jobs:
         id: changesets
         uses: changesets/action@v1
         with:
-          version: pnpm ci:version
+          version: pnpm run ci:version
           commit: 'chore: update versions'
           title: 'chore: update versions'
           publish: pnpm release

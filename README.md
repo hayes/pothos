@@ -147,3 +147,4 @@ generous people and organizations:
 - [@mizdra](https://github.com/mizdra)
 - [@3nk1du](https://github.com/3nk1du)
 - [@FarazPatankar](https://github.com/FarazPatankar)
+- [@noxify](https://github.com/noxify)
