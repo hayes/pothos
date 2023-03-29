@@ -61,7 +61,7 @@ const builder = new SchemaBuilder({
     // This accepts Any GraphQLNamedType (Objects, Interface, Unions, Enums, Scalars, and InputObjects)
     types: [schema.getType('User'), schema.getType('Post')],
     // Or you can add an entire external schema
-    schema: externalSchema,
+    schema: existingSchema,
   },
 });
 ```
