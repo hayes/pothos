@@ -31,7 +31,7 @@ interface ResolveArrayConnectionOptions {
 const OFFSET_CURSOR_PREFIX = "OffsetConnection:";
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
-function offsetForArgs(options: ResolveOffsetConnectionOptions) {
+export function offsetForArgs(options: ResolveOffsetConnectionOptions) {
     const { before, after, first, last } = options.args;
     const defaultSize = options.defaultSize ?? DEFAULT_SIZE;
     const maxSize = options.maxSize ?? DEFAULT_MAX_SIZE;
@@ -65,10 +65,10 @@ function offsetForArgs(options: ResolveOffsetConnectionOptions) {
         hasNextPage: (resultSize: number) => resultSize > totalSize,
     };
 }
-export async function resolveOffsetConnection<T, U extends Promise<T[] | null> | T[] | null>(options: ResolveOffsetConnectionOptions, resolve: (params: {
+export async function resolveOffsetConnection<T, U extends Promise<readonly T[] | null> | readonly T[] | null>(options: ResolveOffsetConnectionOptions, resolve: (params: {
     offset: number;
     limit: number;
-}) => U & (MaybePromise<T[] | null> | null)): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NonNullable<T>, U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true, T extends NonNullable<T> ? false : {
+}) => U & (MaybePromise<readonly T[] | null> | null)): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NonNullable<T>, U extends NonNullable<U> ? (Promise<null> extends U ? true : false) : true, T extends NonNullable<T> ? false : {
     list: false;
     items: true;
 }, false>>> {
@@ -104,7 +104,7 @@ export function cursorToOffset(cursor: string): number {
 export function offsetToCursor(offset: number): string {
     return encodeBase64(`${OFFSET_CURSOR_PREFIX}${offset}`);
 }
-export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: T[]): RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NonNullable<T>, false, T extends NonNullable<T> ? false : {
+export function resolveArrayConnection<T>(options: ResolveArrayConnectionOptions, array: readonly T[]): RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NonNullable<T>, false, T extends NonNullable<T> ? false : {
     list: false;
     items: true;
 }, false>> {
@@ -150,7 +150,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
     };
 }
 type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;
-export async function resolveCursorConnection<U extends Promise<unknown[] | null> | unknown[] | null>(options: ResolveCursorConnectionOptions<NodeType<U>>, resolve: (params: ResolveCursorConnectionArgs) => U): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
+export async function resolveCursorConnection<U extends Promise<readonly unknown[] | null> | readonly unknown[] | null>(options: ResolveCursorConnectionOptions<NodeType<U>>, resolve: (params: ResolveCursorConnectionArgs) => U): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
     const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } = parseCurserArgs(options);
     const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;
     if (!nodes) {

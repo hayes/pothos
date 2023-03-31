@@ -37,7 +37,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         }, context: Types["Context"], info: GraphQLResolveInfo, resolveNodes: (ids: {
             id: string;
             typename: string;
-        }[]) => Promise<unknown[]>) => MaybePromise<MaybePromise<unknown>[]>;
+        }[]) => Promise<unknown[]>) => MaybePromise<readonly MaybePromise<unknown>[]>;
     });
     mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>, "fields" | "type">;
     clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", boolean>, "type">;
@@ -130,9 +130,9 @@ export type NodeObjectOptions<Types extends SchemaTypes, Param extends ObjectPar
     };
     brandLoadedObjects?: boolean;
     loadOne?: (id: IDShape, context: Types["Context"]) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
-    loadMany?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+    loadMany?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
     loadWithoutCache?: (id: IDShape, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<OutputShape<Types, Param> | null | undefined>;
-    loadManyWithoutCache?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
+    loadManyWithoutCache?: (ids: IDShape[], context: Types["Context"]) => MaybePromise<readonly MaybePromise<OutputShape<Types, Param> | null | undefined>[]>;
 };
 export type GlobalIDFieldOptions<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap, Nullable extends boolean, ResolveReturnShape, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, "ID", Nullable, Args, Kind, ParentShape, ResolveReturnShape>, "resolve" | "type"> & {
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], ShapeFromTypeParam<Types, OutputRefShape<GlobalIDShape<Types> | string>, true>, ResolveReturnShape>;

@@ -22,8 +22,8 @@ export type ScopeAuthInitializer<Types extends SchemaTypes> = (context: Types["C
 export type TypeAuthScopesFunction<Types extends SchemaTypes, Parent> = (parent: Parent, context: Types["Context"]) => MaybePromise<AuthScopeMap<Types> | boolean>;
 export type TypeAuthScopes<Types extends SchemaTypes, Parent> = AuthScopeMap<Types> | TypeAuthScopesFunction<Types, Parent>;
 export type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {}> = AuthScopeMap<Types> | ((parent: Parent, args: Args, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<AuthScopeMap<Types> | boolean>);
-export type TypeGrantScopes<Types extends SchemaTypes, Parent> = (parent: Parent, context: Types["Context"]) => MaybePromise<string[]>;
-export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}> = string[] | ((parent: Parent, args: Args, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<string[]>);
+export type TypeGrantScopes<Types extends SchemaTypes, Parent> = (parent: Parent, context: Types["Context"]) => MaybePromise<readonly string[]>;
+export type FieldGrantScopes<Types extends SchemaTypes, Parent, Args extends {}> = string[] | ((parent: Parent, args: Args, context: Types["Context"], info: GraphQLResolveInfo) => MaybePromise<readonly string[]>);
 export enum AuthScopeFailureType {
     AuthScope = "AuthScope",
     AuthScopeFunction = "AuthScopeFunction",

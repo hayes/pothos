@@ -39,16 +39,16 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
     }));
     return globalIDs.map((globalID) => globalID == null ? null : results[`${globalID.typename}:${globalID.id}`] ?? null);
 }
-export async function resolveUncachedNodesForType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, ids: unknown[], type: OutputType<Types> | string): Promise<unknown[]> {
+export async function resolveUncachedNodesForType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: object, info: GraphQLResolveInfo, ids: readonly unknown[], type: OutputType<Types> | string): Promise<unknown[]> {
     const requestCache = getRequestCache(context);
     const config = builder.configStore.getTypeConfig(type, "Object");
     const options = config.pothosOptions as NodeObjectOptions<Types, ObjectParam<Types>, [
     ], unknown>;
     if (options.loadMany) {
-        const loadManyPromise = Promise.resolve(options.loadMany(ids, context));
+        const loadManyPromise = Promise.resolve(options.loadMany(ids as unknown[], context));
         return Promise.all(ids.map((id, i) => {
             const entryPromise = loadManyPromise
-                .then((results: unknown[]) => results[i])
+                .then((results: readonly unknown[]) => results[i])
                 .then((result: unknown) => {
                 requestCache.set(`${config.name}:${id}`, result);
                 return result;
@@ -68,7 +68,7 @@ export async function resolveUncachedNodesForType<Types extends SchemaTypes>(bui
         }));
     }
     if (options.loadManyWithoutCache) {
-        return options.loadManyWithoutCache(ids, context);
+        return options.loadManyWithoutCache(ids as unknown[], context) as unknown[];
     }
     if (options.loadWithoutCache) {
         return Promise.all(ids.map((id) => Promise.resolve(options.loadWithoutCache!(id, context, info))));

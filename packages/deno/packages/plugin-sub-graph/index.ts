@@ -132,6 +132,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
                         defaultValue: argConfig.defaultValue,
                         extensions: argConfig.extensions,
                         astNode: argConfig.astNode,
+                        deprecationReason: argConfig.deprecationReason,
                         type: replaceType(argConfig.type, newTypes, `${argConfig.name} argument of ${type.name}.${fieldConfig.name}`, subGraphs),
                     };
                 });
@@ -167,6 +168,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
                     extensions: fieldConfig.extensions,
                     astNode: fieldConfig.astNode,
                     defaultValue: fieldConfig.defaultValue,
+                    deprecationReason: fieldConfig.deprecationReason,
                     type: replaceType(fieldConfig.type, newTypes, `${type.name}.${fieldConfig.name}`, subGraphs),
                 };
             });

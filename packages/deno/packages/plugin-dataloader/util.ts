@@ -1,13 +1,13 @@
 // @ts-nocheck
 import DataLoader, { Options } from 'https://cdn.skypack.dev/dataloader?dts';
 import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '../core/index.ts';
-export function rejectErrors<T>(val: MaybePromise<(Error | T)[]>): MaybePromise<(Promise<T> | T)[]> {
+export function rejectErrors<T>(val: MaybePromise<readonly (Error | T)[]>): MaybePromise<(Promise<T> | T)[]> {
     if (isThenable(val)) {
         return val.then(rejectErrors);
     }
     return val.map((item) => (item instanceof Error ? Promise.reject(item) : item));
 }
-export function loadAndSort<K, V, C>(load: (keys: K[], context: C) => Promise<(Error | V)[]>, toKey: false | ((val: V) => K) | undefined) {
+export function loadAndSort<K, V, C>(load: (keys: K[], context: C) => Promise<readonly (Error | V)[]>, toKey: false | ((val: V) => K) | undefined) {
     if (!toKey) {
         return load;
     }
@@ -29,7 +29,7 @@ export function loadAndSort<K, V, C>(load: (keys: K[], context: C) => Promise<(E
         return results;
     };
 }
-export function dataloaderGetter<K, V, C>(loaderOptions: Options<K, V, C> | undefined, load: (keys: K[], context: SchemaTypes["Context"]) => Promise<(Error | V)[]>, toKey: ((val: V) => K) | undefined, sort: boolean | ((val: V) => K) | undefined) {
+export function dataloaderGetter<K, V, C>(loaderOptions: Options<K, V, C> | undefined, load: (keys: K[], context: SchemaTypes["Context"]) => Promise<readonly (Error | V)[]>, toKey: ((val: V) => K) | undefined, sort: boolean | ((val: V) => K) | undefined) {
     const loader = (sort ? loadAndSort(load, typeof sort === "function" ? sort : toKey) : load) as (keys: readonly K[], context: SchemaTypes["Context"]) => Promise<V[]>;
     return createContextCache((context: object) => new DataLoader<K, V, C>((keys) => loader(keys, context), loaderOptions));
 }

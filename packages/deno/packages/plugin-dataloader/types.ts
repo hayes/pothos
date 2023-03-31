@@ -3,7 +3,7 @@ import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 export type DataloaderKey = bigint | number | string;
 export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
-    load: (keys: Key[], context: Types["Context"]) => Promise<(Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
+    load: (keys: Key[], context: Types["Context"]) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
     sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], (Type extends unknown[] ? [
@@ -18,7 +18,7 @@ export type LoadableListFieldOptions<Types extends SchemaTypes, ParentShape, Typ
     Type
 ], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
     type: Type;
-    load: (keys: Key[], context: Types["Context"]) => Promise<(Error | ShapeFromTypeParam<Types, [
+    load: (keys: Key[], context: Types["Context"]) => Promise<readonly (Error | ShapeFromTypeParam<Types, [
         Type
     ], Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [
@@ -30,7 +30,7 @@ export type LoadableListFieldOptions<Types extends SchemaTypes, ParentShape, Typ
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], Key, ResolveReturnShape>;
 };
 export type DataLoaderOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, CacheKey> = {
-    load: (keys: Key[], context: Types["Context"]) => Promise<(Error | Shape)[]>;
+    load: (keys: Key[], context: Types["Context"]) => Promise<readonly (Error | Shape)[]>;
     loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & ({
     toKey: (value: Shape) => Key;
