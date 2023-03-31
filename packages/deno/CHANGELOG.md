@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.41.0
+
+### Minor Changes
+
+- fe288457: update deno
+
 ## 3.40.0
 
 ### Minor Changes
