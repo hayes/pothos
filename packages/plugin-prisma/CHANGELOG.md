@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.47.1
+
+### Patch Changes
+
+- 80c62446: Fix issue with connection helpers and extendedWhereUnique
+
 ## 3.47.0
 
 ### Minor Changes
