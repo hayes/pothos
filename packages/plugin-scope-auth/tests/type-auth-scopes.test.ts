@@ -57,7 +57,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAdmin": null,
+          "ObjForAdmin": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAdmin],
@@ -119,7 +121,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForSyncPerm": null,
+          "ObjForSyncPerm": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForSyncPerm],
@@ -307,7 +311,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAny": null,
+          "ObjForAny": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAny],
@@ -371,7 +377,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAll": null,
+          "ObjForAll": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAll],
@@ -404,7 +412,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAll": null,
+          "ObjForAll": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAll],
@@ -437,7 +447,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAll": null,
+          "ObjForAll": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAll],
@@ -466,7 +478,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjEmptyAny": null,
+          "ObjEmptyAny": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjEmptyAny],
@@ -587,7 +601,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAdminFn": null,
+          "ObjForAdminFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAdminFn],
@@ -618,7 +634,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAdminAsyncFn": null,
+          "ObjForAdminAsyncFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAdminAsyncFn],
@@ -746,7 +764,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAsyncPermFn": null,
+          "ObjForAsyncPermFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAsyncPermFn],
@@ -870,7 +890,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAnyFn": null,
+          "ObjForAnyFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAnyFn],
@@ -934,7 +956,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAllFn": null,
+          "ObjForAllFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAllFn],
@@ -967,7 +991,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAllFn": null,
+          "ObjForAllFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAllFn],
@@ -1000,7 +1026,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjForAllFn": null,
+          "ObjForAllFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjForAllFn],
@@ -1029,7 +1057,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjEmptyAnyFn": null,
+          "ObjEmptyAnyFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjEmptyAnyFn],
@@ -1113,7 +1143,9 @@ describe('queries for type authScopes with', () => {
     expect(result).toMatchInlineSnapshot(`
       {
         "data": {
-          "ObjBooleanFn": null,
+          "ObjBooleanFn": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjBooleanFn],

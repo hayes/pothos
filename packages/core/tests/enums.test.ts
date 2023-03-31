@@ -1,7 +1,6 @@
 import { execute } from 'graphql';
 import gql from 'graphql-tag';
-import { SchemaTypes } from '../src';
-import SchemaBuilder from '../src/builder';
+import SchemaBuilder, { SchemaTypes } from '../src';
 
 describe('ways to add enums', () => {
   enum ChessPieceNumeric {
@@ -37,17 +36,17 @@ describe('ways to add enums', () => {
   it.each([
     [
       'Typescript numeric enum uses keys',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType(ChessPieceNumeric, { name: 'ChessPiece' }),
     ],
     [
       'Typescript string enum uses keys',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType(ChessPieceString, { name: 'ChessPiece' }),
     ],
     [
       'Object entries',
-      (builder: SchemaBuilder<SchemaTypes>) => {
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => {
         const e = builder.enumType('ChessPiece', {
           values: Object.fromEntries(
             Object.entries(ChessPieceObject).map(([name, value]) => [name, { value }]),
@@ -59,14 +58,14 @@ describe('ways to add enums', () => {
     ],
     [
       'Array of strings uses values',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType('ChessPiece', {
           values: ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'] as const,
         }),
     ],
     [
       'Object values uses keys',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType('ChessPiece', {
           values: {
             Pawn: { value: 'P' },
@@ -79,7 +78,7 @@ describe('ways to add enums', () => {
         }),
     ],
   ])('%s enum', async (_name, addEnum) => {
-    const builder = new SchemaBuilder({});
+    const builder = new SchemaBuilder({}) as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
     const ChessPieceType = addEnum(builder);
 
     builder.queryType({

@@ -25,14 +25,14 @@ import {
 import type {
   IntFieldUpdateOperationsInput,
   IntUpdateOps,
+  PothosPrismaUtilsPlugin,
   PrismaIntAtomicUpdateOptions,
-  PrismaUtilsPlugin,
 } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      prismaUtils: PrismaUtilsPlugin<Types>;
+      prismaUtils: PothosPrismaUtilsPlugin<Types>;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
@@ -42,13 +42,16 @@ declare global {
       >(
         type: Type,
         options: PrismaListFilterOptions<Types, Type, Ops>,
-      ) => InputObjectRef<{
-        [K in Ops extends string[] ? Ops[number] : keyof Ops]: InputShapeFromTypeParam<
-          Types,
-          Type,
-          true
-        >;
-      }>;
+      ) => InputObjectRef<
+        Types,
+        {
+          [K in Ops extends string[] ? Ops[number] : keyof Ops]: InputShapeFromTypeParam<
+            Types,
+            Type,
+            true
+          >;
+        }
+      >;
 
       prismaScalarListFilter: <
         Type extends InputType<Types>,
@@ -57,6 +60,7 @@ declare global {
         type: Type,
         options: PrismaScalarListFilterOptions<Types, Type, Ops>,
       ) => InputObjectRef<
+        Types,
         Pick<
           ScalarListFilterShape<InputShapeFromTypeParam<Types, Type, true>>,
           Ops extends readonly string[] ? Ops[number] : keyof Ops
@@ -67,13 +71,14 @@ declare global {
         type: Type,
         options: PrismaFilterOptions<Types, Type, Ops>,
       ) => InputObjectRef<
+        Types,
         Pick<
           FilterShape<InputShapeFromTypeParam<Types, Type, true>>,
           Ops extends readonly string[] ? Ops[number] : keyof Ops
         >
       >;
 
-      prismaStringFilterModeEnum: () => EnumRef<'default' | 'insensitive'>;
+      prismaStringFilterModeEnum: () => EnumRef<Types, 'default' | 'insensitive'>;
 
       prismaOrderBy: <
         Name extends keyof Types['PrismaTypes'],
@@ -83,9 +88,9 @@ declare global {
       >(
         name: Name,
         options: PrismaOrderByOptions<Types, Model>,
-      ) => InputObjectRef<Model['OrderBy']>;
+      ) => InputObjectRef<Types, Model['OrderBy']>;
 
-      orderByEnum: () => EnumRef<'asc' | 'desc'>;
+      orderByEnum: () => EnumRef<Types, 'asc' | 'desc'>;
 
       prismaWhere: <
         Name extends keyof Types['PrismaTypes'],
@@ -96,7 +101,7 @@ declare global {
       >(
         type: Name,
         options: PrismaWhereOptions<Types, Model, Fields>,
-      ) => InputObjectRef<PickFields<Model['Where'], Fields>>;
+      ) => InputObjectRef<Types, PickFields<Model['Where'], Fields>>;
 
       prismaWhereUnique: <
         Name extends keyof Types['PrismaTypes'],
@@ -107,7 +112,7 @@ declare global {
       >(
         type: Name,
         options: PrismaWhereUniqueOptions<Types, Model, Fields>,
-      ) => InputObjectRef<Model['WhereUnique']>;
+      ) => InputObjectRef<Types, Model['WhereUnique']>;
 
       prismaCreate: <
         Name extends keyof Types['PrismaTypes'],
@@ -118,7 +123,7 @@ declare global {
       >(
         type: Name,
         options: PrismaCreateOptions<Types, Model, Fields>,
-      ) => InputObjectRef<PickFields<Model['Create'], Fields>>;
+      ) => InputObjectRef<Types, PickFields<Model['Create'], Fields>>;
 
       prismaCreateRelation: <
         Name extends keyof Types['PrismaTypes'],
@@ -132,7 +137,7 @@ declare global {
         options: Relation extends Model['ListRelations']
           ? PrismaCreateManyRelationOptions<Types, Relation, Model>
           : PrismaCreateOneRelationOptions<Types, Relation, Model>,
-      ) => InputObjectRef<NonNullable<Model['Create'][Relation & keyof Model['Update']]>>;
+      ) => InputObjectRef<Types, NonNullable<Model['Create'][Relation & keyof Model['Update']]>>;
 
       prismaUpdate: <
         Name extends keyof Types['PrismaTypes'],
@@ -143,7 +148,7 @@ declare global {
       >(
         type: Name,
         options: PrismaUpdateOptions<Types, Model, Fields>,
-      ) => InputObjectRef<PickFields<Model['Update'], Fields>>;
+      ) => InputObjectRef<Types, PickFields<Model['Update'], Fields>>;
 
       prismaUpdateRelation: <
         Name extends keyof Types['PrismaTypes'],
@@ -157,11 +162,11 @@ declare global {
         options: Relation extends Model['ListRelations']
           ? PrismaUpdateManyRelationOptions<Types, Relation, Model>
           : PrismaUpdateOneRelationOptions<Types, Relation, Model>,
-      ) => InputObjectRef<NonNullable<Model['Update'][Relation & keyof Model['Update']]>>;
+      ) => InputObjectRef<Types, NonNullable<Model['Update'][Relation & keyof Model['Update']]>>;
 
       prismaIntAtomicUpdate: <Ops extends IntUpdateOps>(
         options?: PrismaIntAtomicUpdateOptions<Types, Ops>,
-      ) => InputObjectRef<Pick<IntFieldUpdateOperationsInput, Ops>>;
+      ) => InputObjectRef<Types, Pick<IntFieldUpdateOperationsInput, Ops>>;
     }
   }
 }

@@ -16,7 +16,7 @@ export class LoadableInterfaceRef<
   Shape,
   Key,
   CacheKey,
-> extends InterfaceRef<RefShape, Shape> {
+> extends InterfaceRef<Types, RefShape, Shape> {
   getDataloader;
 
   constructor(
@@ -70,7 +70,7 @@ export class ImplementableLoadableInterfaceRef<
       Shape,
       Interfaces
     >,
-  ): InterfaceRef<RefShape, Shape> {
+  ): InterfaceRef<Types, RefShape, Shape> {
     return super.implement({
       ...options,
       extensions: {

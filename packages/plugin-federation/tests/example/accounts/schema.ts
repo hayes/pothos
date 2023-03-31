@@ -7,8 +7,9 @@ const builder = new SchemaBuilder<{
   FederationPolicies: 'user:policy';
 }>({
   plugins: [DirectivesPlugin, FederationPlugin],
-  useGraphQLToolsUnorderedDirectives: true,
-  defaultFieldNullability: true,
+  directives: {
+    useGraphQLToolsUnorderedDirectives: true,
+  },
 });
 
 interface User {

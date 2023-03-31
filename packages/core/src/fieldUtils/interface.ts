@@ -1,11 +1,12 @@
 import { SchemaTypes } from '../types';
-import FieldBuilder from './builder';
+import { FieldBuilder } from './builder';
 
-export default class InterfaceFieldBuilder<
-  Types extends SchemaTypes,
+export class InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape> extends FieldBuilder<
+  Types,
   ParentShape,
-> extends FieldBuilder<Types, ParentShape, 'Interface'> {
-  constructor(name: string, builder: PothosSchemaTypes.SchemaBuilder<Types>) {
-    super(name, builder, 'Interface', 'Interface');
+  'Interface'
+> {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
+    super(builder, 'Interface', 'Interface');
   }
 }

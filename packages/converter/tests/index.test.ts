@@ -1,4 +1,3 @@
-/* eslint-disable unicorn/prefer-module */
 import { spawn } from 'node:child_process';
 import { lexicographicSortSchema, printSchema } from 'graphql';
 import { transform } from '@swc/core';
@@ -16,6 +15,7 @@ async function execTS(script: string) {
     const chunks: Buffer[] = [];
     const child = spawn('node', {
       stdio: ['pipe', 'pipe', 'inherit'],
+      // eslint-disable-next-line unicorn/prefer-module
       cwd: __dirname,
     });
 

@@ -2,41 +2,41 @@
 
 exports[`dataloader > generates expected schema 1`] = `
 "interface Animal {
-  type: String!
+  type: String
 }
 
 type BaseError implements Error {
-  message: String!
+  message: String
 }
 
 type CallCount {
-  calls: Int!
-  loaded: Int!
-  name: String!
+  calls: Int
+  loaded: Int
+  name: String
 }
 
 type Cat implements Animal {
-  chasingMouse: Boolean!
-  type: String!
+  chasingMouse: Boolean
+  type: String
 }
 
 type ClassLoadableThing implements Node & TestInterface {
   id: ID!
-  idFromInterface: ID!
+  idFromInterface: ID
 }
 
 type Dog implements Animal {
-  chasingTail: Boolean!
-  type: String!
+  chasingTail: Boolean
+  type: String
 }
 
 interface Error {
-  message: String!
+  message: String
 }
 
 type LoadableParseTest implements Node {
   id: ID!
-  idNumber: Int!
+  idNumber: Int
 }
 
 interface Node {
@@ -44,8 +44,8 @@ interface Node {
 }
 
 type NullableUser implements TestInterface {
-  id: ID!
-  idFromInterface: ID!
+  id: ID
+  idFromInterface: ID
 }
 
 type PageInfo {
@@ -58,40 +58,40 @@ type PageInfo {
 union Pet = Cat | Dog
 
 type Post {
-  content: String!
-  id: ID!
-  title: String!
+  content: String
+  id: ID
+  title: String
 }
 
 type PreloadedUser implements TestInterface {
-  id: ID!
-  idFromInterface: ID!
+  id: ID
+  idFromInterface: ID
 }
 
 type PreloadedUserToKey implements TestInterface {
-  id: ID!
-  idFromInterface: ID!
+  id: ID
+  idFromInterface: ID
 }
 
 type Query {
-  addOnUser: User!
-  animals(ids: [ID!]!): [Animal!]!
-  classThing: ClassLoadableThing!
-  classThingRef: ClassLoadableThing!
-  counts: [CallCount!]!
-  fromContext1: User!
-  fromContext2: User!
-  fromContext3: User!
-  fromContext4: [User!]!
-  fromContext5: [User!]!
-  loadableParse: LoadableParseTest!
-  loadableParseNodes(ids: [ID!]): [LoadableParseTest!]!
+  addOnUser: User
+  animals(ids: [ID!]!): [Animal!]
+  classThing: ClassLoadableThing
+  classThingRef: ClassLoadableThing
+  counts: [CallCount!]
+  fromContext1: User
+  fromContext2: User
+  fromContext3: User
+  fromContext4: [User!]
+  fromContext5: [User!]
+  loadableParse: LoadableParseTest
+  loadableParseNodes(ids: [ID!]): [LoadableParseTest!]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   nullableUser(id: String): NullableUser
   nullableUsers(ids: [String!]): [NullableUser]
   oneToMany(id: ID!): [Post]
-  pets(ids: [ID!]!): [Pet!]!
+  pets(ids: [ID!]!): [Pet!]
   post(id: Int!): Post
   postNullable: Post
   postSorted(id: Int!): Post
@@ -127,29 +127,29 @@ type QueryUsersWithErrorsSuccess {
 }
 
 type SortedUser implements TestInterface {
-  id: ID!
-  idFromInterface: ID!
+  id: ID
+  idFromInterface: ID
 }
 
 type SortedUserToKey implements TestInterface {
-  id: ID!
-  idFromInterface: ID!
+  id: ID
+  idFromInterface: ID
 }
 
 interface TestInterface {
-  idFromInterface: ID!
+  idFromInterface: ID
 }
 
 type User implements TestInterface {
-  friends(after: ID, before: ID, first: Int, last: Int): UserFriendsConnection!
-  groupFriends(limit: Int! = 5): [User!]!
-  id: ID!
-  idFromInterface: ID!
-  self: User!
+  friends(after: String, before: String, first: Int, last: Int): UserFriendsConnection
+  groupFriends(limit: Int! = 5): [User!]
+  id: ID
+  idFromInterface: ID
+  self: User
 }
 
 type UserFriendsConnection {
-  edges: [UserFriendsEdge]!
+  edges: [UserFriendsEdge]
   pageInfo: PageInfo!
 }
 
@@ -160,7 +160,7 @@ type UserFriendsEdge {
 
 type UserNode implements Node & TestInterface {
   id: ID!
-  idFromInterface: ID!
+  idFromInterface: ID
 }"
 `;
 

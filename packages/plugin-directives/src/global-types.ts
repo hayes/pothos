@@ -36,6 +36,12 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      directives?: {
+        useGraphQLToolsUnorderedDirectives?: boolean;
+      };
+    }
+    export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+      directives: never;
       useGraphQLToolsUnorderedDirectives?: boolean;
     }
 

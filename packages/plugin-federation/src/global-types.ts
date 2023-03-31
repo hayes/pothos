@@ -103,7 +103,7 @@ declare global {
       ) => GraphQLSchema;
 
       asEntity: <
-        Param extends InterfaceRef<unknown> | ObjectRef<unknown>,
+        Param extends InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
         KeySelection extends Selection<object>,
       >(
         param: Param,
@@ -114,7 +114,7 @@ declare global {
             context: Types['Context'],
             info: GraphQLResolveInfo,
           ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-          interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
+          interfaceObject?: Param extends ObjectRef<Types, unknown> ? boolean : never;
         },
       ) => void;
     }

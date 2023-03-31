@@ -1,6 +1,6 @@
 # Prisma utils for Pothos
 
-This package is highly experimental and not recommended for production use
+<Alert>This package is highly experimental and not recommended for production use</Alert>
 
 The plugin adds new helpers for creating prisma compatible input types. It is NOT required to use
 the normal prisma plugin.

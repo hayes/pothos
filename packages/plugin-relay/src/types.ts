@@ -1,5 +1,6 @@
 import { GraphQLResolveInfo } from 'graphql';
 import {
+  ArgumentRef,
   EmptyToOptional,
   FieldKind,
   FieldNullability,
@@ -39,6 +40,8 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   >;
   clientMutationId?: 'omit' | 'optional' | 'required';
   cursorType?: 'ID' | 'String';
+  edgeCursorType?: 'ID' | 'String';
+  pageInfoCursorType?: 'ID' | 'String';
   brandLoadedObjects?: boolean;
   nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, 'fields'>;
   pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, 'fields'>;
@@ -49,7 +52,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           Types,
           OutputRefShape<GlobalIDShape<Types> | string>,
           boolean,
-          { id: InputFieldRef<{ typename: string; id: string }> },
+          { id: ArgumentRef<Types, { typename: string; id: string }> },
           Promise<unknown>
         >,
         'args' | 'resolve' | 'type'
@@ -74,7 +77,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           Types,
           [OutputRefShape<GlobalIDShape<Types> | string>],
           FieldNullability<[unknown]>,
-          { ids: InputFieldRef<{ typename: string; id: string }[]> },
+          { ids: ArgumentRef<Types, { typename: string; id: string }[]> },
           Promise<unknown>[]
         >,
         'args' | 'resolve' | 'type'
@@ -133,7 +136,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     PothosSchemaTypes.ObjectFieldOptions<
       Types,
       {},
-      ObjectRef<{}>,
+      ObjectRef<Types, {}>,
       Types['DefaultNodeNullability'],
       {},
       GlobalIDShape<Types> | string
@@ -146,7 +149,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     PothosSchemaTypes.ObjectFieldOptions<
       Types,
       {},
-      [ObjectRef<{}>],
+      [ObjectRef<Types, {}>],
       Types['DefaultEdgesNullability'],
       {},
       unknown[]
@@ -155,6 +158,17 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   > & {
     nullable?: Types['DefaultEdgesNullability'];
   };
+  nodesFieldOptions: Omit<
+    PothosSchemaTypes.ObjectFieldOptions<
+      Types,
+      {},
+      [ObjectRef<Types, {}>],
+      FieldNullability<[unknown]>,
+      {},
+      unknown[]
+    >,
+    'args' | 'resolve' | 'type'
+  >;
   pageInfoFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
       Types,
@@ -240,7 +254,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       OutputRef<ConnectionShape<Types, unknown, false, true, true>>,
       boolean,
-      InputFieldsFromShape<DefaultConnectionArguments>,
+      InputFieldsFromShape<Types, DefaultConnectionArguments, 'Arg'>,
       ConnectionShape<Types, unknown, false, true, true>
     >,
     'args' | 'resolve' | 'type'
@@ -250,7 +264,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         PothosSchemaTypes.ObjectFieldOptions<
           Types,
           {},
-          [ObjectRef<{}>],
+          [ObjectRef<Types, {}>],
           {
             list: false;
             items: Types['DefaultNodeNullability'];
@@ -264,8 +278,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
 }>;
 
 export interface DefaultEdgesNullability {
-  // TODO(breaking) according to the spec, this should be nullable
-  list: false;
+  list: true;
   items: true;
 }
 
@@ -289,10 +302,13 @@ export type ConnectionEdgesShape<
 > = ShapeFromListTypeParam<
   Types,
   [
-    ObjectRef<{
-      cursor: string;
-      node: NodeNullable extends false ? T : T | null | undefined;
-    }>,
+    ObjectRef<
+      Types,
+      {
+        cursor: string;
+        node: NodeNullable extends false ? T : T | null | undefined;
+      }
+    >,
   ],
   EdgesNullable
 >;
@@ -667,7 +683,7 @@ export type RelayMutationFieldOptions<
     OutputRef<ResolveShape>,
     Nullable,
     Args & {
-      [K in InputName]: InputFieldRef<InputShapeWithClientMutationId<Types, Fields>>;
+      [K in InputName]: ArgumentRef<Types, InputShapeWithClientMutationId<Types, Fields>>;
     },
     'Mutation',
     ResolveShape,
@@ -695,5 +711,5 @@ export type InputShapeWithClientMutationId<
   Types extends SchemaTypes,
   Fields extends InputFieldMap,
 > = InputShapeFromFields<
-  Fields & { clientMutationId: InputFieldRef<Types['Scalars']['ID']['Input']> }
+  Fields & { clientMutationId: InputFieldRef<Types, Types['Scalars']['ID']['Input']> }
 >;

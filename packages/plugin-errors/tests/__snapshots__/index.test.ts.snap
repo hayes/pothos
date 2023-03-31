@@ -2,41 +2,41 @@
 
 exports[`errors plugin > generates expected schema 1`] = `
 "type BaseError implements Error {
-  message: String!
+  message: String
 }
 
 type DirectResult {
-  id: ID!
+  id: ID
 }
 
 interface Error {
-  message: String!
+  message: String
 }
 
 type Extended2Error implements Error {
-  code: Int!
-  message: String!
+  code: Int
+  message: String
 }
 
 type ExtendedError implements Error {
-  code: Int!
-  message: String!
+  code: Int
+  message: String
 }
 
 type LengthError implements Error {
-  message: String!
-  minLength: Int!
+  message: String
+  minLength: Int
 }
 
 type Query {
-  directResult(shouldThrow: Boolean): QueryDirectResultResult!
+  directResult(shouldThrow: Boolean): QueryDirectResultResult
   extendedError(throw: String): QueryExtendedErrorResult
   extendedErrorList(throw: String): QueryExtendedErrorListResult
-  fieldWIthValidation(string: String): QueryFieldWIthValidationResult!
-  hello(name: String!): QueryHelloResult!
-  helloWithMinLength(name: String!): QueryHelloWithMinLengthResult!
-  simpleError(throw: Boolean): QuerySimpleErrorResult!
-  validation2(stringList: [String!]): QueryValidation2Result!
+  fieldWIthValidation(string: String): QueryFieldWIthValidationResult
+  hello(name: String!): QueryHelloResult
+  helloWithMinLength(name: String!): QueryHelloWithMinLengthResult
+  simpleError(throw: Boolean): QuerySimpleErrorResult
+  validation2(stringList: [String!]): QueryValidation2Result
 }
 
 union QueryDirectResultResult = BaseError | DirectResult
@@ -84,39 +84,39 @@ type QueryValidation2Success {
 }
 
 type ZodError implements Error {
-  fieldErrors: [ZodFieldError!]!
-  message: String!
+  fieldErrors: [ZodFieldError!]
+  message: String
 }
 
 type ZodFieldError {
-  message: String!
-  path: [String!]!
+  message: String
+  path: [String!]
 }"
 `;
 
 exports[`errors plugin > supports generating custom names 1`] = `
 "type BaseError implements Error {
-  message: String!
+  message: String
 }
 
 type DirectResult {
-  id: ID!
+  id: ID
 }
 
 union DirectResult_CUSTOM_UNION_NAME = BaseError | DirectResult
 
 interface Error {
-  message: String!
+  message: String
 }
 
 type Extended2Error implements Error {
-  code: Int!
-  message: String!
+  code: Int
+  message: String
 }
 
 type ExtendedError implements Error {
-  code: Int!
-  message: String!
+  code: Int
+  message: String
 }
 
 type ExtendedErrorList_CUSTOM_RESULT_NAME {
@@ -150,19 +150,19 @@ type Hello_CUSTOM_RESULT_NAME {
 union Hello_CUSTOM_UNION_NAME = BaseError | Hello_CUSTOM_RESULT_NAME
 
 type LengthError implements Error {
-  message: String!
-  minLength: Int!
+  message: String
+  minLength: Int
 }
 
 type Query {
-  directResult(shouldThrow: Boolean): DirectResult_CUSTOM_UNION_NAME!
+  directResult(shouldThrow: Boolean): DirectResult_CUSTOM_UNION_NAME
   extendedError(throw: String): ExtendedError_CUSTOM_UNION_NAME
   extendedErrorList(throw: String): ExtendedErrorList_CUSTOM_UNION_NAME
-  fieldWIthValidation(string: String): FieldWIthValidation_CUSTOM_UNION_NAME!
-  hello(name: String!): Hello_CUSTOM_UNION_NAME!
-  helloWithMinLength(name: String!): HelloWithMinLength_CUSTOM_UNION_NAME!
-  simpleError(throw: Boolean): SimpleError_CUSTOM_UNION_NAME!
-  validation2(stringList: [String!]): Validation2_CUSTOM_UNION_NAME!
+  fieldWIthValidation(string: String): FieldWIthValidation_CUSTOM_UNION_NAME
+  hello(name: String!): Hello_CUSTOM_UNION_NAME
+  helloWithMinLength(name: String!): HelloWithMinLength_CUSTOM_UNION_NAME
+  simpleError(throw: Boolean): SimpleError_CUSTOM_UNION_NAME
+  validation2(stringList: [String!]): Validation2_CUSTOM_UNION_NAME
 }
 
 type SimpleError_CUSTOM_RESULT_NAME {
@@ -178,12 +178,12 @@ type Validation2_CUSTOM_RESULT_NAME {
 union Validation2_CUSTOM_UNION_NAME = BaseError | Validation2_CUSTOM_RESULT_NAME | ZodError
 
 type ZodError implements Error {
-  fieldErrors: [ZodFieldError!]!
-  message: String!
+  fieldErrors: [ZodFieldError!]
+  message: String
 }
 
 type ZodFieldError {
-  message: String!
-  path: [String!]!
+  message: String
+  path: [String!]
 }"
 `;

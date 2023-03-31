@@ -2,11 +2,11 @@
 import { InterfaceFieldBuilder, MutationFieldBuilder, ObjectFieldBuilder, QueryFieldBuilder, SchemaTypes, SubscriptionFieldBuilder, } from '../core/index.ts';
 const objectFieldBuilder = ObjectFieldBuilder.prototype as PothosSchemaTypes.ObjectFieldBuilder<SchemaTypes, {}>;
 objectFieldBuilder.withAuth = function withAuth(scopes) {
-    return addScopes(scopes, new ObjectFieldBuilder(this.typename, this.builder) as never);
+    return addScopes(scopes, new ObjectFieldBuilder(this.builder) as never);
 };
 const interfaceFieldBuilder = InterfaceFieldBuilder.prototype as PothosSchemaTypes.InterfaceFieldBuilder<SchemaTypes, {}>;
 interfaceFieldBuilder.withAuth = function withAuth(scopes) {
-    return addScopes(scopes, new InterfaceFieldBuilder(this.typename, this.builder) as never);
+    return addScopes(scopes, new InterfaceFieldBuilder(this.builder) as never);
 };
 const queryFieldBuilder = QueryFieldBuilder.prototype as PothosSchemaTypes.QueryFieldBuilder<SchemaTypes, {}>;
 queryFieldBuilder.withAuth = function withAuth(scopes) {

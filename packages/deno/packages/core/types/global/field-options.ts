@@ -10,7 +10,7 @@ declare global {
             type: Type;
             /** arguments for this field (created via `t.args`) */
             args?: Args;
-            /** determins if this field can return null */
+            /** determines if this field can return null */
             nullable?: Nullable;
             /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
             description?: string;

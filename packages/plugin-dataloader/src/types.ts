@@ -162,7 +162,7 @@ export type DataloaderObjectTypeOptions<
 > = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   ObjectTypeOptions<
     Types,
-    NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
+    NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Types, Shape>,
     Shape,
     Interfaces
   >;
@@ -178,7 +178,7 @@ export type LoadableInterfaceOptions<
 > = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   InterfaceTypeOptions<
     Types,
-    NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
+    NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Types, Shape>,
     Shape,
     Interfaces
   >;

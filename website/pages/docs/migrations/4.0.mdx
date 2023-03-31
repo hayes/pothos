@@ -1,0 +1,280 @@
+---
+title: '4.0 Migration guide'
+name: '4.0'
+menu: Migrations
+description: Migration guide for upgrading from Pothos 3.x to Pothos 4.0
+---
+
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
+
+export default DocsPage;
+
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
+
+# Migrating from Pothos 3.x to 4.0
+
+The `4.0` release of Pothos is largely focused on updating 4 things:
+
+1. Improving outdated defaults to be more consistant and aligned with best practices
+2. Updating naming of some config options to be more consistent
+3. Updating minimum versions of peer dependencies
+4. Updating internal types to support some previously challenging plugin patterns
+
+For most users the first 2 sets of changes will cover the majority of changes affecting their
+applications. To make the make the upgrade as simple as possible, some options were added to
+maintain the defaults and option names from `3.x` which are described in the simple upgrade section
+below.
+
+## New minimum versions
+
+- `typescript`: `4.7.0`
+- `graphql`: `16.6.0`
+- `node`: `14.0`
+
+## Simple Upgrade (restore 3.0 options and defaults)
+
+You can restore the 3.x defaults by adding the Defaults versions to both the SchemaTypes and the
+builder options:
+
+```ts
+const builder = new SchemaBuilder<{
+  Defaults: 'v3';
+}>({
+  defaults: 'v3',
+});
+```
+
+This will restore all the defaults and config options from previous Pothos versions for both core
+and plugins.
+
+## Manual update
+
+There are a number of new defaults and changes to options for various plugins. To fully upgrade to
+4.0 see the full list of breaking changes below:
+
+# Breaking API Changes:
+
+This section covers breaking API changes that can be automatically reverted by using the Simple
+Upgrade process described above.
+
+Changes to types and classes outside the main Pothos API are described in the next section. Those
+changes will primarily affect other plugins and tools written for pothos, but may be relevant to
+some type helpers you have created.
+
+## `@pothos/core`
+
+### Default ID Scalar types
+
+The default types for the built in `ID` Scalar has been changed to more closely match the behavior
+of Javascript GraphQL server implementations:
+
+```ts
+interface IDType {
+  Input: string;
+  Output: number | string | bigint;
+}
+```
+
+This will make working with IDs in arguments and input types easier by avoiding unnecissary type
+checks to see if an `ID` is a `number` or `string`.
+
+When returning an `ID` from a scalar you will be able to return a `string`, `number`, or `bigint`.
+
+To restore the previous defaults you can customize the `ID` scalar types when creating your builder:
+
+```ts
+const builder = new SchemaBuilder<{
+  Scalars: {
+    ID: {
+      Input: number | string;
+      Output: number | string;
+    };
+  };
+}>({});
+```
+
+## `@pothos/plugin-relay`
+
+### Renamed options
+
+The base relay plugin options have moved from `relayOptions` to `relay` to be more consistent with
+options for other plugins.
+
+```diff
+ const builder = new SchemaBuilder<{}>({
+-  relayOptions: {...}
++  relay: {...}
+ })
+```
+
+### New defaults
+
+A number of the default values for relay options have changed:
+
+- `clientMutationId`: Now defaults to `"omit"` and was previously `"required"`
+  - `clientMutationId` was only required in early versions of the relay client, and is no-longer
+    recommended.
+- `cursorType`: Now defaults to `"String"` and was previously `"ID"`
+  - The previous defaults were inconsistent about the type of a cursor. Cursors generally should not
+    be treated as IDs as they are meant to indicate a position in a list, and may contain
+    information specific to other filters or arguments applied to the conenction.
+- `brandLoadedObjects`: Now defaults to `true` and was previously `false`
+  - This change will imrpove developer experience for most node implementations, as it removes the
+    need for `isTypeOf` to be defined for most nodes.
+  - TODO: write docs for `brandLoadedObjects`
+- `edgesFieldOptions.nullable`: Not defaults to `{ list: true, items: true }` and was previously
+  `{ list: false, items: true }`
+  - This new default is intended to align with the relay connection spec, which does not expect
+    connections to be NonNullable by default
+  - TODO: validate this assumption, I think following default field nullability of the builder may
+    make more sense, although edges in the list should likely remain nullable. Further investigation
+    required.
+
+To restore the previous defaults you can pass the old values when setting up the builder:
+
+```ts
+const builder = new SchemaBuilder<{
+  // To change edgesFieldOptions.nullable you must also update the type here
+  DefaultEdgesNullability: { list: false; items: true };
+}>({
+  relay: {
+    clientMutationId: 'required',
+    brandLoadedObjects: false,
+    edgesFieldOptions: {
+      nullable: { list: false, items: true },
+    },
+    cursorType: 'ID',
+    // the cursor fields on edges and pageInfo previously defaulted to `String`
+    // but will be overwrittedn by `cursorType` so you also need to explicity set them
+    edgeCursorType: 'String',
+    pageInfoCursorType: 'String',
+  },
+});
+```
+
+## `@pothos/plugin-directives`
+
+`useGraphQLToolsUnorderedDirectives` has been nested inside a `directives` options object:
+
+```diff
+ const builder = new SchemaBuilder<{}>({
+-  useGraphQLToolsUnorderedDirectives: true
++  directives: {
++    useGraphQLToolsUnorderedDirectives: true
++  }
+ })
+```
+
+## `@pothos/plugin-errors`
+
+### Renamed options
+
+The base error plugin options have moved from `errorOptions` to `errors` to be more consistent with
+options for other plugins.
+
+```diff
+ const builder = new SchemaBuilder<{}>({
+-  errorOptions: {...}
++  errors: {...}
+ })
+```
+
+## `@pothos/plugin-scope-auth`
+
+### Renamed options
+
+The base scope-auth plugin options have moved from `scopeAuthOptions` to `scopeAuth` to be more
+consistent with options for other plugins. The `authScopes` option has been moved to
+`scopeAuth.authScopes` to keep all options for the plugin in one options object.
+
+```diff
+ const builder = new SchemaBuilder<{}>({
+-  scopeAuthOptions: {...}
+-  authScopes: (ctx) => ({...})
++  scopeAuth: {
++    ...otherOptions,
++    authScopes: (ctx) => ({...})
++  }
+ })
+```
+
+## `@pothos/plugin-validation`
+
+### Renamed options
+
+The base validation plugin options have moved from `validationOptions` to `validation` to be more
+consistent with options for other plugins.
+
+```diff
+ const builder = new SchemaBuilder<{}>({
+-  validationOptions: {...}
++  validation: {...}
+ })
+```
+
+# Plugin API and Type changes
+
+Unlike the defaults and config changes, the changes to the types and classes used throughout Pothos
+can't be easily made backwards compatbile with the 3.x releases. Below is a summary of the main
+changes made to the types and classes that may be used by plugins, helpers, or other libraries. Many
+of these types and classes are primarily intended for internal use, and should not affect most
+applications using pothos, but the changes are documented here to help upgrades for those of you
+building your own plugins, or using these types in your applications.
+
+The 4.0 release is intended to allow pothos to become more modular and extensible. This requires
+Refs and many associated type helerps to propagate the SchemaTypes from the builder that originated
+them, meaning most of the changes listed below are adding `Types extends SchemaTypes` as the first
+generic argument to the type.
+
+## Classes
+
+- `InputFieldBuilder`
+  - Removed the `typename` argument from the constructor
+  - Updated field methods to return a new `GenericInputRef`
+- `InterfaceFieldBuilder`
+  - Removed the `typename` argument from the constructor
+- `ObjectFieldBuilder`
+  - Removed the `typename` argument from the constructor
+- `BaseTypeRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `EnumTypeRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `InputObjectRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `InputRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `OutputTypeRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `ListRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `InterfaceRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `ObjectRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `ScalarRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `UnionRef`
+  - Added `SchemaTypes` as a new Generic paramater
+- `FieldRef`
+  - Added `SchemaTypes` as a new Generic paramater
+  - removed the typename from constructor args
+  - add the builder and Field options as arguments for the constructor
+- `InputFieldRef`
+  - Added `SchemaTypes` as a new Generic paramater
+  - removed the typename and kind from constructor args
+  - add the builder and Field options as arguments for the constructor
+  - split argument refs into a new `ArgumentRef` class
+
+## Exported types
+
+- `*FieldThunk`
+  - Updated to return a `GenericFieldRef<unknown>`
+- `FieldMap`
+  - Updated to `Record<string, GenericFieldRef<unknown>>;`
+- `InputFieldMap`
+  - Updated to `Record<string, GenericInputFieldRef<unknown>>;`
+- `InputFieldsFromShape`
+  - Added `SchemaTypes` as a new Generic paramater
+- `InputShapeFromField`
+  - Updated to accept a `GenericFieldRef`

@@ -18,6 +18,12 @@ declare global {
             Directives: PartialTypes["Directives"] & {};
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+            directives?: {
+                useGraphQLToolsUnorderedDirectives?: boolean;
+            };
+        }
+        export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+            directives: never;
             useGraphQLToolsUnorderedDirectives?: boolean;
         }
         export interface EnumTypeOptions<Types extends SchemaTypes = SchemaTypes, Values extends EnumValues<Types> = EnumValues<Types>> extends BaseTypeOptions<Types> {

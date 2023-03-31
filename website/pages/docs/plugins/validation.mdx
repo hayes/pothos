@@ -34,7 +34,7 @@ yarn add zod @pothos/plugin-validation
 import ValidationPlugin from '@pothos/plugin-validation';
 const builder = new SchemaBuilder({
   plugins: [ValidationPlugin],
-  validationOptions: {
+  validation: {
     // optionally customize how errors are formatted
     validationError: (zodError, args, context, info) => {
       // the default behavior is to just throw the zod error directly

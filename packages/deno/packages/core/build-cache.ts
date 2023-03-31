@@ -1,20 +1,19 @@
 // @ts-nocheck
 /* eslint-disable no-continue */
 import { defaultFieldResolver, defaultTypeResolver, GraphQLBoolean, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLFloat, GraphQLID, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInputType, GraphQLInt, GraphQLInterfaceType, GraphQLList, GraphQLNamedType, GraphQLNonNull, GraphQLObjectType, GraphQLOutputType, GraphQLScalarType, GraphQLString, GraphQLTypeResolver, GraphQLUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import type SchemaBuilder from './builder.ts';
-import ConfigStore from './config-store.ts';
+import type { SchemaBuilder } from './builder.ts';
+import type { ConfigStore } from './config-store.ts';
 import { PothosError, PothosSchemaError } from './errors.ts';
 import { BasePlugin, MergedPlugins } from './plugins/index.ts';
-import BuiltinScalarRef from './refs/builtin-scalar.ts';
-import { InputType, OutputType, PluginMap, PothosEnumTypeConfig, PothosEnumValueConfig, PothosInputFieldConfig, PothosInputFieldType, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosKindToGraphQLTypeClass, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosOutputFieldType, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosTypeConfig, PothosTypeKind, PothosUnionTypeConfig, SchemaTypes, typeBrandKey, } from './types/index.ts';
+import { BuiltinScalarRef } from './refs/builtin-scalar.ts';
+import { InputType, OutputType, PothosEnumTypeConfig, PothosEnumValueConfig, PothosInputFieldConfig, PothosInputFieldType, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosKindToGraphQLTypeClass, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosOutputFieldType, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosTypeConfig, PothosTypeKind, PothosUnionTypeConfig, SchemaTypes, typeBrandKey, } from './types/index.ts';
 import { assertNever, getTypeBrand, isThenable } from './utils/index.ts';
-export default class BuildCache<Types extends SchemaTypes> {
+export class BuildCache<Types extends SchemaTypes> {
     types = new Map<string, GraphQLNamedType>();
     builder: PothosSchemaTypes.SchemaBuilder<Types>;
     plugin: BasePlugin<Types>;
     options: PothosSchemaTypes.BuildSchemaOptions<Types>;
     private configStore: ConfigStore<Types>;
-    private pluginMap: PluginMap<Types>;
     private pluginList: BasePlugin<Types>[];
     private implementers = new Map<string, PothosObjectTypeConfig[]>();
     private typeConfigs = new Map<string, PothosTypeConfig>();
@@ -38,7 +37,6 @@ export default class BuildCache<Types extends SchemaTypes> {
             plugins[pluginName] = new Plugin(this, pluginName);
             return plugins[pluginName] as BasePlugin<Types>;
         });
-        this.pluginMap = plugins as PluginMap<Types>;
         this.plugin = new MergedPlugins(this, this.pluginList);
     }
     getTypeConfig<T extends PothosTypeConfig["kind"]>(ref: InputType<Types> | OutputType<Types> | string, kind?: T) {
@@ -69,21 +67,21 @@ export default class BuildCache<Types extends SchemaTypes> {
         if (this.implementers.has(iface.name)) {
             return this.implementers.get(iface.name)!;
         }
-        const implementers = [...this.configStore.typeConfigs.values()].filter((type) => type.kind === "Object" &&
-            type.interfaces.find((i) => this.configStore.getTypeConfig(i).name === iface.name)) as PothosObjectTypeConfig[];
+        const implementers = [...this.configStore.typeConfigs.values()].filter((config) => config.kind === "Object" &&
+            config.interfaces.find((i) => this.configStore.getTypeConfig(i).name === iface.name)) as PothosObjectTypeConfig[];
         this.implementers.set(iface.name, implementers);
         return implementers;
     }
     buildAll() {
         this.configStore.prepareForBuild();
-        this.configStore.typeConfigs.forEach((baseConfig) => {
-            if (baseConfig.kind === "Enum" || baseConfig.kind === "Scalar") {
-                this.buildTypeFromConfig(baseConfig);
+        this.configStore.typeConfigs.forEach((config) => {
+            if (config.kind === "Enum" || config.kind === "Scalar") {
+                this.buildTypeFromConfig(config);
             }
         });
-        this.configStore.typeConfigs.forEach((baseConfig) => {
-            if (baseConfig.kind === "InputObject") {
-                this.buildTypeFromConfig(baseConfig);
+        this.configStore.typeConfigs.forEach((config) => {
+            if (config.kind === "InputObject") {
+                this.buildTypeFromConfig(config);
             }
         });
         this.types.forEach((type) => {
@@ -91,26 +89,24 @@ export default class BuildCache<Types extends SchemaTypes> {
                 type.getFields();
             }
         });
-        this.configStore.typeConfigs.forEach((baseConfig) => {
-            if (baseConfig.kind === "Interface") {
-                this.buildTypeFromConfig(baseConfig);
+        this.configStore.typeConfigs.forEach((config) => {
+            if (config.kind === "Interface") {
+                this.buildTypeFromConfig(config);
             }
         });
-        this.configStore.typeConfigs.forEach((baseConfig) => {
-            if (baseConfig.kind === "Object") {
-                this.buildTypeFromConfig(baseConfig);
+        this.configStore.typeConfigs.forEach((config) => {
+            if (config.kind === "Object") {
+                this.buildTypeFromConfig(config);
             }
         });
-        this.configStore.typeConfigs.forEach((baseConfig) => {
-            if (baseConfig.kind === "Union") {
-                this.buildTypeFromConfig(baseConfig);
+        this.configStore.typeConfigs.forEach((config) => {
+            if (config.kind === "Union") {
+                this.buildTypeFromConfig(config);
             }
         });
-        this.configStore.typeConfigs.forEach((baseConfig) => {
-            if (baseConfig.kind === "Query" ||
-                baseConfig.kind === "Mutation" ||
-                baseConfig.kind === "Subscription") {
-                this.buildTypeFromConfig(baseConfig);
+        this.configStore.typeConfigs.forEach((config) => {
+            if (config.kind === "Query" || config.kind === "Mutation" || config.kind === "Subscription") {
+                this.buildTypeFromConfig(config);
             }
         });
         this.types.forEach((type) => {

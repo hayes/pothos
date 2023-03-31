@@ -1,4 +1,5 @@
 import {
+  ArgumentRef,
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
@@ -55,8 +56,8 @@ export type FieldWithInputOptions<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind,
-  Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
-  Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+  Args extends Record<string, ArgumentRef<Types, unknown>>,
+  Fields extends Record<string, InputFieldRef<Types, unknown>>,
   Type extends TypeParam<Types>,
   Nullable extends FieldNullability<Type>,
   InputName extends string,
@@ -71,6 +72,7 @@ export type FieldWithInputOptions<
     Nullable,
     Args & {
       [K in InputName]: InputFieldRef<
+        Types,
         InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
       >;
     },

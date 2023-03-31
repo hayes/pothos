@@ -35,28 +35,7 @@ proto.simpleObject = function simpleObject<
   options: PothosSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
   extraFields?: ObjectFieldsShape<SchemaTypes, Shape>,
 ) {
-  const ref = new ObjectRef<Shape>(name);
-
-  if (options.fields) {
-    const originalFields = options.fields;
-
-    // eslint-disable-next-line no-param-reassign
-    options.fields = (t) => {
-      const fields = originalFields(t);
-
-      Object.keys(fields).forEach((key) => {
-        this.configStore.onFieldUse(fields[key], (config) => {
-          if (config.kind === 'Object') {
-            // eslint-disable-next-line no-param-reassign
-            config.resolve = (parent) =>
-              (parent as Record<string, unknown>)[key] as Readonly<unknown>;
-          }
-        });
-      });
-
-      return fields;
-    };
-  }
+  const ref = new ObjectRef<SchemaTypes, Shape>(name);
 
   this.objectType(ref, options as PothosSchemaTypes.ObjectTypeOptions);
 
@@ -76,28 +55,7 @@ proto.simpleInterface = function simpleInterface<
   options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
   extraFields?: InterfaceFieldsShape<SchemaTypes, Shape>,
 ) {
-  const ref = new InterfaceRef<Shape>(name);
-
-  if (options.fields) {
-    const originalFields = options.fields;
-
-    // eslint-disable-next-line no-param-reassign
-    options.fields = (t) => {
-      const fields = originalFields(t);
-
-      Object.keys(fields).forEach((key) => {
-        this.configStore.onFieldUse(fields[key], (config) => {
-          if (config.kind === 'Interface') {
-            // eslint-disable-next-line no-param-reassign
-            config.resolve = (parent) =>
-              (parent as Record<string, unknown>)[key] as Readonly<unknown>;
-          }
-        });
-      });
-
-      return fields;
-    };
-  }
+  const ref = new InterfaceRef<SchemaTypes, Shape>(name);
 
   this.interfaceType(ref, options as {});
 
