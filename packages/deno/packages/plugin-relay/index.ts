@@ -47,4 +47,20 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
         return (parent, args, context, info) => subscribe(parent, argMapper(args, undefined, context, info), context, info);
     }
 }
-SchemaBuilder.registerPlugin(pluginName, PothosRelayPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosRelayPlugin, {
+    v3: (options) => ({
+        relayOptions: undefined,
+        relay: {
+            ...(options.relayOptions as {}),
+            clientMutationId: options.relayOptions?.clientMutationId ?? "required",
+            cursorType: options.relayOptions?.cursorType ?? "ID",
+            edgeCursorType: options.relayOptions?.edgeCursorType ?? options.relayOptions?.cursorType ?? "String",
+            pageInfoCursorType: options.relayOptions?.pageInfoCursorType ?? options.relayOptions?.cursorType ?? "String",
+            edgesFieldOptions: {
+                ...options.relayOptions.edgesFieldOptions,
+                nullable: options.relayOptions.edgesFieldOptions?.nullable ?? { list: false, items: true },
+            },
+            brandLoadedObjects: options.relayOptions.brandLoadedObjects ?? false,
+        },
+    }),
+});

@@ -2,11 +2,11 @@
 
 exports[`patterns example > generates expected schema 1`] = `
 "type A {
-  b: B!
+  b: B
 }
 
 type B {
-  a: A!
+  a: A
 }
 
 input InputWithCommonFields1 {
@@ -20,22 +20,22 @@ input InputWithCommonFields2 {
 }
 
 type Mutation {
-  mutation1(id: ID, reason: String): Boolean!
-  mutation2(id: ID, reason: String): Boolean!
+  mutation1(id: ID, reason: String): Boolean
+  mutation2(id: ID, reason: String): Boolean
 }
 
 type Query {
-  circular: A!
-  query: Query!
+  circular: A
+  query: Query
 }
 
 type WithCommonFields1 {
-  id: ID!
-  idLength: Int!
+  id: ID
+  idLength: Int
 }
 
 type WithCommonFields2 {
-  id: ID!
-  idLength: Int!
+  id: ID
+  idLength: Int
 }"
 `;

@@ -8,8 +8,8 @@ export function internalEncodeGlobalID<Types extends SchemaTypes>(
   id: bigint | number | string,
   ctx: object,
 ) {
-  if (builder.options.relayOptions.encodeGlobalID) {
-    return builder.options.relayOptions.encodeGlobalID(typename, id, ctx);
+  if (builder.options.relay?.encodeGlobalID) {
+    return builder.options.relay.encodeGlobalID(typename, id, ctx);
   }
 
   return encodeGlobalID(typename, id);
@@ -22,8 +22,8 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   info: GraphQLResolveInfo,
   parseIdsForTypes: { typename: string; parseId: (id: string, ctx: object) => unknown }[] | boolean,
 ) {
-  const decoded = builder.options.relayOptions.decodeGlobalID
-    ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)
+  const decoded = builder.options.relay?.decodeGlobalID
+    ? builder.options.relay.decodeGlobalID(globalID, ctx)
     : decodeGlobalID(globalID);
 
   if (Array.isArray(parseIdsForTypes)) {

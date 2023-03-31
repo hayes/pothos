@@ -1,8 +1,10 @@
 import { ArgBuilder, ObjectRef } from '../../../../src';
-import InputFieldBuilder from '../../../../src/fieldUtils/input';
+import { InputFieldBuilder } from '../../../../src/fieldUtils/input';
 import builder, { TypesWithDefault } from '../builder';
 
-function addCommonFields(refs: ObjectRef<unknown, { id: string }>[]) {
+type PothosTypes = typeof builder extends PothosSchemaTypes.SchemaBuilder<infer T> ? T : never;
+
+function addCommonFields(refs: ObjectRef<PothosTypes, unknown, { id: string }>[]) {
   for (const ref of refs) {
     builder.objectFields(ref, (t) => ({
       id: t.exposeID('id', {}),

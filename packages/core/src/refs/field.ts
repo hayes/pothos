@@ -1,9 +1,14 @@
-import { FieldKind, outputFieldShapeKey } from '../types';
+import { PothosSchemaError } from '../errors';
+import {
+  FieldKind,
+  outputFieldShapeKey,
+  PothosOutputFieldConfig,
+  PothosTypeConfig,
+  SchemaTypes,
+} from '../types';
 
-export default class FieldRef<T = unknown, Kind extends FieldKind = FieldKind> {
+export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends FieldKind = FieldKind> {
   kind: FieldKind;
-
-  parentTypename: string;
 
   fieldName?: string;
 
@@ -11,16 +16,51 @@ export default class FieldRef<T = unknown, Kind extends FieldKind = FieldKind> {
 
   [outputFieldShapeKey]!: T;
 
-  constructor(kind: Kind, parentTypename: string) {
+  protected pendingActions: ((
+    config: PothosOutputFieldConfig<Types>,
+  ) => PothosOutputFieldConfig<Types> | void)[] = [];
+
+  private initConfig:
+    | ((name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>)
+    | null;
+
+  private onUseCallbacks = new Set<(config: PothosOutputFieldConfig<Types>) => void>();
+
+  constructor(
+    kind: Kind,
+    initConfig:
+      | ((name: string, typeConfig: PothosTypeConfig) => PothosOutputFieldConfig<Types>)
+      | null = null,
+  ) {
     this.kind = kind;
-    this.parentTypename = parentTypename;
+    this.initConfig = initConfig;
   }
 
-  toString() {
-    if (this.fieldName) {
-      return `${this.parentTypename}.${this.fieldName}`;
+  updateConfig(
+    cb: (config: PothosOutputFieldConfig<Types>) => PothosOutputFieldConfig<Types> | void,
+  ) {
+    this.pendingActions.push(cb);
+  }
+
+  getConfig(name: string, typeConfig: PothosTypeConfig): PothosOutputFieldConfig<Types> {
+    if (!this.initConfig) {
+      throw new PothosSchemaError(`Field ${typeConfig.name}.${name} has not been implemented`);
     }
 
-    return this.parentTypename;
+    const config = this.pendingActions.reduce(
+      (cfg, cb) => cb(cfg) ?? cfg,
+      this.initConfig(name, typeConfig),
+    );
+
+    for (const cb of this.onUseCallbacks) {
+      this.onUseCallbacks.delete(cb);
+      cb(config);
+    }
+
+    return config;
+  }
+
+  onFirstUse(cb: (config: PothosOutputFieldConfig<Types>) => void) {
+    this.onUseCallbacks.add(cb);
   }
 }

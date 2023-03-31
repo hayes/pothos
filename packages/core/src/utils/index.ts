@@ -1,6 +1,6 @@
 import { PothosSchemaError, PothosValidationError } from '../errors';
-import InputListRef from '../refs/input-list';
-import ListRef from '../refs/list';
+import { InputListRef } from '../refs/input-list';
+import { ListRef } from '../refs/list';
 import {
   InputType,
   InputTypeParam,

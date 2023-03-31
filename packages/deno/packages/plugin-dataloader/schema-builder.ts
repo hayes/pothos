@@ -1,7 +1,7 @@
 // @ts-nocheck
 import type { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { InterfaceParam, ObjectParam, OutputRef, PothosSchemaError, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
-import { ImplementableLoadableNodeRef } from './refs/index.ts';
+import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs/index.ts';
 import { ImplementableLoadableInterfaceRef } from './refs/interface.ts';
 import { ImplementableLoadableObjectRef } from './refs/object.ts';
 import { LoadableUnionRef } from './refs/union.ts';
@@ -29,7 +29,7 @@ schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOr
     const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(this, name, options);
     ref.implement(options);
     if (typeof nameOrRef !== "string") {
-        this.configStore.associateRefWithName(nameOrRef, name);
+        this.configStore.associateParamWithRef(nameOrRef, ref);
     }
     return ref;
 };
@@ -44,21 +44,21 @@ schemaBuilderProto.loadableInterface = function loadableInterface<Shape extends 
     const ref = new ImplementableLoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(this, name, options);
     ref.implement(options);
     if (typeof nameOrRef !== "string") {
-        this.configStore.associateRefWithName(nameOrRef, name);
+        this.configStore.associateParamWithRef(nameOrRef, ref);
     }
     return ref;
 };
 schemaBuilderProto.loadableUnion = function loadableUnion<Key extends DataloaderKey, Member extends ObjectParam<SchemaTypes>, CacheKey = Key, Shape = ShapeFromTypeParam<SchemaTypes, Member, false>>(name: string, { load, toKey, sort, cacheResolved, loaderOptions, ...options }: LoadableUnionOptions<SchemaTypes, Key, Member, CacheKey, Shape>) {
     const getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
     const ref = new LoadableUnionRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
-    this.unionType(name, {
+    const unionRef = this.unionType(name, {
         ...options,
         extensions: {
             getDataloader,
             cacheResolved: typeof cacheResolved === "function" ? cacheResolved : cacheResolved && toKey,
         },
     });
-    this.configStore.associateRefWithName(ref, name);
+    this.configStore.associateParamWithRef(ref, unionRef);
     return ref;
 };
 const TloadableNode = schemaBuilderProto.loadableNode;
@@ -74,13 +74,20 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
         }).name ?? (nameOrRef as {
             name: string;
         }).name;
-    const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(this, name, options);
-    ref.implement({
+    const ref = new LoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(this, name, options);
+    (this as typeof this & {
+        node: (ref: unknown, options: unknown) => void;
+    }).node(ref, {
         ...options,
         extensions: {
             ...options.extensions,
             pothosParseGlobalID: options.id.parse,
+            getDataloader: ref.getDataloader,
+            cacheResolved: typeof options.cacheResolved === "function"
+                ? options.cacheResolved
+                : options.cacheResolved && options.toKey,
         },
+        loadManyWithoutCache: (ids: Key[], context: SchemaTypes["Context"]) => ref.getDataloader(context).loadMany(ids),
         isTypeOf: options.isTypeOf ??
             (typeof nameOrRef === "function"
                 ? (maybeNode: unknown, context: object, info: GraphQLResolveInfo) => {
@@ -107,7 +114,7 @@ schemaBuilderProto.loadableNode = function loadableNode<Shape extends NameOrRef 
                 : undefined),
     });
     if (typeof nameOrRef !== "string") {
-        this.configStore.associateRefWithName(nameOrRef, name);
+        this.configStore.associateParamWithRef(nameOrRef, ref);
     }
     return ref;
 } as unknown as typeof TloadableNode;

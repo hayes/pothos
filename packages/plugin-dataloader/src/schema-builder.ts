@@ -7,7 +7,7 @@ import SchemaBuilder, {
   SchemaTypes,
   ShapeFromTypeParam,
 } from '@pothos/core';
-import { ImplementableLoadableNodeRef } from './refs';
+import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
 import { ImplementableLoadableInterfaceRef } from './refs/interface';
 import { ImplementableLoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
@@ -55,7 +55,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
   ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
-    this.configStore.associateRefWithName(nameOrRef, name);
+    this.configStore.associateParamWithRef(nameOrRef, ref);
   }
 
   return ref;
@@ -87,7 +87,7 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
   ref.implement(options);
 
   if (typeof nameOrRef !== 'string') {
-    this.configStore.associateRefWithName(nameOrRef, name);
+    this.configStore.associateParamWithRef(nameOrRef, ref);
   }
 
   return ref;
@@ -113,7 +113,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
 
   const ref = new LoadableUnionRef<SchemaTypes, Shape, Shape, Key, CacheKey>(name, getDataloader);
 
-  this.unionType(name, {
+  const unionRef = this.unionType(name, {
     ...options,
     extensions: {
       getDataloader,
@@ -121,7 +121,7 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
     },
   });
 
-  this.configStore.associateRefWithName(ref, name);
+  this.configStore.associateParamWithRef(ref, unionRef);
 
   return ref;
 };
@@ -156,18 +156,25 @@ schemaBuilderProto.loadableNode = function loadableNode<
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(
+  const ref = new LoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(
     this,
     name,
     options,
   );
 
-  ref.implement({
+  (this as typeof this & { node: (ref: unknown, options: unknown) => void }).node(ref, {
     ...options,
     extensions: {
       ...options.extensions,
       pothosParseGlobalID: options.id.parse,
+      getDataloader: ref.getDataloader,
+      cacheResolved:
+        typeof options.cacheResolved === 'function'
+          ? options.cacheResolved
+          : options.cacheResolved && options.toKey,
     },
+    loadManyWithoutCache: (ids: Key[], context: SchemaTypes['Context']) =>
+      ref.getDataloader(context).loadMany(ids),
     isTypeOf:
       options.isTypeOf ??
       (typeof nameOrRef === 'function'
@@ -198,7 +205,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
   });
 
   if (typeof nameOrRef !== 'string') {
-    this.configStore.associateRefWithName(nameOrRef, name);
+    this.configStore.associateParamWithRef(nameOrRef, ref);
   }
 
   return ref;

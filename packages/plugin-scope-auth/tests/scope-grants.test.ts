@@ -48,12 +48,18 @@ describe('query', () => {
           "ObjExpectsGrantsAsyncFn": {
             "field": "ok",
           },
-          "ObjExpectsGrantsAsyncFnMissing": null,
+          "ObjExpectsGrantsAsyncFnMissing": {
+            "field": null,
+          },
           "ObjExpectsGrantsFn": {
             "field": "ok",
           },
-          "ObjExpectsGrantsFnMissing": null,
-          "ObjExpectsGrantsMissing": null,
+          "ObjExpectsGrantsFnMissing": {
+            "field": null,
+          },
+          "ObjExpectsGrantsMissing": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to read fields for ObjExpectsGrants],
@@ -108,12 +114,18 @@ describe('query', () => {
           "ObjFieldExpectsGrantsAsyncFn": {
             "field": "ok",
           },
-          "ObjFieldExpectsGrantsAsyncFnMissing": null,
+          "ObjFieldExpectsGrantsAsyncFnMissing": {
+            "field": null,
+          },
           "ObjFieldExpectsGrantsFn": {
             "field": "ok",
           },
-          "ObjFieldExpectsGrantsFnMissing": null,
-          "ObjFieldExpectsGrantsMissing": null,
+          "ObjFieldExpectsGrantsFnMissing": {
+            "field": null,
+          },
+          "ObjFieldExpectsGrantsMissing": {
+            "field": null,
+          },
         },
         "errors": [
           [GraphQLError: Not authorized to resolve ObjFieldExpectsGrants.field],
@@ -179,8 +191,12 @@ describe('query', () => {
             },
           ],
           "ObjExpectsGrantsListAsyncFnMissing": [
-            null,
-            null,
+            {
+              "field": null,
+            },
+            {
+              "field": null,
+            },
           ],
           "ObjExpectsGrantsListFn": [
             {
@@ -191,12 +207,20 @@ describe('query', () => {
             },
           ],
           "ObjExpectsGrantsListFnMissing": [
-            null,
-            null,
+            {
+              "field": null,
+            },
+            {
+              "field": null,
+            },
           ],
           "ObjExpectsGrantsListMissing": [
-            null,
-            null,
+            {
+              "field": null,
+            },
+            {
+              "field": null,
+            },
           ],
         },
         "errors": [
@@ -266,8 +290,12 @@ describe('query', () => {
             },
           ],
           "ObjFieldExpectsGrantsListAsyncFnMissing": [
-            null,
-            null,
+            {
+              "field": null,
+            },
+            {
+              "field": null,
+            },
           ],
           "ObjFieldExpectsGrantsListFn": [
             {
@@ -278,12 +306,20 @@ describe('query', () => {
             },
           ],
           "ObjFieldExpectsGrantsListFnMissing": [
-            null,
-            null,
+            {
+              "field": null,
+            },
+            {
+              "field": null,
+            },
           ],
           "ObjFieldExpectsGrantsListMissing": [
-            null,
-            null,
+            {
+              "field": null,
+            },
+            {
+              "field": null,
+            },
           ],
         },
         "errors": [

@@ -8,9 +8,9 @@ import {
   SchemaTypes,
   TypeParam,
 } from '../types';
-import RootFieldBuilder from './root';
+import { RootFieldBuilder } from './root';
 
-export default class FieldBuilder<
+export class FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,

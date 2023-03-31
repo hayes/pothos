@@ -55,8 +55,8 @@ export type DataLoaderOptions<Types extends SchemaTypes, Shape, Key extends bigi
     cacheResolved?: (value: Shape) => Key;
     sort?: (value: Shape) => Key;
 });
-export type DataloaderObjectTypeOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = DataLoaderOptions<Types, Shape, Key, CacheKey> & ObjectTypeOptions<Types, NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>, Shape, Interfaces>;
-export type LoadableInterfaceOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends InterfaceParam<Types> | string, CacheKey> = DataLoaderOptions<Types, Shape, Key, CacheKey> & InterfaceTypeOptions<Types, NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>, Shape, Interfaces>;
+export type DataloaderObjectTypeOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends ObjectParam<Types> | string, CacheKey> = DataLoaderOptions<Types, Shape, Key, CacheKey> & ObjectTypeOptions<Types, NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Types, Shape>, Shape, Interfaces>;
+export type LoadableInterfaceOptions<Types extends SchemaTypes, Shape, Key extends bigint | number | string, Interfaces extends InterfaceParam<Types>[], NameOrRef extends InterfaceParam<Types> | string, CacheKey> = DataLoaderOptions<Types, Shape, Key, CacheKey> & InterfaceTypeOptions<Types, NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Types, Shape>, Shape, Interfaces>;
 export type LoadableUnionOptions<Types extends SchemaTypes, Key extends bigint | number | string, Member extends ObjectParam<Types>, CacheKey, Shape> = DataLoaderOptions<Types, Shape, Key, CacheKey> & PothosSchemaTypes.UnionTypeOptions<Types, Member>;
 export type LoaderShapeFromType<Types extends SchemaTypes, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>> = Type extends [
     TypeParam<Types>

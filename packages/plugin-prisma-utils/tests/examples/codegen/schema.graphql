@@ -23,10 +23,10 @@ input CategoryListFilter {
 }
 
 type Comment {
-  author: User!
-  content: String!
-  id: ID!
-  post: Post!
+  author: User
+  content: String
+  id: ID
+  post: Post
 }
 
 input CommentCreate {
@@ -639,13 +639,13 @@ input MediaWithoutUploadedByFilter {
 }
 
 type Mutation {
-  createPost(data: PostCreate!): Post!
-  createUser(data: UserCreate!): User!
-  deleteManyPosts(where: PostFilter!): Boolean!
-  deletePost(where: PostUniqueFilter!): Post!
-  deleteUser(where: UserUniqueFilter!): User!
-  updatePost(data: PostUpdate!, where: PostUniqueFilter!): Post!
-  updateUser(data: UserUpdate!, where: UserUniqueFilter!): User!
+  createPost(data: PostCreate!): Post
+  createUser(data: UserCreate!): User
+  deleteManyPosts(where: PostFilter!): Boolean
+  deletePost(where: PostUniqueFilter!): Post
+  deleteUser(where: UserUniqueFilter!): User
+  updatePost(data: PostUpdate!, where: PostUniqueFilter!): Post
+  updateUser(data: UserUpdate!, where: UserUniqueFilter!): User
 }
 
 enum OrderBy {
@@ -654,14 +654,14 @@ enum OrderBy {
 }
 
 type Post {
-  author: User!
-  categories: [Category!]!
-  comments(filter: CommentFilter! = {}, orderBy: CommentOrderBy! = {id: Asc}): [Comment!]!
+  author: User
+  categories: [Category!]
+  comments(filter: CommentFilter! = {}, orderBy: CommentOrderBy! = {id: Asc}): [Comment!]
   content: String
-  id: ID!
-  published: Boolean!
-  tags: [String!]!
-  title: String!
+  id: ID
+  published: Boolean
+  tags: [String!]
+  title: String
 }
 
 input PostCreate {
@@ -1027,8 +1027,8 @@ input PostWithoutAuthorFilter {
 
 type Profile {
   bio: String
-  id: ID!
-  user: User!
+  id: ID
+  user: User
 }
 
 input ProfileCreate {
@@ -1089,7 +1089,7 @@ input ProfileUpdateWithoutUser {
 
 type Query {
   user(where: UserUniqueFilter!): User
-  users(filter: UserFilter! = {}, orderBy: UserOrderBy! = {id: Asc}): [User!]!
+  users(filter: UserFilter! = {}, orderBy: UserOrderBy! = {id: Asc}): [User!]
 }
 
 input StringFilter {
@@ -1147,11 +1147,11 @@ input UnrelatedUpdate {
 }
 
 type User {
-  email: String!
-  id: ID!
+  email: String
+  id: ID
   name: String
-  posts(filter: PostFilter! = {}, orderBy: PostOrderBy! = {id: Asc}): [Post!]!
-  profile: Profile!
+  posts(filter: PostFilter! = {}, orderBy: PostOrderBy! = {id: Asc}): [Post!]
+  profile: Profile
 }
 
 input UserCreate {

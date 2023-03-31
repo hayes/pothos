@@ -9,6 +9,10 @@ declare global {
             validation: PothosValidationPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+            validation?: ValidationPluginOptions<Types>;
+        }
+        export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+            validation?: never;
             validationOptions?: ValidationPluginOptions<Types>;
         }
         export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {

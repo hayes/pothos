@@ -26,10 +26,10 @@ input CategoryListFilter {
 }
 
 type Comment {
-  author: User!
-  content: String!
-  id: ID!
-  post: Post!
+  author: User
+  content: String
+  id: ID
+  post: Post
 }
 
 input CommentCreateAuthorRelationInput {
@@ -334,11 +334,11 @@ input MediaWithoutUploadedByFilter {
 }
 
 type Mutation {
-  createPost(input: PostCreateInput!): Post!
-  createUser(input: UserCreateInput!): User!
-  updateManyPosts(data: PostUpdateInput!, where: PostFilter): Int!
-  updatePost(data: PostUpdateInput!, where: PostUniqueFilter!): Post!
-  updateUser(data: UserUpdateInput!, where: UserUniqueFilter!): User!
+  createPost(input: PostCreateInput!): Post
+  createUser(input: UserCreateInput!): User
+  updateManyPosts(data: PostUpdateInput!, where: PostFilter): Int
+  updatePost(data: PostUpdateInput!, where: PostUniqueFilter!): Post
+  updateUser(data: UserUpdateInput!, where: UserUniqueFilter!): User
 }
 
 enum OrderBy {
@@ -347,14 +347,14 @@ enum OrderBy {
 }
 
 type Post {
-  author: User!
-  categories: [Category!]!
-  comments(filter: CommentFilter, orderBy: CommentOrderBy): [Comment!]!
-  createdAt: DateTime!
-  id: ID!
-  tags: [String!]!
-  title: String!
-  updatedAt: DateTime!
+  author: User
+  categories: [Category!]
+  comments(filter: CommentFilter, orderBy: CommentOrderBy): [Comment!]
+  createdAt: DateTime
+  id: ID
+  tags: [String!]
+  title: String
+  updatedAt: DateTime
 }
 
 input PostCreateAuthorRelationInput {
@@ -721,7 +721,7 @@ input ProfileUpdateWithoutUserInput {
 
 type Query {
   post(where: PostUniqueFilter!): Post
-  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
+  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]
 }
 
 input StringFilter {
@@ -749,11 +749,11 @@ input StringListFilter {
 }
 
 type User {
-  comments: [Comment!]!
-  email: String!
-  id: ID!
+  comments: [Comment!]
+  email: String
+  id: ID
   name: String
-  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]!
+  posts(filter: PostFilter, orderBy: PostOrderBy): [Post!]
 }
 
 input UserCreateCommentsRelationInput {

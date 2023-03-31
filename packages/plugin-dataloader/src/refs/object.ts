@@ -10,7 +10,7 @@ export class LoadableObjectRef<
   Shape,
   Key,
   CacheKey,
-> extends ObjectRef<RefShape, Shape> {
+> extends ObjectRef<Types, RefShape, Shape> {
   getDataloader;
 
   constructor(

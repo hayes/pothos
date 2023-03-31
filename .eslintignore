@@ -18,6 +18,12 @@ deno
 scripts
 packages/plugin-prisma/prisma
 packages/plugin-prisma/tests/generated.ts
+packages/plugin-prisma/tests/client
+packages/plugin-prisma/tests/generated.d.ts
+packages/plugin-prisma-utils/prisma
+packages/plugin-prisma-utils/tests/generated.ts
+packages/plugin-prisma-utils/tests/client
+packages/plugin-prisma-utils/tests/generated.d.ts
 examples/*/prisma/generated.ts
 packages/*/tests/generated.ts
 generated.ts

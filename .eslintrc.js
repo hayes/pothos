@@ -37,6 +37,7 @@ module.exports = {
       rules: {
         'no-magic-numbers': 'off',
         '@typescript-eslint/no-unsafe-assignment': 'off',
+        '@typescript-eslint/no-misused-promises': 'off',
       },
     },
     {

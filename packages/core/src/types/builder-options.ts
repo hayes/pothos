@@ -1,13 +1,15 @@
 import type { GraphQLResolveInfo } from 'graphql';
-import type FieldRef from '../refs/field';
-import type InputFieldRef from '../refs/input-field';
-import type InterfaceRef from '../refs/interface';
-import type ObjectRef from '../refs/object';
-import type { SchemaTypes } from './schema-types';
+import type { ArgumentRef } from '../refs/arg';
+import type { InputFieldRef } from '../refs/input-field';
+import type { InterfaceRef } from '../refs/interface';
+import type { ObjectRef } from '../refs/object';
+import type { SchemaTypes, VersionedSchemaBuilderOptions } from './schema-types';
 import type {
   BaseEnum,
   EnumParam,
   FieldNullability,
+  GenericFieldRef,
+  GenericInputFieldRef,
   inputFieldShapeKey,
   InputRef,
   InterfaceParam,
@@ -23,6 +25,15 @@ import type {
   NormalizeNullableFields,
   RemoveNeverKeys,
 } from './utils';
+
+export type AddVersionedDefaultsToBuilderOptions<
+  Types extends SchemaTypes,
+  Version extends keyof VersionedSchemaBuilderOptions<SchemaTypes>,
+> = PothosSchemaTypes.SchemaBuilderOptions<Types> extends infer Options
+  ? VersionedSchemaBuilderOptions<Types>[Version] extends infer Defaults
+    ? RemoveNeverKeys<Defaults & Omit<Options, keyof Defaults>>
+    : never
+  : never;
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   PothosSchemaTypes.SchemaBuilderOptions<Types>
@@ -98,30 +109,27 @@ export type SubscriptionFieldsShape<Types extends SchemaTypes> = (
 
 export type ObjectFieldThunk<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>,
-) => FieldRef<unknown>;
+) => GenericFieldRef<unknown>;
 
 export type InterfaceFieldThunk<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>,
-) => FieldRef<unknown>;
+) => GenericFieldRef<unknown>;
 
 export type QueryFieldThunk<Types extends SchemaTypes> = (
   t: PothosSchemaTypes.QueryFieldBuilder<Types, Types['Root']>,
-) => FieldRef<unknown>;
+) => GenericFieldRef<unknown>;
 
 export type MutationFieldThunk<Types extends SchemaTypes> = (
   t: PothosSchemaTypes.MutationFieldBuilder<Types, Types['Root']>,
-) => FieldRef<unknown>;
+) => GenericFieldRef<unknown>;
 
 export type SubscriptionFieldThunk<Types extends SchemaTypes> = (
   t: PothosSchemaTypes.SubscriptionFieldBuilder<Types, Types['Root']>,
-) => FieldRef<unknown>;
+) => GenericFieldRef<unknown>;
 
-export type FieldMap = Record<string, FieldRef>;
+export type FieldMap = Record<string, GenericFieldRef<unknown>>;
 
-export type InputFieldMap<Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject'> = Record<
-  string,
-  InputFieldRef<unknown, Kind>
->;
+export type InputFieldMap = Record<string, GenericInputFieldRef<unknown>>;
 
 export type FieldOptionsFromKind<
   Types extends SchemaTypes,
@@ -150,7 +158,7 @@ export type ObjectTypeOptions<
 > = Normalize<
   (Param extends string
     ? {}
-    : Param extends ObjectRef<unknown>
+    : Param extends ObjectRef<Types, unknown>
       ? { name?: string }
       : { name: string }) &
     (
@@ -168,7 +176,7 @@ export type InterfaceTypeOptions<
 > = PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces, ResolveType> &
   (Param extends string
     ? {}
-    : Param extends InterfaceRef<unknown>
+    : Param extends InterfaceRef<Types, unknown>
       ? { name?: string }
       : { name: string });
 
@@ -207,11 +215,19 @@ export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullab
   [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;
 
-export type InputFieldsFromShape<Shape> = {
-  [K in keyof Shape]: InputFieldRef<Shape[K], 'InputObject'>;
+export type InputFieldsFromShape<
+  Types extends SchemaTypes,
+  Shape,
+  Kind extends 'Arg' | 'InputObject',
+> = {
+  [K in keyof Shape]: Kind extends 'Arg'
+    ? ArgumentRef<Types, Shape[K]>
+    : Kind extends 'InputObject'
+      ? InputFieldRef<Types, Shape[K]>
+      : never;
 };
 
-export type InputShapeFromField<Field extends InputFieldRef> = Field extends {
+export type InputShapeFromField<Field extends GenericInputFieldRef> = Field extends {
   [inputFieldShapeKey]: infer T;
 }
   ? T

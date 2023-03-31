@@ -1,6 +1,6 @@
 import { defaultFieldResolver } from 'graphql';
-import { PothosSchemaError } from '../errors';
-import FieldRef from '../refs/field';
+import { ArgumentRef } from '../refs/arg';
+import { FieldRef } from '../refs/field';
 import type {
   FieldKind,
   InputFieldMap,
@@ -10,22 +10,18 @@ import type {
 import { FieldNullability, SchemaTypes, TypeParam } from '../types';
 import { typeFromParam } from '../utils';
 
-export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
-  typename: string;
-
-  builder: PothosSchemaTypes.SchemaBuilder<Types>;
-
+export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   kind: Kind;
 
   graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind];
 
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+
   constructor(
-    name: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     kind: Kind,
     graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind],
   ) {
-    this.typename = name;
     this.builder = builder;
     this.kind = kind;
     this.graphqlKind = graphqlKind;
@@ -38,50 +34,30 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   >(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
-    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(
+  ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    const ref = new FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>(
       this.kind,
-      this.typename,
-    );
-
-    this.builder.configStore.addFieldRef(
-      ref,
-      options.type,
-      options.args ?? {},
-      (name, parentField, typeConfig) => {
+      (name, typeConfig) => {
         const args: Record<string, PothosInputFieldConfig<Types>> = {};
-
         if (options.args) {
           Object.keys(options.args).forEach((argName) => {
-            const argRef = options.args![argName];
-
-            args[argName] = this.builder.configStore.createFieldConfig(
-              argRef,
+            args[argName] = (options.args![argName] as ArgumentRef<Types, unknown>).getConfig(
               argName,
-              typeConfig,
               name,
-              'Arg',
+              typeConfig,
             );
           });
         }
 
-        let resolve =
-          (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
-          (() => {
-            throw new PothosSchemaError(
-              `Not implemented: No resolver found for ${this.typename}.${name}`,
-            );
-          });
+        let { resolve } = options as { resolve?: (...argList: unknown[]) => unknown };
 
         if (options.extensions?.pothosExposedField === name) {
           resolve = defaultFieldResolver as typeof resolve;
         }
-
         const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
-
         return {
           kind: this.kind as never,
-          graphqlKind: this.graphqlKind,
+          graphqlKind: typeConfig.graphqlKind as 'Interface' | 'Object',
           parentType: typeConfig.name,
           name,
           args,
@@ -120,7 +96,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
       PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
       'resolve'
     >,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+  ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,
       extensions: {

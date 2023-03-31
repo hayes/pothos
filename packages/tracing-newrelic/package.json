@@ -48,7 +48,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "@pothos/plugin-tracing": "*",
-    "graphql": ">=15.1.0",
+    "graphql": ">=16.4.0",
     "newrelic": "*"
   },
   "devDependencies": {

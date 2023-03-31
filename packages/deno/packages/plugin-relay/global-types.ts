@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, FieldRequiredness, InputFieldMap, InputFieldsFromShape, InputOrArgRef, InputShapeFromFields, InputShapeFromTypeParam, inputShapeKey, InterfaceParam, NormalizeArgs, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromTypeParam, } from '../core/index.ts';
 import { NodeRef } from './node-ref.ts';
 import { ConnectionResultShape, ConnectionShape, ConnectionShapeForType, ConnectionShapeFromResolve, GlobalIDFieldOptions, GlobalIDInputFieldOptions, GlobalIDInputShape, GlobalIDListFieldOptions, GlobalIDListInputFieldOptions, GlobalIDShape, InputShapeWithClientMutationId, NodeFieldOptions, NodeListFieldOptions, NodeObjectOptions, PageInfoShape, RelayMutationFieldOptions, RelayMutationInputOptions, RelayMutationPayloadOptions, RelayPluginOptions, } from './types.ts';
 import type { DefaultEdgesNullability, PothosRelayPlugin } from './index.ts';
@@ -9,6 +9,10 @@ declare global {
             relay: PothosRelayPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+            relay?: RelayPluginOptions<Types>;
+        }
+        export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+            relay: never;
             relayOptions: RelayPluginOptions<Types>;
         }
         export interface UserSchemaTypes {
@@ -22,60 +26,63 @@ declare global {
             Connection: PartialTypes["Connection"] & {};
             DefaultEdgesNullability: FieldNullability<[
                 unknown
-            ]> extends PartialTypes["DefaultEdgesNullability"] ? DefaultEdgesNullability : FieldNullability<[
+            ]> extends PartialTypes["DefaultEdgesNullability"] ? PartialTypes["Defaults"] extends "v3" ? {
+                list: false;
+                items: true;
+            } : DefaultEdgesNullability : FieldNullability<[
                 unknown
             ]> & PartialTypes["DefaultEdgesNullability"];
             DefaultNodeNullability: boolean extends PartialTypes["DefaultNodeNullability"] ? false : PartialTypes["DefaultNodeNullability"] & boolean;
         }
         export interface SchemaBuilder<Types extends SchemaTypes> {
-            pageInfoRef: () => ObjectRef<PageInfoShape>;
-            nodeInterfaceRef: () => InterfaceRef<unknown>;
-            node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>, IDShape = string>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces, IDShape>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) => NodeRef<OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
+            pageInfoRef: () => ObjectRef<Types, PageInfoShape>;
+            nodeInterfaceRef: () => InterfaceRef<Types, unknown>;
+            node: <Interfaces extends InterfaceParam<Types>[], Param extends ObjectParam<Types>, IDShape = string>(param: Param, options: NodeObjectOptions<Types, Param, Interfaces, IDShape>, fields?: ObjectFieldsShape<Types, ParentShape<Types, Param>>) => NodeRef<Types, OutputShape<Types, Param>, ParentShape<Types, Param>, IDShape>;
             globalConnectionFields: (fields: ObjectFieldsShape<Types, ConnectionShape<Types, {}, false>>) => void;
             globalConnectionField: (name: string, field: ObjectFieldThunk<Types, ConnectionShape<Types, {}, false>>) => void;
-            relayMutationField: <Fields extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, Interfaces extends InterfaceParam<Types>[], InputName extends string = "input", Args extends InputFieldMap = {}>(name: string, inputOptions: InputObjectRef<unknown> | RelayMutationInputOptions<Types, Fields, InputName> | null, fieldOptions: RelayMutationFieldOptions<Types, Fields, Nullable, InputName, ResolveShape, ResolveReturnShape, Args>, payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>) => {
-                inputType: InputObjectRef<InputShapeWithClientMutationId<Types, Fields>>;
-                payloadType: ObjectRef<ResolveShape>;
+            relayMutationField: <Fields extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, Interfaces extends InterfaceParam<Types>[], InputName extends string = "input", Args extends InputFieldMap = {}>(name: string, inputOptions: InputObjectRef<Types, unknown> | RelayMutationInputOptions<Types, Fields, InputName> | null, fieldOptions: RelayMutationFieldOptions<Types, Fields, Nullable, InputName, ResolveShape, ResolveReturnShape, Args>, payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>) => {
+                inputType: InputObjectRef<Types, InputShapeWithClientMutationId<Types, Fields>>;
+                payloadType: ObjectRef<Types, ResolveShape>;
             };
             connectionObject: <Type extends OutputType<Types>, ResolveReturnShape, EdgeNullability extends FieldNullability<[
                 unknown
-            ]>, NodeNullability extends boolean, ConnectionInterfaces extends InterfaceParam<Types>[] = [
+            ]> = Types["DefaultEdgesNullability"], NodeNullability extends boolean = Types["DefaultNodeNullability"], ConnectionInterfaces extends InterfaceParam<Types>[] = [
             ], EdgeInterfaces extends InterfaceParam<Types>[] = [
             ]>(connectionOptions: ConnectionObjectOptions<Types, Type, EdgeNullability, NodeNullability, ResolveReturnShape, ConnectionInterfaces> & {
                 name: string;
                 type: Type;
             }, ...args: NormalizeArgs<[
-                edgeOptions: ObjectRef<{
+                edgeOptions: ObjectRef<Types, {
                     cursor: string;
                     node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
                 }> | (ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape, EdgeInterfaces> & {
                     name?: string;
                 })
-            ]>) => ObjectRef<ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability>>;
+            ]>) => ObjectRef<Types, ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability>>;
             edgeObject: <Type extends OutputType<Types>, ResolveReturnShape, NodeNullability extends boolean = Types["DefaultNodeNullability"], Interfaces extends InterfaceParam<Types>[] = [
             ]>(edgeOptions: ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape, Interfaces> & {
                 type: Type;
                 name: string;
                 nodeNullable?: NodeNullability;
-            }) => ObjectRef<{
+            }) => ObjectRef<Types, {
                 cursor: string;
                 node: ShapeFromTypeParam<Types, Type, NodeNullability>;
             }>;
         }
         export interface InputFieldBuilder<Types extends SchemaTypes, Kind extends "Arg" | "InputObject"> {
             connectionArgs: () => {
-                [K in keyof DefaultConnectionArguments]-?: InputFieldRef<DefaultConnectionArguments[K], Kind>;
+                [K in keyof DefaultConnectionArguments]-?: InputOrArgRef<Types, DefaultConnectionArguments[K], Kind>;
             };
             globalID: <Req extends boolean, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
                 options: GlobalIDInputFieldOptions<Types, Req, Kind, For>
-            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, GlobalIDInputShape<For extends {
+            ]>) => InputOrArgRef<Types, InputShapeFromTypeParam<Types, GlobalIDInputShape<For extends {
                 parseId?: (...args: any[]) => infer T;
             } ? T : string>, Req>, Kind>;
             globalIDList: <Req extends FieldRequiredness<[
                 "ID"
             ]>, For extends ObjectParam<Types>>(...args: NormalizeArgs<[
                 options: GlobalIDListInputFieldOptions<Types, Req, Kind, For>
-            ]>) => InputFieldRef<InputShapeFromTypeParam<Types, [
+            ]>) => InputOrArgRef<Types, InputShapeFromTypeParam<Types, [
                 {
                     [inputShapeKey]: {
                         typename: string;
@@ -87,27 +94,27 @@ declare global {
             ], Req>, Kind>;
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> {
-            globalID: <Args extends InputFieldMap, Nullable extends FieldNullability<"ID">, ResolveReturnShape>(options: GlobalIDFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>) => FieldRef<ShapeFromTypeParam<Types, "ID", Nullable>>;
+            globalID: <Args extends InputFieldMap, Nullable extends FieldNullability<"ID">, ResolveReturnShape>(options: GlobalIDFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>) => FieldRef<Types, ShapeFromTypeParam<Types, "ID", Nullable>>;
             globalIDList: <Args extends InputFieldMap, Nullable extends FieldNullability<[
                 "ID"
-            ]>, ResolveReturnShape>(options: GlobalIDListFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>) => FieldRef<ShapeFromTypeParam<Types, [
+            ]>, ResolveReturnShape>(options: GlobalIDListFieldOptions<Types, ParentShape, Args, Nullable, ResolveReturnShape, Kind>) => FieldRef<Types, ShapeFromTypeParam<Types, [
                 "ID"
             ], Nullable>>;
-            node: <Args extends InputFieldMap, ResolveShape>(options: NodeFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<unknown>;
-            nodeList: <Args extends InputFieldMap, ResolveShape>(options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<readonly unknown[]>;
+            node: <Args extends InputFieldMap, ResolveShape>(options: NodeFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<Types, unknown>;
+            nodeList: <Args extends InputFieldMap, ResolveShape>(options: NodeListFieldOptions<Types, ParentShape, Args, ResolveShape, Kind>) => FieldRef<Types, readonly unknown[]>;
             connection: <Type extends OutputType<Types>, Args extends InputFieldMap, Nullable extends boolean, ResolveShape, ResolveReturnShape, EdgeNullability extends FieldNullability<[
                 unknown
             ]> = Types["DefaultEdgesNullability"], NodeNullability extends boolean = Types["DefaultNodeNullability"], ConnectionInterfaces extends InterfaceParam<Types>[] = [
             ], EdgeInterfaces extends InterfaceParam<Types>[] = [
-            ], ConnectionResult extends ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability> = ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability>>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, InputFieldsFromShape<DefaultConnectionArguments> & (InputFieldMap extends Args ? {} : Args), Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, FieldOptions extends {
+            ], ConnectionResult extends ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability> = ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability>>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, InputFieldsFromShape<Types, DefaultConnectionArguments, "Arg"> & (InputFieldMap extends Args ? {} : Args), Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, FieldOptions extends {
                 resolve?: (parent: infer P, ...args: any[]) => unknown;
             } ? P : unknown extends ResolveShape ? ParentShape : ResolveShape, Type, Nullable, EdgeNullability, NodeNullability, Args, ResolveReturnShape, ConnectionResult> & Omit<FieldOptions, "args" | "resolve" | "type"> : never, ...args: NormalizeArgs<[
-                connectionOptions: ObjectRef<ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability, ConnectionResult>> | Omit<ConnectionObjectOptions<Types, Type, EdgeNullability, NodeNullability, ResolveReturnShape, ConnectionInterfaces>, "edgesNullable">,
-                edgeOptions: ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape, EdgeInterfaces> | ObjectRef<{
+                connectionOptions: ObjectRef<Types, ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability, ConnectionResult>> | Omit<ConnectionObjectOptions<Types, Type, EdgeNullability, NodeNullability, ResolveReturnShape, ConnectionInterfaces>, "edgesNullable">,
+                edgeOptions: ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape, EdgeInterfaces> | ObjectRef<Types, {
                     cursor: string;
                     node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
                 }>
-            ], 0>) => FieldRef<ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>>;
+            ], 0>) => FieldRef<Types, ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>>;
         }
         export interface ConnectionFieldOptions<Types extends SchemaTypes, ParentShape, Type extends OutputType<Types>, Nullable extends boolean, EdgeNullability extends FieldNullability<[
             unknown
@@ -125,12 +132,12 @@ declare global {
             name?: string;
             edgesNullable?: EdgeNullability;
             nodeNullable?: NodeNullability;
-            edgesField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
+            edgesField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<Types, {}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
         }
         export interface ConnectionEdgeObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, NodeNullability extends boolean, Resolved, Interfaces extends InterfaceParam<Types>[] = [
         ]> extends ObjectTypeWithInterfaceOptions<Types, NonNullable<NonNullable<Awaited<ConnectionShapeFromResolve<Types, Type, false, false, NodeNullability, Resolved>["edges"]>>[number]>, Interfaces> {
             name?: string;
-            nodeField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<{}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
+            nodeField?: Omit<ObjectFieldOptions<Types, {}, ObjectRef<Types, {}>, Types["DefaultNodeNullability"], {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
         }
         export interface DefaultConnectionArguments {
             first?: number | null | undefined;

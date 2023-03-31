@@ -4,7 +4,7 @@ import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { ImplementableInterfaceRef, InterfaceParam, InterfaceRef, InterfaceTypeOptions, SchemaTypes, } from '../../core/index.ts';
 import { DataLoaderOptions } from '../types.ts';
 import { dataloaderGetter } from '../util.ts';
-export class LoadableInterfaceRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends InterfaceRef<RefShape, Shape> {
+export class LoadableInterfaceRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends InterfaceRef<Types, RefShape, Shape> {
     getDataloader;
     constructor(name: string, getDataloader: (context: Types["Context"]) => DataLoader<Key, Shape, CacheKey>) {
         super(name);
@@ -20,7 +20,7 @@ export class ImplementableLoadableInterfaceRef<Types extends SchemaTypes, RefSha
         this.cacheResolved =
             typeof cacheResolved === "function" ? cacheResolved : cacheResolved && toKey;
     }
-    override implement<Interfaces extends InterfaceParam<Types>[]>(options: InterfaceTypeOptions<Types, ImplementableInterfaceRef<Types, RefShape, Shape>, Shape, Interfaces>): InterfaceRef<RefShape, Shape> {
+    override implement<Interfaces extends InterfaceParam<Types>[]>(options: InterfaceTypeOptions<Types, ImplementableInterfaceRef<Types, RefShape, Shape>, Shape, Interfaces>): InterfaceRef<Types, RefShape, Shape> {
         return super.implement({
             ...options,
             extensions: {
