@@ -275,9 +275,9 @@ export type PrismaNodeOptions<
           }
         | {
             resolve?: never;
-            field: UniqueField extends keyof Model['WhereUnique']
+            field: UniqueField extends UniqueFieldsFromWhereUnique<Model['WhereUnique']>
               ? UniqueField
-              : keyof Model['WhereUnique'];
+              : UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
           }
       );
     fields?: PrismaObjectFieldsShape<
@@ -338,7 +338,7 @@ type CursorFromRelation<
 > = Field extends keyof Model['Include']
   ? Model['Include'][Field] extends infer Include
     ? Include extends { cursor?: infer T }
-      ? keyof T
+      ? UniqueFieldsFromWhereUnique<T>
       : never
     : never
   : never;
@@ -600,7 +600,7 @@ export type PrismaConnectionFieldOptions<
     PothosSchemaTypes.DefaultConnectionArguments extends infer ConnectionArgs
     ? {
         type: Type;
-        cursor: string & keyof Model['WhereUnique'];
+        cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         resolve: (
@@ -751,3 +751,18 @@ export interface IndirectInclude {
 }
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
+
+export type UniqueFieldsExtendedWhereUnique<T> = NonNullable<
+  T extends infer O
+    ? {
+        [K in keyof O]: undefined extends O[K] ? never : K;
+      }[keyof O]
+    : never
+>;
+
+export type UniqueFieldsFromWhereUnique<T> = string &
+  (UniqueFieldsExtendedWhereUnique<T> extends infer K
+    ? [K] extends [never]
+      ? keyof T
+      : K
+    : never);

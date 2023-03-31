@@ -1,7 +1,7 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
 import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
-import type { PrismaModelTypes, ShapeFromSelection } from './types';
+import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types';
 import {
   getCursorFormatter,
   getCursorParser,
@@ -31,7 +31,7 @@ export function prismaConnectionHelpers<
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrType: RefOrType,
   options: {
-    cursor: string & keyof Model['WhereUnique'];
+    cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
     select?: (nestedSelection: <T extends {} | true>(selection?: T) => T) => Select;
     defaultSize?:
       | number
@@ -107,8 +107,11 @@ export function prismaConnectionHelpers<
     return {
       ...getQueryArgs(args, ctx),
       ...selectionToQuery(selectState),
-    } as unknown as ReturnType<typeof getQueryArgs> &
-      (Model['Select'] extends Select ? {} : { select: Select });
+    } as unknown as {
+      skip?: number;
+      take?: number;
+      cursor?: Model['WhereUnique'];
+    } & (Model['Select'] extends Select ? {} : { select: Select });
   }
 
   return {

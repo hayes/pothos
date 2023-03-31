@@ -40,6 +40,23 @@ const PostPreview = builder.objectRef<Post>('PostPreview').implement({
   }),
 });
 
+const postConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
+  cursor: 'id',
+  select: (nodeSelection) => ({
+    post: nodeSelection({
+      include: {
+        comments: {
+          take: 3,
+          include: {
+            author: true,
+          },
+        },
+      },
+    }),
+  }),
+  resolveNode: ({ post }) => post,
+});
+
 const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   select: {
@@ -86,6 +103,14 @@ const Viewer = builder.prismaObject('User', {
       },
       nullable: true,
       resolve: (user) => user.profile?.bio,
+    }),
+
+    comments: t.connection({
+      type: PostRef,
+      select: (args, ctx, nestedSelection) => ({
+        comments: postConnectionHelpers.getQuery(args, ctx, nestedSelection),
+      }),
+      resolve: (user, args, ctx) => postConnectionHelpers.resolve(user.comments, args, ctx),
     }),
   }),
 });

@@ -422,12 +422,23 @@ type UserProfileWithErrorsSuccess {
 
 type Viewer {
   bio: String
+  comments(after: ID, before: ID, first: Int, last: Int): ViewerCommentsConnection!
   id: ID!
   postCount: Int!
   postPreviews: [PostPreview!]!
   posts: [Post!]!
   selectUser: SelectUser!
   user: User!
+}
+
+type ViewerCommentsConnection {
+  edges: [ViewerCommentsConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type ViewerCommentsConnectionEdge {
+  cursor: String!
+  node: Post!
 }
 
 type ViewerNode implements Node {
