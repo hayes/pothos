@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.47.2
+
+### Patch Changes
+
+- 14f8cd5c: Fix returning nulls from nullable prismaConnections
+
 ## 3.47.1
 
 ### Patch Changes
