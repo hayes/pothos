@@ -332,6 +332,10 @@ export async function resolvePrismaCursorConnection<T extends {}>(
     ...query,
   });
 
+  if (!results) {
+    return results;
+  }
+
   return wrapConnectionResult(results, options.args, query.take, cursor, options.totalCount);
 }
 
