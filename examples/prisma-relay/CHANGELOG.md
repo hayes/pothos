@@ -1,5 +1,13 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.38
+
+### Patch Changes
+
+- Updated dependencies [cd98256e]
+  - @pothos/plugin-relay@3.40.0
+  - @pothos/plugin-prisma@3.47.2
+
 ## 2.7.37
 
 ### Patch Changes
