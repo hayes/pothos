@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.42.0
+
+### Minor Changes
+
+- cd98256e: Add `nodeQueryOptions.args` and `nodesQueryOptions.args` to allow setting arg options on
+  the `node` and `nodes` queries
+
 ## 3.41.0
 
 ### Minor Changes
