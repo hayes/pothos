@@ -139,7 +139,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
             type: [ref],
             args: {
                 ids: t.arg.globalIDList({
-                    ...this.options.relayOptions.nodesQueryIdArgOptions,
+                    ...this.options.relayOptions.nodesQueryIdsArgOptions,
                     required: true,
                     extensions: {
                         relayGlobalIDAlwaysParse: true,

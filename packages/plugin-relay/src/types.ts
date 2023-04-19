@@ -91,7 +91,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           resolveNodes: (ids: { id: string; typename: string }[]) => Promise<unknown[]>,
         ) => MaybePromise<readonly MaybePromise<unknown>[]>;
       });
-  nodesQueryIdArgOptions: Omit<
+  nodesQueryIdsArgOptions: Omit<
     GlobalIDListInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>,
     'extensions' | 'required'
   >;
