@@ -55,6 +55,9 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         >,
         'args' | 'resolve' | 'type'
       > & {
+        args?: {
+          id?: Omit<GlobalIDInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>, 'required'>;
+        };
         resolve?: (
           parent: Types['Root'],
           args: {
@@ -65,10 +68,6 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           resolveNode: (id: { id: string; typename: string }) => MaybePromise<unknown>,
         ) => MaybePromise<unknown>;
       });
-  nodeQueryIdArgOptions: Omit<
-    GlobalIDInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>,
-    'extensions' | 'required'
-  >;
   nodesQueryOptions:
     | false
     | (Omit<
@@ -81,6 +80,12 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         >,
         'args' | 'resolve' | 'type'
       > & {
+        args?: {
+          ids?: Omit<
+            GlobalIDListInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>,
+            'required'
+          >;
+        };
         resolve?: (
           parent: Types['Root'],
           args: {
@@ -91,10 +96,6 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           resolveNodes: (ids: { id: string; typename: string }[]) => Promise<unknown[]>,
         ) => MaybePromise<readonly MaybePromise<unknown>[]>;
       });
-  nodesQueryIdsArgOptions: Omit<
-    GlobalIDListInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>,
-    'extensions' | 'required'
-  >;
   mutationInputArgOptions: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>,
     'fields' | 'type'

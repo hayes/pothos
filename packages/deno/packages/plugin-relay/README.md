@@ -38,10 +38,8 @@ The `relayOptions` object passed to builder can contain the following properties
   Overwriting this default is highly encouraged.
 - `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
   field
-  `nodeQueryIdArgOptions`: Options for the `id` arg on the `node` query
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
   field
-  `nodesQueryIdsArgOptions`: Options for the `ids` arg on the `nodes` query
 - `nodeTypeOptions`: Options for the `Node` interface type
 - `pageInfoTypeOptions`: Options for the `TypeInfo` object type
 - `clientMutationIdFieldOptions`: Options for the `clientMutationId` field on connection objects

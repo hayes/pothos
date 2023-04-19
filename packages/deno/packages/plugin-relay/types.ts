@@ -12,6 +12,9 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     nodeQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
         id: InputFieldRef<InputShape<Types, "ID">>;
     }, Promise<unknown>>, "args" | "resolve" | "type"> & {
+        args?: {
+            id?: Omit<GlobalIDInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
+        };
         resolve?: (parent: Types["Root"], args: {
             id: {
                 typename: string;
@@ -22,7 +25,6 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
             typename: string;
         }) => MaybePromise<unknown>) => MaybePromise<unknown>;
     });
-    nodeQueryIdArgOptions: Omit<GlobalIDInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "extensions" | "required">;
     nodesQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
         OutputRefShape<GlobalIDShape<Types> | string>
     ], FieldNullability<[
@@ -30,6 +32,9 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     ]>, {
         ids: InputFieldRef<InputShape<Types, "ID">[]>;
     }, Promise<unknown>[]>, "args" | "resolve" | "type"> & {
+        args?: {
+            ids?: Omit<GlobalIDListInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
+        };
         resolve?: (parent: Types["Root"], args: {
             ids: {
                 typename: string;
@@ -40,7 +45,6 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
             typename: string;
         }[]) => Promise<unknown[]>) => MaybePromise<readonly MaybePromise<unknown>[]>;
     });
-    nodesQueryIdsArgOptions: Omit<GlobalIDListInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "extensions" | "required">;
     mutationInputArgOptions: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, boolean>, "fields" | "type">;
     clientMutationIdInputOptions: Omit<PothosSchemaTypes.InputObjectFieldOptions<Types, "ID", boolean>, "type">;
     clientMutationIdFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, Types["Scalars"]["ID"]["Output"]>, "args" | "resolve" | "type">;

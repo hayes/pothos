@@ -3,5 +3,5 @@
 '@pothos/deno': minor
 ---
 
-Add `nodeQueryIdArgOptions` and `nodesQueryIdsArgOptions` to allow setting ID arg options on the
+Add `nodeQueryOptions.args` and `nodesQueryOptions.args` to allow setting arg options on the
 `node` and `nodes` queries
