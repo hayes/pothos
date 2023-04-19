@@ -12,6 +12,9 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     nodeQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
         id: InputFieldRef<InputShape<Types, "ID">>;
     }, Promise<unknown>>, "args" | "resolve" | "type"> & {
+        args?: {
+            id?: Omit<GlobalIDInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
+        };
         resolve?: (parent: Types["Root"], args: {
             id: {
                 typename: string;
@@ -29,6 +32,9 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     ]>, {
         ids: InputFieldRef<InputShape<Types, "ID">[]>;
     }, Promise<unknown>[]>, "args" | "resolve" | "type"> & {
+        args?: {
+            ids?: Omit<GlobalIDListInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
+        };
         resolve?: (parent: Types["Root"], args: {
             ids: {
                 typename: string;

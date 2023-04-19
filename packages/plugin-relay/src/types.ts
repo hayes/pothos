@@ -55,6 +55,9 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         >,
         'args' | 'resolve' | 'type'
       > & {
+        args?: {
+          id?: Omit<GlobalIDInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>, 'required'>;
+        };
         resolve?: (
           parent: Types['Root'],
           args: {
@@ -77,6 +80,12 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         >,
         'args' | 'resolve' | 'type'
       > & {
+        args?: {
+          ids?: Omit<
+            GlobalIDListInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>,
+            'required'
+          >;
+        };
         resolve?: (
           parent: Types['Root'],
           args: {
