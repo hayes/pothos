@@ -84,7 +84,7 @@ builder.queryFields((t) => ({
     smartSubscription: true,
     subscribe: (subscriptions, root, args, ctx, info) => {
       subscriptions.register('poll-added')
-      subscriptions.register('poll-delted')
+      subscriptions.register('poll-deleted')
     },
     resolve: (root, args, ctx, info) => {
       return ctx.getThings();
