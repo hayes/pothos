@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.43.0
+
+### Minor Changes
+
+- cd1558a3: Included `idFieldOptions` when creating the Node interface’s ID field.
+
 ## 3.42.0
 
 ### Minor Changes
