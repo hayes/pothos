@@ -139,6 +139,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     ...this.options.relayOptions.nodeTypeOptions,
     fields: (t) => ({
       [this.options.relayOptions?.idFieldName ?? 'id']: t.globalID({
+        ...this.options.relayOptions?.idFieldOptions,
         nullable: false,
         resolve: (parent) => {
           throw new PothosValidationError('id field not implemented');
