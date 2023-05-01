@@ -32,7 +32,7 @@ export function normalizeEnumValues<Types extends SchemaTypes>(
 
 export function valuesFromEnum<Types extends SchemaTypes>(
   Enum: BaseEnum,
-  values?: Partial<Record<string, Omit<PothosSchemaTypes.EnumValueConfig<Types>, 'value'>>>,
+  values?: Record<string, Omit<PothosSchemaTypes.EnumValueConfig<Types>, 'value'>>,
 ): Record<string, PothosEnumValueConfig<Types>> {
   const result: Record<string, PothosEnumValueConfig<Types>> = {};
 
