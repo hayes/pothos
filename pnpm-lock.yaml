@@ -84,7 +84,7 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0(graphql@16.6.0)
       '@pothos/core':
-        specifier: ^3.28.0
+        specifier: ^3.30.0
         version: link:../../packages/core
       '@pothos/plugin-dataloader':
         specifier: workspace:*
@@ -380,7 +380,7 @@ importers:
         specifier: ^7.6.0
         version: 7.6.0
       '@pothos/core':
-        specifier: ^3.28.0
+        specifier: ^3.30.0
         version: link:../../packages/core
       '@pothos/plugin-prisma':
         specifier: workspace:*

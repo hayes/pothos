@@ -1,5 +1,16 @@
 # @pothos-examples/prisma-smart-subscriptions-apollo
 
+## 2.6.13
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+- Updated dependencies [4c6bc638]
+- Updated dependencies [013acf2c]
+  - @pothos/core@3.30.0
+  - @pothos/plugin-prisma@3.47.3
+  - @pothos/plugin-smart-subscriptions@3.7.1
+
 ## 2.6.12
 
 ### Patch Changes

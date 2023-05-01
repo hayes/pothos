@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 3.0.2
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 3.0.1
 
 ### Patch Changes

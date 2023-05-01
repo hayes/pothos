@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.43.1
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 3.43.0
 
 ### Minor Changes

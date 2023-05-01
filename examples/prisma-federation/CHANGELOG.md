@@ -1,5 +1,17 @@
 # @pothos-examples/relay
 
+## 2.8.13
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+- Updated dependencies [4c6bc638]
+- Updated dependencies [013acf2c]
+  - @pothos/core@3.30.0
+  - @pothos/plugin-directives@3.10.2
+  - @pothos/plugin-federation@3.10.1
+  - @pothos/plugin-prisma@3.47.3
+
 ## 2.8.12
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.7.9
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 0.7.8
 
 ### Patch Changes

@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-add-graphql",
-  "version": "3.0.1",
+  "version": "3.0.2",
   "description": "A Pothos plugin for adding existing GraphQL types to a Pothos schema",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
