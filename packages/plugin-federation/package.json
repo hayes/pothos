@@ -21,7 +21,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-federation"
   },
   "author": "Michael Hayes",
   "license": "ISC",

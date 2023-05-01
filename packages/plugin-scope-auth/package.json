@@ -27,7 +27,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-scope-auth"
   },
   "author": "Michael Hayes",
   "license": "ISC",

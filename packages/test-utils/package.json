@@ -25,7 +25,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/test-utils"
   },
   "author": "Michael Hayes",
   "license": "ISC",

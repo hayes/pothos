@@ -26,7 +26,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-complexity"
   },
   "author": "Michael Hayes",
   "license": "ISC",
