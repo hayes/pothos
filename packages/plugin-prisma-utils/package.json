@@ -28,7 +28,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-prisma-utils"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -40,7 +41,8 @@
     "prisma"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

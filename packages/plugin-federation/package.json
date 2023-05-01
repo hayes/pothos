@@ -21,7 +21,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-federation"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -36,7 +37,8 @@
     "subgraph"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@apollo/subgraph": "^2.0.0",

@@ -24,6 +24,11 @@
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "test": "pnpm jest --runInBand"
   },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-authz"
+  },
   "author": "Michael Hayes",
   "license": "ISC",
   "keywords": [
@@ -34,7 +39,8 @@
     "authorization"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@graphql-authz/core": "*",

@@ -27,7 +27,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-scope-auth"
   },
   "author": "Michael Hayes",
   "license": "ISC",
@@ -47,7 +48,8 @@
     "seed": "node prisma/seed.mjs"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@pothos/core": "*",

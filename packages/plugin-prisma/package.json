@@ -37,7 +37,8 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/hayes/pothos.git"
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-prisma"
   },
   "bin": {
     "prisma-pothos-types": "./bin/generator.js"
@@ -58,7 +59,8 @@
     "mongo"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@prisma/generator-helper": "^4.11.0"
