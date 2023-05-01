@@ -459,7 +459,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const values =
       typeof param === 'object'
         ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-          valuesFromEnum<Types>(param as BaseEnum)
+          valuesFromEnum<Types>(param as BaseEnum, options?.values as any)
         : normalizeEnumValues<Types>((options as { values: EnumValues<Types> }).values);
 
     const config: PothosEnumTypeConfig = {

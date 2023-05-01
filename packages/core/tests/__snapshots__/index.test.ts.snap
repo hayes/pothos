@@ -45,8 +45,10 @@ type Giraffe implements Animal {
 
 enum MyEnum {
   Bar
+
+  \\"\\"\\"Some description here\\"\\"\\"
   Foo
-  Num
+  Num @deprecated(reason: \\"Not used anymore..\\")
 }
 
 type Query {

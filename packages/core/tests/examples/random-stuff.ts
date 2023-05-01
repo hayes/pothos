@@ -74,6 +74,14 @@ enum MyEnum {
 
 builder.enumType(MyEnum, {
   name: 'MyEnum',
+  values: {
+    Foo: {
+      description: 'Some description here',
+    },
+    Num: {
+      deprecationReason: 'Not used anymore..',
+    },
+  },
 });
 
 // Create input types
