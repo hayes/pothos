@@ -1,5 +1,16 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.40
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+- Updated dependencies [4c6bc638]
+- Updated dependencies [013acf2c]
+  - @pothos/core@3.30.0
+  - @pothos/plugin-prisma@3.47.3
+  - @pothos/plugin-relay@3.41.1
+
 ## 2.7.39
 
 ### Patch Changes

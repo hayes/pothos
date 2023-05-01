@@ -1,5 +1,21 @@
 # @pothos-examples/complex-app
 
+## 1.5.7
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+- Updated dependencies [4c6bc638]
+- Updated dependencies [013acf2c]
+  - @pothos/core@3.30.0
+  - @pothos/plugin-dataloader@3.17.1
+  - @pothos/plugin-prisma@3.47.3
+  - @pothos/plugin-prisma-utils@0.8.1
+  - @pothos/plugin-relay@3.41.1
+  - @pothos/plugin-scope-auth@3.19.1
+  - @pothos/plugin-simple-objects@3.6.8
+  - @pothos/plugin-validation@3.9.1
+
 ## 1.5.6
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.4.8
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 1.4.7
 
 ### Patch Changes

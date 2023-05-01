@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.10.1
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 3.10.0
 
 ### Minor Changes

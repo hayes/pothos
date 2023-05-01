@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.5.8
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 3.5.7
 
 ### Patch Changes

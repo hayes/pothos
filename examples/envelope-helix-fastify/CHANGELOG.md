@@ -1,5 +1,14 @@
 # @pothos-examples/envelope-helix-fastify
 
+## 2.4.24
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+- Updated dependencies [4c6bc638]
+- Updated dependencies [013acf2c]
+  - @pothos/core@3.30.0
+
 ## 2.4.23
 
 ### Patch Changes

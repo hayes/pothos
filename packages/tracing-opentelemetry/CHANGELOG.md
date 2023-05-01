@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 0.6.9
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 0.6.8
 
 ### Patch Changes

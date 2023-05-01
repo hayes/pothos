@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.30.0
+
+### Minor Changes
+
+- 013acf2c: Ability to configure meta (description, deprecationReason, extensions) for TS-based enum
+  types
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 3.29.0
 
 ### Minor Changes

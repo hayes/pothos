@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.12.1
+
+### Patch Changes
+
+- 4c6bc638: Add provinance to npm releases
+
 ## 3.12.0
 
 ### Minor Changes
