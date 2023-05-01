@@ -180,6 +180,9 @@ export type EnumTypeOptions<
   ? Merge<
       Omit<PothosSchemaTypes.EnumTypeOptions<Types, Values>, 'values'> & {
         name: string;
+        values?: Partial<
+          Record<keyof Param, Omit<PothosSchemaTypes.EnumValueConfig<Types>, 'value'>>
+        >;
       }
     >
   : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
