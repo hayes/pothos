@@ -58,7 +58,8 @@
     "mongo"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "@prisma/generator-helper": "^4.11.0"

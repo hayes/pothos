@@ -42,7 +42,8 @@
     "deno"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "graphql": ">=15.1.0"

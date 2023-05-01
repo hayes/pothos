@@ -40,7 +40,8 @@
     "prisma"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"

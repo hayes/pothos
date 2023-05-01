@@ -40,7 +40,8 @@
     "input"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@pothos/core": "*",

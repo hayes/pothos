@@ -9,7 +9,8 @@
   "author": "Michael Hayes",
   "license": "ISC",
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "devDependencies": {
     "@swc-node/register": "^1.6.2",

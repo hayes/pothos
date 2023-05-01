@@ -34,7 +34,8 @@
     "authorization"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@graphql-authz/core": "*",

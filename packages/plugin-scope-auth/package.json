@@ -47,7 +47,8 @@
     "seed": "node prisma/seed.mjs"
   },
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@pothos/core": "*",

@@ -38,7 +38,8 @@
     "converter"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "dependencies": {
     "graphql": "16.6.0",

@@ -36,7 +36,8 @@
     "subgraph"
   ],
   "publishConfig": {
-    "access": "public"
+    "access": "public",
+    "provenance": true
   },
   "peerDependencies": {
     "@apollo/subgraph": "^2.0.0",
