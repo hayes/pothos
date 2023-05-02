@@ -346,9 +346,9 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
   const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
     this.configStore.onPrepare(() => {
       const config = this.configStore.getTypeConfig(ref);
-      const existingFields = this.configStore.getFields(config.name);
 
       this.objectFields(ref, (t) => {
+        const existingFields = this.configStore.getFields(config.name);
         const refs: FieldMap = {};
 
         for (const [name, field] of Object.entries(fields(t as never))) {
