@@ -10,7 +10,6 @@ import SchemaBuilder, {
   InterfaceRef,
   MaybePromise,
   ObjectFieldsShape,
-  ObjectFieldThunk,
   ObjectParam,
   ObjectRef,
   OutputRef,
@@ -320,26 +319,7 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
 };
 
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
-  const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
-    this.configStore.onPrepare(() => {
-      const config = this.configStore.getTypeConfig(ref);
-      if (!this.configStore.getFields(config.name).has(name)) {
-        this.objectField(
-          ref,
-          name,
-          field as ObjectFieldThunk<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
-        );
-      }
-    });
-  };
-
-  connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
-
-  if (!globalConnectionFieldsMap.has(this)) {
-    globalConnectionFieldsMap.set(this, []);
-  }
-
-  globalConnectionFieldsMap.get(this)!.push(onRef);
+  this.globalConnectionFields((t) => ({ [name]: field(t) }));
 };
 
 schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fields) {

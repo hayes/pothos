@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { defaultTypeResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { completeValue, createContextCache, FieldMap, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, MaybePromise, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
+import SchemaBuilder, { completeValue, createContextCache, FieldMap, FieldRef, getTypeBrand, InputObjectRef, InterfaceParam, InterfaceRef, MaybePromise, ObjectFieldsShape, ObjectParam, ObjectRef, OutputRef, PothosValidationError, SchemaTypes, verifyRef, } from '../core/index.ts';
 import { NodeRef } from './node-ref.ts';
 import { ConnectionShape, GlobalIDShape, PageInfoShape } from './types.ts';
 import { capitalize, resolveNodes } from './utils/index.ts';
@@ -230,26 +230,14 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
     return nodeRef as never;
 };
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
-    const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
-        this.configStore.onPrepare(() => {
-            const config = this.configStore.getTypeConfig(ref);
-            if (!this.configStore.getFields(config.name).has(name)) {
-                this.objectField(ref, name, field as ObjectFieldThunk<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>);
-            }
-        });
-    };
-    connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
-    if (!globalConnectionFieldsMap.has(this)) {
-        globalConnectionFieldsMap.set(this, []);
-    }
-    globalConnectionFieldsMap.get(this)!.push(onRef);
+    this.globalConnectionFields((t) => ({ [name]: field(t) }));
 };
 schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fields) {
     const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
         this.configStore.onPrepare(() => {
             const config = this.configStore.getTypeConfig(ref);
-            const existingFields = this.configStore.getFields(config.name);
             this.objectFields(ref, (t) => {
+                const existingFields = this.configStore.getFields(config.name);
                 const refs: FieldMap = {};
                 for (const [name, field] of Object.entries(fields(t as never))) {
                     if (!existingFields.has(name)) {
