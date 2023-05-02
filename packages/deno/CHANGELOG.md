@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.45.0
+
+### Minor Changes
+
+- 0c042150: Allow globalConnectionFields to be overwritten on specific connections
+
 ## 3.44.0
 
 ### Minor Changes
