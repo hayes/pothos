@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.44.0
+
+### Minor Changes
+
+- b3259d3e: Make parent and args available in connection and edge fields of prisma connections
+
 ## 3.43.1
 
 ### Patch Changes
