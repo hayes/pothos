@@ -274,8 +274,9 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         }).name;
         const ref = new EnumRef<Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>>(name);
         const values = typeof param === "object"
-            ? // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
-                valuesFromEnum<Types>(param as BaseEnum)
+            ? valuesFromEnum<Types>(
+            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
+            param as BaseEnum, options?.values as Record<string, PothosSchemaTypes.EnumValueConfig<Types>>)
             : normalizeEnumValues<Types>((options as {
                 values: EnumValues<Types>;
             }).values);

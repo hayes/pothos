@@ -388,7 +388,8 @@ export type ConnectionShapeFromResolve<
         EdgeNullability,
         NodeNullability,
         ConnectionResult
-      >
+      > &
+        NonNullable<T>
   : Resolved extends ConnectionShapeForType<
       Types,
       Type,
@@ -405,7 +406,8 @@ export type ConnectionShapeFromResolve<
       EdgeNullability,
       NodeNullability,
       ConnectionResult
-    >;
+    > &
+      NonNullable<Resolved>;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 

@@ -752,6 +752,24 @@ export interface IndirectInclude {
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;
 
+export type PrismaConnectionShape<
+  Types extends SchemaTypes,
+  T,
+  Parent,
+  Args extends InputFieldMap,
+> = (
+  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, T, false>> extends infer Shape
+    ? Shape & {
+        parent: Parent;
+        args: InputShapeFromFields<Args> & PothosSchemaTypes.DefaultConnectionArguments;
+      }
+    : never
+) extends infer C
+  ? [C] extends [{ edges: MaybePromise<readonly (infer Edge)[]> }]
+    ? Omit<C, 'edges'> & { edges: MaybePromise<(Edge & { connection: C })[]> }
+    : C
+  : never;
+
 export type UniqueFieldsExtendedWhereUnique<T> = NonNullable<
   T extends infer O
     ? {

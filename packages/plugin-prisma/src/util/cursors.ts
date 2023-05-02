@@ -215,6 +215,7 @@ export interface PrismaCursorConnectionQueryOptions {
 }
 
 interface ResolvePrismaCursorConnectionOptions extends PrismaCursorConnectionQueryOptions {
+  parent?: unknown;
   query: {};
   totalCount?: number | (() => MaybePromise<number>);
 }
@@ -275,6 +276,7 @@ export function prismaCursorConnectionQuery({
 }
 
 export function wrapConnectionResult<T extends {}>(
+  parent: unknown,
   results: readonly T[],
   args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
@@ -289,31 +291,41 @@ export function wrapConnectionResult<T extends {}>(
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;
 
+  const connection = {
+    parent,
+    args,
+    totalCount,
+    edges: [] as ({ cursor: string; node: unknown } | null)[],
+    pageInfo: {
+      startCursor: null as string | null,
+      endCursor: null as string | null,
+      hasPreviousPage,
+      hasNextPage,
+    },
+  };
+
   const edges = nodes.map((value, index) =>
     value == null
       ? null
       : resolveNode
       ? {
+          connection,
           ...value,
           cursor: cursor(value),
           node: resolveNode(value),
         }
       : {
+          connection,
           cursor: cursor(value),
           node: value,
         },
   );
 
-  return {
-    totalCount,
-    edges,
-    pageInfo: {
-      startCursor: edges[0]?.cursor,
-      endCursor: edges[edges.length - 1]?.cursor,
-      hasPreviousPage,
-      hasNextPage,
-    },
-  };
+  connection.edges = edges;
+  connection.pageInfo.startCursor = edges[0]?.cursor ?? null;
+  connection.pageInfo.endCursor = edges[edges.length - 1]?.cursor ?? null;
+
+  return connection;
 }
 
 export async function resolvePrismaCursorConnection<T extends {}>(
@@ -336,7 +348,14 @@ export async function resolvePrismaCursorConnection<T extends {}>(
     return results;
   }
 
-  return wrapConnectionResult(results, options.args, query.take, cursor, options.totalCount);
+  return wrapConnectionResult(
+    options.parent,
+    results,
+    options.args,
+    query.take,
+    cursor,
+    options.totalCount,
+  );
 }
 
 export function getCursorFormatter<Types extends SchemaTypes>(

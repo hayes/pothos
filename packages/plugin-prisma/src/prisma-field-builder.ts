@@ -20,6 +20,7 @@ import {
 import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
 import {
+  PrismaConnectionShape,
   PrismaModelTypes,
   RelatedConnectionOptions,
   RelatedFieldOptions,
@@ -107,7 +108,6 @@ export class PrismaObjectFieldBuilder<
         Field extends Model['ListRelations'],
         Nullable extends boolean,
         Args extends InputFieldMap,
-        ResolveReturnShape,
         ConnectionInterfaces extends InterfaceParam<Types>[] = [],
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
@@ -118,10 +118,25 @@ export class PrismaObjectFieldBuilder<
             connectionOptions:
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
-                  ObjectRef<Shape>,
+                  ObjectRef<
+                    ShapeFromTypeParam<
+                      Types,
+                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      Nullable
+                    >
+                  >,
                   false,
                   false,
-                  ResolveReturnShape,
+                  PrismaConnectionShape<
+                    Types,
+                    ShapeFromTypeParam<
+                      Types,
+                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      Nullable
+                    >,
+                    Shape,
+                    Args
+                  >,
                   ConnectionInterfaces
                 >
               | ObjectRef<
@@ -130,9 +145,24 @@ export class PrismaObjectFieldBuilder<
             edgeOptions:
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
-                  ObjectRef<Shape>,
+                  ObjectRef<
+                    ShapeFromTypeParam<
+                      Types,
+                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      Nullable
+                    >
+                  >,
                   false,
-                  ResolveReturnShape,
+                  PrismaConnectionShape<
+                    Types,
+                    ShapeFromTypeParam<
+                      Types,
+                      [ObjectRef<Model['Relations'][Field & keyof Model['Relations']]['Shape']>],
+                      Nullable
+                    >,
+                    Shape,
+                    Args
+                  >,
                   EdgeInterfaces
                 >
               | ObjectRef<{
@@ -289,7 +319,7 @@ export class PrismaObjectFieldBuilder<
                   context,
                   info,
                 ),
-              ).then((result) => wrapConnectionResult(result, args, q.take, formatCursor))),
+              ).then((result) => wrapConnectionResult(parent, result, args, q.take, formatCursor))),
         },
         type: ref,
         resolve: (
@@ -300,6 +330,7 @@ export class PrismaObjectFieldBuilder<
           const connectionQuery = getQuery(args, context);
 
           return wrapConnectionResult(
+            parent,
             (parent as Record<string, never>)[name],
             args,
             connectionQuery.take,

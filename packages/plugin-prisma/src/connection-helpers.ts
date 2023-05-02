@@ -51,12 +51,14 @@ export function prismaConnectionHelpers<
   const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, options.cursor, builder);
   const fieldMap = getRelationMap(getDMMF(builder)).get(modelName)!;
 
-  function resolve(
+  function resolve<Parent = unknown>(
     list: (EdgeShape & {})[],
     args: PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
+    parent?: Parent,
   ) {
     return wrapConnectionResult(
+      parent,
       list,
       args,
       getQueryArgs(args, ctx).take,

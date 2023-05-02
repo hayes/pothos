@@ -46,6 +46,7 @@ export type InterfaceTypeOptions<Types extends SchemaTypes, Param extends Interf
 });
 export type EnumTypeOptions<Types extends SchemaTypes, Param extends EnumParam, Values extends EnumValues<Types>> = Param extends BaseEnum ? Merge<Omit<PothosSchemaTypes.EnumTypeOptions<Types, Values>, "values"> & {
     name: string;
+    values?: Partial<Record<keyof Param, Omit<PothosSchemaTypes.EnumValueConfig<Types>, "value">>>;
 }> : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
 export type ArgBuilder<Types extends SchemaTypes> = PothosSchemaTypes.InputFieldBuilder<Types, "Arg">["field"] & Omit<PothosSchemaTypes.InputFieldBuilder<Types, "Arg">, "field">;
 export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends GetParentShape<Types, Interfaces> ? Interfaces : "Object shape must extends interface shape" : never;

@@ -217,12 +217,14 @@ type QueryUnrelatedConnectionEdge {
 type QueryUserConnection {
   edges: [QueryUserConnectionEdge]!
   pageInfo: PageInfo!
+  test: String!
   totalCount: Int!
 }
 
 type QueryUserConnectionEdge {
   cursor: String!
   node: User!
+  test: Boolean
 }
 
 type QueryUserConnectionWithErrorsConnection {
@@ -379,12 +381,14 @@ union UserOrProfile = Profile | User
 type UserPostsConnection {
   edges: [UserPostsConnectionEdge]!
   pageInfo: PageInfo!
+  test: Boolean
   totalCount: Int!
 }
 
 type UserPostsConnectionEdge {
   cursor: String!
   node: Post!
+  test: Boolean
 }
 
 type UserPostsConnectionWithErrorsConnection {
@@ -423,6 +427,7 @@ type UserProfileWithErrorsSuccess {
 type Viewer {
   bio: String
   comments(after: ID, before: ID, first: Int, last: Int): ViewerCommentsConnection!
+  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int): ViewerCommentsWithNewQueryConnection!
   id: ID!
   postCount: Int!
   postPreviews: [PostPreview!]!
@@ -437,6 +442,16 @@ type ViewerCommentsConnection {
 }
 
 type ViewerCommentsConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type ViewerCommentsWithNewQueryConnection {
+  edges: [ViewerCommentsWithNewQueryConnectionEdge]!
+  pageInfo: PageInfo!
+}
+
+type ViewerCommentsWithNewQueryConnectionEdge {
   cursor: String!
   node: Post!
 }

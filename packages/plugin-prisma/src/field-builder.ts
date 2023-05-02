@@ -119,6 +119,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
       ) =>
         resolvePrismaCursorConnection(
           {
+            parent,
             query: queryFromInfo({
               context,
               info,

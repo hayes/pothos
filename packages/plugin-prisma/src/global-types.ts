@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-interface */
+import { A } from 'vitest/dist/types-fafda418';
 import {
   FieldKind,
   FieldMap,
@@ -7,6 +8,7 @@ import {
   FieldRef,
   InputFieldMap,
   InputFieldRef,
+  InputShapeFromFields,
   InterfaceParam,
   NormalizeArgs,
   OutputType,
@@ -21,6 +23,7 @@ import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './
 import {
   PrismaClient,
   PrismaConnectionFieldOptions,
+  PrismaConnectionShape,
   PrismaFieldOptions,
   PrismaFieldWithInputOptions,
   prismaModelName,
@@ -260,7 +263,7 @@ declare global {
                       ObjectRef<Shape>,
                       false,
                       false,
-                      ResolveReturnShape,
+                      PrismaConnectionShape<Types, Shape, ParentShape, Args>,
                       ConnectionInterfaces
                     >
                   | ObjectRef<ShapeFromConnection<ConnectionShapeHelper<Types, Shape, false>>>,
@@ -269,7 +272,7 @@ declare global {
                       Types,
                       ObjectRef<Shape>,
                       false,
-                      ResolveReturnShape,
+                      PrismaConnectionShape<Types, Shape, ParentShape, Args>,
                       EdgeInterfaces
                     >
                   | ObjectRef<{

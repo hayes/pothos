@@ -112,6 +112,35 @@ const Viewer = builder.prismaObject('User', {
       }),
       resolve: (user, args, ctx) => postConnectionHelpers.resolve(user.comments, args, ctx),
     }),
+    commentsWithNewQuery: t.connection({
+      type: PostRef,
+      resolve: async (user, args, ctx, info) => {
+        const comments = await prisma.comment.findMany({
+          ...(queryFromInfo({
+            context: ctx,
+            info,
+            path: ['edges', 'node'],
+            select: {
+              post: {
+                include: {
+                  author: true,
+                  comments: true,
+                },
+              },
+            },
+          }) as {
+            include: {
+              post: { include: { comments: { include: { author: true } } } };
+            };
+          }),
+          where: {
+            authorId: user.id,
+          },
+        });
+
+        return postConnectionHelpers.resolve(comments, args, ctx);
+      },
+    }),
   }),
 });
 
@@ -182,20 +211,39 @@ const User = builder.prismaNode('User', {
           where: { authorId: user.id },
         }),
     }),
-    postsConnection: t.relatedConnection('posts', {
-      totalCount: true,
-      cursor: 'createdAt',
-      args: {
-        oldestFirst: t.arg.boolean(),
-        published: t.arg.boolean(),
-      },
-      query: (args) => ({
-        ...(args.published == null ? {} : { where: { published: true } }),
-        orderBy: {
-          createdAt: args.oldestFirst ? 'asc' : 'desc',
+    postsConnection: t.relatedConnection(
+      'posts',
+      {
+        totalCount: true,
+        cursor: 'createdAt',
+        args: {
+          oldestFirst: t.arg.boolean(),
+          published: t.arg.boolean(),
         },
-      }),
-    }),
+        query: (args) => ({
+          ...(args.published == null ? {} : { where: { published: true } }),
+          orderBy: {
+            createdAt: args.oldestFirst ? 'asc' : 'desc',
+          },
+        }),
+      },
+      {
+        fields: (con) => ({
+          test: con.boolean({
+            nullable: true,
+            resolve: (p) => p.args.oldestFirst,
+          }),
+        }),
+      },
+      {
+        fields: (edge) => ({
+          test: edge.boolean({
+            nullable: true,
+            resolve: (p) => p.connection.args.oldestFirst,
+          }),
+        }),
+      },
+    ),
     postsSkipConnection: t.relatedConnection('posts', {
       totalCount: true,
       cursor: 'createdAt',
@@ -415,8 +463,17 @@ const SelectPost = builder.prismaNode('Post', {
         select: (args, ctx, nestedSelection) => ({
           comments: commentConnectionHelpers.getQuery(args, ctx, nestedSelection),
         }),
-        resolve: (parent, args, ctx) =>
-          commentConnectionHelpers.resolve(parent.comments, args, ctx),
+        resolve: async (parent, args, ctx) => {
+          const result = await commentConnectionHelpers.resolve(parent.comments, args, ctx);
+
+          return {
+            ...result,
+            edges: result.edges.map((edge) => ({
+              ...edge,
+              parent,
+            })),
+          };
+        },
       },
       CommentConnection,
     ),
@@ -667,23 +724,48 @@ builder.queryType({
           take: 2,
         }),
     }),
-    userConnection: t.prismaConnection({
-      type: 'User',
-      cursor: 'id',
-      defaultSize: 10,
-      maxSize: 15,
-      args: {
-        test: t.arg.boolean({}),
+    userConnection: t.prismaConnection(
+      {
+        type: 'User',
+        cursor: 'id',
+        defaultSize: 10,
+        maxSize: 15,
+        args: {
+          test: t.arg.boolean({}),
+        },
+        complexity: (args) => (args.test ? 1 : 0),
+        resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
+        totalCount: (parent, args, context, info) => prisma.user.count(),
       },
-      complexity: (args) => (args.test ? 1 : 0),
-      resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
-      totalCount: (parent, args, context, info) => prisma.user.count(),
-    }),
-    unrelatedConnection: t.prismaConnection({
-      type: 'Unrelated',
-      cursor: 'id',
-      resolve: (query, parent, args) => prisma.unrelated.findMany({ ...query }),
-    }),
+      {
+        fields: (e) => ({
+          test: e.string({
+            resolve: (parent) => String(parent.args.test),
+          }),
+        }),
+      },
+      {
+        fields: (e) => ({
+          test: e.boolean({
+            nullable: true,
+            resolve: (parent) => parent.connection.args.test,
+          }),
+        }),
+      },
+    ),
+    unrelatedConnection: t.prismaConnection(
+      {
+        type: 'Unrelated',
+        cursor: 'id',
+        resolve: async (query, parent, args) => {
+          const things = await prisma.unrelated.findMany({ ...query });
+
+          return things.map((thing) => ({ ...thing, parent }));
+        },
+      },
+      {},
+      {},
+    ),
     userConnectionWithErrors: t.prismaConnection({
       type: 'User',
       cursor: 'id',

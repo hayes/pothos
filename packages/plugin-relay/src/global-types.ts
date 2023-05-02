@@ -447,17 +447,19 @@ declare global {
     > extends ObjectTypeWithInterfaceOptions<
         Types,
         NonNullable<
-          Awaited<
-            ConnectionShapeFromResolve<
-              Types,
-              Type,
-              false,
-              false,
-              NodeNullability,
-              Resolved
-            >['edges']
-          >
-        >[number],
+          NonNullable<
+            Awaited<
+              ConnectionShapeFromResolve<
+                Types,
+                Type,
+                false,
+                false,
+                NodeNullability,
+                Resolved
+              >['edges']
+            >
+          >[number]
+        >,
         Interfaces
       > {
       name?: string;

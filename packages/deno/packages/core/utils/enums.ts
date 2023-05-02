@@ -27,7 +27,7 @@ export function normalizeEnumValues<Types extends SchemaTypes>(values: EnumValue
     }
     return result;
 }
-export function valuesFromEnum<Types extends SchemaTypes>(Enum: BaseEnum): Record<string, PothosEnumValueConfig<Types>> {
+export function valuesFromEnum<Types extends SchemaTypes>(Enum: BaseEnum, values?: Record<string, Omit<PothosSchemaTypes.EnumValueConfig<Types>, "value">>): Record<string, PothosEnumValueConfig<Types>> {
     const result: Record<string, PothosEnumValueConfig<Types>> = {};
     Object.keys(Enum)
         .filter((key) => typeof Enum[Enum[key]] !== "number")
@@ -35,6 +35,7 @@ export function valuesFromEnum<Types extends SchemaTypes>(Enum: BaseEnum): Recor
         result[key] = {
             value: Enum[key],
             pothosOptions: {},
+            ...values?.[key],
         };
     });
     return result;
