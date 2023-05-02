@@ -27,6 +27,19 @@ const Named = builder.interfaceRef<{ name: string | null }>('Named').implement({
   }),
 });
 
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    description: 'default totalCount field for all connections',
+    resolve: (connection) => {
+      if ('totalCount' in connection && typeof connection.totalCount === 'number') {
+        return connection.totalCount;
+      }
+
+      return 0;
+    },
+  }),
+);
+
 const PostPreview = builder.objectRef<Post>('PostPreview').implement({
   fields: (t) => ({
     post: t.field({

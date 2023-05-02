@@ -2,6 +2,7 @@ import { defaultTypeResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   completeValue,
   createContextCache,
+  FieldMap,
   FieldRef,
   getTypeBrand,
   InputObjectRef,
@@ -320,11 +321,16 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
 
 schemaBuilderProto.globalConnectionField = function globalConnectionField(name, field) {
   const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
-    this.objectField(
-      ref,
-      name,
-      field as ObjectFieldThunk<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
-    );
+    this.configStore.onPrepare(() => {
+      const config = this.configStore.getTypeConfig(ref);
+      if (!this.configStore.getFields(config.name).has(name)) {
+        this.objectField(
+          ref,
+          name,
+          field as ObjectFieldThunk<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
+        );
+      }
+    });
   };
 
   connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
@@ -338,10 +344,22 @@ schemaBuilderProto.globalConnectionField = function globalConnectionField(name, 
 
 schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fields) {
   const onRef = (ref: ObjectRef<ConnectionShape<SchemaTypes, unknown, boolean>>) => {
-    this.objectFields(
-      ref,
-      fields as ObjectFieldsShape<SchemaTypes, ConnectionShape<SchemaTypes, unknown, boolean>>,
-    );
+    this.configStore.onPrepare(() => {
+      const config = this.configStore.getTypeConfig(ref);
+      const existingFields = this.configStore.getFields(config.name);
+
+      this.objectFields(ref, (t) => {
+        const refs: FieldMap = {};
+
+        for (const [name, field] of Object.entries(fields(t as never))) {
+          if (!existingFields.has(name)) {
+            refs[name] = field;
+          }
+        }
+
+        return refs;
+      });
+    });
   };
 
   connectionRefs.get(this)?.forEach((ref) => void onRef(ref));
