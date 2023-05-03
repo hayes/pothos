@@ -352,11 +352,9 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
 }): { select: T } | { include?: {} } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
-  const state = createStateForType(type, info);
 
-  if (select) {
-    mergeSelection(state, { select });
-  }
+  let state: SelectionState | undefined;
+  const initialSelection = select ? { select } : undefined;
 
   if (path.length > 0) {
     const { pothosPrismaIndirectInclude } = (returnType.extensions ?? {}) as {
@@ -377,6 +375,13 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
           path.map((n) => (typeof n === 'string' ? { name: n } : n)),
           subPath,
           (resolvedType, resolvedField, nested) => {
+            state = createStateForType(
+              typeName ? type : resolvedType,
+              info,
+              undefined,
+              initialSelection,
+            );
+
             addTypeSelectionsForField(
               typeName ? type : resolvedType,
               context,
@@ -390,7 +395,13 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
       },
     );
   } else {
+    state = createStateForType(type, info, undefined, initialSelection);
+
     addTypeSelectionsForField(type, context, info, state, info.fieldNodes[0], []);
+  }
+
+  if (!state) {
+    state = createStateForType(type, info, undefined, initialSelection);
   }
 
   setLoaderMappings(context, info, state.mappings);
@@ -420,16 +431,23 @@ function createStateForType(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
   parent?: SelectionState,
+  initialSelections?: SelectionMap,
 ) {
   const targetType = getIndirectType(type, info);
 
   const fieldMap = targetType.extensions?.pothosPrismaFieldMap as FieldMap;
 
-  return createState(
+  const state = createState(
     fieldMap,
     targetType.extensions?.pothosPrismaSelect ? 'select' : 'include',
     parent,
   );
+
+  if (initialSelections) {
+    mergeSelection(state, initialSelections);
+  }
+
+  return state;
 }
 
 export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo) {
