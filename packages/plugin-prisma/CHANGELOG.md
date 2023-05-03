@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.49.1
+
+### Patch Changes
+
+- b39e7eab: Fix bug where queryFromInfo would default to the wrong type when setting path without
+  also specifying a typeName
+
 ## 3.49.0
 
 ### Minor Changes
