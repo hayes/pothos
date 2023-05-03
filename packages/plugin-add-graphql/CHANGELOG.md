@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 3.1.0
+
+### Minor Changes
+
+- 27b0638d: Update plugin imports so that no named imports are imported from files with side-effects
+
 ## 3.0.2
 
 ### Patch Changes
