@@ -1,3 +1,4 @@
+import { GraphQLResolveInfo } from 'graphql';
 import { Selection } from './types';
 
 type DirectiveList = { name: string; args?: {} }[];
@@ -36,3 +37,16 @@ export function mergeDirectives(
 
   return [...Object.keys(existing).map((name) => ({ name, args: existing[name] })), ...add];
 }
+
+export const entityMapping = new WeakMap<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PothosSchemaTypes.SchemaBuilder<any>,
+  Map<
+    string,
+    {
+      key: Selection<object> | Selection<object>[];
+      interfaceObject?: boolean;
+      resolveReference: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
+    }
+  >
+>();

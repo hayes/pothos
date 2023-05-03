@@ -1,5 +1,6 @@
 import './global-types';
 import './schema-builder';
+import './field-builder';
 import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -7,8 +8,8 @@ import SchemaBuilder, {
   PothosOutputFieldConfig,
   SchemaTypes,
 } from '@pothos/core';
-import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
+import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
 import { PrismaModelTypes } from './types';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors';
 import { getModel, getRefFromModel } from './util/datamodel';

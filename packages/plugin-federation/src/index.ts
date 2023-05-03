@@ -1,4 +1,5 @@
 import './global-types';
+import './schema-builder';
 import { defaultFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
@@ -10,8 +11,7 @@ import SchemaBuilder, {
   TypeParam,
 } from '@pothos/core';
 import { providesMap } from './external-ref';
-import { entityMapping } from './schema-builder';
-import { keyDirective, mergeDirectives } from './util';
+import { entityMapping, keyDirective, mergeDirectives } from './util';
 
 export * from './types';
 

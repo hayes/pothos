@@ -14,7 +14,7 @@ import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/t
 import SchemaBuilder, { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ExternalEntityRef } from './external-ref';
 import { Selection, SelectionFromShape, selectionShapeKey } from './types';
-import { mergeDirectives } from './util';
+import { entityMapping, mergeDirectives } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -143,19 +143,6 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
 
   return sorted;
 };
-
-export const entityMapping = new WeakMap<
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  PothosSchemaTypes.SchemaBuilder<any>,
-  Map<
-    string,
-    {
-      key: Selection<object> | Selection<object>[];
-      interfaceObject?: boolean;
-      resolveReference: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
-    }
-  >
->();
 
 schemaBuilderProto.asEntity = function asEntity(param, options) {
   if (!entityMapping.has(this)) {

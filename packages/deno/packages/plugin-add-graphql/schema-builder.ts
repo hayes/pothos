@@ -1,39 +1,10 @@
 // @ts-nocheck
 import './global-types.ts';
-import { defaultFieldResolver, getNamedType, GraphQLEnumType, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLNamedInputType, GraphQLNamedOutputType, GraphQLNamedType, GraphQLObjectType, GraphQLOutputType, GraphQLUnionType, isEnumType, isInputObjectType, isInterfaceType, isListType, isNonNullType, isObjectType, isScalarType, isUnionType, } from 'https://cdn.skypack.dev/graphql?dts';
-import SchemaBuilder, { createContextCache, EnumRef, EnumValueConfigMap, InputFieldRef, InputType, InputTypeParam, ObjectParam, ObjectRef, OutputType, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { defaultFieldResolver, getNamedType, GraphQLEnumType, GraphQLInputObjectType, GraphQLInputType, GraphQLInterfaceType, GraphQLNamedInputType, GraphQLNamedOutputType, GraphQLObjectType, GraphQLOutputType, GraphQLUnionType, isListType, isNonNullType, } from 'https://cdn.skypack.dev/graphql?dts';
+import SchemaBuilder, { EnumRef, EnumValueConfigMap, InputFieldRef, InputType, InputTypeParam, ObjectParam, ObjectRef, OutputType, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { AddGraphQLEnumTypeOptions, AddGraphQLInputTypeOptions, AddGraphQLInterfaceTypeOptions, AddGraphQLObjectTypeOptions, AddGraphQLUnionTypeOptions, EnumValuesWithShape, } from './types.ts';
+import { addReferencedType } from './utils.ts';
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
-export function addTypeToSchema<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, type: GraphQLNamedType) {
-    if (builder.configStore.hasConfig(type.name as never)) {
-        return;
-    }
-    if (isObjectType(type)) {
-        builder.addGraphQLObject(type, {});
-    }
-    else if (isInterfaceType(type)) {
-        builder.addGraphQLInterface(type, {});
-    }
-    else if (isUnionType(type)) {
-        builder.addGraphQLUnion(type, {});
-    }
-    else if (isEnumType(type)) {
-        builder.addGraphQLEnum(type, {});
-    }
-    else if (isInputObjectType(type)) {
-        builder.addGraphQLInput(type, {});
-    }
-    else if (isScalarType(type)) {
-        builder.addScalarType(type.name as never, type, {});
-    }
-}
-export function addReferencedType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, type: GraphQLNamedType) {
-    if (referencedTypes(builder).has(type)) {
-        return;
-    }
-    builder.configStore.onPrepare(() => void addTypeToSchema(builder, type));
-}
 function resolveOutputTypeRef(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>, type: GraphQLNamedOutputType) {
     addReferencedType(builder, type);
     return type.name as OutputType<SchemaTypes>;

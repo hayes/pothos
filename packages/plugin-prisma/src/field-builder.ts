@@ -14,8 +14,6 @@ import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } fr
 import { getRefFromModel } from './util/datamodel';
 import { queryFromInfo } from './util/map-query';
 
-export * from './prisma-field-builder';
-
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
   unknown,

@@ -9,10 +9,10 @@ import SchemaBuilder, {
   PothosError,
   SchemaTypes,
 } from '@pothos/core';
-import { PrismaObjectFieldBuilder } from './field-builder';
 import { ModelLoader } from './model-loader';
 import { PrismaNodeRef } from './node-ref';
 import { PrismaObjectRef } from './object-ref';
+import { PrismaObjectFieldBuilder } from './prisma-field-builder';
 import { PrismaModelTypes, PrismaNodeOptions } from './types';
 import { getDefaultIDParser, getDefaultIDSerializer } from './util/cursors';
 import { getDelegateFromModel, getRefFromModel } from './util/datamodel';

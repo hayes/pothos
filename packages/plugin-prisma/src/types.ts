@@ -21,8 +21,8 @@ import {
   typeBrandKey,
   TypeParam,
 } from '@pothos/core';
-import type { PrismaObjectFieldBuilder } from './field-builder';
 import { PrismaObjectRef } from './object-ref';
+import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
 
 export interface PrismaDelegate {
   findUniqueOrThrow?: (...args: any[]) => Promise<unknown>;

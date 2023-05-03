@@ -1,7 +1,8 @@
 import './global-types';
+import './schema-builder';
 import { GraphQLSchema } from 'graphql';
 import SchemaBuilder, { BasePlugin, SchemaTypes } from '@pothos/core';
-import { addTypeToSchema } from './schema-builder';
+import { addTypeToSchema } from './utils';
 
 const pluginName = 'addGraphQL' as const;
 

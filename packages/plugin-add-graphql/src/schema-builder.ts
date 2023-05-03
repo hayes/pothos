@@ -8,21 +8,13 @@ import {
   GraphQLInterfaceType,
   GraphQLNamedInputType,
   GraphQLNamedOutputType,
-  GraphQLNamedType,
   GraphQLObjectType,
   GraphQLOutputType,
   GraphQLUnionType,
-  isEnumType,
-  isInputObjectType,
-  isInterfaceType,
   isListType,
   isNonNullType,
-  isObjectType,
-  isScalarType,
-  isUnionType,
 } from 'graphql';
 import SchemaBuilder, {
-  createContextCache,
   EnumRef,
   EnumValueConfigMap,
   InputFieldRef,
@@ -42,43 +34,9 @@ import {
   AddGraphQLUnionTypeOptions,
   EnumValuesWithShape,
 } from './types';
+import { addReferencedType } from './utils';
 
 const proto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-
-export const referencedTypes = createContextCache(() => new Set<GraphQLNamedType>());
-
-export function addTypeToSchema<Types extends SchemaTypes>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  type: GraphQLNamedType,
-) {
-  if (builder.configStore.hasConfig(type.name as never)) {
-    return;
-  }
-
-  if (isObjectType(type)) {
-    builder.addGraphQLObject(type, {});
-  } else if (isInterfaceType(type)) {
-    builder.addGraphQLInterface(type, {});
-  } else if (isUnionType(type)) {
-    builder.addGraphQLUnion(type, {});
-  } else if (isEnumType(type)) {
-    builder.addGraphQLEnum(type, {});
-  } else if (isInputObjectType(type)) {
-    builder.addGraphQLInput(type, {});
-  } else if (isScalarType(type)) {
-    builder.addScalarType(type.name as never, type, {});
-  }
-}
-export function addReferencedType<Types extends SchemaTypes>(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  type: GraphQLNamedType,
-) {
-  if (referencedTypes(builder).has(type)) {
-    return;
-  }
-
-  builder.configStore.onPrepare(() => void addTypeToSchema(builder, type));
-}
 
 function resolveOutputTypeRef(
   builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
