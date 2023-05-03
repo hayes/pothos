@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.50.0
+
+### Minor Changes
+
+- 27b0638d: Update plugin imports so that no named imports are imported from files with side-effects
+
 ## 3.49.1
 
 ### Patch Changes
