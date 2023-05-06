@@ -58,7 +58,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
             <li>
               <a className="flex space-x-2 hover:underline" href="https://github.com/hayes/pothos">
                 <GithubLogo height={24} width={24} />
-                <span>Github</span>
+                <span>GitHub</span>
               </a>
             </li>
             <li className="hidden sm:block hover:underline">

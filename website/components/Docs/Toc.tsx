@@ -131,7 +131,7 @@ export function Toc({
         <Link href={currentPage.githubFile} className="flex space-x-2 mb-8 dark:text-white">
           <GithubLogo height={20} width={20} />
 
-          <span>Edit on Github</span>
+          <span>Edit on GitHub</span>
         </Link>
       )}
       <ol className="border-l border-darkGreen flex-shrink max-w-sm pr-2">
