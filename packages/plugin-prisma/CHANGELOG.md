@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.50.1
+
+### Patch Changes
+
+- 5b6007cd: Prevent unavailable prisma CreateInput types from being referenced by pothos generated
+  types.
+
 ## 3.50.0
 
 ### Minor Changes
