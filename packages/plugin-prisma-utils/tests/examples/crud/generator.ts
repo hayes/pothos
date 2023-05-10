@@ -252,8 +252,8 @@ export class PrismaCrudGenerator<Types extends SchemaTypes> {
           )!;
 
           return {
-            create: this.getCreateInput(relatedModel.name as Name, [relatedFieldName.name]),
-            connect: this.getWhereUnique(relatedModel.name as Name),
+            create: this.getCreateInput(relationField.type as Name, [relatedFieldName.name]),
+            connect: this.getWhereUnique(relationField.type as Name),
           };
         },
       } as never) as InputObjectRef<NonNullable<Model['Create'][Relation & keyof Model['Update']]>>;
