@@ -108,8 +108,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-validation
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -120,8 +120,8 @@ importers:
         specifier: 3.7.3
         version: 3.7.3(@types/node@18.15.5)(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
       react:
         specifier: ^18.2.0
         version: 18.2.0
@@ -326,8 +326,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-prisma
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -335,8 +335,8 @@ importers:
         specifier: 3.7.3
         version: 3.7.3(@types/node@18.15.5)(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   examples/prisma-federation:
     dependencies:
@@ -365,14 +365,14 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-prisma
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   examples/prisma-relay:
     dependencies:
@@ -389,8 +389,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-relay
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -398,8 +398,8 @@ importers:
         specifier: 3.7.3
         version: 3.7.3(@types/node@18.15.5)(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   examples/prisma-smart-subscriptions-apollo:
     dependencies:
@@ -419,8 +419,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-smart-subscriptions
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       body-parser:
         specifier: ^1.20.2
         version: 1.20.2
@@ -440,8 +440,8 @@ importers:
         specifier: ^5.12.0
         version: 5.12.0(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
       ws:
         specifier: ^8.13.0
         version: 8.13.0
@@ -471,8 +471,8 @@ importers:
         specifier: workspace:*
         version: link:../../packages/plugin-prisma
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -483,8 +483,8 @@ importers:
         specifier: 3.7.3
         version: 3.7.3(@types/node@18.15.5)(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   examples/relay-windowed-pagination:
     dependencies:
@@ -504,8 +504,8 @@ importers:
         specifier: 3.7.3
         version: 3.7.3(@types/node@18.15.5)(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   examples/simple-classes:
     dependencies:
@@ -794,8 +794,8 @@ importers:
         specifier: workspace:*
         version: link:../test-utils
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -806,8 +806,8 @@ importers:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   packages/plugin-prisma-utils:
     dependencies:
@@ -825,8 +825,8 @@ importers:
         specifier: workspace:*
         version: link:../test-utils
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -840,11 +840,11 @@ importers:
         specifier: ^2.8.6
         version: 2.8.6
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
       ts-node:
         specifier: ^10.9.1
-        version: 10.9.1(@swc/core@1.3.42)(@types/node@18.15.5)(typescript@5.0.2)
+        version: 10.9.1(typescript@5.0.2)
       typescript:
         specifier: ^5.0.2
         version: 5.0.2
@@ -885,8 +885,8 @@ importers:
         specifier: workspace:*
         version: link:../test-utils
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -894,8 +894,8 @@ importers:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   packages/plugin-simple-objects:
     devDependencies:
@@ -1002,8 +1002,8 @@ importers:
         specifier: workspace:*
         version: link:../test-utils
       '@prisma/client':
-        specifier: ^4.11.0
-        version: 4.11.0(prisma@4.11.0)
+        specifier: ^4.14.0
+        version: 4.14.0(prisma@4.14.0)
       graphql:
         specifier: 16.6.0
         version: 16.6.0
@@ -1011,8 +1011,8 @@ importers:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.6.0)
       prisma:
-        specifier: ^4.11.0
-        version: 4.11.0
+        specifier: ^4.14.0
+        version: 4.14.0
 
   packages/test-utils:
     dependencies:
@@ -4873,8 +4873,8 @@ packages:
       tslib: 2.5.0
       webcrypto-core: 1.7.6
 
-  /@prisma/client@4.11.0(prisma@4.11.0):
-    resolution: {integrity: sha512-0INHYkQIqgAjrt7NzhYpeDQi8x3Nvylc2uDngKyFDDj1tTRQ4uV1HnVmd1sQEraeVAN63SOK0dgCKQHlvjL0KA==}
+  /@prisma/client@4.14.0(prisma@4.14.0):
+    resolution: {integrity: sha512-MK/XaA2sFdfaOa7I9MjNKz6dxeIEdeZlnpNRoF2w3JuRLlFJLkpp6cD3yaqw2nUUhbrn3Iqe3ZpVV+VuGGil7Q==}
     engines: {node: '>=14.17'}
     requiresBuild: true
     peerDependencies:
@@ -4883,8 +4883,8 @@ packages:
       prisma:
         optional: true
     dependencies:
-      '@prisma/engines-version': 4.11.0-57.8fde8fef4033376662cad983758335009d522acb
-      prisma: 4.11.0
+      '@prisma/engines-version': 4.14.0-67.d9a4c5988f480fa576d43970d5a23641aa77bc9c
+      prisma: 4.14.0
 
   /@prisma/debug@4.11.0:
     resolution: {integrity: sha512-2ZCmY5l5IfMCnlsBYECysK3Gaoq4BWl7KbOLGDYRwrlZTA/DwUqJ3JrmroJQY6jHvSkyvMrkaJpQKo1QfKuuyw==}
@@ -4896,11 +4896,11 @@ packages:
       - supports-color
     dev: false
 
-  /@prisma/engines-version@4.11.0-57.8fde8fef4033376662cad983758335009d522acb:
-    resolution: {integrity: sha512-3Vd8Qq06d5xD8Ch5WauWcUUrsVPdMC6Ge8ILji8RFfyhUpqon6qSyGM0apvr1O8n8qH8cKkEFqRPsYjuz5r83g==}
+  /@prisma/engines-version@4.14.0-67.d9a4c5988f480fa576d43970d5a23641aa77bc9c:
+    resolution: {integrity: sha512-3jum8/YSudeSN0zGW5qkpz+wAN2V/NYCQ+BPjvHYDfWatLWlQkqy99toX0GysDeaUoBIJg1vaz2yKqiA3CFcQw==}
 
-  /@prisma/engines@4.11.0:
-    resolution: {integrity: sha512-0AEBi2HXGV02cf6ASsBPhfsVIbVSDC9nbQed4iiY5eHttW9ZtMxHThuKZE1pnESbr8HRdgmFSa/Kn4OSNYuibg==}
+  /@prisma/engines@4.14.0:
+    resolution: {integrity: sha512-PDNlhP/1vyTgmNyiucGqGCdXIp7HIkkvKO50si3y3PcceeHvqtiKPaH1iJdz63jCWMVMbj2MElSxXPOeBvEVIQ==}
     requiresBuild: true
 
   /@prisma/generator-helper@4.11.0:
@@ -7410,7 +7410,7 @@ packages:
   /cross-fetch@3.1.5:
     resolution: {integrity: sha512-lvb1SBsI0Z7GDwmuid+mU3kWVBwTVUbe7S0H52yaaAdQOXq2YktTCZdlAcNKFzE6QtRz0snpw9bNiPeOIkkQvw==}
     dependencies:
-      node-fetch: 2.6.7(encoding@0.1.13)
+      node-fetch: 2.6.7
     transitivePeerDependencies:
       - encoding
     dev: true
@@ -7994,6 +7994,7 @@ packages:
 
   /encoding@0.1.13:
     resolution: {integrity: sha512-ETBauow1T35Y/WZMkio9jiM0Z5xjHHmJ4XmjZOq1l/dXz3lr2sRn87nJy20RupqSh1F2m3HHPSp8ShIPQJrJ3A==}
+    requiresBuild: true
     dependencies:
       iconv-lite: 0.6.3
 
@@ -12501,6 +12502,18 @@ packages:
     resolution: {integrity: sha512-eh0GgfEkpnoWDq+VY8OyvYhFEzBk6jIYbRKdIlyTiAXIVJ8PyBaKb0rp7oDtoddbdoHWhq8wwr+XZ81F1rpNdA==}
     dev: false
 
+  /node-fetch@2.6.7:
+    resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
+    engines: {node: 4.x || >=6.0.0}
+    peerDependencies:
+      encoding: ^0.1.0
+    peerDependenciesMeta:
+      encoding:
+        optional: true
+    dependencies:
+      whatwg-url: 5.0.0
+    dev: true
+
   /node-fetch@2.6.7(encoding@0.1.13):
     resolution: {integrity: sha512-ZjMPFEfVx5j+y2yF35Kzx5sF7kDzxuDj6ziH4FFbOp87zKDZNx8yExJIb05OGF4Nlt9IHFIMBkRl41VdvcNdbQ==}
     engines: {node: 4.x || >=6.0.0}
@@ -12512,6 +12525,7 @@ packages:
     dependencies:
       encoding: 0.1.13
       whatwg-url: 5.0.0
+    dev: false
 
   /node-fetch@2.6.9:
     resolution: {integrity: sha512-DJm/CJkZkRjKKj4Zi4BsKVZh3ValV5IR5s7LVZnW+6YMh0W1BfNA8XSs6DLMGYlId5F3KnA70uu2qepcR08Qqg==}
@@ -13287,13 +13301,13 @@ packages:
       ansi-styles: 5.2.0
       react-is: 18.2.0
 
-  /prisma@4.11.0:
-    resolution: {integrity: sha512-4zZmBXssPUEiX+GeL0MUq/Yyie4ltiKmGu7jCJFnYMamNrrulTBc+D+QwAQSJ01tyzeGHlD13kOnqPwRipnlNw==}
+  /prisma@4.14.0:
+    resolution: {integrity: sha512-+5dMl1uxMQb4RepndY6AwR9xi1cDcaGFICu+ws6/Nmgt93mFPNj8tYxSfTdmfg+rkNrUId9rk/Ac2vTgLe/oXA==}
     engines: {node: '>=14.17'}
     hasBin: true
     requiresBuild: true
     dependencies:
-      '@prisma/engines': 4.11.0
+      '@prisma/engines': 4.14.0
 
   /process-nextick-args@2.0.1:
     resolution: {integrity: sha512-3ouUOpQhtgrbOa17J7+uxOTpITYWaGP7/AhoR3+A+/1e9skrzelGi/dXzEYyvbxubEF6Wn2ypscTKiKJFFn1ag==}
@@ -15110,7 +15124,7 @@ packages:
       yn: 3.1.1
     dev: false
 
-  /ts-node@10.9.1(@swc/core@1.3.42)(@types/node@18.15.5)(typescript@5.0.2):
+  /ts-node@10.9.1(typescript@5.0.2):
     resolution: {integrity: sha512-NtVysVPkxxrwFGUUxGYhfux8k78pQB3JqYBXlLRZgdGUqTO5wU/UyHop5p70iEbGhB7q5KmiZiU0Y3KlJrScEw==}
     hasBin: true
     peerDependencies:
@@ -15127,12 +15141,10 @@ packages:
         optional: true
     dependencies:
       '@cspotcode/source-map-support': 0.8.1
-      '@swc/core': 1.3.42
       '@tsconfig/node10': 1.0.9
       '@tsconfig/node12': 1.0.11
       '@tsconfig/node14': 1.0.3
       '@tsconfig/node16': 1.0.3
-      '@types/node': 18.15.5
       acorn: 8.8.2
       acorn-walk: 8.2.0
       arg: 4.1.3

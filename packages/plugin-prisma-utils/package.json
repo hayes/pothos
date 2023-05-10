@@ -60,12 +60,12 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.11.0",
+    "@prisma/client": "^4.14.0",
     "graphql": "16.6.0",
     "graphql-scalars": "^1.20.4",
     "graphql-tag": "^2.12.6",
     "prettier": "^2.8.6",
-    "prisma": "^4.11.0",
+    "prisma": "^4.14.0",
     "ts-node": "^10.9.1",
     "typescript": "^5.0.2"
   }
