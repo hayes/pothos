@@ -17,7 +17,7 @@ export interface DMMFField {
   isUpdatedAt?: boolean;
 }
 
-interface DMMF {
+export interface DMMF {
   datamodel: {
     models: {
       name: string;
@@ -27,6 +27,18 @@ interface DMMF {
       documentation?: string;
     }[];
   };
+}
+
+export interface RuntimeDataModel {
+  models: Record<
+    string,
+    {
+      fields: DMMFField[];
+      primaryKey: { name: string | null; fields: string[] } | null;
+      uniqueIndexes: { name: string | null; fields: string[] }[];
+      documentation?: string;
+    }
+  >;
 }
 
 const prismaClientCache = createContextCache(
@@ -51,15 +63,16 @@ export function getClient<Types extends SchemaTypes>(
 
 export function getDMMF<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-): DMMF {
+): DMMF['datamodel'] | RuntimeDataModel {
   if ('dmmf' in builder.options.prisma && builder.options.prisma.dmmf) {
-    return builder.options.prisma.dmmf as DMMF;
+    return (builder.options.prisma.dmmf as DMMF).datamodel;
   }
 
   const client = builder.options.prisma.client as unknown as {
     _baseDmmf?: DMMF;
     _dmmf: DMMF;
+    _runtimeDataModel: RuntimeDataModel;
   };
 
-  return client._baseDmmf ?? client._dmmf;
+  return client._runtimeDataModel ?? client._baseDmmf?.datamodel ?? client._dmmf.datamodel;
 }

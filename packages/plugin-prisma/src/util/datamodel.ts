@@ -67,7 +67,10 @@ export function getModel<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
 ) {
   const dmmf = getDMMF(builder);
-  const modelData = dmmf.datamodel.models.find((model) => model.name === name);
+
+  const modelData = Array.isArray(dmmf.models)
+    ? dmmf.models.find((model) => model.name === name)
+    : dmmf.models[name];
 
   if (!modelData) {
     throw new PothosSchemaError(`Model '${name}' not found in DMMF`);
