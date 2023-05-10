@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.51.0
+
+### Minor Changes
+
+- dbdb6f03: Fix compatability with prisma@4.13.*
+
 ## 3.50.1
 
 ### Patch Changes
