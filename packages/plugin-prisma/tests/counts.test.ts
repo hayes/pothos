@@ -25,12 +25,38 @@ describe('prisma counts', () => {
         userConnection(first: 1) {
           totalCount
         }
+        withFragment: userConnection(first: 1) {
+          ...totalCountFragment
+        }
+        withInlineFragment: userConnection(first: 1) {
+          ... on QueryUserConnection {
+            totalCount
+          }
+        }
         me {
           postCount
           publishedCount
           anotherPostCount: postCount
           postsConnection(first: 1) {
             totalCount
+            edges {
+              node {
+                id
+              }
+            }
+          }
+          postsConnectionFragment: postsConnection(first: 1) {
+            ...postsTotalCountFragment
+            edges {
+              node {
+                id
+              }
+            }
+          }
+          postsConnectionInlineFragment: postsConnection(first: 1) {
+            ... on UserPostsConnection {
+              inlineFragmentTotalCount: totalCount
+            }
             edges {
               node {
                 id
@@ -54,6 +80,14 @@ describe('prisma counts', () => {
             }
           }
         }
+      }
+
+      fragment totalCountFragment on QueryUserConnection {
+        totalCount
+      }
+
+      fragment postsTotalCountFragment on UserPostsConnection {
+        fragmentTotalCount: totalCount
       }
     `;
 
@@ -89,6 +123,26 @@ describe('prisma counts', () => {
               ],
               "totalCount": 250,
             },
+            "postsConnectionFragment": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "fragmentTotalCount": 250,
+            },
+            "postsConnectionInlineFragment": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "inlineFragmentTotalCount": 250,
+            },
             "publishedCount": 149,
             "publishedPosts": {
               "edges": [
@@ -104,12 +158,38 @@ describe('prisma counts', () => {
           "userConnection": {
             "totalCount": 100,
           },
+          "withFragment": {
+            "totalCount": 100,
+          },
+          "withInlineFragment": {
+            "totalCount": 100,
+          },
         },
       }
     `);
 
     expect(queries).toMatchInlineSnapshot(`
       [
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
         {
           "action": "findMany",
           "args": {
@@ -149,6 +229,20 @@ describe('prisma counts', () => {
               "id": 1,
             },
           },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "count",
+          "args": undefined,
           "dataPath": [],
           "model": "User",
           "runInTransaction": false,
