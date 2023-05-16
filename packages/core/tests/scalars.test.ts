@@ -1,18 +1,88 @@
-import { GraphQLScalarType } from 'graphql';
-import {
-  DateTimeResolver as ogDateTimeResolver,
-  PositiveIntResolver as ogPositiveIntResolver,
-} from 'graphql-scalars';
+import { execute, GraphQLScalarType } from 'graphql';
+import { DateTimeResolver as ogDateTimeResolver } from 'graphql-scalars';
+import gql from 'graphql-tag';
 import SchemaBuilder from '../src';
 
 // Add generic types while waiting for https://github.com/Urigo/graphql-scalars/pull/1920
 const DateTimeResolver = ogDateTimeResolver as GraphQLScalarType<Date, Date>;
-const PositiveIntResolver = ogPositiveIntResolver as GraphQLScalarType<number, number>;
+
+const PositiveIntResolver = new GraphQLScalarType({
+  name: 'PositiveInt',
+  serialize: (n) => n as number,
+  parseValue: (n) => {
+    if (typeof n !== 'number') {
+      throw new TypeError('Value must be a number');
+    }
+
+    if (n >= 0) {
+      return n;
+    }
+
+    throw new TypeError('Value must be positive');
+  },
+});
 
 describe('scalars', () => {
-  it.todo('when a scalar is added withScalars, the scalartype is added');
-  it.todo('when scalars are added using withScalars, the Scalars from the user schema are kept');
-  it.todo('when scalars are added using withScalars, the Objects from the user schema are kept');
+  it('when a scalar is added withScalars, the scalartype is added', () => {
+    const builder = new SchemaBuilder({}).withScalars({ PositiveInt: PositiveIntResolver });
+    builder.queryType();
+    builder.queryFields((t) => ({
+      positiveInt: t.field({
+        type: 'PositiveInt',
+        args: { v: t.arg.int({ required: true }) },
+        resolve: (_root, args) => args.v,
+      }),
+    }));
+
+    const schema = builder.toSchema();
+    expect(() =>
+      execute({
+        schema,
+        document: gql`query { positiveInt("hello") }`,
+      }),
+    ).toThrow('Expected Name, found String "hello"');
+  });
+
+  it('when scalars are added using withScalars, the Objects from the user schema are kept', async () => {
+    const builder = new SchemaBuilder<{
+      Objects: {
+        Example: { n: number };
+      };
+    }>({}).withScalars({
+      PositiveInt: PositiveIntResolver,
+    });
+
+    const Example = builder.objectType('Example', {
+      fields: (t) => ({
+        n: t.expose('n', {
+          type: 'PositiveInt',
+        }),
+      }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        example: t.field({
+          type: Example,
+          resolve: () => ({ n: 1 }),
+        }),
+      }),
+    });
+    const schema = builder.toSchema();
+
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          example {
+            n
+          }
+        }
+      `,
+    });
+    expect(result.data).toEqual({ example: { n: 1 } });
+  });
+
   it.todo('when scalars are added using withScalars, the Interfaces from the user schema are kept');
   it.todo('when scalars are added using withScalars, the Context from the user schema are kept');
   it.todo(
