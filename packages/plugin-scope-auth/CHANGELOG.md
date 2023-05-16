@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.19.2
+
+### Patch Changes
+
+- ce43b442: Fix issue where 2nd argument of authScopes on types would actually be the info object
+  when `treatErrorsAsUnauthorized` was enabled
+
 ## 3.19.1
 
 ### Patch Changes
