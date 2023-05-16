@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "1.5.13",
+  "version": "1.5.14",
   "name": "@pothos-examples/complex-app",
   "main": "src/index.ts",
   "types": "src/index.ts",
