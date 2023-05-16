@@ -23,6 +23,21 @@ please feel free to add any tips here
 
 1. Ensure that typescript is using `strict` mode
 
+2. Move your builder types to a separate named interface
+   - This will make many type errors significantly more readable
+
+```typescript
+interface PothosTypes {
+  Context: {
+    user: {
+      id: string;
+    };
+  };
+}
+
+const builder = new SchemaBuilder<PothosTypes>({...});
+```
+
 ## Slow vscode or typescript performance
 
 1. Ensure you are not including any very complex objects in your `Context` type. See

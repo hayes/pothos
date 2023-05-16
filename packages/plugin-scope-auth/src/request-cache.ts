@@ -419,7 +419,7 @@ export default class RequestCache<Types extends SchemaTypes> {
 
       if (this.treatErrorsAsUnauthorized) {
         try {
-          result = authScopes(parent, info);
+          result = authScopes(parent, this.context);
         } catch (error: unknown) {
           cache.set(parent, {
             kind: AuthScopeFailureType.AuthScopeFunction,
