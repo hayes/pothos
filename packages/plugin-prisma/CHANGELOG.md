@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.51.1
+
+### Patch Changes
+
+- e8139e73: Fixed a bug where totalCount was not selected correctly when selected through a fragment
+
 ## 3.51.0
 
 ### Minor Changes

@@ -1,5 +1,12 @@
 # @pothos-examples/prisma-subscriptions
 
+## 2.4.46
+
+### Patch Changes
+
+- Updated dependencies [e8139e73]
+  - @pothos/plugin-prisma@3.51.1
+
 ## 2.4.45
 
 ### Patch Changes
