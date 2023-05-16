@@ -1,4 +1,4 @@
-import { GraphQLScalarType, Kind } from 'graphql';
+import { GraphQLScalarType } from 'graphql';
 import {
   DateTimeResolver as ogDateTimeResolver,
   PositiveIntResolver as ogPositiveIntResolver,
@@ -11,14 +11,23 @@ const PositiveIntResolver = ogPositiveIntResolver as GraphQLScalarType<number, n
 
 describe('scalars', () => {
   it.todo('when a scalar is added withScalars, the scalartype is added');
+  it.todo('when scalars are added using withScalars, the Scalars from the user schema are kept');
+  it.todo('when scalars are added using withScalars, the Objects from the user schema are kept');
+  it.todo('when scalars are added using withScalars, the Interfaces from the user schema are kept');
+  it.todo('when scalars are added using withScalars, the Context from the user schema are kept');
+  it.todo(
+    'when scalars are added using withScalars, the DefaultFieldNullability from the user schema are kept',
+  );
+  it.todo(
+    'when scalars are added using withScalars, the DefaultInputFieldRequiredness from the user schema are kept',
+  );
+
   it('when scalars are added withScalars, scalars can still be manually typed', () => {
     const builder = new SchemaBuilder<{
       Scalars: {
         PositiveInt: { Input: number; Output: number };
       };
-    }>({}).withScalars({
-      DateTime: DateTimeResolver,
-    });
+    }>({}).withScalars({ DateTime: DateTimeResolver });
 
     builder.addScalarType('PositiveInt', PositiveIntResolver, {});
 
