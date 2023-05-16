@@ -25,38 +25,12 @@ describe('prisma counts', () => {
         userConnection(first: 1) {
           totalCount
         }
-        withFragment: userConnection(first: 1) {
-          ...totalCountFragment
-        }
-        withInlineFragment: userConnection(first: 1) {
-          ... on QueryUserConnection {
-            totalCount
-          }
-        }
         me {
           postCount
           publishedCount
           anotherPostCount: postCount
           postsConnection(first: 1) {
             totalCount
-            edges {
-              node {
-                id
-              }
-            }
-          }
-          postsConnectionFragment: postsConnection(first: 1) {
-            ...postsTotalCountFragment
-            edges {
-              node {
-                id
-              }
-            }
-          }
-          postsConnectionInlineFragment: postsConnection(first: 1) {
-            ... on UserPostsConnection {
-              inlineFragmentTotalCount: totalCount
-            }
             edges {
               node {
                 id
@@ -80,14 +54,6 @@ describe('prisma counts', () => {
             }
           }
         }
-      }
-
-      fragment totalCountFragment on QueryUserConnection {
-        totalCount
-      }
-
-      fragment postsTotalCountFragment on UserPostsConnection {
-        fragmentTotalCount: totalCount
       }
     `;
 
@@ -123,26 +89,6 @@ describe('prisma counts', () => {
               ],
               "totalCount": 250,
             },
-            "postsConnectionFragment": {
-              "edges": [
-                {
-                  "node": {
-                    "id": "250",
-                  },
-                },
-              ],
-              "fragmentTotalCount": 250,
-            },
-            "postsConnectionInlineFragment": {
-              "edges": [
-                {
-                  "node": {
-                    "id": "250",
-                  },
-                },
-              ],
-              "inlineFragmentTotalCount": 250,
-            },
             "publishedCount": 149,
             "publishedPosts": {
               "edges": [
@@ -158,38 +104,12 @@ describe('prisma counts', () => {
           "userConnection": {
             "totalCount": 100,
           },
-          "withFragment": {
-            "totalCount": 100,
-          },
-          "withInlineFragment": {
-            "totalCount": 100,
-          },
         },
       }
     `);
 
     expect(queries).toMatchInlineSnapshot(`
       [
-        {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
         {
           "action": "findMany",
           "args": {
@@ -229,20 +149,6 @@ describe('prisma counts', () => {
               "id": 1,
             },
           },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
-          "action": "count",
-          "args": undefined,
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
-          "action": "count",
-          "args": undefined,
           "dataPath": [],
           "model": "User",
           "runInTransaction": false,
@@ -323,6 +229,224 @@ describe('prisma counts', () => {
               "id": 1,
             },
           },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('connection totalCount in fragment', async () => {
+    const query = gql`
+      query {
+        userConnection(first: 1) {
+          ...totalCountFragment
+        }
+        me {
+          postsConnectionFragment: postsConnection(first: 1) {
+            ...postsTotalCountFragment
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+
+      fragment totalCountFragment on QueryUserConnection {
+        totalCount
+      }
+
+      fragment postsTotalCountFragment on UserPostsConnection {
+        fragmentTotalCount: totalCount
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "postsConnectionFragment": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "fragmentTotalCount": 250,
+            },
+          },
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('connection totalCount in inline fragment', async () => {
+    const query = gql`
+      query {
+        userConnection(first: 1) {
+          ... on QueryUserConnection {
+            totalCount
+          }
+        }
+        me {
+          postsConnectionFragment: postsConnection(first: 1) {
+            ... on UserPostsConnection {
+              totalCount
+            }
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "postsConnectionFragment": {
+              "edges": [
+                {
+                  "node": {
+                    "id": "250",
+                  },
+                },
+              ],
+              "totalCount": 250,
+            },
+          },
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "count",
+          "args": undefined,
           "dataPath": [],
           "model": "User",
           "runInTransaction": false,

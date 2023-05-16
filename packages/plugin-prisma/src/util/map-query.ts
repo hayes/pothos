@@ -134,9 +134,12 @@ function resolveIndirectInclude(
         }
         continue;
       case Kind.FRAGMENT_SPREAD:
-        if (info.fragments[sel.name.value].typeCondition.name.value === include.type) {
+        if (
+          !include.type ||
+          info.fragments[sel.name.value].typeCondition.name.value === include.type
+        ) {
           resolveIndirectInclude(
-            info.schema.getType(include.type)!,
+            include.type ? info.schema.getType(include.type)! : type,
             info,
             info.fragments[sel.name.value],
             includePath,
@@ -148,7 +151,7 @@ function resolveIndirectInclude(
         continue;
 
       case Kind.INLINE_FRAGMENT:
-        if (!sel.typeCondition || sel.typeCondition.name.value === include.type) {
+        if (!sel.typeCondition || !include.type || sel.typeCondition.name.value === include.type) {
           resolveIndirectInclude(
             sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : type,
             info,
