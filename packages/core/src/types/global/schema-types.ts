@@ -7,6 +7,7 @@ import type { IsStrictMode } from '../utils';
 declare global {
   export namespace PothosSchemaTypes {
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      scalars?: unknown[];
       plugins?: (keyof PluginConstructorMap<Types>)[];
       defaultFieldNullability: false extends Types['DefaultFieldNullability']
         ? never

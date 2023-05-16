@@ -28,6 +28,7 @@ import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
+import { toPairs } from './toPairs';
 import type {
   AbstractReturnShape,
   BaseEnum,
@@ -584,8 +585,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const [options = {}] = args;
     const { directives, extensions } = options;
 
-    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
-    scalars.forEach((scalar) => {
+    const builtInScalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
+    builtInScalars.forEach((scalar) => {
       if (!this.configStore.hasConfig(scalar.name as OutputType<Types>)) {
         this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
       }
@@ -613,5 +614,31 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return options.sortSchema === false
       ? processedSchema
       : lexicographicSortSchema(processedSchema);
+  }
+
+  withScalars<const ScalarRecord extends Record<string, GraphQLScalarType>>(scalars: ScalarRecord) {
+    const that = this as unknown as SchemaBuilder<
+      PothosSchemaTypes.ExtendDefaultTypes<
+        Types & {
+          Scalars: {
+            // Extract the Input and Output types from GraphQLScalarType's generics
+            [Property in keyof ScalarRecord]: ScalarRecord[Property] extends GraphQLScalarType<
+              infer TInternal,
+              infer TExternal
+            >
+              ? {
+                  Input: TInternal;
+                  Output: TExternal;
+                }
+              : never;
+          };
+        }
+      >
+    >;
+
+    for (const [name, scalar] of toPairs(scalars)) {
+      that.addScalarType(name, scalar, {});
+    }
+    return that;
   }
 }

@@ -5,15 +5,24 @@ menu: Guide
 description: Guide for defining Scalar types in Pothos
 ---
 
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+export default DocsPage;
 
-export default DocsPage
-
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Scalars
+
+## Adding GraphQL Scalars that have type information
+
+To add a custom scalar that has been implemented as GraphQLScalarType from
+[graphql-js](https://github.com/graphql/graphql-js), when the GraphQLScalar has `TInteral` and
+`TExternal` type information this can be inferred using `withScalars.
+
+```typescript
+const builder = new SchemaBuilder({}).withScalars({ Date: CustomDateScalar });
+```
 
 ## Adding GraphQL Scalars
 
@@ -34,9 +43,9 @@ const builder = new SchemaBuilder<{
 builder.addScalarType('Date', CustomDateScalar, {});
 ```
 
-The Input type is the type that will be used when the type is used in an argument or
-`InputObject`. The Output type is used to validate the resolvers return the correct value when using
-the scalar in their return type.
+The Input type is the type that will be used when the type is used in an argument or `InputObject`.
+The Output type is used to validate the resolvers return the correct value when using the scalar in
+their return type.
 
 ## Defining your own scalars
 
@@ -60,6 +69,33 @@ builder.scalarType('PositiveInt', {
     throw new Error('Value must be positive');
   },
 });
+```
+
+or using `graphql` and `withScalars`
+
+```typescript
+import { GraphQLScalarType, Kind } from 'graphql';
+
+const PositiveInt = new GraphQLScalarType<number, number>({
+  name: 'PositiveInt',
+  serialize: (n) => {
+    if (typeof n !== 'number') {
+      throw new TypeError('Value must be number');
+    }
+    return n;
+  },
+  parseValue: (n) => {
+    if (typeof n !== 'number') {
+      throw new TypeError('Value must be number');
+    }
+    if (n >= 0) {
+      return n;
+    }
+    throw new Error('Value must be positive');
+  },
+});
+
+const builder = new SchemaBuilder({}).withScalars({ PositiveInt });
 ```
 
 ## Using scalars
