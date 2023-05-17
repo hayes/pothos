@@ -617,22 +617,20 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
 
   withScalars<const ScalarRecord extends Record<string, GraphQLScalarType>>(scalars: ScalarRecord) {
     const builder = this as unknown as SchemaBuilder<
-      PothosSchemaTypes.ExtendDefaultTypes<
-        Types & {
-          Scalars: {
-            // Extract the Input and Output types from GraphQLScalarType's generics
-            [Property in keyof ScalarRecord]: ScalarRecord[Property] extends GraphQLScalarType<
-              infer TInternal,
-              infer TExternal
-            >
-              ? {
-                  Input: TInternal;
-                  Output: TExternal;
-                }
-              : never;
-          };
-        }
-      >
+      Types & {
+        Scalars: {
+          // Extract the Input and Output types from GraphQLScalarType's generics
+          [Property in keyof ScalarRecord]: ScalarRecord[Property] extends GraphQLScalarType<
+            infer TInternal,
+            infer TExternal
+          >
+            ? {
+                Input: TInternal;
+                Output: TExternal;
+              }
+            : never;
+        };
+      }
     >;
 
     for (const [name, scalar] of Object.entries(scalars)) {
