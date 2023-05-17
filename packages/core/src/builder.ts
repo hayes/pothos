@@ -28,7 +28,6 @@ import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface';
 import ObjectRef, { ImplementableObjectRef } from './refs/object';
 import ScalarRef from './refs/scalar';
 import UnionRef from './refs/union';
-import { toPairs } from './toPairs';
 import type {
   AbstractReturnShape,
   BaseEnum,
@@ -636,7 +635,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       >
     >;
 
-    for (const [name, scalar] of toPairs(scalars)) {
+    for (const [name, scalar] of Object.entries(scalars)) {
       builder.addScalarType(name, scalar, {});
     }
     return builder;
