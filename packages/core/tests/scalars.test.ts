@@ -135,7 +135,7 @@ describe('scalars', () => {
       name: 'Kiwi',
       interfaces: ['Animal'],
       isTypeOf: (value) => value instanceof Kiwi,
-      description: 'Long necks, cool patterns, taller than you.',
+      description: 'Long beaks, little legs, rounder than you.',
       fields: (t) => ({
         name: t.exposeString('name', {}),
         age: t.int({
