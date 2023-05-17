@@ -619,14 +619,14 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const builder = this as unknown as SchemaBuilder<
       Types & {
         Scalars: {
-          // Extract the Input and Output types from GraphQLScalarType's generics
+          // Extract the Input  types from GraphQLScalarType's generics
           [Property in keyof ScalarRecord]: ScalarRecord[Property] extends GraphQLScalarType<
             infer TInternal,
-            infer TExternal
+            unknown
           >
             ? {
                 Input: TInternal;
-                Output: TExternal;
+                Output: TInternal;
               }
             : never;
         };
