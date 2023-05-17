@@ -1,5 +1,5 @@
 import { execute, GraphQLScalarType } from 'graphql';
-import { DateTimeResolver as ogDateTimeResolver } from 'graphql-scalars';
+import { DateTimeResolver as ogDateTimeResolver, NonNegativeIntResolver } from 'graphql-scalars';
 import gql from 'graphql-tag';
 import SchemaBuilder from '../src';
 
@@ -21,6 +21,34 @@ const PositiveIntResolver = new GraphQLScalarType({
     throw new TypeError('Value must be positive');
   },
 });
+
+enum Diet {
+  HERBIVOROUS,
+  CARNIVOROUS,
+  OMNIVORIOUS,
+}
+
+class Animal {
+  diet: Diet;
+
+  constructor(diet: Diet) {
+    this.diet = diet;
+  }
+}
+
+class Kiwi extends Animal {
+  name: string;
+  birthday: Date;
+  heightInMeters: number;
+
+  constructor(name: string, birthday: Date, heightInMeters: number) {
+    super(Diet.HERBIVOROUS);
+
+    this.name = name;
+    this.birthday = birthday;
+    this.heightInMeters = heightInMeters;
+  }
+}
 
 describe('scalars', () => {
   it('when a scalar is added withScalars, the scalartype is added', () => {
@@ -83,14 +111,155 @@ describe('scalars', () => {
     expect(result.data).toEqual({ example: { n: 1 } });
   });
 
-  it.todo('when scalars are added using withScalars, the Interfaces from the user schema are kept');
-  it.todo('when scalars are added using withScalars, the Context from the user schema are kept');
-  it.todo(
-    'when scalars are added using withScalars, the DefaultFieldNullability from the user schema are kept',
-  );
-  it.todo(
-    'when scalars are added using withScalars, the DefaultInputFieldRequiredness from the user schema are kept',
-  );
+  it('when scalars are added using withScalars, the Interfaces from the user schema are kept', async () => {
+    const builder = new SchemaBuilder<{
+      Interfaces: {
+        Animal: Animal;
+      };
+    }>({}).withScalars({
+      NonNegativeInt: NonNegativeIntResolver,
+    });
+
+    builder.enumType(Diet, { name: 'Diet' });
+
+    builder.interfaceType('Animal', {
+      fields: (t) => ({
+        diet: t.expose('diet', {
+          exampleRequiredOptionFromPlugin: true,
+          type: Diet,
+        }),
+      }),
+    });
+
+    builder.objectType(Kiwi, {
+      name: 'Kiwi',
+      interfaces: ['Animal'],
+      isTypeOf: (value) => value instanceof Kiwi,
+      description: 'Long necks, cool patterns, taller than you.',
+      fields: (t) => ({
+        name: t.exposeString('name', {}),
+        age: t.int({
+          resolve: (parent) => 5, // hard coded so test don't break over time
+        }),
+      }),
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        kiwi: t.field({
+          type: 'Animal',
+          resolve: () => new Kiwi('TV Kiwi', new Date(Date.UTC(1975, 0, 1)), 0.5),
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          kiwi {
+            name
+            age
+            heightInMeters
+          }
+        }
+      `,
+    });
+    expect(result.data).toEqual({ kiwi: { name: 'TV Kiwi', age: 5 } });
+  });
+  it('when scalars are added using withScalars, the Context from the user schema are kept', async () => {
+    const builder = new SchemaBuilder<{
+      Context: { name: string };
+    }>({}).withScalars({
+      NonNegativeInt: NonNegativeIntResolver,
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        name: t.field({
+          type: 'String',
+          resolve: (_root, _args, context) => context.name,
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          name
+        }
+      `,
+      contextValue: { name: 'Hello' },
+    });
+    expect(result.data).toEqual({ name: 'Hello' });
+  });
+
+  it('when scalars are added using withScalars, the DefaultFieldNullability from the user schema are kept', async () => {
+    const builder = new SchemaBuilder<{
+      DefaultFieldNullability: true;
+    }>({
+      defaultFieldNullability: true,
+    }).withScalars({
+      NonNegativeInt: NonNegativeIntResolver,
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        name: t.field({
+          type: 'String',
+          resolve: () => null,
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          name
+        }
+      `,
+    });
+    expect(result.data).toEqual({ name: null });
+  });
+
+  it('when scalars are added using withScalars, the DefaultInputFieldRequiredness from the user schema are kept', async () => {
+    const builder = new SchemaBuilder<{
+      DefaultInputFieldRequiredness: true;
+    }>({
+      defaultInputFieldRequiredness: true,
+    }).withScalars({
+      NonNegativeInt: NonNegativeIntResolver,
+    });
+
+    builder.queryType({
+      fields: (t) => ({
+        example: t.field({
+          type: 'Int',
+          args: {
+            v: t.arg.int(),
+          },
+          // Would be a type error here if didn't work
+          resolve: (_root, args) => args.v,
+        }),
+      }),
+    });
+
+    const schema = builder.toSchema();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          example(v: 3)
+        }
+      `,
+    });
+    expect(result.data).toEqual({ example: 3 });
+  });
 
   it('when scalars are added withScalars, scalars can still be manually typed', () => {
     const builder = new SchemaBuilder<{
