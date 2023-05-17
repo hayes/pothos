@@ -617,7 +617,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   withScalars<const ScalarRecord extends Record<string, GraphQLScalarType>>(scalars: ScalarRecord) {
-    const that = this as unknown as SchemaBuilder<
+    const builder = this as unknown as SchemaBuilder<
       PothosSchemaTypes.ExtendDefaultTypes<
         Types & {
           Scalars: {
@@ -637,8 +637,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     >;
 
     for (const [name, scalar] of toPairs(scalars)) {
-      that.addScalarType(name, scalar, {});
+      builder.addScalarType(name, scalar, {});
     }
-    return that;
+    return builder;
   }
 }
