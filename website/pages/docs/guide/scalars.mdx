@@ -15,7 +15,7 @@ export const getStaticProps = () => ({ props: { nav: buildNav() }})
 
 # Scalars
 
-## Adding GraphQL Scalars
+## Adding Custom GraphQL Scalars
 
 To add a custom scalar that has been implemented as GraphQLScalar from
 [graphql-js](https://github.com/graphql/graphql-js) you need to provide some type information in
@@ -37,6 +37,41 @@ builder.addScalarType('Date', CustomDateScalar, {});
 The Input type is the type that will be used when the type is used in an argument or
 `InputObject`. The Output type is used to validate the resolvers return the correct value when using
 the scalar in their return type.
+
+## Adding Scalars from `graphql-scalars`
+
+Similarly to adding your own custom scalars, you can utilize scalars from the
+[graphql-scalars](https://the-guild.dev/graphql/scalars/docs) library by also providing
+the types through the SchemaTypes generic parameter.
+
+Note that when implementing the graphql-scalars library, the JavaScript/TypeScript Input and Output
+types are *not* always intuitive. For example, you might assume that the `JSON` type from graphql-scalars
+would utilize the JavaScript [JSON](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON)
+type, which is incorrect (it uses `any`). If you have trouble with typing after implementing a scalar, you should check the
+`codegenScalarType` inside file where the scalar is defined by `graphql-scalars`
+([JSON scalar definition, for reference](https://github.com/Urigo/graphql-scalars/blob/6bdccebb27a7f9be7b5d01dfb052a3e9c17432fc/src/scalars/json/JSON.ts#L17)).
+You should aim to match that type unless it's `any`, in which case you should use `unknown`. These
+files are located inside `src/scalars` in the `graphql-scalars` GitHub repository.
+
+```typescript
+import { DateResolver, JSONResolver } from 'graphql-scalars';
+
+const builder = new SchemaBuilder<{
+  Scalars: {
+    JSON: {
+      Input: unknown;
+      Output: unknown;
+    };
+    Date: {
+      Input: Date;
+      Output: Date;
+    };
+  };
+}>({});
+
+builder.addScalarType('JSON', JSONResolver, {});
+builder.addScalarType('Date', DateResolver, {});
+```
 
 ## Defining your own scalars
 
