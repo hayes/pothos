@@ -143,8 +143,8 @@ describe('validation', () => {
           "validList": true,
         },
         "errors": [
-          [GraphQLError: 0.id: String must contain at least 2 character(s)],
           [GraphQLError: input.nested.id: String must contain at least 2 character(s)],
+          [GraphQLError: 0.id: String must contain at least 2 character(s)],
         ],
       }
     `);
@@ -194,6 +194,10 @@ describe('validation', () => {
       query {
         valid: argsSchema(num: 3, string: "abc")
         invalid: argsSchema(num: 1, string: "a")
+        validInput: withSchemaInput(input: { name: "abc" })
+        validInputList: withSchemaInputList(input: [{ name: "abc" }])
+        invalidInput: withSchemaInput(input: { name: "a" })
+        invalidInputList: withSchemaInputList(input: [{ name: "a" }])
       }
     `;
 
@@ -207,10 +211,16 @@ describe('validation', () => {
       {
         "data": {
           "invalid": null,
+          "invalidInput": null,
+          "invalidInputList": null,
           "valid": true,
+          "validInput": true,
+          "validInputList": true,
         },
         "errors": [
           [GraphQLError: num: Number must be greater than or equal to 2, string: String must contain at least 2 character(s)],
+          [GraphQLError: input.name: String must contain at least 2 character(s)],
+          [GraphQLError: input.0.name: String must contain at least 2 character(s)],
         ],
       }
     `);

@@ -294,6 +294,15 @@ const NestedObjectListInput = builder.inputType('NestedObjectListInput', {
   }),
 });
 
+const WithSchemaInput = builder.inputType('WithSchemaInput', {
+  fields: (t) => ({
+    name: t.string(),
+  }),
+  validate: {
+    schema: zod.object({ name: zod.string().min(2) }),
+  },
+});
+
 builder.queryField('soloNested', (t) =>
   t.boolean({
     nullable: true,
@@ -329,6 +338,26 @@ builder.queryField('withValidationAndFieldValidator', (t) =>
     nullable: true,
     args: {
       input: t.arg({ type: WithValidationAndFieldValidator }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withSchemaInput', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: WithSchemaInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withSchemaInputList', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: [WithSchemaInput] }),
     },
     resolve: () => true,
   }),
