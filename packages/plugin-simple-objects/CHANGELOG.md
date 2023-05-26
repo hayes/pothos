@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.0
+
+### Minor Changes
+
+- 740f09c6: Add fields as 3rd argument for simpleObject and simpleInterface
+
 ## 3.6.8
 
 ### Patch Changes
