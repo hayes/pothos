@@ -17,6 +17,7 @@ type Query {
 type User implements Node {
   contactInfo: ContactInfo!
   firstName: String!
+  fullName: String!
   id: ID!
   lastName: String!
 }"
@@ -31,6 +32,7 @@ exports[`simple objects example schema > queries > query some stuff 1`] = `
         "phoneNumber": null,
       },
       "firstName": "Michael",
+      "fullName": "Michael Hayes",
       "id": "1",
       "lastName": "Hayes",
     },

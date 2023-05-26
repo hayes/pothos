@@ -19,17 +19,25 @@ const Node = builder.simpleInterface('Node', {
   }),
 });
 
-const UserType = builder.simpleObject('User', {
-  interfaces: [Node],
-  fields: (t) => ({
-    firstName: t.string(),
-    lastName: t.string(),
-    contactInfo: t.field({
-      type: ContactInfo,
-      nullable: false,
+const UserType = builder.simpleObject(
+  'User',
+  {
+    interfaces: [Node],
+    fields: (t) => ({
+      firstName: t.string(),
+      lastName: t.string(),
+      contactInfo: t.field({
+        type: ContactInfo,
+        nullable: false,
+      }),
+    }),
+  },
+  (t) => ({
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
   }),
-});
+);
 
 builder.queryType({
   fields: (t) => ({

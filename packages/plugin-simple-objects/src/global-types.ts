@@ -3,8 +3,10 @@ import {
   FieldMap,
   FieldNullability,
   InputFieldMap,
+  InterfaceFieldsShape,
   InterfaceParam,
   Normalize,
+  ObjectFieldsShape,
   ParentShape,
   SchemaTypes,
   TypeParam,
@@ -28,6 +30,7 @@ declare global {
       >(
         name: string,
         options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
+        fields?: ObjectFieldsShape<Types, Shape>,
       ) => ObjectRef<Shape>;
 
       simpleInterface: <
@@ -37,6 +40,7 @@ declare global {
       >(
         name: string,
         options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
+        fields?: InterfaceFieldsShape<Types, Shape>,
       ) => InterfaceRef<Shape>;
     }
 
