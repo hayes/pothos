@@ -5,13 +5,12 @@ menu: Guide
 description: Guide for defining Scalar types in Pothos
 ---
 
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+export default DocsPage;
 
-export default DocsPage
-
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Scalars
 
@@ -34,24 +33,44 @@ const builder = new SchemaBuilder<{
 builder.addScalarType('Date', CustomDateScalar, {});
 ```
 
-The Input type is the type that will be used when the type is used in an argument or
-`InputObject`. The Output type is used to validate the resolvers return the correct value when using
-the scalar in their return type.
+The Input type is the type that will be used when the type is used in an argument or `InputObject`.
+The Output type is used to validate the resolvers return the correct value when using the scalar in
+their return type.
+
+For many scalars `Input` and `Outout` will be the same, but they do not always need to match. The
+Scalars generic can be used to change types for the built-in scalars.
+
+For example, the defaults for the ID scalar might not be exactly what you want by default, you can
+customize the values like so:
+
+```typescript
+const builder = new SchemaBuilder<{
+  Scalars: {
+    ID: {
+      // type all ID arguments and input values as string
+      Input: string;
+      // Allow resolvers for ID fields to return strings, numbers, or bigints
+      Output: string | number | bigint;
+    };
+  };
+}>({});
+```
 
 ## Adding Scalars from `graphql-scalars`
 
 Similarly to adding your own custom scalars, you can utilize scalars from the
-[graphql-scalars](https://the-guild.dev/graphql/scalars/docs) library by also providing
-the types through the SchemaTypes generic parameter.
+[graphql-scalars](https://the-guild.dev/graphql/scalars/docs) library by also providing the types
+through the SchemaTypes generic parameter.
 
-Note that when implementing the graphql-scalars library, the JavaScript/TypeScript Input and Output
-types are *not* always intuitive. For example, you might assume that the `JSON` type from graphql-scalars
-would utilize the JavaScript [JSON](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/JSON)
-type, which is incorrect (it uses `any`). If you have trouble with typing after implementing a scalar, you should check the
-`codegenScalarType` inside file where the scalar is defined by `graphql-scalars`
-([JSON scalar definition, for reference](https://github.com/Urigo/graphql-scalars/blob/6bdccebb27a7f9be7b5d01dfb052a3e9c17432fc/src/scalars/json/JSON.ts#L17)).
-You should aim to match that type unless it's `any`, in which case you should use `unknown`. These
-files are located inside `src/scalars` in the `graphql-scalars` GitHub repository.
+Note that when implementing the graphql-scalars library, the best types to use for `Input` and
+`Output` types are _not_ always intuitive. For example, you might assume that the `JSON` type from
+graphql-scalars would utilize one some sort of JSON type, imported from a library that tries to
+enumarate potential JSON values, but it is often better to just use unknown. A good place to start
+if you are unsure what type to use it the check the `codegenScalarType` inside file where the scalar
+is defined by `graphql-scalars`
+([BigInt scalar definition, for reference](https://github.com/Urigo/graphql-scalars/blob/6bdccebb27a7f9be7b5d01dfb052a3e9c17432fc/src/scalars/BigInt.ts#L92)).
+This isn't defined for all scalars, and some scalars use `any` in which case unknown might be a
+better option.
 
 ```typescript
 import { DateResolver, JSONResolver } from 'graphql-scalars';
