@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.9.2
+
+### Patch Changes
+
+- f2c061a4: Fix validation for input objects nested in lists without other validation options
+
 ## 3.9.1
 
 ### Patch Changes
