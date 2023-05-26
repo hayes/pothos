@@ -1,5 +1,13 @@
 # @pothos-examples/complex-app
 
+## 1.5.17
+
+### Patch Changes
+
+- Updated dependencies [740f09c6]
+  - @pothos/plugin-simple-objects@3.7.0
+  - @pothos/plugin-prisma@3.51.1
+
 ## 1.5.16
 
 ### Patch Changes
