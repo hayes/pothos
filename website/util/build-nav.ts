@@ -4,7 +4,7 @@ import matter, { GrayMatterFile } from 'gray-matter';
 import { TableOfContents, TableOfContentsEntry } from '../components/Toc';
 
 const navOrder: Record<string, string[]> = {
-  '@root': ['Overview', 'Sponsors', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
+  '@root': ['Overview', 'Sponsors', 'Resources', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
   Guide: [
     'Objects',
     'SchemaBuilder',
@@ -95,14 +95,7 @@ export function buildNav(): TableOfContents {
   const sorted = [...entries].sort((a, b) => (a.data.menu ? 1 : -1));
 
   sorted.forEach(({ path, data, menu, name, link, description, title }) => {
-    if (!menu) {
-      nav.entries.push({
-        name,
-        title,
-        link,
-        description,
-      });
-    } else {
+    if (menu) {
       const menuEntry = nav.entries.find((entry) => entry.name === menu);
 
       if (!menuEntry) {
@@ -114,6 +107,13 @@ export function buildNav(): TableOfContents {
       }
 
       menuEntry?.children.push({
+        name,
+        title,
+        link,
+        description,
+      });
+    } else {
+      nav.entries.push({
         name,
         title,
         link,
