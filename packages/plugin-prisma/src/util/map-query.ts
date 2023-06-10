@@ -114,6 +114,7 @@ function resolveIndirectIncludePaths(
 ) {
   for (const includePath of includePaths) {
     if (pathPrefix.length > 0) {
+      // console.log(includePath, new Error().stack);
       resolveIndirectInclude(type, info, selection, [...pathPrefix, ...includePath], path, resolve);
     } else {
       resolveIndirectInclude(type, info, selection, includePath, path, resolve);
