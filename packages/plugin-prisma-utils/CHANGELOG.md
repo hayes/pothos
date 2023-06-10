@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.8.2
+
+### Patch Changes
+
+- 624f2d05: Fix issue that prevented prismaUpdate from setting values to null
+
 ## 0.8.1
 
 ### Patch Changes

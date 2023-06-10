@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.52.0
+
+### Minor Changes
+
+- 624f2d05: Add optimizations for nodes field on connections
+
 ## 3.51.1
 
 ### Patch Changes
