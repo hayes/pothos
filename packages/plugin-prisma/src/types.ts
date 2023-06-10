@@ -747,7 +747,8 @@ export type LoaderMappings = Record<
 
 export interface IndirectInclude {
   getType: () => string;
-  path: { type?: string; name: string }[];
+  path?: { type?: string; name: string }[];
+  paths?: { type?: string; name: string }[][];
 }
 
 export type ShapeFromConnection<T> = T extends { shape: unknown } ? T['shape'] : never;

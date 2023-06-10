@@ -122,7 +122,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
               context,
               info,
               select: cursorSelection as {},
-              path: ['edges', 'node'],
+              paths: [['nodes'], ['edges', 'node']],
               typeName,
             }),
             ctx: context,

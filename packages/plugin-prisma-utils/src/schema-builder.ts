@@ -434,11 +434,17 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
   const ref = this.inputRef<Model['Update']>(name ?? `${nameFromType(type, this)}UpdateInput`);
   const model = getModel(type, this);
 
+  const nullableFields = new Set(
+    model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+  );
+
   ref.implement({
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: {
+        nullableFields,
+      },
     },
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};

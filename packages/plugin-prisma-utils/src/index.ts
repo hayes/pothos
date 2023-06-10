@@ -17,7 +17,7 @@ const pluginName = 'prismaUtils' as const;
 
 export default pluginName;
 
-function normalizeInputObject(object: unknown): unknown {
+function normalizeInputObject(object: unknown, nullableFields: Set<string>): unknown {
   if (!object) {
     return object;
   }
@@ -27,13 +27,13 @@ function normalizeInputObject(object: unknown): unknown {
   }
 
   if (Array.isArray(object)) {
-    return object.map(normalizeInputObject);
+    return object.map((o) => normalizeInputObject(o, nullableFields));
   }
 
   const mapped: Record<string, unknown> = {};
 
   (Object.keys(object) as (keyof typeof object)[]).forEach((key) => {
-    mapped[key] = object[key] === null ? undefined : object[key];
+    mapped[key] = !nullableFields.has(key) && object[key] === null ? undefined : object[key];
   });
 
   return mapped;
@@ -52,7 +52,13 @@ export class PrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
       const inputType = this.buildCache.getTypeConfig(unwrapInputFieldType(inputField.type));
 
       if (inputType.extensions?.pothosPrismaInput) {
-        return true;
+        return (
+          typeof inputType.extensions?.pothosPrismaInput === 'object'
+            ? inputType.extensions?.pothosPrismaInput
+            : {
+                nullableFields: new Set(),
+              }
+        ) as { nullableFields: Set<string> };
       }
 
       return null;
@@ -62,8 +68,8 @@ export class PrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
       return resolver;
     }
 
-    const argMapper = createInputValueMapper(argMappings, (inputObject) =>
-      normalizeInputObject(inputObject),
+    const argMapper = createInputValueMapper(argMappings, (inputObject, mapping) =>
+      normalizeInputObject(inputObject, mapping.value?.nullableFields ?? new Set()),
     );
 
     return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);

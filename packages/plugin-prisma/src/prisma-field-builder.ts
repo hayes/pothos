@@ -261,7 +261,7 @@ export class PrismaObjectFieldBuilder<
           }
           return typeName;
         },
-        path: [{ name: 'edges' }, { name: 'node' }],
+        paths: [[{ name: 'nodes' }], { name: 'edges' }, { name: 'node' }],
       }) as SelectionMap;
 
       const hasTotalCount = totalCount && !!getSelection(['totalCount']);

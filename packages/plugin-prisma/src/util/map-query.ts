@@ -56,12 +56,16 @@ function addTypeSelectionsForField(
     pothosPrismaIndirectInclude?: IndirectInclude;
   };
 
-  if (pothosPrismaIndirectInclude && pothosPrismaIndirectInclude.path.length > 0) {
-    resolveIndirectInclude(
+  if (
+    (pothosPrismaIndirectInclude?.path && pothosPrismaIndirectInclude.path.length > 0) ||
+    (pothosPrismaIndirectInclude?.paths && pothosPrismaIndirectInclude.paths.length === 0)
+  ) {
+    resolveIndirectIncludePaths(
       type,
       info,
       selection,
-      pothosPrismaIndirectInclude.path,
+      [],
+      pothosPrismaIndirectInclude.paths ?? [pothosPrismaIndirectInclude.path!],
       indirectPath,
       (resolvedType, field, path) => {
         addTypeSelectionsForField(resolvedType, context, info, state, field, path);
@@ -99,11 +103,29 @@ function addTypeSelectionsForField(
   }
 }
 
+function resolveIndirectIncludePaths(
+  type: GraphQLNamedType,
+  info: GraphQLResolveInfo,
+  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
+  pathPrefix: { type?: string; name: string }[],
+  includePaths: { type?: string; name: string }[][],
+  path: string[],
+  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
+) {
+  for (const includePath of includePaths) {
+    if (pathPrefix.length > 0) {
+      resolveIndirectInclude(type, info, selection, [...pathPrefix, ...includePath], path, resolve);
+    } else {
+      resolveIndirectInclude(type, info, selection, includePath, path, resolve);
+    }
+  }
+}
+
 function resolveIndirectInclude(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  includePath: IndirectInclude['path'],
+  includePath: { type?: string; name: string }[],
   path: string[],
   resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
 ) {
@@ -275,15 +297,16 @@ function addFieldSelection(
           mergeSelection(fieldState, { select: {}, ...query });
         }
 
-        if (normalizedIndirectInclude && normalizedIndirectInclude.path.length > 0) {
-          resolveIndirectInclude(
+        if (
+          (normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
+          (normalizedIndirectInclude?.paths && normalizedIndirectInclude.paths.length > 0)
+        ) {
+          resolveIndirectIncludePaths(
             returnType,
             info,
             selection,
-            [
-              ...((returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? []),
-              ...normalizedIndirectInclude.path,
-            ],
+            (returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? [],
+            normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
             [],
             (resolvedType, resolvedField, path) => {
               addTypeSelectionsForField(
@@ -346,12 +369,14 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   typeName,
   select,
   path = [],
+  paths = [],
 }: {
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
   select?: T;
   path?: string[];
+  paths?: string[][];
 }): { select: T } | { include?: {} } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
@@ -359,7 +384,7 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   let state: SelectionState | undefined;
   const initialSelection = select ? { select } : undefined;
 
-  if (path.length > 0) {
+  if (path.length > 0 || paths.length > 0) {
     const { pothosPrismaIndirectInclude } = (returnType.extensions ?? {}) as {
       pothosPrismaIndirectInclude?: IndirectInclude;
     };
@@ -371,11 +396,14 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
       pothosPrismaIndirectInclude?.path ?? [],
       [],
       (indirectType, indirectField, subPath) => {
-        resolveIndirectInclude(
+        resolveIndirectIncludePaths(
           indirectType,
           info,
           indirectField,
-          path.map((n) => (typeof n === 'string' ? { name: n } : n)),
+          [],
+          paths.length > 0
+            ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
+            : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested) => {
             state = createStateForType(
@@ -465,7 +493,7 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
   return targetType;
 }
 
-function normalizeInclude(path: string[], type: GraphQLNamedType) {
+function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclude {
   let currentType = type;
 
   const normalized: { name: string; type: string }[] = [];
