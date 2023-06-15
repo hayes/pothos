@@ -68,7 +68,7 @@ declare global {
         >
       >;
 
-      prismaQueryModeEnum: () => EnumRef<'default' | 'insensitive'>;
+      prismaStringFilterModeEnum: () => EnumRef<'default' | 'insensitive'>;
 
       prismaOrderBy: <
         Name extends keyof Types['PrismaTypes'],

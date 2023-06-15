@@ -39,7 +39,7 @@ const OrderByRefMap = new WeakMap<
   EnumRef<'asc' | 'desc'>
 >();
 
-const PrismaQueryModeRefMap = new WeakMap<
+const PrismaStringFilterModeRefMap = new WeakMap<
   PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   EnumRef<'default' | 'insensitive'>
 >();
@@ -87,7 +87,7 @@ schemaBuilder.prismaFilter = function prismaFilter<
             fieldType = [type];
             break;
           case 'mode':
-            fieldType = this.prismaQueryModeEnum();
+            fieldType = this.prismaStringFilterModeEnum();
             break;
           default:
             fieldType = type;
@@ -107,19 +107,19 @@ schemaBuilder.prismaFilter = function prismaFilter<
   return ref as never;
 };
 
-schemaBuilder.prismaQueryModeEnum = function prismaQueryModeEnum() {
-  if (PrismaQueryModeRefMap.has(this)) {
-    return PrismaQueryModeRefMap.get(this)!;
+schemaBuilder.prismaStringFilterModeEnum = function prismaStringFilterModeEnum() {
+  if (PrismaStringFilterModeRefMap.has(this)) {
+    return PrismaStringFilterModeRefMap.get(this)!;
   }
 
-  const ref = this.enumType('PrismaQueryMode', {
+  const ref = this.enumType('StringFilterMode', {
     values: {
       Default: { value: 'default' as const },
       Insensitive: { value: 'insensitive' as const },
     },
   });
 
-  PrismaQueryModeRefMap.set(this, ref);
+  PrismaStringFilterModeRefMap.set(this, ref);
 
   return ref;
 };

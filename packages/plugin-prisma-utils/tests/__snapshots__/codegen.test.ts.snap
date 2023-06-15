@@ -1017,11 +1017,6 @@ input PostWithoutAuthorFilter {
   updatedAt: DateTimeFilter
 }
 
-enum PrismaQueryMode {
-  Default
-  Insensitive
-}
-
 type Profile {
   bio: String
   id: ID!
@@ -1098,10 +1093,15 @@ input StringFilter {
   isNot: String
   lt: String
   lte: String
-  mode: PrismaQueryMode
+  mode: StringFilterMode
   not: StringFilter
   notIn: [String!]
   startsWith: String
+}
+
+enum StringFilterMode {
+  Default
+  Insensitive
 }
 
 input StringListFilter {
