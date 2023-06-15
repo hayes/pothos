@@ -1,5 +1,14 @@
 # @pothos-examples/complex-app
 
+## 1.5.19
+
+### Patch Changes
+
+- Updated dependencies [2d2edce6]
+  - @pothos/plugin-prisma-utils@0.9.0
+  - @pothos/plugin-prisma@3.52.0
+  - @pothos/plugin-relay@3.43.0
+
 ## 1.5.18
 
 ### Patch Changes

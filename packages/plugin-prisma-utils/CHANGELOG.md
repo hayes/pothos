@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.9.0
+
+### Minor Changes
+
+- 2d2edce6: Allow `mode` field in generated Prisma filter types
+
 ## 0.8.2
 
 ### Patch Changes

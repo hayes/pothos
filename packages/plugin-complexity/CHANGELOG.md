@@ -1,5 +1,11 @@
 # @giraphql/plugin-complexity
 
+## 3.13.0
+
+### Minor Changes
+
+- 2f23a1af: fix bug when limits are zero
+
 ## 3.12.1
 
 ### Patch Changes
