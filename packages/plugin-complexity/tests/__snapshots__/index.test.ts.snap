@@ -1,5 +1,21 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
+exports[`createComplexityRule > negative limits 1`] = `
+[
+  [GraphQLError: Query complexity of 2 exceeds max complexity of -1],
+  [GraphQLError: Query depth of 2 exceeds max depth of -1],
+  [GraphQLError: Query breadth of 2 exceeds max breadth of -1],
+]
+`;
+
+exports[`createComplexityRule > zero limits 1`] = `
+[
+  [GraphQLError: Query complexity of 2 exceeds max complexity of 0],
+  [GraphQLError: Query depth of 2 exceeds max depth of 0],
+  [GraphQLError: Query breadth of 2 exceeds max breadth of 0],
+]
+`;
+
 exports[`simple objects example schema > complexity from query > as string 1`] = `
 {
   "breadth": 7,
@@ -99,6 +115,33 @@ type Query {
   ): Human!
   r2d2: Droid!
 }"
+`;
+
+exports[`simple objects example schema > negative limits > negative breadth 1`] = `
+{
+  "data": null,
+  "errors": [
+    [GraphQLError: Query exceeds maximum breadth (breadth: 2, max: -1)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > negative limits > negative complexity 1`] = `
+{
+  "data": null,
+  "errors": [
+    [GraphQLError: Query exceeds maximum complexity (complexity: 2, max: -1)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > negative limits > negative depth 1`] = `
+{
+  "data": null,
+  "errors": [
+    [GraphQLError: Query exceeds maximum depth (depth: 2, max: -1)],
+  ],
+}
 `;
 
 exports[`simple objects example schema > queries > complexity based on args 1`] = `
@@ -417,5 +460,32 @@ exports[`simple objects example schema > queries > valid query 1`] = `
       ],
     },
   },
+}
+`;
+
+exports[`simple objects example schema > zero limits > zero breadth 1`] = `
+{
+  "data": null,
+  "errors": [
+    [GraphQLError: Query exceeds maximum breadth (breadth: 2, max: 0)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > zero limits > zero complexity 1`] = `
+{
+  "data": null,
+  "errors": [
+    [GraphQLError: Query exceeds maximum complexity (complexity: 2, max: 0)],
+  ],
+}
+`;
+
+exports[`simple objects example schema > zero limits > zero depth 1`] = `
+{
+  "data": null,
+  "errors": [
+    [GraphQLError: Query exceeds maximum depth (depth: 2, max: 0)],
+  ],
 }
 `;

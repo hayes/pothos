@@ -240,6 +240,66 @@ describe('simple objects example schema', () => {
       expect(result).toMatchSnapshot();
     });
   });
+
+  describe('negative limits', () => {
+    const limitTypes = ['depth', 'breadth', 'complexity'] as const;
+
+    limitTypes.map((limit) => {
+      it(`negative ${limit}`, async () => {
+        const query = gql`
+          query {
+            hero(episode: EMPIRE) {
+              name
+            }
+          }
+        `;
+
+        const result = await execute({
+          schema: exampleSchema,
+          document: query,
+          contextValue: {
+            complexity: {
+              depth: limit === 'depth' ? -1 : 10,
+              breadth: limit === 'breadth' ? -1 : 10,
+              complexity: limit === 'complexity' ? -1 : 10,
+            },
+          },
+        });
+
+        expect(result).toMatchSnapshot();
+      });
+    });
+  });
+
+  describe('zero limits', () => {
+    const limitTypes = ['depth', 'breadth', 'complexity'] as const;
+
+    limitTypes.map((limit) => {
+      it(`zero ${limit}`, async () => {
+        const query = gql`
+          query {
+            hero(episode: EMPIRE) {
+              name
+            }
+          }
+        `;
+
+        const result = await execute({
+          schema: exampleSchema,
+          document: query,
+          contextValue: {
+            complexity: {
+              depth: limit === 'depth' ? 0 : 10,
+              breadth: limit === 'breadth' ? 0 : 10,
+              complexity: limit === 'complexity' ? 0 : 10,
+            },
+          },
+        });
+
+        expect(result).toMatchSnapshot();
+      });
+    });
+  });
 });
 
 describe('createComplexityRule', () => {
@@ -309,5 +369,53 @@ describe('createComplexityRule', () => {
         },
       ]
     `);
+  });
+
+  it('negative limits', async () => {
+    const results = validate(
+      exampleSchema,
+      gql`
+        query {
+          hero(episode: EMPIRE) {
+            name
+          }
+        }
+      `,
+      [
+        createComplexityRule({
+          maxDepth: -1,
+          maxBreadth: -1,
+          maxComplexity: -1,
+          variableValues: {},
+          context: {},
+        }),
+      ],
+    );
+
+    expect(results).toMatchSnapshot();
+  });
+
+  it('zero limits', async () => {
+    const results = validate(
+      exampleSchema,
+      gql`
+        query {
+          hero(episode: EMPIRE) {
+            name
+          }
+        }
+      `,
+      [
+        createComplexityRule({
+          maxDepth: 0,
+          maxBreadth: 0,
+          maxComplexity: 0,
+          variableValues: {},
+          context: {},
+        }),
+      ],
+    );
+
+    expect(results).toMatchSnapshot();
   });
 });
