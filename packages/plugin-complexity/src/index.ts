@@ -112,11 +112,11 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
 
     let errorKind: ComplexityErrorKind | null = null;
 
-    if (max.depth && max.depth < depth) {
+    if (typeof max.depth === 'number' && max.depth < depth) {
       errorKind = ComplexityErrorKind.Depth;
-    } else if (max.breadth && max.breadth < breadth) {
+    } else if (typeof max.breadth === 'number' && max.breadth < breadth) {
       errorKind = ComplexityErrorKind.Breadth;
-    } else if (max.complexity && max.complexity < complexity) {
+    } else if (typeof max.complexity === 'number' && max.complexity < complexity) {
       errorKind = ComplexityErrorKind.Complexity;
     }
 
