@@ -18,7 +18,7 @@ import {
 
 const filterOps = ['equals', 'in', 'notIn', 'not', 'is', 'isNot'] as const;
 const sortableFilterProps = ['lt', 'lte', 'gt', 'gte'] as const;
-const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith'] as const;
+const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith', 'mode'] as const;
 const sortableTypes = ['String', 'Int', 'Float', 'DateTime', 'BigInt'] as const;
 const listOps = ['every', 'some', 'none'] as const;
 const scalarListOps = ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'] as const;

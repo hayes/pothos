@@ -382,4 +382,35 @@ describe('codegen', () => {
       ]
     `);
   });
+
+  it('returns filtered user with mode: Insensitive', async () => {
+    await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+      },
+    });
+    const query = await execute({
+      schema,
+      contextValue: {},
+      document: gql`
+        query {
+          users(filter: { email: { contains: "EXAMPLE", mode: Insensitive } }) {
+            email
+          }
+        }
+      `,
+    });
+
+    expect(query).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "users": [
+            {
+              "email": "test@example.com",
+            },
+          ],
+        },
+      }
+    `);
+  });
 });

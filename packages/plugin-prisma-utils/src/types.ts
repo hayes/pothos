@@ -28,6 +28,7 @@ export interface FilterShape<T> {
   is?: T;
   isNot?: T;
   search?: T;
+  mode?: 'default' | 'insensitive';
 }
 
 export interface ScalarListFilterShape<T> {

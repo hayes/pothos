@@ -52,6 +52,7 @@ export const StringFilter = builder.prismaFilter('String', {
     'contains',
     'startsWith',
     'endsWith',
+    'mode',
     'lt',
     'lte',
     'gt',

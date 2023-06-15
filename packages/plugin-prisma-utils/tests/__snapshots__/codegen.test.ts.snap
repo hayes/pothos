@@ -1093,9 +1093,15 @@ input StringFilter {
   isNot: String
   lt: String
   lte: String
+  mode: StringFilterMode
   not: StringFilter
   notIn: [String!]
   startsWith: String
+}
+
+enum StringFilterMode {
+  Default
+  Insensitive
 }
 
 input StringListFilter {
