@@ -68,6 +68,8 @@ declare global {
         >
       >;
 
+      prismaQueryModeEnum: () => EnumRef<'default' | 'insensitive'>;
+
       prismaOrderBy: <
         Name extends keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Types['PrismaTypes'][Name] extends PrismaModelTypes

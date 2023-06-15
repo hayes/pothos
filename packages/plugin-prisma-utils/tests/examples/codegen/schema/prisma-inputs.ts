@@ -56,6 +56,7 @@ export const StringFilter = builder.prismaFilter('String', {
     'lte',
     'gt',
     'gte',
+    'mode',
   ],
 });
 export const BooleanFilter = builder.prismaFilter('Boolean', {

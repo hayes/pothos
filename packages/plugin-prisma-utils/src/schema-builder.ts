@@ -39,6 +39,11 @@ const OrderByRefMap = new WeakMap<
   EnumRef<'asc' | 'desc'>
 >();
 
+const PrismaQueryModeRefMap = new WeakMap<
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  EnumRef<'default' | 'insensitive'>
+>();
+
 schemaBuilder.prismaFilter = function prismaFilter<
   Type extends InputType<SchemaTypes>,
   Ops extends OpsOptions<SchemaTypes, Type, FilterOps>,
@@ -71,12 +76,21 @@ schemaBuilder.prismaFilter = function prismaFilter<
 
       for (const op of Object.keys(opsOptions)) {
         const isList = op === 'in' || op === 'notIn';
-        let fieldType: InputType<SchemaTypes> | [InputType<SchemaTypes>] = type;
+        let fieldType: InputType<SchemaTypes> | [InputType<SchemaTypes>];
 
-        if (op === 'not') {
-          fieldType = ref;
-        } else if (op === 'in' || op === 'notIn') {
-          fieldType = [type];
+        switch (op) {
+          case 'not':
+            fieldType = ref;
+            break;
+          case 'in':
+          case 'notIn':
+            fieldType = [type];
+            break;
+          case 'mode':
+            fieldType = this.prismaQueryModeEnum();
+            break;
+          default:
+            fieldType = type;
         }
 
         fields[op] = t.field({
@@ -91,6 +105,23 @@ schemaBuilder.prismaFilter = function prismaFilter<
   });
 
   return ref as never;
+};
+
+schemaBuilder.prismaQueryModeEnum = function prismaQueryModeEnum() {
+  if (PrismaQueryModeRefMap.has(this)) {
+    return PrismaQueryModeRefMap.get(this)!;
+  }
+
+  const ref = this.enumType('PrismaQueryMode', {
+    values: {
+      Default: { value: 'default' as const },
+      Insensitive: { value: 'insensitive' as const },
+    },
+  });
+
+  PrismaQueryModeRefMap.set(this, ref);
+
+  return ref;
 };
 
 schemaBuilder.prismaListFilter = function prismaListFilter<
