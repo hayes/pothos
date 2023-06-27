@@ -59,7 +59,8 @@ model Comment {
   id        Int      @id @default(autoincrement())
   createdAt DateTime @unique @default(now())
   content   String
-  author    User     @relation(fields: [authorId], references: [id])
+  /// current database user may not have access to the author due to RLS
+  author    User?    @relation(fields: [authorId], references: [id])
   post      Post     @relation(fields: [postId], references: [id])
   authorId  Int
   postId    Int

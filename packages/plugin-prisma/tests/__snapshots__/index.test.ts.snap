@@ -11,7 +11,8 @@ type Blog {
 }
 
 type CircularComment {
-  author: CircularUser!
+  \\"\\"\\"current database user may not have access to the author due to RLS\\"\\"\\"
+  author: CircularUser
   id: ID!
 }
 
@@ -21,7 +22,8 @@ type CircularUser {
 }
 
 type Comment {
-  author: User!
+  \\"\\"\\"current database user may not have access to the author due to RLS\\"\\"\\"
+  author: User
   authorBio: String
   content: String!
   id: ID!
