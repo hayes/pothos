@@ -13,8 +13,8 @@ async function main() {
     await prisma.user.create({
       data: {
         id: i,
-        firstName: faker.name.firstName(),
-        lastName: faker.name.lastName(),
+        firstName: faker.person.firstName(),
+        lastName: faker.person.lastName(),
       },
     });
   }
@@ -23,7 +23,7 @@ async function main() {
     await prisma.post.create({
       data: {
         id: i,
-        authorId: faker.datatype.number({ min: 1, max: 100 }),
+        authorId: faker.number.int({ min: 1, max: 100 }),
         title: faker.lorem.text(),
         content: faker.lorem.paragraphs(2),
       },
@@ -34,8 +34,8 @@ async function main() {
     await prisma.comment.create({
       data: {
         id: i,
-        authorId: faker.datatype.number({ min: 1, max: 100 }),
-        postId: faker.datatype.number({ min: 1, max: 100 }),
+        authorId: faker.number.int({ min: 1, max: 100 }),
+        postId: faker.number.int({ min: 1, max: 100 }),
         comment: faker.lorem.text(),
       },
     });

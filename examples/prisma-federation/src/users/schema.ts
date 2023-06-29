@@ -2,6 +2,7 @@ import SchemaBuilder from '@pothos/core';
 import DirectivesPlugin from '@pothos/plugin-directives';
 import FederationPlugin from '@pothos/plugin-federation';
 import PrismaPlugin from '@pothos/plugin-prisma';
+import RelayPlugin from '@pothos/plugin-relay';
 import type PrismaTypes from '../../prisma/generated';
 import { db } from '../db';
 
@@ -11,9 +12,16 @@ export const builder = new SchemaBuilder<{
     ID: { Input: string; Output: string | number };
   };
 }>({
-  plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],
+  plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin, RelayPlugin],
   prisma: {
     client: db,
+  },
+  relayOptions: {
+    clientMutationId: 'omit',
+    cursorType: 'String',
+    pageInfoTypeOptions: {
+      shareable: true,
+    },
   },
 });
 
@@ -45,6 +53,15 @@ builder.queryType({
         db.user.findUnique({
           ...query,
           where: { id: Number.parseInt(args.id, 10) },
+        }),
+    }),
+    users: t.prismaConnection({
+      type: 'User',
+      nullable: true,
+      cursor: 'id',
+      resolve: (query, root, args) =>
+        db.user.findMany({
+          ...query,
         }),
     }),
   }),

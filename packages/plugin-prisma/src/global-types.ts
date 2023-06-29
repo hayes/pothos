@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-interface */
-import { A } from 'vitest/dist/types-fafda418';
 import {
   FieldKind,
   FieldMap,
@@ -8,7 +7,6 @@ import {
   FieldRef,
   InputFieldMap,
   InputFieldRef,
-  InputShapeFromFields,
   InterfaceParam,
   NormalizeArgs,
   OutputType,

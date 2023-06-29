@@ -316,6 +316,10 @@ const User = builder.prismaNode('User', {
   }),
 });
 
+const NamedUnion = builder.unionType('NamedUnion', {
+  types: [User, Viewer],
+});
+
 const Media = builder.prismaObject('Media', {
   select: {
     id: true,
@@ -796,6 +800,17 @@ builder.queryType({
       resolve: async () => {
         const user = await prisma.user.findFirstOrThrow({ where: { id: 1 } });
         return [User.addBrand({ ...user }), user];
+      },
+    }),
+    namedUnion: t.field({
+      type: [NamedUnion],
+      nullable: {
+        items: true,
+        list: true,
+      },
+      resolve: async () => {
+        const user = await prisma.user.findFirstOrThrow({ where: { id: 1 } });
+        return [User.addBrand({ ...user })];
       },
     }),
     userOrProfile: t.field({

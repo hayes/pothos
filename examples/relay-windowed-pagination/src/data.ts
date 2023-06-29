@@ -13,14 +13,14 @@ for (let i = 1; i <= 100; i += 1) {
   Users.set(String(i), {
     __typename: 'User',
     id: String(i),
-    firstName: faker.name.firstName(),
-    lastName: faker.name.lastName(),
+    firstName: faker.person.firstName(),
+    lastName: faker.person.lastName(),
   });
 
   Posts.set(String(i), {
     __typename: 'Post',
     id: String(i),
-    authorId: String(faker.datatype.number({ min: 1, max: 100 })),
+    authorId: String(faker.number.int({ min: 1, max: 100 })),
     title: faker.lorem.text(),
     content: faker.lorem.paragraphs(2),
   });
@@ -28,8 +28,8 @@ for (let i = 1; i <= 100; i += 1) {
   Comments.set(String(i), {
     __typename: 'Comment',
     id: String(i),
-    authorId: String(faker.datatype.number({ min: 1, max: 100 })),
-    postId: String(faker.datatype.number({ min: 1, max: 100 })),
+    authorId: String(faker.number.int({ min: 1, max: 100 })),
+    postId: String(faker.number.int({ min: 1, max: 100 })),
     comment: faker.lorem.text(),
   });
 }

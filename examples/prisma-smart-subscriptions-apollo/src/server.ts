@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-top-level-await */
 import { createServer } from 'node:http';
 import * as bodyParser from 'body-parser';
 import * as cors from 'cors';

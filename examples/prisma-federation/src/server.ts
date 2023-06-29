@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-top-level-await */
 import { startStandaloneServer } from '@apollo/server/standalone';
 import { createGateway } from './gateway';
 import { startServers } from './servers';

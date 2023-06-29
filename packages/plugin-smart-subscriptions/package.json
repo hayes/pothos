@@ -52,7 +52,7 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "16.6.0",
+    "graphql": "16.7.1",
     "graphql-subscriptions": "^2.0.0",
     "graphql-tag": "^2.12.6"
   },

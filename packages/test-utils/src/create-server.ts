@@ -1,4 +1,4 @@
-import { createServer, IncomingMessage, ServerResponse } from 'http';
+import { createServer, IncomingMessage, ServerResponse } from 'node:http';
 import { execute, GraphQLSchema } from 'graphql';
 import { createYoga, Plugin } from 'graphql-yoga';
 

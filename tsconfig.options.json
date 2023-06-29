@@ -25,7 +25,9 @@
     "strict": true,
     "target": "es2019",
     "composite": true,
-    "typeRoots": [],
+    "typeRoots": [
+      "node_modules"
+    ],
     "types": [
       "vitest/globals"
     ]

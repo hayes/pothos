@@ -3,6 +3,5 @@ test
 tests
 .turbo
 babel.config.js
-jest.config.js
 *.tsbuildinfo
 tsconfig.*

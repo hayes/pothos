@@ -1,9 +1,8 @@
 /* eslint-disable unicorn/prefer-module */
-/* eslint-disable node/prefer-promises/fs */
 /* eslint-disable no-magic-numbers */
 /* eslint-disable no-nested-ternary */
-import { mkdir, writeFile } from 'fs';
-import { dirname, join, resolve as resolvePath } from 'path';
+import { mkdir, writeFile } from 'node:fs';
+import { dirname, join, resolve as resolvePath } from 'node:path';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import { DMMF, generatorHandler } from '@prisma/generator-helper';
 

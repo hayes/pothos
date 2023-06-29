@@ -55,10 +55,10 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@types/newrelic": "^9.4.0",
-    "graphql": "16.6.0",
+    "@types/newrelic": "^9.14.0",
+    "graphql": "16.7.1",
     "graphql-tag": "^2.12.6",
-    "graphql-yoga": "3.7.3",
-    "newrelic": "^9.13.0"
+    "graphql-yoga": "4.0.3",
+    "newrelic": "^10.3.2"
   }
 }

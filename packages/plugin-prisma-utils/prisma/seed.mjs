@@ -11,9 +11,9 @@ const now = Date.UTC(2012, 11, 12);
 console.log('creating users and posts');
 async function main() {
   for (let i = 0; i < 10; ++i) {
-    const firstName = faker.name.firstName();
-    const lastName = faker.name.lastName();
-    const email = faker.internet.email(firstName, lastName);
+    const firstName = faker.person.firstName();
+    const lastName = faker.person.lastName();
+    const email = faker.internet.email({ firstName, lastName });
     const posts = [];
 
     for (let j = 0; j < 5; ++j) {
@@ -83,7 +83,7 @@ async function main() {
     const followers = [];
     for (let i = 0; i < 3; i++) {
       followers.push(
-        faker.datatype.number({
+        faker.number.int({
           min: 1,
           max: 9,
         }),

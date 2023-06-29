@@ -15,6 +15,7 @@ export const builder = new SchemaBuilder<{
   prisma: {
     client: db,
   },
+  relayOptions: {},
 });
 
 const User = builder.externalRef('User', builder.selection<{ id: string }>('id')).implement({

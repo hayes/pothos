@@ -85,6 +85,8 @@ interface Named {
   name: String
 }
 
+union NamedUnion = User | Viewer
+
 interface Node {
   id: ID!
 }
@@ -163,6 +165,7 @@ type Query {
   me: User
   named: [Named]
   namedConnection(after: ID, before: ID, first: Int, last: Int): QueryNamedConnection!
+  namedUnion: [NamedUnion]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
   post(id: ID!): Post

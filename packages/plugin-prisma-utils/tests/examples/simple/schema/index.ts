@@ -43,6 +43,7 @@ builder.queryField('post', (t) =>
 builder.prismaObject('Post', {
   fields: (t) => ({
     id: t.exposeID('id'),
+    author: t.relation('author'),
   }),
 });
 
@@ -135,12 +136,14 @@ const PostWhereUnique = builder.prismaWhereUnique('Post', {
 const CreatePostInput = builder.prismaCreate('Post', {
   fields: {
     title: 'String',
+    authorId: 'String',
   },
 });
 
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
+    name: t.exposeString('name', { nullable: true }),
     email: t.exposeString('email'),
     posts: t.relation('posts'),
   }),
@@ -154,6 +157,17 @@ builder.mutationType({
         data: t.arg({ type: CreateUserInput, required: true }),
       },
       resolve: (query, _, args) => prisma.user.create({ ...query, data: args.data }),
+    }),
+    createPosts: t.prismaField({
+      type: ['Post'],
+      args: {
+        data: t.arg({ type: [CreatePostInput], required: true }),
+      },
+      resolve: async (query, _, args) => {
+        await prisma.post.create({ ...query, data: { title: '123', authorId: 1 } });
+
+        return [];
+      },
     }),
   }),
 });
