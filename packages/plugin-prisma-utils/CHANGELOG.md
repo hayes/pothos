@@ -1,5 +1,16 @@
 # @pothos/plugin-prisma-utils
 
+## 0.10.0
+
+### Minor Changes
+
+- ccdec047: Add prismaIntAtomicUpdate helper for atomic operations on ints during an update
+
+### Patch Changes
+
+- 9b80756a: Allow nulls in prismaWhere for nullable fields to allow filtering for rows where a
+  column is null
+
 ## 0.9.0
 
 ### Minor Changes
