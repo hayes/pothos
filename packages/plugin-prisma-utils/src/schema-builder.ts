@@ -15,6 +15,7 @@ import {
   FilterListOps,
   FilterOps,
   FilterShape,
+  IntFieldUpdateOperationsInput,
   OpsOptions,
   PrismaCreateManyRelationOptions,
   PrismaCreateOneRelationOptions,
@@ -667,6 +668,36 @@ function nameFromType<Types extends SchemaTypes>(
 
   throw new PothosSchemaError(`Unable to determine name for type ${String(type)}`);
 }
+
+schemaBuilder.prismaIntAtomicUpdate = function prismaIntUpdateOperations({
+  name,
+  ops = ['set', 'increment', 'decrement', 'multiply', 'divide'],
+  ...options
+} = {}) {
+  const ref = this.inputRef<IntFieldUpdateOperationsInput>(name ?? 'IntAtomicUpdate');
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+
+      ops.forEach((op) => {
+        fieldDefs[op] = t.field({
+          required: false,
+          type: 'Int',
+        });
+      });
+
+      return fieldDefs;
+    },
+  });
+
+  return ref as never;
+};
 
 function capitalize(str: string) {
   return str[0].toUpperCase() + str.slice(1);

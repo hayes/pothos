@@ -12,6 +12,7 @@ import { PrismaModelTypes } from '@pothos/plugin-prisma';
 
 export type FilterListOps = 'every' | 'some' | 'none';
 export type ScalarListOps = 'has' | 'hasEvery' | 'hasSome' | 'equals' | 'isEmpty';
+export type IntUpdateOps = keyof IntFieldUpdateOperationsInput;
 
 export interface FilterShape<T> {
   equals?: T;
@@ -37,6 +38,14 @@ export interface ScalarListFilterShape<T> {
   hasSome?: T[];
   equals?: T[];
   isEmpty?: boolean;
+}
+
+export interface IntFieldUpdateOperationsInput {
+  set?: number;
+  increment?: number;
+  decrement?: number;
+  multiply?: number;
+  divide?: number;
 }
 
 export type FilterOps = keyof FilterShape<unknown>;
@@ -108,6 +117,12 @@ export interface PrismaWhereUniqueOptions<
           ) => PrismaWhereUniqueFields<Types, Model>)
       ) &
         Fields;
+}
+
+export interface PrismaIntAtomicUpdateOptions<Types extends SchemaTypes, Ops extends IntUpdateOps>
+  extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, 'fields'> {
+  name?: string;
+  ops?: Ops[];
 }
 
 export type PrismaWhereUniqueFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
@@ -293,7 +308,7 @@ export interface PrismaUpdateOptions<
 }
 
 export type PrismaUpdateFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
-  [K in keyof Model['Update']]?: NonListInputWithShape<Types, Model['Shape'][K]>;
+  [K in keyof Model['Update']]?: NonListInputWithShape<Types, Model['Update'][K]>;
 };
 
 export interface PrismaUpdateOneRelationOptions<

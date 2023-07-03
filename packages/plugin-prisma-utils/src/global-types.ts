@@ -22,7 +22,12 @@ import {
   ScalarListOps,
 } from './types';
 
-import type { PrismaUtilsPlugin } from '.';
+import type {
+  IntFieldUpdateOperationsInput,
+  IntUpdateOps,
+  PrismaIntAtomicUpdateOptions,
+  PrismaUtilsPlugin,
+} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -153,6 +158,10 @@ declare global {
           ? PrismaUpdateManyRelationOptions<Types, Relation, Model>
           : PrismaUpdateOneRelationOptions<Types, Relation, Model>,
       ) => InputObjectRef<NonNullable<Model['Update'][Relation & keyof Model['Update']]>>;
+
+      prismaIntAtomicUpdate: <Ops extends IntUpdateOps>(
+        options?: PrismaIntAtomicUpdateOptions<Types, Ops>,
+      ) => InputObjectRef<Pick<IntFieldUpdateOperationsInput, Ops>>;
     }
   }
 }

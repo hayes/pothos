@@ -140,6 +140,15 @@ const CreatePostInput = builder.prismaCreate('Post', {
   },
 });
 
+const IntAtomicUpdate = builder.prismaIntAtomicUpdate();
+
+const UpdatePostInput = builder.prismaUpdate('Post', {
+  fields: {
+    title: 'String',
+    views: IntAtomicUpdate,
+  },
+});
+
 builder.prismaObject('User', {
   fields: (t) => ({
     id: t.exposeID('id'),
@@ -168,6 +177,19 @@ builder.mutationType({
 
         return [];
       },
+    }),
+    updatePost: t.prismaField({
+      type: 'Post',
+      args: {
+        id: t.arg({ type: 'Int', required: true }),
+        data: t.arg({ type: UpdatePostInput, required: true }),
+      },
+      resolve: (query, _, args) =>
+        prisma.post.update({
+          ...query,
+          where: { id: args.id },
+          data: args.data,
+        }),
     }),
   }),
 });

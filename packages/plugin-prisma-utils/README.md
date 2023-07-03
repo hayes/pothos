@@ -65,7 +65,7 @@ operations).
 
 ```typescript
 const StringFilter = builder.prismaFilter('String', {
-  ops: ['contains', 'equals', 'startsWith', 'not', 'equals'],
+  ops: ['contains', 'equals', 'startsWith', 'not'],
 });
 
 export const IDFilter = builder.prismaFilter('Int', {
@@ -249,6 +249,25 @@ export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
 });
 ```
 
+#### Atomic Int Update operations
+
+```ts
+const IntUpdate = builder.prismaIntAtomicUpdate();
+// or with options
+const IntUpdate = builder.prismaIntAtomicUpdate({
+  name: 'IntUpdate',
+  ops: ['increment', 'decrement'],
+});
+
+export const PostUpdate = builder.prismaUpdate('Post', {
+  name: 'PostUpdate',
+  fields: () => ({
+    title: 'String',
+    views: IntUpdate,
+  }),
+});
+```
+
 ## Generators
 
 Manually defining all the different input types shown above for a large number of tables can become
@@ -268,7 +287,7 @@ There are 2 main approaches:
 2. Dynamic Generation: Types are generated dynamically at runtime through helpers imported from your
    App
 
-### Static generator:
+### Static generator
 
 You can find an
 [example static generator here](https://github.com/hayes/pothos/blob/main/packages/plugin-prisma-utils/tests/examples/codegen/generator.ts)

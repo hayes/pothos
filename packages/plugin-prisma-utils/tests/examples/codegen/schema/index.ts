@@ -1,5 +1,5 @@
-import { writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { printSchema } from 'graphql';
 import { DateTimeResolver } from 'graphql-scalars';
 import { Category } from '../../../client';
