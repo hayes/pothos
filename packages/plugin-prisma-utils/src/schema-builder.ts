@@ -316,12 +316,18 @@ schemaBuilder.prismaWhere = function prismaWhere<
   { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model, Fields>,
 ): InputObjectRef<Model['Where']> {
   const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Filter`);
+  const model = getModel(type, this);
+  const nullableFields = new Set(
+    model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+  );
 
   ref.implement({
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: {
+        nullableFields,
+      },
     },
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};

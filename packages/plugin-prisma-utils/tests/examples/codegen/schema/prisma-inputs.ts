@@ -23,6 +23,7 @@ export const PostFilter: InputObjectRef<Prisma.Prisma.PostWhereInput> = builder.
       tags: StringListFilter,
       categories: CategoryListFilter,
       ratings: IntListFilter,
+      views: IntFilter,
     }),
   },
 );
@@ -271,6 +272,7 @@ export const PostOrderBy: InputObjectRef<Prisma.Prisma.PostOrderByWithRelationIn
       tags: true,
       categories: true,
       ratings: true,
+      views: true,
     }),
   });
 export const ProfileCreateWithoutUser: InputObjectRef<Prisma.Prisma.ProfileCreateWithoutUserInput> =
@@ -310,6 +312,7 @@ export const PostCreateWithoutMedia: InputObjectRef<Prisma.Prisma.PostCreateWith
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   });
 export const PostMediaCreatePost = builder.prismaCreateRelation('PostMedia', 'post', {
@@ -501,6 +504,7 @@ export const PostCreateWithoutAuthor: InputObjectRef<Prisma.Prisma.PostCreateWit
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   });
 export const UserCreatePosts = builder.prismaCreateRelation('User', 'posts', {
@@ -577,6 +581,7 @@ export const PostCreateWithoutComments: InputObjectRef<Prisma.Prisma.PostCreateW
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   });
 export const CommentCreatePost = builder.prismaCreateRelation('Comment', 'post', {
@@ -640,6 +645,7 @@ export const PostCreate: InputObjectRef<Prisma.Prisma.PostCreateInput> = builder
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   },
 );
@@ -674,6 +680,7 @@ export const PostUpdateWithoutMedia: InputObjectRef<Prisma.Prisma.PostUpdateWith
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   });
 export const PostMediaUpdatePost = builder.prismaUpdateRelation('PostMedia', 'post', {
@@ -943,6 +950,7 @@ export const PostUpdateWithoutAuthor: InputObjectRef<Prisma.Prisma.PostUpdateWit
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   });
 export const PostWithoutAuthorFilter: InputObjectRef<Prisma.Prisma.PostWhereInput> =
@@ -960,6 +968,7 @@ export const PostWithoutAuthorFilter: InputObjectRef<Prisma.Prisma.PostWhereInpu
       tags: StringListFilter,
       categories: CategoryListFilter,
       ratings: IntListFilter,
+      views: IntFilter,
     }),
   });
 export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
@@ -1072,6 +1081,7 @@ export const PostUpdateWithoutComments: InputObjectRef<Prisma.Prisma.PostUpdateW
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   });
 export const CommentUpdatePost = builder.prismaUpdateRelation('Comment', 'post', {
@@ -1160,6 +1170,7 @@ export const PostUpdate: InputObjectRef<Prisma.Prisma.PostUpdateInput> = builder
       tags: 'String',
       categories: Prisma.Category,
       ratings: 'Int',
+      views: 'Int',
     }),
   },
 );
