@@ -412,7 +412,7 @@ const builder = new SchemaBuilder<{
       // throw an error if it's found
       throwFirstError(result.failure);
       // throw a fallback error if no error was found
-      new Error(`Not authorized`);
+      return new Error(`Not authorized`);
     },
   },
   plugins: [ScopeAuthPlugin],
