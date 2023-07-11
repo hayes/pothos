@@ -379,7 +379,8 @@ For example, if you want to re-throw errors thrown by authorization functions yo
 writeing a custom `unauthorizedError` callback like this:
 
 ```typescript
-import SchemaBuilder, { AuthFailure, AuthScopeFailureType } from '@pothos/core';
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin, { AuthFailure, AuthScopeFailureType } from '@pothos/plugin-scope-auth';
 
 // Find the first error and re-throw it
 function throwFirstError(failure: AuthFailure) {
@@ -394,7 +395,7 @@ function throwFirstError(failure: AuthFailure) {
     failure.kind === AuthScopeFailureType.AllAuthScopes
   ) {
     for (const child of failure.failures) {
-      throwFirstError(child, recursive);
+      throwFirstError(child);
     }
   }
 }
@@ -411,7 +412,7 @@ const builder = new SchemaBuilder<{
       // throw an error if it's found
       throwFirstError(result.failure);
       // throw a fallback error if no error was found
-      new Error(`Not authorized`);
+      return new Error(`Not authorized`);
     },
   },
   plugins: [ScopeAuthPlugin],
