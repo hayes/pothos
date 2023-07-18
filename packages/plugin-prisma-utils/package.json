@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "generate": "prisma migrate reset -f && ts-node --transpile-only tests/examples/codegen/generator.ts && pnpm schema",
+    "generate": "prisma generate && ts-node --transpile-only tests/examples/codegen/generator.ts && pnpm schema",
     "schema": "ts-node --transpile-only tests/examples/codegen/schema/index.ts && ts-node --transpile-only tests/examples/crud/schema/index.ts",
     "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",

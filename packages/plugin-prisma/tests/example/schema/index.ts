@@ -791,6 +791,20 @@ builder.queryType({
       errors: {},
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
     }),
+    nullableUserConnection: t.prismaConnection({
+      type: 'User',
+      nullable: true,
+      cursor: 'id',
+      defaultSize: 10,
+      maxSize: 15,
+      resolve: async (query, parent, args) => {
+        if (args.first === 0) {
+          return null;
+        }
+
+        return prisma.user.findMany({ ...query });
+      },
+    }),
     named: t.field({
       type: [Named],
       nullable: {

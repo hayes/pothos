@@ -168,6 +168,7 @@ type Query {
   namedUnion: [NamedUnion]
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
+  nullableUserConnection(after: ID, before: ID, first: Int, last: Int): QueryNullableUserConnection
   post(id: ID!): Post
   posts: [Post!]!
   postsBigIntCursor(after: ID, before: ID, first: Int, last: Int): QueryPostsBigIntCursorConnection!
@@ -210,6 +211,19 @@ type QueryNamedConnection {
 type QueryNamedConnectionEdge {
   cursor: String!
   node: Named!
+}
+
+type QueryNullableUserConnection {
+  edges: [QueryNullableUserConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryNullableUserConnectionEdge {
+  cursor: String!
+  node: User!
 }
 
 type QueryPostsBigIntCursorConnection {
