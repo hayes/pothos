@@ -593,6 +593,28 @@ above example requires a request to have either the `employee` or `deferredScope
 `public` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
 inside each other.
 
+You can change the default strategy used for top level auth scopes by setting the `defaultStrategy`
+option in the builder (defaults to `any`):
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: {
+    user: User | null;
+  };
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  scopeAuthOptions: {
+    defaultStrategy: 'all',
+  },
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
+});
+```
+
 ### Auth that depends on parent value
 
 For cases where the required scopes depend on the value of the requested resource you can use a

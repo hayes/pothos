@@ -34,12 +34,15 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   treatErrorsAsUnauthorized: boolean;
 
+  defaultStrategy: 'all' | 'any';
+
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: Types['Context']) {
     this.builder = builder;
     this.context = context;
     this.cacheKey = builder.options.scopeAuthOptions?.cacheKey;
     this.treatErrorsAsUnauthorized =
       builder.options.scopeAuthOptions?.treatErrorsAsUnauthorized ?? false;
+    this.defaultStrategy = builder.options.scopeAuthOptions?.defaultStrategy ?? 'any';
   }
 
   static fromContext<T extends SchemaTypes>(
@@ -294,7 +297,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     }
 
     if ($any) {
-      const anyResult = this.evaluateScopeMap($any, info);
+      const anyResult = this.evaluateScopeMap($any, info, false);
 
       if (isThenable(anyResult)) {
         promises.push(anyResult);
@@ -374,7 +377,7 @@ export default class RequestCache<Types extends SchemaTypes> {
   evaluateScopeMap(
     map: AuthScopeMap<Types> | boolean,
     info?: GraphQLResolveInfo,
-    forAll = false,
+    forAll = this.defaultStrategy === 'all',
   ): MaybePromise<null | AuthFailure> {
     if (typeof map === 'boolean') {
       return map
