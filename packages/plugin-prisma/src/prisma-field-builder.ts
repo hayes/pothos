@@ -3,6 +3,7 @@
 import { FieldNode, GraphQLResolveInfo } from 'graphql';
 import {
   CompatibleTypes,
+  ExposeNullability,
   FieldKind,
   FieldRef,
   InputFieldMap,
@@ -525,7 +526,7 @@ export class PrismaObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+    Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
   >(
     ...args: NormalizeArgs<
       [
@@ -539,8 +540,11 @@ export class PrismaObjectFieldBuilder<
             {},
             ResolveReturnShape
           >,
-          'resolve' | 'select'
-        >,
+          'resolve' | 'select' | 'description' | 'nullable'
+        > &
+          ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> & {
+            description?: string | false;
+          },
       ]
     >
   ) {
@@ -549,13 +553,19 @@ export class PrismaObjectFieldBuilder<
     const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
     const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
 
-    return this.exposeField(name as never, {
+    return this.exposeField<Type, Nullable, never>(name as never, {
       ...options,
+      description: getFieldDescription(
+        this.model,
+        this.builder,
+        name as string,
+        options.description,
+      ) as never,
       extensions: {
         ...options.extensions,
         pothosPrismaVariant: name,
         pothosPrismaSelect: usingSelect && {
-          [name]: true,
+          [name as string]: true,
         },
       },
     });
@@ -565,7 +575,7 @@ export class PrismaObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+      Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
     >(
       ...args: NormalizeArgs<
         [
@@ -579,23 +589,23 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'resolve' | 'type' | 'select' | 'description'
-          > & { description?: string | false },
+            'resolve' | 'type' | 'select' | 'description' | 'nullable'
+          > &
+            ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> & {
+              description?: string | false;
+            },
         ]
       >
     ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
       const [name, { description, ...options } = {} as never] = args;
 
-      return this.expose(name as never, {
-        ...options,
-        description: getFieldDescription(
-          this.model,
-          this.builder,
-          name as string,
-          description,
-        ) as never,
-        type,
-      });
+      return this.expose<Type, Nullable, ResolveReturnShape, never>(
+        name as never,
+        {
+          ...options,
+          type,
+        } as never,
+      );
     };
   }
 }
