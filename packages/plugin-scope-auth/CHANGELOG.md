@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.20.0
+
+### Minor Changes
+
+- 09bd29a6: Add new defaultStrategy option to allow enforcing all scopes in a scopeMap without using
+  `$all`
+
 ## 3.19.2
 
 ### Patch Changes

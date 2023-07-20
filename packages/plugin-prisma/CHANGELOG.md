@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.53.0
+
+### Minor Changes
+
+- 5d3f7b97: Improve inference for t.expose methods on prisma field builder
+
 ## 3.52.0
 
 ### Minor Changes
