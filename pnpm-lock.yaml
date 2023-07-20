@@ -88,7 +88,7 @@ importers:
         specifier: ^3.2.0
         version: 3.2.0(graphql@16.7.1)
       '@pothos/core':
-        specifier: ^3.30.0
+        specifier: ^3.31.0
         version: link:../../packages/core
       '@pothos/plugin-dataloader':
         specifier: workspace:*
@@ -387,7 +387,7 @@ importers:
         specifier: ^8.0.2
         version: 8.0.2
       '@pothos/core':
-        specifier: ^3.30.0
+        specifier: ^3.31.0
         version: link:../../packages/core
       '@pothos/plugin-prisma':
         specifier: workspace:*
@@ -1255,7 +1255,7 @@ importers:
     devDependencies:
       '@boost/module':
         specifier: ^4.1.0
-        version: 4.1.0
+        version: 4.1.0(typescript@5.1.6)
       '@types/mdast':
         specifier: ^4.0.0
         version: 4.0.0
@@ -2919,7 +2919,7 @@ packages:
     resolution: {integrity: sha512-0hYQ8SB4Db5zvZB4axdMHGwEaQjkZzFjQiN9LVYvIFB2nSUHW9tYpxWriPrWDASIxiaXax83REcLxuSdnGPZtw==}
     dev: true
 
-  /@boost/module@4.1.0:
+  /@boost/module@4.1.0(typescript@5.1.6):
     resolution: {integrity: sha512-qCvvX+vpIqyFLOFpDWQSlU1HeZSW1ir9bdHxqaUbVnzBhaHeHBmMHpHLIDCNWCCnpaUq6GsJ9mnn/dXPR+pH0A==}
     engines: {node: '>=14.15.0', npm: '>=6.14.0'}
     peerDependencies:
@@ -2927,6 +2927,8 @@ packages:
     peerDependenciesMeta:
       typescript:
         optional: true
+    dependencies:
+      typescript: 5.1.6
     dev: true
 
   /@changesets/apply-release-plan@6.1.4:

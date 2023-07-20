@@ -1,5 +1,15 @@
 # Change Log
 
+## 3.31.0
+
+### Minor Changes
+
+- 664e794c: Fixed a couple bugs related to how types are defined for inputRefs
+
+### Patch Changes
+
+- 5d3f7b97: Fix the EmptyToOptional utility type when strict mode is disabled
+
 ## 3.30.0
 
 ### Minor Changes
