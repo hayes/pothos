@@ -5,13 +5,12 @@ menu: Guide
 description: Guide for defining Input Object types in Pothos
 ---
 
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+export default DocsPage;
 
-export default DocsPage
-
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Input Objects
 

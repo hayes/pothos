@@ -1,8 +1,8 @@
 /* eslint-disable unicorn/no-process-exit */
 /* eslint-disable no-process-exit */
 /* eslint-disable unicorn/prefer-module */
-import { writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { format, resolveConfig } from 'prettier';
 import ts from 'typescript';
 import { PothosSchemaError } from '@pothos/core';
@@ -481,6 +481,7 @@ dmmf.datamodel.models.forEach((model) => {
 
 const generated = printStatements(generator.statements);
 
+// eslint-disable-next-line unicorn/prefer-top-level-await
 printCode().catch((error: unknown) => {
   console.error(error);
 
@@ -489,7 +490,7 @@ printCode().catch((error: unknown) => {
 
 async function printCode() {
   const config = await resolveConfig(__dirname);
-  const formatted = format(
+  const formatted = await format(
     /* ts */ `
   import { InputObjectRef } from '@pothos/core';
   import * as Prisma from '../../../client';

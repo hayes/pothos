@@ -5,7 +5,7 @@ builder.enumType(Status, {
   name: 'Status',
 });
 
-const Post = builder.objectRef<typeof posts[number]>('Post');
+const Post = builder.objectRef<(typeof posts)[number]>('Post');
 
 Post.implement({
   authz: {
@@ -25,7 +25,7 @@ Post.implement({
   }),
 });
 
-const User = builder.objectRef<typeof users[number]>('User');
+const User = builder.objectRef<(typeof users)[number]>('User');
 
 User.implement({
   fields: (t) => ({

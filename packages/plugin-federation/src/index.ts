@@ -51,16 +51,15 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
   override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
   ): PothosOutputFieldConfig<Types> | null {
-    const options = fieldConfig.pothosOptions as
-      | PothosSchemaTypes.FieldOptionsByKind<
-          Types,
-          unknown,
-          TypeParam<Types>,
-          false,
-          {},
-          {},
-          {}
-        >['ExtendedEntity'];
+    const options = fieldConfig.pothosOptions as PothosSchemaTypes.FieldOptionsByKind<
+      Types,
+      unknown,
+      TypeParam<Types>,
+      false,
+      {},
+      {},
+      {}
+    >['ExtendedEntity'];
 
     const ref = Array.isArray(options.type) ? options.type[0] : options.type;
     const resolve = (

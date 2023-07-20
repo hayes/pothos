@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldMap, FieldNullability, InputFieldMap, InterfaceParam, Normalize, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { FieldMap, FieldNullability, InputFieldMap, InterfaceFieldsShape, InterfaceParam, Normalize, ObjectFieldsShape, ParentShape, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types.ts';
 import type { PothosSimpleObjectsPlugin } from './index.ts';
 declare global {
@@ -9,8 +9,8 @@ declare global {
             simpleObjects: PothosSimpleObjectsPlugin<Types>;
         }
         export interface SchemaBuilder<Types extends SchemaTypes> {
-            simpleObject: <Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends Normalize<OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>>>(name: string, options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>) => ObjectRef<Shape>;
-            simpleInterface: <Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>, Interfaces extends InterfaceParam<SchemaTypes>[]>(name: string, options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>) => InterfaceRef<Shape>;
+            simpleObject: <Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape extends Normalize<OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>>>(name: string, options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>, fields?: ObjectFieldsShape<Types, Shape>) => ObjectRef<Shape>;
+            simpleInterface: <Fields extends FieldMap, Shape extends OutputShapeFromFields<Fields>, Interfaces extends InterfaceParam<SchemaTypes>[]>(name: string, options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>, fields?: InterfaceFieldsShape<Types, Shape>) => InterfaceRef<Shape>;
         }
         export interface PothosKindToGraphQLType {
             SimpleObject: "Object";

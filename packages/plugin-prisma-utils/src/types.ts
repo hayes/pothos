@@ -109,14 +109,13 @@ export interface PrismaWhereUniqueOptions<
   Fields,
 > extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
-  fields:
-    | (
-        | PrismaWhereUniqueFields<Types, Model>
-        | ((
-            t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
-          ) => PrismaWhereUniqueFields<Types, Model>)
-      ) &
-        Fields;
+  fields: (
+    | PrismaWhereUniqueFields<Types, Model>
+    | ((
+        t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
+      ) => PrismaWhereUniqueFields<Types, Model>)
+  ) &
+    Fields;
 }
 
 export interface PrismaIntAtomicUpdateOptions<Types extends SchemaTypes, Ops extends IntUpdateOps>

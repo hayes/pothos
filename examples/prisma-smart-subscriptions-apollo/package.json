@@ -19,14 +19,14 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-smart-subscriptions": "workspace:*",
-    "@prisma/client": "^4.16.1",
+    "@prisma/client": "^5.0.0",
     "body-parser": "^1.20.2",
     "cors": "^2.8.5",
     "express": "^4.18.2",
     "graphql": "16.7.1",
     "graphql-subscriptions": "^2.0.0",
     "graphql-ws": "^5.14.0",
-    "prisma": "^4.16.1",
+    "prisma": "^5.0.0",
     "ws": "^8.13.0"
   },
   "publishConfig": {

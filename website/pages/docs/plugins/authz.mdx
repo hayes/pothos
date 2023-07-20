@@ -5,12 +5,12 @@ menu: Plugins
 description: Authz plugin docs for Pothos
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # AuthZ plugin
 
@@ -100,5 +100,5 @@ Post.implement({
 });
 ```
 
-More details about composite rules are in the documentation of [AuthZ](https://github.com/AstrumU/graphql-authz#inline-composition-rules)
-
+More details about composite rules are in the documentation of
+[AuthZ](https://github.com/AstrumU/graphql-authz#inline-composition-rules)

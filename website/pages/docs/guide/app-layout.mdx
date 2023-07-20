@@ -55,9 +55,9 @@ the parent field figure out how to return an object of the right shape.
 ## Backing models
 
 Pothos gives you a lot of control over how you define the types that your schema and resolvers use,
-which can make figuring out the right approach confusing at first. In my projects, I try to
-avoid using the `SchemaTypes` approach for defining backing models. Instead, I tend to use model
-classes for defining most of the important objects in my graph, and fall back to using either the
+which can make figuring out the right approach confusing at first. In my projects, I try to avoid
+using the `SchemaTypes` approach for defining backing models. Instead, I tend to use model classes
+for defining most of the important objects in my graph, and fall back to using either the
 simple-objects plugin or `builder.objectRef<Shape>(name).implement({...})` when it does not make
 sense to define a class for my data.
 

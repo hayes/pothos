@@ -531,13 +531,17 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         ...config.extensions,
         ...options.extensions,
       },
-    } as PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
+    } as PothosSchemaTypes.ScalarTypeOptions<
+      Types,
+      InputShape<Types, Name>,
+      ParentShape<Types, Name>
+    >);
   }
 
   inputType<
     Param extends InputObjectRef<unknown> | string,
     Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown>
-      ? InputFieldsFromShape<InputShape<Types, Param> & {}>
+      ? InputFieldsFromShape<InputShape<Types, Param>>
       : InputFieldMap,
   >(
     param: Param,

@@ -207,7 +207,7 @@ export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullab
   [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;
 
-export type InputFieldsFromShape<Shape extends object> = {
+export type InputFieldsFromShape<Shape> = {
   [K in keyof Shape]: InputFieldRef<Shape[K], 'InputObject'>;
 };
 

@@ -51,9 +51,13 @@ enum MyEnum {
   Num @deprecated(reason: \\"Not used anymore..\\")
 }
 
+input NestedListInput {
+  list: [[Int!]]!
+}
+
 type Query {
   constructor: Boolean!
-  nestedLists(input: [[[String!]!]]!): [[[String!]!]]!
+  nestedLists(input: [[[String!]!]]!, nestedListInput: NestedListInput): [[[String!]!]]!
   sheep: Sheep!
   stuff: [stuff!]!
   user: User!

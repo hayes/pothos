@@ -17,7 +17,7 @@
     "@pothos/plugin-relay": "workspace:*",
     "graphql": "16.7.1",
     "graphql-yoga": "4.0.3",
-    "prisma": "^4.16.1"
+    "prisma": "^5.0.0"
   },
   "publishConfig": {
     "access": "public"

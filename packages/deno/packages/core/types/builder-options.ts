@@ -53,7 +53,7 @@ export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces exte
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
     [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;
-export type InputFieldsFromShape<Shape extends object> = {
+export type InputFieldsFromShape<Shape> = {
     [K in keyof Shape]: InputFieldRef<Shape[K], "InputObject">;
 };
 export type InputShapeFromField<Field extends InputFieldRef> = Field extends {

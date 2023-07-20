@@ -10,5 +10,5 @@
   "include": [
     "prisma/*.ts",
     "src/**/*"
-  ]  
+  ]
 }

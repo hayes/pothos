@@ -191,7 +191,7 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends string | number>(ty
     return ref;
 };
 proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(type: GraphQLInputObjectType, { name = type.name, fields, extensions, ...options }: AddGraphQLInputTypeOptions<SchemaTypes, Shape>) {
-    const ref = this.inputRef<Shape>(name);
+    const ref = this.inputRef<never>(name);
     return ref.implement({
         ...options,
         description: type.description ?? undefined,

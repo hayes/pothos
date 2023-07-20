@@ -141,10 +141,9 @@ export const BaseTypeRef = InternalBaseTypeRef as new (
 ) => PothosSchemaTypes.BaseTypeRef;
 
 export type EnumRef<T, P = T> = PothosSchemaTypes.EnumRef<T, P>;
-export const EnumRef = InternalEnumRef as new <T, P = T>(name: string) => PothosSchemaTypes.EnumRef<
-  T,
-  P
->;
+export const EnumRef = InternalEnumRef as new <T, P = T>(
+  name: string,
+) => PothosSchemaTypes.EnumRef<T, P>;
 
 export type InputObjectRef<T> = PothosSchemaTypes.InputObjectRef<T>;
 export const InputObjectRef = InternalInputObjectRef as new <T>(

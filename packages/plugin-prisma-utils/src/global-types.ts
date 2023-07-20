@@ -107,7 +107,7 @@ declare global {
       >(
         type: Name,
         options: PrismaWhereUniqueOptions<Types, Model, Fields>,
-      ) => InputObjectRef<PickFields<Model['WhereUnique'], Fields>>;
+      ) => InputObjectRef<Model['WhereUnique']>;
 
       prismaCreate: <
         Name extends keyof Types['PrismaTypes'],

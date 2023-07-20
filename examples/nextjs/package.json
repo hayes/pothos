@@ -10,14 +10,14 @@
     "start": "next start"
   },
   "dependencies": {
-    "@apollo/client": "^3.7.16",
+    "@apollo/client": "^3.7.17",
     "@faker-js/faker": "^8.0.2",
     "@pothos/core": "workspace:*",
-    "@tanstack/react-query": "^4.29.19",
+    "@tanstack/react-query": "^4.29.25",
     "graphql": "16.7.1",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "4.0.3",
-    "next": "13.4.7",
+    "next": "13.4.10",
     "react": "18.2.0",
     "react-dom": "18.2.0"
   },
@@ -28,9 +28,9 @@
     "@graphql-codegen/typescript": "^4.0.1",
     "@graphql-codegen/typescript-operations": "^4.0.1",
     "@graphql-codegen/typescript-react-apollo": "^3.3.7",
-    "@types/node": "20.3.2",
-    "@types/react": "18.2.14",
-    "@types/react-dom": "18.2.6",
+    "@types/node": "20.4.2",
+    "@types/react": "18.2.15",
+    "@types/react-dom": "18.2.7",
     "concurrently": "^8.2.0",
     "typescript": "^5.1.6"
   },

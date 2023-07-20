@@ -315,7 +315,7 @@ schemaBuilder.prismaWhere = function prismaWhere<
   type: Name,
   { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model, Fields>,
 ): InputObjectRef<Model['Where']> {
-  const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Filter`);
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}Filter`);
   const model = getModel(type, this);
   const nullableFields = new Set(
     model.fields.filter((field) => !field.isRequired).map((field) => field.name),
@@ -375,9 +375,7 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
   type: Name,
   { name, fields, ...options }: PrismaWhereUniqueOptions<SchemaTypes, Model, Fields>,
 ): InputObjectRef<Model['WhereUnique']> {
-  const ref = this.inputRef<Model['WhereUnique']>(
-    name ?? `${nameFromType(type, this)}UniqueFilter`,
-  );
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}UniqueFilter`);
 
   ref.implement({
     ...options,
@@ -418,7 +416,7 @@ schemaBuilder.prismaCreate = function prismaCreate<
     : never,
   Fields = {},
 >(type: Name, { name, fields, ...options }: PrismaCreateOptions<SchemaTypes, Model, Fields>) {
-  const ref = this.inputRef<Model['Create']>(name ?? `${nameFromType(type, this)}CreateInput`);
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}CreateInput`);
   const model = getModel(type, this);
 
   ref.implement({
@@ -469,7 +467,7 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
     : never,
   Fields = {},
 >(type: Name, { name, fields, ...options }: PrismaUpdateOptions<SchemaTypes, Model, Fields>) {
-  const ref = this.inputRef<Model['Update']>(name ?? `${nameFromType(type, this)}UpdateInput`);
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}UpdateInput`);
   const model = getModel(type, this);
 
   const nullableFields = new Set(

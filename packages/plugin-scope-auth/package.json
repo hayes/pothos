@@ -60,10 +60,10 @@
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.16.1",
+    "@prisma/client": "^5.0.0",
     "graphql": "16.7.1",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.16.1"
+    "prisma": "^5.0.0"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

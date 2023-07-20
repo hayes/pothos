@@ -131,8 +131,7 @@ Example2.implement({
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) =>
-    Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
+  resolveType: (parent) => (Object.hasOwn(parent, 'firstName') ? 'User' : 'Article'),
 });
 
 // Creating an ObjectType and its resolvers
@@ -366,6 +365,17 @@ builder.subscriptionType({
 
 builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
 
+const NestedListInput = builder
+  .inputRef<{ list: (number[] | null)[] }>('NestedListInput')
+  .implement({
+    fields: (t) => ({
+      list: t.field({
+        type: t.listRef(t.listRef('Int'), { required: false }),
+        required: true,
+      }),
+    }),
+  });
+
 builder.queryField('nestedLists', (t) =>
   t.field({
     type: t.listRef(t.listRef(t.listRef('String')), { nullable: true }),
@@ -373,6 +383,9 @@ builder.queryField('nestedLists', (t) =>
       input: t.arg({
         type: t.arg.listRef(t.arg.listRef(t.arg.listRef('String')), { required: false }),
         required: true,
+      }),
+      nestedListInput: t.arg({
+        type: NestedListInput,
       }),
     },
     resolve: (_, args) => args.input,

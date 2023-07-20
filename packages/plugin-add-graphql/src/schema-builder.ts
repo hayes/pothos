@@ -288,7 +288,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
     ...options
   }: AddGraphQLInputTypeOptions<SchemaTypes, Shape>,
 ) {
-  const ref = this.inputRef<Shape>(name);
+  const ref = this.inputRef<never>(name);
 
   return ref.implement({
     ...options,
