@@ -6,7 +6,7 @@ export type RequiredKeys<T extends object> = Exclude<keyof T, OptionalKeys<T>>;
 export type OptionalKeys<T extends object> = {
     [K in keyof T]: T[K] | undefined extends T[K] ? K : T[K] | null extends T[K] ? K : never;
 }[keyof T];
-export type NonEmptyKeys<T extends object> = {
+export type NonEmptyKeys<T extends object> = undefined extends {} ? never : {
     [K in keyof T]: {} extends T[K] ? never : T[K] extends NonNullable<T[K]> ? K : never;
 }[keyof T];
 export type EmptyKeys<T extends object> = {

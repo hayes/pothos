@@ -13,9 +13,12 @@ export type OptionalKeys<T extends object> = {
   [K in keyof T]: T[K] | undefined extends T[K] ? K : T[K] | null extends T[K] ? K : never;
 }[keyof T];
 
-export type NonEmptyKeys<T extends object> = {
-  [K in keyof T]: {} extends T[K] ? never : T[K] extends NonNullable<T[K]> ? K : never;
-}[keyof T];
+export type NonEmptyKeys<T extends object> = undefined extends {}
+  ? // non-strict mode, all keys are optional
+    never
+  : {
+      [K in keyof T]: {} extends T[K] ? never : T[K] extends NonNullable<T[K]> ? K : never;
+    }[keyof T];
 
 export type EmptyKeys<T extends object> = {
   [K in keyof T]: {} extends T[K] ? K : T[K] extends NonNullable<T[K]> ? never : K;
