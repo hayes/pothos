@@ -35,7 +35,7 @@ const ContactInfo = builder.simpleObject('ContactInfo', {
     email: t.string({
       nullable: false,
     }),
-    phoneNUmber: t.string({
+    phoneNumber: t.string({
       nullable: true,
     }),
   }),
@@ -49,23 +49,26 @@ const Node = builder.simpleInterface('Node', {
   }),
 });
 
-const UserType = builder.simpleObject('User', {
-  interfaces: [Node],
-  fields: (t) => ({
-    firstName: t.string(),
-    lastName: t.string(),
-    contactInfo: t.field({
-      type: ContactInfo,
-      nullable: false,
+const UserType = builder.simpleObject(
+  'User',
+  {
+    interfaces: [Node],
+    fields: (t) => ({
+      firstName: t.string(),
+      lastName: t.string(),
+      contactInfo: t.field({
+        type: ContactInfo,
+        nullable: false,
+      }),
     }),
-  }),
-  // You can add aditional fields with resolvers with a third fields argument
+  },
+  // You can add additional fields with resolvers with a third fields argument
   (t) => ({
     fullName: t.string({
       resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
-  })
-});
+  }),
+);
 
 builder.queryType({
   fields: (t) => ({
@@ -81,7 +84,7 @@ builder.queryType({
           lastName: 'Organa',
           contactInfo: {
             email: 'leia@example.com',
-            phoneNUmber: null,
+            phoneNumber: null,
           },
         };
       },
