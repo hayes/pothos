@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.31.1
+
+### Patch Changes
+
+- 425435af: Improve typing of inputRefs and fix incorrectly normalized function properties of
+  inputRef types
+
 ## 3.31.0
 
 ### Minor Changes
