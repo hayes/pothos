@@ -1,5 +1,12 @@
 # @pothos-examples/nextjs
 
+## 2.6.9
+
+### Patch Changes
+
+- Updated dependencies [425435af]
+  - @pothos/core@3.31.1
+
 ## 2.6.8
 
 ### Patch Changes
