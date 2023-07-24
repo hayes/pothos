@@ -1,5 +1,13 @@
 # @pothos-examples/relay
 
+## 2.4.50
+
+### Patch Changes
+
+- Updated dependencies [bd22a282]
+  - @pothos/core@3.31.2
+  - @pothos/plugin-prisma@3.53.0
+
 ## 2.4.49
 
 ### Patch Changes

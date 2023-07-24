@@ -1,6 +1,6 @@
 {
   "name": "@pothos-examples/open-telemetry",
-  "version": "1.2.26",
+  "version": "1.2.27",
   "main": "index.js",
   "license": "MIT",
   "dependencies": {
