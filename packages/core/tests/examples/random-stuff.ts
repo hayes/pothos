@@ -128,6 +128,15 @@ Example2.implement({
   }),
 });
 
+const Example3 = builder.inputRef<ExampleShape>('Example3').implement({
+  fields: (t) => ({
+    example: t.field({ type: Example, required: true }),
+    id: t.id({ required: false }),
+    ids: t.idList({ required: true }),
+    more: t.field({ type: Example3, required: true }),
+  }),
+});
+
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
@@ -371,7 +380,7 @@ builder.subscriptionType({
 builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
 
 const NestedListInput = builder
-  .inputRef<{ list: (number[] | null)[]; data?: Date }>('NestedListInput')
+  .inputRef<{ list: (number[] | null)[]; date?: Date | string }>('NestedListInput')
   .implement({
     fields: (t) => ({
       list: t.field({

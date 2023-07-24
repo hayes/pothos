@@ -2,7 +2,6 @@
 import {
   InputFieldsFromShape,
   InputRef,
-  InputShapeFromFields,
   inputShapeKey,
   RecursivelyNormalizeNullableFields,
   SchemaTypes,
@@ -34,11 +33,17 @@ export class ImplementableInputObjectRef<
     this.builder = builder;
   }
 
-  implement<Fields extends InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>>(
-    options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>,
+  implement(
+    options: PothosSchemaTypes.InputObjectTypeOptions<
+      Types,
+      InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
+    >,
   ) {
-    this.builder.inputType<ImplementableInputObjectRef<Types, T>, Fields>(this, options);
+    this.builder.inputType<
+      ImplementableInputObjectRef<Types, T>,
+      InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
+    >(this, options);
 
-    return this as InputObjectRef<InputShapeFromFields<Fields>>;
+    return this as InputObjectRef<RecursivelyNormalizeNullableFields<T>>;
   }
 }
