@@ -36,6 +36,13 @@ input Example2 {
   more: Example2!
 }
 
+input Example3 {
+  example: Example!
+  id: ID
+  ids: [ID!]!
+  more: Example3!
+}
+
 type Giraffe implements Animal {
   a: Boolean!
   age: Int!
