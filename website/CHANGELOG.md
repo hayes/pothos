@@ -4,6 +4,13 @@
 
 ### Patch Changes
 
+- Updated dependencies [bd22a282]
+  - @pothos/core@3.31.2
+
+## null
+
+### Patch Changes
+
 - Updated dependencies [425435af]
   - @pothos/core@3.31.1
 
