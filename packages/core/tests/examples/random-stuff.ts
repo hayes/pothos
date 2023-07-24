@@ -13,7 +13,7 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: string; Output: string };
+    Date: { Input: Date | string; Output: string | Date };
   };
   Context: { userID: number };
 }
@@ -110,7 +110,7 @@ interface ExampleShape {
     ids: (number | string)[];
     ids2?: number[];
     enum?: MyEnum;
-    date?: string;
+    date?: string | Date;
   };
   id?: number | string;
   ids: (number | string)[];
@@ -169,8 +169,13 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) =>
-        Number.parseInt(String(args.example2.more.more.more.example.id), 10),
+      resolve: (parent, args) => {
+        const d: Date | string = args.example2.more.more.more.example.date!;
+
+        console.log(d);
+
+        return Number.parseInt(String(args.example2.more.more.more.example.id), 10);
+      },
     }),
     // Using a union type
     related: t.field({
@@ -366,13 +371,14 @@ builder.subscriptionType({
 builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
 
 const NestedListInput = builder
-  .inputRef<{ list: (number[] | null)[] }>('NestedListInput')
+  .inputRef<{ list: (number[] | null)[]; data?: Date }>('NestedListInput')
   .implement({
     fields: (t) => ({
       list: t.field({
         type: t.listRef(t.listRef('Int'), { required: false }),
         required: true,
       }),
+      date: t.field({ type: 'Date', required: false }),
     }),
   });
 
@@ -388,7 +394,12 @@ builder.queryField('nestedLists', (t) =>
         type: NestedListInput,
       }),
     },
-    resolve: (_, args) => args.input,
+    resolve: (_, args) => {
+      const date: Date | string | null | undefined = args.nestedListInput?.date;
+      void date;
+
+      return args.input;
+    },
   }),
 );
 

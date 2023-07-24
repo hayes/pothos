@@ -52,6 +52,7 @@ enum MyEnum {
 }
 
 input NestedListInput {
+  date: Date
   list: [[Int!]]!
 }
 

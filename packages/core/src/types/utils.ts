@@ -52,6 +52,8 @@ export type RecursivelyNormalizeNullableFields<T> = undefined extends T
   ? RecursivelyNormalizeNullableFields<NonNullable<T>> | null | undefined
   : T extends (infer L)[]
   ? RecursivelyNormalizeNullableFields<L>[]
+  : T extends (...args: any[]) => unknown
+  ? T
   : T extends object
   ? Normalize<
       {

@@ -288,7 +288,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
     ...options
   }: AddGraphQLInputTypeOptions<SchemaTypes, Shape>,
 ) {
-  const ref = this.inputRef<never>(name);
+  const ref = this.inputRef<Shape>(name);
 
   return ref.implement({
     ...options,
@@ -321,5 +321,5 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
 
       return combinedFields as never;
     },
-  });
+  }) as never;
 };
