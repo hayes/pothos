@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.31.2
+
+### Patch Changes
+
+- bd22a282: revert improved inference for inputRef.implement
+
 ## 3.31.1
 
 ### Patch Changes
