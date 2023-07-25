@@ -54,17 +54,18 @@ export type RecursivelyNormalizeNullableFields<T> = undefined extends T
   ? RecursivelyNormalizeNullableFields<L>[]
   : T extends (...args: any[]) => unknown
   ? T
-  : T extends object
-  ? Normalize<
-      {
-        [K in OptionalKeys<T>]?:
-          | RecursivelyNormalizeNullableFields<NonNullable<T[K]>>
-          | null
-          | undefined;
-      } & {
-        [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
-      }
-    >
+  : keyof T extends string
+  ? T extends object
+    ? Normalize<
+        {
+          [K in OptionalKeys<T>]?: K extends string
+            ? RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined
+            : T[K];
+        } & {
+          [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
+        }
+      >
+    : T
   : T;
 
 export type RemoveNeverKeys<T extends {}> = {

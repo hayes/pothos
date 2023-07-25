@@ -128,7 +128,7 @@ Example2.implement({
   }),
 });
 
-const Example3 = builder.inputRef<ExampleShape>('Example3').implement({
+export const Example3 = builder.inputRef<ExampleShape>('Example3').implement({
   fields: (t) => ({
     example: t.field({ type: Example, required: true }),
     id: t.id({ required: false }),
