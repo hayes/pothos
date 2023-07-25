@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.32.1
+
+### Patch Changes
+
+- adc2d33d: Fix inputRefs when using any as scalar type
+
 ## 3.32.0
 
 ### Minor Changes
