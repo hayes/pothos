@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.32.0
+
+### Minor Changes
+
+- be23f48d: Fix issue with inputRef not serializing symbols correctly
+
 ## 3.31.2
 
 ### Patch Changes
