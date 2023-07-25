@@ -5,6 +5,8 @@ exports[`Example schema > generates expected schema 1`] = `
   species: String
 }
 
+scalar AnyJson
+
 \\"\\"\\"shape can be last arg\\"\\"\\"
 type Article {
   comments: [String!]!
@@ -40,6 +42,7 @@ input Example3 {
   example: Example!
   id: ID
   ids: [ID!]!
+  json: AnyJson
   more: Example3!
 }
 

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-use-before-define */
 import SchemaBuilder from '../../src';
 
 export const nullableFieldBuilder = new SchemaBuilder<{

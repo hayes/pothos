@@ -14,6 +14,8 @@ interface Types {
   };
   Scalars: {
     Date: { Input: Date | string; Output: string | Date };
+    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+    AnyJson: { Input: any | string; Output: unknown };
   };
   Context: { userID: number };
 }
@@ -38,6 +40,11 @@ class Giraffe extends Animal {
 }
 
 const builder = new SchemaBuilder<Types>({});
+
+builder.scalarType('AnyJson', {
+  serialize: (json) => json,
+  parseValue: (value) => value,
+});
 
 builder.scalarType('Date', {
   serialize: (date) => new Date(date).toISOString(),
@@ -115,6 +122,7 @@ interface ExampleShape {
   id?: number | string;
   ids: (number | string)[];
   more: ExampleShape;
+  json?: any;
 }
 
 const Example2 = builder.inputRef<ExampleShape>('Example2');
@@ -134,6 +142,7 @@ export const Example3 = builder.inputRef<ExampleShape>('Example3').implement({
     id: t.id({ required: false }),
     ids: t.idList({ required: true }),
     more: t.field({ type: Example3, required: true }),
+    json: t.field({ type: 'AnyJson', required: false }),
   }),
 });
 

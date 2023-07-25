@@ -46,10 +46,8 @@ export type NormalizeNullableFields<T extends object> = {
   [K in RequiredKeys<T>]: T[K];
 };
 
-export type RecursivelyNormalizeNullableFields<T> = undefined extends T
-  ? RecursivelyNormalizeNullableFields<NonNullable<T>> | null | undefined
-  : null extends T
-  ? RecursivelyNormalizeNullableFields<NonNullable<T>> | null | undefined
+export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined
+  ? null | undefined
   : T extends (infer L)[]
   ? RecursivelyNormalizeNullableFields<L>[]
   : T extends (...args: any[]) => unknown
