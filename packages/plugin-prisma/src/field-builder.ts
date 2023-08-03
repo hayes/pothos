@@ -3,8 +3,10 @@ import {
   FieldKind,
   FieldRef,
   InputFieldMap,
+  isThenable,
   MaybePromise,
   ObjectRef,
+  PothosError,
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
@@ -13,6 +15,7 @@ import { PrismaConnectionFieldOptions, PrismaModelTypes } from './types';
 import { getCursorFormatter, getCursorParser, resolvePrismaCursorConnection } from './util/cursors';
 import { getRefFromModel } from './util/datamodel';
 import { queryFromInfo } from './util/map-query';
+import { isUsed } from './util/usage';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -32,9 +35,18 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
     ...(options as {}),
     type: typeParam,
     resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({ context, info });
+      const query = queryFromInfo({
+        context,
+        info,
+        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+      });
 
-      return resolve(query, parent, args as never, context, info) as never;
+      return checkIfQueryIsUsed(
+        this.builder,
+        query,
+        info,
+        resolve(query, parent, args as never, context, info) as never,
+      );
     },
   }) as never;
 };
@@ -57,9 +69,18 @@ fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput({
     ...(options as {}),
     type: typeParam,
     resolve: (parent: never, args: unknown, context: {}, info: GraphQLResolveInfo) => {
-      const query = queryFromInfo({ context, info });
+      const query = queryFromInfo({
+        context,
+        info,
+        withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+      });
 
-      return resolve(query, parent, args as never, context, info) as never;
+      return checkIfQueryIsUsed(
+        this.builder,
+        query,
+        info,
+        resolve(query, parent, args as never, context, info) as never,
+      );
     },
   }) as never;
 };
@@ -114,17 +135,20 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
         args: PothosSchemaTypes.DefaultConnectionArguments,
         context: {},
         info: GraphQLResolveInfo,
-      ) =>
-        resolvePrismaCursorConnection(
+      ) => {
+        const query = queryFromInfo({
+          context,
+          info,
+          select: cursorSelection as {},
+          paths: [['nodes'], ['edges', 'node']],
+          typeName,
+          withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
+        });
+
+        return resolvePrismaCursorConnection(
           {
             parent,
-            query: queryFromInfo({
-              context,
-              info,
-              select: cursorSelection as {},
-              paths: [['nodes'], ['edges', 'node']],
-              typeName,
-            }),
+            query,
             ctx: context,
             parseCursor,
             maxSize,
@@ -133,8 +157,15 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
           formatCursor,
-          (query) => resolve(query as never, parent, args as never, context, info) as never,
-        ),
+          (q) =>
+            checkIfQueryIsUsed(
+              this.builder,
+              query,
+              info,
+              resolve(q as never, parent, args as never, context, info) as never,
+            ),
+        );
+      },
     },
     connectionOptions instanceof ObjectRef
       ? connectionOptions
@@ -163,3 +194,47 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
 
   return fieldRef;
 } as never;
+
+function checkIfQueryIsUsed<Types extends SchemaTypes, T>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  query: object,
+  info: GraphQLResolveInfo,
+  result: T,
+): T {
+  const { onUnusedQuery } = builder.options.prisma || {};
+  if (!onUnusedQuery) {
+    return result;
+  }
+
+  if (isThenable(result)) {
+    return result.then((resolved) => {
+      if (!isUsed(query)) {
+        onUnused();
+      }
+
+      return resolved;
+    }) as T;
+  }
+
+  if (!isUsed(query)) {
+    onUnused();
+  }
+
+  return result;
+
+  function onUnused() {
+    if (typeof onUnusedQuery === 'function') {
+      onUnusedQuery(info);
+      return;
+    }
+
+    const message = `Prisma query was unused in resolver for ${info.parentType.name}.${info.fieldName}`;
+
+    if (onUnusedQuery === 'error') {
+      throw new PothosError(message);
+    } else if (onUnusedQuery === 'warn') {
+      // eslint-disable-next-line no-console
+      console.warn(message);
+    }
+  }
+}

@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-interface */
+import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldMap,
@@ -52,6 +53,7 @@ declare global {
                   models?: boolean;
                   fields?: boolean;
                 };
+            onUnusedQuery?: null | 'warn' | 'error' | ((info: GraphQLResolveInfo) => void);
           }
         | {
             filterConnectionTotalCount?: boolean;
@@ -63,6 +65,7 @@ declare global {
                   models?: boolean;
                   fields?: boolean;
                 };
+            onUnusedQuery?: null | 'warn' | 'error' | ((info: GraphQLResolveInfo) => void);
           };
     }
 

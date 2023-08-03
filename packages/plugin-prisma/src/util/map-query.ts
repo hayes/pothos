@@ -31,6 +31,7 @@ import {
   SelectionState,
   selectionToQuery,
 } from './selections';
+import { wrapWithUsageCheck } from './usage';
 
 function addTypeSelectionsForField(
   type: GraphQLNamedType,
@@ -370,6 +371,7 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   select,
   path = [],
   paths = [],
+  withUsageCheck = false,
 }: {
   context: object;
   info: GraphQLResolveInfo;
@@ -377,6 +379,7 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   select?: T;
   path?: string[];
   paths?: string[][];
+  withUsageCheck?: boolean;
 }): { select: T } | { include?: {} } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
@@ -437,7 +440,9 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
 
   setLoaderMappings(context, info, state.mappings);
 
-  return selectionToQuery(state) as { select: T };
+  const query = selectionToQuery(state) as { select: T };
+
+  return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
 
 export function selectionStateFromInfo(

@@ -984,8 +984,10 @@ const WithCompositeUniqueNodeCustom = builder.prismaNode('WithCompositeUnique', 
 builder.queryFields((t) => ({
   findUniqueRelations: t.prismaField({
     type: 'FindUniqueRelations',
-    resolve: () =>
-      prisma.findUniqueRelations.findUniqueOrThrow({
+    resolve: (query) => {
+      void query.include;
+
+      return prisma.findUniqueRelations.findUniqueOrThrow({
         where: {
           id: '1',
         },
@@ -995,7 +997,8 @@ builder.queryFields((t) => ({
           withCompositeID: true,
           withCompositeUnique: true,
         },
-      }),
+      });
+    },
   }),
   findUniqueRelationsSelect: t.prismaField({
     type: 'FindUniqueRelations',
@@ -1087,7 +1090,11 @@ const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').imple
   fields: (t) => ({
     posts: t.prismaField({
       type: ['Post'],
-      resolve: (_, blog) => blog.posts,
+      resolve: (query, blog) => {
+        void query.include;
+
+        return blog.posts;
+      },
     }),
     pages: t.exposeIntList('pages'),
   }),
