@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.54.0
+
+### Minor Changes
+
+- 7494da05: Add `onUnusedQuery` option to the prisma plugin options
+
 ## 3.53.0
 
 ### Minor Changes
