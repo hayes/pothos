@@ -210,6 +210,8 @@ const builder = new SchemaBuilder<{
     exposeDescriptions: boolean | { models: boolean, fields: boolean },
     // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
     filterConnectionTotalCount: true,
+    // warn when not using a query parameter correctly
+    onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
   },
 });
 ```
@@ -612,6 +614,7 @@ const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   fields: (t) => ({
     id: t.exposeID('id'),
+  });
 });
 ```
 
@@ -818,6 +821,24 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 ```
+
+## Detecting unused query arguments
+
+Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConnection` into your
+prisma query can result in inefficient queries, or even missing data. To help catch these issues,
+the plugin can warn you when you are not using the query argument correctly.
+
+the `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
+`warn` it will log a warning to the console if Pothos detects that you have not properly used the
+query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
+You can also pass a function which will receive the `info` object which can be used to log or throw
+your own error.
+
+This check is fairly naive and works by wrapping the properties on the query with a getter that sets
+a flag if the property is accessed. If no properties are accessed on the query object before the
+resolver returns, it will trigger the `onUnusedQuery` condition.
+
+It's recommended to enable this check in development to more quickly find potential issues.
 
 ## Optimized queries without `t.prismaField`
 
