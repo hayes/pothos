@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.55.0
+
+### Minor Changes
+
+- 39237239: Add builder.prismaInterface to allow interface variants of a prisma model
+
 ## 3.54.0
 
 ### Minor Changes
