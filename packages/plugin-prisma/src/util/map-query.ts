@@ -6,10 +6,12 @@ import {
   getArgumentValues,
   getNamedType,
   GraphQLField,
+  GraphQLInterfaceType,
   GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
   InlineFragmentNode,
+  isInterfaceType,
   isObjectType,
   Kind,
   SelectionSetNode,
@@ -84,7 +86,7 @@ function addTypeSelectionsForField(
     return;
   }
 
-  if (!isObjectType(type)) {
+  if (!(isObjectType(type) || isInterfaceType(type))) {
     return;
   }
 
@@ -143,7 +145,7 @@ function resolveIndirectInclude(
   for (const sel of selection.selectionSet.selections) {
     switch (sel.kind) {
       case Kind.FIELD:
-        if (sel.name.value === include.name && isObjectType(type)) {
+        if (sel.name.value === include.name && (isObjectType(type) || isInterfaceType(type))) {
           const returnType = getNamedType(type.getFields()[sel.name.value].type);
 
           resolveIndirectInclude(
@@ -196,13 +198,14 @@ function resolveIndirectInclude(
 }
 
 function addNestedSelections(
-  type: GraphQLObjectType,
+  type: GraphQLObjectType | GraphQLInterfaceType,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
 ) {
+  let parentType = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
@@ -210,12 +213,19 @@ function addNestedSelections(
 
         continue;
       case Kind.FRAGMENT_SPREAD:
-        if (info.fragments[selection.name.value].typeCondition.name.value !== type.name) {
+        parentType = info.schema.getType(
+          info.fragments[selection.name.value].typeCondition.name.value,
+        )! as GraphQLObjectType;
+        if (
+          isObjectType(type)
+            ? parentType.name !== type.name
+            : parentType.extensions?.pothosPrismaModel !== type.extensions.pothosPrismaModel
+        ) {
           continue;
         }
 
         addNestedSelections(
-          type,
+          parentType,
           context,
           info,
           state,
@@ -226,11 +236,18 @@ function addNestedSelections(
         continue;
 
       case Kind.INLINE_FRAGMENT:
-        if (selection.typeCondition && selection.typeCondition.name.value !== type.name) {
+        parentType = selection.typeCondition
+          ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
+          : type;
+        if (
+          isObjectType(type)
+            ? parentType.name !== type.name
+            : parentType.extensions?.pothosPrismaModel !== type.extensions.pothosPrismaModel
+        ) {
           continue;
         }
 
-        addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
+        addNestedSelections(parentType, context, info, state, selection.selectionSet, indirectPath);
 
         continue;
 
@@ -243,7 +260,7 @@ function addNestedSelections(
 }
 
 function addFieldSelection(
-  type: GraphQLObjectType,
+  type: GraphQLObjectType | GraphQLInterfaceType,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
@@ -454,8 +471,10 @@ export function selectionStateFromInfo(
 
   const state = createStateForType(type, info);
 
-  if (!isObjectType(type)) {
-    throw new PothosValidationError('Prisma plugin can only resolve includes for object types');
+  if (!(isObjectType(type) || isInterfaceType(type))) {
+    throw new PothosValidationError(
+      'Prisma plugin can only resolve includes for object and interface types',
+    );
   }
 
   addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
@@ -503,7 +522,7 @@ function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclu
 
   const normalized: { name: string; type: string }[] = [];
 
-  if (!isObjectType(currentType)) {
+  if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
     throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
   }
 
@@ -516,8 +535,8 @@ function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclu
 
     currentType = getNamedType(field.type);
 
-    if (!isObjectType(currentType)) {
-      throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
+    if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
+      throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
     }
 
     normalized.push({ name: fieldName, type: currentType.name });

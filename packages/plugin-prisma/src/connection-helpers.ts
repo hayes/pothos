@@ -1,6 +1,6 @@
 import { ObjectRef, SchemaTypes } from '@pothos/core';
+import { PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
-import { PrismaObjectRef } from './object-ref';
 import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types';
 import {
   getCursorFormatter,
@@ -17,12 +17,12 @@ export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 
 export function prismaConnectionHelpers<
   Types extends SchemaTypes,
-  RefOrType extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
+  RefOrType extends PrismaRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
   Select extends Model['Select'] & {},
-  Model extends PrismaModelTypes = RefOrType extends PrismaObjectRef<infer T>
+  Model extends PrismaModelTypes = RefOrType extends PrismaRef<infer T>
     ? T & PrismaModelTypes
     : Types['PrismaTypes'][RefOrType & keyof Types['PrismaTypes']] & PrismaModelTypes,
-  Shape = RefOrType extends PrismaObjectRef<PrismaModelTypes, infer T> ? T : Model['Shape'],
+  Shape = RefOrType extends PrismaRef<PrismaModelTypes, infer T> ? T : Model['Shape'],
   EdgeShape = Model['Include'] extends Select
     ? Shape
     : ShapeFromSelection<Types, Model, { select: Select }>,
@@ -41,7 +41,7 @@ export function prismaConnectionHelpers<
   },
 ) {
   const modelName =
-    typeof refOrType === 'string' ? refOrType : (refOrType as PrismaObjectRef<Model>).modelName;
+    typeof refOrType === 'string' ? refOrType : (refOrType as PrismaRef<Model>).modelName;
   const ref =
     typeof refOrType === 'string'
       ? getRefFromModel(modelName, builder)
@@ -119,7 +119,7 @@ export function prismaConnectionHelpers<
   return {
     ref: (typeof refOrType === 'string'
       ? getRefFromModel(refOrType, builder)
-      : refOrType) as PrismaObjectRef<Model>,
+      : refOrType) as PrismaRef<Model>,
     resolve,
     select: options.select ?? {},
     getQuery,

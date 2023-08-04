@@ -9,6 +9,7 @@ import SchemaBuilder, {
   PothosError,
   SchemaTypes,
 } from '@pothos/core';
+import { PrismaInterfaceRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaNodeRef } from './node-ref';
 import { PrismaObjectRef } from './object-ref';
@@ -29,7 +30,7 @@ schemaBuilderProto.prismaObject = function prismaObject(
 ) {
   const ref = options.variant
     ? new PrismaObjectRef(options.variant, type)
-    : getRefFromModel(type, this);
+    : (getRefFromModel(type, this) as PrismaObjectRef<PrismaModelTypes>);
   const name = options.variant ?? options.name ?? type;
   const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
   const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
@@ -56,6 +57,48 @@ schemaBuilderProto.prismaObject = function prismaObject(
               this,
               type,
               getRelationMap(getDMMF(this)).get(type)!,
+            ),
+          )
+      : undefined,
+  });
+
+  return ref as never;
+};
+
+schemaBuilderProto.prismaInterface = function prismaInterface(
+  type,
+  { fields, findUnique, select, include, description, ...options },
+) {
+  const ref = options.variant
+    ? new PrismaInterfaceRef(options.variant, type)
+    : (getRefFromModel(type, this, 'interface') as PrismaInterfaceRef<PrismaModelTypes>);
+  const name = options.variant ?? options.name ?? type;
+  const fieldMap = getRelationMap(getDMMF(this)).get(type)!;
+  const idSelection = ModelLoader.getDefaultIDSelection(ref, type, this);
+
+  ref.name = name;
+
+  this.interfaceType(ref, {
+    ...(options as {}),
+    description: getModelDescription(type, this, description),
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInclude: include,
+      pothosPrismaModel: type,
+      pothosPrismaFieldMap: fieldMap,
+      pothosPrismaSelect: select && { ...idSelection, ...(select as {}) },
+      pothosPrismaLoader: ModelLoader.forRef(ref, type, findUnique as never, this),
+    },
+    name,
+    fields: fields
+      ? () =>
+          fields(
+            new PrismaObjectFieldBuilder(
+              name,
+              this,
+              type,
+              getRelationMap(getDMMF(this)).get(type)!,
+              'Interface',
             ),
           )
       : undefined,

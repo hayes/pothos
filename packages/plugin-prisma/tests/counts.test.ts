@@ -111,16 +111,6 @@ describe('prisma counts', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
           "action": "findUnique",
           "args": {
             "include": {
@@ -148,6 +138,16 @@ describe('prisma counts', () => {
             "where": {
               "id": 1,
             },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
           },
           "dataPath": [],
           "model": "User",
@@ -295,16 +295,6 @@ describe('prisma counts', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
           "action": "findUnique",
           "args": {
             "include": {
@@ -332,6 +322,16 @@ describe('prisma counts', () => {
             "where": {
               "id": 1,
             },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
           },
           "dataPath": [],
           "model": "User",
@@ -402,16 +402,6 @@ describe('prisma counts', () => {
     expect(queries).toMatchInlineSnapshot(`
       [
         {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
           "action": "findUnique",
           "args": {
             "include": {
@@ -439,6 +429,16 @@ describe('prisma counts', () => {
             "where": {
               "id": 1,
             },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findMany",
+          "args": {
+            "skip": 0,
+            "take": 2,
           },
           "dataPath": [],
           "model": "User",

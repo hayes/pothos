@@ -21,6 +21,7 @@ import {
   typeBrandKey,
   TypeParam,
 } from '@pothos/core';
+import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import { PrismaObjectRef } from './object-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
 
@@ -228,6 +229,60 @@ export type PrismaObjectTypeOptions<
 > = PrismaObjectRefOptions<Types, Model, FindUnique, Include, Select, Shape> &
   PrismaObjectImplementationOptions<Types, Model, Interfaces, FindUnique, Select, Shape>;
 
+export type PrismaInterfaceRefOptions<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  FindUnique,
+  Include,
+  Select,
+  Shape extends object,
+> = NameOrVariant &
+  (
+    | {
+        include?: Include & Model['Include'];
+        select?: never;
+        findUnique?: FindUnique &
+          (((parent: Shape, context: Types['Context']) => Model['WhereUnique']) | null);
+      }
+    | {
+        select: Model['Select'] & Select;
+        include?: never;
+        findUnique?: (parent: Shape, context: Types['Context']) => Model['WhereUnique'];
+      }
+  );
+
+export type PrismaInterfaceImplementationOptions<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Interfaces extends InterfaceParam<Types>[],
+  FindUnique,
+  Select,
+  Shape extends object,
+> = Omit<
+  PothosSchemaTypes.InterfaceTypeOptions<Types, Shape, Interfaces>,
+  'fields' | 'description'
+> & {
+  description?: string | false;
+  fields?: PrismaObjectFieldsShape<
+    Types,
+    Model,
+    FindUnique extends null ? true : false,
+    Shape & (FindUnique extends null ? {} : { [prismaModelName]?: Model['Name'] }),
+    Select
+  >;
+};
+
+export type PrismaInterfaceTypeOptions<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  Interfaces extends InterfaceParam<Types>[],
+  FindUnique,
+  Include,
+  Select,
+  Shape extends object,
+> = PrismaInterfaceRefOptions<Types, Model, FindUnique, Include, Select, Shape> &
+  PrismaInterfaceImplementationOptions<Types, Model, Interfaces, FindUnique, Select, Shape>;
+
 type NameOrVariant =
   | {
       name?: never;
@@ -394,14 +449,14 @@ export type RelatedFieldOptions<
         >;
       }) & {
     description?: string | false;
-    type?: PrismaObjectRef<TypesForRelation<Types, Model, Field>>;
+    type?: PrismaRef<TypesForRelation<Types, Model, Field>>;
     query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
   };
 
 export type VariantFieldOptions<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  Variant extends PrismaObjectRef<Model>,
+  Variant extends PrismaRef<Model>,
   Args extends InputFieldMap,
   isNull,
   Shape,
@@ -458,10 +513,10 @@ export type PrismaFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
   Type extends
-    | PrismaObjectRef<PrismaModelTypes>
+    | PrismaRef<PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    | [PrismaObjectRef<PrismaModelTypes>],
+    | [PrismaRef<PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Args extends InputFieldMap,
@@ -494,10 +549,10 @@ export type PrismaFieldWithInputOptions<
   Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
   Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
   Type extends
-    | PrismaObjectRef<PrismaModelTypes>
+    | PrismaRef<PrismaModelTypes>
     | keyof Types['PrismaTypes']
     | [keyof Types['PrismaTypes']]
-    | [PrismaObjectRef<PrismaModelTypes>],
+    | [PrismaRef<PrismaModelTypes>],
   Model extends PrismaModelTypes,
   Param extends TypeParam<Types>,
   Nullable extends FieldNullability<Param>,
@@ -562,7 +617,10 @@ export type PrismaFieldResolver<
 export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
+  Type extends
+    | PrismaRef<PrismaModelTypes>
+    | PrismaInterfaceRef<PrismaModelTypes>
+    | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
   Param extends OutputType<Types>,
   Nullable extends boolean,
@@ -665,7 +723,7 @@ export type RelatedConnectionOptions<
     ? {
         description?: string | false;
         query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-        type?: PrismaObjectRef<TypesForRelation<Types, Model, Field>>;
+        type?: PrismaRef<TypesForRelation<Types, Model, Field>>;
         cursor: CursorFromRelation<Model, Field>;
         defaultSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);
         maxSize?: number | ((args: ConnectionArgs, ctx: Types['Context']) => number);

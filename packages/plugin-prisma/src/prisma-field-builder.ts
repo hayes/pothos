@@ -18,6 +18,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
 import { PrismaObjectRef } from './object-ref';
 import {
@@ -367,8 +368,9 @@ export class PrismaObjectFieldBuilder<
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     model: string,
     fieldMap: FieldMap,
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind] = 'Object',
   ) {
-    super(name, builder, 'PrismaObject', 'Object');
+    super(name, builder, 'PrismaObject', graphqlKind);
 
     this.model = model;
     this.prismaFieldMap = fieldMap;
@@ -473,18 +475,14 @@ export class PrismaObjectFieldBuilder<
     }) as FieldRef<number, 'Object'>;
   }
 
-  variant<
-    Variant extends Model['Name'] | PrismaObjectRef<Model>,
-    Args extends InputFieldMap,
-    Nullable,
-  >(
+  variant<Variant extends Model['Name'] | PrismaRef<Model>, Args extends InputFieldMap, Nullable>(
     variant: Variant,
     ...allArgs: NormalizeArgs<
       [
         options: VariantFieldOptions<
           Types,
           Model,
-          Variant extends PrismaObjectRef<Model> ? Variant : PrismaObjectRef<Model>,
+          Variant extends PrismaRef<Model> ? Variant : PrismaRef<Model>,
           Args,
           Nullable,
           Shape
@@ -493,7 +491,7 @@ export class PrismaObjectFieldBuilder<
     >
   ): FieldRef<Model['Shape'], 'Object'> {
     const [{ isNull, nullable, ...options } = {} as never] = allArgs;
-    const ref: PrismaObjectRef<PrismaModelTypes> =
+    const ref: PrismaRef<PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
     const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
@@ -550,7 +548,7 @@ export class PrismaObjectFieldBuilder<
   ) {
     const [name, options = {} as never] = args;
 
-    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
+    const typeConfig = this.builder.configStore.getTypeConfig(this.typename);
     const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
 
     return this.exposeField<Type, Nullable, never>(name as never, {

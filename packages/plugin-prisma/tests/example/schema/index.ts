@@ -70,7 +70,7 @@ const postConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
   resolveNode: ({ post }) => post,
 });
 
-const Viewer = builder.prismaObject('User', {
+const Viewer = builder.prismaInterface('User', {
   variant: 'Viewer',
   select: {
     id: true,
@@ -154,6 +154,55 @@ const Viewer = builder.prismaObject('User', {
         return postConnectionHelpers.resolve(comments, args, ctx);
       },
     }),
+    aComments: t.relatedConnection(
+      'comments',
+      {
+        cursor: 'id',
+        query: {
+          where: {
+            content: {
+              startsWith: 'A',
+            },
+          },
+        },
+      },
+      CommentConnection,
+    ),
+  }),
+  resolveType: () => 'NormalViewer',
+});
+
+const NormalViewer = builder.prismaObject('User', {
+  variant: 'NormalViewer',
+  select: {
+    id: true,
+  },
+  interfaces: [Viewer],
+  fields: (t) => ({
+    isNormal: t.boolean({
+      resolve: () => true,
+    }),
+    reverseName: t.string({
+      select: {
+        name: true,
+      },
+      nullable: true,
+      resolve: (user) => user.name?.split('').reverse().join(''),
+    }),
+    aComments: t.relatedConnection(
+      'comments',
+      {
+        cursor: 'id',
+        query: {
+          where: {
+            content: {
+              startsWith: 'b',
+            },
+          },
+        },
+      },
+      CommentConnection,
+    ),
   }),
 });
 
@@ -317,7 +366,7 @@ const User = builder.prismaNode('User', {
 });
 
 const NamedUnion = builder.unionType('NamedUnion', {
-  types: [User, Viewer],
+  types: [User, NormalViewer],
 });
 
 const Media = builder.prismaObject('Media', {
@@ -672,7 +721,7 @@ builder.queryType({
   fields: (t) => ({
     viewer: t.prismaField({
       type: Viewer,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
@@ -680,7 +729,7 @@ builder.queryType({
     }),
     viewerNode: t.prismaField({
       type: ViewerNode,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
@@ -689,7 +738,7 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       nullable: true,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
           where: { id: ctx.user.id },
@@ -698,7 +747,7 @@ builder.queryType({
     selectMe: t.prismaField({
       type: SelectUser,
       nullable: true,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
           where: { id: ctx.user.id },

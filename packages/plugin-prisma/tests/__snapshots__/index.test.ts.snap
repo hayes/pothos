@@ -85,10 +85,25 @@ interface Named {
   name: String
 }
 
-union NamedUnion = User | Viewer
+union NamedUnion = NormalViewer | User
 
 interface Node {
   id: ID!
+}
+
+type NormalViewer implements Viewer {
+  aComments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
+  bio: String
+  comments(after: ID, before: ID, first: Int, last: Int): ViewerCommentsConnection!
+  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int): ViewerCommentsWithNewQueryConnection!
+  id: ID!
+  isNormal: Boolean!
+  postCount: Int!
+  postPreviews: [PostPreview!]!
+  posts: [Post!]!
+  reverseName: String
+  selectUser: SelectUser!
+  user: User!
 }
 
 type PageInfo {
@@ -490,7 +505,8 @@ type UserProfileWithErrorsSuccess {
   data: Profile!
 }
 
-type Viewer {
+interface Viewer {
+  aComments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
   bio: String
   comments(after: ID, before: ID, first: Int, last: Int): ViewerCommentsConnection!
   commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int): ViewerCommentsWithNewQueryConnection!

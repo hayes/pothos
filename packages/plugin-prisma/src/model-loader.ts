@@ -1,4 +1,10 @@
-import { createContextCache, ObjectRef, PothosSchemaError, SchemaTypes } from '@pothos/core';
+import {
+  createContextCache,
+  InterfaceRef,
+  ObjectRef,
+  PothosSchemaError,
+  SchemaTypes,
+} from '@pothos/core';
 import { getDelegateFromModel, getModel } from './util/datamodel';
 import { getClient } from './util/get-client';
 import {
@@ -32,7 +38,7 @@ export class ModelLoader {
   }
 
   static forRef<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
     modelName: string,
     findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -78,7 +84,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindBy<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
@@ -115,7 +121,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindUnique<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): (model: Record<string, unknown>) => {} {
@@ -125,7 +131,7 @@ export class ModelLoader {
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): Record<string, boolean> {
@@ -145,7 +151,7 @@ export class ModelLoader {
   }
 
   static getCursorSelection<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
     modelName: string,
     cursor: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -174,7 +180,7 @@ export class ModelLoader {
   }
 
   static getFindUniqueForField<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
     modelName: string,
     fieldName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,

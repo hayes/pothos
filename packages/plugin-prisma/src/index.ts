@@ -6,6 +6,8 @@ import SchemaBuilder, {
   BasePlugin,
   BuildCache,
   PothosOutputFieldConfig,
+  PothosSchemaError,
+  PothosTypeConfig,
   SchemaTypes,
 } from '@pothos/core';
 import { ModelLoader } from './model-loader';
@@ -17,6 +19,7 @@ import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
 import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
 
 export { prismaConnectionHelpers } from './connection-helpers';
+export { PrismaInterfaceRef } from './interface-ref';
 export { PrismaNodeRef } from './node-ref';
 export { PrismaObjectRef } from './object-ref';
 export * from './types';
@@ -45,6 +48,37 @@ export const ObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
 export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   constructor(cache: BuildCache<Types>) {
     super(cache, pluginName);
+  }
+
+  override onTypeConfig(typeConfig: PothosTypeConfig): PothosTypeConfig {
+    if (typeConfig.kind !== 'Object' && typeConfig.kind !== 'Interface') {
+      return typeConfig;
+    }
+
+    let model = typeConfig.extensions?.pothosPrismaModel as string | undefined;
+
+    typeConfig.interfaces.forEach((iface) => {
+      const interfaceModel = this.buildCache.getTypeConfig(iface, 'Interface').extensions
+        ?.pothosPrismaModel as string | undefined;
+
+      if (interfaceModel) {
+        if (model && model !== interfaceModel) {
+          throw new PothosSchemaError(
+            `PrismaObjects must be based on the same prisma model as any PrismaInterfaces they extend. ${typeConfig.name} uses ${model} and ${iface.name} uses ${interfaceModel}`,
+          );
+        }
+
+        model = interfaceModel;
+      }
+    });
+
+    return {
+      ...typeConfig,
+      extensions: {
+        ...typeConfig.extensions,
+        pothosPrismaModel: model,
+      },
+    };
   }
 
   override onOutputFieldConfig(
@@ -85,7 +119,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       return resolver;
     }
 
-    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType, 'Object');
+    const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
     const loadedCheck = fieldConfig.extensions?.pothosPrismaLoaded as
       | undefined
       | ((val: unknown) => boolean);
@@ -97,8 +131,28 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
       | undefined
       | ((query: {}, parent: unknown, args: {}, context: {}, info: {}) => unknown);
 
+    const parentTypes = new Set([fieldConfig.parentType]);
+
+    if (parentConfig.kind === 'Interface' || parentConfig.kind === 'Object') {
+      parentConfig.interfaces.forEach((iface) => {
+        const interfaceConfig = this.buildCache.getTypeConfig(iface, 'Interface');
+        if (interfaceConfig.extensions?.pothosPrismaModel) {
+          parentTypes.add(interfaceConfig.name);
+        }
+      });
+    }
+
     return (parent, args, context, info) => {
-      const mapping = getLoaderMapping(context, info.path, info.parentType.name);
+      let mapping = getLoaderMapping(context, info.path, info.parentType.name);
+
+      if (!mapping) {
+        for (const parentType of parentTypes) {
+          mapping = getLoaderMapping(context, info.path, parentType);
+          if (mapping) {
+            break;
+          }
+        }
+      }
 
       if ((!loadedCheck || loadedCheck(parent)) && mapping) {
         setLoaderMappings(context, info, mapping);

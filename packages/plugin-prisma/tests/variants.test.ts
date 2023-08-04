@@ -26,6 +26,15 @@ describe('variants', () => {
           __typename
           id
         }
+        viewer {
+          __typename
+          posts {
+            id
+          }
+          ... on NormalViewer {
+            reverseName
+          }
+        }
         me {
           __typename
           profile {
@@ -35,6 +44,9 @@ describe('variants', () => {
             __typename
             posts {
               id
+            }
+            ... on NormalViewer {
+              reverseName
             }
             bio
             user {
@@ -66,7 +78,7 @@ describe('variants', () => {
               "bio": "Debitis perspiciatis unde sunt.",
             },
             "viewer": {
-              "__typename": "Viewer",
+              "__typename": "NormalViewer",
               "bio": "Debitis perspiciatis unde sunt.",
               "posts": [
                 {
@@ -85,6 +97,7 @@ describe('variants', () => {
                   "id": "5",
                 },
               ],
+              "reverseName": "ektaR eniruaM",
               "user": {
                 "__typename": "User",
                 "posts": [
@@ -125,6 +138,27 @@ describe('variants', () => {
               },
             },
           },
+          "viewer": {
+            "__typename": "NormalViewer",
+            "posts": [
+              {
+                "id": "1",
+              },
+              {
+                "id": "2",
+              },
+              {
+                "id": "3",
+              },
+              {
+                "id": "4",
+              },
+              {
+                "id": "5",
+              },
+            ],
+            "reverseName": "ektaR eniruaM",
+          },
           "viewerNode": {
             "__typename": "ViewerNode",
             "id": "Vmlld2VyTm9kZTox",
@@ -140,6 +174,32 @@ describe('variants', () => {
           "args": {
             "include": {
               "profile": true,
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "select": {
+              "id": true,
+              "name": true,
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "take": 5,
+              },
             },
             "where": {
               "id": 1,

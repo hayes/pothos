@@ -695,12 +695,53 @@ const User = builder.prismaNode('User', {
   }),
 });
 
-// Viewer references the `User` ref in its field definiton,
+// Viewer references the `User` ref in its field definition,
 // referencing the `User` in fields would cause a circular type issue
 builder.prismaObjectField(Viewer, 'user', t.variant(User));
 ```
 
 This same workaround applies when defining relations using variants.
+
+## Creating interfaces with `builder.prismaInterface`
+
+`builder.prismaInterface` works just like builder.prismaInterface and can be used to define either
+the primary type or a variant for a model.
+
+The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
+method returns the typenames as strings to avoid issues with circular references.
+
+```typescript
+builder.prismaInterface('User', {
+  name: 'User',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+  resolveType: (user) => {
+    return user.isAdmin ? 'Admin' : 'Member';
+  },
+});
+
+builder.prismaObject('User', {
+  variant: 'Admin',
+  interfaces: [User],
+  fields: (t) => ({
+    isAdmin: t.exposeBoolean('isAdmin'),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Member',
+  interfaces: [User],
+  fields: (t) => ({
+    bio: t.exposeString('bio'),
+  }),
+});
+```
+
+So far, this is just creating some simple object types. They work just like any other object type in
+Pothos. The main advantage of this is that we get the type information without using object refs, or
+needing imports from prisma client.
 
 ## Selecting fields from a nested GraphQL field
 
