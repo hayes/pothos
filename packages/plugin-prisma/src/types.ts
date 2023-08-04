@@ -22,7 +22,6 @@ import {
   TypeParam,
 } from '@pothos/core';
 import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
-import { PrismaObjectRef } from './object-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
 
 export interface PrismaDelegate {

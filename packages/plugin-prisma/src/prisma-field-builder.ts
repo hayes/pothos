@@ -18,9 +18,8 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
+import { PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
-import { PrismaObjectRef } from './object-ref';
 import {
   PrismaConnectionShape,
   PrismaModelTypes,
