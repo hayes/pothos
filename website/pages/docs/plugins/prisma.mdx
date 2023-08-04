@@ -718,8 +718,8 @@ This same workaround applies when defining relations using variants.
 
 ## Creating interfaces with `builder.prismaInterface`
 
-`builder.prismaInterface` works just like builder.prismaInterface and can be used to define either
-the primary type or a variant for a model.
+`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
+primary type or a variant for a model.
 
 The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
 method returns the typenames as strings to avoid issues with circular references.
