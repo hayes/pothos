@@ -8,6 +8,9 @@ export function wrapWithUsageCheck<T extends Object>(obj: T): T {
     get() {
       return used;
     },
+    set(value: boolean) {
+      used = value;
+    },
     enumerable: false,
   });
 
@@ -30,4 +33,32 @@ export function wrapWithUsageCheck<T extends Object>(obj: T): T {
 
 export function isUsed(obj: object): boolean {
   return !(usageSymbol in obj) || (obj as { [usageSymbol]: boolean })[usageSymbol];
+}
+
+export function extendWithUsage<T extends object, U extends object>(
+  original: T,
+  extension: U,
+): T & U {
+  if (!(usageSymbol in original)) {
+    return { ...original, ...extension };
+  }
+
+  const result = { ...extension };
+
+  for (const key of [usageSymbol, ...Object.keys(original)]) {
+    if (key in result) {
+      // eslint-disable-next-line no-continue
+      continue;
+    }
+
+    Object.defineProperty(result, key, {
+      enumerable: key !== usageSymbol,
+      configurable: key !== usageSymbol,
+      get() {
+        return original[key as keyof T];
+      },
+    });
+  }
+
+  return result as T & U;
 }

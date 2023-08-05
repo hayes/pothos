@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.56.0
+
+### Minor Changes
+
+- Fix unused query check for prismaConnections
+
 ## 3.55.0
 
 ### Minor Changes
