@@ -49,6 +49,7 @@
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
+    "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@types/yargs": "^17.0.24"
   },

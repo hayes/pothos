@@ -562,6 +562,9 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
+      '@pothos/plugin-simple-objects':
+        specifier: workspace:*
+        version: link:../plugin-simple-objects
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils

@@ -1,4 +1,5 @@
 import SchemaBuilder from '@pothos/core';
+import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
 interface Types {
@@ -7,4 +8,6 @@ interface Types {
   Context: ContextType;
 }
 
-export default new SchemaBuilder<Types>({});
+export default new SchemaBuilder<Types>({
+  plugins: [SimpleObjectsPlugin],
+});
