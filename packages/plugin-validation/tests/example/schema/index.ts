@@ -76,7 +76,10 @@ const ContactInfo = builder.inputType('ContactInfo', {
     }),
     phone: t.string({
       validate: {
-        schema: zod.string().regex(/^\d{3}-\d{3}-\d{4}$/u),
+        schema: zod
+          .string()
+          .trim()
+          .regex(/^\d{3}-\d{3}-\d{4}$/u),
         length: 12,
       },
     }),
@@ -93,7 +96,11 @@ builder.queryType({
             email: true,
           },
         }),
-        phone: t.arg.string(),
+        phone: t.arg.string({
+          validate: {
+            schema: zod.string().trim(),
+          },
+        }),
       },
       validate: async (args) => Promise.resolve(!!args.phone || !!args.email),
       resolve: () => true,
