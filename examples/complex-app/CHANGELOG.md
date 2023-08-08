@@ -1,5 +1,12 @@
 # @pothos-examples/complex-app
 
+## 1.6.2
+
+### Patch Changes
+
+- Updated dependencies [eedeca16]
+  - @pothos/plugin-validation@3.10.0
+
 ## 1.6.1
 
 ### Patch Changes
