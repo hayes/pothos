@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.10.0
+
+### Minor Changes
+
+- eedeca16: Improve support for custom validator schemas that modify inputs
+
 ## 3.9.2
 
 ### Patch Changes
