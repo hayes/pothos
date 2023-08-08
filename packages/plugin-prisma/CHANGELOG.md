@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.56.1
+
+### Patch Changes
+
+- 016011f2: Fix custom descriptions in t.expose methods
+
 ## 3.56.0
 
 ### Minor Changes
