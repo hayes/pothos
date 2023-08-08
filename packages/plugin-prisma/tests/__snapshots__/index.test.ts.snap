@@ -119,8 +119,6 @@ type Post {
   commentAuthorIds: [ID!]!
   comments: [Comment!]!
   commentsConnection(after: ID, before: ID, first: Int, last: Int): CommentConnection!
-
-  \\"\\"\\"Content for the post\\"\\"\\"
   content: String
   createdAt: String!
   id: ID!
@@ -336,8 +334,6 @@ type QueryWithIDSelectConnectionEdge {
 \\"\\"\\"Model for Posts!\\"\\"\\"
 type SelectPost implements Node {
   comments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
-
-  \\"\\"\\"Content for the post\\"\\"\\"
   content: String
   createdAt: String!
   id: ID!

@@ -594,7 +594,7 @@ export class PrismaObjectFieldBuilder<
         ]
       >
     ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
-      const [name, { description, ...options } = {} as never] = args;
+      const [name, options = {} as never] = args;
 
       return this.expose<Type, Nullable, ResolveReturnShape, never>(
         name as never,
