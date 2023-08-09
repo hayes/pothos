@@ -1,6 +1,6 @@
 {
   "name": "@pothos/core",
-  "version": "3.32.1",
+  "version": "3.33.0",
   "description": "Pothos (formerly GiraphQL) is a plugin based schema builder for creating code-first GraphQL schemas in typescript",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

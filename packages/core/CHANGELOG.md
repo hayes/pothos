@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.33.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
 ## 3.32.1
 
 ### Patch Changes

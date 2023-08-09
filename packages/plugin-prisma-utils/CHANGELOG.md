@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.11.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
 ## 0.10.0
 
 ### Minor Changes
