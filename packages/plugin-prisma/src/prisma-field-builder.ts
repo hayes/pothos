@@ -525,9 +525,9 @@ export class PrismaObjectFieldBuilder<
     ResolveReturnShape,
     Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
   >(
+    name: Name,
     ...args: NormalizeArgs<
       [
-        name: Name,
         options: Omit<
           PothosSchemaTypes.ObjectFieldOptions<
             Types,
@@ -545,7 +545,7 @@ export class PrismaObjectFieldBuilder<
       ]
     >
   ) {
-    const [name, options = {} as never] = args;
+    const [options = {} as never] = args;
 
     const typeConfig = this.builder.configStore.getTypeConfig(this.typename);
     const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
@@ -574,9 +574,9 @@ export class PrismaObjectFieldBuilder<
       ResolveReturnShape,
       Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
     >(
+      name: Name,
       ...args: NormalizeArgs<
         [
-          name: Name,
           options: Omit<
             PothosSchemaTypes.ObjectFieldOptions<
               Types,
@@ -594,7 +594,7 @@ export class PrismaObjectFieldBuilder<
         ]
       >
     ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
-      const [name, options = {} as never] = args;
+      const [options = {} as never] = args;
 
       return this.expose<Type, Nullable, ResolveReturnShape, never>(
         name as never,

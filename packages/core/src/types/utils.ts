@@ -85,10 +85,13 @@ export type NormalizeArgs<
   Index extends keyof T = LastIndex<T>,
 > = undefined extends T[Index]
   ? {} extends T[Index]
-    ? T
+    ? undefined extends {}
+      ? // fix for strictMode: false
+        { [K in keyof T]?: T[K] }
+      : T
     : { [K in keyof T]-?: T[K] }
   : {} extends T[Index]
   ? { [K in keyof T]?: T[K] }
   : T;
 
-export type IsStrictMode = undefined extends { t: 1 }['t'] ? false : true;
+export type IsStrictMode = undefined extends {} ? false : true;
