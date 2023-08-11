@@ -288,8 +288,8 @@ importers:
         specifier: ^1.15.0
         version: 1.15.0(@opentelemetry/api@1.4.1)
       '@opentelemetry/instrumentation':
-        specifier: ^0.41.0
-        version: 0.41.0(@opentelemetry/api@1.4.1)
+        specifier: ^0.41.2
+        version: 0.41.2(@opentelemetry/api@1.4.1)
       '@opentelemetry/instrumentation-http':
         specifier: ^0.41.0
         version: 0.41.0(@opentelemetry/api@1.4.1)
@@ -1085,8 +1085,8 @@ importers:
         specifier: ^0.41.0
         version: 0.41.0(@opentelemetry/api@1.4.1)
       '@opentelemetry/instrumentation':
-        specifier: ^0.41.0
-        version: 0.41.0(@opentelemetry/api@1.4.1)
+        specifier: ^0.41.2
+        version: 0.41.2(@opentelemetry/api@1.4.1)
       '@opentelemetry/instrumentation-http':
         specifier: ^0.41.0
         version: 0.41.0(@opentelemetry/api@1.4.1)
@@ -2949,7 +2949,7 @@ packages:
       outdent: 0.5.0
       prettier: 2.8.8
       resolve-from: 5.0.0
-      semver: 7.5.3
+      semver: 7.5.4
     dev: true
 
   /@changesets/assemble-release-plan@5.2.4:
@@ -2960,7 +2960,7 @@ packages:
       '@changesets/get-dependents-graph': 1.3.6
       '@changesets/types': 5.2.1
       '@manypkg/get-packages': 1.1.3
-      semver: 7.5.3
+      semver: 7.5.4
     dev: true
 
   /@changesets/changelog-git@0.1.14:
@@ -3033,7 +3033,7 @@ packages:
       '@manypkg/get-packages': 1.1.3
       chalk: 2.4.2
       fs-extra: 7.0.1
-      semver: 7.5.3
+      semver: 7.5.4
     dev: true
 
   /@changesets/get-release-plan@3.0.17:
@@ -5532,6 +5532,21 @@ packages:
     transitivePeerDependencies:
       - supports-color
 
+  /@opentelemetry/instrumentation@0.41.2(@opentelemetry/api@1.4.1):
+    resolution: {integrity: sha512-rxU72E0pKNH6ae2w5+xgVYZLzc5mlxAbGzF4shxMVK8YC2QQsfN38B2GPbj0jvrKWWNUElfclQ+YTykkNg/grw==}
+    engines: {node: '>=14'}
+    peerDependencies:
+      '@opentelemetry/api': ^1.3.0
+    dependencies:
+      '@opentelemetry/api': 1.4.1
+      '@types/shimmer': 1.0.2
+      import-in-the-middle: 1.4.2
+      require-in-the-middle: 7.2.0
+      semver: 7.5.4
+      shimmer: 1.2.1
+    transitivePeerDependencies:
+      - supports-color
+
   /@opentelemetry/otlp-exporter-base@0.41.0(@opentelemetry/api@1.4.1):
     resolution: {integrity: sha512-fSHtZznIU6kvCLFQC77nOhHj059G1sc/wNl96YiPdro4A8t8ue//ET0yAtpRCQ9lynn4RNrpsw5iEFJszEbmLg==}
     engines: {node: '>=14'}
@@ -7821,7 +7836,7 @@ packages:
     engines: {node: '>=12'}
     dependencies:
       bin-version: 6.0.0
-      semver: 7.3.8
+      semver: 7.5.4
       semver-truncate: 2.0.0
     dev: true
 
@@ -9844,8 +9859,8 @@ packages:
     resolution: {integrity: sha512-gozW2blMLJCeFpBwugLTGyvVjNoeo1knonXAcatC6bjPBZitotxdWf7Gimr25N4c0AAOo4eOUfaG82IJPDpqCA==}
     dependencies:
       debug: 3.2.7
-      is-core-module: 2.11.0
-      resolve: 1.22.1
+      is-core-module: 2.12.1
+      resolve: 1.22.2
     transitivePeerDependencies:
       - supports-color
 
@@ -11726,6 +11741,14 @@ packages:
 
   /import-in-the-middle@1.4.1:
     resolution: {integrity: sha512-hGG0PcCsykVo8MBVH8l0uEWLWW6DXMgJA9jvC0yps6M3uIJ8L/tagTCbyF8Ud5TtqJ8/jmZL1YkyySyeVkVQrA==}
+    dependencies:
+      acorn: 8.10.0
+      acorn-import-assertions: 1.9.0(acorn@8.10.0)
+      cjs-module-lexer: 1.2.3
+      module-details-from-path: 1.0.3
+
+  /import-in-the-middle@1.4.2:
+    resolution: {integrity: sha512-9WOz1Yh/cvO/p69sxRmhyQwrIGGSp7EIdcb+fFNVi7CzQGQB8U1/1XrKVSbEd/GNOAeM0peJtmi7+qphe7NvAw==}
     dependencies:
       acorn: 8.10.0
       acorn-import-assertions: 1.9.0(acorn@8.10.0)
@@ -15791,7 +15814,7 @@ packages:
     resolution: {integrity: sha512-nBpuuYuY5jFsli/JIs1oldw6fOQCBioohqWZg/2hiaOybXOft4lonv85uDOKXdf8rhyK159cxU5cDcK/NKk8zw==}
     hasBin: true
     dependencies:
-      is-core-module: 2.11.0
+      is-core-module: 2.12.1
       path-parse: 1.0.7
       supports-preserve-symlinks-flag: 1.0.0
 

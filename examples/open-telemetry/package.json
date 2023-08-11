@@ -6,7 +6,7 @@
   "dependencies": {
     "@opentelemetry/api": "^1.4.1",
     "@opentelemetry/exporter-zipkin": "^1.15.0",
-    "@opentelemetry/instrumentation": "^0.41.0",
+    "@opentelemetry/instrumentation": "^0.41.2",
     "@opentelemetry/instrumentation-http": "^0.41.0",
     "@opentelemetry/sdk-trace-base": "^1.15.0",
     "@opentelemetry/sdk-trace-node": "^1.15.0",
