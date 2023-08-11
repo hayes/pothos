@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.43.1
+
+### Patch Changes
+
+- b7954d40: Fix hasPreviousPage in resolveCursorConnection
+
 ## 3.43.0
 
 ### Minor Changes
