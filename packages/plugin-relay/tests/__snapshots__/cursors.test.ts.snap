@@ -268,6 +268,41 @@ exports[`cursor based connection > queries 1`] = `
         "startCursor": "38",
       },
     },
+    "noArgs": {
+      "edges": [
+        {
+          "node": {
+            "id": "1",
+          },
+        },
+        {
+          "node": {
+            "id": "2",
+          },
+        },
+        {
+          "node": {
+            "id": "3",
+          },
+        },
+        {
+          "node": {
+            "id": "4",
+          },
+        },
+        {
+          "node": {
+            "id": "5",
+          },
+        },
+      ],
+      "pageInfo": {
+        "endCursor": "5",
+        "hasNextPage": true,
+        "hasPreviousPage": false,
+        "startCursor": "1",
+      },
+    },
   },
 }
 `;

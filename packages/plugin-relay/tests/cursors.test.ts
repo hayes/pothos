@@ -6,6 +6,19 @@ describe('cursor based connection', () => {
   it('queries', async () => {
     const query = gql`
       query {
+        noArgs: cursorConnection {
+          pageInfo {
+            startCursor
+            endCursor
+            hasNextPage
+            hasPreviousPage
+          }
+          edges {
+            node {
+              id
+            }
+          }
+        }
         after: cursorConnection(after: 98) {
           pageInfo {
             startCursor
