@@ -382,7 +382,11 @@ type QueryFromRelation<
       include?: infer I;
       select?: infer S;
     }
-    ? { include?: NonNullable<I>; select?: NonNullable<S> }
+    ? {
+        include?: NonNullable<I>;
+        select?: NonNullable<S>;
+        where?: {};
+      }
     : never
   : never;
 
@@ -602,6 +606,7 @@ export type PrismaFieldResolver<
   query: {
     include?: Model['Include'];
     select?: Model['Select'];
+    where?: {};
   },
   parent: Parent,
   args: InputShapeFromFields<Args>,

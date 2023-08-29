@@ -156,7 +156,23 @@ declare global {
           ? M
           : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
         Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
-          ? S
+          ? S & { [prismaModelName]?: Model['Name'] }
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fieldName: string,
+        field: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldRef,
+      ) => void;
+
+      prismaInterfaceField: <
+        Type extends PrismaInterfaceRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<infer M, {}>
+          ? M
+          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+        Shape extends {} = Type extends PrismaInterfaceRef<PrismaModelTypes, infer S>
+          ? S & { [prismaModelName]?: Model['Name'] }
           : Model['Shape'] & {
               [prismaModelName]?: Type;
             },
@@ -172,7 +188,22 @@ declare global {
           ? M
           : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
         Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
-          ? S
+          ? S & { [prismaModelName]?: Model['Name'] }
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fields: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldMap,
+      ) => void;
+
+      prismaInterfaceFields: <
+        Type extends PrismaInterfaceRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<infer M, {}>
+          ? M
+          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+        Shape extends {} = Type extends PrismaInterfaceRef<PrismaModelTypes, infer S>
+          ? S & { [prismaModelName]?: Model['Name'] }
           : Model['Shape'] & {
               [prismaModelName]?: Type;
             },

@@ -92,19 +92,6 @@ const Viewer = builder.prismaInterface('User', {
       }),
       resolve: (user) => user._count.posts,
     }),
-    postPreviews: t.field({
-      select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection(
-          {
-            take: 2,
-          },
-          ['post'],
-        ),
-      }),
-      type: [PostPreview],
-      resolve: (user) => user.posts,
-    }),
-    user: t.variant('User'),
     selectUser: t.variant(SelectUser),
     bio: t.string({
       select: {
@@ -171,6 +158,22 @@ const Viewer = builder.prismaInterface('User', {
   }),
   resolveType: () => 'NormalViewer',
 });
+
+builder.prismaInterfaceField(Viewer, 'user', (t) => t.variant('User'));
+builder.prismaInterfaceFields(Viewer, (t) => ({
+  postPreviews: t.field({
+    select: (args, ctx, nestedSelection) => ({
+      posts: nestedSelection(
+        {
+          take: 2,
+        },
+        ['post'],
+      ),
+    }),
+    type: [PostPreview],
+    resolve: (user) => user.posts,
+  }),
+}));
 
 const NormalViewer = builder.prismaObject('User', {
   variant: 'NormalViewer',
@@ -259,18 +262,24 @@ const User = builder.prismaNode('User', {
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
+        createdAt: t.arg.string(),
         limit: t.arg.int(),
       },
       query: (args) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
+        where: args.createdAt
+          ? {
+              createdAt: new Date(args.createdAt),
+            }
+          : undefined,
         take: args.limit ?? 10,
       }),
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { authorId: user.id },
+          where: { ...query.where, authorId: user.id },
         }),
     }),
     postsConnection: t.relatedConnection(
@@ -283,7 +292,7 @@ const User = builder.prismaNode('User', {
           published: t.arg.boolean(),
         },
         query: (args) => ({
-          ...(args.published == null ? {} : { where: { published: true } }),
+          ...(args.published == null ? {} : { where: { published: args.published } }),
           orderBy: {
             createdAt: args.oldestFirst ? 'asc' : 'desc',
           },
@@ -572,10 +581,10 @@ const Profile = builder.prismaObject('Profile', {
       nullable: true,
       resolve: (query, profile, args, ctx, info) =>
         prisma.user.findUnique({
+          ...query,
           where: {
             id: profile.userId,
           },
-          ...query,
         }),
     }),
   }),
@@ -635,6 +644,7 @@ const PostRef = builder.prismaObject('Post', {
       resolve: (parent) => parent.views.toNumber(),
     }),
     title: t.exposeString('title'),
+    published: t.exposeBoolean('published'),
     content: t.exposeString('content', {
       description: false,
       nullable: true,

@@ -716,7 +716,7 @@ describe('prisma', () => {
           edges {
             cursor
             node {
-              postsConnection {
+              postsConnection(first: 3) {
                 pageInfo {
                   hasNextPage
                   hasPreviousPage
@@ -726,6 +726,15 @@ describe('prisma', () => {
                 edges {
                   node {
                     id
+                    published
+                  }
+                }
+              }
+              postsConnection2: postsConnection(published: false, first: 3) {
+                edges {
+                  node {
+                    id
+                    published
                   }
                 }
               }
@@ -754,110 +763,50 @@ describe('prisma', () => {
                       {
                         "node": {
                           "id": "250",
+                          "published": true,
                         },
                       },
                       {
                         "node": {
                           "id": "249",
+                          "published": true,
                         },
                       },
                       {
                         "node": {
                           "id": "248",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "247",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "246",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "245",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "244",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "243",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "242",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "241",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "240",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "239",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "238",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "237",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "236",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "235",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "234",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "233",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "232",
-                        },
-                      },
-                      {
-                        "node": {
-                          "id": "231",
+                          "published": true,
                         },
                       },
                     ],
                     "pageInfo": {
-                      "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDIzMA==",
+                      "endCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0Nw==",
                       "hasNextPage": true,
                       "hasPreviousPage": false,
                       "startCursor": "R1BDOkQ6MTM1NTI3MDQwMDI0OQ==",
                     },
+                  },
+                  "postsConnection2": {
+                    "edges": [
+                      {
+                        "node": {
+                          "id": "101",
+                          "published": false,
+                        },
+                      },
+                      {
+                        "node": {
+                          "id": "100",
+                          "published": false,
+                        },
+                      },
+                      {
+                        "node": {
+                          "id": "99",
+                          "published": false,
+                        },
+                      },
+                    ],
                   },
                 },
               },
@@ -886,11 +835,42 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "skip": 0,
-                "take": 21,
+                "take": 4,
               },
             },
             "skip": 0,
             "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 4,
+                "where": {
+                  "published": false,
+                },
+              },
+            },
+            "where": {
+              "id": 1,
+            },
           },
           "dataPath": [],
           "model": "User",

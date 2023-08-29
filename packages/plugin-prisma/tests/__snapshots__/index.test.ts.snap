@@ -129,6 +129,9 @@ type Post {
   ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
   post: User!
 
+  \\"\\"\\"Has this post been published?\\"\\"\\"
+  published: Boolean!
+
   \\"\\"\\"Title for the post\\"\\"\\"
   title: String!
   views: Decimal!
@@ -392,7 +395,7 @@ type User implements Named & Node {
   id: ID!
   name: String
   postCount: Int!
-  posts(limit: Int, oldestFirst: Boolean): [Post!]!
+  posts(createdAt: String, limit: Int, oldestFirst: Boolean): [Post!]!
   postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean, published: Boolean): UserPostsConnection!
   postsConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): UserPostsConnectionWithErrorsResult!
   postsSkipConnection(after: ID, before: ID, first: Int, last: Int, skip: Int, take: Int): UserPostsSkipConnection!

@@ -219,6 +219,23 @@ schemaBuilderProto.prismaObjectField = function prismaObjectField(type, fieldNam
   });
 };
 
+schemaBuilderProto.prismaInterfaceField = function prismaInterfaceField(type, fieldName, field) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () => ({
+      [fieldName]: field(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+          'Interface',
+        ),
+      ),
+    }));
+  });
+};
+
 schemaBuilderProto.prismaObjectFields = function prismaObjectFields(type, fields) {
   const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
   this.configStore.onTypeConfig(ref, ({ name }) => {
@@ -229,6 +246,23 @@ schemaBuilderProto.prismaObjectFields = function prismaObjectFields(type, fields
           this,
           ref.modelName,
           getRelationMap(getDMMF(this)).get(ref.modelName)!,
+        ),
+      ),
+    );
+  });
+};
+
+schemaBuilderProto.prismaInterfaceFields = function prismaInterfaceFields(type, fields) {
+  const ref = typeof type === 'string' ? getRefFromModel(type, this) : type;
+  this.configStore.onTypeConfig(ref, ({ name }) => {
+    this.configStore.addFields(ref, () =>
+      fields(
+        new PrismaObjectFieldBuilder(
+          name,
+          this,
+          ref.modelName,
+          getRelationMap(getDMMF(this)).get(ref.modelName)!,
+          'Interface',
         ),
       ),
     );

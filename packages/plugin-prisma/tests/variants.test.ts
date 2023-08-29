@@ -251,6 +251,7 @@ describe('variants', () => {
                   "createdAt": "desc",
                 },
                 "take": 10,
+                "where": undefined,
               },
               "profile": true,
             },

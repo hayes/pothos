@@ -124,6 +124,7 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "take": 2,
+                "where": undefined,
               },
             },
             "where": {
@@ -230,6 +231,7 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "take": 10,
+                "where": undefined,
               },
             },
             "where": {
@@ -296,6 +298,7 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "take": 10,
+                "where": undefined,
               },
               "profile": true,
             },
@@ -356,6 +359,7 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "take": 10,
+                "where": undefined,
               },
             },
             "where": {
@@ -448,6 +452,7 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "take": 10,
+                "where": undefined,
               },
             },
             "where": {
@@ -743,6 +748,52 @@ describe('prisma', () => {
           "runInTransaction": false,
         },
       ]
+    `);
+  });
+
+  it('diffs date arguments from field aliases', async () => {
+    const query = gql`
+      query {
+        users {
+          a: posts(limit: 2, createdAt: "2012-12-12T00:00:00.749Z") {
+            id
+          }
+          b: posts(limit: 2, createdAt: "2012-12-12T00:00:00.249Z") {
+            id
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {},
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "users": [
+            {
+              "a": [],
+              "b": [
+                {
+                  "id": "250",
+                },
+              ],
+            },
+            {
+              "a": [
+                {
+                  "id": "500",
+                },
+              ],
+              "b": [],
+            },
+          ],
+        },
+      }
     `);
   });
 });
