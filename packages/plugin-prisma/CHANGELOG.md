@@ -1,5 +1,16 @@
 # Change Log
 
+## 3.58.0
+
+### Minor Changes
+
+- 4ebfa27b: Add prismaInterfaceField(s) method
+
+### Patch Changes
+
+- 4ebfa27b: Fix bug that ignored differences in Date values when checking compatability between
+  selections
+
 ## 3.57.0
 
 ### Minor Changes
