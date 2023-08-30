@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.33.1
+
+### Patch Changes
+
+- 6f155d82: Improve normalization of input types so that objects with functions are not normalized
+
 ## 3.33.0
 
 ### Minor Changes
