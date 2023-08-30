@@ -46,6 +46,24 @@ export type NormalizeNullableFields<T extends object> = {
   [K in RequiredKeys<T>]: T[K];
 };
 
+// Check if T is a Record of string keys who's values are not functions
+export type IsSimpleRecord<T> = (
+  [T] extends [Record<string, any>] // eslint-disable-line @typescript-eslint/no-explicit-any
+    ? keyof T extends infer K
+      ? K extends string
+        ? T[K] extends (...args: any[]) => unknown
+          ? // check if T[K] is any (T[K] is distributed, so it can't also be a number unless its any)
+            [1] extends [T[K]]
+            ? never
+            : false
+          : never
+        : never
+      : false
+    : false
+) extends never
+  ? true
+  : false;
+
 export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined
   ? null | undefined
   : T extends (infer L)[]
@@ -53,14 +71,14 @@ export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined
   : T extends (...args: any[]) => unknown
   ? T
   : keyof T extends string
-  ? T extends object
+  ? IsSimpleRecord<T> extends true
     ? Normalize<
         {
-          [K in OptionalKeys<T>]?: K extends string
+          [K in OptionalKeys<T & object>]?: K extends string
             ? RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined
             : T[K];
         } & {
-          [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
+          [K in RequiredKeys<T & object>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
         }
       >
     : T
