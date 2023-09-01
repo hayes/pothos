@@ -23,6 +23,9 @@ export function createTestServer(options: TestServerOptions) {
     schema: options.schema,
     context: options.contextFactory ?? (() => ({})),
     plugins: executePlugin ? [executePlugin] : [],
+    maskedErrors: {
+      isDev: true,
+    },
   });
 
   // eslint-disable-next-line @typescript-eslint/no-misused-promises

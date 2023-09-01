@@ -16,7 +16,7 @@ import { PrismaModelTypes } from './types';
 import { formatPrismaCursor, parsePrismaCursor } from './util/cursors';
 import { getModel, getRefFromModel } from './util/datamodel';
 import { getLoaderMapping, setLoaderMappings } from './util/loader-map';
-import { queryFromInfo, selectionStateFromInfo } from './util/map-query';
+import { queryFromInfo } from './util/map-query';
 
 export { prismaConnectionHelpers } from './connection-helpers';
 export { PrismaInterfaceRef } from './interface-ref';
@@ -164,19 +164,9 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
         return fallback(queryFromInfo({ context, info }), parent, args, context, info);
       }
 
-      const selectionState = selectionStateFromInfo(context, info);
-
-      return loaderCache(parent)
-        .loadSelection(selectionState, context)
-        .then((result) => {
-          const mappings = selectionState.mappings[info.path.key];
-
-          if (mappings) {
-            setLoaderMappings(context, info, mappings.mappings);
-          }
-
-          return resolver(result, args, context, info);
-        });
+      return loaderCache(context)
+        .loadSelection(info, parent as object)
+        .then((result) => resolver(result, args, context, info));
     };
   }
 }
