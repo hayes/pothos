@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.59.0
+
+### Minor Changes
+
+- 1bbd3d70: update model loader to cache query mappings and batch compatible queries to reduce
+  likelyhood of prisma deoptimization
+
 ## 3.58.0
 
 ### Minor Changes
