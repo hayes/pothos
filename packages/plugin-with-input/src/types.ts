@@ -13,7 +13,7 @@ import {
 export interface WithInputBuilderOptions<Types extends SchemaTypes> {
   argOptions?: Omit<
     PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>,
-    'type' | 'required'
+    'required' | 'type'
   > & {
     required?: Types['WithInputArgRequired'];
   };
@@ -69,11 +69,11 @@ export type FieldWithInputOptions<
     ParentShape,
     Type,
     Nullable,
-    {
+    Args & {
       [K in InputName]: InputFieldRef<
         InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)
       >;
-    } & Args,
+    },
     Kind,
     ResolveShape,
     ResolveReturnShape

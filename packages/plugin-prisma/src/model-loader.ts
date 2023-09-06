@@ -25,15 +25,22 @@ interface ResolvablePromise<T> {
 }
 export class ModelLoader {
   context: object;
+
   builder: PothosSchemaTypes.SchemaBuilder<never>;
+
   findUnique: (model: Record<string, unknown>, ctx: {}) => unknown;
+
   modelName: string;
+
   queryCache = new Map<string, { selection: SelectionState; query: SelectionMap }>();
+
   staged = new Set<{
     state: SelectionState;
     models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
+
   delegate: PrismaDelegate;
+
   tick = Promise.resolve();
 
   constructor(
@@ -53,7 +60,7 @@ export class ModelLoader {
   }
 
   static forRef<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -75,11 +82,11 @@ export class ModelLoader {
 
   static getFindUnique(
     findBy:
+      | string
       | {
           name: string | null;
           fields: string[];
-        }
-      | string,
+        },
   ): (model: Record<string, unknown>) => {} {
     if (typeof findBy === 'string') {
       return (parent) => ({ [findBy]: parent[findBy] });
@@ -99,7 +106,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindBy<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
@@ -111,11 +118,11 @@ export class ModelLoader {
     );
 
     let findBy:
+      | string
       | {
           name: string | null;
           fields: string[];
         }
-      | string
       | undefined;
 
     if (model.primaryKey) {
@@ -136,7 +143,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindUnique<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): (model: Record<string, unknown>) => {} {
@@ -146,7 +153,7 @@ export class ModelLoader {
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): Record<string, boolean> {
@@ -166,7 +173,7 @@ export class ModelLoader {
   }
 
   static getCursorSelection<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     cursor: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -195,7 +202,7 @@ export class ModelLoader {
   }
 
   static getFindUniqueForField<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown> | InterfaceRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     fieldName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -207,11 +214,11 @@ export class ModelLoader {
     );
 
     let findBy:
+      | string
       | {
           name: string | null;
           fields: string[];
         }
-      | string
       | undefined;
 
     if (model.fields.some((field) => field.name === fieldName)) {

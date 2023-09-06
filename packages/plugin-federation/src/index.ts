@@ -106,7 +106,7 @@ function getCommonDirectives<
   T extends {
     extensions?: Record<string, unknown> | null;
     pothosOptions: {
-      tag?: string | string[];
+      tag?: string[] | string;
       inaccessible?: boolean;
       shareable?: boolean;
     };
@@ -129,7 +129,7 @@ function addCommonDirectives<
   T extends {
     extensions?: Record<string, unknown> | null;
     pothosOptions: {
-      tag?: string | string[];
+      tag?: string[] | string;
       inaccessible?: boolean;
     };
   },

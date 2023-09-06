@@ -35,7 +35,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldOptions?: Partial<
     Omit<
       PothosSchemaTypes.ObjectFieldOptions<Types, {}, 'ID', boolean, {}, PageInfoShape>,
-      'args' | 'resolve' | 'type' | 'nullable'
+      'args' | 'nullable' | 'resolve' | 'type'
     >
   >;
   clientMutationId?: 'omit' | 'optional' | 'required';
@@ -152,7 +152,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       unknown[]
     >,
-    'args' | 'resolve' | 'nullable' | 'type'
+    'args' | 'nullable' | 'resolve' | 'type'
   > & {
     nullable?: Types['DefaultEdgesNullability'];
   };
@@ -247,7 +247,6 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     'args' | 'resolve' | 'type'
   >;
   nodesOnConnection?:
-    | boolean
     | Omit<
         PothosSchemaTypes.ObjectFieldOptions<
           Types,
@@ -261,7 +260,8 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           GlobalIDShape<Types> | string
         >,
         'args' | 'nullable' | 'resolve' | 'type'
-      >;
+      >
+    | boolean;
 }>;
 
 export interface DefaultEdgesNullability {
@@ -320,7 +320,7 @@ export type ConnectionShape<
     EdgesNullable,
     NodeNullable
   > = ConnectionResultShape<Types, T, EdgesNullable, NodeNullable>,
-> = (Nullable extends false ? never : null | undefined) | (Types['Connection'] & ConnectionResult);
+> = (Nullable extends false ? never : null | undefined) | (ConnectionResult & Types['Connection']);
 
 export type ConnectionShapeFromBaseShape<
   Types extends SchemaTypes,

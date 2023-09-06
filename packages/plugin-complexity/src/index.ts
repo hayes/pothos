@@ -25,6 +25,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
     this.options.complexity?.defaultComplexity ??
     this.builder.options?.complexity?.defaultComplexity ??
     DEFAULT_COMPLEXITY;
+
   defaultListMultiplier =
     this.options.complexity?.defaultListMultiplier ??
     this.builder.options.complexity?.defaultListMultiplier ??
@@ -145,6 +146,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
       max = max(ctx);
     }
 
+    // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
     if (max?.complexity || max?.depth || max?.breadth) {
       return max;
     }

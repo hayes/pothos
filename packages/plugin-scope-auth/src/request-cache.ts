@@ -18,11 +18,11 @@ export default class RequestCache<Types extends SchemaTypes> {
 
   context;
 
-  mapCache = new Map<{}, MaybePromise<null | AuthFailure>>();
+  mapCache = new Map<{}, MaybePromise<AuthFailure | null>>();
 
   scopeCache = new Map<keyof Types['AuthScopes'], Map<unknown, MaybePromise<AuthFailure | null>>>();
 
-  typeCache = new Map<string, Map<unknown, MaybePromise<null | AuthFailure>>>();
+  typeCache = new Map<string, Map<unknown, MaybePromise<AuthFailure | null>>>();
 
   typeGrants = new Map<string, Map<unknown, MaybePromise<null>>>();
 
@@ -224,7 +224,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     scopes: ScopeLoaderMap<Types>,
     info: GraphQLResolveInfo | undefined,
     forAll: boolean,
-  ): MaybePromise<null | AuthFailure> {
+  ): MaybePromise<AuthFailure | null> {
     const scopeNames = Object.keys(map) as (keyof typeof map)[];
     const problems: AuthFailure[] = [];
     const failure: AuthFailure = {
@@ -275,7 +275,7 @@ export default class RequestCache<Types extends SchemaTypes> {
       }
     }
 
-    const promises: Promise<null | AuthFailure>[] = [];
+    const promises: Promise<AuthFailure | null>[] = [];
 
     if ($granted) {
       const result = !!info && this.testGrantedScopes($granted, info.path);
@@ -365,7 +365,7 @@ export default class RequestCache<Types extends SchemaTypes> {
       return hasSuccess ? null : failure;
     });
 
-    function resolveAndReturn(val: null | AuthFailure) {
+    function resolveAndReturn(val: AuthFailure | null) {
       if (promises.length > 0) {
         return Promise.all(promises).then(() => val);
       }
@@ -378,7 +378,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     map: AuthScopeMap<Types> | boolean,
     info?: GraphQLResolveInfo,
     forAll = this.defaultStrategy === 'all',
-  ): MaybePromise<null | AuthFailure> {
+  ): MaybePromise<AuthFailure | null> {
     if (typeof map === 'boolean') {
       return map
         ? null

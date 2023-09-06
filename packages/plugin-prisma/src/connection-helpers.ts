@@ -20,8 +20,8 @@ export function prismaConnectionHelpers<
   RefOrType extends PrismaRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
   Select extends Model['Select'] & {},
   Model extends PrismaModelTypes = RefOrType extends PrismaRef<infer T>
-    ? T & PrismaModelTypes
-    : Types['PrismaTypes'][RefOrType & keyof Types['PrismaTypes']] & PrismaModelTypes,
+    ? PrismaModelTypes & T
+    : PrismaModelTypes & Types['PrismaTypes'][RefOrType & keyof Types['PrismaTypes']],
   Shape = RefOrType extends PrismaRef<PrismaModelTypes, infer T> ? T : Model['Shape'],
   EdgeShape = Model['Include'] extends Select
     ? Shape
@@ -32,7 +32,7 @@ export function prismaConnectionHelpers<
   refOrType: RefOrType,
   options: {
     cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
-    select?: (nestedSelection: <T extends {} | true>(selection?: T) => T) => Select;
+    select?: (nestedSelection: <T extends true | {}>(selection?: T) => T) => Select;
     defaultSize?:
       | number
       | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => number);
@@ -109,11 +109,11 @@ export function prismaConnectionHelpers<
     return {
       ...getQueryArgs(args, ctx),
       ...selectionToQuery(selectState),
-    } as unknown as {
+    } as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
       skip?: number;
       take?: number;
       cursor?: Model['WhereUnique'];
-    } & (Model['Select'] extends Select ? {} : { select: Select });
+    };
   }
 
   return {

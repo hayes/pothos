@@ -19,7 +19,7 @@ export type AddGraphQLInterfaceFieldsShape<Types extends SchemaTypes, Shape> = (
 
 export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
-) => Record<string, null | InputFieldRef<unknown, 'InputObject'>> & {
+) => Record<string, InputFieldRef<unknown, 'InputObject'> | null> & {
   [K in keyof Shape]?: InputFieldRef<Shape[K], 'InputObject'>;
 };
 
@@ -67,4 +67,4 @@ export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape ext
 }
 
 export type EnumValuesWithShape<Types extends SchemaTypes, Shape> = EnumValues<Types> &
-  (Shape[] | Record<string, { value: Shape }>);
+  (Record<string, { value: Shape }> | Shape[]);

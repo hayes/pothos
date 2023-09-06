@@ -245,7 +245,7 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(
   });
 };
 
-proto.addGraphQLEnum = function addGraphQLEnum<Shape extends string | number>(
+proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
   type: GraphQLEnumType,
   {
     values,

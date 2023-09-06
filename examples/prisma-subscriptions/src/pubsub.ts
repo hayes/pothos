@@ -21,9 +21,9 @@ export interface PubSubPostEvent extends PubSubEvent {
 }
 
 export interface PuSubEvents
-  extends Record<string, [PubSubEvent] | [string | number, PubSubEvent]> {
-  user: [string | number, PubSubUserEvent];
-  post: [string | number, PubSubPostEvent];
+  extends Record<string, [number | string, PubSubEvent] | [PubSubEvent]> {
+  user: [number | string, PubSubUserEvent];
+  post: [number | string, PubSubPostEvent];
   users: [PubSubUserEvent];
   posts: [PubSubPostEvent];
 }

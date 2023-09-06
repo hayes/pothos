@@ -9,11 +9,11 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@envelop/core": "^4.0.0",
+    "@envelop/core": "^4.0.1",
     "@faker-js/faker": "^8.0.2",
     "@pothos/core": "workspace:*",
-    "fastify": "^4.20.0",
-    "graphql": "16.7.1",
+    "fastify": "^4.22.2",
+    "graphql": "16.8.0",
     "graphql-helix": "^1.13.0"
   },
   "publishConfig": {

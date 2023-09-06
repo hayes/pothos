@@ -11,8 +11,8 @@
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
     "@pothos/core": "workspace:*",
-    "graphql": "16.7.1",
-    "graphql-yoga": "4.0.3"
+    "graphql": "16.8.0",
+    "graphql-yoga": "4.0.4"
   },
   "publishConfig": {
     "access": "public"

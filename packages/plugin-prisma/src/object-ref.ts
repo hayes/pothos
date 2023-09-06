@@ -5,7 +5,9 @@ export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 
 export class PrismaObjectRef<Model extends PrismaModelTypes, T = {}> extends ObjectRef<T> {
   [prismaModelKey]!: Model;
+
   [abstractReturnShapeKey]!: WithBrand<T>;
+
   modelName: string;
 
   constructor(name: string, modelName: string) {

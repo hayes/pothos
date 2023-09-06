@@ -63,7 +63,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
       }
     }
 
-    function hasReturnedInterface(type: GraphQLObjectType | GraphQLInterfaceType): boolean {
+    function hasReturnedInterface(type: GraphQLInterfaceType | GraphQLObjectType): boolean {
       for (const iface of type.getInterfaces()) {
         if (returnedInterfaces.has(iface.name)) {
           return true;
@@ -186,7 +186,7 @@ export class PothosSubGraphPlugin<Types extends SchemaTypes> extends BasePlugin<
 
         if (
           !intersect(
-            (fieldConfig.extensions?.subGraphs as string[] | undefined) || [],
+            (fieldConfig.extensions?.subGraphs as string[] | undefined) ?? [],
             subGraphs,
           ) ||
           !newTypes.has(getNamedType(fieldConfig.type).name)

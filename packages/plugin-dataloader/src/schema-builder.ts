@@ -46,7 +46,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
       ? nameOrRef
       : (options as { name?: string }).name ?? (nameOrRef as { name: string }).name;
 
-  const ref = new ImplementableLoadableObjectRef<SchemaTypes, Shape | Key, Shape, Key, CacheKey>(
+  const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(
     this,
     name,
     options,

@@ -6,14 +6,14 @@
   "types": "src/index.ts",
   "scripts": {
     "generate": "prisma generate && pnpm run schema",
-    "schema": "node -r @swc-node/register scripts/build-schema.ts",
+    "schema": "tsx scripts/build-schema.ts",
     "seed": "prisma migrate reset -f",
-    "start": "node -r @swc-node/register src/server.ts",
+    "start": "tsx src/server.ts",
     "type": "tsc --noEmit",
     "codegen": "graphql-codegen --config codegen.ts"
   },
   "prisma": {
-    "seed": "node -r @swc-node/register prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts"
   },
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
@@ -26,23 +26,23 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
-    "@prisma/client": "^5.0.0",
-    "graphql": "16.7.1",
+    "@prisma/client": "^5.2.0",
+    "graphql": "16.8.0",
     "graphql-scalars": "^1.22.2",
-    "graphql-yoga": "4.0.3",
-    "prisma": "^5.0.0",
+    "graphql-yoga": "4.0.4",
+    "prisma": "^5.2.0",
     "react": "^18.2.0",
-    "urql": "^4.0.4"
+    "urql": "^4.0.5"
   },
   "publishConfig": {
     "access": "public"
   },
   "devDependencies": {
-    "@graphql-codegen/cli": "4.0.1",
-    "@graphql-codegen/client-preset": "4.0.1",
+    "@graphql-codegen/cli": "5.0.0",
+    "@graphql-codegen/client-preset": "4.1.0",
     "@graphql-codegen/introspection": "4.0.0",
     "@graphql-codegen/schema-ast": "^4.0.0",
-    "@types/node": "^20.4.2",
-    "typescript": "^5.1.6"
+    "@types/node": "^20.5.9",
+    "typescript": "^5.2.2"
   }
 }

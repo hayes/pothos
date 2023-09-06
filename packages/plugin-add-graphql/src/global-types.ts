@@ -49,7 +49,7 @@ declare global {
         options: AddGraphQLUnionTypeOptions<Types, ObjectRef<Shape>>,
       ) => UnionRef<Shape>;
 
-      addGraphQLEnum: <Shape extends string | number>(
+      addGraphQLEnum: <Shape extends number | string>(
         type: GraphQLEnumType,
         options: AddGraphQLEnumTypeOptions<Types, EnumValuesWithShape<Types, Shape>>,
       ) => EnumRef<Shape>;

@@ -76,7 +76,7 @@ function validatorCreator<T extends BaseValidationOptions<any>>(
 
 export function refine(
   originalValidator: zod.ZodTypeAny,
-  options: ValidationOptionUnion | RefineConstraint | null | undefined,
+  options: RefineConstraint | ValidationOptionUnion | null | undefined,
 ): zod.ZodTypeAny {
   if (!options) {
     return originalValidator;

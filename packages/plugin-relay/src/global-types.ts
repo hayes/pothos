@@ -69,7 +69,7 @@ declare global {
         [unknown]
       > extends PartialTypes['DefaultEdgesNullability']
         ? DefaultEdgesNullability
-        : PartialTypes['DefaultEdgesNullability'] & FieldNullability<[unknown]>;
+        : FieldNullability<[unknown]> & PartialTypes['DefaultEdgesNullability'];
       DefaultNodeNullability: boolean extends PartialTypes['DefaultNodeNullability']
         ? false
         : PartialTypes['DefaultNodeNullability'] & boolean;
@@ -283,8 +283,8 @@ declare global {
           ParentShape,
           Type,
           Nullable,
-          (InputFieldMap extends Args ? {} : Args) &
-            InputFieldsFromShape<DefaultConnectionArguments>,
+          InputFieldsFromShape<DefaultConnectionArguments> &
+            (InputFieldMap extends Args ? {} : Args),
           Kind,
           ResolveShape,
           ResolveReturnShape
@@ -331,17 +331,17 @@ declare global {
                   'edgesNullable'
                 >,
             edgeOptions:
-              | ObjectRef<{
-                  cursor: string;
-                  node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
-                }>
               | ConnectionEdgeObjectOptions<
                   Types,
                   Type,
                   NodeNullability,
                   ResolveReturnShape,
                   EdgeInterfaces
-                >,
+                >
+              | ObjectRef<{
+                  cursor: string;
+                  node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
+                }>,
           ],
           0
         >
@@ -377,7 +377,7 @@ declare global {
       nodeNullable?: NodeNullability;
       resolve: Resolver<
         ParentShape,
-        InputShapeFromFields<Args> & DefaultConnectionArguments,
+        DefaultConnectionArguments & InputShapeFromFields<Args>,
         Types['Context'],
         ConnectionShapeForType<
           Types,

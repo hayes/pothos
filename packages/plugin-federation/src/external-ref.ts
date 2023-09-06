@@ -26,7 +26,9 @@ export class ExternalEntityRef<
   override kind = 'Object' as const;
 
   private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+
   private key: Key | Key[];
+
   private resolveReference?: (
     parent: object,
     context: Types['Context'],

@@ -5,6 +5,7 @@ import type { AuthFailure } from '.';
 
 export class ForbiddenError extends PothosValidationError {
   code = 'FORBIDDEN';
+
   result: AuthFailure;
 
   constructor(message: string, result?: AuthFailure) {

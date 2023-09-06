@@ -80,17 +80,27 @@ export class PrismaObjectFieldBuilder<
   Shape extends object = Model['Shape'],
 > extends RootBuilder<Types, Shape, 'PrismaObject'> {
   model: string;
+
   prismaFieldMap: FieldMap;
 
   exposeBoolean = this.createExpose('Boolean');
+
   exposeFloat = this.createExpose('Float');
+
   exposeInt = this.createExpose('Int');
+
   exposeID = this.createExpose('ID');
+
   exposeString = this.createExpose('String');
+
   exposeBooleanList = this.createExpose(['Boolean']);
+
   exposeFloatList = this.createExpose(['Float']);
+
   exposeIntList = this.createExpose(['Int']);
+
   exposeIDList = this.createExpose(['ID']);
+
   exposeStringList = this.createExpose(['String']);
 
   withAuth: 'scopeAuth' extends PluginName
@@ -117,6 +127,9 @@ export class PrismaObjectFieldBuilder<
         ...args: NormalizeArgs<
           [
             connectionOptions:
+              | ObjectRef<
+                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
+                >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
                   ObjectRef<
@@ -139,11 +152,12 @@ export class PrismaObjectFieldBuilder<
                     Args
                   >,
                   ConnectionInterfaces
-                >
-              | ObjectRef<
-                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
                 >,
             edgeOptions:
+              | ObjectRef<{
+                  cursor: string;
+                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                }>
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
                   ObjectRef<
@@ -165,11 +179,7 @@ export class PrismaObjectFieldBuilder<
                     Args
                   >,
                   EdgeInterfaces
-                >
-              | ObjectRef<{
-                  cursor: string;
-                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
-                }>,
+                >,
           ],
           0
         >
@@ -528,18 +538,18 @@ export class PrismaObjectFieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          PothosSchemaTypes.ObjectFieldOptions<
-            Types,
-            Shape,
-            Type,
-            Nullable,
-            {},
-            ResolveReturnShape
-          >,
-          'resolve' | 'select' | 'description' | 'nullable'
-        > &
-          ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> & {
+        options: ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> &
+          Omit<
+            PothosSchemaTypes.ObjectFieldOptions<
+              Types,
+              Shape,
+              Type,
+              Nullable,
+              {},
+              ResolveReturnShape
+            >,
+            'description' | 'nullable' | 'resolve' | 'select'
+          > & {
             description?: string | false;
           },
       ]
@@ -577,18 +587,18 @@ export class PrismaObjectFieldBuilder<
       name: Name,
       ...args: NormalizeArgs<
         [
-          options: Omit<
-            PothosSchemaTypes.ObjectFieldOptions<
-              Types,
-              Shape,
-              Type,
-              Nullable,
-              {},
-              ResolveReturnShape
-            >,
-            'resolve' | 'type' | 'select' | 'description' | 'nullable'
-          > &
-            ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> & {
+          options: ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> &
+            Omit<
+              PothosSchemaTypes.ObjectFieldOptions<
+                Types,
+                Shape,
+                Type,
+                Nullable,
+                {},
+                ResolveReturnShape
+              >,
+              'description' | 'nullable' | 'resolve' | 'select' | 'type'
+            > & {
               description?: string | false;
             },
         ]

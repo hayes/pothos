@@ -118,13 +118,13 @@ export type DataloaderObjectTypeOptions<
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-> = ObjectTypeOptions<
-  Types,
-  NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
-  Shape,
-  Interfaces
-> &
-  DataLoaderOptions<Types, Shape, Key, CacheKey>;
+> = DataLoaderOptions<Types, Shape, Key, CacheKey> &
+  ObjectTypeOptions<
+    Types,
+    NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
+    Shape,
+    Interfaces
+  >;
 
 export type LoadableInterfaceOptions<
   Types extends SchemaTypes,
@@ -133,13 +133,13 @@ export type LoadableInterfaceOptions<
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends InterfaceParam<Types> | string,
   CacheKey,
-> = InterfaceTypeOptions<
-  Types,
-  NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
-  Shape,
-  Interfaces
-> &
-  DataLoaderOptions<Types, Shape, Key, CacheKey>;
+> = DataLoaderOptions<Types, Shape, Key, CacheKey> &
+  InterfaceTypeOptions<
+    Types,
+    NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
+    Shape,
+    Interfaces
+  >;
 
 export type LoadableUnionOptions<
   Types extends SchemaTypes,
@@ -147,8 +147,8 @@ export type LoadableUnionOptions<
   Member extends ObjectParam<Types>,
   CacheKey,
   Shape,
-> = PothosSchemaTypes.UnionTypeOptions<Types, Member> &
-  DataLoaderOptions<Types, Shape, Key, CacheKey>;
+> = DataLoaderOptions<Types, Shape, Key, CacheKey> &
+  PothosSchemaTypes.UnionTypeOptions<Types, Member>;
 
 export type LoaderShapeFromType<
   Types extends SchemaTypes,
