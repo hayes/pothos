@@ -200,7 +200,7 @@ export type ValidateInterfaces<
 > = Interfaces extends InterfaceParam<Types>
   ? Shape extends GetParentShape<Types, Interfaces>
     ? Interfaces
-    : 'Object shape must extends interface shape'
+    : 'Object shape must extend interface shape'
   : never;
 
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
