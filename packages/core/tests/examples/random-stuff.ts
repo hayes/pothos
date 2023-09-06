@@ -187,13 +187,8 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) => {
-        const d: Date | string = args.example2.more.more.more.example.date!;
-
-        console.log(d);
-
-        return Number.parseInt(String(args.example2.more.more.more.example.id), 10);
-      },
+      resolve: (parent, args) =>
+        Number.parseInt(String(args.example2.more.more.more.example.id), 10),
     }),
     // Using a union type
     related: t.field({
