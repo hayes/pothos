@@ -4,12 +4,15 @@ import {
   FieldNode,
   FragmentDefinitionNode,
   getArgumentValues,
+  getDirectiveValues,
   getNamedType,
   GraphQLField,
+  GraphQLIncludeDirective,
   GraphQLInterfaceType,
   GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
+  GraphQLSkipDirective,
   InlineFragmentNode,
   isInterfaceType,
   isObjectType,
@@ -198,7 +201,7 @@ function resolveIndirectInclude(
 }
 
 function addNestedSelections(
-  type: GraphQLObjectType | GraphQLInterfaceType,
+  type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
@@ -260,7 +263,7 @@ function addNestedSelections(
 }
 
 function addFieldSelection(
-  type: GraphQLObjectType | GraphQLInterfaceType,
+  type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
@@ -268,6 +271,16 @@ function addFieldSelection(
   indirectPath: string[],
 ) {
   if (selection.name.value.startsWith('__')) {
+    return;
+  }
+
+  const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
+  if (skip?.if === true) {
+    return;
+  }
+
+  const include = getDirectiveValues(GraphQLIncludeDirective, selection, info.variableValues);
+  if (include?.if === false) {
     return;
   }
 
@@ -397,7 +410,7 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   path?: string[];
   paths?: string[][];
   withUsageCheck?: boolean;
-}): { select: T } | { include?: {} } {
+}): { include?: {} } | { select: T } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
