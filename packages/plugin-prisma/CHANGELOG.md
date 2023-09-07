@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.59.1
+
+### Patch Changes
+
+- 1fc5b60b: Support Client Directives in Prisma plugin (@skip and @include)
+
 ## 3.59.0
 
 ### Minor Changes
