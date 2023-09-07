@@ -113,6 +113,80 @@ describe('prisma', () => {
     `);
   });
 
+  it('includes fields based on @skip and @include directives', async () => {
+    const query = gql`
+      query {
+        me {
+          id
+          profile @skip(if: false) {
+            bio
+          }
+          posts(limit: 1) @include(if: true) {
+            id
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "me": {
+            "id": "VXNlcjox",
+            "posts": [
+              {
+                "id": "250",
+              },
+            ],
+            "profile": {
+              "bio": "Debitis perspiciatis unde sunt.",
+            },
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findUnique",
+          "args": {
+            "include": {
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "take": 1,
+                "where": undefined,
+              },
+              "profile": true,
+            },
+            "where": {
+              "id": 1,
+            },
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
   it('queries decimals', async () => {
     const query = gql`
       query {
