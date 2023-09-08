@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.34.0
+
+### Minor Changes
+
+- f0247390: Add isOneOf option for input type. this adds @oneOf directive, but does not currently
+  affect the typescript type for the input
+
 ## 3.33.1
 
 ### Patch Changes
