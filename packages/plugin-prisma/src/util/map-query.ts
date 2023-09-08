@@ -63,8 +63,8 @@ function addTypeSelectionsForField(
   };
 
   if (
-    (pothosPrismaIndirectInclude?.path && pothosPrismaIndirectInclude.path.length > 0) ||
-    (pothosPrismaIndirectInclude?.paths && pothosPrismaIndirectInclude.paths.length === 0)
+    (!!pothosPrismaIndirectInclude?.path && pothosPrismaIndirectInclude.path.length > 0) ||
+    (!!pothosPrismaIndirectInclude?.paths && pothosPrismaIndirectInclude.paths.length === 0)
   ) {
     resolveIndirectIncludePaths(
       type,
@@ -97,7 +97,7 @@ function addTypeSelectionsForField(
     state.mode = 'include';
   }
 
-  if (pothosPrismaInclude || pothosPrismaSelect) {
+  if (pothosPrismaInclude ?? pothosPrismaSelect) {
     mergeSelection(state, {
       select: pothosPrismaSelect ? { ...pothosPrismaSelect } : undefined,
       include: pothosPrismaInclude ? { ...pothosPrismaInclude } : undefined,
@@ -148,7 +148,11 @@ function resolveIndirectInclude(
   for (const sel of selection.selectionSet.selections) {
     switch (sel.kind) {
       case Kind.FIELD:
-        if (sel.name.value === include.name && (isObjectType(type) || isInterfaceType(type))) {
+        if (
+          !fieldSkipped(info, sel) &&
+          sel.name.value === include.name &&
+          (isObjectType(type) || isInterfaceType(type))
+        ) {
           const returnType = getNamedType(type.getFields()[sel.name.value].type);
 
           resolveIndirectInclude(
@@ -270,17 +274,7 @@ function addFieldSelection(
   selection: FieldNode,
   indirectPath: string[],
 ) {
-  if (selection.name.value.startsWith('__')) {
-    return;
-  }
-
-  const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
-  if (skip?.if === true) {
-    return;
-  }
-
-  const include = getDirectiveValues(GraphQLIncludeDirective, selection, info.variableValues);
-  if (include?.if === false) {
+  if (selection.name.value.startsWith('__') || fieldSkipped(info, selection)) {
     return;
   }
 
@@ -329,8 +323,8 @@ function addFieldSelection(
         }
 
         if (
-          (normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
-          (normalizedIndirectInclude?.paths && normalizedIndirectInclude.paths.length > 0)
+          (!!normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
+          (!!normalizedIndirectInclude?.paths && normalizedIndirectInclude.paths.length > 0)
         ) {
           resolveIndirectIncludePaths(
             returnType,
@@ -559,4 +553,18 @@ function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclu
     getType: () => (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
     path: normalized,
   };
+}
+
+function fieldSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
+  const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
+  if (skip?.if === true) {
+    return true;
+  }
+
+  const include = getDirectiveValues(GraphQLIncludeDirective, selection, info.variableValues);
+  if (include?.if === false) {
+    return true;
+  }
+
+  return false;
 }
