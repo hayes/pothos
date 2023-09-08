@@ -18,27 +18,27 @@ const getGlobalThis = () => {
 export function encodeBase64(value: string): string {
   const globalThis = getGlobalThis();
 
-  if (typeof globalThis.btoa === 'function') {
-    return globalThis.btoa(value);
-  }
-
   if (typeof globalThis.Buffer === 'function') {
     return globalThis.Buffer.from(value).toString('base64');
   }
 
-  throw new Error('Unable to locate global `btoa` or `Buffer`');
+  if (typeof globalThis.btoa === 'function') {
+    return globalThis.btoa(value);
+  }
+
+  throw new Error('Unable to locate global `Buffer` or `btoa`');
 }
 
 export function decodeBase64(value: string): string {
   const globalThis = getGlobalThis();
 
-  if (typeof globalThis.atob === 'function') {
-    return globalThis.atob(value);
-  }
-
   if (typeof globalThis.Buffer === 'function') {
     return globalThis.Buffer.from(value, 'base64').toString();
   }
 
-  throw new Error('Unable to locate global `atob` or `Buffer`');
+  if (typeof globalThis.atob === 'function') {
+    return globalThis.atob(value);
+  }
+
+  throw new Error('Unable to locate global `Buffer` or `atob`');
 }
