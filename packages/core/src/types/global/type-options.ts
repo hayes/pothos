@@ -71,6 +71,7 @@ declare global {
       Types extends SchemaTypes = SchemaTypes,
       Fields extends InputFieldMap = InputFieldMap,
     > extends BaseTypeOptions<Types> {
+      isOneOf?: boolean;
       fields: (t: InputFieldBuilder<Types, 'InputObject'>) => Fields;
     }
 
