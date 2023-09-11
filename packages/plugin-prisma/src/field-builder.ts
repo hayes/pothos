@@ -145,6 +145,13 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
         });
 
+        const selection = info.fieldNodes[0];
+        const totalCountOnly =
+          selection.selectionSet?.selections.length === 1 &&
+          selection.selectionSet.selections.every(
+            (s) => 'name' in s && s.name.value === 'totalCount',
+          );
+
         return resolvePrismaCursorConnection(
           {
             parent,
@@ -157,13 +164,16 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
           formatCursor,
-          (q) =>
-            checkIfQueryIsUsed(
+          (q) => {
+            if (totalCountOnly) return [];
+
+            return checkIfQueryIsUsed(
               this.builder,
               query,
               info,
               resolve(q as never, parent, args as never, context, info) as never,
-            ),
+            );
+          },
         );
       },
     },
