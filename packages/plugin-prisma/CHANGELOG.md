@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.59.2
+
+### Patch Changes
+
+- 0d8d60fa: add another case for @skip and @include when generating prisma selections
+
 ## 3.59.1
 
 ### Patch Changes

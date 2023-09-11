@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.6.36",
+  "version": "2.6.37",
   "name": "@pothos-examples/prisma-smart-subscriptions-apollo",
   "main": "src/index.ts",
   "types": "src/index.ts",

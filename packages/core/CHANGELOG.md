@@ -1,5 +1,17 @@
 # Change Log
 
+## 3.35.0
+
+### Minor Changes
+
+- b83e671b: Add isOneOf option for input type. this adds @oneOf directive, but does not currently
+  affect the typescript type for the input
+
+### Patch Changes
+
+- c123a285: If available, prefer Buffer over btoa/atob for encoding and decoding cursor strings
+  to/from base64.
+
 ## 3.34.0
 
 ### Minor Changes
