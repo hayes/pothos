@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.2.32",
+  "version": "2.2.33",
   "name": "@pothos-examples/graphql-shield",
   "main": "src/index.ts",
   "types": "src/index.ts",

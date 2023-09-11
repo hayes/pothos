@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "1.6.7",
+  "version": "1.6.8",
   "name": "@pothos-examples/complex-app",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -18,7 +18,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.0.2",
     "@graphql-typed-document-node/core": "^3.2.0",
-    "@pothos/core": "^3.33.0",
+    "@pothos/core": "^3.35.0",
     "@pothos/plugin-dataloader": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-prisma-utils": "workspace:*",
