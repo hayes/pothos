@@ -144,16 +144,6 @@ describe('prisma counts', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
           "action": "count",
           "args": undefined,
           "dataPath": [],
