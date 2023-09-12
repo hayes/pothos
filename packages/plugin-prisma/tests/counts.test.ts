@@ -227,6 +227,44 @@ describe('prisma counts', () => {
     `);
   });
 
+  it('queries only totalCount on connection', async () => {
+    const query = gql`
+      query {
+        userConnection {
+          totalCount
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "count",
+          "args": undefined,
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
   it('connection totalCount in fragment', async () => {
     const query = gql`
       query {
