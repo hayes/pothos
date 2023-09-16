@@ -21,7 +21,7 @@ import { queryFromInfo } from './util/map-query';
 export { prismaConnectionHelpers } from './connection-helpers';
 export { PrismaInterfaceRef } from './interface-ref';
 export { PrismaNodeRef } from './node-ref';
-export { PrismaObjectRef } from './object-ref';
+export { prismaModelKey, PrismaObjectRef } from './object-ref';
 export * from './types';
 
 const pluginName = 'prisma' as const;
