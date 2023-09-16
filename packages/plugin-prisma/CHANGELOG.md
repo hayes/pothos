@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.59.3
+
+### Patch Changes
+
+- 094359cd: Expose prismaModelKey
+
 ## 3.59.2
 
 ### Patch Changes
