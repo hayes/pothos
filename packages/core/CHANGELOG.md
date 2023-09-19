@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.36.0
+
+### Minor Changes
+
+- 96ba1822: Improve validation for global IDs
+
 ## 3.35.0
 
 ### Minor Changes
