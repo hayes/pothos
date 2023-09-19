@@ -4,6 +4,8 @@
 /* eslint-disable @typescript-eslint/no-invalid-this */
 /* eslint-disable node/no-unsupported-features/es-builtins */
 
+import { PothosValidationError } from '../errors';
+
 const getGlobalThis = () => {
   if (typeof globalThis !== 'undefined') return globalThis;
   // @ts-ignore
@@ -29,7 +31,11 @@ export function encodeBase64(value: string): string {
   throw new Error('Unable to locate global `Buffer` or `btoa`');
 }
 
+const base64Regex = /^(?:[\d+/A-Za-z]{4})*(?:[\d+/A-Za-z]{2}==|[\d+/A-Za-z]{3}=)?$/;
 export function decodeBase64(value: string): string {
+  if (!base64Regex.test(value)) {
+    throw new PothosValidationError('Invalid base64 string');
+  }
   const globalThis = getGlobalThis();
 
   if (typeof globalThis.Buffer === 'function') {
