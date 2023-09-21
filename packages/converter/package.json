@@ -43,7 +43,7 @@
     "provenance": true
   },
   "dependencies": {
-    "graphql": "16.8.0",
+    "graphql": "16.8.1",
     "ts-morph": "^19.0.0",
     "yargs": "^17.7.2"
   },

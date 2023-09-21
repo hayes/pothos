@@ -52,7 +52,7 @@
     "@graphql-tools/utils": "^10.0.6",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "16.8.0",
+    "graphql": "16.8.1",
     "graphql-rate-limit-directive": "^2.0.4",
     "graphql-tag": "^2.12.6",
     "rate-limiter-flexible": "^2.4.2"

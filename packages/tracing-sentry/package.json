@@ -59,7 +59,7 @@
     "@pothos/test-utils": "workspace:*",
     "@sentry/node": "^7.67.0",
     "@sentry/tracing": "^7.67.0",
-    "graphql": "16.8.0",
+    "graphql": "16.8.1",
     "graphql-tag": "^2.12.6",
     "graphql-yoga": "4.0.4"
   }
