@@ -143,6 +143,29 @@ builder.queryType({
 });
 ```
 
+You can also validate all arguments together using a zod schema:
+
+builder.queryType({
+  fields: (t) => ({
+    simple: t.boolean({
+      nullable: true,
+      args: {
+        email: t.arg.string(),
+        phone: t.arg.string(),
+      },
+      // Validate all args together using own zod schema
+      validate: { 
+        schema: zod.object({
+          email: zod.string().email(),
+          phone: zod.string()
+        })
+      },
+      resolve: () => true,
+    }),
+  }),
+});
+```
+
 ## API
 
 ### On Object fields (for validating field arguments)
