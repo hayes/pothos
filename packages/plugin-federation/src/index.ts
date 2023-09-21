@@ -15,7 +15,7 @@ import { entityMapping, keyDirective, mergeDirectives } from './util';
 
 export * from './types';
 
-const pluginName = 'federation';
+const pluginName = 'federation' as const;
 
 export default pluginName;
 
