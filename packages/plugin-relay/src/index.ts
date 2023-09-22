@@ -16,7 +16,7 @@ export * from './node-ref';
 export * from './types';
 export * from './utils';
 
-const pluginName = 'relay';
+const pluginName = 'relay' as const;
 
 export default pluginName;
 
