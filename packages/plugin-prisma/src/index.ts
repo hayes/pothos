@@ -1,7 +1,7 @@
 import './global-types';
 import './schema-builder';
 import './field-builder';
-import { GraphQLFieldResolver } from 'graphql';
+import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   BuildCache,
@@ -121,7 +121,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 
     const parentConfig = this.buildCache.getTypeConfig(fieldConfig.parentType);
     const loadedCheck = fieldConfig.extensions?.pothosPrismaLoaded as
-      | ((val: unknown) => boolean)
+      | ((val: unknown, info: GraphQLResolveInfo) => boolean)
       | undefined;
     const loaderCache = parentConfig.extensions?.pothosPrismaLoader as (
       model: unknown,
@@ -154,7 +154,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
         }
       }
 
-      if ((!loadedCheck || loadedCheck(parent)) && mapping) {
+      if ((!loadedCheck || loadedCheck(parent, info)) && mapping) {
         setLoaderMappings(context, info, mapping);
 
         return resolver(parent, args, context, info);

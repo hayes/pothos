@@ -144,16 +144,6 @@ describe('prisma counts', () => {
           "runInTransaction": false,
         },
         {
-          "action": "findMany",
-          "args": {
-            "skip": 0,
-            "take": 2,
-          },
-          "dataPath": [],
-          "model": "User",
-          "runInTransaction": false,
-        },
-        {
           "action": "count",
           "args": undefined,
           "dataPath": [],
@@ -229,6 +219,44 @@ describe('prisma counts', () => {
               "id": 1,
             },
           },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
+
+  it('queries only totalCount on connection', async () => {
+    const query = gql`
+      query {
+        userConnection {
+          totalCount
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "userConnection": {
+            "totalCount": 100,
+          },
+        },
+      }
+    `);
+
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "count",
+          "args": undefined,
           "dataPath": [],
           "model": "User",
           "runInTransaction": false,
@@ -549,13 +577,6 @@ describe('prisma counts', () => {
                     "select": {
                       "posts": true,
                     },
-                  },
-                  "posts": {
-                    "orderBy": {
-                      "createdAt": "desc",
-                    },
-                    "skip": 0,
-                    "take": 21,
                   },
                   "profile": {
                     "include": {

@@ -1,4 +1,4 @@
-import { GraphQLResolveInfo } from 'graphql';
+import { getNamedType, GraphQLResolveInfo, isInterfaceType, isObjectType, Kind } from 'graphql';
 import {
   FieldKind,
   FieldRef,
@@ -145,6 +145,19 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
           withUsageCheck: !!this.builder.options.prisma?.onUnusedQuery,
         });
 
+        const returnType = getNamedType(info.returnType);
+        const fields =
+          isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+
+        const selection = info.fieldNodes[0];
+
+        const totalCountOnly =
+          selection.selectionSet?.selections.length === 1 &&
+          selection.selectionSet.selections.every(
+            (s) =>
+              s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
+          );
+
         return resolvePrismaCursorConnection(
           {
             parent,
@@ -157,13 +170,16 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
             totalCount: totalCount && (() => totalCount(parent, args as never, context, info)),
           },
           formatCursor,
-          (q) =>
-            checkIfQueryIsUsed(
+          (q) => {
+            if (totalCountOnly) return [];
+
+            return checkIfQueryIsUsed(
               this.builder,
               query,
               info,
               resolve(q as never, parent, args as never, context, info) as never,
-            ),
+            );
+          },
         );
       },
     },
@@ -180,6 +196,9 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
               ) => ({
                 totalCount: t.int({
                   nullable: false,
+                  extensions: {
+                    pothosPrismaTotalCount: true,
+                  },
                   resolve: (parent, args, context) => parent.totalCount?.(),
                 }),
                 ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
