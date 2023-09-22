@@ -347,6 +347,10 @@ function addFieldSelection(
         return selectionToQuery(fieldState);
       },
       (path) => {
+        if (path.length === 0) {
+          return selection;
+        }
+
         const returnType = getNamedType(field.type);
         let node: FieldNode | null = null;
 

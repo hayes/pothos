@@ -1,6 +1,13 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-underscore-dangle */
-import { FieldNode, GraphQLResolveInfo } from 'graphql';
+import {
+  FieldNode,
+  GraphQLResolveInfo,
+  Kind,
+  getNamedType,
+  isInterfaceType,
+  isObjectType,
+} from 'graphql';
 import {
   CompatibleTypes,
   ExposeNullability,
@@ -265,17 +272,17 @@ export class PrismaObjectFieldBuilder<
       nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
+      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
       const nested = nestedQuery(getQuery(args, context), {
-        getType: () => {
-          if (!typeName) {
-            typeName = this.builder.configStore.getTypeConfig(ref).name;
-          }
-          return typeName;
-        },
+        getType: () => typeName!,
         paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
 
+      const selection = getSelection([])!;
       const hasTotalCount = totalCount && !!getSelection(['totalCount']);
+
+      const totalCountOnly = selection.selectionSet?.selections.length === 1 && hasTotalCount;
+
       const countSelect = this.builder.options.prisma.filterConnectionTotalCount
         ? nested.where
           ? { where: nested.where }
@@ -285,7 +292,9 @@ export class PrismaObjectFieldBuilder<
       return {
         select: {
           ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
-          [name]: nested?.select
+          [name]: totalCountOnly
+            ? undefined
+            : nested?.select
             ? {
                 ...nested,
                 select: {
@@ -309,7 +318,22 @@ export class PrismaObjectFieldBuilder<
         extensions: {
           ...extensions,
           pothosPrismaSelect: relationSelect,
-          pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
+          pothosPrismaLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
+            const returnType = getNamedType(info.returnType);
+            const fields =
+              isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+
+            const selection = info.fieldNodes[0];
+
+            const totalCountOnly =
+              selection.selectionSet?.selections.length === 1 &&
+              selection.selectionSet.selections.every(
+                (s) =>
+                  s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
+              );
+
+            return totalCountOnly || value[name] !== undefined;
+          },
           pothosPrismaFallback:
             resolve &&
             ((
@@ -342,7 +366,7 @@ export class PrismaObjectFieldBuilder<
 
           return wrapConnectionResult(
             parent,
-            (parent as Record<string, never>)[name],
+            (parent as Record<string, never>)[name] ?? [],
             args,
             connectionQuery.take,
             formatCursor,
@@ -360,6 +384,9 @@ export class PrismaObjectFieldBuilder<
                 ) => ({
                   totalCount: t.int({
                     nullable: false,
+                    extensions: {
+                      pothosPrismaTotalCount: true,
+                    },
                     resolve: (parent, args, context) => parent.totalCount,
                   }),
                   ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
