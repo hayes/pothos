@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.60.0
+
+### Minor Changes
+
+- 018c797c: Prevent loading full relation on a prisma connection when only total count is selected
+
 ## 3.59.3
 
 ### Patch Changes
