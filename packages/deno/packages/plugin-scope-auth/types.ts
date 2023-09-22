@@ -8,6 +8,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
     runScopesOnType?: boolean;
     treatErrorsAsUnauthorized?: boolean;
     authorizeOnSubscribe?: boolean;
+    defaultStrategy?: "all" | "any";
 }
 export interface BuiltInScopes<Types extends SchemaTypes> {
     $all?: true extends true ? AuthScopeMap<Types> : never;
@@ -57,13 +58,13 @@ export interface GrantedScopeFailure {
     kind: AuthScopeFailureType.GrantedScope;
     scope: string;
 }
-export type AuthFailure = AuthScopeFailure | AuthScopeFunctionFailure | GrantedScopeFailure | AnyAuthScopesFailure | AllAuthScopesFailure | UnknownAuthFailure;
+export type AuthFailure = AllAuthScopesFailure | AnyAuthScopesFailure | AuthScopeFailure | AuthScopeFunctionFailure | GrantedScopeFailure | UnknownAuthFailure;
 export interface ForbiddenResult {
     message: string;
     failure: AuthFailure;
 }
 export interface ResolveStep<Types extends SchemaTypes> {
-    run: (cache: RequestCache<Types>, parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo, setResolved: (val: unknown) => void) => MaybePromise<null | AuthFailure>;
+    run: (cache: RequestCache<Types>, parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo, setResolved: (val: unknown) => void) => MaybePromise<AuthFailure | null>;
     errorMessage: string | ((parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo) => string);
 }
 export type ContextForAuth<Types extends SchemaTypes, Scopes> = Scopes extends (...args: any[]) => infer R ? ContextForAuth<Types, R> : Scopes extends boolean ? Types["Context"] : keyof Scopes extends infer Scope ? Scope extends keyof Types["AuthContexts"] ? Types["AuthContexts"][Scope] : Scope extends "$any" ? ContextForAuth<Types, Scopes[Scope & keyof Scopes]> : Scope extends "$all" ? UnionToIntersection<ContextForAuth<Types, Scopes[Scope & keyof Scopes]>> : Types["Context"] : never;

@@ -2,7 +2,7 @@
 import { EnumValues, FieldMap, FieldRef, InputFieldRef, InputFieldsFromShape, NullableToOptional, ObjectParam, SchemaTypes, } from '../core/index.ts';
 export type AddGraphQLObjectFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>) => Record<string, FieldRef | null>;
 export type AddGraphQLInterfaceFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InterfaceFieldBuilder<Types, Shape>) => Record<string, FieldRef | null>;
-export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Record<string, null | InputFieldRef<unknown, "InputObject">> & {
+export type AddGraphQLInputFieldsShape<Types extends SchemaTypes, Shape> = (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Record<string, InputFieldRef<unknown, "InputObject"> | null> & {
     [K in keyof Shape]?: InputFieldRef<Shape[K], "InputObject">;
 };
 export type OutputShapeFromFields<Fields extends FieldMap> = NullableToOptional<{
@@ -28,6 +28,6 @@ export interface AddGraphQLInputTypeOptions<Types extends SchemaTypes, Shape ext
     name?: string;
     fields?: AddGraphQLInputFieldsShape<Types, Shape>;
 }
-export type EnumValuesWithShape<Types extends SchemaTypes, Shape> = EnumValues<Types> & (Shape[] | Record<string, {
+export type EnumValuesWithShape<Types extends SchemaTypes, Shape> = EnumValues<Types> & (Record<string, {
     value: Shape;
-}>);
+}> | Shape[]);

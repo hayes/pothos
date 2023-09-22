@@ -16,7 +16,10 @@ export default class InterfaceRef<T, P = T>
 {
   override kind = 'Interface' as const;
 
+  $inferType!: T;
+
   [outputShapeKey]!: T;
+
   [parentShapeKey]!: P;
 
   constructor(name: string) {

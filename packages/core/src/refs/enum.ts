@@ -7,6 +7,10 @@ export default class EnumRef<T, U = T>
 {
   override kind = 'Enum' as const;
 
+  $inferType!: T;
+
+  $inferInput!: U;
+
   [outputShapeKey]!: T;
 
   [inputShapeKey]!: U;

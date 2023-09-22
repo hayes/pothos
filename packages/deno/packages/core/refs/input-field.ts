@@ -6,6 +6,7 @@ export default class InputFieldRef<T = unknown, Kind extends "Arg" | "InputObjec
     parentTypename: string;
     fieldName?: string;
     argFor?: FieldRef | InputFieldRef;
+    $inferInput!: T;
     [inputFieldShapeKey]!: T;
     constructor(kind: Kind, parentTypename: string) {
         this.kind = kind;

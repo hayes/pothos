@@ -9,20 +9,22 @@ const requestCache = new WeakMap<{}, RequestCache<any>>();
 export default class RequestCache<Types extends SchemaTypes> {
     builder;
     context;
-    mapCache = new Map<{}, MaybePromise<null | AuthFailure>>();
+    mapCache = new Map<{}, MaybePromise<AuthFailure | null>>();
     scopeCache = new Map<keyof Types["AuthScopes"], Map<unknown, MaybePromise<AuthFailure | null>>>();
-    typeCache = new Map<string, Map<unknown, MaybePromise<null | AuthFailure>>>();
+    typeCache = new Map<string, Map<unknown, MaybePromise<AuthFailure | null>>>();
     typeGrants = new Map<string, Map<unknown, MaybePromise<null>>>();
     grantCache = new Map<string, Set<string>>();
     scopes?: MaybePromise<ScopeLoaderMap<Types>>;
     cacheKey?: (value: unknown) => unknown;
     treatErrorsAsUnauthorized: boolean;
+    defaultStrategy: "all" | "any";
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: Types["Context"]) {
         this.builder = builder;
         this.context = context;
         this.cacheKey = builder.options.scopeAuthOptions?.cacheKey;
         this.treatErrorsAsUnauthorized =
             builder.options.scopeAuthOptions?.treatErrorsAsUnauthorized ?? false;
+        this.defaultStrategy = builder.options.scopeAuthOptions?.defaultStrategy ?? "any";
     }
     static fromContext<T extends SchemaTypes>(context: T["Context"], builder: PothosSchemaTypes.SchemaBuilder<T>): RequestCache<T> {
         if (!requestCache.has(context)) {
@@ -148,7 +150,7 @@ export default class RequestCache<Types extends SchemaTypes> {
         }
         return cache.get(key)!;
     }
-    evaluateScopeMapWithScopes({ $all, $any, $granted, ...map }: AuthScopeMap<Types>, scopes: ScopeLoaderMap<Types>, info: GraphQLResolveInfo | undefined, forAll: boolean): MaybePromise<null | AuthFailure> {
+    evaluateScopeMapWithScopes({ $all, $any, $granted, ...map }: AuthScopeMap<Types>, scopes: ScopeLoaderMap<Types>, info: GraphQLResolveInfo | undefined, forAll: boolean): MaybePromise<AuthFailure | null> {
         const scopeNames = Object.keys(map) as (keyof typeof map)[];
         const problems: AuthFailure[] = [];
         const failure: AuthFailure = {
@@ -192,7 +194,7 @@ export default class RequestCache<Types extends SchemaTypes> {
                 }
             }
         }
-        const promises: Promise<null | AuthFailure>[] = [];
+        const promises: Promise<AuthFailure | null>[] = [];
         if ($granted) {
             const result = !!info && this.testGrantedScopes($granted, info.path);
             if (result && !forAll) {
@@ -209,7 +211,7 @@ export default class RequestCache<Types extends SchemaTypes> {
             }
         }
         if ($any) {
-            const anyResult = this.evaluateScopeMap($any, info);
+            const anyResult = this.evaluateScopeMap($any, info, false);
             if (isThenable(anyResult)) {
                 promises.push(anyResult);
             }
@@ -271,14 +273,14 @@ export default class RequestCache<Types extends SchemaTypes> {
             }
             return hasSuccess ? null : failure;
         });
-        function resolveAndReturn(val: null | AuthFailure) {
+        function resolveAndReturn(val: AuthFailure | null) {
             if (promises.length > 0) {
                 return Promise.all(promises).then(() => val);
             }
             return val;
         }
     }
-    evaluateScopeMap(map: AuthScopeMap<Types> | boolean, info?: GraphQLResolveInfo, forAll = false): MaybePromise<null | AuthFailure> {
+    evaluateScopeMap(map: AuthScopeMap<Types> | boolean, info?: GraphQLResolveInfo, forAll = this.defaultStrategy === "all"): MaybePromise<AuthFailure | null> {
         if (typeof map === "boolean") {
             return map
                 ? null

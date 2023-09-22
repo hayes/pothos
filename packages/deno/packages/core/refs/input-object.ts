@@ -4,6 +4,7 @@ import { InputFieldsFromShape, InputRef, inputShapeKey, RecursivelyNormalizeNull
 import BaseTypeRef from './base.ts';
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef<T>, PothosSchemaTypes.InputObjectRef<T> {
     override kind = "InputObject" as const;
+    $inferInput!: T;
     [inputShapeKey]!: T;
     constructor(name: string) {
         super("InputObject", name);

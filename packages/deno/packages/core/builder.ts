@@ -331,10 +331,13 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             name: string;
         }).name;
         const ref = (typeof param === "string" ? new InputObjectRef<InputShapeFromFields<Fields>>(name) : param) as PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>>;
-        const config: PothosInputObjectTypeConfig = {
+        const config: PothosInputObjectTypeConfig & {
+            isOneOf?: boolean;
+        } = {
             kind: "InputObject",
             graphqlKind: "InputObject",
             name,
+            isOneOf: options.isOneOf,
             description: options.description,
             pothosOptions: options as unknown as PothosSchemaTypes.InputObjectTypeOptions,
             extensions: options.extensions,

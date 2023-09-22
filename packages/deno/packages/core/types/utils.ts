@@ -31,11 +31,22 @@ export type NormalizeNullableFields<T extends object> = {
 } & {
     [K in RequiredKeys<T>]: T[K];
 };
-export type RecursivelyNormalizeNullableFields<T> = undefined extends T ? RecursivelyNormalizeNullableFields<NonNullable<T>> | null | undefined : null extends T ? RecursivelyNormalizeNullableFields<NonNullable<T>> | null | undefined : T extends (infer L)[] ? RecursivelyNormalizeNullableFields<L>[] : T extends object ? Normalize<{
-    [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined;
+// Check if T is a Record of string keys who's values are not functions
+export type IsSimpleRecord<T> = ([
+    T
+] extends [
+    Record<string, any>
+] // eslint-disable-line @typescript-eslint/no-explicit-any
+ ? keyof T extends infer K ? K extends string ? T[K] extends (...args: any[]) => unknown ? [
+    1
+] extends [
+    T[K]
+] ? never : false : never : never : false : false) extends never ? true : false;
+export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined ? null | undefined : T extends (infer L)[] ? RecursivelyNormalizeNullableFields<L>[] : T extends (...args: any[]) => unknown ? T : keyof T extends string ? IsSimpleRecord<T> extends true ? Normalize<{
+    [K in OptionalKeys<T & object>]?: K extends string ? RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined : T[K];
 } & {
-    [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
-}> : T;
+    [K in RequiredKeys<T & object>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
+}> : T : T;
 export type RemoveNeverKeys<T extends {}> = {
     [K in keyof T as [
         T[K]
@@ -55,11 +66,11 @@ export type LastIndex<T extends unknown[]> = T extends [
     unknown,
     ...infer U
 ] ? U["length"] : 0;
-export type NormalizeArgs<T extends unknown[], Index extends keyof T = LastIndex<T>> = undefined extends T[Index] ? {} extends T[Index] ? T : {
+export type NormalizeArgs<T extends unknown[], Index extends keyof T = LastIndex<T>> = undefined extends T[Index] ? {} extends T[Index] ? undefined extends {} ? {
+    [K in keyof T]?: T[K];
+} : T : {
     [K in keyof T]-?: T[K];
 } : {} extends T[Index] ? {
     [K in keyof T]?: T[K];
 } : T;
-export type IsStrictMode = undefined extends {
-    t: 1;
-}["t"] ? false : true;
+export type IsStrictMode = undefined extends {} ? false : true;

@@ -4,6 +4,7 @@ import { InterfaceParam, ObjectTypeOptions, OutputRef, outputShapeKey, parentSha
 import BaseTypeRef from './base.ts';
 export default class ObjectRef<T, P = T> extends BaseTypeRef implements OutputRef, PothosSchemaTypes.ObjectRef<T, P> {
     override kind = "Object" as const;
+    $inferType!: T;
     [outputShapeKey]!: T;
     [parentShapeKey]!: P;
     constructor(name: string) {

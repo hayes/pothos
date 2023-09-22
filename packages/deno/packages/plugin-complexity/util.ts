@@ -2,7 +2,7 @@
 import { DocumentNode, GraphQLResolveInfo, GraphQLSchema, Kind, OperationDefinitionNode, parse, } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosValidationError } from '../core/index.ts';
 import { complexityFromSelectionSet } from './calculate-complexity.ts';
-export function complexityFromQuery(query: string | DocumentNode, options: {
+export function complexityFromQuery(query: DocumentNode | string, options: {
     schema: GraphQLSchema;
     ctx?: {};
     variables?: Record<string, unknown>;

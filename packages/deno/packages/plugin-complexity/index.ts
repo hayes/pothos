@@ -98,6 +98,7 @@ export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugi
         if (typeof max === "function") {
             max = max(ctx);
         }
+        // eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing
         if (max?.complexity || max?.depth || max?.breadth) {
             return max;
         }

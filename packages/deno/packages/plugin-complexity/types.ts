@@ -17,7 +17,7 @@ export interface ComplexityPluginOptions<Types extends SchemaTypes> {
 export type ComplexityErrorFn = (kind: ComplexityErrorKind, result: ComplexityResult & {
     [K in keyof ComplexityResult as `max${Capitalize<K>}`]?: number;
 }, info: GraphQLResolveInfo) => Error | string;
-export type FieldComplexity<Context, Args> = FieldComplexityValue | FieldComplexityFunction<Context, Args>;
+export type FieldComplexity<Context, Args> = FieldComplexityFunction<Context, Args> | FieldComplexityValue;
 export type FieldComplexityFunction<Context, Args> = (args: Args, ctx: Context, field: GraphQLField<unknown, Context, Args>) => FieldComplexityValue;
 export type FieldComplexityValue = number | {
     field?: number;

@@ -22,9 +22,9 @@ declare global {
             Connection: PartialTypes["Connection"] & {};
             DefaultEdgesNullability: FieldNullability<[
                 unknown
-            ]> extends PartialTypes["DefaultEdgesNullability"] ? DefaultEdgesNullability : PartialTypes["DefaultEdgesNullability"] & FieldNullability<[
+            ]> extends PartialTypes["DefaultEdgesNullability"] ? DefaultEdgesNullability : FieldNullability<[
                 unknown
-            ]>;
+            ]> & PartialTypes["DefaultEdgesNullability"];
             DefaultNodeNullability: boolean extends PartialTypes["DefaultNodeNullability"] ? false : PartialTypes["DefaultNodeNullability"] & boolean;
         }
         export interface SchemaBuilder<Types extends SchemaTypes> {
@@ -99,14 +99,14 @@ declare global {
                 unknown
             ]> = Types["DefaultEdgesNullability"], NodeNullability extends boolean = Types["DefaultNodeNullability"], ConnectionInterfaces extends InterfaceParam<Types>[] = [
             ], EdgeInterfaces extends InterfaceParam<Types>[] = [
-            ], ConnectionResult extends ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability> = ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability>>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, (InputFieldMap extends Args ? {} : Args) & InputFieldsFromShape<DefaultConnectionArguments>, Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, FieldOptions extends {
+            ], ConnectionResult extends ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability> = ConnectionResultShape<Types, ShapeFromTypeParam<Types, Type, false>, EdgeNullability, NodeNullability>>(options: FieldOptionsFromKind<Types, ParentShape, Type, Nullable, InputFieldsFromShape<DefaultConnectionArguments> & (InputFieldMap extends Args ? {} : Args), Kind, ResolveShape, ResolveReturnShape> extends infer FieldOptions ? ConnectionFieldOptions<Types, FieldOptions extends {
                 resolve?: (parent: infer P, ...args: any[]) => unknown;
             } ? P : unknown extends ResolveShape ? ParentShape : ResolveShape, Type, Nullable, EdgeNullability, NodeNullability, Args, ResolveReturnShape, ConnectionResult> & Omit<FieldOptions, "args" | "resolve" | "type"> : never, ...args: NormalizeArgs<[
                 connectionOptions: ObjectRef<ConnectionShapeForType<Types, Type, false, EdgeNullability, NodeNullability, ConnectionResult>> | Omit<ConnectionObjectOptions<Types, Type, EdgeNullability, NodeNullability, ResolveReturnShape, ConnectionInterfaces>, "edgesNullable">,
-                edgeOptions: ObjectRef<{
+                edgeOptions: ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape, EdgeInterfaces> | ObjectRef<{
                     cursor: string;
                     node?: ShapeFromTypeParam<Types, Type, NodeNullability>;
-                }> | ConnectionEdgeObjectOptions<Types, Type, NodeNullability, ResolveReturnShape, EdgeInterfaces>
+                }>
             ], 0>) => FieldRef<ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability>>;
         }
         export interface ConnectionFieldOptions<Types extends SchemaTypes, ParentShape, Type extends OutputType<Types>, Nullable extends boolean, EdgeNullability extends FieldNullability<[
@@ -116,7 +116,7 @@ declare global {
             args?: Args;
             edgesNullable?: EdgeNullability;
             nodeNullable?: NodeNullability;
-            resolve: Resolver<ParentShape, InputShapeFromFields<Args> & DefaultConnectionArguments, Types["Context"], ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability, ConnectionResult>, ResolveReturnShape>;
+            resolve: Resolver<ParentShape, DefaultConnectionArguments & InputShapeFromFields<Args>, Types["Context"], ConnectionShapeForType<Types, Type, Nullable, EdgeNullability, NodeNullability, ConnectionResult>, ResolveReturnShape>;
         }
         export interface ConnectionObjectOptions<Types extends SchemaTypes, Type extends OutputType<Types>, EdgeNullability extends FieldNullability<[
             unknown

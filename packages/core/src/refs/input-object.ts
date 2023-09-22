@@ -14,6 +14,8 @@ export default class InputObjectRef<T>
 {
   override kind = 'InputObject' as const;
 
+  $inferInput!: T;
+
   [inputShapeKey]!: T;
 
   constructor(name: string) {

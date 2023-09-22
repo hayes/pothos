@@ -17,6 +17,7 @@ const navOrder: Record<string, string[]> = {
     'Interfaces',
     'Unions',
     'Using plugins',
+    'Inferring Types',
     'App Layout',
     'Generating client types',
     'Patterns',

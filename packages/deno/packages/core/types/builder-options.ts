@@ -49,7 +49,7 @@ export type EnumTypeOptions<Types extends SchemaTypes, Param extends EnumParam, 
     values?: Partial<Record<keyof Param, Omit<PothosSchemaTypes.EnumValueConfig<Types>, "value">>>;
 }> : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
 export type ArgBuilder<Types extends SchemaTypes> = PothosSchemaTypes.InputFieldBuilder<Types, "Arg">["field"] & Omit<PothosSchemaTypes.InputFieldBuilder<Types, "Arg">, "field">;
-export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends GetParentShape<Types, Interfaces> ? Interfaces : "Object shape must extends interface shape" : never;
+export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends GetParentShape<Types, Interfaces> ? Interfaces : "Object shape must extend interface shape" : never;
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
     [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
 }>;
