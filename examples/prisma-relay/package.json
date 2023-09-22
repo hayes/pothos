@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.7.61",
+  "version": "2.7.62",
   "name": "@pothos-examples/prisma-relay",
   "main": "src/index.ts",
   "types": "src/index.ts",
