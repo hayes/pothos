@@ -7,6 +7,7 @@ const navOrder: Record<string, string[]> = {
   '@root': ['Overview', 'Sponsors', 'Resources', 'Guide', 'Plugins', 'Migrations', 'Design', 'API'],
   Guide: [
     'Objects',
+    'Queries and Mutations',
     'SchemaBuilder',
     'Fields',
     'Args',
