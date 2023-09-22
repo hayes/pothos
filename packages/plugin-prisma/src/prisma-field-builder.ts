@@ -2,11 +2,11 @@
 /* eslint-disable no-underscore-dangle */
 import {
   FieldNode,
-  GraphQLResolveInfo,
-  Kind,
   getNamedType,
+  GraphQLResolveInfo,
   isInterfaceType,
   isObjectType,
+  Kind,
 } from 'graphql';
 import {
   CompatibleTypes,
