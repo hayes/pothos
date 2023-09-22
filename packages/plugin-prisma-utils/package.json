@@ -61,7 +61,7 @@
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^5.2.0",
-    "graphql": "16.8.0",
+    "graphql": "16.8.1",
     "graphql-scalars": "^1.22.2",
     "graphql-tag": "^2.12.6",
     "prettier": "^3.0.3",
