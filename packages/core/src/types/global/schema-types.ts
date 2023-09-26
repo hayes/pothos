@@ -2,7 +2,7 @@
 import type { GraphQLDirective } from 'graphql';
 import type { PluginConstructorMap } from '../plugins';
 import type { MergedScalars, SchemaTypes } from '../schema-types';
-import type { IsStrictMode } from '../utils';
+import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -84,7 +84,9 @@ declare global {
           ? T
           : never;
       } & {
-        [K in keyof PartialTypes['Inputs']]: PartialTypes['Inputs'][K];
+        [K in keyof PartialTypes['Inputs']]: RecursivelyNormalizeNullableFields<
+          PartialTypes['Inputs'][K]
+        >;
       };
     }
   }
