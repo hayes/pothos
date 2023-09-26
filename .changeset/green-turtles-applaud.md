@@ -1,6 +1,6 @@
 ---
-"@pothos/core": patch
-"@pothos/website": patch
+"@pothos/core": minor
+"@pothos/website": minor
 ---
 
-Support type mapping for Inputs
+Support type adding typemappings in SchemaTypes for Input objects
