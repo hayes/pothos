@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.38.0
+
+### Minor Changes
+
+- 22d1426a: Support for adding type mappings in SchemaTypes for Input objects
+
 ## 3.37.0
 
 ### Minor Changes
