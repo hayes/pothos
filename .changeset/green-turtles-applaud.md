@@ -3,4 +3,4 @@
 "@pothos/website": minor
 ---
 
-Support type adding type mappings in SchemaTypes for Input objects
+Support for adding type mappings in SchemaTypes for Input objects
