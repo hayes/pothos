@@ -41,6 +41,42 @@ builder.mutationType({
 });
 ```
 
+You can either use the builder ref directly by assigning it to a variable as depicted above, or
+provide an `Inputs` object to the `makeSchema` function.
+
+```typescript
+const builder = new SchemaBuilder<{
+  Inputs: {
+    GiraffeInput: {
+      name: string;
+      birthdate: string;
+      height: number;
+    };
+  };
+}>({});
+
+builder.inputType('GiraffeInput', {
+  fields: (t) => ({
+    name: t.string({ required: true }),
+    birthdate: t.string({ required: true }),
+    height: t.float({ required: true }),
+  }),
+});
+
+builder.mutationType({
+  fields: (t) => ({
+    createGiraffe: t.field({
+      type: Giraffe,
+      args: {
+        input: t.arg({ type: 'GiraffeInput', required: true }),
+      },
+      resolve: (root, args) =>
+        new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
+    }),
+  }),
+});
+```
+
 ## Recursive inputs
 
 Types for recursive inputs get slightly more complicated to implement because their types can't
@@ -94,3 +130,9 @@ builder.mutationType({
   }),
 });
 ```
+
+## Different ways to define Object types
+
+There are 2 different ways that you can provide type information to Pothos about what the underlying
+input objects in your graph will be. Depending on how the rest of your application is structured you
+can pick the approach that works best for you, or use a combination of different styles.

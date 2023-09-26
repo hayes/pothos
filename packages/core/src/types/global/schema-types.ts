@@ -48,6 +48,7 @@ declare global {
         }
       >;
       Objects: {};
+      Inputs: {};
       Interfaces: {};
       Root: object;
       Context: object;
@@ -59,6 +60,7 @@ declare global {
       extends SchemaTypes {
       Scalars: MergedScalars<PartialTypes>;
       Objects: PartialTypes['Objects'] & {};
+      Inputs: PartialTypes['Inputs'] & {};
       Interfaces: PartialTypes['Interfaces'] & {};
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
@@ -81,6 +83,8 @@ declare global {
         }
           ? T
           : never;
+      } & {
+        [K in keyof PartialTypes['Inputs']]: PartialTypes['Inputs'][K];
       };
     }
   }

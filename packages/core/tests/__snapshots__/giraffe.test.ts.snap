@@ -24,6 +24,10 @@ enum Diet {
   OMNIVORIOUS
 }
 
+input FindGiraffeInput {
+  name: String!
+}
+
 \\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
 type Giraffe implements Animal {
   age: Int!
@@ -86,6 +90,7 @@ enum LengthUnit {
 type Mutation {
   createGiraffe(input: GiraffeInput!): GiraffeFromClass!
   createGiraffeWithFriends(input: RecursiveGiraffeInput!): [GiraffeFromClass!]!
+  findGiraffe(where: FindGiraffeInput!): GiraffeFromClass!
 }
 
 scalar PositiveInt
