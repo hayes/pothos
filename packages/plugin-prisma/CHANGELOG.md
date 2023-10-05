@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.61.0
+
+### Minor Changes
+
+- 0be6da5c: Fix issue with detection for totalCount only selections
+
 ## 3.60.0
 
 ### Minor Changes

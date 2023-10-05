@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.10.1
+
+### Patch Changes
+
+- 5061fc0c: Remove some dead code
+
 ## 3.10.0
 
 ### Minor Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.12.0
+
+### Minor Changes
+
+- 5061fc0c: Fix disconnect/delete for relationUpdates for one:one relations
+
 ## 0.11.0
 
 ### Minor Changes
