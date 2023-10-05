@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { builder } from '../builder';
 import { db } from '../db';
 import { parseID } from '../utils';
@@ -49,6 +50,13 @@ builder.queryFields((t) => ({
 }));
 
 const CreateTeamInput = builder.inputType('CreateTeamInput', {
+  validate: {
+    schema: z
+      .object({
+        name: z.string().trim().nonempty(),
+      })
+      .passthrough(),
+  },
   fields: (t) => ({
     name: t.string({ required: true }),
     players: t.field({ type: [CreatePlayerInput] }),

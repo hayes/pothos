@@ -32,7 +32,8 @@
     "graphql-yoga": "4.0.4",
     "prisma": "^5.2.0",
     "react": "^18.2.0",
-    "urql": "^4.0.5"
+    "urql": "^4.0.5",
+    "zod": "^3.22.2"
   },
   "publishConfig": {
     "access": "public"

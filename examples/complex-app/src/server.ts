@@ -4,6 +4,7 @@ import { schema } from './schema';
 
 const yoga = createYoga({
   schema,
+  maskedErrors: false,
 });
 
 const server = createServer(yoga);

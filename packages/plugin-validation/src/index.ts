@@ -46,13 +46,6 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 
     const validator = this.createValidator(validationOptions, fieldConfig.type, fieldName);
 
-    if (fieldConfig.kind === 'InputObject') {
-      this.inputFieldValidators.set(fieldConfig.parentType, {
-        ...this.inputFieldValidators.get(fieldConfig.parentType),
-        [fieldConfig.name]: validator,
-      });
-    }
-
     if (fieldConfig.kind === 'Arg') {
       return {
         ...fieldConfig,
