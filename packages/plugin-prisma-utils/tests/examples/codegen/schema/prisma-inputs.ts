@@ -662,6 +662,8 @@ export const UserUpdateProfile = builder.prismaUpdateRelation('User', 'profile',
     create: ProfileCreateWithoutUser,
     update: ProfileUpdateWithoutUser,
     connect: ProfileUniqueFilter,
+    disconnect: true,
+    delete: true,
   }),
 });
 export const PostUpdateWithoutMedia: InputObjectRef<Prisma.Prisma.PostUpdateWithoutMediaInput> =
@@ -1305,6 +1307,8 @@ export const ProfileUpdateUser = builder.prismaUpdateRelation('Profile', 'user',
     create: UserCreateWithoutProfile,
     update: UserUpdateWithoutProfile,
     connect: UserUniqueFilter,
+    disconnect: true,
+    delete: true,
   }),
 });
 export const ProfileUpdate: InputObjectRef<Prisma.Prisma.ProfileUpdateInput> = builder.prismaUpdate(

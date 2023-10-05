@@ -36,11 +36,11 @@
   },
   "dependencies": {
     "graphql": "16.8.1",
-    "graphql-yoga": "4.0.4",
-    "ts-morph": "^19.0.0",
+    "graphql-yoga": "4.0.5",
+    "ts-morph": "^20.0.0",
     "yargs": "^17.7.2"
   },
   "devDependencies": {
-    "@types/node": "^20.5.9"
+    "@types/node": "^20.8.2"
   }
 }

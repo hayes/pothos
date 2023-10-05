@@ -352,8 +352,8 @@ export interface PrismaUpdateOneRelationFields<
       ? T
       : never
   >;
-  delete?: InputWithShape<Types, boolean>;
-  disconnect?: InputWithShape<Types, boolean>;
+  delete?: InputWithShape<Types, boolean> | boolean;
+  disconnect?: InputWithShape<Types, boolean> | boolean;
 }
 
 export interface PrismaUpdateManyRelationOptions<

@@ -45,14 +45,14 @@
     "graphql": ">=15.1.0"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.5.4",
-    "@apollo/server": "^4.9.3",
-    "@apollo/subgraph": "2.5.4",
+    "@apollo/gateway": "^2.5.5",
+    "@apollo/server": "^4.9.4",
+    "@apollo/subgraph": "2.5.5",
     "@graphql-tools/utils": "^10.0.6",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "axios": "^1.5.0",
+    "axios": "^1.5.1",
     "graphql": "16.8.1",
     "graphql-tag": "^2.12.6"
   },

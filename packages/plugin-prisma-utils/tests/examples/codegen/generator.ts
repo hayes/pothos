@@ -27,6 +27,7 @@ const { dmmf } = Prisma.Prisma;
 
 class PrismaGenerator {
   statements: ts.Statement[] = [];
+
   addedTypes: Set<string> = new Set();
 
   addCreate(type: string, without: string[] = []) {
@@ -185,7 +186,9 @@ class PrismaGenerator {
       (field) => field.relationName === relationField.relationName,
     )!;
     const relatedField = relatedModel.fields.find((field) => field.name === relatedFieldName.name)!;
-    const relatedFieldIsList = relatedField.kind === 'object' && relatedField.list;
+    const relatedFieldIsList =
+      (relatedField.kind === 'object' && relatedField.isList) ||
+      ('list' in relatedField && relatedField.list);
 
     if (relationField.isList) {
       this.statements.push(
@@ -218,7 +221,7 @@ class PrismaGenerator {
           create: ${this.addCreate(relatedModel.name, [relatedFieldName.name])},
           update: ${this.addUpdate(relatedModel.name, [relatedFieldName.name])},
           connect: ${this.addWhereUnique(relatedModel.name)},
-          ${relatedFieldIsList ? 'disconnect: true, delete: true,' : ''}
+          ${relatedFieldIsList ? '' : 'disconnect: true, delete: true,'}
         })
       });
     `,

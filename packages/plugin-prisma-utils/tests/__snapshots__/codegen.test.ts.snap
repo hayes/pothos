@@ -1080,6 +1080,8 @@ input ProfileUpdate {
 input ProfileUpdateUserRelationInput {
   connect: UserUniqueFilter
   create: UserCreateWithoutProfile
+  delete: Boolean
+  disconnect: Boolean
   update: UserUpdateWithoutProfile
 }
 
@@ -1412,6 +1414,8 @@ input UserUpdatePostsRelationInputUpdateMany {
 input UserUpdateProfileRelationInput {
   connect: ProfileUniqueFilter
   create: ProfileCreateWithoutUser
+  delete: Boolean
+  disconnect: Boolean
   update: ProfileUpdateWithoutUser
 }
 

@@ -633,6 +633,11 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
             required: false,
             type: [nestedRef],
           });
+        } else if ((field === 'disconnect' || field === 'delete') && fieldOption === true) {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: 'Boolean',
+          });
         } else {
           fieldDefs[field] = t.field({
             required: false,
