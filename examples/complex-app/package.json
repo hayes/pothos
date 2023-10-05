@@ -33,7 +33,7 @@
     "prisma": "^5.2.0",
     "react": "^18.2.0",
     "urql": "^4.0.5",
-    "zod": "^3.22.2"
+    "zod": "^3.22.3"
   },
   "publishConfig": {
     "access": "public"
