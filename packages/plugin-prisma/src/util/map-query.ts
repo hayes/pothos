@@ -134,6 +134,7 @@ function resolveIndirectInclude(
   includePath: { type?: string; name: string }[],
   path: string[],
   resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
+  expectedType = type,
 ) {
   if (includePath.length === 0) {
     resolve(type, selection as FieldNode, path);
@@ -149,6 +150,7 @@ function resolveIndirectInclude(
     switch (sel.kind) {
       case Kind.FIELD:
         if (
+          expectedType.name === type.name &&
           !fieldSkipped(info, sel) &&
           sel.name.value === include.name &&
           (isObjectType(type) || isInterfaceType(type))
@@ -166,19 +168,15 @@ function resolveIndirectInclude(
         }
         continue;
       case Kind.FRAGMENT_SPREAD:
-        if (
-          !include.type ||
-          info.fragments[sel.name.value].typeCondition.name.value === include.type
-        ) {
-          resolveIndirectInclude(
-            include.type ? info.schema.getType(include.type)! : type,
-            info,
-            info.fragments[sel.name.value],
-            includePath,
-            path,
-            resolve,
-          );
-        }
+        resolveIndirectInclude(
+          info.schema.getType(info.fragments[sel.name.value].typeCondition.name.value)!,
+          info,
+          info.fragments[sel.name.value],
+          includePath,
+          path,
+          resolve,
+          include.type ? info.schema.getType(include.type)! : expectedType,
+        );
 
         continue;
 
@@ -191,6 +189,7 @@ function resolveIndirectInclude(
             includePath,
             path,
             resolve,
+            include.type ? info.schema.getType(include.type)! : expectedType,
           );
         }
 
@@ -211,11 +210,15 @@ function addNestedSelections(
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
+  expectedType = type,
 ) {
   let parentType = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
+        if (expectedType.name !== type.name) {
+          continue;
+        }
         addFieldSelection(type, context, info, state, selection, indirectPath);
 
         continue;
@@ -223,13 +226,6 @@ function addNestedSelections(
         parentType = info.schema.getType(
           info.fragments[selection.name.value].typeCondition.name.value,
         )! as GraphQLObjectType;
-        if (
-          isObjectType(type)
-            ? parentType.name !== type.name
-            : parentType.extensions?.pothosPrismaModel !== type.extensions.pothosPrismaModel
-        ) {
-          continue;
-        }
 
         addNestedSelections(
           parentType,
@@ -238,6 +234,9 @@ function addNestedSelections(
           state,
           info.fragments[selection.name.value].selectionSet,
           indirectPath,
+          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
+            ? parentType
+            : expectedType,
         );
 
         continue;
@@ -246,15 +245,18 @@ function addNestedSelections(
         parentType = selection.typeCondition
           ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
           : type;
-        if (
-          isObjectType(type)
-            ? parentType.name !== type.name
-            : parentType.extensions?.pothosPrismaModel !== type.extensions.pothosPrismaModel
-        ) {
-          continue;
-        }
 
-        addNestedSelections(parentType, context, info, state, selection.selectionSet, indirectPath);
+        addNestedSelections(
+          parentType,
+          context,
+          info,
+          state,
+          selection.selectionSet,
+          indirectPath,
+          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
+            ? parentType
+            : expectedType,
+        );
 
         continue;
 

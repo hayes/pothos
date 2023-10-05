@@ -793,4 +793,102 @@ describe('prisma counts', () => {
       ]
     `);
   });
+
+  it('queries correctly when totalCount and other selections are split across fragments', async () => {
+    const query = gql`
+      query {
+        userNodeConnection(first: 1) {
+          edges {
+            node {
+              postsConnection(first: 1) {
+                totalCount
+              }
+              ...Example
+            }
+          }
+        }
+      }
+
+      fragment Example on Node {
+        id
+        ... on User {
+          postsConnection(first: 1) {
+            edges {
+              node {
+                id
+              }
+            }
+          }
+        }
+      }
+    `;
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: { user: { id: 1 } },
+    });
+
+    expect(result).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "userNodeConnection": {
+            "edges": [
+              {
+                "node": {
+                  "id": "VXNlcjox",
+                  "postsConnection": {
+                    "edges": [
+                      {
+                        "node": {
+                          "id": "250",
+                        },
+                      },
+                    ],
+                    "totalCount": 250,
+                  },
+                },
+              },
+            ],
+          },
+        },
+      }
+    `);
+    expect(queries).toMatchInlineSnapshot(`
+      [
+        {
+          "action": "findMany",
+          "args": {
+            "include": {
+              "_count": {
+                "select": {
+                  "posts": true,
+                },
+              },
+              "posts": {
+                "include": {
+                  "comments": {
+                    "include": {
+                      "author": true,
+                    },
+                    "take": 3,
+                  },
+                },
+                "orderBy": {
+                  "createdAt": "desc",
+                },
+                "skip": 0,
+                "take": 2,
+              },
+            },
+            "skip": 0,
+            "take": 2,
+          },
+          "dataPath": [],
+          "model": "User",
+          "runInTransaction": false,
+        },
+      ]
+    `);
+  });
 });

@@ -829,6 +829,12 @@ builder.queryType({
         }),
       },
     ),
+    userNodeConnection: t.prismaConnection({
+      type: User,
+      cursor: 'id',
+      resolve: (query) => prisma.user.findMany({ ...query }),
+    }),
+
     unrelatedConnection: t.prismaConnection(
       {
         type: 'Unrelated',

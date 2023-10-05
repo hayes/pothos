@@ -149,14 +149,16 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
         const fields =
           isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
 
-        const selection = info.fieldNodes[0];
+        const selections = info.fieldNodes;
 
-        const totalCountOnly =
-          selection.selectionSet?.selections.length === 1 &&
-          selection.selectionSet.selections.every(
-            (s) =>
-              s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
-          );
+        const totalCountOnly = selections.every(
+          (selection) =>
+            selection.selectionSet?.selections.length === 1 &&
+            selection.selectionSet.selections.every(
+              (s) =>
+                s.kind === Kind.FIELD && fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
+            ),
+        );
 
         return resolvePrismaCursorConnection(
           {
