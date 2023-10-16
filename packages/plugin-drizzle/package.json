@@ -1,0 +1,62 @@
+{
+  "name": "@pothos/plugin-drizzle",
+  "version": "0.0.0",
+  "description": "A Pothos plugin for drizzle",
+  "main": "./lib/index.js",
+  "types": "./dts/index.d.ts",
+  "module": "./esm/index.js",
+  "exports": {
+    "import": {
+      "default": "./esm/index.js"
+    },
+    "require": {
+      "types": "./dts/index.d.ts",
+      "default": "./lib/index.js"
+    }
+  },
+  "scripts": {
+    "type": "tsc --project tsconfig.type.json",
+    "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
+    "build:clean": "git clean -dfX esm lib",
+    "build:cjs": "swc src -d lib --config-file ../../.swcrc -C module.type=commonjs",
+    "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
+    "build:dts": "tsc",
+    "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
+    "test": "pnpm vitest --run --segfault-retry=3"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hayes/pothos.git",
+    "directory": "packages/plugin-relay"
+  },
+  "author": "Michael Hayes",
+  "license": "ISC",
+  "keywords": [
+    "pothos",
+    "graphql",
+    "schema",
+    "typescript",
+    "drizzle",
+    "plugin"
+  ],
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "peerDependencies": {
+    "@pothos/core": "*",
+    "graphql": ">=16.4.0"
+  },
+  "devDependencies": {
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-relay": "workspace:*",
+    "@pothos/plugin-scope-auth": "workspace:*",
+    "@pothos/test-utils": "workspace:*",
+    "@types/better-sqlite3": "^7.6.5",
+    "better-sqlite3": "^8.7.0",
+    "drizzle-kit": "^0.19.13",
+    "drizzle-orm": "^0.28.6",
+    "graphql": "16.8.1",
+    "graphql-tag": "^2.12.6"
+  }
+}
