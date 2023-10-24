@@ -34,7 +34,7 @@ const Query = builder.queryType({
           description: 'String arg',
         }),
       },
-      resolve: (parent, args) => arg.string,
+      resolve: (parent, args) => args.string,
     }),
   }),
 });
