@@ -45,7 +45,7 @@ const PrismaStringFilterModeRefMap = new WeakMap<
   EnumRef<'default' | 'insensitive'>
 >();
 
-const nullableOps = ['equals', 'is', 'isNot'];
+const nullableOps = new Set(['equals', 'is', 'isNot']);
 
 schemaBuilder.prismaFilter = function prismaFilter<
   Type extends InputType<SchemaTypes>,
