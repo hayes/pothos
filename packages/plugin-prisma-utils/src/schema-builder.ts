@@ -45,6 +45,8 @@ const PrismaStringFilterModeRefMap = new WeakMap<
   EnumRef<'default' | 'insensitive'>
 >();
 
+const nullableOps = ['equals', 'is', 'isNot'];
+
 schemaBuilder.prismaFilter = function prismaFilter<
   Type extends InputType<SchemaTypes>,
   Ops extends OpsOptions<SchemaTypes, Type, FilterOps>,
@@ -70,7 +72,7 @@ schemaBuilder.prismaFilter = function prismaFilter<
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: { nullableFields: nullableOps },
     },
     fields: (t) => {
       const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
