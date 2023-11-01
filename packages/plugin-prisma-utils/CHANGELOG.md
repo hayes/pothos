@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.12.1
+
+### Patch Changes
+
+- 8598e34f: Allow filters to set null for equals, is and isNot
+
 ## 0.12.0
 
 ### Minor Changes
