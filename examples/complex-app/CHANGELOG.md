@@ -1,5 +1,12 @@
 # @pothos-examples/complex-app
 
+## 1.6.14
+
+### Patch Changes
+
+- Updated dependencies [4a11ce04]
+  - @pothos/plugin-prisma-utils@0.13.0
+
 ## 1.6.13
 
 ### Patch Changes

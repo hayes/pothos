@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.13.0
+
+### Minor Changes
+
+- 4a11ce04: Allow filters to set null for not
+
 ## 0.12.1
 
 ### Patch Changes
