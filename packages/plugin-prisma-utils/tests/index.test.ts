@@ -24,7 +24,7 @@ describe('prisma utils', () => {
       query {
         posts(
           order: { author: { name: Desc, profile: null } }
-          filter: { id: { not: { equals: 11, not: null } } }
+          filter: { id: { not: { equals: 11 } } }
         ) {
           id
           author {
@@ -86,7 +86,6 @@ describe('prisma utils', () => {
               "id": {
                 "not": {
                   "equals": 11,
-                  "not": undefined,
                 },
               },
             },
