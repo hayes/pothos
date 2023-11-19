@@ -1,10 +1,12 @@
 import { execute, GraphQLScalarType } from 'graphql';
-import { DateTimeResolver as ogDateTimeResolver, NonNegativeIntResolver } from 'graphql-scalars';
+import {
+  DateTimeResolver,
+  NonNegativeIntResolver,
+  HexColorCodeResolver,
+} from 'graphql-scalars';
 import gql from 'graphql-tag';
 import SchemaBuilder from '../src';
 
-// Add generic types while waiting for https://github.com/Urigo/graphql-scalars/pull/1920
-const DateTimeResolver = ogDateTimeResolver as GraphQLScalarType<Date, Date>;
 
 const PositiveIntResolver = new GraphQLScalarType({
   name: 'PositiveInt',
@@ -51,8 +53,8 @@ class Kiwi extends Animal {
 }
 
 describe('scalars', () => {
-  it('when a scalar is added withScalars, the scalartype is added', () => {
-    const builder = new SchemaBuilder({}).withScalars({ PositiveInt: PositiveIntResolver });
+  it('when a scalar is added withScalar, the scalartype is added', () => {
+    const builder = new SchemaBuilder({}).withScalar('PositiveInt', PositiveIntResolver);
     builder.queryType();
     builder.queryFields((t) => ({
       positiveInt: t.field({
@@ -71,14 +73,12 @@ describe('scalars', () => {
     ).toThrow('Expected Name, found String "hello"');
   });
 
-  it('when scalars are added using withScalars, the Objects from the user schema are kept', async () => {
+  it('when scalars are added using withScalar, the Objects from the user schema are kept', async () => {
     const builder = new SchemaBuilder<{
       Objects: {
         Example: { n: number };
       };
-    }>({}).withScalars({
-      PositiveInt: PositiveIntResolver,
-    });
+    }>({}).withScalar('PositiveInt', PositiveIntResolver);
 
     const Example = builder.objectType('Example', {
       fields: (t) => ({
@@ -111,14 +111,12 @@ describe('scalars', () => {
     expect(result.data).toEqual({ example: { n: 1 } });
   });
 
-  it('when scalars are added using withScalars, the Interfaces from the user schema are kept', async () => {
+  it('when scalars are added using withScalar, the Interfaces from the user schema are kept', async () => {
     const builder = new SchemaBuilder<{
       Interfaces: {
         Animal: Animal;
       };
-    }>({}).withScalars({
-      NonNegativeInt: NonNegativeIntResolver,
-    });
+    }>({}).withScalar('NonNegativeInt', NonNegativeIntResolver);
 
     builder.enumType(Diet, { name: 'Diet' });
 
@@ -168,12 +166,11 @@ describe('scalars', () => {
     });
     expect(result.data).toEqual({ kiwi: { name: 'TV Kiwi', age: 5 } });
   });
-  it('when scalars are added using withScalars, the Context from the user schema are kept', async () => {
+
+  it('when scalars are added using withScalar, the Context from the user schema are kept', async () => {
     const builder = new SchemaBuilder<{
       Context: { name: string };
-    }>({}).withScalars({
-      NonNegativeInt: NonNegativeIntResolver,
-    });
+    }>({}).withScalar('NonNegativeInt', NonNegativeIntResolver);
 
     builder.queryType({
       fields: (t) => ({
@@ -197,14 +194,12 @@ describe('scalars', () => {
     expect(result.data).toEqual({ name: 'Hello' });
   });
 
-  it('when scalars are added using withScalars, the DefaultFieldNullability from the user schema are kept', async () => {
+  it('when scalars are added using withScalar, the DefaultFieldNullability from the user schema are kept', async () => {
     const builder = new SchemaBuilder<{
       DefaultFieldNullability: true;
     }>({
       defaultFieldNullability: true,
-    }).withScalars({
-      NonNegativeInt: NonNegativeIntResolver,
-    });
+    }).withScalar('NonNegativeInt', NonNegativeIntResolver);
 
     builder.queryType({
       fields: (t) => ({
@@ -227,14 +222,12 @@ describe('scalars', () => {
     expect(result.data).toEqual({ name: null });
   });
 
-  it('when scalars are added using withScalars, the DefaultInputFieldRequiredness from the user schema are kept', async () => {
+  it('when scalars are added using withScalar, the DefaultInputFieldRequiredness from the user schema are kept', async () => {
     const builder = new SchemaBuilder<{
       DefaultInputFieldRequiredness: true;
     }>({
       defaultInputFieldRequiredness: true,
-    }).withScalars({
-      NonNegativeInt: NonNegativeIntResolver,
-    });
+    }).withScalar('NonNegativeInt', NonNegativeIntResolver);
 
     builder.queryType({
       fields: (t) => ({
@@ -261,12 +254,12 @@ describe('scalars', () => {
     expect(result.data).toEqual({ example: 3 });
   });
 
-  it('when scalars are added withScalars, scalars can still be manually typed', () => {
+  it('when scalars are added withScalar, scalars can still be manually typed', () => {
     const builder = new SchemaBuilder<{
       Scalars: {
         PositiveInt: { Input: number; Output: number };
       };
-    }>({}).withScalars({ DateTime: DateTimeResolver });
+    }>({}).withScalar('DateTime', DateTimeResolver);
 
     builder.addScalarType('PositiveInt', PositiveIntResolver, {});
 
@@ -289,10 +282,9 @@ describe('scalars', () => {
   });
 
   it('when the scalar has internal types the, scalar types are infered are possible', () => {
-    const builder = new SchemaBuilder({}).withScalars({
-      DateTime: DateTimeResolver,
-      PositiveInt: PositiveIntResolver,
-    });
+    const builder = new SchemaBuilder({})
+      .withScalar('DateTime', DateTimeResolver)
+      .withScalar('PositiveInt', PositiveIntResolver);
 
     builder.objectRef<{}>('Example').implement({
       fields: (t) => ({
@@ -308,5 +300,33 @@ describe('scalars', () => {
     });
 
     expect(builder).toBeDefined();
+  });
+
+  it('when a scalar has options', async () => {
+    const builder = new SchemaBuilder({})
+      .withScalar('HexColor', HexColorCodeResolver)
+      .withScalar('HexColorNoHash', HexColorCodeResolver, {
+        serialize: (v) => (v as string).slice(1),
+      });
+
+    const resolve = () => '#BADA55';
+
+    builder.queryType();
+    builder.queryFields((t) => ({
+      hex: t.field({ type: 'HexColor', resolve }),
+      hexNoHash: t.field({ type: 'HexColorNoHash', resolve }),
+    }));
+
+    const schema = builder.toSchema();
+    const result = await execute({
+      schema,
+      document: gql`
+        query {
+          hex
+          hexNoHash
+        }
+      `,
+    });
+    expect(result.data).to.deep.eq({ hex: '#BADA55', hexNoHash: 'BADA55' });
   });
 });

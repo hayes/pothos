@@ -622,27 +622,42 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       : lexicographicSortSchema(processedSchema);
   }
 
-  withScalars<const ScalarRecord extends Record<string, GraphQLScalarType>>(scalars: ScalarRecord) {
-    const builder = this as unknown as SchemaBuilder<
-      Types & {
-        Scalars: {
-          // Extract the Input  types from GraphQLScalarType's generics
-          [Property in keyof ScalarRecord]: ScalarRecord[Property] extends GraphQLScalarType<
-            infer TInternal,
-            unknown
-          >
-            ? {
-                Input: TInternal;
-                Output: TInternal;
-              }
-            : never;
-        };
-      }
-    >;
 
-    for (const [name, scalar] of Object.entries(scalars)) {
-      builder.addScalarType(name, scalar, {});
+  withScalar<
+    const TName extends string,
+    TInternal,
+    TExternal,
+    TScalarType extends GraphQLScalarType<TInternal, TExternal>,
+    TTypes extends Types & {
+      Scalars: { [K in TName]: { Input: TInternal; Output: TExternal; }}
+      outputShapes: { [K in TName]: TInternal },
+      inputShapes: {[K in TName]: TInternal},
     }
-    return builder;
+  >(
+    name: TName,
+    scalar: TScalarType,
+    options?: Omit<
+      PothosSchemaTypes.ScalarTypeOptions<TTypes, InputShape<TTypes, TName>, OutputShape<TTypes, TName>>,
+      'serialize'
+    > & {
+      serialize?: GraphQLScalarSerializer<OutputShape<TTypes, TName>>;
+    },
+  ) {
+    const builder = this as unknown as SchemaBuilder<TTypes>;
+    const config = scalar.toConfig();``
+    builder.scalarType<TName>(name, {
+      ...config,
+      ...options,
+      extensions: {
+        ...config.extensions,
+        ...options?.extensions,
+      },
+    } as PothosSchemaTypes.ScalarTypeOptions<
+    TTypes,
+      InputShape<TTypes, TName>,
+      ParentShape<TTypes, TName>
+    >);
+    return builder
   }
+
 }

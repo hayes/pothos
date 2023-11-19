@@ -16,12 +16,16 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 ## Adding GraphQL Scalars that have type information
 
-To add a custom scalar that has been implemented as GraphQLScalarType from
+To add a custom scalar that has been implemented as a GraphQLScalarType from
 [graphql-js](https://github.com/graphql/graphql-js), when the GraphQLScalar has `TInteral` and
 `TExternal` type information this can be inferred using `withScalars.
 
 ```typescript
-const builder = new SchemaBuilder({}).withScalars({ Date: CustomDateScalar });
+import { DateResolver, JSONResolver } from 'graphql-scalars';
+
+const builder = new SchemaBuilder({})
+  .withScalar('Date', DateResolver)
+  .withScalar('JSON', JSONResolver);
 ```
 
 ## Adding Custom GraphQL Scalars
