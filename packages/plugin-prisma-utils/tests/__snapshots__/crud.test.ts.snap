@@ -380,6 +380,7 @@ input PostCreateInput {
   tags: [String!]
   title: String!
   updatedAt: DateTime
+  views: Int
 }
 
 input PostCreateMediaRelationInput {
@@ -399,6 +400,7 @@ input PostCreateWithoutAuthorInput {
   tags: [String!]
   title: String!
   updatedAt: DateTime
+  views: Int
 }
 
 input PostCreateWithoutCommentsInput {
@@ -413,6 +415,7 @@ input PostCreateWithoutCommentsInput {
   tags: [String!]
   title: String!
   updatedAt: DateTime
+  views: Int
 }
 
 input PostCreateWithoutMediaInput {
@@ -427,6 +430,7 @@ input PostCreateWithoutMediaInput {
   tags: [String!]
   title: String!
   updatedAt: DateTime
+  views: Int
 }
 
 input PostFilter {
@@ -443,6 +447,7 @@ input PostFilter {
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
+  views: IntFilter
 }
 
 input PostListFilter {
@@ -553,6 +558,7 @@ input PostOrderBy {
   tags: OrderBy
   title: OrderBy
   updatedAt: OrderBy
+  views: OrderBy
 }
 
 input PostUniqueFilter {
@@ -600,6 +606,7 @@ input PostUpdateInput {
   tags: [String!]
   title: String
   updatedAt: DateTime
+  views: Int
 }
 
 input PostUpdateMediaRelationInput {
@@ -635,6 +642,7 @@ input PostUpdateWithoutAuthorInput {
   tags: [String!]
   title: String
   updatedAt: DateTime
+  views: Int
 }
 
 input PostUpdateWithoutCommentsInput {
@@ -649,6 +657,7 @@ input PostUpdateWithoutCommentsInput {
   tags: [String!]
   title: String
   updatedAt: DateTime
+  views: Int
 }
 
 input PostUpdateWithoutMediaInput {
@@ -663,6 +672,7 @@ input PostUpdateWithoutMediaInput {
   tags: [String!]
   title: String
   updatedAt: DateTime
+  views: Int
 }
 
 input PostWithoutAuthorFilter {
@@ -677,6 +687,7 @@ input PostWithoutAuthorFilter {
   tags: StringListFilter
   title: StringFilter
   updatedAt: DateTimeFilter
+  views: IntFilter
 }
 
 input ProfileCreateWithoutUserInput {

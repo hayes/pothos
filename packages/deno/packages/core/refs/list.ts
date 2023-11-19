@@ -3,6 +3,7 @@ import { outputShapeKey, parentShapeKey, SchemaTypes, TypeParam } from '../types
 import BaseTypeRef from './base.ts';
 export default class ListRef<Types extends SchemaTypes, T, P = T> extends BaseTypeRef implements PothosSchemaTypes.ListRef<Types, T, P> {
     override kind = "List" as const;
+    $inferType!: T;
     [outputShapeKey]!: T;
     [parentShapeKey]!: P;
     listType: TypeParam<Types>;

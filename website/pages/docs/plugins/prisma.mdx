@@ -224,6 +224,8 @@ const builder = new SchemaBuilder<{
     exposeDescriptions: boolean | { models: boolean, fields: boolean },
     // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
     filterConnectionTotalCount: true,
+    // warn when not using a query parameter correctly
+    onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
   },
 });
 ```
@@ -626,6 +628,7 @@ const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   fields: (t) => ({
     id: t.exposeID('id'),
+  });
 });
 ```
 
@@ -706,12 +709,56 @@ const User = builder.prismaNode('User', {
   }),
 });
 
-// Viewer references the `User` ref in its field definiton,
+// Viewer references the `User` ref in its field definition,
 // referencing the `User` in fields would cause a circular type issue
 builder.prismaObjectField(Viewer, 'user', t.variant(User));
 ```
 
 This same workaround applies when defining relations using variants.
+
+## Creating interfaces with `builder.prismaInterface`
+
+`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
+primary type or a variant for a model.
+
+The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
+method returns the typenames as strings to avoid issues with circular references.
+
+```typescript
+builder.prismaInterface('User', {
+  name: 'User',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+  resolveType: (user) => {
+    return user.isAdmin ? 'Admin' : 'Member';
+  },
+});
+
+builder.prismaObject('User', {
+  variant: 'Admin',
+  interfaces: [User],
+  fields: (t) => ({
+    isAdmin: t.exposeBoolean('isAdmin'),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Member',
+  interfaces: [User],
+  fields: (t) => ({
+    bio: t.exposeString('bio'),
+  }),
+});
+```
+
+When using select mode, it's recommended to add selections to both the interface and the object
+types that implement them. Selections are not inherited and will fallback to the default selection
+which includes all scalar columns.
+
+You will not be able to extend an interface for a different prisma model, doing so will result in an
+error at build time.
 
 ## Selecting fields from a nested GraphQL field
 
@@ -832,6 +879,24 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 ```
+
+## Detecting unused query arguments
+
+Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConnection` into your
+prisma query can result in inefficient queries, or even missing data. To help catch these issues,
+the plugin can warn you when you are not using the query argument correctly.
+
+the `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
+`warn` it will log a warning to the console if Pothos detects that you have not properly used the
+query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
+You can also pass a function which will receive the `info` object which can be used to log or throw
+your own error.
+
+This check is fairly naive and works by wrapping the properties on the query with a getter that sets
+a flag if the property is accessed. If no properties are accessed on the query object before the
+resolver returns, it will trigger the `onUnusedQuery` condition.
+
+It's recommended to enable this check in development to more quickly find potential issues.
 
 ## Optimized queries without `t.prismaField`
 
@@ -996,7 +1061,8 @@ builder.queryType({
   selections.
 - `totalCount`: A function for loading the total count for the connection. This will add a
   `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
-  `args`, `context`, `info`) as arguments
+  `args`, `context`, `info`) as arguments. Note that this will not work when using a shared
+  connection object (see details below)
 
 The created connection queries currently support the following combinations of connection arguments:
 
@@ -1052,7 +1118,8 @@ builder.prismaNode('User', {
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
   filtering and sorting logic that will be merged into the query for the relation.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
-  `relationCount` above for more details.
+  `relationCount` above for more details. Note that this will not work when using a shared
+  connection object (see details below)
 
 ### Indirect relations as connections
 
@@ -1223,6 +1290,57 @@ builder.prismaObjectFields('Post', (t) => ({
     },
   ),
 }));
+```
+
+### Total count on shared connection objects
+
+If you are set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
+using a custom connection object, you will need to manually add the `totalCount` field to the
+connection object manually. The parent object on the connection will have a `totalCount` property
+that is either a the totalCount, or a function that will return the totalCount.
+
+```typescript
+const CommentConnection = builder.connectionObject({
+  type: Comment,
+  name: 'CommentConnection',
+  fields: (t) => ({
+    totalCount: t.int({
+      resolve: (connection) => {
+        const { totalCount } = connection as {
+          totalCount?: number | (() => number | Promise<number>);
+        };
+
+        return typeof totalCount === 'function' ? totalCount() : totalCount;
+      },
+    }),
+  }),
+});
+```
+
+If you want to add a global `totalCount` field, you can do something similar using
+`builder.globalConnectionField`:
+
+```typescript
+export const builder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Connection: {
+    totalCount: number | (() => number | Promise<number>);
+  };
+}>({
+  plugins: [PrismaPlugin, RelayPlugin],
+  relayOptions: {},
+  prisma: {
+    client: db,
+  },
+});
+
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) =>
+      typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount,
+  }),
+);
 ```
 
 ### Relay Utils

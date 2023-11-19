@@ -1,5 +1,91 @@
 # @pothos-examples/nextjs
 
+## 2.6.19
+
+### Patch Changes
+
+- Updated dependencies [22d1426a]
+  - @pothos/core@3.38.0
+
+## 2.6.18
+
+### Patch Changes
+
+- Updated dependencies [f8fb4e6b]
+  - @pothos/core@3.37.0
+
+## 2.6.17
+
+### Patch Changes
+
+- Updated dependencies [96ba1822]
+  - @pothos/core@3.36.0
+
+## 2.6.16
+
+### Patch Changes
+
+- Updated dependencies [b83e671b]
+- Updated dependencies [c123a285]
+  - @pothos/core@3.35.0
+
+## 2.6.15
+
+### Patch Changes
+
+- Updated dependencies [f0247390]
+  - @pothos/core@3.34.0
+
+## 2.6.14
+
+### Patch Changes
+
+- Updated dependencies [6f155d82]
+  - @pothos/core@3.33.1
+
+## 2.6.13
+
+### Patch Changes
+
+- Updated dependencies [c7756128]
+  - @pothos/core@3.33.0
+
+## 2.6.12
+
+### Patch Changes
+
+- Updated dependencies [adc2d33d]
+  - @pothos/core@3.32.1
+
+## 2.6.11
+
+### Patch Changes
+
+- Updated dependencies [be23f48d]
+  - @pothos/core@3.32.0
+
+## 2.6.10
+
+### Patch Changes
+
+- Updated dependencies [bd22a282]
+  - @pothos/core@3.31.2
+
+## 2.6.9
+
+### Patch Changes
+
+- Updated dependencies [425435af]
+  - @pothos/core@3.31.1
+
+## 2.6.8
+
+### Patch Changes
+
+- Updated dependencies [664e794c]
+- Updated dependencies [5d3f7b97]
+  - @pothos/core@3.31.0
+
 ## 2.6.7
 
 ### Patch Changes

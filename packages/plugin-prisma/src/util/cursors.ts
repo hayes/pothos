@@ -8,6 +8,7 @@ import {
 } from '@pothos/core';
 import { getModel } from './datamodel';
 import { DMMFField } from './get-client';
+import { extendWithUsage } from './usage';
 
 const DEFAULT_MAX_SIZE = 100;
 const DEFAULT_SIZE = 20;
@@ -339,10 +340,7 @@ export async function resolvePrismaCursorConnection<T extends {}>(
   }) => MaybePromise<readonly T[]>,
 ) {
   const query = prismaCursorConnectionQuery(options);
-  const results = await resolve({
-    ...options.query,
-    ...query,
-  });
+  const results = await resolve(extendWithUsage(options.query, query));
 
   if (!results) {
     return results;

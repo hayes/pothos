@@ -91,7 +91,7 @@ declare global {
       ) => GraphQLSchema;
 
       asEntity: <
-        Param extends ObjectRef<unknown> | InterfaceRef<unknown>,
+        Param extends InterfaceRef<unknown> | ObjectRef<unknown>,
         KeySelection extends Selection<object>,
       >(
         param: Param,
@@ -109,7 +109,7 @@ declare global {
 
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       shareable?: boolean;
-      tag?: string | string[];
+      tag?: string[] | string;
     }
 
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
@@ -132,7 +132,7 @@ declare global {
       shareable?: boolean;
       inaccessible?: boolean;
       override?: { from: string };
-      tag?: string | string[];
+      tag?: string[] | string;
     }
 
     export interface InputFieldOptions<
@@ -141,7 +141,7 @@ declare global {
       Req extends FieldRequiredness<Type> = FieldRequiredness<Type>,
     > {
       inaccessible?: boolean;
-      tag?: string | string[];
+      tag?: string[] | string;
     }
   }
 }

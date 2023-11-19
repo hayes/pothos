@@ -10,5 +10,5 @@
   "include": [
     "src/**/*.ts"
   ],
-  "extends": "../../tsconfig.options.json",
+  "extends": "../../tsconfig.options.json"
 }

@@ -179,7 +179,7 @@ describe('authz', () => {
           user: users[2],
         },
       }),
-    ).rejects.toMatchObject({ message: 'User is not admin\nAccess denied'});
+    ).rejects.toMatchObject({ message: 'User is not admin\nAccess denied' });
   });
 
   it('auth rule on type (authorized)', async () => {

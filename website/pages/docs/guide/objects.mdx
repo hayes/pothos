@@ -82,9 +82,9 @@ builder.objectType(Giraffe, {
 ```
 
 In Pothos we never automatically expose properties from the underlying data. Each property we want
-to add in our schema needs to be explicitly defined. The `fields` property in the options object should
-be a function that accepts one argument (a [FieldBuilder](../api/field-builder)) and returns an
-object whose keys are the field names, and whose values are `FieldRefs` created by the
+to add in our schema needs to be explicitly defined. The `fields` property in the options object
+should be a function that accepts one argument (a [FieldBuilder](../api/field-builder)) and returns
+an object whose keys are the field names, and whose values are `FieldRefs` created by the
 [FieldBuilder](../api/field-builder). Fields are explained in more detail in the
 [fields guide](./fields).
 

@@ -11,13 +11,23 @@ input CommentListFilter {
 
 scalar DateTime
 
+input IntAtomicUpdate {
+  decrement: Int
+  divide: Int
+  increment: Int
+  multiply: Int
+  set: Int
+}
+
 input IntFilter {
   equals: Int
   not: IntFilter
 }
 
 type Mutation {
+  createPosts(data: [PostCreateInput!]!): [Post!]!
   createUser(data: UserCreateInput!): User!
+  updatePost(data: PostUpdateInput!, id: Int!): Post!
 }
 
 enum OrderBy {
@@ -26,10 +36,12 @@ enum OrderBy {
 }
 
 type Post {
+  author: User!
   id: ID!
 }
 
 input PostCreateInput {
+  authorId: String!
   title: String!
 }
 
@@ -49,6 +61,11 @@ input PostOrderBy {
   createdAt: OrderBy
   id: OrderBy
   title: OrderBy
+}
+
+input PostUpdateInput {
+  title: String
+  views: IntAtomicUpdate
 }
 
 input PostWhereUnique {
@@ -81,6 +98,7 @@ input StringListFilter {
 type User {
   email: String!
   id: ID!
+  name: String
   posts: [Post!]!
 }
 

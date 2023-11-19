@@ -2,9 +2,11 @@ import './global-types';
 import SchemaBuilder, {
   BasePlugin,
   FieldMap,
+  InterfaceFieldsShape,
   InterfaceParam,
   InterfaceRef,
   Normalize,
+  ObjectFieldsShape,
   ObjectRef,
   ParentShape,
   SchemaTypes,
@@ -31,6 +33,7 @@ proto.simpleObject = function simpleObject<
 >(
   name: string,
   options: PothosSchemaTypes.SimpleObjectTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
+  extraFields?: ObjectFieldsShape<SchemaTypes, Shape>,
 ) {
   const ref = new ObjectRef<Shape>(name);
 
@@ -57,6 +60,10 @@ proto.simpleObject = function simpleObject<
 
   this.objectType(ref, options as PothosSchemaTypes.ObjectTypeOptions);
 
+  if (extraFields) {
+    this.objectFields(ref, extraFields);
+  }
+
   return ref;
 };
 
@@ -67,6 +74,7 @@ proto.simpleInterface = function simpleInterface<
 >(
   name: string,
   options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
+  extraFields?: InterfaceFieldsShape<SchemaTypes, Shape>,
 ) {
   const ref = new InterfaceRef<Shape>(name);
 
@@ -92,6 +100,10 @@ proto.simpleInterface = function simpleInterface<
   }
 
   this.interfaceType(ref, options as {});
+
+  if (extraFields) {
+    this.interfaceFields(ref, extraFields);
+  }
 
   return ref;
 };

@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma-utils",
-  "version": "0.8.1",
+  "version": "0.13.0",
   "description": "A Pothos plugin containing utility functions for building prisma inputs",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -15,7 +15,7 @@
     }
   },
   "scripts": {
-    "generate": "prisma migrate reset -f && ts-node --transpile-only tests/examples/codegen/generator.ts && pnpm schema",
+    "generate": "prisma generate && ts-node --transpile-only tests/examples/codegen/generator.ts && pnpm schema",
     "schema": "ts-node --transpile-only tests/examples/codegen/schema/index.ts && ts-node --transpile-only tests/examples/crud/schema/index.ts",
     "type": "tsc --project tsconfig.type.json",
     "build": "pnpm build:clean && pnpm build:cjs && pnpm build:dts && pnpm build:esm",
@@ -48,7 +48,7 @@
     "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^4.11.0"
+    "@prisma/generator-helper": "^5.4.1"
   },
   "peerDependencies": {
     "@pothos/core": "*",
@@ -60,13 +60,13 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.14.0",
-    "graphql": "16.6.0",
-    "graphql-scalars": "^1.20.4",
+    "@prisma/client": "^5.4.1",
+    "graphql": "16.8.1",
+    "graphql-scalars": "^1.22.2",
     "graphql-tag": "^2.12.6",
-    "prettier": "^2.8.6",
-    "prisma": "^4.14.0",
+    "prettier": "^3.0.3",
+    "prisma": "^5.4.1",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.2"
+    "typescript": "^5.2.2"
   }
 }

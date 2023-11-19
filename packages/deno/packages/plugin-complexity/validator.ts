@@ -59,7 +59,7 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
                         });
                     }
                     else {
-                        if (maxComplexity && state.complexity > maxComplexity) {
+                        if (typeof maxComplexity === "number" && state.complexity > maxComplexity) {
                             reportError(new GraphQLError(`Query complexity of ${state.complexity} exceeds max complexity of ${maxComplexity}`, {
                                 extensions: {
                                     queryComplexity: {
@@ -70,7 +70,7 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
                                 },
                             }));
                         }
-                        if (maxDepth && state.depth > maxDepth) {
+                        if (typeof maxDepth === "number" && state.depth > maxDepth) {
                             reportError(new GraphQLError(`Query depth of ${state.depth} exceeds max depth of ${maxDepth}`, {
                                 extensions: {
                                     queryDepth: {
@@ -81,7 +81,7 @@ export function createComplexityRule({ variableValues, context, maxComplexity, m
                                 },
                             }));
                         }
-                        if (maxBreadth && state.breadth > maxBreadth) {
+                        if (typeof maxBreadth === "number" && state.breadth > maxBreadth) {
                             reportError(new GraphQLError(`Query breadth of ${state.breadth} exceeds max breadth of ${maxBreadth}`, {
                                 extensions: {
                                     queryBreadth: {

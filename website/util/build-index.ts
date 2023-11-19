@@ -1,7 +1,7 @@
-import { writeFileSync } from 'fs';
-import path from 'path';
-import url from 'url';
-import { Content, Parent, Root } from 'mdast';
+import { writeFileSync } from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
+import type { Content, Parent } from 'mdast';
 import slug from 'rehype-slug';
 import rehypeStringify from 'rehype-stringify';
 import { remark } from 'remark';
@@ -36,7 +36,7 @@ const docsIndex = docs.map((doc) => {
 function markdownSections(file: MDXFile) {
   const tree = docsProcessor.runSync(docsProcessor.parse(file.content));
   const firstNode = tree.children[0];
-  const headings: (Parent | Content | null)[] = [firstNode.type === 'heading' ? firstNode : null];
+  const headings = [firstNode.type === 'heading' ? firstNode : null];
 
   const sections = [
     {
@@ -63,7 +63,7 @@ function markdownSections(file: MDXFile) {
     const html = chunkProcessor.stringify(chunkProcessor.runSync(section));
     const id = headings[i]
       ? chunkProcessor
-          .stringify(chunkProcessor.runSync(headings[i]! as Root))
+          .stringify(chunkProcessor.runSync(headings[i]! as never))
           .match(/<h\d id="([^"]+)"/)?.[1] ?? ''
       : '';
 

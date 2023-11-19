@@ -1,6 +1,16 @@
-import { createContextCache, ObjectRef, PothosSchemaError, SchemaTypes } from '@pothos/core';
+import { GraphQLResolveInfo } from 'graphql';
+import {
+  createContextCache,
+  InterfaceRef,
+  ObjectRef,
+  PothosSchemaError,
+  SchemaTypes,
+} from '@pothos/core';
+import { PrismaDelegate, SelectionMap } from './types';
 import { getDelegateFromModel, getModel } from './util/datamodel';
 import { getClient } from './util/get-client';
+import { cacheKey, setLoaderMappings } from './util/loader-map';
+import { selectionStateFromInfo } from './util/map-query';
 import {
   mergeSelection,
   selectionCompatible,
@@ -8,31 +18,49 @@ import {
   selectionToQuery,
 } from './util/selections';
 
+interface ResolvablePromise<T> {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (err: unknown) => void;
+}
 export class ModelLoader {
-  model: object;
+  context: object;
+
   builder: PothosSchemaTypes.SchemaBuilder<never>;
+
   findUnique: (model: Record<string, unknown>, ctx: {}) => unknown;
+
   modelName: string;
 
+  queryCache = new Map<string, { selection: SelectionState; query: SelectionMap }>();
+
   staged = new Set<{
-    promise: Promise<Record<string, unknown>>;
     state: SelectionState;
+    models: Map<object, ResolvablePromise<Record<string, unknown> | null>>;
   }>();
 
+  delegate: PrismaDelegate;
+
+  tick = Promise.resolve();
+
   constructor(
-    model: object,
+    context: object,
     builder: PothosSchemaTypes.SchemaBuilder<never>,
     modelName: string,
     findUnique: (model: Record<string, unknown>, ctx: {}) => unknown,
   ) {
-    this.model = model;
+    this.context = context;
     this.builder = builder;
     this.findUnique = findUnique;
     this.modelName = modelName;
+    this.delegate = getDelegateFromModel(
+      getClient(this.builder, this.context as never),
+      this.modelName,
+    );
   }
 
   static forRef<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -54,11 +82,11 @@ export class ModelLoader {
 
   static getFindUnique(
     findBy:
+      | string
       | {
           name: string | null;
           fields: string[];
-        }
-      | string,
+        },
   ): (model: Record<string, unknown>) => {} {
     if (typeof findBy === 'string') {
       return (parent) => ({ [findBy]: parent[findBy] });
@@ -78,7 +106,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindBy<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
@@ -90,11 +118,11 @@ export class ModelLoader {
     );
 
     let findBy:
+      | string
       | {
           name: string | null;
           fields: string[];
         }
-      | string
       | undefined;
 
     if (model.primaryKey) {
@@ -115,7 +143,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindUnique<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): (model: Record<string, unknown>) => {} {
@@ -125,7 +153,7 @@ export class ModelLoader {
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): Record<string, boolean> {
@@ -145,7 +173,7 @@ export class ModelLoader {
   }
 
   static getCursorSelection<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     cursor: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -174,7 +202,7 @@ export class ModelLoader {
   }
 
   static getFindUniqueForField<Types extends SchemaTypes>(
-    ref: ObjectRef<unknown>,
+    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
     modelName: string,
     fieldName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -186,11 +214,11 @@ export class ModelLoader {
     );
 
     let findBy:
+      | string
       | {
           name: string | null;
           fields: string[];
         }
-      | string
       | undefined;
 
     if (model.fields.some((field) => field.name === fieldName)) {
@@ -211,48 +239,103 @@ export class ModelLoader {
     return this.getFindUnique(findBy);
   }
 
-  async loadSelection(selection: SelectionState, context: object) {
-    const query = selectionToQuery(selection);
+  getSelection(info: GraphQLResolveInfo) {
+    const key = cacheKey(info.parentType.name, info.path);
+    if (!this.queryCache.has(key)) {
+      const selection = selectionStateFromInfo(this.context, info);
+      this.queryCache.set(key, {
+        selection,
+        query: selectionToQuery(selection),
+      });
+    }
 
+    return this.queryCache.get(key)!;
+  }
+
+  async loadSelection(info: GraphQLResolveInfo, model: object) {
+    const { selection, query } = this.getSelection(info);
+
+    const result = await this.stageQuery(selection, query, model);
+
+    if (result) {
+      const mappings = selection.mappings[info.path.key];
+
+      if (mappings) {
+        setLoaderMappings(this.context, info, mappings.mappings);
+      }
+    }
+
+    return result;
+  }
+
+  async stageQuery(selection: SelectionState, query: SelectionMap, model: object) {
     for (const entry of this.staged) {
       if (selectionCompatible(entry.state, query)) {
         mergeSelection(entry.state, query);
 
-        return entry.promise;
+        if (!entry.models.has(model)) {
+          entry.models.set(model, createResolvablePromise<Record<string, unknown> | null>());
+        }
+
+        return entry.models.get(model)!.promise;
       }
     }
 
-    return this.initLoad(selection, context);
+    return this.initLoad(selection, model);
   }
 
-  async initLoad(state: SelectionState, context: {}) {
+  async initLoad(state: SelectionState, initialModel: {}) {
+    const models = new Map<object, ResolvablePromise<Record<string, unknown> | null>>();
+
+    const promise = createResolvablePromise<Record<string, unknown> | null>();
+    models.set(initialModel, promise);
+
     const entry = {
-      promise: Promise.resolve().then(() => {
-        this.staged.delete(entry);
-
-        const delegate = getDelegateFromModel(
-          getClient(this.builder, context as never),
-          this.modelName,
-        );
-
-        if (delegate.findUniqueOrThrow) {
-          return delegate.findUniqueOrThrow({
-            ...selectionToQuery(state),
-            where: { ...(this.findUnique(this.model as Record<string, unknown>, context) as {}) },
-          } as never) as Promise<Record<string, unknown>>;
-        }
-
-        return delegate.findUnique({
-          rejectOnNotFound: true,
-          ...selectionToQuery(state),
-          where: { ...(this.findUnique(this.model as Record<string, unknown>, context) as {}) },
-        } as never) as Promise<Record<string, unknown>>;
-      }),
+      models,
       state,
     };
 
     this.staged.add(entry);
 
-    return entry.promise;
+    const nextTick = createResolvablePromise<void>();
+    void this.tick.then(() => {
+      this.staged.delete(entry);
+
+      for (const [model, { resolve, reject }] of entry.models) {
+        if (this.delegate.findUniqueOrThrow) {
+          void this.delegate
+            .findUniqueOrThrow({
+              ...selectionToQuery(state),
+              where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
+            } as never)
+            // eslint-disable-next-line promise/no-nesting
+            .then(resolve as () => {}, reject);
+        } else {
+          void this.delegate
+            .findUnique({
+              rejectOnNotFound: true,
+              ...selectionToQuery(state),
+              where: { ...(this.findUnique(model as Record<string, unknown>, this.context) as {}) },
+            } as never)
+            // eslint-disable-next-line promise/no-nesting
+            .then(resolve as () => {}, reject);
+        }
+      }
+    });
+    setTimeout(() => void nextTick.resolve(), 0);
+    this.tick = nextTick.promise;
+
+    return promise.promise;
   }
+}
+
+function createResolvablePromise<T = unknown>(): ResolvablePromise<T> {
+  let resolveFn!: (value: T) => void;
+  let rejectFn!: (reason?: unknown) => void;
+  const promise = new Promise<T>((resolve, reject) => {
+    resolveFn = resolve;
+    rejectFn = reject;
+  });
+
+  return { promise, resolve: resolveFn, reject: rejectFn };
 }

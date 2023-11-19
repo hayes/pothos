@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma",
-  "version": "3.51.0",
+  "version": "3.61.0",
   "description": "A Pothos plugin for more efficient integration with prisma",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -33,7 +33,7 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm vitest --run --segfault-retry=3 --retry 3"
   },
   "repository": {
     "type": "git",
@@ -63,7 +63,7 @@
     "provenance": true
   },
   "dependencies": {
-    "@prisma/generator-helper": "^4.11.0"
+    "@prisma/generator-helper": "^5.4.1"
   },
   "prisma": {
     "seed": "node prisma/seed.mjs"
@@ -81,10 +81,10 @@
     "@pothos/plugin-relay": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^4.14.0",
-    "graphql": "16.6.0",
-    "graphql-scalars": "^1.20.4",
+    "@prisma/client": "^5.4.1",
+    "graphql": "16.8.1",
+    "graphql-scalars": "^1.22.2",
     "graphql-tag": "^2.12.6",
-    "prisma": "^4.14.0"
+    "prisma": "^5.4.1"
   }
 }

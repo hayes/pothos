@@ -7,7 +7,12 @@ export default class ScalarRef<T, U, P = T>
 {
   override kind = 'Scalar' as const;
 
+  $inferType!: T;
+
+  $inferInput!: U;
+
   [outputShapeKey]!: T;
+
   [parentShapeKey]!: P;
 
   [inputShapeKey]!: U;

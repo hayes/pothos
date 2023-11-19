@@ -46,13 +46,6 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 
     const validator = this.createValidator(validationOptions, fieldConfig.type, fieldName);
 
-    if (fieldConfig.kind === 'InputObject') {
-      this.inputFieldValidators.set(fieldConfig.parentType, {
-        ...this.inputFieldValidators.get(fieldConfig.parentType),
-        [fieldConfig.name]: validator,
-      });
-    }
-
     if (fieldConfig.kind === 'Arg') {
       return {
         ...fieldConfig,
@@ -175,9 +168,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
         throw new PothosSchemaError(`Expected valid array validator for ${fieldName}`);
       }
 
-      const items = options?.items
-        ? this.createValidator(options.items, type.type, fieldName)
-        : zod.unknown();
+      const items = this.createValidator(options?.items, type.type, fieldName);
 
       if (options) {
         return combine([createArrayValidator(options, items)], type.required);

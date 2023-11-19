@@ -22,6 +22,11 @@ export const builder = new SchemaBuilder<{
       Input: Date;
     };
   };
+  Context: {
+    user?: {
+      id: number;
+    };
+  };
 }>({
   plugins: [
     ScopeAuthPlugin,

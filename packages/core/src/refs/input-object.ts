@@ -14,6 +14,8 @@ export default class InputObjectRef<T>
 {
   override kind = 'InputObject' as const;
 
+  $inferInput!: T;
+
   [inputShapeKey]!: T;
 
   constructor(name: string) {
@@ -44,6 +46,6 @@ export class ImplementableInputObjectRef<
       InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>
     >(this, options);
 
-    return this as InputObjectRef<T>;
+    return this as InputObjectRef<RecursivelyNormalizeNullableFields<T>>;
   }
 }

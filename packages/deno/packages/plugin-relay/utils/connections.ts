@@ -145,8 +145,8 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
         limit,
         expectedSize: limit - 1,
         inverted,
-        hasPreviousPage: (resultSize: number) => !!after || (resultSize >= limit && !first),
-        hasNextPage: (resultSize: number) => !!before || (!last && resultSize >= limit),
+        hasPreviousPage: (resultSize: number) => (inverted ? resultSize >= limit : !!after),
+        hasNextPage: (resultSize: number) => (inverted ? !!before : resultSize >= limit),
     };
 }
 type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;

@@ -26,7 +26,7 @@ export const prisma = new PrismaClient({
   ],
 });
 
-export default new SchemaBuilder<{
+interface PothosTypes {
   Context: {
     user: { id: number };
   };
@@ -37,7 +37,9 @@ export default new SchemaBuilder<{
     };
   };
   PrismaTypes: PrismaTypes;
-}>({
+}
+
+export default new SchemaBuilder<PothosTypes>({
   plugins: [PrismaPlugin, PrismaUtils],
   prisma: {
     client: prisma,

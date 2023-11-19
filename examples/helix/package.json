@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.4.24",
+  "version": "2.4.36",
   "name": "@pothos-examples/helix",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -9,9 +9,9 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@faker-js/faker": "^7.6.0",
+    "@faker-js/faker": "^8.1.0",
     "@pothos/core": "workspace:*",
-    "graphql": "16.6.0",
+    "graphql": "16.8.1",
     "graphql-helix": "^1.13.0"
   },
   "publishConfig": {

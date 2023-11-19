@@ -7,7 +7,10 @@ export default class UnionRef<T, P = T>
 {
   override kind = 'Union' as const;
 
+  $inferType!: T;
+
   [outputShapeKey]!: T;
+
   [parentShapeKey]!: P;
 
   constructor(name: string) {

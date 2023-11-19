@@ -1,10 +1,10 @@
 {
-    "jsc": {
-      "parser": {
-        "syntax": "typescript"
-      },
-      "target": "es2019"
+  "jsc": {
+    "parser": {
+      "syntax": "typescript"
     },
-    "sourceMaps": true,
-    "inlineSourcesContent": false
-  }
+    "target": "es2019"
+  },
+  "sourceMaps": true,
+  "inlineSourcesContent": false
+}

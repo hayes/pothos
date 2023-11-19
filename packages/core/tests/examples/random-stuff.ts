@@ -13,7 +13,9 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: string; Output: string };
+    Date: { Input: Date | string; Output: string | Date };
+    // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
+    AnyJson: { Input: any | string; Output: unknown };
   };
   Context: { userID: number };
 }
@@ -39,6 +41,11 @@ class Giraffe extends Animal {
 
 const builder = new SchemaBuilder<Types>({});
 
+builder.scalarType('AnyJson', {
+  serialize: (json) => json,
+  parseValue: (value) => value,
+});
+
 builder.scalarType('Date', {
   serialize: (date) => new Date(date).toISOString(),
 });
@@ -58,7 +65,7 @@ builder.objectType(Giraffe, {
   },
   fields: (t) => ({
     name: t.exposeString('name', {}),
-    age: t.exposeInt('age', {}),
+    age: t.exposeInt('age'),
     a: t.field({
       type: 'Boolean',
       resolve: (parent) => false,
@@ -110,11 +117,12 @@ interface ExampleShape {
     ids: (number | string)[];
     ids2?: number[];
     enum?: MyEnum;
-    date?: string;
+    date?: string | Date;
   };
   id?: number | string;
   ids: (number | string)[];
   more: ExampleShape;
+  json?: any;
 }
 
 const Example2 = builder.inputRef<ExampleShape>('Example2');
@@ -128,11 +136,20 @@ Example2.implement({
   }),
 });
 
+export const Example3 = builder.inputRef<ExampleShape>('Example3').implement({
+  fields: (t) => ({
+    example: t.field({ type: Example, required: true }),
+    id: t.id({ required: false }),
+    ids: t.idList({ required: true }),
+    more: t.field({ type: Example3, required: true }),
+    json: t.field({ type: 'AnyJson', required: false }),
+  }),
+});
+
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) =>
-    Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
+  resolveType: (parent) => (Object.hasOwn(parent, 'firstName') ? 'User' : 'Article'),
 });
 
 // Creating an ObjectType and its resolvers
@@ -366,6 +383,18 @@ builder.subscriptionType({
 
 builder.queryField('constructor', (t) => t.boolean({ resolve: () => true }));
 
+const NestedListInput = builder
+  .inputRef<{ list: (number[] | null)[]; date?: Date | string }>('NestedListInput')
+  .implement({
+    fields: (t) => ({
+      list: t.field({
+        type: t.listRef(t.listRef('Int'), { required: false }),
+        required: true,
+      }),
+      date: t.field({ type: 'Date', required: false }),
+    }),
+  });
+
 builder.queryField('nestedLists', (t) =>
   t.field({
     type: t.listRef(t.listRef(t.listRef('String')), { nullable: true }),
@@ -374,8 +403,16 @@ builder.queryField('nestedLists', (t) =>
         type: t.arg.listRef(t.arg.listRef(t.arg.listRef('String')), { required: false }),
         required: true,
       }),
+      nestedListInput: t.arg({
+        type: NestedListInput,
+      }),
     },
-    resolve: (_, args) => args.input,
+    resolve: (_, args) => {
+      const date: Date | string | null | undefined = args.nestedListInput?.date;
+      void date;
+
+      return args.input;
+    },
   }),
 );
 

@@ -28,7 +28,7 @@ Scalar fields can be defined a couple of different ways:
 
 ```typescript
 builder.queryType({
-  fields: t => ({
+  fields: (t) => ({
     name: t.field({
       description: 'Name field',
       type: 'String',

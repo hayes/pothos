@@ -4,7 +4,7 @@ import { LoaderMappings } from '../types';
 
 const cache = createContextCache((ctx) => new Map<string, LoaderMappings>());
 
-export function cacheKey(type: string, path: GraphQLResolveInfo['path'], subPath: string[]) {
+export function cacheKey(type: string, path: GraphQLResolveInfo['path'], subPath: string[] = []) {
   let key = '';
   let current: GraphQLResolveInfo['path'] | undefined = path;
 

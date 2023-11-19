@@ -1,5 +1,91 @@
 # @pothos-examples/envelope-helix-fastify
 
+## 2.4.36
+
+### Patch Changes
+
+- Updated dependencies [22d1426a]
+  - @pothos/core@3.38.0
+
+## 2.4.35
+
+### Patch Changes
+
+- Updated dependencies [f8fb4e6b]
+  - @pothos/core@3.37.0
+
+## 2.4.34
+
+### Patch Changes
+
+- Updated dependencies [96ba1822]
+  - @pothos/core@3.36.0
+
+## 2.4.33
+
+### Patch Changes
+
+- Updated dependencies [b83e671b]
+- Updated dependencies [c123a285]
+  - @pothos/core@3.35.0
+
+## 2.4.32
+
+### Patch Changes
+
+- Updated dependencies [f0247390]
+  - @pothos/core@3.34.0
+
+## 2.4.31
+
+### Patch Changes
+
+- Updated dependencies [6f155d82]
+  - @pothos/core@3.33.1
+
+## 2.4.30
+
+### Patch Changes
+
+- Updated dependencies [c7756128]
+  - @pothos/core@3.33.0
+
+## 2.4.29
+
+### Patch Changes
+
+- Updated dependencies [adc2d33d]
+  - @pothos/core@3.32.1
+
+## 2.4.28
+
+### Patch Changes
+
+- Updated dependencies [be23f48d]
+  - @pothos/core@3.32.0
+
+## 2.4.27
+
+### Patch Changes
+
+- Updated dependencies [bd22a282]
+  - @pothos/core@3.31.2
+
+## 2.4.26
+
+### Patch Changes
+
+- Updated dependencies [425435af]
+  - @pothos/core@3.31.1
+
+## 2.4.25
+
+### Patch Changes
+
+- Updated dependencies [664e794c]
+- Updated dependencies [5d3f7b97]
+  - @pothos/core@3.31.0
+
 ## 2.4.24
 
 ### Patch Changes

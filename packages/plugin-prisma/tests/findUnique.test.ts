@@ -580,6 +580,23 @@ describe('findUnique', () => {
           "model": "WithCompositeUnique",
           "runInTransaction": false,
         },
+        {
+          "action": "findUniqueOrThrow",
+          "args": {
+            "include": {
+              "FindUniqueRelations": true,
+            },
+            "where": {
+              "a_b": {
+                "a": "1",
+                "b": "1",
+              },
+            },
+          },
+          "dataPath": [],
+          "model": "WithCompositeUnique",
+          "runInTransaction": false,
+        },
       ]
     `);
   });

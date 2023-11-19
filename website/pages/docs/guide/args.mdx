@@ -34,7 +34,7 @@ const Query = builder.queryType({
           description: 'String arg',
         }),
       },
-      resolve: (parent, args) => arg.string,
+      resolve: (parent, args) => args.string,
     }),
   }),
 });
@@ -128,21 +128,19 @@ To create a list argument, you can wrap the type in an array or use one of the h
 const Query = builder.queryType({
   fields: t => ({
     giraffeNameChecker: t.booleanList({
-      {
-        args: {
-          names: t.arg.stringList({
-            required: true,
-          })
-          moreNames: t.arg({
-            type: ['String'],
-            required: true
-          })
-        },
+      args: {
+        names: t.arg.stringList({
+          required: true,
+        }),
+        moreNames: t.arg({
+          type: ['String'],
+          required: true,
+        }),
       },
       resolve: (parent, args) => {
-        return [...args.names, ...args.moreNames].filter(name => ['Gina', 'James'].includes(name)),
-      }
-    })
+        return [...args.names, ...args.moreNames].filter(name => ['Gina', 'James'].includes(name));
+      },
+    }),
   }),
 });
 ```
@@ -154,25 +152,23 @@ You can use `t.arg.listRef` to create a list of lists
 ```typescript
 const Query = builder.queryType({
   fields: t => ({
-    example: t.boolean({
-      {
-        args: {
-          listOfListOfStrings: t.arg({
-            type: t.arg.listRef(t.arg.listRef('String')),
-          }),
-          listOfListOfNullableStrings: t.arg({
-            type: t.arg.listRef(
-              // By default listRef creates a list of Non-null items
-              // This can be overridden by passing in required: false
-              t.arg.listRef('String', { required: false }),
-              { required: true }),
-          })
-        },
+    example: t.boolean({      
+      args: {
+        listOfListOfStrings: t.arg({
+          type: t.arg.listRef(t.arg.listRef('String')),
+        }),
+        listOfListOfNullableStrings: t.arg({
+          type: t.arg.listRef(
+            // By default listRef creates a list of Non-null items
+            // This can be overridden by passing in required: false
+            t.arg.listRef('String', { required: false }),
+            { required: true }),
+        }),
       },
       resolve: (parent, args) => {
-        return true
-      }
-    })
+        return true;
+      },
+    }),
   }),
 });
 ```

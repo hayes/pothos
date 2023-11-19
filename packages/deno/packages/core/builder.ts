@@ -325,16 +325,19 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             },
         } as PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
     }
-    inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param> & {}> : InputFieldMap>(param: Param, options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>): PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {
+    inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param>> : InputFieldMap>(param: Param, options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>): PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {
         verifyRef(param);
         const name = typeof param === "string" ? param : (param as {
             name: string;
         }).name;
         const ref = (typeof param === "string" ? new InputObjectRef<InputShapeFromFields<Fields>>(name) : param) as PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>>;
-        const config: PothosInputObjectTypeConfig = {
+        const config: PothosInputObjectTypeConfig & {
+            isOneOf?: boolean;
+        } = {
             kind: "InputObject",
             graphqlKind: "InputObject",
             name,
+            isOneOf: options.isOneOf,
             description: options.description,
             pothosOptions: options as unknown as PothosSchemaTypes.InputObjectTypeOptions,
             extensions: options.extensions,

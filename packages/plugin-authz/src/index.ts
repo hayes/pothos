@@ -23,7 +23,7 @@ export class PothosAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     return {
       ...fieldConfig,
       extensions: {
-        ...fieldConfig,
+        ...fieldConfig.extensions,
         authz: {
           directives: [
             {
@@ -55,7 +55,7 @@ export class PothosAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     return {
       ...typeConfig,
       extensions: {
-        ...typeConfig,
+        ...typeConfig.extensions,
         authz: {
           directives: [
             {

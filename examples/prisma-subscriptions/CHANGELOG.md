@@ -1,5 +1,190 @@
 # @pothos-examples/prisma-subscriptions
 
+## 2.4.69
+
+### Patch Changes
+
+- Updated dependencies [0be6da5c]
+  - @pothos/plugin-prisma@3.61.0
+
+## 2.4.68
+
+### Patch Changes
+
+- Updated dependencies [22d1426a]
+  - @pothos/core@3.38.0
+  - @pothos/plugin-prisma@3.60.0
+
+## 2.4.67
+
+### Patch Changes
+
+- Updated dependencies [f8fb4e6b]
+  - @pothos/core@3.37.0
+  - @pothos/plugin-prisma@3.60.0
+
+## 2.4.66
+
+### Patch Changes
+
+- Updated dependencies [018c797c]
+  - @pothos/plugin-prisma@3.60.0
+
+## 2.4.65
+
+### Patch Changes
+
+- Updated dependencies [96ba1822]
+  - @pothos/core@3.36.0
+  - @pothos/plugin-prisma@3.59.3
+
+## 2.4.64
+
+### Patch Changes
+
+- Updated dependencies [094359cd]
+  - @pothos/plugin-prisma@3.59.3
+
+## 2.4.63
+
+### Patch Changes
+
+- Updated dependencies [0d8d60fa]
+- Updated dependencies [b83e671b]
+- Updated dependencies [c123a285]
+  - @pothos/plugin-prisma@3.59.2
+  - @pothos/core@3.35.0
+
+## 2.4.62
+
+### Patch Changes
+
+- Updated dependencies [f0247390]
+  - @pothos/core@3.34.0
+  - @pothos/plugin-prisma@3.59.1
+
+## 2.4.61
+
+### Patch Changes
+
+- Updated dependencies [1fc5b60b]
+  - @pothos/plugin-prisma@3.59.1
+
+## 2.4.60
+
+### Patch Changes
+
+- Updated dependencies [1bbd3d70]
+  - @pothos/plugin-prisma@3.59.0
+
+## 2.4.59
+
+### Patch Changes
+
+- Updated dependencies [6f155d82]
+  - @pothos/core@3.33.1
+  - @pothos/plugin-prisma@3.58.0
+
+## 2.4.58
+
+### Patch Changes
+
+- Updated dependencies [4ebfa27b]
+- Updated dependencies [4ebfa27b]
+  - @pothos/plugin-prisma@3.58.0
+
+## 2.4.57
+
+### Patch Changes
+
+- Updated dependencies [c7756128]
+  - @pothos/plugin-prisma@3.57.0
+  - @pothos/core@3.33.0
+
+## 2.4.56
+
+### Patch Changes
+
+- Updated dependencies [016011f2]
+  - @pothos/plugin-prisma@3.56.1
+
+## 2.4.55
+
+### Patch Changes
+
+- Updated dependencies
+  - @pothos/plugin-prisma@3.56.0
+
+## 2.4.54
+
+### Patch Changes
+
+- Updated dependencies [39237239]
+  - @pothos/plugin-prisma@3.55.0
+
+## 2.4.53
+
+### Patch Changes
+
+- Updated dependencies [7494da05]
+  - @pothos/plugin-prisma@3.54.0
+
+## 2.4.52
+
+### Patch Changes
+
+- Updated dependencies [adc2d33d]
+  - @pothos/core@3.32.1
+  - @pothos/plugin-prisma@3.53.0
+
+## 2.4.51
+
+### Patch Changes
+
+- Updated dependencies [be23f48d]
+  - @pothos/core@3.32.0
+  - @pothos/plugin-prisma@3.53.0
+
+## 2.4.50
+
+### Patch Changes
+
+- Updated dependencies [bd22a282]
+  - @pothos/core@3.31.2
+  - @pothos/plugin-prisma@3.53.0
+
+## 2.4.49
+
+### Patch Changes
+
+- Updated dependencies [425435af]
+  - @pothos/core@3.31.1
+  - @pothos/plugin-prisma@3.53.0
+
+## 2.4.48
+
+### Patch Changes
+
+- Updated dependencies [5d3f7b97]
+- Updated dependencies [664e794c]
+- Updated dependencies [5d3f7b97]
+  - @pothos/plugin-prisma@3.53.0
+  - @pothos/core@3.31.0
+
+## 2.4.47
+
+### Patch Changes
+
+- Updated dependencies [624f2d05]
+  - @pothos/plugin-prisma@3.52.0
+
+## 2.4.46
+
+### Patch Changes
+
+- Updated dependencies [e8139e73]
+  - @pothos/plugin-prisma@3.51.1
+
 ## 2.4.45
 
 ### Patch Changes

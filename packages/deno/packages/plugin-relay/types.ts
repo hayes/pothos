@@ -3,7 +3,7 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     idFieldName?: string;
-    idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "resolve" | "type" | "nullable">>;
+    idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "nullable" | "resolve" | "type">>;
     clientMutationId?: "omit" | "optional" | "required";
     cursorType?: "ID" | "String";
     brandLoadedObjects?: boolean;
@@ -56,7 +56,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     };
     edgesFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
         ObjectRef<{}>
-    ], Types["DefaultEdgesNullability"], {}, unknown[]>, "args" | "resolve" | "nullable" | "type"> & {
+    ], Types["DefaultEdgesNullability"], {}, unknown[]>, "args" | "nullable" | "resolve" | "type"> & {
         nullable?: Types["DefaultEdgesNullability"];
     };
     pageInfoFieldOptions: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<PageInfoShape>, boolean, {}, PageInfoShape>, "args" | "resolve" | "type">;
@@ -81,12 +81,12 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     defaultPayloadTypeOptions: Partial<PothosSchemaTypes.ObjectTypeOptions<Types, {}>>;
     defaultMutationInputTypeOptions: Partial<Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, "fields">>;
     defaultConnectionFieldOptions?: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, OutputRef<ConnectionShape<Types, unknown, false, true, true>>, boolean, InputFieldsFromShape<DefaultConnectionArguments>, ConnectionShape<Types, unknown, false, true, true>>, "args" | "resolve" | "type">;
-    nodesOnConnection?: boolean | Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
+    nodesOnConnection?: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, [
         ObjectRef<{}>
     ], {
         list: false;
         items: Types["DefaultNodeNullability"];
-    }, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type">;
+    }, {}, GlobalIDShape<Types> | string>, "args" | "nullable" | "resolve" | "type"> | boolean;
 }>;
 export interface DefaultEdgesNullability {
     // TODO(breaking) according to the spec, this should be nullable
@@ -119,7 +119,7 @@ export interface ConnectionResultShape<Types extends SchemaTypes, T, EdgesNullab
 }
 export type ConnectionShape<Types extends SchemaTypes, T, Nullable, EdgesNullable extends FieldNullability<[
     unknown
-]> = Types["DefaultEdgesNullability"], NodeNullable extends boolean = Types["DefaultNodeNullability"], ConnectionResult extends ConnectionResultShape<Types, T, EdgesNullable, NodeNullable> = ConnectionResultShape<Types, T, EdgesNullable, NodeNullable>> = (Nullable extends false ? never : null | undefined) | (Types["Connection"] & ConnectionResult);
+]> = Types["DefaultEdgesNullability"], NodeNullable extends boolean = Types["DefaultNodeNullability"], ConnectionResult extends ConnectionResultShape<Types, T, EdgesNullable, NodeNullable> = ConnectionResultShape<Types, T, EdgesNullable, NodeNullable>> = (Nullable extends false ? never : null | undefined) | (ConnectionResult & Types["Connection"]);
 export type ConnectionShapeFromBaseShape<Types extends SchemaTypes, Shape, Nullable extends boolean> = ConnectionShape<Types, Shape, Nullable>;
 export type ConnectionShapeForType<Types extends SchemaTypes, Type extends OutputType<Types>, Nullable extends boolean, EdgeNullability extends FieldNullability<[
     unknown

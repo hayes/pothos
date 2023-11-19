@@ -210,6 +210,8 @@ const builder = new SchemaBuilder<{
     exposeDescriptions: boolean | { models: boolean, fields: boolean },
     // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
     filterConnectionTotalCount: true,
+    // warn when not using a query parameter correctly
+    onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
   },
 });
 ```
@@ -612,6 +614,7 @@ const Viewer = builder.prismaObject('User', {
   variant: 'Viewer',
   fields: (t) => ({
     id: t.exposeID('id'),
+  });
 });
 ```
 
@@ -692,12 +695,53 @@ const User = builder.prismaNode('User', {
   }),
 });
 
-// Viewer references the `User` ref in its field definiton,
+// Viewer references the `User` ref in its field definition,
 // referencing the `User` in fields would cause a circular type issue
 builder.prismaObjectField(Viewer, 'user', t.variant(User));
 ```
 
 This same workaround applies when defining relations using variants.
+
+## Creating interfaces with `builder.prismaInterface`
+
+`builder.prismaInterface` works just like builder.prismaInterface and can be used to define either
+the primary type or a variant for a model.
+
+The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
+method returns the typenames as strings to avoid issues with circular references.
+
+```typescript
+builder.prismaInterface('User', {
+  name: 'User',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+  resolveType: (user) => {
+    return user.isAdmin ? 'Admin' : 'Member';
+  },
+});
+
+builder.prismaObject('User', {
+  variant: 'Admin',
+  interfaces: [User],
+  fields: (t) => ({
+    isAdmin: t.exposeBoolean('isAdmin'),
+  }),
+});
+
+builder.prismaObject('User', {
+  variant: 'Member',
+  interfaces: [User],
+  fields: (t) => ({
+    bio: t.exposeString('bio'),
+  }),
+});
+```
+
+So far, this is just creating some simple object types. They work just like any other object type in
+Pothos. The main advantage of this is that we get the type information without using object refs, or
+needing imports from prisma client.
 
 ## Selecting fields from a nested GraphQL field
 
@@ -818,6 +862,24 @@ const Media = builder.prismaObject('Media', {
   }),
 });
 ```
+
+## Detecting unused query arguments
+
+Forgetting to spread the `query` argument from `t.prismaField` or `t.prismaConnection` into your
+prisma query can result in inefficient queries, or even missing data. To help catch these issues,
+the plugin can warn you when you are not using the query argument correctly.
+
+the `onUnusedQuery` option can be set to `warn` or `error` to enable this feature. When set to
+`warn` it will log a warning to the console if Pothos detects that you have not properly used the
+query in your resolver. Similarly if you set the option to `error` it will throw an error instead.
+You can also pass a function which will receive the `info` object which can be used to log or throw
+your own error.
+
+This check is fairly naive and works by wrapping the properties on the query with a getter that sets
+a flag if the property is accessed. If no properties are accessed on the query object before the
+resolver returns, it will trigger the `onUnusedQuery` condition.
+
+It's recommended to enable this check in development to more quickly find potential issues.
 
 ## Optimized queries without `t.prismaField`
 

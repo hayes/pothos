@@ -10,7 +10,7 @@ import { PothosValidationError } from '@pothos/core';
 import { complexityFromSelectionSet } from './calculate-complexity';
 
 export function complexityFromQuery(
-  query: string | DocumentNode,
+  query: DocumentNode | string,
   options: {
     schema: GraphQLSchema;
     ctx?: {};

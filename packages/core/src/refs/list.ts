@@ -7,10 +7,14 @@ export default class ListRef<Types extends SchemaTypes, T, P = T>
 {
   override kind = 'List' as const;
 
+  $inferType!: T;
+
   [outputShapeKey]!: T;
+
   [parentShapeKey]!: P;
 
   listType: TypeParam<Types>;
+
   nullable: boolean;
 
   constructor(listType: TypeParam<Types>, nullable: boolean) {

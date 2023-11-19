@@ -70,7 +70,7 @@ const postConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
   resolveNode: ({ post }) => post,
 });
 
-const Viewer = builder.prismaObject('User', {
+const Viewer = builder.prismaInterface('User', {
   variant: 'Viewer',
   select: {
     id: true,
@@ -92,19 +92,6 @@ const Viewer = builder.prismaObject('User', {
       }),
       resolve: (user) => user._count.posts,
     }),
-    postPreviews: t.field({
-      select: (args, ctx, nestedSelection) => ({
-        posts: nestedSelection(
-          {
-            take: 2,
-          },
-          ['post'],
-        ),
-      }),
-      type: [PostPreview],
-      resolve: (user) => user.posts,
-    }),
-    user: t.variant('User'),
     selectUser: t.variant(SelectUser),
     bio: t.string({
       select: {
@@ -154,6 +141,71 @@ const Viewer = builder.prismaObject('User', {
         return postConnectionHelpers.resolve(comments, args, ctx);
       },
     }),
+    aComments: t.relatedConnection(
+      'comments',
+      {
+        cursor: 'id',
+        query: {
+          where: {
+            content: {
+              startsWith: 'A',
+            },
+          },
+        },
+      },
+      CommentConnection,
+    ),
+  }),
+  resolveType: () => 'NormalViewer',
+});
+
+builder.prismaInterfaceField(Viewer, 'user', (t) => t.variant('User'));
+builder.prismaInterfaceFields(Viewer, (t) => ({
+  postPreviews: t.field({
+    select: (args, ctx, nestedSelection) => ({
+      posts: nestedSelection(
+        {
+          take: 2,
+        },
+        ['post'],
+      ),
+    }),
+    type: [PostPreview],
+    resolve: (user) => user.posts,
+  }),
+}));
+
+const NormalViewer = builder.prismaObject('User', {
+  variant: 'NormalViewer',
+  select: {
+    id: true,
+  },
+  interfaces: [Viewer],
+  fields: (t) => ({
+    isNormal: t.boolean({
+      resolve: () => true,
+    }),
+    reverseName: t.string({
+      select: {
+        name: true,
+      },
+      nullable: true,
+      resolve: (user) => user.name?.split('').reverse().join(''),
+    }),
+    aComments: t.relatedConnection(
+      'comments',
+      {
+        cursor: 'id',
+        query: {
+          where: {
+            content: {
+              startsWith: 'b',
+            },
+          },
+        },
+      },
+      CommentConnection,
+    ),
   }),
 });
 
@@ -210,18 +262,24 @@ const User = builder.prismaNode('User', {
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),
+        createdAt: t.arg.string(),
         limit: t.arg.int(),
       },
       query: (args) => ({
         orderBy: {
           createdAt: args.oldestFirst ? 'asc' : 'desc',
         },
+        where: args.createdAt
+          ? {
+              createdAt: new Date(args.createdAt),
+            }
+          : undefined,
         take: args.limit ?? 10,
       }),
       resolve: (query, user) =>
         prisma.post.findMany({
           ...query,
-          where: { authorId: user.id },
+          where: { ...(query as { where?: {} }).where, authorId: user.id },
         }),
     }),
     postsConnection: t.relatedConnection(
@@ -234,7 +292,7 @@ const User = builder.prismaNode('User', {
           published: t.arg.boolean(),
         },
         query: (args) => ({
-          ...(args.published == null ? {} : { where: { published: true } }),
+          ...(args.published == null ? {} : { where: { published: args.published } }),
           orderBy: {
             createdAt: args.oldestFirst ? 'asc' : 'desc',
           },
@@ -314,6 +372,10 @@ const User = builder.prismaNode('User', {
       resolve: (query, user) => user.comments,
     }),
   }),
+});
+
+const NamedUnion = builder.unionType('NamedUnion', {
+  types: [User, NormalViewer],
 });
 
 const Media = builder.prismaObject('Media', {
@@ -519,10 +581,10 @@ const Profile = builder.prismaObject('Profile', {
       nullable: true,
       resolve: (query, profile, args, ctx, info) =>
         prisma.user.findUnique({
+          ...query,
           where: {
             id: profile.userId,
           },
-          ...query,
         }),
     }),
   }),
@@ -582,6 +644,7 @@ const PostRef = builder.prismaObject('Post', {
       resolve: (parent) => parent.views.toNumber(),
     }),
     title: t.exposeString('title'),
+    published: t.exposeBoolean('published'),
     content: t.exposeString('content', {
       description: false,
       nullable: true,
@@ -668,7 +731,7 @@ builder.queryType({
   fields: (t) => ({
     viewer: t.prismaField({
       type: Viewer,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
@@ -676,7 +739,7 @@ builder.queryType({
     }),
     viewerNode: t.prismaField({
       type: ViewerNode,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUniqueOrThrow({
           ...query,
           where: { id: ctx.user.id },
@@ -685,7 +748,7 @@ builder.queryType({
     me: t.prismaField({
       type: 'User',
       nullable: true,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
           where: { id: ctx.user.id },
@@ -694,7 +757,7 @@ builder.queryType({
     selectMe: t.prismaField({
       type: SelectUser,
       nullable: true,
-      resolve: async (query, root, args, ctx, info) =>
+      resolve: (query, root, args, ctx, info) =>
         prisma.user.findUnique({
           ...query,
           where: { id: ctx.user.id },
@@ -766,6 +829,12 @@ builder.queryType({
         }),
       },
     ),
+    userNodeConnection: t.prismaConnection({
+      type: User,
+      cursor: 'id',
+      resolve: (query) => prisma.user.findMany({ ...query }),
+    }),
+
     unrelatedConnection: t.prismaConnection(
       {
         type: 'Unrelated',
@@ -787,6 +856,20 @@ builder.queryType({
       errors: {},
       resolve: async (query, parent, args) => prisma.user.findMany({ ...query }),
     }),
+    nullableUserConnection: t.prismaConnection({
+      type: 'User',
+      nullable: true,
+      cursor: 'id',
+      defaultSize: 10,
+      maxSize: 15,
+      resolve: async (query, parent, args) => {
+        if (args.first === 0) {
+          return null;
+        }
+
+        return prisma.user.findMany({ ...query });
+      },
+    }),
     named: t.field({
       type: [Named],
       nullable: {
@@ -796,6 +879,17 @@ builder.queryType({
       resolve: async () => {
         const user = await prisma.user.findFirstOrThrow({ where: { id: 1 } });
         return [User.addBrand({ ...user }), user];
+      },
+    }),
+    namedUnion: t.field({
+      type: [NamedUnion],
+      nullable: {
+        items: true,
+        list: true,
+      },
+      resolve: async () => {
+        const user = await prisma.user.findFirstOrThrow({ where: { id: 1 } });
+        return [User.addBrand({ ...user })];
       },
     }),
     userOrProfile: t.field({
@@ -955,8 +1049,10 @@ const WithCompositeUniqueNodeCustom = builder.prismaNode('WithCompositeUnique', 
 builder.queryFields((t) => ({
   findUniqueRelations: t.prismaField({
     type: 'FindUniqueRelations',
-    resolve: () =>
-      prisma.findUniqueRelations.findUniqueOrThrow({
+    resolve: (query) => {
+      void query.include;
+
+      return prisma.findUniqueRelations.findUniqueOrThrow({
         where: {
           id: '1',
         },
@@ -966,7 +1062,8 @@ builder.queryFields((t) => ({
           withCompositeID: true,
           withCompositeUnique: true,
         },
-      }),
+      });
+    },
   }),
   findUniqueRelationsSelect: t.prismaField({
     type: 'FindUniqueRelations',
@@ -1058,7 +1155,11 @@ const Blog = builder.objectRef<{ posts: Post[]; pages: number[] }>('Blog').imple
   fields: (t) => ({
     posts: t.prismaField({
       type: ['Post'],
-      resolve: (_, blog) => blog.posts,
+      resolve: (query, blog) => {
+        void query.include;
+
+        return blog.posts;
+      },
     }),
     pages: t.exposeIntList('pages'),
   }),

@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-parameter-properties */
 /* eslint-disable max-classes-per-file */
 /* eslint-disable no-magic-numbers */
 import { faker } from '@faker-js/faker';
@@ -7,33 +6,48 @@ faker.seed(123);
 
 export class User {
   firstName;
+
   lastName;
 
-  constructor(public id: string) {
-    this.firstName = faker.name.firstName();
-    this.lastName = faker.name.lastName();
+  id;
+
+  constructor(id: string) {
+    this.id = id;
+    this.firstName = faker.person.firstName();
+    this.lastName = faker.person.lastName();
   }
 }
 
 export class Post {
+  id;
+
   authorId;
+
   title;
+
   content;
 
-  constructor(public id: string) {
-    this.authorId = String(faker.datatype.number({ min: 1, max: 100 }));
+  constructor(id: string) {
+    this.id = id;
+    this.authorId = String(faker.number.int({ min: 1, max: 100 }));
     this.title = faker.lorem.text();
     this.content = faker.lorem.paragraphs(2);
   }
 }
 
 export class Comment {
+  id;
+
   postId;
+
   authorId;
+
   comment;
-  constructor(public id: string) {
-    this.authorId = String(faker.datatype.number({ min: 1, max: 100 }));
-    this.postId = String(faker.datatype.number({ min: 1, max: 100 }));
+
+  constructor(id: string) {
+    this.id = id;
+    this.authorId = String(faker.number.int({ min: 1, max: 100 }));
+    this.postId = String(faker.number.int({ min: 1, max: 100 }));
     this.comment = faker.lorem.text();
   }
 }

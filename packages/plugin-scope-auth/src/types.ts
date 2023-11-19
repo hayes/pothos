@@ -18,6 +18,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   runScopesOnType?: boolean;
   treatErrorsAsUnauthorized?: boolean;
   authorizeOnSubscribe?: boolean;
+  defaultStrategy?: 'all' | 'any';
 }
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
@@ -112,11 +113,11 @@ export interface GrantedScopeFailure {
 }
 
 export type AuthFailure =
+  | AllAuthScopesFailure
+  | AnyAuthScopesFailure
   | AuthScopeFailure
   | AuthScopeFunctionFailure
   | GrantedScopeFailure
-  | AnyAuthScopesFailure
-  | AllAuthScopesFailure
   | UnknownAuthFailure;
 
 export interface ForbiddenResult {
@@ -132,7 +133,7 @@ export interface ResolveStep<Types extends SchemaTypes> {
     context: {},
     info: GraphQLResolveInfo,
     setResolved: (val: unknown) => void,
-  ) => MaybePromise<null | AuthFailure>;
+  ) => MaybePromise<AuthFailure | null>;
   errorMessage:
     | string
     | ((

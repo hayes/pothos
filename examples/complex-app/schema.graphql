@@ -8,6 +8,11 @@ input AddPlayersToTeamInput {
   teamId: ID!
 }
 
+type Admin implements User {
+  id: ID!
+  name: String!
+}
+
 input CreateGame {
   complete: Boolean
   opponentName: String!
@@ -50,6 +55,11 @@ type Game implements Node {
 type GameScore {
   opponentScore: Int!
   ownScore: Int!
+}
+
+type Member implements User {
+  id: ID!
+  name: String!
 }
 
 type Mutation {
@@ -119,6 +129,7 @@ type Query {
   nodes(ids: [ID!]!): [Node]!
   team(id: ID!): Team
   teams(after: String, before: String, first: Int, last: Int): QueryTeamsConnection!
+  viewer: User
 }
 
 type QueryGamesConnection {
@@ -169,4 +180,9 @@ type TeamPointsConnection {
 type TeamPointsConnectionEdge {
   cursor: String!
   node: Point!
+}
+
+interface User {
+  id: ID!
+  name: String!
 }

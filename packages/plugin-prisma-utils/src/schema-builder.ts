@@ -15,6 +15,7 @@ import {
   FilterListOps,
   FilterOps,
   FilterShape,
+  IntFieldUpdateOperationsInput,
   OpsOptions,
   PrismaCreateManyRelationOptions,
   PrismaCreateOneRelationOptions,
@@ -38,6 +39,13 @@ const OrderByRefMap = new WeakMap<
   PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   EnumRef<'asc' | 'desc'>
 >();
+
+const PrismaStringFilterModeRefMap = new WeakMap<
+  PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  EnumRef<'default' | 'insensitive'>
+>();
+
+const nullableOps = new Set(['equals', 'is', 'isNot', 'not']);
 
 schemaBuilder.prismaFilter = function prismaFilter<
   Type extends InputType<SchemaTypes>,
@@ -64,19 +72,28 @@ schemaBuilder.prismaFilter = function prismaFilter<
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: { nullableFields: nullableOps },
     },
     fields: (t) => {
       const fields: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
 
       for (const op of Object.keys(opsOptions)) {
         const isList = op === 'in' || op === 'notIn';
-        let fieldType: InputType<SchemaTypes> | [InputType<SchemaTypes>] = type;
+        let fieldType: InputType<SchemaTypes> | [InputType<SchemaTypes>];
 
-        if (op === 'not') {
-          fieldType = ref;
-        } else if (op === 'in' || op === 'notIn') {
-          fieldType = [type];
+        switch (op) {
+          case 'not':
+            fieldType = ref;
+            break;
+          case 'in':
+          case 'notIn':
+            fieldType = [type];
+            break;
+          case 'mode':
+            fieldType = this.prismaStringFilterModeEnum();
+            break;
+          default:
+            fieldType = type;
         }
 
         fields[op] = t.field({
@@ -91,6 +108,23 @@ schemaBuilder.prismaFilter = function prismaFilter<
   });
 
   return ref as never;
+};
+
+schemaBuilder.prismaStringFilterModeEnum = function prismaStringFilterModeEnum() {
+  if (PrismaStringFilterModeRefMap.has(this)) {
+    return PrismaStringFilterModeRefMap.get(this)!;
+  }
+
+  const ref = this.enumType('StringFilterMode', {
+    values: {
+      Default: { value: 'default' as const },
+      Insensitive: { value: 'insensitive' as const },
+    },
+  });
+
+  PrismaStringFilterModeRefMap.set(this, ref);
+
+  return ref;
 };
 
 schemaBuilder.prismaListFilter = function prismaListFilter<
@@ -283,13 +317,19 @@ schemaBuilder.prismaWhere = function prismaWhere<
   type: Name,
   { name, fields, ...options }: PrismaWhereOptions<SchemaTypes, Model, Fields>,
 ): InputObjectRef<Model['Where']> {
-  const ref = this.inputRef<Model['Where']>(name ?? `${nameFromType(type, this)}Filter`);
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}Filter`);
+  const model = getModel(type, this);
+  const nullableFields = new Set(
+    model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+  );
 
   ref.implement({
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: {
+        nullableFields,
+      },
     },
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
@@ -337,9 +377,7 @@ schemaBuilder.prismaWhereUnique = function prismaWhereUnique<
   type: Name,
   { name, fields, ...options }: PrismaWhereUniqueOptions<SchemaTypes, Model, Fields>,
 ): InputObjectRef<Model['WhereUnique']> {
-  const ref = this.inputRef<Model['WhereUnique']>(
-    name ?? `${nameFromType(type, this)}UniqueFilter`,
-  );
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}UniqueFilter`);
 
   ref.implement({
     ...options,
@@ -380,7 +418,7 @@ schemaBuilder.prismaCreate = function prismaCreate<
     : never,
   Fields = {},
 >(type: Name, { name, fields, ...options }: PrismaCreateOptions<SchemaTypes, Model, Fields>) {
-  const ref = this.inputRef<Model['Create']>(name ?? `${nameFromType(type, this)}CreateInput`);
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}CreateInput`);
   const model = getModel(type, this);
 
   ref.implement({
@@ -431,14 +469,20 @@ schemaBuilder.prismaUpdate = function prismaUpdate<
     : never,
   Fields = {},
 >(type: Name, { name, fields, ...options }: PrismaUpdateOptions<SchemaTypes, Model, Fields>) {
-  const ref = this.inputRef<Model['Update']>(name ?? `${nameFromType(type, this)}UpdateInput`);
+  const ref = this.inputRef<never>(name ?? `${nameFromType(type, this)}UpdateInput`);
   const model = getModel(type, this);
+
+  const nullableFields = new Set(
+    model.fields.filter((field) => !field.isRequired).map((field) => field.name),
+  );
 
   ref.implement({
     ...options,
     extensions: {
       ...options.extensions,
-      pothosPrismaInput: true,
+      pothosPrismaInput: {
+        nullableFields,
+      },
     },
     fields: (t) => {
       const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
@@ -576,8 +620,8 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
             data: dataType,
           } = fieldOption as {
             name?: string;
-            where: InputRef<unknown> | InputFieldRef<SchemaTypes>;
-            data: InputRef<unknown> | InputFieldRef<SchemaTypes>;
+            where: InputFieldRef<SchemaTypes> | InputRef<unknown>;
+            data: InputFieldRef<SchemaTypes> | InputRef<unknown>;
           };
 
           const nestedRef = this.inputType(nestedName, {
@@ -590,6 +634,11 @@ schemaBuilder.prismaUpdateRelation = function prismaUpdateRelation<
           fieldDefs[field] = t.field({
             required: false,
             type: [nestedRef],
+          });
+        } else if ((field === 'disconnect' || field === 'delete') && fieldOption === true) {
+          fieldDefs[field] = t.field({
+            required: false,
+            type: 'Boolean',
           });
         } else {
           fieldDefs[field] = t.field({
@@ -630,6 +679,36 @@ function nameFromType<Types extends SchemaTypes>(
 
   throw new PothosSchemaError(`Unable to determine name for type ${String(type)}`);
 }
+
+schemaBuilder.prismaIntAtomicUpdate = function prismaIntUpdateOperations({
+  name,
+  ops = ['set', 'increment', 'decrement', 'multiply', 'divide'],
+  ...options
+} = {}) {
+  const ref = this.inputRef<IntFieldUpdateOperationsInput>(name ?? 'IntAtomicUpdate');
+
+  ref.implement({
+    ...options,
+    extensions: {
+      ...options.extensions,
+      pothosPrismaInput: true,
+    },
+    fields: (t) => {
+      const fieldDefs: Record<string, InputFieldRef<unknown, 'InputObject'>> = {};
+
+      ops.forEach((op) => {
+        fieldDefs[op] = t.field({
+          required: false,
+          type: 'Int',
+        });
+      });
+
+      return fieldDefs;
+    },
+  });
+
+  return ref as never;
+};
 
 function capitalize(str: string) {
   return str[0].toUpperCase() + str.slice(1);

@@ -37,6 +37,9 @@ const builder = new SchemaBuilder<{
     GiraffeStringFact: { factKind: 'string'; fact: string };
     GiraffeNumericFact: { factKind: 'number'; fact: string; value: number };
   };
+  Inputs: {
+    FindGiraffeInput: { name: string };
+  };
   Interfaces: {
     Animal: Animal;
   };

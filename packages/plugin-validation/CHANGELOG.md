@@ -1,5 +1,23 @@
 # Change Log
 
+## 3.10.1
+
+### Patch Changes
+
+- 5061fc0c: Remove some dead code
+
+## 3.10.0
+
+### Minor Changes
+
+- eedeca16: Improve support for custom validator schemas that modify inputs
+
+## 3.9.2
+
+### Patch Changes
+
+- f2c061a4: Fix validation for input objects nested in lists without other validation options
+
 ## 3.9.1
 
 ### Patch Changes

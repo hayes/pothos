@@ -4,6 +4,7 @@ import { InputFieldsFromShape, InputRef, inputShapeKey, RecursivelyNormalizeNull
 import BaseTypeRef from './base.ts';
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef<T>, PothosSchemaTypes.InputObjectRef<T> {
     override kind = "InputObject" as const;
+    $inferInput!: T;
     [inputShapeKey]!: T;
     constructor(name: string) {
         super("InputObject", name);
@@ -17,6 +18,6 @@ export class ImplementableInputObjectRef<Types extends SchemaTypes, T extends ob
     }
     implement(options: PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>>) {
         this.builder.inputType<ImplementableInputObjectRef<Types, T>, InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>>(this, options);
-        return this as InputObjectRef<T>;
+        return this as InputObjectRef<RecursivelyNormalizeNullableFields<T>>;
     }
 }

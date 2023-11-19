@@ -5,12 +5,12 @@ menu: Migrations
 description: Migration guide for upgrading from GiraphQL 1.* to GiraphQL 2.0
 ---
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-export default DocsPage
+export default DocsPage;
 
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # v2.0
 
@@ -87,8 +87,8 @@ resolver.
 ### Plugin API
 
 The Plugin API has been completely re-designed and is now
-[documented here](../guide/writing-plugins). new instances of plugins are now instantiated each
-time `toSchema` is called on the `SchemaBuilder`, rather than being tied to the lifetime of the
+[documented here](../guide/writing-plugins). new instances of plugins are now instantiated each time
+`toSchema` is called on the `SchemaBuilder`, rather than being tied to the lifetime of the
 `SchemaBuilder` itself.
 
 ## New features

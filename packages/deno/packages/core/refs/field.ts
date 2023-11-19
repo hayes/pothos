@@ -4,6 +4,7 @@ export default class FieldRef<T = unknown, Kind extends FieldKind = FieldKind> {
     kind: FieldKind;
     parentTypename: string;
     fieldName?: string;
+    $inferType!: T;
     [outputFieldShapeKey]!: T;
     constructor(kind: Kind, parentTypename: string) {
         this.kind = kind;

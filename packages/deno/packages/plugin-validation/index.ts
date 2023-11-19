@@ -92,9 +92,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
             if (options && !isArrayValidator(options)) {
                 throw new PothosSchemaError(`Expected valid array validator for ${fieldName}`);
             }
-            const items = options?.items
-                ? this.createValidator(options.items, type.type, fieldName)
-                : zod.unknown();
+            const items = this.createValidator(options?.items, type.type, fieldName);
             if (options) {
                 return combine([createArrayValidator(options, items)], type.required);
             }

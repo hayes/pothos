@@ -13,6 +13,8 @@ export default class InputFieldRef<
 
   argFor?: FieldRef | InputFieldRef;
 
+  $inferInput!: T;
+
   [inputFieldShapeKey]!: T;
 
   constructor(kind: Kind, parentTypename: string) {

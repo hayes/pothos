@@ -35,7 +35,7 @@ const ContactInfo = builder.simpleObject('ContactInfo', {
     email: t.string({
       nullable: false,
     }),
-    phoneNUmber: t.string({
+    phoneNumber: t.string({
       nullable: true,
     }),
   }),
@@ -49,17 +49,26 @@ const Node = builder.simpleInterface('Node', {
   }),
 });
 
-const UserType = builder.simpleObject('User', {
-  interfaces: [Node],
-  fields: (t) => ({
-    firstName: t.string(),
-    lastName: t.string(),
-    contactInfo: t.field({
-      type: ContactInfo,
-      nullable: false,
+const UserType = builder.simpleObject(
+  'User',
+  {
+    interfaces: [Node],
+    fields: (t) => ({
+      firstName: t.string(),
+      lastName: t.string(),
+      contactInfo: t.field({
+        type: ContactInfo,
+        nullable: false,
+      }),
+    }),
+  },
+  // You can add additional fields with resolvers with a third fields argument
+  (t) => ({
+    fullName: t.string({
+      resolve: (user) => `${user.firstName} ${user.lastName}`,
     }),
   }),
-});
+);
 
 builder.queryType({
   fields: (t) => ({
@@ -75,13 +84,29 @@ builder.queryType({
           lastName: 'Organa',
           contactInfo: {
             email: 'leia@example.com',
-            phoneNUmber: null,
+            phoneNumber: null,
           },
         };
       },
     }),
   }),
 });
+```
+
+## Extending simple objects
+
+In some cases, you may want to add more complex fields with resolvers or args where the value isn't
+just passed down from the parent.
+
+In these cases, you can either add the field in the 3rd arg (fields) as shown above, or you can add
+additional fields to the type using methods like `builder.objectType`:
+
+```typescript
+builder.objectType(UserType, (t) => ({
+  fullName: t.string({
+    resolve: (user) => `${user.firstName} ${user.lastName}`,
+  }),
+}));
 ```
 
 ## Limitations

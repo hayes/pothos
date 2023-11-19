@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { builder } from '../builder';
 import { db } from '../db';
 import { parseID } from '../utils';
@@ -45,6 +46,14 @@ builder.prismaNode('Player', {
 });
 
 export const CreatePlayerInput = builder.inputType('CreatePlayerInput', {
+  validate: {
+    schema: z
+      .object({
+        name: z.string().trim().nonempty(),
+        number: z.number().int(),
+      })
+      .passthrough(),
+  },
   fields: (t) => ({
     name: t.string({ required: true }),
     number: t.int({ required: true }),

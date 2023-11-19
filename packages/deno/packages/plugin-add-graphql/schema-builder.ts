@@ -171,7 +171,7 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(type: GraphQLUnionType, 
         ]),
     });
 };
-proto.addGraphQLEnum = function addGraphQLEnum<Shape extends string | number>(type: GraphQLEnumType, { values, extensions, ...options }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>>) {
+proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(type: GraphQLEnumType, { values, extensions, ...options }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>>) {
     const newValues = values ??
         type.getValues().reduce<EnumValueConfigMap<SchemaTypes>>((acc, value) => {
             acc[value.name] = {
@@ -218,5 +218,5 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(type: GraphQL
             });
             return combinedFields as never;
         },
-    });
+    }) as never;
 };

@@ -25,6 +25,13 @@ export function deepEqual(left: unknown, right: unknown, ignore?: Set<string>) {
       return true;
     }
 
+    const lValue = left.valueOf?.();
+    const rValue = right.valueOf?.();
+
+    if ((lValue != null || rValue != null) && typeof lValue !== 'object') {
+      return lValue === rValue;
+    }
+
     const keys = Object.keys(left);
     const keyLength = keys.length;
 

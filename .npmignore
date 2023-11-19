@@ -40,7 +40,6 @@ tests/
 .yarnc
 babel.config.js
 dangerfile.ts
-jest.config.js
 prettier.config.js
 tsconfig.json
 tsconfig.eslint.json

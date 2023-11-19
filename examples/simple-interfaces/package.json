@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.4.24",
+  "version": "2.4.36",
   "name": "@pothos-examples/simple-interfaces",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -9,10 +9,10 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@faker-js/faker": "^7.6.0",
+    "@faker-js/faker": "^8.1.0",
     "@pothos/core": "workspace:*",
-    "graphql": "16.6.0",
-    "graphql-yoga": "3.7.3"
+    "graphql": "16.8.1",
+    "graphql-yoga": "4.0.5"
   },
   "publishConfig": {
     "access": "public"

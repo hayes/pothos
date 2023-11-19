@@ -34,6 +34,7 @@ declare global {
             fields?: SubscriptionFieldsShape<Types>;
         }
         export interface InputObjectTypeOptions<Types extends SchemaTypes = SchemaTypes, Fields extends InputFieldMap = InputFieldMap> extends BaseTypeOptions<Types> {
+            isOneOf?: boolean;
             fields: (t: InputFieldBuilder<Types, "InputObject">) => Fields;
         }
         export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[], ResolveType = unknown> extends BaseTypeOptions<Types> {

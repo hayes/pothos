@@ -43,14 +43,14 @@
     "provenance": true
   },
   "dependencies": {
-    "graphql": "16.6.0",
-    "ts-morph": "^17.0.1",
-    "yargs": "^17.7.1"
+    "graphql": "16.8.1",
+    "ts-morph": "^20.0.0",
+    "yargs": "^17.7.2"
   },
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@types/yargs": "^17.0.23"
+    "@types/yargs": "^17.0.26"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

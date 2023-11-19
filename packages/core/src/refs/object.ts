@@ -15,7 +15,10 @@ export default class ObjectRef<T, P = T>
 {
   override kind = 'Object' as const;
 
+  $inferType!: T;
+
   [outputShapeKey]!: T;
+
   [parentShapeKey]!: P;
 
   constructor(name: string) {

@@ -10,8 +10,9 @@ import {
 } from '@pothos/core';
 import { PrismaModelTypes } from '@pothos/plugin-prisma';
 
-export type FilterListOps = 'every' | 'some' | 'none';
-export type ScalarListOps = 'has' | 'hasEvery' | 'hasSome' | 'equals' | 'isEmpty';
+export type FilterListOps = 'every' | 'none' | 'some';
+export type ScalarListOps = 'equals' | 'has' | 'hasEvery' | 'hasSome' | 'isEmpty';
+export type IntUpdateOps = keyof IntFieldUpdateOperationsInput;
 
 export interface FilterShape<T> {
   equals?: T;
@@ -28,6 +29,7 @@ export interface FilterShape<T> {
   is?: T;
   isNot?: T;
   search?: T;
+  mode?: 'default' | 'insensitive';
 }
 
 export interface ScalarListFilterShape<T> {
@@ -38,6 +40,14 @@ export interface ScalarListFilterShape<T> {
   isEmpty?: boolean;
 }
 
+export interface IntFieldUpdateOperationsInput {
+  set?: number;
+  increment?: number;
+  decrement?: number;
+  multiply?: number;
+  divide?: number;
+}
+
 export type FilterOps = keyof FilterShape<unknown>;
 
 export type TypesForRelation<
@@ -46,7 +56,7 @@ export type TypesForRelation<
   Relation extends keyof Model['Relations'],
 > = Model['Relations'][Relation]['Name'] extends infer Name
   ? Name extends keyof Types['PrismaTypes']
-    ? Types['PrismaTypes'][Name] & PrismaModelTypes
+    ? PrismaModelTypes & Types['PrismaTypes'][Name]
     : never
   : never;
 export type Enumerable<T> = T | T[];
@@ -87,9 +97,9 @@ export interface PrismaWhereOptions<
 
 export type PrismaWhereFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
   [K in keyof Model['Where']]?: K extends 'AND' | 'OR'
-    ? boolean | Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where'][]>>, 'type'>
+    ? Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where'][]>>, 'type'> | boolean
     : K extends 'NOT'
-    ? boolean | Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where']>>, 'type'>
+    ? Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where']>>, 'type'> | boolean
     : PrismaWhereFieldType<Types, Model, K>;
 };
 
@@ -99,14 +109,19 @@ export interface PrismaWhereUniqueOptions<
   Fields,
 > extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldMap>, 'fields'> {
   name?: string;
-  fields:
-    | (
-        | PrismaWhereUniqueFields<Types, Model>
-        | ((
-            t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
-          ) => PrismaWhereUniqueFields<Types, Model>)
-      ) &
-        Fields;
+  fields: Fields &
+    (
+      | PrismaWhereUniqueFields<Types, Model>
+      | ((
+          t: PothosSchemaTypes.InputFieldBuilder<Types, 'InputObject'>,
+        ) => PrismaWhereUniqueFields<Types, Model>)
+    );
+}
+
+export interface PrismaIntAtomicUpdateOptions<Types extends SchemaTypes, Ops extends IntUpdateOps>
+  extends Omit<PothosSchemaTypes.InputObjectTypeOptions<Types, {}>, 'fields'> {
+  name?: string;
+  ops?: Ops[];
 }
 
 export type PrismaWhereUniqueFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
@@ -118,25 +133,24 @@ export type PrismaWhereFieldType<
   Model extends PrismaModelTypes,
   K extends keyof Model['Where'],
 > = K extends Model['RelationName']
-  ? InputRef<Model['Where'][K]> | InputFieldRef<Model['Where'][K]>
+  ? InputFieldRef<Model['Where'][K]> | InputRef<Model['Where'][K]>
   :
-      | InputWithShape<Types, Model['Where'][K]>
+      | InputFieldRef<Model['Where'][K] | null | undefined>
       | InputRef<Model['Where'][K]>
-      | InputFieldRef<Model['Where'][K] | null | undefined>;
+      | InputWithShape<Types, Model['Where'][K]>;
 
 export type PrismaWhereUniqueFieldType<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
   K extends keyof Model['WhereUnique'],
 > =
-  | InputWithShape<Types, Model['Shape'][K]>
+  | InputFieldRef<Model['WhereUnique'][K] | null | undefined>
   | InputRef<Model['WhereUnique'][K]>
-  | InputFieldRef<Model['WhereUnique'][K] | null | undefined>;
+  | InputWithShape<Types, Model['Shape'][K]>;
 
 type InputWithShape<Types extends SchemaTypes, T> =
-  | InputRef<T>
   | InputFieldRef<T | null | undefined>
-  | (BaseEnum & Record<string, T>)
+  | InputRef<T>
   | (new (...args: any[]) => T)
   | (keyof Types['inputShapes'] extends infer U
       ? U extends string
@@ -144,13 +158,14 @@ type InputWithShape<Types extends SchemaTypes, T> =
           ? U
           : never
         : never
-      : never);
+      : never)
+  | (BaseEnum & Record<string, T>);
 
 export type OpsOptions<
   Types extends SchemaTypes,
   Type extends InputType<Types>,
   Ops extends string,
-> = readonly Ops[] | Record<Ops, Omit<PothosSchemaTypes.InputFieldOptions<Types, Type>, 'type'>>;
+> = Record<Ops, Omit<PothosSchemaTypes.InputFieldOptions<Types, Type>, 'type'>> | readonly Ops[];
 
 export interface PrismaFilterOptions<
   Types extends SchemaTypes,
@@ -292,7 +307,7 @@ export interface PrismaUpdateOptions<
 }
 
 export type PrismaUpdateFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
-  [K in keyof Model['Update']]?: NonListInputWithShape<Types, Model['Shape'][K]>;
+  [K in keyof Model['Update']]?: NonListInputWithShape<Types, Model['Update'][K]>;
 };
 
 export interface PrismaUpdateOneRelationOptions<
@@ -337,8 +352,8 @@ export interface PrismaUpdateOneRelationFields<
       ? T
       : never
   >;
-  delete?: InputWithShape<Types, boolean>;
-  disconnect?: InputWithShape<Types, boolean>;
+  delete?: InputWithShape<Types, boolean> | boolean;
+  disconnect?: InputWithShape<Types, boolean> | boolean;
 }
 
 export interface PrismaUpdateManyRelationOptions<
@@ -440,4 +455,4 @@ export interface PrismaUpdateManyRelationFields<
 
 export type FieldKeys<T> = T extends (...args: any[]) => infer R ? keyof R : keyof T;
 
-export type PickFields<T, Fields> = Pick<T, keyof T & FieldKeys<Fields>>;
+export type PickFields<T, Fields> = Pick<T, FieldKeys<Fields> & keyof T>;

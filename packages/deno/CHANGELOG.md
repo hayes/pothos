@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.47.0
+
+### Minor Changes
+
+- f8fb4e6b: Add support for $inferType and $inferInput helpers on Refs
+
 ## 3.46.0
 
 ### Minor Changes

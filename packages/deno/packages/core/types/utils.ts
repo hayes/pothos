@@ -6,7 +6,7 @@ export type RequiredKeys<T extends object> = Exclude<keyof T, OptionalKeys<T>>;
 export type OptionalKeys<T extends object> = {
     [K in keyof T]: T[K] | undefined extends T[K] ? K : T[K] | null extends T[K] ? K : never;
 }[keyof T];
-export type NonEmptyKeys<T extends object> = {
+export type NonEmptyKeys<T extends object> = undefined extends {} ? never : {
     [K in keyof T]: {} extends T[K] ? never : T[K] extends NonNullable<T[K]> ? K : never;
 }[keyof T];
 export type EmptyKeys<T extends object> = {
@@ -31,15 +31,22 @@ export type NormalizeNullableFields<T extends object> = {
 } & {
     [K in RequiredKeys<T>]: T[K];
 };
-export type RecursivelyNormalizeNullableFields<T> = T extends object[] ? Normalize<{
-    [K in OptionalKeys<T[number]>]?: RecursivelyNormalizeNullableFields<T[number][K]> | null | undefined;
+// Check if T is a Record of string keys who's values are not functions
+export type IsSimpleRecord<T> = ([
+    T
+] extends [
+    Record<string, any>
+] // eslint-disable-line @typescript-eslint/no-explicit-any
+ ? keyof T extends infer K ? K extends string ? T[K] extends (...args: any[]) => unknown ? [
+    1
+] extends [
+    T[K]
+] ? never : false : never : never : false : false) extends never ? true : false;
+export type RecursivelyNormalizeNullableFields<T> = T extends null | undefined ? null | undefined : T extends (infer L)[] ? RecursivelyNormalizeNullableFields<L>[] : T extends (...args: any[]) => unknown ? T : keyof T extends string ? IsSimpleRecord<T> extends true ? Normalize<{
+    [K in OptionalKeys<T & object>]?: K extends string ? RecursivelyNormalizeNullableFields<NonNullable<T[K]>> | null | undefined : T[K];
 } & {
-    [K in RequiredKeys<T[number]>]: RecursivelyNormalizeNullableFields<T[number][K]>;
-}>[] : T extends unknown[] ? NormalizeNullable<T[number]>[] : T extends object ? Normalize<{
-    [K in OptionalKeys<T>]?: RecursivelyNormalizeNullableFields<T[K]> | null | undefined;
-} & {
-    [K in RequiredKeys<T>]: RecursivelyNormalizeNullableFields<T[K]>;
-}> : NormalizeNullable<T>;
+    [K in RequiredKeys<T & object>]: RecursivelyNormalizeNullableFields<NonNullable<T[K]>>;
+}> : T : T;
 export type RemoveNeverKeys<T extends {}> = {
     [K in keyof T as [
         T[K]
@@ -59,11 +66,11 @@ export type LastIndex<T extends unknown[]> = T extends [
     unknown,
     ...infer U
 ] ? U["length"] : 0;
-export type NormalizeArgs<T extends unknown[], Index extends keyof T = LastIndex<T>> = undefined extends T[Index] ? {} extends T[Index] ? T : {
+export type NormalizeArgs<T extends unknown[], Index extends keyof T = LastIndex<T>> = undefined extends T[Index] ? {} extends T[Index] ? undefined extends {} ? {
+    [K in keyof T]?: T[K];
+} : T : {
     [K in keyof T]-?: T[K];
 } : {} extends T[Index] ? {
     [K in keyof T]?: T[K];
 } : T;
-export type IsStrictMode = undefined extends {
-    t: 1;
-}["t"] ? false : true;
+export type IsStrictMode = undefined extends {} ? false : true;

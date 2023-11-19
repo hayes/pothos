@@ -76,7 +76,10 @@ const ContactInfo = builder.inputType('ContactInfo', {
     }),
     phone: t.string({
       validate: {
-        schema: zod.string().regex(/^\d{3}-\d{3}-\d{4}$/u),
+        schema: zod
+          .string()
+          .trim()
+          .regex(/^\d{3}-\d{3}-\d{4}$/u),
         length: 12,
       },
     }),
@@ -93,7 +96,11 @@ builder.queryType({
             email: true,
           },
         }),
-        phone: t.arg.string(),
+        phone: t.arg.string({
+          validate: {
+            schema: zod.string().trim(),
+          },
+        }),
       },
       validate: async (args) => Promise.resolve(!!args.phone || !!args.email),
       resolve: () => true,
@@ -294,6 +301,15 @@ const NestedObjectListInput = builder.inputType('NestedObjectListInput', {
   }),
 });
 
+const WithSchemaInput = builder.inputType('WithSchemaInput', {
+  fields: (t) => ({
+    name: t.string(),
+  }),
+  validate: {
+    schema: zod.object({ name: zod.string().min(2) }),
+  },
+});
+
 builder.queryField('soloNested', (t) =>
   t.boolean({
     nullable: true,
@@ -329,6 +345,26 @@ builder.queryField('withValidationAndFieldValidator', (t) =>
     nullable: true,
     args: {
       input: t.arg({ type: WithValidationAndFieldValidator }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withSchemaInput', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: WithSchemaInput }),
+    },
+    resolve: () => true,
+  }),
+);
+
+builder.queryField('withSchemaInputList', (t) =>
+  t.boolean({
+    nullable: true,
+    args: {
+      input: t.arg({ type: [WithSchemaInput] }),
     },
     resolve: () => true,
   }),

@@ -81,6 +81,7 @@ describe('codegen', () => {
                 create: {
                   title: "test title"
                   tags: ["tag1", "tag2"]
+                  content: "test content"
                   categories: [SPORTS, SCIENCE]
                 }
               }
@@ -93,6 +94,7 @@ describe('codegen', () => {
             }
             posts {
               title
+              content
               tags
               categories
             }
@@ -113,6 +115,7 @@ describe('codegen', () => {
                   "SPORTS",
                   "SCIENCE",
                 ],
+                "content": "test content",
                 "tags": [
                   "tag1",
                   "tag2",
@@ -139,13 +142,14 @@ describe('codegen', () => {
               posts: {
                 updateMany: {
                   where: { title: { equals: "test title" } }
-                  data: { tags: ["test1", "test2"], categories: [TECH, SCIENCE] }
+                  data: { tags: ["test1", "test2"], categories: [TECH, SCIENCE], content: null }
                 }
               }
             }
           ) {
             posts {
               title
+              content
               categories
               tags
             }
@@ -164,6 +168,7 @@ describe('codegen', () => {
                   "TECH",
                   "SCIENCE",
                 ],
+                "content": null,
                 "tags": [
                   "test1",
                   "test2",
@@ -258,6 +263,7 @@ describe('codegen', () => {
                       "SPORTS",
                       "SCIENCE",
                     ],
+                    "content": "test content",
                     "tags": [
                       "tag1",
                       "tag2",
@@ -301,6 +307,7 @@ describe('codegen', () => {
                         "TECH",
                         "SCIENCE",
                       ],
+                      "content": null,
                       "tags": [
                         "test1",
                         "test2",
@@ -373,6 +380,37 @@ describe('codegen', () => {
           "runInTransaction": false,
         },
       ]
+    `);
+  });
+
+  it('returns filtered user with mode: Insensitive', async () => {
+    await prisma.user.create({
+      data: {
+        email: 'test@example.com',
+      },
+    });
+    const query = await execute({
+      schema,
+      contextValue: {},
+      document: gql`
+        query {
+          users(filter: { email: { contains: "EXAMPLE", mode: Insensitive } }) {
+            email
+          }
+        }
+      `,
+    });
+
+    expect(query).toMatchInlineSnapshot(`
+      {
+        "data": {
+          "users": [
+            {
+              "email": "test@example.com",
+            },
+          ],
+        },
+      }
     `);
   });
 });

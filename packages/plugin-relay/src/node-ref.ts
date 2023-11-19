@@ -4,6 +4,7 @@ export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 
 export class NodeRef<T, P = T, IDShape = string> extends ObjectRef<T, P> {
   [relayIDShapeKey]!: IDShape;
+
   parseId: ((id: string, ctx: object) => IDShape) | undefined;
 
   constructor(

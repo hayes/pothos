@@ -9,7 +9,7 @@ import { internalDecodeGlobalID } from './utils/internal.ts';
 export * from './node-ref.ts';
 export * from './types.ts';
 export * from './utils/index.ts';
-const pluginName = "relay";
+const pluginName = "relay" as const;
 export default pluginName;
 export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
@@ -17,10 +17,10 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
             if (inputField.extensions?.isRelayGlobalID) {
                 return (inputField.extensions?.relayGlobalIDFor ??
                     inputField.extensions?.relayGlobalIDAlwaysParse ??
-                    false) as boolean | {
+                    false) as {
                     typename: string;
                     parseId: (id: string, ctx: object) => unknown;
-                }[];
+                }[] | boolean;
             }
             return null;
         });
@@ -33,10 +33,10 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     override wrapSubscribe(subscribe: GraphQLFieldResolver<unknown, Types["Context"], object> | undefined, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> | undefined {
         const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
             if (inputField.extensions?.isRelayGlobalID) {
-                return (inputField.extensions?.relayGlobalIDFor ?? true) as true | {
+                return (inputField.extensions?.relayGlobalIDFor ?? true) as {
                     typename: string;
                     parseId: (id: string, ctx: object) => unknown;
-                }[];
+                }[] | true;
             }
             return null;
         });

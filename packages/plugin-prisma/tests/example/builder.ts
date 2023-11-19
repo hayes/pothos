@@ -51,6 +51,7 @@ const builder = new SchemaBuilder<{
     client: () => prisma,
     dmmf: Prisma.dmmf,
     exposeDescriptions: true,
+    onUnusedQuery: 'error',
   },
   errorOptions: {
     defaultTypes: [Error],

@@ -86,4 +86,5 @@ Post.implement({
 });
 ```
 
-More details about composite rules are in the documentation of [AuthZ](https://github.com/AstrumU/graphql-authz#inline-composition-rules)
+More details about composite rules are in the documentation of
+[AuthZ](https://github.com/AstrumU/graphql-authz#inline-composition-rules)

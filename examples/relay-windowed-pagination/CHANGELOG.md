@@ -1,5 +1,110 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.49
+
+### Patch Changes
+
+- Updated dependencies [22d1426a]
+  - @pothos/core@3.38.0
+  - @pothos/plugin-relay@3.44.0
+
+## 2.7.48
+
+### Patch Changes
+
+- Updated dependencies [f8fb4e6b]
+  - @pothos/core@3.37.0
+  - @pothos/plugin-relay@3.44.0
+
+## 2.7.47
+
+### Patch Changes
+
+- Updated dependencies [96ba1822]
+  - @pothos/plugin-relay@3.44.0
+  - @pothos/core@3.36.0
+
+## 2.7.46
+
+### Patch Changes
+
+- Updated dependencies [b83e671b]
+- Updated dependencies [c123a285]
+  - @pothos/core@3.35.0
+  - @pothos/plugin-relay@3.43.1
+
+## 2.7.45
+
+### Patch Changes
+
+- Updated dependencies [f0247390]
+  - @pothos/core@3.34.0
+  - @pothos/plugin-relay@3.43.1
+
+## 2.7.44
+
+### Patch Changes
+
+- Updated dependencies [6f155d82]
+  - @pothos/core@3.33.1
+  - @pothos/plugin-relay@3.43.1
+
+## 2.7.43
+
+### Patch Changes
+
+- Updated dependencies [b7954d40]
+  - @pothos/plugin-relay@3.43.1
+
+## 2.7.42
+
+### Patch Changes
+
+- Updated dependencies [c7756128]
+  - @pothos/core@3.33.0
+  - @pothos/plugin-relay@3.43.0
+
+## 2.7.41
+
+### Patch Changes
+
+- Updated dependencies [adc2d33d]
+  - @pothos/core@3.32.1
+  - @pothos/plugin-relay@3.43.0
+
+## 2.7.40
+
+### Patch Changes
+
+- Updated dependencies [be23f48d]
+  - @pothos/core@3.32.0
+  - @pothos/plugin-relay@3.43.0
+
+## 2.7.39
+
+### Patch Changes
+
+- Updated dependencies [bd22a282]
+  - @pothos/core@3.31.2
+  - @pothos/plugin-relay@3.43.0
+
+## 2.7.38
+
+### Patch Changes
+
+- Updated dependencies [425435af]
+  - @pothos/core@3.31.1
+  - @pothos/plugin-relay@3.43.0
+
+## 2.7.37
+
+### Patch Changes
+
+- Updated dependencies [664e794c]
+- Updated dependencies [5d3f7b97]
+  - @pothos/core@3.31.0
+  - @pothos/plugin-relay@3.43.0
+
 ## 2.7.36
 
 ### Patch Changes

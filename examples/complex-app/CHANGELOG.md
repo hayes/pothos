@@ -1,5 +1,253 @@
 # @pothos-examples/complex-app
 
+## 1.6.14
+
+### Patch Changes
+
+- Updated dependencies [4a11ce04]
+  - @pothos/plugin-prisma-utils@0.13.0
+
+## 1.6.13
+
+### Patch Changes
+
+- Updated dependencies [8598e34f]
+  - @pothos/plugin-prisma-utils@0.12.1
+
+## 1.6.12
+
+### Patch Changes
+
+- Updated dependencies [5061fc0c]
+- Updated dependencies [0be6da5c]
+- Updated dependencies [5061fc0c]
+  - @pothos/plugin-prisma-utils@0.12.0
+  - @pothos/plugin-prisma@3.61.0
+  - @pothos/plugin-validation@3.10.1
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.11
+
+### Patch Changes
+
+- Updated dependencies [018c797c]
+  - @pothos/plugin-prisma@3.60.0
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.10
+
+### Patch Changes
+
+- Updated dependencies [96ba1822]
+  - @pothos/plugin-relay@3.44.0
+  - @pothos/core@3.36.0
+  - @pothos/plugin-dataloader@3.17.1
+  - @pothos/plugin-prisma@3.59.3
+  - @pothos/plugin-scope-auth@3.20.0
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-simple-objects@3.7.0
+  - @pothos/plugin-validation@3.10.0
+
+## 1.6.9
+
+### Patch Changes
+
+- Updated dependencies [094359cd]
+  - @pothos/plugin-prisma@3.59.3
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.8
+
+### Patch Changes
+
+- Updated dependencies [0d8d60fa]
+- Updated dependencies [b83e671b]
+- Updated dependencies [c123a285]
+  - @pothos/plugin-prisma@3.59.2
+  - @pothos/core@3.35.0
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-scope-auth@3.20.0
+  - @pothos/plugin-dataloader@3.17.1
+  - @pothos/plugin-relay@3.43.1
+  - @pothos/plugin-simple-objects@3.7.0
+  - @pothos/plugin-validation@3.10.0
+
+## 1.6.7
+
+### Patch Changes
+
+- Updated dependencies [1fc5b60b]
+  - @pothos/plugin-prisma@3.59.1
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.6
+
+### Patch Changes
+
+- Updated dependencies [1bbd3d70]
+  - @pothos/plugin-prisma@3.59.0
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.5
+
+### Patch Changes
+
+- Updated dependencies [4ebfa27b]
+- Updated dependencies [4ebfa27b]
+  - @pothos/plugin-prisma@3.58.0
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.4
+
+### Patch Changes
+
+- Updated dependencies [b7954d40]
+  - @pothos/plugin-relay@3.43.1
+  - @pothos/plugin-dataloader@3.17.1
+  - @pothos/plugin-prisma@3.57.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.3
+
+### Patch Changes
+
+- Updated dependencies [c7756128]
+  - @pothos/plugin-prisma-utils@0.11.0
+  - @pothos/plugin-prisma@3.57.0
+  - @pothos/core@3.33.0
+  - @pothos/plugin-scope-auth@3.20.0
+  - @pothos/plugin-dataloader@3.17.1
+  - @pothos/plugin-relay@3.43.0
+  - @pothos/plugin-simple-objects@3.7.0
+  - @pothos/plugin-validation@3.10.0
+
+## 1.6.2
+
+### Patch Changes
+
+- Updated dependencies [eedeca16]
+  - @pothos/plugin-validation@3.10.0
+
+## 1.6.1
+
+### Patch Changes
+
+- Updated dependencies [016011f2]
+  - @pothos/plugin-prisma@3.56.1
+  - @pothos/plugin-prisma-utils@0.10.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.6.0
+
+### Minor Changes
+
+- Fix unused query check for prismaConnections
+
+### Patch Changes
+
+- Updated dependencies
+  - @pothos/plugin-prisma@3.56.0
+  - @pothos/plugin-prisma-utils@0.10.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.5.23
+
+### Patch Changes
+
+- Updated dependencies [39237239]
+  - @pothos/plugin-prisma@3.55.0
+  - @pothos/plugin-prisma-utils@0.10.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.5.22
+
+### Patch Changes
+
+- Updated dependencies [7494da05]
+  - @pothos/plugin-prisma@3.54.0
+  - @pothos/plugin-prisma-utils@0.10.0
+  - @pothos/plugin-scope-auth@3.20.0
+
+## 1.5.21
+
+### Patch Changes
+
+- Updated dependencies [09bd29a6]
+- Updated dependencies [5d3f7b97]
+- Updated dependencies [664e794c]
+- Updated dependencies [5d3f7b97]
+  - @pothos/plugin-scope-auth@3.20.0
+  - @pothos/plugin-prisma@3.53.0
+  - @pothos/core@3.31.0
+  - @pothos/plugin-prisma-utils@0.10.0
+  - @pothos/plugin-dataloader@3.17.1
+  - @pothos/plugin-relay@3.43.0
+  - @pothos/plugin-simple-objects@3.7.0
+  - @pothos/plugin-validation@3.9.2
+
+## 1.5.20
+
+### Patch Changes
+
+- Updated dependencies [9b80756a]
+- Updated dependencies [ccdec047]
+  - @pothos/plugin-prisma-utils@0.10.0
+
+## 1.5.19
+
+### Patch Changes
+
+- Updated dependencies [2d2edce6]
+  - @pothos/plugin-prisma-utils@0.9.0
+  - @pothos/plugin-prisma@3.52.0
+  - @pothos/plugin-relay@3.43.0
+
+## 1.5.18
+
+### Patch Changes
+
+- Updated dependencies [624f2d05]
+- Updated dependencies [624f2d05]
+  - @pothos/plugin-prisma-utils@0.8.2
+  - @pothos/plugin-prisma@3.52.0
+  - @pothos/plugin-scope-auth@3.19.2
+
+## 1.5.17
+
+### Patch Changes
+
+- Updated dependencies [740f09c6]
+  - @pothos/plugin-simple-objects@3.7.0
+  - @pothos/plugin-prisma@3.51.1
+
+## 1.5.16
+
+### Patch Changes
+
+- Updated dependencies [f2c061a4]
+  - @pothos/plugin-validation@3.9.2
+
+## 1.5.15
+
+### Patch Changes
+
+- Updated dependencies [e8139e73]
+  - @pothos/plugin-prisma@3.51.1
+  - @pothos/plugin-prisma-utils@0.8.1
+  - @pothos/plugin-scope-auth@3.19.2
+
+## 1.5.14
+
+### Patch Changes
+
+- Updated dependencies [ce43b442]
+  - @pothos/plugin-scope-auth@3.19.2
+
 ## 1.5.13
 
 ### Patch Changes

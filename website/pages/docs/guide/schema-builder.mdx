@@ -5,13 +5,12 @@ menu: Guide
 description: Guide for creating and using a Pothos SchemaBuilder
 ---
 
+import { DocsPage } from '../../../components/Docs/Page';
+import { buildNav } from '../../../util/build-nav';
 
-import { DocsPage } from '../../../components/Docs/Page'
-import { buildNav } from '../../../util/build-nav'
+export default DocsPage;
 
-export default DocsPage
-
-export const getStaticProps = () => ({ props: { nav: buildNav() }})
+export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # SchemaBuilder
 
@@ -50,9 +49,9 @@ in typescript and GraphQL do not map cleanly to each other, so there will always
 between the types you have in your application, and the types that are defined in your GraphQL
 schema. This is part of the issue, but is not the full story. When mapping a model or object in your
 application to a type in your API some fields may match up directly, some fields may need to be
-loaded or transformed dynamically when requested, and others you may not want to expose at all. These
-differences are why Pothos maintains a mapping of "backing models" \(typescript types\) to GraphQL
-types.
+loaded or transformed dynamically when requested, and others you may not want to expose at all.
+These differences are why Pothos maintains a mapping of "backing models" \(typescript types\) to
+GraphQL types.
 
 To put it simply, backing models are the types that describe the data as it flows through your
 application, which may be substantially different than the types described in your GraphQL schema.
@@ -63,8 +62,14 @@ your resolver functions \(among other things\).
 Now that we covered what backing models are, let's go over where they come from. There are currently
 3 ways that Pothos gets a backing model for an object or interface:
 
-1. Classes: If you use classes when defining you object types, Pothos can infer that any field that resolves to that type should resolve to an instance of that class
+1. Classes: If you use classes when defining you object types, Pothos can infer that any field that
+   resolves to that type should resolve to an instance of that class
 
-2. TypeRefs: Every time you create a type with the schema builder, it returns a `TypeRef` object, which contains the backing model type for that type. Object Refs can also be created explicitly with the `builder.objectRef` method.
+2. TypeRefs: Every time you create a type with the schema builder, it returns a `TypeRef` object,
+   which contains the backing model type for that type. Object Refs can also be created explicitly
+   with the `builder.objectRef` method.
 
-3. SchemaTypes: The `SchemaTypes` type that is passed into the generic parameter of the `SchemaBuilder` can also be used to provide backing models for various types. When you reference a type in your schema by name \(as a string\), Pothos checks the SchemaTypes to see if there is a backing model defined for that type.
+3. SchemaTypes: The `SchemaTypes` type that is passed into the generic parameter of the
+   `SchemaBuilder` can also be used to provide backing models for various types. When you reference
+   a type in your schema by name \(as a string\), Pothos checks the SchemaTypes to see if there is a
+   backing model defined for that type.

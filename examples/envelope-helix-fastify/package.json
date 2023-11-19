@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "2.4.24",
+  "version": "2.4.36",
   "name": "@pothos-examples/envelope-helix-fastify",
   "main": "src/index.ts",
   "types": "src/index.ts",
@@ -9,11 +9,11 @@
     "type": "tsc --noEmit"
   },
   "dependencies": {
-    "@envelop/core": "^3.0.6",
-    "@faker-js/faker": "^7.6.0",
+    "@envelop/core": "^4.0.3",
+    "@faker-js/faker": "^8.1.0",
     "@pothos/core": "workspace:*",
-    "fastify": "^4.15.0",
-    "graphql": "16.6.0",
+    "fastify": "^4.23.2",
+    "graphql": "16.8.1",
     "graphql-helix": "^1.13.0"
   },
   "publishConfig": {

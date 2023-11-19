@@ -1,8 +1,8 @@
 /* eslint-disable unicorn/no-process-exit */
 /* eslint-disable no-process-exit */
 /* eslint-disable unicorn/prefer-module */
-import { writeFileSync } from 'fs';
-import { resolve } from 'path';
+import { writeFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 import { format, resolveConfig } from 'prettier';
 import ts from 'typescript';
 import { PothosSchemaError } from '@pothos/core';
@@ -18,7 +18,7 @@ import {
 
 const filterOps = ['equals', 'in', 'notIn', 'not', 'is', 'isNot'] as const;
 const sortableFilterProps = ['lt', 'lte', 'gt', 'gte'] as const;
-const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith'] as const;
+const stringFilterOps = [...filterOps, 'contains', 'startsWith', 'endsWith', 'mode'] as const;
 const sortableTypes = ['String', 'Int', 'Float', 'DateTime', 'BigInt'] as const;
 const listOps = ['every', 'some', 'none'] as const;
 const scalarListOps = ['has', 'hasSome', 'hasEvery', 'isEmpty', 'equals'] as const;
@@ -27,6 +27,7 @@ const { dmmf } = Prisma.Prisma;
 
 class PrismaGenerator {
   statements: ts.Statement[] = [];
+
   addedTypes: Set<string> = new Set();
 
   addCreate(type: string, without: string[] = []) {
@@ -185,7 +186,9 @@ class PrismaGenerator {
       (field) => field.relationName === relationField.relationName,
     )!;
     const relatedField = relatedModel.fields.find((field) => field.name === relatedFieldName.name)!;
-    const relatedFieldIsList = relatedField.kind === 'object' && relatedField.list;
+    const relatedFieldIsList =
+      (relatedField.kind === 'object' && relatedField.isList) ||
+      ('list' in relatedField && relatedField.list);
 
     if (relationField.isList) {
       this.statements.push(
@@ -218,7 +221,7 @@ class PrismaGenerator {
           create: ${this.addCreate(relatedModel.name, [relatedFieldName.name])},
           update: ${this.addUpdate(relatedModel.name, [relatedFieldName.name])},
           connect: ${this.addWhereUnique(relatedModel.name)},
-          ${relatedFieldIsList ? 'disconnect: true, delete: true,' : ''}
+          ${relatedFieldIsList ? '' : 'disconnect: true, delete: true,'}
         })
       });
     `,
@@ -481,6 +484,7 @@ dmmf.datamodel.models.forEach((model) => {
 
 const generated = printStatements(generator.statements);
 
+// eslint-disable-next-line unicorn/prefer-top-level-await
 printCode().catch((error: unknown) => {
   console.error(error);
 
@@ -489,7 +493,7 @@ printCode().catch((error: unknown) => {
 
 async function printCode() {
   const config = await resolveConfig(__dirname);
-  const formatted = format(
+  const formatted = await format(
     /* ts */ `
   import { InputObjectRef } from '@pothos/core';
   import * as Prisma from '../../../client';

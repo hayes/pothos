@@ -15,7 +15,8 @@ export const users = [
     username: 'user02',
     email: 'user02@gmail.com',
     role: 'Admin',
-  },{
+  },
+  {
     id: '3',
     username: 'user03',
     email: 'user03@gmail.com',

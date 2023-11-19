@@ -365,7 +365,8 @@ For example, if you want to re-throw errors thrown by authorization functions yo
 writeing a custom `unauthorizedError` callback like this:
 
 ```typescript
-import SchemaBuilder, { AuthFailure, AuthScopeFailureType } from '@pothos/core';
+import SchemaBuilder from '@pothos/core';
+import ScopeAuthPlugin, { AuthFailure, AuthScopeFailureType } from '@pothos/plugin-scope-auth';
 
 // Find the first error and re-throw it
 function throwFirstError(failure: AuthFailure) {
@@ -380,7 +381,7 @@ function throwFirstError(failure: AuthFailure) {
     failure.kind === AuthScopeFailureType.AllAuthScopes
   ) {
     for (const child of failure.failures) {
-      throwFirstError(child, recursive);
+      throwFirstError(child);
     }
   }
 }
@@ -397,7 +398,7 @@ const builder = new SchemaBuilder<{
       // throw an error if it's found
       throwFirstError(result.failure);
       // throw a fallback error if no error was found
-      new Error(`Not authorized`);
+      return new Error(`Not authorized`);
     },
   },
   plugins: [ScopeAuthPlugin],
@@ -577,6 +578,28 @@ You can use the built in `$any` and `$all` scope loaders to combine requirements
 above example requires a request to have either the `employee` or `deferredScope` scopes, and the
 `public` scope. `$any` and `$all` each take a scope map as their parameters, and can be nested
 inside each other.
+
+You can change the default strategy used for top level auth scopes by setting the `defaultStrategy`
+option in the builder (defaults to `any`):
+
+```typescript
+const builder = new SchemaBuilder<{
+  Context: {
+    user: User | null;
+  };
+  AuthScopes: {
+    loggedIn: boolean;
+  };
+}>({
+  plugins: [ScopeAuthPlugin],
+  scopeAuthOptions: {
+    defaultStrategy: 'all',
+  },
+  authScopes: async (context) => ({
+    loggedIn: !!context.user,
+  }),
+});
+```
 
 ### Auth that depends on parent value
 

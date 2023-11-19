@@ -4,12 +4,17 @@ import {
   FieldNode,
   FragmentDefinitionNode,
   getArgumentValues,
+  getDirectiveValues,
   getNamedType,
   GraphQLField,
+  GraphQLIncludeDirective,
+  GraphQLInterfaceType,
   GraphQLNamedType,
   GraphQLObjectType,
   GraphQLResolveInfo,
+  GraphQLSkipDirective,
   InlineFragmentNode,
+  isInterfaceType,
   isObjectType,
   Kind,
   SelectionSetNode,
@@ -31,6 +36,7 @@ import {
   SelectionState,
   selectionToQuery,
 } from './selections';
+import { wrapWithUsageCheck } from './usage';
 
 function addTypeSelectionsForField(
   type: GraphQLNamedType,
@@ -56,12 +62,16 @@ function addTypeSelectionsForField(
     pothosPrismaIndirectInclude?: IndirectInclude;
   };
 
-  if (pothosPrismaIndirectInclude && pothosPrismaIndirectInclude.path.length > 0) {
-    resolveIndirectInclude(
+  if (
+    (!!pothosPrismaIndirectInclude?.path && pothosPrismaIndirectInclude.path.length > 0) ||
+    (!!pothosPrismaIndirectInclude?.paths && pothosPrismaIndirectInclude.paths.length === 0)
+  ) {
+    resolveIndirectIncludePaths(
       type,
       info,
       selection,
-      pothosPrismaIndirectInclude.path,
+      [],
+      pothosPrismaIndirectInclude.paths ?? [pothosPrismaIndirectInclude.path!],
       indirectPath,
       (resolvedType, field, path) => {
         addTypeSelectionsForField(resolvedType, context, info, state, field, path);
@@ -79,7 +89,7 @@ function addTypeSelectionsForField(
     return;
   }
 
-  if (!isObjectType(type)) {
+  if (!(isObjectType(type) || isInterfaceType(type))) {
     return;
   }
 
@@ -87,7 +97,7 @@ function addTypeSelectionsForField(
     state.mode = 'include';
   }
 
-  if (pothosPrismaInclude || pothosPrismaSelect) {
+  if (pothosPrismaInclude ?? pothosPrismaSelect) {
     mergeSelection(state, {
       select: pothosPrismaSelect ? { ...pothosPrismaSelect } : undefined,
       include: pothosPrismaInclude ? { ...pothosPrismaInclude } : undefined,
@@ -99,13 +109,32 @@ function addTypeSelectionsForField(
   }
 }
 
+function resolveIndirectIncludePaths(
+  type: GraphQLNamedType,
+  info: GraphQLResolveInfo,
+  selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
+  pathPrefix: { type?: string; name: string }[],
+  includePaths: { type?: string; name: string }[][],
+  path: string[],
+  resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
+) {
+  for (const includePath of includePaths) {
+    if (pathPrefix.length > 0) {
+      resolveIndirectInclude(type, info, selection, [...pathPrefix, ...includePath], path, resolve);
+    } else {
+      resolveIndirectInclude(type, info, selection, includePath, path, resolve);
+    }
+  }
+}
+
 function resolveIndirectInclude(
   type: GraphQLNamedType,
   info: GraphQLResolveInfo,
   selection: FieldNode | FragmentDefinitionNode | InlineFragmentNode,
-  includePath: IndirectInclude['path'],
+  includePath: { type?: string; name: string }[],
   path: string[],
   resolve: (type: GraphQLNamedType, field: FieldNode, path: string[]) => void,
+  expectedType = type,
 ) {
   if (includePath.length === 0) {
     resolve(type, selection as FieldNode, path);
@@ -120,7 +149,12 @@ function resolveIndirectInclude(
   for (const sel of selection.selectionSet.selections) {
     switch (sel.kind) {
       case Kind.FIELD:
-        if (sel.name.value === include.name && isObjectType(type)) {
+        if (
+          expectedType.name === type.name &&
+          !fieldSkipped(info, sel) &&
+          sel.name.value === include.name &&
+          (isObjectType(type) || isInterfaceType(type))
+        ) {
           const returnType = getNamedType(type.getFields()[sel.name.value].type);
 
           resolveIndirectInclude(
@@ -134,21 +168,20 @@ function resolveIndirectInclude(
         }
         continue;
       case Kind.FRAGMENT_SPREAD:
-        if (info.fragments[sel.name.value].typeCondition.name.value === include.type) {
-          resolveIndirectInclude(
-            info.schema.getType(include.type)!,
-            info,
-            info.fragments[sel.name.value],
-            includePath,
-            path,
-            resolve,
-          );
-        }
+        resolveIndirectInclude(
+          info.schema.getType(info.fragments[sel.name.value].typeCondition.name.value)!,
+          info,
+          info.fragments[sel.name.value],
+          includePath,
+          path,
+          resolve,
+          include.type ? info.schema.getType(include.type)! : expectedType,
+        );
 
         continue;
 
       case Kind.INLINE_FRAGMENT:
-        if (!sel.typeCondition || sel.typeCondition.name.value === include.type) {
+        if (!sel.typeCondition || !include.type || sel.typeCondition.name.value === include.type) {
           resolveIndirectInclude(
             sel.typeCondition ? info.schema.getType(sel.typeCondition.name.value)! : type,
             info,
@@ -156,6 +189,7 @@ function resolveIndirectInclude(
             includePath,
             path,
             resolve,
+            include.type ? info.schema.getType(include.type)! : expectedType,
           );
         }
 
@@ -170,41 +204,59 @@ function resolveIndirectInclude(
 }
 
 function addNestedSelections(
-  type: GraphQLObjectType,
+  type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
   selections: SelectionSetNode,
   indirectPath: string[],
+  expectedType = type,
 ) {
+  let parentType = type;
   for (const selection of selections.selections) {
     switch (selection.kind) {
       case Kind.FIELD:
+        if (expectedType.name !== type.name) {
+          continue;
+        }
         addFieldSelection(type, context, info, state, selection, indirectPath);
 
         continue;
       case Kind.FRAGMENT_SPREAD:
-        if (info.fragments[selection.name.value].typeCondition.name.value !== type.name) {
-          continue;
-        }
+        parentType = info.schema.getType(
+          info.fragments[selection.name.value].typeCondition.name.value,
+        )! as GraphQLObjectType;
 
         addNestedSelections(
-          type,
+          parentType,
           context,
           info,
           state,
           info.fragments[selection.name.value].selectionSet,
           indirectPath,
+          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
+            ? parentType
+            : expectedType,
         );
 
         continue;
 
       case Kind.INLINE_FRAGMENT:
-        if (selection.typeCondition && selection.typeCondition.name.value !== type.name) {
-          continue;
-        }
+        parentType = selection.typeCondition
+          ? (info.schema.getType(selection.typeCondition.name.value) as GraphQLObjectType)
+          : type;
 
-        addNestedSelections(type, context, info, state, selection.selectionSet, indirectPath);
+        addNestedSelections(
+          parentType,
+          context,
+          info,
+          state,
+          selection.selectionSet,
+          indirectPath,
+          parentType.extensions?.pothosPrismaModel === type.extensions.pothosPrismaModel
+            ? parentType
+            : expectedType,
+        );
 
         continue;
 
@@ -217,14 +269,14 @@ function addNestedSelections(
 }
 
 function addFieldSelection(
-  type: GraphQLObjectType,
+  type: GraphQLInterfaceType | GraphQLObjectType,
   context: object,
   info: GraphQLResolveInfo,
   state: SelectionState,
   selection: FieldNode,
   indirectPath: string[],
 ) {
-  if (selection.name.value.startsWith('__')) {
+  if (selection.name.value.startsWith('__') || fieldSkipped(info, selection)) {
     return;
   }
 
@@ -272,15 +324,16 @@ function addFieldSelection(
           mergeSelection(fieldState, { select: {}, ...query });
         }
 
-        if (normalizedIndirectInclude && normalizedIndirectInclude.path.length > 0) {
-          resolveIndirectInclude(
+        if (
+          (!!normalizedIndirectInclude?.path && normalizedIndirectInclude.path.length > 0) ||
+          (!!normalizedIndirectInclude?.paths && normalizedIndirectInclude.paths.length > 0)
+        ) {
+          resolveIndirectIncludePaths(
             returnType,
             info,
             selection,
-            [
-              ...((returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? []),
-              ...normalizedIndirectInclude.path,
-            ],
+            (returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? [],
+            normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
             [],
             (resolvedType, resolvedField, path) => {
               addTypeSelectionsForField(
@@ -303,6 +356,10 @@ function addFieldSelection(
         return selectionToQuery(fieldState);
       },
       (path) => {
+        if (path.length === 0) {
+          return selection;
+        }
+
         const returnType = getNamedType(field.type);
         let node: FieldNode | null = null;
 
@@ -343,20 +400,24 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
   typeName,
   select,
   path = [],
+  paths = [],
+  withUsageCheck = false,
 }: {
   context: object;
   info: GraphQLResolveInfo;
   typeName?: string;
   select?: T;
   path?: string[];
-}): { select: T } | { include?: {} } {
+  paths?: string[][];
+  withUsageCheck?: boolean;
+}): { include?: {} } | { select: T } {
   const returnType = getNamedType(info.returnType);
   const type = typeName ? info.schema.getTypeMap()[typeName] : returnType;
 
   let state: SelectionState | undefined;
   const initialSelection = select ? { select } : undefined;
 
-  if (path.length > 0) {
+  if (path.length > 0 || paths.length > 0) {
     const { pothosPrismaIndirectInclude } = (returnType.extensions ?? {}) as {
       pothosPrismaIndirectInclude?: IndirectInclude;
     };
@@ -368,11 +429,14 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
       pothosPrismaIndirectInclude?.path ?? [],
       [],
       (indirectType, indirectField, subPath) => {
-        resolveIndirectInclude(
+        resolveIndirectIncludePaths(
           indirectType,
           info,
           indirectField,
-          path.map((n) => (typeof n === 'string' ? { name: n } : n)),
+          [],
+          paths.length > 0
+            ? paths.map((p) => p.map((n) => (typeof n === 'string' ? { name: n } : n)))
+            : [path.map((n) => (typeof n === 'string' ? { name: n } : n))],
           subPath,
           (resolvedType, resolvedField, nested) => {
             state = createStateForType(
@@ -406,7 +470,9 @@ export function queryFromInfo<T extends SelectionMap['select'] | undefined = und
 
   setLoaderMappings(context, info, state.mappings);
 
-  return selectionToQuery(state) as { select: T };
+  const query = selectionToQuery(state) as { select: T };
+
+  return withUsageCheck ? wrapWithUsageCheck(query) : query;
 }
 
 export function selectionStateFromInfo(
@@ -418,8 +484,10 @@ export function selectionStateFromInfo(
 
   const state = createStateForType(type, info);
 
-  if (!isObjectType(type)) {
-    throw new PothosValidationError('Prisma plugin can only resolve includes for object types');
+  if (!(isObjectType(type) || isInterfaceType(type))) {
+    throw new PothosValidationError(
+      'Prisma plugin can only resolve includes for object and interface types',
+    );
   }
 
   addFieldSelection(type, context, info, state, info.fieldNodes[0], []);
@@ -462,12 +530,12 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
   return targetType;
 }
 
-function normalizeInclude(path: string[], type: GraphQLNamedType) {
+function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclude {
   let currentType = type;
 
   const normalized: { name: string; type: string }[] = [];
 
-  if (!isObjectType(currentType)) {
+  if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
     throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
   }
 
@@ -480,8 +548,8 @@ function normalizeInclude(path: string[], type: GraphQLNamedType) {
 
     currentType = getNamedType(field.type);
 
-    if (!isObjectType(currentType)) {
-      throw new PothosValidationError(`Expected ${currentType} to be an Object type`);
+    if (!(isObjectType(currentType) || isInterfaceType(currentType))) {
+      throw new PothosValidationError(`Expected ${currentType} to be an Object or Interface type`);
     }
 
     normalized.push({ name: fieldName, type: currentType.name });
@@ -491,4 +559,18 @@ function normalizeInclude(path: string[], type: GraphQLNamedType) {
     getType: () => (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
     path: normalized,
   };
+}
+
+function fieldSkipped(info: GraphQLResolveInfo, selection: FieldNode) {
+  const skip = getDirectiveValues(GraphQLSkipDirective, selection, info.variableValues);
+  if (skip?.if === true) {
+    return true;
+  }
+
+  const include = getDirectiveValues(GraphQLIncludeDirective, selection, info.variableValues);
+  if (include?.if === false) {
+    return true;
+  }
+
+  return false;
 }

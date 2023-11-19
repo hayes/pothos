@@ -263,6 +263,25 @@ export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
 });
 ```
 
+#### Atomic Int Update operations
+
+```ts
+const IntUpdate = builder.prismaIntAtomicUpdate();
+// or with options
+const IntUpdate = builder.prismaIntAtomicUpdate({
+  name: 'IntUpdate',
+  ops: ['increment', 'decrement'],
+});
+
+export const PostUpdate = builder.prismaUpdate('Post', {
+  name: 'PostUpdate',
+  fields: () => ({
+    title: 'String',
+    views: IntUpdate,
+  }),
+});
+```
+
 ## Generators
 
 Manually defining all the different input types shown above for a large number of tables can become

@@ -1,5 +1,89 @@
 # Change Log
 
+## 3.38.0
+
+### Minor Changes
+
+- 22d1426a: Support for adding type mappings in SchemaTypes for Input objects
+
+## 3.37.0
+
+### Minor Changes
+
+- f8fb4e6b: Add support for $inferType and $inferInput helpers on Refs
+
+## 3.36.0
+
+### Minor Changes
+
+- 96ba1822: Improve validation for global IDs
+
+## 3.35.0
+
+### Minor Changes
+
+- b83e671b: Add isOneOf option for input type. this adds @oneOf directive, but does not currently
+  affect the typescript type for the input
+
+### Patch Changes
+
+- c123a285: If available, prefer Buffer over btoa/atob for encoding and decoding cursor strings
+  to/from base64.
+
+## 3.34.0
+
+### Minor Changes
+
+- f0247390: Add isOneOf option for input type. this adds @oneOf directive, but does not currently
+  affect the typescript type for the input
+
+## 3.33.1
+
+### Patch Changes
+
+- 6f155d82: Improve normalization of input types so that objects with functions are not normalized
+
+## 3.33.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
+## 3.32.1
+
+### Patch Changes
+
+- adc2d33d: Fix inputRefs when using any as scalar type
+
+## 3.32.0
+
+### Minor Changes
+
+- be23f48d: Fix issue with inputRef not serializing symbols correctly
+
+## 3.31.2
+
+### Patch Changes
+
+- bd22a282: revert improved inference for inputRef.implement
+
+## 3.31.1
+
+### Patch Changes
+
+- 425435af: Improve typing of inputRefs and fix incorrectly normalized function properties of
+  inputRef types
+
+## 3.31.0
+
+### Minor Changes
+
+- 664e794c: Fixed a couple bugs related to how types are defined for inputRefs
+
+### Patch Changes
+
+- 5d3f7b97: Fix the EmptyToOptional utility type when strict mode is disabled
+
 ## 3.30.0
 
 ### Minor Changes

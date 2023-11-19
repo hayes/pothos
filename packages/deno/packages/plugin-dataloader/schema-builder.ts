@@ -26,7 +26,7 @@ schemaBuilderProto.loadableObject = function loadableObject<Shape extends NameOr
         }).name ?? (nameOrRef as {
             name: string;
         }).name;
-    const ref = new ImplementableLoadableObjectRef<SchemaTypes, Shape | Key, Shape, Key, CacheKey>(this, name, options);
+    const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(this, name, options);
     ref.implement(options);
     if (typeof nameOrRef !== "string") {
         this.configStore.associateRefWithName(nameOrRef, name);

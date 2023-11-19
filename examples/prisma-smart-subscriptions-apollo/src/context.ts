@@ -1,4 +1,4 @@
-import { IncomingMessage, ServerResponse } from 'http';
+import { IncomingMessage, ServerResponse } from 'node:http';
 import { PubSub } from 'graphql-subscriptions';
 // eslint-disable-next-line import/no-relative-packages
 import { User } from '../prisma/client';

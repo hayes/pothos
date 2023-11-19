@@ -22,8 +22,8 @@ export type ComplexityErrorFn = (
 ) => Error | string;
 
 export type FieldComplexity<Context, Args> =
-  | FieldComplexityValue
-  | FieldComplexityFunction<Context, Args>;
+  | FieldComplexityFunction<Context, Args>
+  | FieldComplexityValue;
 
 export type FieldComplexityFunction<Context, Args> = (
   args: Args,

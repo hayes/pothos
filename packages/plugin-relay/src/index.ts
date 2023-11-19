@@ -16,7 +16,7 @@ export * from './node-ref';
 export * from './types';
 export * from './utils';
 
-const pluginName = 'relay';
+const pluginName = 'relay' as const;
 
 export default pluginName;
 
@@ -29,7 +29,7 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
       if (inputField.extensions?.isRelayGlobalID) {
         return (inputField.extensions?.relayGlobalIDFor ??
           inputField.extensions?.relayGlobalIDAlwaysParse ??
-          false) as boolean | { typename: string; parseId: (id: string, ctx: object) => unknown }[];
+          false) as { typename: string; parseId: (id: string, ctx: object) => unknown }[] | boolean;
       }
 
       return null;
@@ -56,8 +56,8 @@ export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Typ
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       if (inputField.extensions?.isRelayGlobalID) {
         return (inputField.extensions?.relayGlobalIDFor ?? true) as
-          | true
-          | { typename: string; parseId: (id: string, ctx: object) => unknown }[];
+          | { typename: string; parseId: (id: string, ctx: object) => unknown }[]
+          | true;
       }
 
       return null;

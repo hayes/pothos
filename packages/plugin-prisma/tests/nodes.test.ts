@@ -338,6 +338,7 @@ describe('prisma', () => {
                   "createdAt": "desc",
                 },
                 "take": 10,
+                "where": undefined,
               },
               "profile": true,
             },

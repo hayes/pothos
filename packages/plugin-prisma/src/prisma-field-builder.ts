@@ -1,8 +1,16 @@
 /* eslint-disable no-nested-ternary */
 /* eslint-disable no-underscore-dangle */
-import { FieldNode, GraphQLResolveInfo } from 'graphql';
+import {
+  FieldNode,
+  getNamedType,
+  GraphQLResolveInfo,
+  isInterfaceType,
+  isObjectType,
+  Kind,
+} from 'graphql';
 import {
   CompatibleTypes,
+  ExposeNullability,
   FieldKind,
   FieldRef,
   InputFieldMap,
@@ -17,8 +25,8 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import { PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
-import { PrismaObjectRef } from './object-ref';
 import {
   PrismaConnectionShape,
   PrismaModelTypes,
@@ -79,17 +87,27 @@ export class PrismaObjectFieldBuilder<
   Shape extends object = Model['Shape'],
 > extends RootBuilder<Types, Shape, 'PrismaObject'> {
   model: string;
+
   prismaFieldMap: FieldMap;
 
   exposeBoolean = this.createExpose('Boolean');
+
   exposeFloat = this.createExpose('Float');
+
   exposeInt = this.createExpose('Int');
+
   exposeID = this.createExpose('ID');
+
   exposeString = this.createExpose('String');
+
   exposeBooleanList = this.createExpose(['Boolean']);
+
   exposeFloatList = this.createExpose(['Float']);
+
   exposeIntList = this.createExpose(['Int']);
+
   exposeIDList = this.createExpose(['ID']);
+
   exposeStringList = this.createExpose(['String']);
 
   withAuth: 'scopeAuth' extends PluginName
@@ -116,6 +134,9 @@ export class PrismaObjectFieldBuilder<
         ...args: NormalizeArgs<
           [
             connectionOptions:
+              | ObjectRef<
+                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
+                >
               | PothosSchemaTypes.ConnectionObjectOptions<
                   Types,
                   ObjectRef<
@@ -138,11 +159,12 @@ export class PrismaObjectFieldBuilder<
                     Args
                   >,
                   ConnectionInterfaces
-                >
-              | ObjectRef<
-                  ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, false>>
                 >,
             edgeOptions:
+              | ObjectRef<{
+                  cursor: string;
+                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
+                }>
               | PothosSchemaTypes.ConnectionEdgeObjectOptions<
                   Types,
                   ObjectRef<
@@ -164,11 +186,7 @@ export class PrismaObjectFieldBuilder<
                     Args
                   >,
                   EdgeInterfaces
-                >
-              | ObjectRef<{
-                  cursor: string;
-                  node?: ShapeFromTypeParam<Types, Model['Shape'], false>;
-                }>,
+                >,
           ],
           0
         >
@@ -254,17 +272,17 @@ export class PrismaObjectFieldBuilder<
       nestedQuery: (query: unknown, path?: unknown) => { select?: {} },
       getSelection: (path: string[]) => FieldNode | null,
     ) => {
+      typeName ??= this.builder.configStore.getTypeConfig(ref).name;
       const nested = nestedQuery(getQuery(args, context), {
-        getType: () => {
-          if (!typeName) {
-            typeName = this.builder.configStore.getTypeConfig(ref).name;
-          }
-          return typeName;
-        },
-        path: [{ name: 'edges' }, { name: 'node' }],
+        getType: () => typeName!,
+        paths: [[{ name: 'nodes' }], [{ name: 'edges' }, { name: 'node' }]],
       }) as SelectionMap;
 
+      const selection = getSelection([])!;
       const hasTotalCount = totalCount && !!getSelection(['totalCount']);
+
+      const totalCountOnly = selection.selectionSet?.selections.length === 1 && hasTotalCount;
+
       const countSelect = this.builder.options.prisma.filterConnectionTotalCount
         ? nested.where
           ? { where: nested.where }
@@ -274,7 +292,9 @@ export class PrismaObjectFieldBuilder<
       return {
         select: {
           ...(hasTotalCount ? { _count: { select: { [name]: countSelect } } } : {}),
-          [name]: nested?.select
+          [name]: totalCountOnly
+            ? undefined
+            : nested?.select
             ? {
                 ...nested,
                 select: {
@@ -298,7 +318,25 @@ export class PrismaObjectFieldBuilder<
         extensions: {
           ...extensions,
           pothosPrismaSelect: relationSelect,
-          pothosPrismaLoaded: (value: Record<string, unknown>) => value[name] !== undefined,
+          pothosPrismaLoaded: (value: Record<string, unknown>, info: GraphQLResolveInfo) => {
+            const returnType = getNamedType(info.returnType);
+            const fields =
+              isObjectType(returnType) || isInterfaceType(returnType) ? returnType.getFields() : {};
+
+            const selections = info.fieldNodes;
+
+            const totalCountOnly = selections.every(
+              (selection) =>
+                selection.selectionSet?.selections.length === 1 &&
+                selection.selectionSet.selections.every(
+                  (s) =>
+                    s.kind === Kind.FIELD &&
+                    fields[s.name.value]?.extensions?.pothosPrismaTotalCount,
+                ),
+            );
+
+            return totalCountOnly || value[name] !== undefined;
+          },
           pothosPrismaFallback:
             resolve &&
             ((
@@ -331,7 +369,7 @@ export class PrismaObjectFieldBuilder<
 
           return wrapConnectionResult(
             parent,
-            (parent as Record<string, never>)[name],
+            (parent as Record<string, never>)[name] ?? [],
             args,
             connectionQuery.take,
             formatCursor,
@@ -349,6 +387,9 @@ export class PrismaObjectFieldBuilder<
                 ) => ({
                   totalCount: t.int({
                     nullable: false,
+                    extensions: {
+                      pothosPrismaTotalCount: true,
+                    },
                     resolve: (parent, args, context) => parent.totalCount,
                   }),
                   ...(connectionOptions as { fields?: (t: unknown) => {} }).fields?.(t),
@@ -366,8 +407,9 @@ export class PrismaObjectFieldBuilder<
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     model: string,
     fieldMap: FieldMap,
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind] = 'Object',
   ) {
-    super(name, builder, 'PrismaObject', 'Object');
+    super(name, builder, 'PrismaObject', graphqlKind);
 
     this.model = model;
     this.prismaFieldMap = fieldMap;
@@ -472,18 +514,14 @@ export class PrismaObjectFieldBuilder<
     }) as FieldRef<number, 'Object'>;
   }
 
-  variant<
-    Variant extends Model['Name'] | PrismaObjectRef<Model>,
-    Args extends InputFieldMap,
-    Nullable,
-  >(
+  variant<Variant extends Model['Name'] | PrismaRef<Model>, Args extends InputFieldMap, Nullable>(
     variant: Variant,
     ...allArgs: NormalizeArgs<
       [
         options: VariantFieldOptions<
           Types,
           Model,
-          Variant extends PrismaObjectRef<Model> ? Variant : PrismaObjectRef<Model>,
+          Variant extends PrismaRef<Model> ? Variant : PrismaRef<Model>,
           Args,
           Nullable,
           Shape
@@ -492,7 +530,7 @@ export class PrismaObjectFieldBuilder<
     >
   ): FieldRef<Model['Shape'], 'Object'> {
     const [{ isNull, nullable, ...options } = {} as never] = allArgs;
-    const ref: PrismaObjectRef<PrismaModelTypes> =
+    const ref: PrismaRef<PrismaModelTypes> =
       typeof variant === 'string' ? getRefFromModel(variant, this.builder) : variant;
 
     const selfSelect = (args: object, context: object, nestedQuery: (query: unknown) => unknown) =>
@@ -525,37 +563,46 @@ export class PrismaObjectFieldBuilder<
     Type extends TypeParam<Types>,
     Nullable extends boolean,
     ResolveReturnShape,
-    Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+    Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
   >(
+    name: Name,
     ...args: NormalizeArgs<
       [
-        name: Name,
-        options: Omit<
-          PothosSchemaTypes.ObjectFieldOptions<
-            Types,
-            Shape,
-            Type,
-            Nullable,
-            {},
-            ResolveReturnShape
-          >,
-          'resolve' | 'select'
-        >,
+        options: ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> &
+          Omit<
+            PothosSchemaTypes.ObjectFieldOptions<
+              Types,
+              Shape,
+              Type,
+              Nullable,
+              {},
+              ResolveReturnShape
+            >,
+            'description' | 'nullable' | 'resolve' | 'select'
+          > & {
+            description?: string | false;
+          },
       ]
     >
   ) {
-    const [name, options = {} as never] = args;
+    const [options = {} as never] = args;
 
-    const typeConfig = this.builder.configStore.getTypeConfig(this.typename, 'Object');
+    const typeConfig = this.builder.configStore.getTypeConfig(this.typename);
     const usingSelect = !!typeConfig.extensions?.pothosPrismaSelect;
 
-    return this.exposeField(name as never, {
+    return this.exposeField<Type, Nullable, never>(name as never, {
       ...options,
+      description: getFieldDescription(
+        this.model,
+        this.builder,
+        name as string,
+        options.description,
+      ) as never,
       extensions: {
         ...options.extensions,
         pothosPrismaVariant: name,
         pothosPrismaSelect: usingSelect && {
-          [name]: true,
+          [name as string]: true,
         },
       },
     });
@@ -565,37 +612,37 @@ export class PrismaObjectFieldBuilder<
     return <
       Nullable extends boolean,
       ResolveReturnShape,
-      Name extends CompatibleTypes<Types, Model['Shape'], Type, Nullable>,
+      Name extends CompatibleTypes<Types, Model['Shape'], Type, true>,
     >(
+      name: Name,
       ...args: NormalizeArgs<
         [
-          name: Name,
-          options: Omit<
-            PothosSchemaTypes.ObjectFieldOptions<
-              Types,
-              Shape,
-              Type,
-              Nullable,
-              {},
-              ResolveReturnShape
-            >,
-            'resolve' | 'type' | 'select' | 'description'
-          > & { description?: string | false },
+          options: ExposeNullability<Types, Type, Model['Shape'], Name, Nullable> &
+            Omit<
+              PothosSchemaTypes.ObjectFieldOptions<
+                Types,
+                Shape,
+                Type,
+                Nullable,
+                {},
+                ResolveReturnShape
+              >,
+              'description' | 'nullable' | 'resolve' | 'select' | 'type'
+            > & {
+              description?: string | false;
+            },
         ]
       >
     ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, 'PrismaObject'> => {
-      const [name, { description, ...options } = {} as never] = args;
+      const [options = {} as never] = args;
 
-      return this.expose(name as never, {
-        ...options,
-        description: getFieldDescription(
-          this.model,
-          this.builder,
-          name as string,
-          description,
-        ) as never,
-        type,
-      });
+      return this.expose<Type, Nullable, ResolveReturnShape, never>(
+        name as never,
+        {
+          ...options,
+          type,
+        } as never,
+      );
     };
   }
 }

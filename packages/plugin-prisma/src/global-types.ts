@@ -1,6 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 /* eslint-disable @typescript-eslint/no-empty-interface */
-import { A } from 'vitest/dist/types-fafda418';
+import { GraphQLResolveInfo } from 'graphql';
 import {
   FieldKind,
   FieldMap,
@@ -8,7 +8,6 @@ import {
   FieldRef,
   InputFieldMap,
   InputFieldRef,
-  InputShapeFromFields,
   InterfaceParam,
   NormalizeArgs,
   OutputType,
@@ -17,6 +16,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
+import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import { PrismaNodeRef } from './node-ref';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import { PrismaObjectFieldBuilder as InternalPrismaObjectFieldBuilder } from './prisma-field-builder';
@@ -26,6 +26,7 @@ import {
   PrismaConnectionShape,
   PrismaFieldOptions,
   PrismaFieldWithInputOptions,
+  PrismaInterfaceTypeOptions,
   prismaModelName,
   PrismaModelTypes,
   PrismaNodeOptions,
@@ -47,16 +48,6 @@ declare global {
       prisma:
         | {
             filterConnectionTotalCount?: boolean;
-            client: PrismaClient;
-            exposeDescriptions?:
-              | boolean
-              | {
-                  models?: boolean;
-                  fields?: boolean;
-                };
-          }
-        | {
-            filterConnectionTotalCount?: boolean;
             client: (ctx: Types['Context']) => PrismaClient;
             dmmf: { datamodel: unknown };
             exposeDescriptions?:
@@ -65,6 +56,18 @@ declare global {
                   models?: boolean;
                   fields?: boolean;
                 };
+            onUnusedQuery?: 'error' | 'warn' | ((info: GraphQLResolveInfo) => void) | null;
+          }
+        | {
+            filterConnectionTotalCount?: boolean;
+            client: PrismaClient;
+            exposeDescriptions?:
+              | boolean
+              | {
+                  models?: boolean;
+                  fields?: boolean;
+                };
+            onUnusedQuery?: 'error' | 'warn' | ((info: GraphQLResolveInfo) => void) | null;
           };
     }
 
@@ -124,13 +127,52 @@ declare global {
         ShapeFromSelection<Types, Model, { select: Select; include: Include }>
       >;
 
+      prismaInterface: <
+        Name extends keyof Types['PrismaTypes'],
+        Interfaces extends InterfaceParam<Types>[],
+        FindUnique,
+        Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
+        Include = unknown,
+        Select = unknown,
+      >(
+        name: Name,
+        options: PrismaInterfaceTypeOptions<
+          Types,
+          Model,
+          Interfaces,
+          FindUnique,
+          Include,
+          Select,
+          ShapeFromSelection<Types, Model, { select: Select; include: Include }>
+        >,
+      ) => PrismaInterfaceRef<
+        Model,
+        ShapeFromSelection<Types, Model, { select: Select; include: Include }>
+      >;
+
       prismaObjectField: <
         Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer M, {}>
           ? M
-          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+          : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
         Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
-          ? S
+          ? S & { [prismaModelName]?: Model['Name'] }
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fieldName: string,
+        field: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldRef,
+      ) => void;
+
+      prismaInterfaceField: <
+        Type extends PrismaInterfaceRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<infer M, {}>
+          ? M
+          : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+        Shape extends {} = Type extends PrismaInterfaceRef<PrismaModelTypes, infer S>
+          ? S & { [prismaModelName]?: Model['Name'] }
           : Model['Shape'] & {
               [prismaModelName]?: Type;
             },
@@ -144,9 +186,24 @@ declare global {
         Type extends PrismaObjectRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
         Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer M, {}>
           ? M
-          : Types['PrismaTypes'][Type & keyof Types['PrismaTypes']] & PrismaModelTypes,
+          : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
         Shape extends {} = Type extends PrismaObjectRef<PrismaModelTypes, infer S>
-          ? S
+          ? S & { [prismaModelName]?: Model['Name'] }
+          : Model['Shape'] & {
+              [prismaModelName]?: Type;
+            },
+      >(
+        type: Type,
+        fields: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldMap,
+      ) => void;
+
+      prismaInterfaceFields: <
+        Type extends PrismaInterfaceRef<PrismaModelTypes, {}> | keyof Types['PrismaTypes'],
+        Model extends PrismaModelTypes = Type extends PrismaInterfaceRef<infer M, {}>
+          ? M
+          : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
+        Shape extends {} = Type extends PrismaInterfaceRef<PrismaModelTypes, infer S>
+          ? S & { [prismaModelName]?: Model['Name'] }
           : Model['Shape'] & {
               [prismaModelName]?: Type;
             },
@@ -166,7 +223,7 @@ declare global {
             name: Name,
             options: PrismaNodeOptions<
               Types,
-              Types['PrismaTypes'][Name] & PrismaModelTypes,
+              PrismaModelTypes & Types['PrismaTypes'][Name],
               Interfaces,
               Include,
               Select,
@@ -178,7 +235,7 @@ declare global {
               UniqueField
             >,
           ) => PrismaNodeRef<
-            Types['PrismaTypes'][Name] & PrismaModelTypes,
+            PrismaModelTypes & Types['PrismaTypes'][Name],
             ShapeFromSelection<
               Types,
               PrismaModelTypes & Types['PrismaTypes'][Name],
@@ -196,10 +253,10 @@ declare global {
       prismaField: <
         Args extends InputFieldMap,
         TypeParam extends
-          | PrismaObjectRef<PrismaModelTypes>
+          | PrismaRef<PrismaModelTypes>
           | keyof Types['PrismaTypes']
           | [keyof Types['PrismaTypes']]
-          | [PrismaObjectRef<PrismaModelTypes>],
+          | [PrismaRef<PrismaModelTypes>],
         Nullable extends FieldNullability<Type>,
         ResolveShape,
         ResolveReturnShape,
@@ -209,9 +266,9 @@ declare global {
         Model extends PrismaModelTypes = PrismaModelTypes &
           (TypeParam extends [keyof Types['PrismaTypes']]
             ? Types['PrismaTypes'][TypeParam[0]]
-            : TypeParam extends [PrismaObjectRef<PrismaModelTypes>]
+            : TypeParam extends [PrismaRef<PrismaModelTypes>]
             ? TypeParam[0][typeof prismaModelKey]
-            : TypeParam extends PrismaObjectRef<PrismaModelTypes>
+            : TypeParam extends PrismaRef<PrismaModelTypes>
             ? TypeParam[typeof prismaModelKey]
             : TypeParam extends keyof Types['PrismaTypes']
             ? Types['PrismaTypes'][TypeParam]
@@ -233,14 +290,14 @@ declare global {
 
       prismaConnection: 'relay' extends PluginName
         ? <
-            Type extends PrismaObjectRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
+            Type extends PrismaRef<PrismaModelTypes> | keyof Types['PrismaTypes'],
             Nullable extends boolean,
             ResolveReturnShape,
             Args extends InputFieldMap = {},
-            Model extends PrismaModelTypes = Type extends PrismaObjectRef<infer T>
+            Model extends PrismaModelTypes = Type extends PrismaRef<infer T>
               ? T
               : PrismaModelTypes & Types['PrismaTypes'][Type & keyof Types['PrismaTypes']],
-            Shape = Type extends PrismaObjectRef<PrismaModelTypes, infer S> ? S : Model['Shape'],
+            Shape = Type extends PrismaRef<PrismaModelTypes, infer S> ? S : Model['Shape'],
             ConnectionInterfaces extends InterfaceParam<Types>[] = [],
             EdgeInterfaces extends InterfaceParam<Types>[] = [],
           >(
@@ -289,10 +346,10 @@ declare global {
         ? <
             Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
             TypeParam extends
-              | PrismaObjectRef<PrismaModelTypes>
+              | PrismaRef<PrismaModelTypes>
               | keyof Types['PrismaTypes']
               | [keyof Types['PrismaTypes']]
-              | [PrismaObjectRef<PrismaModelTypes>],
+              | [PrismaRef<PrismaModelTypes>],
             Type extends TypeParam extends [unknown]
               ? [ObjectRef<Model['Shape']>]
               : ObjectRef<Model['Shape']>,
@@ -305,9 +362,9 @@ declare global {
             Model extends PrismaModelTypes = PrismaModelTypes &
               (TypeParam extends [keyof Types['PrismaTypes']]
                 ? Types['PrismaTypes'][TypeParam[0]]
-                : TypeParam extends [PrismaObjectRef<PrismaModelTypes>]
+                : TypeParam extends [PrismaRef<PrismaModelTypes>]
                 ? TypeParam[0][typeof prismaModelKey]
-                : TypeParam extends PrismaObjectRef<PrismaModelTypes>
+                : TypeParam extends PrismaRef<PrismaModelTypes>
                 ? TypeParam[typeof prismaModelKey]
                 : TypeParam extends keyof Types['PrismaTypes']
                 ? Types['PrismaTypes'][TypeParam]

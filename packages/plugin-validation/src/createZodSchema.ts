@@ -76,7 +76,7 @@ function validatorCreator<T extends BaseValidationOptions<any>>(
 
 export function refine(
   originalValidator: zod.ZodTypeAny,
-  options: ValidationOptionUnion | RefineConstraint | null | undefined,
+  options: RefineConstraint | ValidationOptionUnion | null | undefined,
 ): zod.ZodTypeAny {
   if (!options) {
     return originalValidator;
@@ -92,12 +92,8 @@ export function refine(
 
   let validator = originalValidator;
 
-  // TODO find a better way to merge array fields
-  // eslint-disable-next-line no-underscore-dangle
-  if (options.schema && (options.schema._def as { typeName: string }).typeName === 'ZodArray') {
-    validator = originalValidator.refine((value) => options.schema?.parse(value));
-  } else if (options.schema) {
-    validator = originalValidator.and(options.schema);
+  if (options.schema) {
+    validator = options.schema.pipe(originalValidator);
   }
 
   if (!options.refine) {

@@ -1,5 +1,101 @@
 # Change Log
 
+## 3.61.0
+
+### Minor Changes
+
+- 0be6da5c: Fix issue with detection for totalCount only selections
+
+## 3.60.0
+
+### Minor Changes
+
+- 018c797c: Prevent loading full relation on a prisma connection when only total count is selected
+
+## 3.59.3
+
+### Patch Changes
+
+- 094359cd: Expose prismaModelKey
+
+## 3.59.2
+
+### Patch Changes
+
+- 0d8d60fa: add another case for @skip and @include when generating prisma selections
+
+## 3.59.1
+
+### Patch Changes
+
+- 1fc5b60b: Support Client Directives in Prisma plugin (@skip and @include)
+
+## 3.59.0
+
+### Minor Changes
+
+- 1bbd3d70: update model loader to cache query mappings and batch compatible queries to reduce
+  likelyhood of prisma deoptimization
+
+## 3.58.0
+
+### Minor Changes
+
+- 4ebfa27b: Add prismaInterfaceField(s) method
+
+### Patch Changes
+
+- 4ebfa27b: Fix bug that ignored differences in Date values when checking compatability between
+  selections
+
+## 3.57.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
+## 3.56.1
+
+### Patch Changes
+
+- 016011f2: Fix custom descriptions in t.expose methods
+
+## 3.56.0
+
+### Minor Changes
+
+- Fix unused query check for prismaConnections
+
+## 3.55.0
+
+### Minor Changes
+
+- 39237239: Add builder.prismaInterface to allow interface variants of a prisma model
+
+## 3.54.0
+
+### Minor Changes
+
+- 7494da05: Add `onUnusedQuery` option to the prisma plugin options
+
+## 3.53.0
+
+### Minor Changes
+
+- 5d3f7b97: Improve inference for t.expose methods on prisma field builder
+
+## 3.52.0
+
+### Minor Changes
+
+- 624f2d05: Add optimizations for nodes field on connections
+
+## 3.51.1
+
+### Patch Changes
+
+- e8139e73: Fixed a bug where totalCount was not selected correctly when selected through a fragment
+
 ## 3.51.0
 
 ### Minor Changes

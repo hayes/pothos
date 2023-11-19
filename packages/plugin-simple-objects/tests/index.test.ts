@@ -16,6 +16,7 @@ describe('simple objects example schema', () => {
             id
             firstName
             lastName
+            fullName
             contactInfo {
               email
               phoneNumber

@@ -8,6 +8,12 @@ const GiraffeInput = builder.inputType('GiraffeInput', {
   }),
 });
 
+builder.inputType('FindGiraffeInput', {
+  fields: (t) => ({
+    name: t.string({ required: true }),
+  }),
+});
+
 interface RecursiveGiraffeInputShape {
   name: string;
   birthdate: string;
@@ -37,6 +43,13 @@ builder.mutationType({
       },
       resolve: (root, args) =>
         new Giraffe(args.input.name, new Date(args.input.birthdate), args.input.height),
+    }),
+    findGiraffe: t.field({
+      type: Giraffe,
+      args: {
+        where: t.arg({ type: 'FindGiraffeInput', required: true }),
+      },
+      resolve: (root, args) => new Giraffe(args.where.name, new Date(), 8),
     }),
     createGiraffeWithFriends: t.field({
       type: [Giraffe],

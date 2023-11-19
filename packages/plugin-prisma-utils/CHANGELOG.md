@@ -1,5 +1,52 @@
 # @pothos/plugin-prisma-utils
 
+## 0.13.0
+
+### Minor Changes
+
+- 4a11ce04: Allow filters to set null for not
+
+## 0.12.1
+
+### Patch Changes
+
+- 8598e34f: Allow filters to set null for equals, is and isNot
+
+## 0.12.0
+
+### Minor Changes
+
+- 5061fc0c: Fix disconnect/delete for relationUpdates for one:one relations
+
+## 0.11.0
+
+### Minor Changes
+
+- c7756128: Improve typing for t.expose methods when strict mode is disabled
+
+## 0.10.0
+
+### Minor Changes
+
+- ccdec047: Add prismaIntAtomicUpdate helper for atomic operations on ints during an update
+
+### Patch Changes
+
+- 9b80756a: Allow nulls in prismaWhere for nullable fields to allow filtering for rows where a
+  column is null
+
+## 0.9.0
+
+### Minor Changes
+
+- 2d2edce6: Allow `mode` field in generated Prisma filter types
+
+## 0.8.2
+
+### Patch Changes
+
+- 624f2d05: Fix issue that prevented prismaUpdate from setting values to null
+
 ## 0.8.1
 
 ### Patch Changes
