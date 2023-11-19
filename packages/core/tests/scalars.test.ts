@@ -1,12 +1,19 @@
-import { execute, GraphQLScalarType } from 'graphql';
+import { execute, GraphQLBoolean, GraphQLScalarType } from 'graphql';
 import {
   DateTimeResolver,
   NonNegativeIntResolver,
   HexColorCodeResolver,
+  GraphQLEmailAddress,
+  GraphQLHexColorCode,
+  GraphQLISBN,
+  GraphQLBigInt,
+  GraphQLRGB,
+  GraphQLDate,
+  GraphQLJSON,
+  GraphQLJSONObject
 } from 'graphql-scalars';
 import gql from 'graphql-tag';
 import SchemaBuilder from '../src';
-
 
 const PositiveIntResolver = new GraphQLScalarType({
   name: 'PositiveInt',
@@ -328,5 +335,56 @@ describe('scalars', () => {
       `,
     });
     expect(result.data).to.deep.eq({ hex: '#BADA55', hexNoHash: 'BADA55' });
+  });
+
+  it('works will lots of scalars', async () => {
+    const builder = new SchemaBuilder({})
+      .withScalar('Email', GraphQLEmailAddress)
+      .withScalar('HexColor', GraphQLHexColorCode)
+      .withScalar('Boolean', GraphQLBoolean)
+      .withScalar('ISBN', GraphQLISBN)
+      .withScalar("BigInt", GraphQLBigInt)
+      .withScalar("RGB", GraphQLRGB)
+      .withScalar("Date", GraphQLDate)
+      .withScalar("JSONObject", GraphQLJSONObject)
+
+    builder.queryType();
+    builder.queryFields((t) => ({
+      email: t.field({ type: 'Email', resolve: () => 'hello@example.com' }),
+      hex: t.field({ type: 'HexColor', resolve: () => '#BADA55' }),
+      boolean: t.field({ type: 'Boolean', resolve: () => true }),
+      isbn: t.field({ type: 'ISBN', resolve: () => '9780008117450' }),
+      bigInt: t.field({ type: 'BigInt', resolve: () => BigInt(Number.MAX_SAFE_INTEGER) + BigInt(Number.MAX_SAFE_INTEGER) }),
+      rgb: t.field({ type: 'RGB', resolve: () => 'rgb(100,100,100)' }),
+      date: t.field({ type: 'Date', resolve: () => new Date('2000-01-01') }),
+      jsonObject: t.field({ type: 'JSONObject', resolve: () => ({hello: 'there'}) }),
+    }));
+
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: gql`
+        query {
+          email
+          hex
+          boolean
+          isbn
+          bigInt
+          byte
+          rgb
+          date,
+          jsonObject
+        }
+      `,
+    });
+    expect(result.data).to.deep.eq({
+      boolean: true,
+      email: 'hello@example.com',
+      hex: '#BADA55',
+      isbn: '9780008117450',
+      bigInt: "18014398509481982",
+      rgb: 'rgb(100,100,100)',
+      date: "2000-01-01",
+      jsonObject: {hello: 'there'}
+    });
   });
 });
