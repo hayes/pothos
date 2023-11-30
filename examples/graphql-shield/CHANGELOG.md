@@ -1,5 +1,12 @@
 # @pothos-examples/graphql-shield
 
+## 2.2.37
+
+### Patch Changes
+
+- Updated dependencies [1483e74]
+  - @pothos/core@3.39.0
+
 ## 2.2.36
 
 ### Patch Changes
