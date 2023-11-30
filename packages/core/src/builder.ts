@@ -543,8 +543,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown>
       ? InputFieldsFromShape<InputShape<Types, Param>>
       : Param extends keyof Types['Inputs']
-      ? InputFieldsFromShape<InputShape<Types, Param>>
-      : InputFieldMap,
+        ? InputFieldsFromShape<InputShape<Types, Param>>
+        : InputFieldMap,
   >(
     param: Param,
     options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>,

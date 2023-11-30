@@ -85,18 +85,18 @@ export type ValidationOptions<T> =
   | (T extends number
       ? NumberValidationOptions<T>
       : T extends bigint
-      ? BigIntValidationOptions<T>
-      : T extends boolean
-      ? BooleanValidationOptions<T>
-      : T extends string
-      ? StringValidationOptions<T>
-      : T extends Date
-      ? DateValidationOptions<T>
-      : T extends unknown[]
-      ? ArrayValidationOptions<T>
-      : T extends object
-      ? ObjectValidationOptions<T>
-      : BaseValidationOptions<T>);
+        ? BigIntValidationOptions<T>
+        : T extends boolean
+          ? BooleanValidationOptions<T>
+          : T extends string
+            ? StringValidationOptions<T>
+            : T extends Date
+              ? DateValidationOptions<T>
+              : T extends unknown[]
+                ? ArrayValidationOptions<T>
+                : T extends object
+                  ? ObjectValidationOptions<T>
+                  : BaseValidationOptions<T>);
 
 export type ValidationOptionUnion =
   | ArrayValidationOptions

@@ -146,8 +146,8 @@ export type ShapeFromSelection<
 export type ShapeFromCount<Selection> = Selection extends true
   ? { _count: number }
   : Selection extends { select: infer Counts }
-  ? { _count: { [K in keyof Counts]: number } }
-  : never;
+    ? { _count: { [K in keyof Counts]: number } }
+    : never;
 
 export type TypesForRelation<
   Types extends SchemaTypes,

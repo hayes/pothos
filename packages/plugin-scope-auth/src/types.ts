@@ -149,16 +149,16 @@ export type ContextForAuth<Types extends SchemaTypes, Scopes> = Scopes extends (
 ) => infer R
   ? ContextForAuth<Types, R>
   : Scopes extends boolean
-  ? Types['Context']
-  : keyof Scopes extends infer Scope
-  ? Scope extends keyof Types['AuthContexts']
-    ? Types['AuthContexts'][Scope]
-    : Scope extends '$any'
-    ? ContextForAuth<Types, Scopes[Scope & keyof Scopes]>
-    : Scope extends '$all'
-    ? UnionToIntersection<ContextForAuth<Types, Scopes[Scope & keyof Scopes]>>
-    : Types['Context']
-  : never;
+    ? Types['Context']
+    : keyof Scopes extends infer Scope
+      ? Scope extends keyof Types['AuthContexts']
+        ? Types['AuthContexts'][Scope]
+        : Scope extends '$any'
+          ? ContextForAuth<Types, Scopes[Scope & keyof Scopes]>
+          : Scope extends '$all'
+            ? UnionToIntersection<ContextForAuth<Types, Scopes[Scope & keyof Scopes]>>
+            : Types['Context']
+      : never;
 
 export type UnauthorizedResolver<
   Types extends SchemaTypes,

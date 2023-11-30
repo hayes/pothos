@@ -294,8 +294,8 @@ declare global {
               FieldOptions extends { resolve?: (parent: infer P, ...args: any[]) => unknown }
                 ? P
                 : unknown extends ResolveShape
-                ? ParentShape
-                : ResolveShape,
+                  ? ParentShape
+                  : ResolveShape,
               Type,
               Nullable,
               EdgeNullability,

@@ -1,7 +1,6 @@
 import { GraphQLFieldResolver, GraphQLResolveInfo, print } from 'graphql';
 import { pathToString, runFunction } from '@pothos/plugin-tracing';
 import * as Sentry from '@sentry/node';
-import { Span } from '@sentry/tracing';
 import { AttributeNames } from './enums';
 
 export * from './enums';
@@ -11,7 +10,7 @@ interface SentryWrapperOptions<T> {
   includeArgs?: boolean;
   includeSource?: boolean;
   onSpan?: (
-    span: Span,
+    span: Sentry.Span,
     options: T,
     parent: unknown,
     args: {},
@@ -54,7 +53,7 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
         description: info.fieldName,
         tags,
         data,
-      }) as Span;
+      });
 
       tracingOptions?.onSpan?.(span, fieldOptions, source, args, ctx, info);
       options?.onSpan?.(span, fieldOptions, source, args, ctx, info);
@@ -63,7 +62,7 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
         () => resolver(source, args, ctx, info),
         (error) => {
           if (error && !(tracingOptions?.ignoreError ?? options?.ignoreError)) {
-            Sentry.captureException(error, span);
+            Sentry.captureException(error);
           }
 
           span.finish();

@@ -267,12 +267,12 @@ declare global {
           (TypeParam extends [keyof Types['PrismaTypes']]
             ? Types['PrismaTypes'][TypeParam[0]]
             : TypeParam extends [PrismaRef<PrismaModelTypes>]
-            ? TypeParam[0][typeof prismaModelKey]
-            : TypeParam extends PrismaRef<PrismaModelTypes>
-            ? TypeParam[typeof prismaModelKey]
-            : TypeParam extends keyof Types['PrismaTypes']
-            ? Types['PrismaTypes'][TypeParam]
-            : never),
+              ? TypeParam[0][typeof prismaModelKey]
+              : TypeParam extends PrismaRef<PrismaModelTypes>
+                ? TypeParam[typeof prismaModelKey]
+                : TypeParam extends keyof Types['PrismaTypes']
+                  ? Types['PrismaTypes'][TypeParam]
+                  : never),
       >(
         options: PrismaFieldOptions<
           Types,
@@ -363,12 +363,12 @@ declare global {
               (TypeParam extends [keyof Types['PrismaTypes']]
                 ? Types['PrismaTypes'][TypeParam[0]]
                 : TypeParam extends [PrismaRef<PrismaModelTypes>]
-                ? TypeParam[0][typeof prismaModelKey]
-                : TypeParam extends PrismaRef<PrismaModelTypes>
-                ? TypeParam[typeof prismaModelKey]
-                : TypeParam extends keyof Types['PrismaTypes']
-                ? Types['PrismaTypes'][TypeParam]
-                : never),
+                  ? TypeParam[0][typeof prismaModelKey]
+                  : TypeParam extends PrismaRef<PrismaModelTypes>
+                    ? TypeParam[typeof prismaModelKey]
+                    : TypeParam extends keyof Types['PrismaTypes']
+                      ? Types['PrismaTypes'][TypeParam]
+                      : never),
           >(
             options: PrismaFieldWithInputOptions<
               Types,

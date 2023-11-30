@@ -295,14 +295,14 @@ export class PrismaObjectFieldBuilder<
           [name]: totalCountOnly
             ? undefined
             : nested?.select
-            ? {
-                ...nested,
-                select: {
-                  ...cursorSelection,
-                  ...nested.select,
-                },
-              }
-            : nested,
+              ? {
+                  ...nested,
+                  select: {
+                    ...cursorSelection,
+                    ...nested.select,
+                  },
+                }
+              : nested,
         },
       };
     };

@@ -272,11 +272,11 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
                     field.isList
                       ? ts.factory.createArrayTypeNode(ts.factory.createTypeReferenceNode(typeName))
                       : field.isRequired
-                      ? ts.factory.createTypeReferenceNode(typeName)
-                      : ts.factory.createUnionTypeNode([
-                          ts.factory.createTypeReferenceNode(typeName),
-                          ts.factory.createLiteralTypeNode(ts.factory.createNull()),
-                        ]),
+                        ? ts.factory.createTypeReferenceNode(typeName)
+                        : ts.factory.createUnionTypeNode([
+                            ts.factory.createTypeReferenceNode(typeName),
+                            ts.factory.createLiteralTypeNode(ts.factory.createNull()),
+                          ]),
                   ),
                   ts.factory.createPropertySignature(
                     [],
