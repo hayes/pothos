@@ -15,6 +15,7 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
         Boolean: unknown;
     };
     Objects: {};
+    Inputs: {};
     Interfaces: {};
     Scalars: {
         String: {

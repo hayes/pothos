@@ -3,7 +3,7 @@
 import type { GraphQLDirective } from 'https://cdn.skypack.dev/graphql?dts';
 import type { PluginConstructorMap } from '../plugins.ts';
 import type { MergedScalars, SchemaTypes } from '../schema-types.ts';
-import type { IsStrictMode } from '../utils.ts';
+import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
@@ -36,6 +36,7 @@ declare global {
                 Output: unknown;
             }>;
             Objects: {};
+            Inputs: {};
             Interfaces: {};
             Root: object;
             Context: object;
@@ -45,6 +46,7 @@ declare global {
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> extends SchemaTypes {
             Scalars: MergedScalars<PartialTypes>;
             Objects: PartialTypes["Objects"] & {};
+            Inputs: PartialTypes["Inputs"] & {};
             Interfaces: PartialTypes["Interfaces"] & {};
             Root: PartialTypes["Root"] & {};
             Context: PartialTypes["Context"] & {};
@@ -63,6 +65,8 @@ declare global {
                 [K in keyof MergedScalars<PartialTypes>]: MergedScalars<PartialTypes>[K] extends {
                     Input: infer T;
                 } ? T : never;
+            } & {
+                [K in keyof PartialTypes["Inputs"]]: RecursivelyNormalizeNullableFields<PartialTypes["Inputs"][K]>;
             };
         }
     }

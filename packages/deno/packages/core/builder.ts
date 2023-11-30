@@ -325,7 +325,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
             },
         } as PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, ParentShape<Types, Name>>);
     }
-    inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param>> : InputFieldMap>(param: Param, options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>): PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {
+    inputType<Param extends InputObjectRef<unknown> | string, Fields extends Param extends PothosSchemaTypes.InputObjectRef<unknown> ? InputFieldsFromShape<InputShape<Types, Param>> : Param extends keyof Types["Inputs"] ? InputFieldsFromShape<InputShape<Types, Param>> : InputFieldMap>(param: Param, options: PothosSchemaTypes.InputObjectTypeOptions<Types, Fields>): PothosSchemaTypes.InputObjectRef<InputShapeFromFields<Fields>> {
         verifyRef(param);
         const name = typeof param === "string" ? param : (param as {
             name: string;
