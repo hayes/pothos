@@ -88,9 +88,10 @@ export function SearchPane() {
     [],
   );
 
-  const { data, isLoading, error } = useQuery(['docsSearch', query], () =>
-    fetchSearchResults(query),
-  );
+  const { data, isLoading, error } = useQuery({
+    queryKey: ['docsSearch', query],
+    queryFn: () => fetchSearchResults(query),
+  });
 
   return (
     <details
