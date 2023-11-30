@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.48.0
+
+### Minor Changes
+
+- 1483e74: PothosError now extends GraphQL error
+
 ## 3.47.0
 
 ### Minor Changes
