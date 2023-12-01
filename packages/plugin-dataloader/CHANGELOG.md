@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.17.2
+
+### Patch Changes
+
+- 9db5200: Improve handling of mismatched result sizes in dataloaders
+
 ## 3.17.1
 
 ### Patch Changes
