@@ -137,7 +137,7 @@ export function SearchPane() {
           {isLoading ? (
             <div className="p-4">Searching...</div>
           ) : error ? (
-            <pre>{(error as Error).message}</pre>
+            <pre>{error.message}</pre>
           ) : (
             <ul className="mt-1">
               {data!.map((result) => (
