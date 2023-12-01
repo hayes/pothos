@@ -34,7 +34,7 @@ export function loadAndSort<K, V, C>(
       }
     }
 
-    for (let i = 0; i < list.length; i += 1) {
+    for (let i = 0; i < keys.length; i += 1) {
       results[i] = map.get(keys[i]) ?? null;
     }
 
