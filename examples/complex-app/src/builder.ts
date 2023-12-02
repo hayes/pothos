@@ -50,4 +50,4 @@ export const builder = new SchemaBuilder<{
 builder.queryType();
 builder.mutationType();
 
-builder.addScalarType('DateTime', DateTimeResolver, {});
+builder.addScalarType('DateTime', DateTimeResolver);

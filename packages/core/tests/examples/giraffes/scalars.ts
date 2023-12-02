@@ -1,7 +1,7 @@
 import { DateResolver } from 'graphql-scalars';
 import builder from './builder';
 
-builder.addScalarType('Date', DateResolver, {});
+builder.addScalarType('Date', DateResolver);
 
 builder.scalarType('PositiveInt', {
   serialize: (n) => n as number,
