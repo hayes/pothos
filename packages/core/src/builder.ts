@@ -520,7 +520,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       'serialize'
     > & {
       serialize?: GraphQLScalarSerializer<OutputShape<Types, Name>>;
-    },
+    } = {},
   ) {
     const config = scalar.toConfig();
 
@@ -594,7 +594,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
     scalars.forEach((scalar) => {
       if (!this.configStore.hasConfig(scalar.name as OutputType<Types>)) {
-        this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
+        this.addScalarType(scalar.name as ScalarName<Types>, scalar);
       }
     });
 

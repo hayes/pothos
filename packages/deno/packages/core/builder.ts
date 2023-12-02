@@ -314,7 +314,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     }
     addScalarType<Name extends ScalarName<Types>>(name: Name, scalar: GraphQLScalarType, options: Omit<PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>, "serialize"> & {
         serialize?: GraphQLScalarSerializer<OutputShape<Types, Name>>;
-    }) {
+    } = {}) {
         const config = scalar.toConfig();
         return this.scalarType<Name>(name, {
             ...config,
@@ -363,7 +363,7 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
         scalars.forEach((scalar) => {
             if (!this.configStore.hasConfig(scalar.name as OutputType<Types>)) {
-                this.addScalarType(scalar.name as ScalarName<Types>, scalar, {});
+                this.addScalarType(scalar.name as ScalarName<Types>, scalar);
             }
         });
         const buildCache = new BuildCache(this, options);
