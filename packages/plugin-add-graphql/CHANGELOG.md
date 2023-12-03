@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 3.2.0
+
+### Minor Changes
+
+- 41fe7d4: Make options optional when registering existing scalars/types
+
 ## 3.1.1
 
 ### Patch Changes

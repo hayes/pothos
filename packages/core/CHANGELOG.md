@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.40.0
+
+### Minor Changes
+
+- 41fe7d4: Make options optional when registering existing scalars/types
+
 ## 3.39.0
 
 ### Minor Changes
