@@ -28,6 +28,7 @@ describe('prisma counts', () => {
         me {
           postCount
           publishedCount
+          filteredCount(published: true)
           anotherPostCount: postCount
           postsConnection(first: 1) {
             totalCount
@@ -68,6 +69,7 @@ describe('prisma counts', () => {
         "data": {
           "me": {
             "anotherPostCount": 250,
+            "filteredCount": 149,
             "oldPosts": {
               "edges": [
                 {
