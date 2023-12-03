@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.62.0
+
+### Minor Changes
+
+- b3cb5fd: Arguments support for prisma relation count
+
 ## 3.61.0
 
 ### Minor Changes

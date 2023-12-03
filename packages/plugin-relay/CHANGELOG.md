@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.45.0
+
+### Minor Changes
+
+- 7d1459b: Improve typing of globalID args in node(s)QueryFieldOptions
+
 ## 3.44.0
 
 ### Minor Changes
