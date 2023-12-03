@@ -515,13 +515,22 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
   addScalarType<Name extends ScalarName<Types>>(
     name: Name,
     scalar: GraphQLScalarType,
-    options: Omit<
-      PothosSchemaTypes.ScalarTypeOptions<Types, InputShape<Types, Name>, OutputShape<Types, Name>>,
-      'serialize'
-    > & {
-      serialize?: GraphQLScalarSerializer<OutputShape<Types, Name>>;
-    } = {},
+    ...args: NormalizeArgs<
+      [
+        options: Omit<
+          PothosSchemaTypes.ScalarTypeOptions<
+            Types,
+            InputShape<Types, Name>,
+            OutputShape<Types, Name>
+          >,
+          'serialize'
+        > & {
+          serialize?: GraphQLScalarSerializer<OutputShape<Types, Name>>;
+        },
+      ]
+    >
   ) {
+    const [options = {}] = args;
     const config = scalar.toConfig();
 
     return this.scalarType<Name>(name, {
