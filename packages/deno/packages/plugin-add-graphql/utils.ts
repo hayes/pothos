@@ -7,22 +7,22 @@ export function addTypeToSchema<Types extends SchemaTypes>(builder: PothosSchema
         return;
     }
     if (isObjectType(type)) {
-        builder.addGraphQLObject(type, {});
+        builder.addGraphQLObject(type);
     }
     else if (isInterfaceType(type)) {
-        builder.addGraphQLInterface(type, {});
+        builder.addGraphQLInterface(type);
     }
     else if (isUnionType(type)) {
-        builder.addGraphQLUnion(type, {});
+        builder.addGraphQLUnion(type);
     }
     else if (isEnumType(type)) {
-        builder.addGraphQLEnum(type, {});
+        builder.addGraphQLEnum(type);
     }
     else if (isInputObjectType(type)) {
-        builder.addGraphQLInput(type, {});
+        builder.addGraphQLInput(type);
     }
     else if (isScalarType(type)) {
-        builder.addScalarType(type.name as never, type, {});
+        builder.addScalarType(type.name as never, type);
     }
 }
 export function addReferencedType<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, type: GraphQLNamedType) {

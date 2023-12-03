@@ -30,7 +30,7 @@ const builder = new SchemaBuilder<{
   };
 }>({});
 
-builder.addScalarType('Date', CustomDateScalar, {});
+builder.addScalarType('Date', CustomDateScalar);
 ```
 
 The Input type is the type that will be used when the type is used in an argument or `InputObject`.
@@ -88,8 +88,8 @@ const builder = new SchemaBuilder<{
   };
 }>({});
 
-builder.addScalarType('JSON', JSONResolver, {});
-builder.addScalarType('Date', DateResolver, {});
+builder.addScalarType('JSON', JSONResolver);
+builder.addScalarType('Date', DateResolver);
 ```
 
 ## Defining your own scalars

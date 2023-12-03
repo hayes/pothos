@@ -59,7 +59,7 @@ function resolveInputType(builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
         } as unknown as boolean,
     };
 }
-proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectType<Shape>, { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape>) {
+proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectType<Shape>, { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape> = {}) {
     const typeOptions = {
         ...options,
         description: type.description ?? undefined,
@@ -116,7 +116,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(type: GraphQLObjectTyp
             return this.objectRef<Shape>(options?.name ?? type.name).implement(typeOptions as never);
     }
 };
-proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(type: GraphQLInterfaceType, { fields, extensions, ...options }: AddGraphQLInterfaceTypeOptions<SchemaTypes, Shape>) {
+proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(type: GraphQLInterfaceType, { fields, extensions, ...options }: AddGraphQLInterfaceTypeOptions<SchemaTypes, Shape> = {}) {
     const ref = this.interfaceRef<Shape>(options?.name ?? type.name);
     ref.implement({
         ...options,
@@ -161,7 +161,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(type: 
     });
     return ref;
 };
-proto.addGraphQLUnion = function addGraphQLUnion<Shape>(type: GraphQLUnionType, { types, extensions, ...options }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<Shape>>) {
+proto.addGraphQLUnion = function addGraphQLUnion<Shape>(type: GraphQLUnionType, { types, extensions, ...options }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<Shape>> = {}) {
     return this.unionType<ObjectParam<SchemaTypes>, Shape>(options?.name ?? type.name, {
         ...options,
         description: type.description ?? undefined,
@@ -171,7 +171,7 @@ proto.addGraphQLUnion = function addGraphQLUnion<Shape>(type: GraphQLUnionType, 
         ]),
     });
 };
-proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(type: GraphQLEnumType, { values, extensions, ...options }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>>) {
+proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(type: GraphQLEnumType, { values, extensions, ...options }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>> = {}) {
     const newValues = values ??
         type.getValues().reduce<EnumValueConfigMap<SchemaTypes>>((acc, value) => {
             acc[value.name] = {
@@ -190,7 +190,7 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(ty
     } as never);
     return ref;
 };
-proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(type: GraphQLInputObjectType, { name = type.name, fields, extensions, ...options }: AddGraphQLInputTypeOptions<SchemaTypes, Shape>) {
+proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(type: GraphQLInputObjectType, { name = type.name, fields, extensions, ...options }: AddGraphQLInputTypeOptions<SchemaTypes, Shape> = {}) {
     const ref = this.inputRef<Shape>(name);
     return ref.implement({
         ...options,

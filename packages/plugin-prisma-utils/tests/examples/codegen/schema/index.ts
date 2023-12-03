@@ -19,7 +19,7 @@ import {
   UserUpdate,
 } from './prisma-inputs';
 
-builder.addScalarType('DateTime', DateTimeResolver, {});
+builder.addScalarType('DateTime', DateTimeResolver);
 
 builder.queryType({
   fields: (t) => ({

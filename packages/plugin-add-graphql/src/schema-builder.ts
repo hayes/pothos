@@ -110,7 +110,7 @@ function resolveInputType(
 
 proto.addGraphQLObject = function addGraphQLObject<Shape>(
   type: GraphQLObjectType<Shape>,
-  { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape>,
+  { fields, extensions, ...options }: AddGraphQLObjectTypeOptions<SchemaTypes, Shape> = {},
 ) {
   const typeOptions = {
     ...options,
@@ -178,7 +178,7 @@ proto.addGraphQLObject = function addGraphQLObject<Shape>(
 
 proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
   type: GraphQLInterfaceType,
-  { fields, extensions, ...options }: AddGraphQLInterfaceTypeOptions<SchemaTypes, Shape>,
+  { fields, extensions, ...options }: AddGraphQLInterfaceTypeOptions<SchemaTypes, Shape> = {},
 ) {
   const ref = this.interfaceRef<Shape>(options?.name ?? type.name);
 
@@ -234,7 +234,7 @@ proto.addGraphQLInterface = function addGraphQLInterface<Shape = unknown>(
 
 proto.addGraphQLUnion = function addGraphQLUnion<Shape>(
   type: GraphQLUnionType,
-  { types, extensions, ...options }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<Shape>>,
+  { types, extensions, ...options }: AddGraphQLUnionTypeOptions<SchemaTypes, ObjectRef<Shape>> = {},
 ) {
   return this.unionType<ObjectParam<SchemaTypes>, Shape>(options?.name ?? type.name, {
     ...options,
@@ -251,7 +251,7 @@ proto.addGraphQLEnum = function addGraphQLEnum<Shape extends number | string>(
     values,
     extensions,
     ...options
-  }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>>,
+  }: AddGraphQLEnumTypeOptions<SchemaTypes, EnumValuesWithShape<SchemaTypes, Shape>> = {},
 ) {
   const newValues =
     values ??
@@ -286,7 +286,7 @@ proto.addGraphQLInput = function addGraphQLInput<Shape extends {}>(
     fields,
     extensions,
     ...options
-  }: AddGraphQLInputTypeOptions<SchemaTypes, Shape>,
+  }: AddGraphQLInputTypeOptions<SchemaTypes, Shape> = {},
 ) {
   const ref = this.inputRef<Shape>(name);
 
