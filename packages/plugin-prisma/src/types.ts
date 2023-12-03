@@ -487,29 +487,30 @@ export type RelationCountOptions<
   Shape,
   NeedsResolve extends boolean,
   Where,
+  Args extends InputFieldMap,
 > = Omit<
-  PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, {}, number>,
+  PothosSchemaTypes.ObjectFieldOptions<Types, Shape, 'Int', false, Args, number>,
   'resolve' | 'type'
 > &
   (NeedsResolve extends false
     ? {
-        where?: Where | ((args: {}, context: Types['Context']) => Where);
         resolve?: (
           parent: Shape,
-          args: {},
+          args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
         ) => MaybePromise<number>;
       }
     : {
-        where?: Where | ((args: {}, context: Types['Context']) => Where);
         resolve: (
           parent: Shape,
-          args: {},
+          args: InputShapeFromFields<Args>,
           context: Types['Context'],
           info: GraphQLResolveInfo,
         ) => MaybePromise<number>;
-      });
+      }) & {
+    where?: Where | ((args: InputShapeFromFields<Args>, context: Types['Context']) => Where);
+  };
 
 export type PrismaFieldOptions<
   Types extends SchemaTypes,

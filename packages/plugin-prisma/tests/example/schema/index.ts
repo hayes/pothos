@@ -259,6 +259,14 @@ const User = builder.prismaNode('User', {
         published: true,
       },
     }),
+    filteredCount: t.relationCount('posts', {
+      args: {
+        published: t.arg.boolean({ required: true }),
+      },
+      where: (args) => ({
+        published: args.published,
+      }),
+    }),
     posts: t.relation('posts', {
       args: {
         oldestFirst: t.arg.boolean(),

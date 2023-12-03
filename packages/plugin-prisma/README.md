@@ -475,7 +475,7 @@ Prisma supports querying for
 which allow including counts for relations along side other `includes`. Before prisma 4.2.0, this
 does not support any filters on the counts, but can give a total count for a relation. Starting from
 prisma 4.2.0, filters on relation count are available under the `filteredRelationCount` preview
-feature flag.
+feature flag, in 4.16.0 this feature became generally available.
 
 ```typescript
 builder.prismaObject('User', {
@@ -485,6 +485,24 @@ builder.prismaObject('User', {
       where: {
         published: true,
       },
+    }),
+  }),
+});
+```
+
+You can also use arguments and dynamically build where.
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    postCount: t.relationCount('posts', {
+      args: {
+        published: t.arg.boolean({ required: true }),
+      },
+      where: (args, ctx) => ({
+        published: args.published,
+      }),
     }),
   }),
 });
