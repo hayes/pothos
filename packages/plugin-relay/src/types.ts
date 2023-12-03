@@ -9,7 +9,6 @@ import {
   InputFieldRef,
   InputFieldsFromShape,
   InputRef,
-  InputShape,
   InputShapeFromFields,
   inputShapeKey,
   InterfaceParam,
@@ -50,7 +49,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           Types,
           OutputRefShape<GlobalIDShape<Types> | string>,
           boolean,
-          { id: InputFieldRef<InputShape<Types, 'ID'>> },
+          { id: InputFieldRef<{ typename: string; id: string }> },
           Promise<unknown>
         >,
         'args' | 'resolve' | 'type'
@@ -65,7 +64,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           },
           context: Types['Context'],
           info: GraphQLResolveInfo,
-          resolveNode: (id: { id: string; typename: string }) => MaybePromise<unknown>,
+          resolveNode: (id: { typename: string; id: string }) => MaybePromise<unknown>,
         ) => MaybePromise<unknown>;
       });
   nodesQueryOptions:
@@ -75,7 +74,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           Types,
           [OutputRefShape<GlobalIDShape<Types> | string>],
           FieldNullability<[unknown]>,
-          { ids: InputFieldRef<InputShape<Types, 'ID'>[]> },
+          { ids: InputFieldRef<{ typename: string; id: string }[]> },
           Promise<unknown>[]
         >,
         'args' | 'resolve' | 'type'

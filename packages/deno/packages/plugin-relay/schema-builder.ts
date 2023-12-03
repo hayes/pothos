@@ -112,21 +112,8 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
                 }),
             },
             resolve: resolveNodeFn
-                ? (root, args, context, info) => resolveNodeFn(root, args as {
-                    id: {
-                        id: string;
-                        typename: string;
-                    };
-                }, context, info, (ids) => completeValue(resolveNodes(this, context, info, [
-                    args.id as {
-                        id: string;
-                        typename: string;
-                    },
-                ]), (nodes) => nodes[0])) as never
-                : (root, args, context, info) => completeValue(resolveNodes(this, context, info, [args.id as {
-                        id: string;
-                        typename: string;
-                    }]), (nodes) => nodes[0]),
+                ? (root, args, context, info) => resolveNodeFn(root, args, context, info, (ids) => completeValue(resolveNodes(this, context, info, [args.id]), (nodes) => nodes[0])) as never
+                : (root, args, context, info) => completeValue(resolveNodes(this, context, info, [args.id]), (nodes) => nodes[0]),
         }) as FieldRef<unknown>);
     }
     const nodesQueryOptions = this.options.relayOptions?.nodesQueryOptions;

@@ -1,6 +1,6 @@
 // @ts-nocheck
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShape, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
+import { EmptyToOptional, FieldKind, FieldNullability, FieldOptionsFromKind, FieldRequiredness, InputFieldMap, InputFieldRef, InputFieldsFromShape, InputRef, InputShapeFromFields, inputShapeKey, InterfaceParam, MaybePromise, Normalize, ObjectFieldsShape, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputRefShape, OutputShape, OutputType, ParentShape, Resolver, SchemaTypes, ShapeFromListTypeParam, ShapeFromTypeParam, } from '../core/index.ts';
 export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     idFieldName?: string;
     idFieldOptions?: Partial<Omit<PothosSchemaTypes.ObjectFieldOptions<Types, {}, "ID", boolean, {}, PageInfoShape>, "args" | "nullable" | "resolve" | "type">>;
@@ -10,7 +10,10 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     nodeTypeOptions: Omit<PothosSchemaTypes.InterfaceTypeOptions<Types, unknown>, "fields">;
     pageInfoTypeOptions: Omit<PothosSchemaTypes.ObjectTypeOptions<Types, PageInfoShape>, "fields">;
     nodeQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, OutputRefShape<GlobalIDShape<Types> | string>, boolean, {
-        id: InputFieldRef<InputShape<Types, "ID">>;
+        id: InputFieldRef<{
+            typename: string;
+            id: string;
+        }>;
     }, Promise<unknown>>, "args" | "resolve" | "type"> & {
         args?: {
             id?: Omit<GlobalIDInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;
@@ -21,8 +24,8 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
                 id: string;
             };
         }, context: Types["Context"], info: GraphQLResolveInfo, resolveNode: (id: {
-            id: string;
             typename: string;
+            id: string;
         }) => MaybePromise<unknown>) => MaybePromise<unknown>;
     });
     nodesQueryOptions: false | (Omit<PothosSchemaTypes.QueryFieldOptions<Types, [
@@ -30,7 +33,10 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
     ], FieldNullability<[
         unknown
     ]>, {
-        ids: InputFieldRef<InputShape<Types, "ID">[]>;
+        ids: InputFieldRef<{
+            typename: string;
+            id: string;
+        }[]>;
     }, Promise<unknown>[]>, "args" | "resolve" | "type"> & {
         args?: {
             ids?: Omit<GlobalIDListInputFieldOptions<Types, true, "Arg", ObjectParam<Types>>, "required">;

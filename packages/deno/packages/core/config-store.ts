@@ -118,7 +118,7 @@ export default class ConfigStore<Types extends SchemaTypes> {
     }> {
         if (!this.fieldRefs.has(ref)) {
             if (this.pendingFields.has(ref)) {
-                throw new PothosSchemaError(`Missing implementation for ${this.describeRef(this.pendingFields.get(ref)!)}`);
+                throw new PothosSchemaError(`Missing implementation for ${this.describeRef(this.pendingFields.get(ref)!)} used in field ${name} of ${typeConfig.name}`);
             }
             throw new PothosSchemaError(`Missing definition for ${String(ref)}`);
         }
