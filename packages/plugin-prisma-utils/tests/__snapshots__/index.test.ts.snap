@@ -115,7 +115,13 @@ input UserCreatePostsRelationInput {
 
 input UserFilter {
   NOT: UserFilter
+  OR: [UserFilterOr!]
   id: IntFilter
+}
+
+input UserFilterOr {
+  id: Int
+  name: String
 }
 
 input UserOrderBy {

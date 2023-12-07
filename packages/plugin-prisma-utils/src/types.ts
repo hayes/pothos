@@ -97,9 +97,9 @@ export interface PrismaWhereOptions<
 
 export type PrismaWhereFields<Types extends SchemaTypes, Model extends PrismaModelTypes> = {
   [K in keyof Model['Where']]?: K extends 'AND' | 'OR'
-    ? Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where'][]>>, 'type'> | boolean
+    ? PrismaInputOrRef<Types, Model['Where'] | Model['Where'][]> | boolean
     : K extends 'NOT'
-      ? Omit<PothosSchemaTypes.InputFieldOptions<Types, InputRef<Model['Where']>>, 'type'> | boolean
+      ? PrismaInputOrRef<Types, Model['Where']> | boolean
       : PrismaWhereFieldType<Types, Model, K>;
 };
 
@@ -134,10 +134,13 @@ export type PrismaWhereFieldType<
   K extends keyof Model['Where'],
 > = K extends Model['RelationName']
   ? InputFieldRef<Model['Where'][K]> | InputRef<Model['Where'][K]>
-  :
-      | InputFieldRef<Model['Where'][K] | null | undefined>
-      | InputRef<Model['Where'][K]>
-      | InputWithShape<Types, Model['Where'][K]>;
+  : PrismaInputOrRef<Types, Model['Where'][K]>;
+
+export type PrismaInputOrRef<
+  Types extends SchemaTypes,
+  Shape,
+  FieldShape = Shape | null | undefined,
+> = InputFieldRef<FieldShape> | InputRef<Shape> | InputWithShape<Types, Shape>;
 
 export type PrismaWhereUniqueFieldType<
   Types extends SchemaTypes,

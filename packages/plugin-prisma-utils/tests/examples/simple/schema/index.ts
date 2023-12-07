@@ -79,11 +79,20 @@ const CommentWhere = builder.prismaWhere('Comment', {
   },
 });
 
-const UserWhere = builder.prismaWhere('User', {
+const UserOrWhere = builder.prismaWhere('User', {
+  name: 'UserFilterOr',
   fields: {
+    name: 'String',
+    id: 'Int',
+  },
+});
+
+const UserWhere = builder.prismaWhere('User', {
+  fields: () => ({
     id: IDFilter,
     NOT: true,
-  },
+    OR: UserOrWhere,
+  }),
 });
 
 const PostFilter = builder.prismaWhere('Post', {
