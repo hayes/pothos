@@ -1,5 +1,11 @@
 import { ListRef } from '../refs/list';
-import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types';
+import type {
+  ArgBuilder,
+  FieldNullabilityOptions,
+  InputFieldMap,
+  NormalizeArgs,
+  ShapeFromTypeParam,
+} from '../types';
 import {
   FieldKind,
   FieldNullability,
@@ -7,6 +13,7 @@ import {
   SchemaTypes,
   TypeParam,
 } from '../types';
+import { nonNullableFromOptions } from '../utils';
 import { BaseFieldUtil } from './base';
 import { InputFieldBuilder } from './input';
 
@@ -414,11 +421,11 @@ export class RootFieldBuilder<
 
   listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(
     type: T,
-    options?: { nullable?: Nullable },
+    options?: FieldNullabilityOptions<Types, Nullable>,
   ): ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]> {
     return new ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]>(
       type,
-      options?.nullable ?? false,
+      nonNullableFromOptions(this.builder, options ?? { nonNull: true }),
     );
   }
 }

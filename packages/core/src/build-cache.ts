@@ -260,14 +260,14 @@ export class BuildCache<Types extends SchemaTypes> {
 
   private buildOutputTypeParam(type: PothosOutputFieldType<Types>): GraphQLOutputType {
     if (type.kind === 'List') {
-      if (type.nullable) {
+      if (!type.nonNull) {
         return new GraphQLList(this.buildOutputTypeParam(type.type));
       }
 
       return new GraphQLNonNull(new GraphQLList(this.buildOutputTypeParam(type.type)));
     }
 
-    if (type.nullable) {
+    if (!type.nonNull) {
       return this.getOutputType(type.ref);
     }
 

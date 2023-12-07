@@ -15,11 +15,11 @@ export class ListRef<Types extends SchemaTypes, T, P = T>
 
   listType: TypeParam<Types>;
 
-  nullable: boolean;
+  nonNull: boolean;
 
-  constructor(listType: TypeParam<Types>, nullable: boolean) {
+  constructor(listType: TypeParam<Types>, nonNull: boolean) {
     super('List', `List<${String(listType)}>`);
     this.listType = listType;
-    this.nullable = nullable;
+    this.nonNull = nonNull;
   }
 }

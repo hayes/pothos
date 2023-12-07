@@ -2,7 +2,9 @@ import SchemaBuilder from '@pothos/core';
 import ValidationPlugin from '@pothos/plugin-validation';
 import ErrorPlugin from '../../src';
 
-export const builder = new SchemaBuilder<{}>({
+export const builder = new SchemaBuilder<{
+  NullableMode: 'v3';
+}>({
   plugins: [ErrorPlugin, ValidationPlugin],
   errors: {
     defaultTypes: [Error],

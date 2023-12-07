@@ -3,12 +3,13 @@ import { ArgumentRef } from '../refs/arg';
 import { FieldRef } from '../refs/field';
 import type {
   FieldKind,
+  FieldNullabilityOptions,
   InputFieldMap,
   PothosInputFieldConfig,
   ShapeFromTypeParam,
 } from '../types';
 import { FieldNullability, SchemaTypes, TypeParam } from '../types';
-import { typeFromParam } from '../utils';
+import { nonNullableFromOptions, typeFromParam } from '../utils';
 
 export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
   kind: Kind;
@@ -32,8 +33,9 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
   >(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
+    options: FieldNullabilityOptions<Types, Nullable> &
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     const ref = new FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>(
       this.kind,
@@ -64,7 +66,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
           type: typeFromParam(
             options.type,
             this.builder.configStore,
-            options.nullable ?? this.builder.defaultFieldNullability,
+            nonNullableFromOptions(this.builder, options),
           ),
           pothosOptions: options as never,
           extensions: {

@@ -1,5 +1,11 @@
 import type { GraphQLFieldExtensions } from 'graphql';
-import type { InputFieldMap, InputShapeFromFields, Resolver, Subscriber } from '../builder-options';
+import type {
+  FieldNullabilityOptions,
+  InputFieldMap,
+  InputShapeFromFields,
+  Resolver,
+  Subscriber,
+} from '../builder-options';
 import type { SchemaTypes } from '../schema-types';
 import type {
   FieldNullability,
@@ -25,8 +31,6 @@ declare global {
       type: Type;
       /** arguments for this field (created via `t.args`) */
       args?: Args;
-      /** determines if this field can return null */
-      nullable?: Nullable;
       /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
       description?: string;
       /** When present marks this field as deprecated */
@@ -233,25 +237,16 @@ declare global {
       ResolveShape,
       ResolveReturnShape,
     > {
-      Query: QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
-      Mutation: MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
-      Subscription: SubscriptionFieldOptions<
-        Types,
-        Type,
-        Nullable,
-        Args,
-        ResolveShape,
-        ResolveReturnShape
-      >;
-      Object: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
-      Interface: InterfaceFieldOptions<
-        Types,
-        ParentShape,
-        Type,
-        Nullable,
-        Args,
-        ResolveReturnShape
-      >;
+      Query: FieldNullabilityOptions<Types, Nullable> &
+        QueryFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
+      Mutation: FieldNullabilityOptions<Types, Nullable> &
+        MutationFieldOptions<Types, Type, Nullable, Args, ResolveReturnShape>;
+      Subscription: FieldNullabilityOptions<Types, Nullable> &
+        SubscriptionFieldOptions<Types, Type, Nullable, Args, ResolveShape, ResolveReturnShape>;
+      Object: FieldNullabilityOptions<Types, Nullable> &
+        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
+      Interface: FieldNullabilityOptions<Types, Nullable> &
+        InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
     }
 
     export interface InputFieldOptions<

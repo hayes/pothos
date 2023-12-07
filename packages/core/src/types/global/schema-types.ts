@@ -52,6 +52,7 @@ declare global {
 
     export interface UserSchemaTypes {
       Defaults: 'v3' | 'v4';
+      NullableMode: 'v3' | 'v4';
       Scalars: Record<
         string,
         {
@@ -77,6 +78,7 @@ declare global {
       Interfaces: PartialTypes['Interfaces'] & {};
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
+      NullableMode: PartialTypes['NullableMode'] extends 'v3' ? 'v3' : 'v4';
       DefaultFieldNullability: PartialTypes['Defaults'] extends 'v3'
         ? PartialTypes['DefaultFieldNullability'] extends true
           ? true

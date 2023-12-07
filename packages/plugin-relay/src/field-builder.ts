@@ -109,7 +109,7 @@ fieldBuilderProto.node = function node({ id, ...options }) {
   return this.field<{}, InterfaceRef<SchemaTypes, unknown>, unknown, Promise<unknown>, true>({
     ...(options as {}),
     type: this.builder.nodeInterfaceRef(),
-    nullable: true,
+    nonNull: false as never,
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
       const rawID = (await id(parent, args as never, context, info)) as unknown as
         | GlobalIDShape<SchemaTypes>
@@ -137,10 +137,12 @@ fieldBuilderProto.node = function node({ id, ...options }) {
 fieldBuilderProto.nodeList = function nodeList({ ids, ...options }) {
   return this.field({
     ...options,
-    nullable: {
-      list: false,
-      items: true,
-    },
+    ...({
+      nullable: {
+        list: false,
+        items: true,
+      },
+    } satisfies {}),
     type: [this.builder.nodeInterfaceRef()],
     resolve: async (parent: unknown, args: {}, context: object, info: GraphQLResolveInfo) => {
       const rawIDList = await ids(parent, args as never, context, info);

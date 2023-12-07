@@ -64,20 +64,20 @@ schemaBuilderProto.pageInfoRef = function pageInfoRef() {
     ...this.options.relay?.pageInfoTypeOptions,
     fields: (t) => ({
       hasNextPage: t.exposeBoolean('hasNextPage', {
-        nullable: false,
+        nonNull: true,
         ...hasNextPageFieldOptions,
       }),
       hasPreviousPage: t.exposeBoolean('hasPreviousPage', {
-        nullable: false,
+        nonNull: true,
         ...hasPreviousPageFieldOptions,
       }),
       startCursor: t.expose('startCursor', {
-        nullable: true,
+        nonNull: false,
         ...(startCursorFieldOptions as {}),
         type: pageInfoCursorType,
       }) as never,
       endCursor: t.expose('endCursor', {
-        nullable: true,
+        nonNull: false,
         ...(endCursorFieldOptions as {}),
         type: pageInfoCursorType,
       }) as never,
@@ -140,7 +140,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
     fields: (t) => ({
       [this.options.relay?.idFieldName ?? 'id']: t.globalID({
         ...this.options.relay?.idFieldOptions,
-        nullable: false,
+        nonNull: true,
         resolve: (parent) => {
           throw new PothosValidationError('id field not implemented');
         },
@@ -157,7 +157,7 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
       'node',
       (t) =>
         t.field({
-          nullable: true,
+          nonNull: false,
           ...this.options.relay?.nodeQueryOptions,
           type: ref as InterfaceRef<SchemaTypes, unknown>,
           args: {
@@ -188,9 +188,9 @@ schemaBuilderProto.nodeInterfaceRef = function nodeInterfaceRef() {
 
     this.queryField('nodes', (t) =>
       t.field({
-        nullable: {
-          list: false,
-          items: true,
+        nonNull: {
+          list: true,
+          items: false,
         },
         ...this.options.relay?.nodesQueryOptions,
         type: [ref],
@@ -282,7 +282,7 @@ schemaBuilderProto.node = function node(param, { interfaces, extensions, id, ...
 
     this.objectField(ref, this.options.relay?.idFieldName ?? 'id', (t) =>
       t.globalID<{}, false, MaybePromise<GlobalIDShape<SchemaTypes>>>({
-        nullable: false,
+        nonNull: true as never,
         ...this.options.relay?.idFieldOptions,
         ...id,
         args: {},
@@ -402,7 +402,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       ...(includeClientMutationId
         ? {
             clientMutationId: t.id({
-              nullable: this.options.relay?.clientMutationId === 'optional',
+              nonNull: this.options.relay?.clientMutationId !== 'optional',
               ...clientMutationIdFieldOptions,
               resolve: (parent, _args, context, info) =>
                 mutationIdCache(context).get(String(info.path.prev!.key))!,
@@ -504,13 +504,15 @@ schemaBuilderProto.connectionObject = function connectionObject(
     ...(connectionOptions as {}),
     fields: (t) => ({
       pageInfo: t.field({
-        nullable: false,
+        nonNull: true,
         ...pageInfoFieldOptions,
         type: this.pageInfoRef(),
         resolve: (parent) => parent.pageInfo,
       }),
       edges: t.field({
-        nullable: (edgesNullableField ?? edgesNullable) as { list: true; items: true },
+        ...({
+          nullable: (edgesNullableField ?? edgesNullable) as { list: true; items: true },
+        } satisfies {}),
         ...edgesFieldOptions,
         ...edgesField,
         type: [edgeRef],
@@ -521,14 +523,16 @@ schemaBuilderProto.connectionObject = function connectionObject(
             nodes: t.field({
               ...(typeof nodesOnConnection === 'object' ? nodesOnConnection : {}),
               type: [type],
-              nullable: {
-                list: edgeListNullable,
-                items:
-                  edgeItemsNullable ??
-                  nodeNullable ??
-                  this.options.relay?.nodeFieldOptions?.nullable ??
-                  true,
-              },
+              ...({
+                nullable: {
+                  list: edgeListNullable,
+                  items:
+                    edgeItemsNullable ??
+                    nodeNullable ??
+                    this.options.relay?.nodeFieldOptions?.nullable ??
+                    true,
+                },
+              } satisfies {}),
               resolve: (con) =>
                 completeValue(
                   con.edges,
@@ -587,14 +591,14 @@ schemaBuilderProto.edgeObject = function edgeObject({
     ...edgeOptions,
     fields: (t) => ({
       node: t.field({
-        nullable: nodeFieldNullable ?? nodeNullable,
+        ...({ nullable: nodeFieldNullable ?? nodeNullable } satisfies {}),
         ...nodeFieldOptions,
         ...nodeField,
         type,
         resolve: (parent) => parent.node as never,
       }),
       cursor: t.expose('cursor', {
-        nullable: false,
+        nonNull: true,
         type: edgeCursorType,
         ...cursorFieldOptions,
       }) as never,

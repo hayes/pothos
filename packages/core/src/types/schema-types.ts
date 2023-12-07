@@ -25,6 +25,7 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   };
   DefaultFieldNullability: boolean;
   DefaultInputFieldRequiredness: boolean;
+  NullableMode: 'v3' | 'v4';
   Root: object;
   Context: object;
 }

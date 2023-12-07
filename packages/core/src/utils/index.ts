@@ -2,6 +2,7 @@ import { PothosSchemaError, PothosValidationError } from '../errors';
 import { InputListRef } from '../refs/input-list';
 import { ListRef } from '../refs/list';
 import {
+  FieldNullability,
   InputType,
   InputTypeParam,
   OutputType,
@@ -160,4 +161,37 @@ export function completeValue<T, R>(
     return Promise.resolve(result);
   }
   return result;
+}
+
+export function nonNullableFromOptions<
+  Types extends SchemaTypes,
+  Nullable extends FieldNullability<[unknown]>,
+>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  options: {
+    nullable?: Nullable;
+    nonNull?: Nullable;
+  } = {},
+): Nullable | boolean {
+  if (options.nullable === true) {
+    return false;
+  }
+
+  if (options.nullable === false) {
+    return true;
+  }
+
+  if (options.nullable && typeof options.nullable === 'object') {
+    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
+    return {
+      list: !options.nullable.list,
+      items: !options.nullable.items,
+    } as never;
+  }
+
+  if (options.nonNull !== undefined) {
+    return options.nonNull;
+  }
+
+  return !builder.defaultFieldNullability;
 }

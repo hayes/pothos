@@ -28,24 +28,24 @@ export function unwrapOutputFieldType<Types extends SchemaTypes>(
 export function typeFromParam<Types extends SchemaTypes>(
   param: TypeParam<Types>,
   configStore: ConfigStore<Types>,
-  nullableOption: FieldNullability<[unknown]>,
+  nonNullOption: FieldNullability<[unknown]>,
 ): PothosOutputFieldType<Types> {
-  const itemNullable = typeof nullableOption === 'object' ? nullableOption.items : false;
-  const nullable = typeof nullableOption === 'object' ? nullableOption.list : !!nullableOption;
+  const itemsNonNull = typeof nonNullOption === 'object' ? nonNullOption.items : true;
+  const nonNull = typeof nonNullOption === 'object' ? nonNullOption.list : !!nonNullOption;
 
   if (Array.isArray(param)) {
     return {
       kind: 'List',
-      type: typeFromParam(param[0], configStore, itemNullable),
-      nullable,
+      type: typeFromParam(param[0], configStore, itemsNonNull),
+      nonNull,
     };
   }
 
   if (param instanceof ListRef) {
     return {
       kind: 'List',
-      type: typeFromParam(param.listType as TypeParam<Types>, configStore, param.nullable),
-      nullable,
+      type: typeFromParam(param.listType as TypeParam<Types>, configStore, param.nonNull),
+      nonNull,
     };
   }
 
@@ -57,7 +57,7 @@ export function typeFromParam<Types extends SchemaTypes>(
     return {
       kind,
       ref,
-      nullable,
+      nonNull,
     };
   }
 

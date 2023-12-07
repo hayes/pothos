@@ -170,12 +170,12 @@ export type PothosOutputFieldType<Types extends SchemaTypes> =
   | {
       kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
       ref: OutputType<Types>;
-      nullable: boolean;
+      nonNull: boolean;
     }
   | {
       kind: 'List';
       type: PothosOutputFieldType<Types>;
-      nullable: boolean;
+      nonNull: boolean;
     };
 
 export type PothosNameOutputFieldType<Types extends SchemaTypes> = Exclude<

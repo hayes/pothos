@@ -266,6 +266,17 @@ export type CompatibleTypes<
 }[keyof ParentShape] &
   string;
 
+export type FieldNullabilityOptions<
+  Types extends SchemaTypes,
+  Nullable extends FieldNullability<[unknown]>,
+> = Types['NullableMode'] extends 'v3'
+  ? {
+      nullable?: Nullable;
+    }
+  : {
+      nonNull?: Nullable;
+    };
+
 export type ExposeNullability<
   Types extends SchemaTypes,
   Type extends TypeParam<Types>,
