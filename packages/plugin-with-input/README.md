@@ -111,7 +111,7 @@ builder.queryType({
   fields: (t) => ({
     example: t.fieldWithInput({
       type: 'Boolean',
-      nulllable: true,
+      nullable: true,
       argOptions: {
         required: false,
       },
