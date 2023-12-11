@@ -35,6 +35,7 @@ export async function resolveNodes<Types extends SchemaTypes>(
       return;
     }
 
+    // eslint-disable-next-line logical-assignment-operators
     idsByType[typename] = idsByType[typename] ?? new Set();
     idsByType[typename].add(id);
   });

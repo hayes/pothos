@@ -18,7 +18,7 @@ export const includeForRefMap = new WeakMap<
 export function getRefFromModel<Types extends SchemaTypes>(
   name: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  type: 'object' | 'interface' = 'object',
+  type: 'interface' | 'object' = 'object',
 ): PrismaRef<PrismaModelTypes> {
   if (!refMap.has(builder)) {
     refMap.set(builder, new Map());

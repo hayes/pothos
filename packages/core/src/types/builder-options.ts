@@ -40,12 +40,12 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
 export type ListResolveValue<Type, Item, Return> = Return extends AsyncGenerator<unknown, unknown>
   ? GeneratorResolver<Type, Item> & Return
   : null extends Type
-  ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
-    ? Return
-    : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
-  : Return extends MaybePromise<readonly MaybePromise<Item>[]>
-  ? Return
-  : MaybePromise<readonly MaybePromise<Item>[]>;
+    ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
+      ? Return
+      : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
+    : Return extends MaybePromise<readonly MaybePromise<Item>[]>
+      ? Return
+      : MaybePromise<readonly MaybePromise<Item>[]>;
 
 export type GeneratorResolver<Type, Item> = null extends Type
   ? AsyncGenerator<Item | null | undefined, Item | null | undefined>
@@ -71,10 +71,10 @@ export type ShapeFromEnumValues<
 > = Values extends readonly string[]
   ? Values[number]
   : Values extends EnumValueConfigMap<Types>
-  ? {
-      [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
-    }[keyof Values]
-  : never;
+    ? {
+        [K in keyof Values]: Values[K]['value'] extends number | string ? Values[K]['value'] : K;
+      }[keyof Values]
+    : never;
 
 export type ObjectFieldsShape<Types extends SchemaTypes, Shape> = (
   t: PothosSchemaTypes.ObjectFieldBuilder<Types, Shape>,
@@ -151,8 +151,8 @@ export type ObjectTypeOptions<
   (Param extends string
     ? {}
     : Param extends ObjectRef<unknown>
-    ? { name?: string }
-    : { name: string }) &
+      ? { name?: string }
+      : { name: string }) &
     (
       | PothosSchemaTypes.ObjectTypeOptions<Types, Shape>
       | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>
@@ -169,8 +169,8 @@ export type InterfaceTypeOptions<
   (Param extends string
     ? {}
     : Param extends InterfaceRef<unknown>
-    ? { name?: string }
-    : { name: string });
+      ? { name?: string }
+      : { name: string });
 
 export type EnumTypeOptions<
   Types extends SchemaTypes,
@@ -187,11 +187,11 @@ export type EnumTypeOptions<
     >
   : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
 
-export type ArgBuilder<Types extends SchemaTypes> = PothosSchemaTypes.InputFieldBuilder<
-  Types,
-  'Arg'
->['field'] &
-  Omit<PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>, 'field'>;
+export type ArgBuilder<Types extends SchemaTypes> = Omit<
+  PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>,
+  'field'
+> &
+  PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>['field'];
 
 export type ValidateInterfaces<
   Shape,
@@ -258,10 +258,10 @@ export type ExposeNullability<
   Nullable extends FieldNullability<Type>,
 > = Awaited<ParentShape[Name]> extends ShapeFromTypeParam<Types, Type, Nullable>
   ? {
-      nullable?: Nullable & ExposeNullableOption<Types, Type, ParentShape, Name>;
+      nullable?: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
     }
   : {
-      nullable: Nullable & ExposeNullableOption<Types, Type, ParentShape, Name>;
+      nullable: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
     };
 
 export type ExposeNullableOption<
@@ -277,9 +277,9 @@ export type ExposeNullableOption<
           ? boolean | { items: boolean; list: boolean }
           : true | { items: boolean; list: true }
         : Awaited<ParentShape[Name]> extends NonNullable<Awaited<ParentShape[Name]>>
-        ? { items: true; list: boolean }
-        : { items: true; list: true }
+          ? { items: true; list: boolean }
+          : { items: true; list: true }
       : never
     : Awaited<ParentShape[Name]> extends NonNullable<Awaited<ParentShape[Name]>>
-    ? boolean
-    : true);
+      ? boolean
+      : true);

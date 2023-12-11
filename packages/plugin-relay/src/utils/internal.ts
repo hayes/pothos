@@ -20,7 +20,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   globalID: string,
   ctx: object,
   info: GraphQLResolveInfo,
-  parseIdsForTypes: boolean | { typename: string; parseId: (id: string, ctx: object) => unknown }[],
+  parseIdsForTypes: { typename: string; parseId: (id: string, ctx: object) => unknown }[] | boolean,
 ) {
   const decoded = builder.options.relayOptions.decodeGlobalID
     ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)

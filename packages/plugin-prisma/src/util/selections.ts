@@ -4,14 +4,14 @@ import { LoaderMappings, SelectionMap } from '../types';
 import { deepEqual } from './deep-equal';
 import { FieldMap } from './relation-map';
 
-export type SelectionMode = 'select' | 'include';
+export type SelectionMode = 'include' | 'select';
 
 export interface SelectionState {
   fieldMap: FieldMap;
   query: object;
   mode: SelectionMode;
   fields: Set<string>;
-  counts: Map<string, boolean | Record<string, unknown>>;
+  counts: Map<string, Record<string, unknown> | boolean>;
   relations: Map<string, SelectionState>;
   mappings: LoaderMappings;
   parent?: SelectionState;

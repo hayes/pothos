@@ -37,6 +37,7 @@ export class ImplementableLoadableInterfaceRef<
   CacheKey,
 > extends ImplementableInterfaceRef<Types, RefShape, Shape> {
   cacheResolved;
+
   getDataloader;
 
   constructor(

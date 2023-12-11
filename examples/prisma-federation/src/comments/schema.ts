@@ -8,7 +8,7 @@ import { db } from '../db';
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
   Scalars: {
-    ID: { Input: string; Output: string | number };
+    ID: { Input: string; Output: number | string };
   };
 }>({
   plugins: [DirectivesPlugin, PrismaPlugin, FederationPlugin],

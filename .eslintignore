@@ -20,9 +20,11 @@ packages/plugin-prisma/prisma
 packages/plugin-prisma/tests/generated.ts
 examples/*/prisma/generated.ts
 packages/*/tests/generated.ts
+generated.ts
 *.generated.ts
 *.generated.ts
 *.generated.tsx
+*.tsbuildinfo
 .*.js
 .turbo
 tests/client/*
@@ -32,3 +34,4 @@ packages/plugin-prisma/tests/client
 packages/plugin-prisma-utils/tests/client
 packages/plugin-prisma-utils/bin/generator.js
 packages/plugin-prisma/bin/generator.js
+website/public

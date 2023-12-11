@@ -5,12 +5,10 @@ module.exports = {
     project: 'tsconfig.eslint.json',
     tsconfigRootDir: __dirname,
   },
-  plugins: ['prettier'],
   rules: {
     'import/no-cycle': 2,
     'import/no-unresolved': 'off',
     'import/no-default-export': 'off',
-    'prettier/prettier': 'error',
     'sort-keys': 'off',
     'promise/prefer-await-to-callbacks': 'off',
     'node/no-unpublished-import': 'off',

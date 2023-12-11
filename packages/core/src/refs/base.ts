@@ -6,13 +6,13 @@ export default class BaseTypeRef implements PothosSchemaTypes.BaseTypeRef {
   constructor(
     kind:
       | 'Enum'
+      | 'InputList'
       | 'InputObject'
       | 'Interface'
+      | 'List'
       | 'Object'
       | 'Scalar'
-      | 'Union'
-      | 'List'
-      | 'InputList',
+      | 'Union',
     name: string,
   ) {
     this.kind = kind;

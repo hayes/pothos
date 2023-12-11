@@ -110,7 +110,7 @@ export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind 
   protected exposeField<
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
-    Name extends keyof ParentShape & string,
+    Name extends string & keyof ParentShape,
   >(
     name: Name,
     {

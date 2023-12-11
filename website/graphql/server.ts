@@ -1,9 +1,7 @@
 /* eslint-disable node/no-unsupported-features/es-builtins */
 /* eslint-disable no-magic-numbers */
-/* eslint-disable node/prefer-global/url */
-/* eslint-disable node/prefer-global/url-search-params */
-import { createServer } from 'http';
-import { URL, URLSearchParams } from 'url';
+import { createServer } from 'node:http';
+import { URL, URLSearchParams } from 'node:url';
 import {
   getGraphQLParameters,
   processRequest,
@@ -66,5 +64,6 @@ const server = createServer((req, res) => {
 const port = process.env.PORT ?? 3000;
 
 server.listen(port, () => {
+  // eslint-disable-next-line no-console
   console.log(`🚀 Server started at http://127.0.0.1:${port}/graphql`);
 });

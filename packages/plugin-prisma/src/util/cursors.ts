@@ -30,11 +30,11 @@ export function formatCursorChunk(value: unknown) {
   }
 }
 
-export function formatPrismaCursor(record: Record<string, unknown>, fields: string | string[]) {
+export function formatPrismaCursor(record: Record<string, unknown>, fields: string[] | string) {
   return cursorFormatter(fields)(record);
 }
 
-export function cursorFormatter(fields: string | string[]) {
+export function cursorFormatter(fields: string[] | string) {
   return (value: Record<string, unknown>) => {
     if (typeof fields === 'string') {
       return encodeBase64(`GPC:${formatCursorChunk(value[fields])}`);
@@ -263,7 +263,7 @@ export function prismaCursorConnectionQuery({
 
   let take = Math.min(first ?? last ?? defaultSizeForConnection, maxSizeForConnection) + 1;
 
-  if (before || last) {
+  if (before ?? last) {
     take = -take;
   }
 
@@ -282,12 +282,12 @@ export function wrapConnectionResult<T extends {}>(
   args: PothosSchemaTypes.DefaultConnectionArguments,
   take: number,
   cursor: (node: T) => string,
-  totalCount?: null | number | (() => MaybePromise<number>),
+  totalCount?: number | (() => MaybePromise<number>) | null,
   resolveNode?: (node: unknown) => unknown,
 ) {
   const gotFullResults = results.length === Math.abs(take);
   const hasNextPage = args.before ? true : args.last ? false : gotFullResults;
-  const hasPreviousPage = args.after ? true : args.before || args.last ? gotFullResults : false;
+  const hasPreviousPage = args.after ? true : args.before ?? args.last ? gotFullResults : false;
   const nodes = gotFullResults
     ? results.slice(take < 0 ? 1 : 0, take < 0 ? results.length : -1)
     : results;
@@ -309,17 +309,17 @@ export function wrapConnectionResult<T extends {}>(
     value == null
       ? null
       : resolveNode
-      ? {
-          connection,
-          ...value,
-          cursor: cursor(value),
-          node: resolveNode(value),
-        }
-      : {
-          connection,
-          cursor: cursor(value),
-          node: value,
-        },
+        ? {
+            connection,
+            ...value,
+            cursor: cursor(value),
+            node: resolveNode(value),
+          }
+        : {
+            connection,
+            cursor: cursor(value),
+            node: value,
+          },
   );
 
   connection.edges = edges;

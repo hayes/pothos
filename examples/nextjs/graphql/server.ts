@@ -1,8 +1,6 @@
 /* eslint-disable no-magic-numbers */
-/* eslint-disable node/prefer-global/url */
-/* eslint-disable node/prefer-global/url-search-params */
-import { createServer } from 'http';
-import { URL, URLSearchParams } from 'url';
+import { createServer } from 'node:http';
+import { URL, URLSearchParams } from 'node:url';
 import {
   getGraphQLParameters,
   processRequest,

@@ -219,7 +219,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
   };
 }
 
-type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;
+type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 
 export async function resolveCursorConnection<
   U extends Promise<readonly unknown[] | null> | readonly unknown[] | null,

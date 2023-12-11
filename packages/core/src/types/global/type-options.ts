@@ -83,8 +83,8 @@ declare global {
     > extends BaseTypeOptions<Types> {
       fields?: InterfaceFieldsShape<Types, Shape>;
       interfaces?:
-        | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
-        | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
+        | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[])
+        | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
       resolveType?: ResolveType &
         ((
           parent: Shape,

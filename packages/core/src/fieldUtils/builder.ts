@@ -28,20 +28,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            'Boolean',
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, 'Boolean', ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              'Boolean',
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, 'Boolean', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -63,20 +63,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            'Float',
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, 'Float', ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              'Float',
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, 'Float', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -98,20 +98,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            'ID',
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, 'ID', ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              'ID',
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, 'ID', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -133,20 +133,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            'Int',
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, 'Int', ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              'Int',
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, 'Int', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -168,20 +168,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            'String',
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, 'String', ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              'String',
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, 'String', ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -203,20 +203,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            ['Boolean'],
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, ['Boolean'], ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              ['Boolean'],
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, ['Boolean'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -238,20 +238,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            ['Float'],
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, ['Float'], ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              ['Float'],
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, ['Float'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -273,20 +273,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            ['ID'],
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, ['ID'], ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              ['ID'],
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, ['ID'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -308,20 +308,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            ['Int'],
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, ['Int'], ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              ['Int'],
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, ['Int'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -343,20 +343,20 @@ export default class FieldBuilder<
     name: Name,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            ['String'],
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, ['String'], ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              ['String'],
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve' | 'type'
           >,
-          'resolve' | 'type' | 'nullable'
-        > &
-          ExposeNullability<Types, ['String'], ParentShape, Name, Nullable>,
       ]
     >
   ) {
@@ -384,20 +384,20 @@ export default class FieldBuilder<
     name: Name extends keyof ParentShape ? Name : keyof ParentShape,
     ...args: NormalizeArgs<
       [
-        options: Omit<
-          FieldOptionsFromKind<
-            Types,
-            ParentShape,
-            Type,
-            Nullable,
-            {},
-            Kind,
-            ParentShape,
-            ResolveReturnShape
+        options: ExposeNullability<Types, Type, ParentShape, Name, Nullable> &
+          Omit<
+            FieldOptionsFromKind<
+              Types,
+              ParentShape,
+              Type,
+              Nullable,
+              {},
+              Kind,
+              ParentShape,
+              ResolveReturnShape
+            >,
+            'nullable' | 'resolve'
           >,
-          'resolve' | 'nullable'
-        > &
-          ExposeNullability<Types, Type, ParentShape, Name, Nullable>,
       ]
     >
   ) {

@@ -1,5 +1,5 @@
-import fs from 'fs';
-import { join, relative, resolve } from 'path';
+import fs from 'node:fs';
+import { join, relative, resolve } from 'node:path';
 import matter, { GrayMatterFile } from 'gray-matter';
 import { TableOfContents, TableOfContentsEntry } from '../components/Toc';
 
@@ -39,8 +39,8 @@ export function loadMDXFiles(dir: string): string[] {
     entry.isDirectory()
       ? loadMDXFiles(join(dir, entry.name))
       : entry.name.endsWith('.mdx')
-      ? join(dir, entry.name)
-      : [],
+        ? join(dir, entry.name)
+        : [],
   );
 }
 

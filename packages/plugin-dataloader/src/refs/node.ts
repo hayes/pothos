@@ -18,6 +18,7 @@ export class ImplementableLoadableNodeRef<
   CacheKey = Key,
 > extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
   parseId: ((id: string, ctx: object) => IDShape) | undefined;
+
   private idOptions;
 
   constructor(

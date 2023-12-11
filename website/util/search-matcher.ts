@@ -33,8 +33,11 @@ export class SearchMatcher {
   results: SearchResult[] = [];
 
   titleMatches = new Set();
+
   descriptionMatches = new Set();
+
   headingMatches = new Map<string, number>();
+
   contentMatches = new Map<string, number>();
 
   constructor(query: string) {

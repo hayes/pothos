@@ -98,8 +98,8 @@ export function getTypeBrand(val: unknown) {
 }
 
 export function unwrapListParam<Types extends SchemaTypes>(
-  param: TypeParam<Types> | InputTypeParam<Types>,
-): OutputType<Types> | InputType<Types> {
+  param: InputTypeParam<Types> | TypeParam<Types>,
+): InputType<Types> | OutputType<Types> {
   if (Array.isArray(param)) {
     return unwrapListParam(param[0]);
   }
@@ -147,7 +147,7 @@ export function completeValue<T, R>(
   valOrPromise: PromiseLike<T> | T,
   onSuccess: (completedVal: T) => R,
   onError?: (errVal: unknown) => R,
-): R | Promise<R> {
+): Promise<R> | R {
   if (isThenable(valOrPromise)) {
     return Promise.resolve(valOrPromise).then(onSuccess, onError);
   }

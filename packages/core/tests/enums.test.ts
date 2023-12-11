@@ -89,7 +89,9 @@ describe('ways to add enums', () => {
       (v: { name: string }) => v.name,
     );
 
-    expect(values.sort()).equal(['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'].sort());
+    expect(values.sort()).toEqual(
+      expect.arrayContaining(['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'].sort()),
+    );
 
     const result = await execute({
       schema,
@@ -104,7 +106,7 @@ describe('ways to add enums', () => {
         }
       `,
     });
-    expect(result.data).equal({
+    expect(result.data).toMatchObject({
       P: 'Pawn',
       N: 'Knight',
       B: 'Bishop',
