@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-module */
 /**
  * New Relic agent configuration.
  *

@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-module */
 // JS file that exports schema.  This is used by graphql-code-generator so we
 // don't need to compile our typescript code or manually print our schema to
 // SDL before generating types for our client side queries.
@@ -10,5 +11,4 @@ Object.keys(require.cache)
   });
 
 // load schema using @boost/module avoid having to compile typescript files
-// eslint-disable-next-line node/no-unpublished-require
 module.exports = require('@boost/module').requireModule(require.resolve('./schema.ts'));

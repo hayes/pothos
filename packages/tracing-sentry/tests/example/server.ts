@@ -43,6 +43,7 @@ const yoga = createYoga({
   plugins: [tracingPlugin],
 });
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(yoga);
 
 server.listen(3000);

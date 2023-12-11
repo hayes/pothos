@@ -12,4 +12,5 @@ startStandaloneServer(server, { listen: { port: 0 } })
   .then(({ url }) => {
     console.log(`server started at ${url}`);
   })
+  // eslint-disable-next-line unicorn/prefer-top-level-await
   .catch(console.error);

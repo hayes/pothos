@@ -10,7 +10,7 @@ export const prisma = new PrismaClient();
 export default new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
   Scalars: {
-    ID: { Input: string; Output: string | number };
+    ID: { Input: string; Output: number | string };
   };
 }>({
   plugins: [ValidationPlugin, WithInputPlugin, PrismaPlugin],
@@ -28,7 +28,7 @@ export const builderWithNonRequireInputs = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
   WithInputArgRequired: false;
   Scalars: {
-    ID: { Input: string; Output: string | number };
+    ID: { Input: string; Output: number | string };
   };
 }>({
   plugins: [ValidationPlugin, WithInputPlugin],

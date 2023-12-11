@@ -1,4 +1,5 @@
-import { spawn } from 'child_process';
+/* eslint-disable unicorn/prefer-module */
+import { spawn } from 'node:child_process';
 import { lexicographicSortSchema, printSchema } from 'graphql';
 import { transform } from '@swc/core';
 import PothosConverter from '../src';

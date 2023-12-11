@@ -5,7 +5,6 @@ const {
   coolGray,
   blueGray,
   ...colors
-  // eslint-disable-next-line node/no-unpublished-require
 } = require('tailwindcss/colors');
 
 module.exports = {

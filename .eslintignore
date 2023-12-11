@@ -19,6 +19,16 @@ scripts
 packages/plugin-prisma/prisma
 packages/plugin-prisma/tests/generated.ts
 examples/*/prisma/generated.ts
+packages/*/tests/generated.ts
+*.generated.ts
 *.generated.ts
 *.generated.tsx
 .*.js
+.turbo
+tests/client/*
+examples/*/prisma
+packages/*/prisma
+packages/plugin-prisma/tests/client
+packages/plugin-prisma-utils/tests/client
+packages/plugin-prisma-utils/bin/generator.js
+packages/plugin-prisma/bin/generator.js

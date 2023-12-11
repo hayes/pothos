@@ -130,7 +130,7 @@ export function mapUniqueFields(
   model: DMMF.Model,
   mapper: (field: {
     name: string;
-    kind: 'index' | 'id' | 'field';
+    kind: 'field' | 'id' | 'index';
     type: string;
   }) => ts.Statement[] | null,
 ) {

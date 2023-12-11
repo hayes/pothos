@@ -1,6 +1,6 @@
-import { writeFileSync } from 'fs';
-import path from 'path';
-import url from 'url';
+import { writeFileSync } from 'node:fs';
+import path from 'node:path';
+import url from 'node:url';
 import slug from 'rehype-slug';
 import rehypeStringify from 'rehype-stringify';
 import { remark } from 'remark';

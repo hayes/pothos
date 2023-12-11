@@ -1,11 +1,8 @@
 import {
   execute,
   GraphQLEnumType,
-  GraphQLInputField,
-  GraphQLInputFieldMap,
   GraphQLInputObjectType,
   GraphQLObjectType,
-  InputValueDefinitionNode,
   Kind,
   lexicographicSortSchema,
   printSchema,

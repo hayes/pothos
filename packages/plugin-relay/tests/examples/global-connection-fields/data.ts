@@ -5,7 +5,7 @@ export class Poll {
 
   static lastAnswerID = 0;
 
-  __type: 'Poll' = 'Poll';
+  __type = 'Poll' as const;
 
   id: number;
 

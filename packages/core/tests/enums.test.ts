@@ -1,7 +1,7 @@
-import { GraphQLEnumType, execute } from 'graphql';
+import { execute } from 'graphql';
 import gql from 'graphql-tag';
-import SchemaBuilder from '../src/builder';
 import { SchemaTypes } from '../src';
+import SchemaBuilder from '../src/builder';
 
 describe('ways to add enums', () => {
   enum ChessPieceNumeric {
@@ -25,7 +25,7 @@ describe('ways to add enums', () => {
   /**
    * Each enumType should act the same way
    */
-  test.each([
+  it.each([
     [
       'Typescript numeric enum uses keys',
       (builder: SchemaBuilder<SchemaTypes>) =>
@@ -84,12 +84,12 @@ describe('ways to add enums', () => {
         }
       `,
     });
-    let values = (introspection.data as any)['__type']['enumValues'].map(
+    // eslint-disable-next-line no-underscore-dangle
+    const values = (introspection.data as any).__type.enumValues.map(
       (v: { name: string }) => v.name,
     );
-    expect(values.sort()).to.deep.equal(
-      ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'].sort(),
-    );
+
+    expect(values.sort()).equal(['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'].sort());
 
     const result = await execute({
       schema,
@@ -104,7 +104,7 @@ describe('ways to add enums', () => {
         }
       `,
     });
-    expect(result.data).to.deep.equal({
+    expect(result.data).equal({
       P: 'Pawn',
       N: 'Knight',
       B: 'Bishop',

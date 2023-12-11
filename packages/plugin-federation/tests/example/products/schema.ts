@@ -7,7 +7,7 @@ const builder = new SchemaBuilder<{
   DefaultFieldNullability: true;
   Directives: {
     custom: {
-      locations: 'OBJECT' | 'INTERFACE';
+      locations: 'INTERFACE' | 'OBJECT';
       args: {};
     };
     link: {

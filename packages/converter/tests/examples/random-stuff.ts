@@ -22,7 +22,7 @@ class Animal {
 }
 
 class Giraffe extends Animal {
-  override species: 'Giraffe' = 'Giraffe';
+  override species = 'Giraffe' as const;
 
   name: string;
 
@@ -118,8 +118,7 @@ Example2.implement({
 // Union type
 const SearchResult = builder.unionType('SearchResult', {
   types: ['User', 'Article'],
-  resolveType: (parent) =>
-    Object.prototype.hasOwnProperty.call(parent, 'firstName') ? 'User' : 'Article',
+  resolveType: (parent) => (Object.hasOwn(parent, 'firstName') ? 'User' : 'Article'),
 });
 
 // Creating an ObjectType and its resolvers

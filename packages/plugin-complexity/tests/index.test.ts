@@ -1,3 +1,4 @@
+/* eslint-disable jest/no-conditional-in-test */
 import { execute, lexicographicSortSchema, parse, printSchema, validate } from 'graphql';
 import { gql } from 'graphql-tag';
 import { createComplexityRule } from '../src';
@@ -244,7 +245,7 @@ describe('simple objects example schema', () => {
   describe('negative limits', () => {
     const limitTypes = ['depth', 'breadth', 'complexity'] as const;
 
-    limitTypes.map((limit) => {
+    limitTypes.forEach((limit) => {
       it(`negative ${limit}`, async () => {
         const query = gql`
           query {
@@ -274,7 +275,7 @@ describe('simple objects example schema', () => {
   describe('zero limits', () => {
     const limitTypes = ['depth', 'breadth', 'complexity'] as const;
 
-    limitTypes.map((limit) => {
+    limitTypes.forEach((limit) => {
       it(`zero ${limit}`, async () => {
         const query = gql`
           query {
@@ -371,7 +372,7 @@ describe('createComplexityRule', () => {
     `);
   });
 
-  it('negative limits', async () => {
+  it('negative limits', () => {
     const results = validate(
       exampleSchema,
       gql`
@@ -395,7 +396,7 @@ describe('createComplexityRule', () => {
     expect(results).toMatchSnapshot();
   });
 
-  it('zero limits', async () => {
+  it('zero limits', () => {
     const results = validate(
       exampleSchema,
       gql`

@@ -7,7 +7,7 @@ import { schema } from './schema';
 
 const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
-    setExecuteFn(async (options) => {
+    setExecuteFn((options) => {
       const parent = new AWSXRay.Segment('parent');
 
       return AWSXRay.getNamespace().runAndReturn(() => {
@@ -39,6 +39,7 @@ const yoga = createYoga({
   maskedErrors: false,
 });
 
+// eslint-disable-next-line @typescript-eslint/no-misused-promises
 const server = createServer(yoga);
 
 server.listen(3000);

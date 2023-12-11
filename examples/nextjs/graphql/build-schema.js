@@ -1,3 +1,4 @@
+/* eslint-disable unicorn/prefer-module */
 // JS file that exports schema.  This is used by graphql-code-generator so we
 // don't need to compile our typescript code or manually print our schema to
 // SDL before generating types for our client side queries.

@@ -13,7 +13,7 @@ interface Types {
     Shaveable: { shaved: boolean };
   };
   Scalars: {
-    Date: { Input: Date | string; Output: string | Date };
+    Date: { Input: Date | string; Output: Date | string };
     // eslint-disable-next-line @typescript-eslint/no-redundant-type-constituents
     AnyJson: { Input: any | string; Output: unknown };
   };
@@ -117,7 +117,7 @@ interface ExampleShape {
     ids: (number | string)[];
     ids2?: number[];
     enum?: MyEnum;
-    date?: string | Date;
+    date?: Date | string;
   };
   id?: number | string;
   ids: (number | string)[];
