@@ -71,7 +71,42 @@ Enums can be defined a number of different ways:
    Using a values object like this enables defining additional options like a description for each
    enum value.
 
+   Using a values object allows the name of the enum value to be different from the typescript value
+   used internally in your resolvers.
+
+   The keys (eg `Southern`) are used as the name of the enum value in you GraphQL schema, and the
+   `value` (eg. `'giraffa'`) property is used as the value you will receive in the arguments for
+   your resolvers, or the value you need to return from your resolvers. This is similar to how
+   typescript enum values can be assigned string or numeric values.
+
 1. Using an object with `as const`
+
+   ```ts
+   const VehicleType = {
+     sedan: 'SEDAN',
+     suv: 'SUV',
+     truck: 'TRUCK',
+     motorcycle: 'MOTORCYCLE',
+   } as const;
+
+   const VehicleTypeEnum = builder.enumType('VehicleType', {
+     values: Object.fromEntries(
+       Object.entries(VehicleType).map(([name, value]) => [name, { value }]),
+     ),
+   });
+   ```
+
+   Modern TypeScript may prefer using objects with as const over enums to align with JavaScript
+   standards. This approach essentially mirrors the "array of strings" method. You can use
+   `Object.toEntries` and `Object.fromEntries` to turn convert to Object values form described
+   above.
+
+   For more detailed information, you can refer to the TypeScript handbook on
+   [Objects vs Enums](https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums).
+
+   Alternatively, using `Object.keys` or `Object.values` will allow you to produce an enum that uses
+   just the keys or values of the object for both the internal typescript and name in the GraphQL
+   schema.
 
    ```ts
    const VehicleType = {
@@ -84,30 +119,11 @@ Enums can be defined a number of different ways:
    const VehicleTypeEnum = builder.enumType('VehicleType', {
      values: Object.values(VehicleType),
    });
-   ```
-
-   Modern TypeScript may prefer using objects with as const over enums to align with JavaScript
-   standards. This approach essentially mirrors the "array of strings" method. By utilizing
-   Object.values(VehicleType), we create an array of strings from the VehicleType object
-
-   Alternatively, using `Object.keys` instead of `Object.values` is possible but requires additional
-   type handling:
-
-   ```ts
-   const VehicleType = {
-     sedan: 'SEDAN',
-     suv: 'SUV',
-     truck: 'TRUCK',
-     motorcycle: 'MOTORCYCLE',
-   } as const;
-
+   // Or
    const VehicleTypeEnum = builder.enumType('VehicleType', {
      values: Object.keys(VehicleType) as (keyof typeof VehicleType)[],
    });
    ```
-
-   For more detailed information, you can refer to the TypeScript handbook on
-   [Objects vs Enums](https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums).
 
 ## Using Enum Types
 
