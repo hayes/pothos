@@ -71,6 +71,44 @@ Enums can be defined a number of different ways:
    Using a values object like this enables defining additional options like a description for each
    enum value.
 
+1. Using an object with `as const`
+
+   ```ts
+   const VehicleType = {
+     sedan: 'SEDAN',
+     suv: 'SUV',
+     truck: 'TRUCK',
+     motorcycle: 'MOTORCYCLE',
+   } as const;
+
+   const VehicleTypeEnum = builder.enumType('VehicleType', {
+     values: Object.values(VehicleType),
+   });
+   ```
+
+   Modern TypeScript may prefer using objects with as const over enums to align with JavaScript
+   standards. This approach essentially mirrors the "array of strings" method. By utilizing
+   Object.values(VehicleType), we create an array of strings from the VehicleType object
+
+   Alternatively, using `Object.keys` instead of `Object.values` is possible but requires additional
+   type handling:
+
+   ```ts
+   const VehicleType = {
+     sedan: 'SEDAN',
+     suv: 'SUV',
+     truck: 'TRUCK',
+     motorcycle: 'MOTORCYCLE',
+   } as const;
+
+   const VehicleTypeEnum = builder.enumType('VehicleType', {
+     values: Object.keys(VehicleType) as (keyof typeof VehicleType)[],
+   });
+   ```
+
+   For more detailed information, you can refer to the TypeScript handbook on
+   [Objects vs Enums](https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums).
+
 ## Using Enum Types
 
 Enums can be referenced either by the `Ref` that was returned by calling `builder.enumType` or by
