@@ -115,4 +115,66 @@ describe('ways to add enums', () => {
       K: 'King',
     });
   });
+
+  /** Validate docs for an object with `as const` (values) {@link website/pages/docs/guide/enums.mdx} */
+  it('Object as const enum (values)', async () => {
+    const builder = new SchemaBuilder({});
+    const VehicleType = {
+      sedan: 'SEDAN',
+      suv: 'SUV',
+      truck: 'TRUCK',
+      motorcycle: 'MOTORCYCLE',
+    } as const;
+    const VehicleTypeEnum = builder.enumType('VehicleType', {
+      values: Object.values(VehicleType),
+    });
+    builder.queryType({
+      fields: (t) => ({
+        vroom: t.field({
+          type: VehicleTypeEnum,
+          resolve: () => VehicleType.motorcycle,
+        }),
+      }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: gql`
+        query {
+          vroom
+        }
+      `,
+    });
+    expect(result.data).toMatchObject({ vroom: VehicleType.motorcycle });
+  });
+
+  /** Validate docs for an object with `as const` (keys) {@link website/pages/docs/guide/enums.mdx} */
+  it('Object as const enum (keys)', async () => {
+    const builder = new SchemaBuilder({});
+    const VehicleType = {
+      sedan: 'SEDAN',
+      suv: 'SUV',
+      truck: 'TRUCK',
+      motorcycle: 'MOTORCYCLE',
+    } as const;
+    const VehicleTypeEnum = builder.enumType('VehicleType', {
+      values: Object.keys(VehicleType) as (keyof typeof VehicleType)[],
+    });
+    builder.queryType({
+      fields: (t) => ({
+        vroom: t.field({
+          type: VehicleTypeEnum,
+          resolve: () => 'motorcycle' as const,
+        }),
+      }),
+    });
+    const result = await execute({
+      schema: builder.toSchema(),
+      document: gql`
+        query {
+          vroom
+        }
+      `,
+    });
+    expect(result.data).toMatchObject({ vroom: 'motorcycle' });
+  });
 });
