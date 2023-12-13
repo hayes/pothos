@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.40.1
+
+### Patch Changes
+
+- 0f5cfa9: Fix bug when decoding lists of global IDs with null items
+
 ## 3.40.0
 
 ### Minor Changes
