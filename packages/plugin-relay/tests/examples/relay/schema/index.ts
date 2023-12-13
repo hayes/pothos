@@ -10,10 +10,14 @@ interface GlobalIDInputsShape {
     id: string;
     typename: string;
   };
-  idList: {
-    id: string;
-    typename: string;
-  }[];
+  idList: (
+    | {
+        id: string;
+        typename: string;
+      }
+    | null
+    | undefined
+  )[];
 }
 
 interface CircularWithoutGlobalIds {
@@ -48,7 +52,7 @@ GlobalIDInput.implement({
     idList: t.globalIDList({
       required: {
         list: true,
-        items: true,
+        items: false,
       },
     }),
   }),
@@ -74,6 +78,12 @@ builder.queryType({
         inputObj: t.arg({
           type: GlobalIDInput,
           required: true,
+        }),
+        idList: t.arg.globalIDList({
+          required: {
+            list: true,
+            items: false,
+          },
         }),
       },
       resolve(parent, args) {

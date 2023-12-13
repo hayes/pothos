@@ -224,7 +224,9 @@ export function createInputValueMapper<Types extends SchemaTypes, T, Args extend
 
       if (field.kind !== 'InputObject' || field.value !== null) {
         mapped[fieldName] = field.isList
-          ? (fieldVal as unknown[]).map((val) => mapValue(val, field, ...args))
+          ? (fieldVal as unknown[]).map((val) =>
+              val == null ? val : mapValue(val, field, ...args),
+            )
           : mapValue(fieldVal, field, ...args);
       }
     });

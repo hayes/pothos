@@ -42,7 +42,7 @@ input GlobalIDInput {
   circular: GlobalIDInput
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
-  idList: [ID!]!
+  idList: [ID]!
   otherList: [OtherInput!] = [{someField: \\"abc\\"}]
 }
 
@@ -156,7 +156,7 @@ type Query {
   extraNode: Node
   idWithColon(id: ID!): IDWithColon!
   idsWithColon(ids: [ID!]!): [IDWithColon!]!
-  inputGlobalID(id: ID!, inputObj: GlobalIDInput!, normalId: ID!): String!
+  inputGlobalID(id: ID!, idList: [ID]!, inputObj: GlobalIDInput!, normalId: ID!): String!
   moreNodes: [Node]!
   node(id: ID!): Node
   nodes(ids: [ID!]!): [Node]!
@@ -328,7 +328,7 @@ input GlobalIDInput {
   circular: GlobalIDInput
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
-  idList: [ID!]!
+  idList: [ID]!
 }
 
 type Mutation {

@@ -366,9 +366,10 @@ describe('relay example schema', () => {
           inputGlobalID(
             id: "YWJjOjEyMw=="
             normalId: 123
+            idList: [null, "YWJjOjEyMw=="]
             inputObj: {
               id: "YWJjOjEyMw=="
-              idList: ["YWJjOjEyMw=="]
+              idList: [null, "YWJjOjEyMw=="]
               circular: { id: "YWJjOjEyMw==", idList: ["YWJjOjEyMw=="] }
             }
           )
@@ -380,10 +381,11 @@ describe('relay example schema', () => {
         document: query,
         contextValue: {},
       });
+      console.log(result.errors);
 
       expect(result.data).toMatchInlineSnapshot(`
         {
-          "inputGlobalID": "{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"inputObj\\":{\\"circular\\":{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"normalId\\":\\"123\\"}",
+          "inputGlobalID": "{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[null,{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"inputObj\\":{\\"circular\\":{\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"id\\":{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"},\\"idList\\":[null,{\\"typename\\":\\"abc\\",\\"id\\":\\"123\\"}],\\"otherList\\":[{\\"someField\\":\\"abc\\"}]},\\"normalId\\":\\"123\\"}",
         }
       `);
     });
