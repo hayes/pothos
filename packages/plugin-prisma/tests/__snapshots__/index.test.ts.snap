@@ -94,8 +94,8 @@ interface Node {
 type NormalViewer implements Viewer {
   aComments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
   bio: String
-  comments(after: ID, before: ID, first: Int, last: Int): ViewerCommentsConnection!
-  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int): ViewerCommentsWithNewQueryConnection!
+  comments(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsConnection!
+  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsWithNewQueryConnection!
   id: ID!
   isNormal: Boolean!
   postCount: Int!
@@ -122,9 +122,9 @@ type Post {
   content: String
   createdAt: String!
   id: ID!
-  manualMediaConnection(after: ID, before: ID, first: Int, inverted: Boolean, last: Int): PostManualMediaConnection!
+  manualMediaConnection(after: ID, before: ID, first: Int, inverted: Boolean, last: Int, reversed: Boolean): PostManualMediaConnection!
   media: [Media!]!
-  mediaConnection(after: ID, before: ID, first: Int, last: Int): MediaConnection!
+  mediaConnection(after: ID, before: ID, first: Int, last: Int, reversed: Boolean): MediaConnection!
   ownComments: [Comment!]!
   ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
   post: User!
@@ -522,8 +522,8 @@ type UserProfileWithErrorsSuccess {
 interface Viewer {
   aComments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
   bio: String
-  comments(after: ID, before: ID, first: Int, last: Int): ViewerCommentsConnection!
-  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int): ViewerCommentsWithNewQueryConnection!
+  comments(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsConnection!
+  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsWithNewQueryConnection!
   id: ID!
   postCount: Int!
   postPreviews: [PostPreview!]!

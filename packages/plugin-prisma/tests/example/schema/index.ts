@@ -55,10 +55,16 @@ const PostPreview = builder.objectRef<Post>('PostPreview').implement({
 
 const postConnectionHelpers = prismaConnectionHelpers(builder, 'Comment', {
   cursor: 'id',
-  select: (nodeSelection) => ({
+  args: (t) => ({
+    oldestFirst: t.boolean({ required: true }),
+  }),
+  select: (nodeSelection, args) => ({
     post: nodeSelection({
       include: {
         comments: {
+          orderBy: {
+            createdAt: args.oldestFirst ? ('asc' as const) : ('desc' as const),
+          },
           take: 3,
           include: {
             author: true,
@@ -107,6 +113,7 @@ const Viewer = builder.prismaInterface('User', {
 
     comments: t.connection({
       type: PostRef,
+      args: postConnectionHelpers.getArgs(),
       select: (args, ctx, nestedSelection) => ({
         comments: postConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
@@ -114,6 +121,7 @@ const Viewer = builder.prismaInterface('User', {
     }),
     commentsWithNewQuery: t.connection({
       type: PostRef,
+      args: postConnectionHelpers.getArgs(),
       resolve: async (user, args, ctx, info) => {
         const comments = await prisma.comment.findMany({
           ...(queryFromInfo({
@@ -404,6 +412,7 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
   t.connection(
     {
       type: Media,
+      args: mediaConnectionHelpers.getArgs(),
       select: (args, ctx, nestedSelection) => ({
         media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
       }),
@@ -415,6 +424,9 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
 
 const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
   cursor: 'postId_mediaId',
+  args: (t) => ({
+    reversed: t.boolean(),
+  }),
   select: (nodeSelection) => ({
     order: true,
     media: nodeSelection({
@@ -424,6 +436,11 @@ const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
       },
     }),
   }),
+  query: (args) => ({
+    orderBy: {
+      id: args.reversed ? ('desc' as const) : ('asc' as const),
+    },
+  }),
   resolveNode: (postMedia) => postMedia.media,
 });
 
@@ -432,6 +449,7 @@ builder.prismaObjectFields('Post', (t) => ({
     {
       type: Media,
       args: {
+        ...mediaConnectionHelpers.getArgs(),
         inverted: t.arg.boolean(),
       },
       select: (args, ctx, nestedSelection) => ({
@@ -441,12 +459,12 @@ builder.prismaObjectFields('Post', (t) => ({
           },
         },
         media: {
+          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
           orderBy: {
             post: {
               createdAt: args.inverted ? 'desc' : 'asc',
             },
           },
-          ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
         },
       }),
       resolve: (post, args, ctx) => ({

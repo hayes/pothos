@@ -1210,6 +1210,82 @@ const SelectPost = builder.prismaObject('Post', {
 });
 ```
 
+To add arguments for a connection defined with a helper, it is often easiest to define the arguments
+on the connection field rather than the connection helper. This allows connection helpers to be
+shared between fields that may not share the same arguments:
+
+```ts
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  select: (nodeSelection) => ({
+    media: nodeSelection({}),
+  }),
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    args: {
+      inverted: t.arg.boolean(),
+    },
+    select: (args, ctx, nestedSelection) => ({
+      media: {
+        ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        orderBy: {
+          post: {
+            createdAt: args.inverted ? 'desc' : 'asc',
+          },
+        },
+      },
+    }),
+    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+  }),
+);
+```
+
+Arguments, ordering and filtering can also be defined on the helpers themselves:
+
+```ts
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  // define arguments for the connection helper, these will be available as the second argument of `select`
+  args: (t) => ({
+    inverted: t.arg.boolean(),
+  }),
+  select: (nodeSelection, args) => ({
+    media: nodeSelection({}),
+  }),
+  query: (args) => ({
+    // Custom filtering with a where clause
+    where: {
+      post: {
+        published: true,
+      },
+    },
+    // custom ordering including use of args
+    orderBy: {
+      post: {
+        createdAt: args.inverted ? 'desc' : 'asc',
+      },
+    },
+  }),
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    // add the args from the connection helper to the field
+    args: mediaConnectionHelpers.args,
+    select: (args, ctx, nestedSelection) => ({
+      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+    }),
+    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+  }),
+);
+```
+
 ### Sharing Connections objects
 
 You can create reusable connection objects by using `builder.connectionObject`.

@@ -2022,6 +2022,9 @@ describe('prisma', () => {
                 "take": 3,
               },
               "media": {
+                "orderBy": {
+                  "id": "asc",
+                },
                 "select": {
                   "media": {
                     "select": {

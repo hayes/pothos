@@ -1,4 +1,4 @@
-import { ObjectRef, SchemaTypes } from '@pothos/core';
+import { InputFieldMap, InputShapeFromFields, ObjectRef, SchemaTypes } from '@pothos/core';
 import { PrismaRef } from './interface-ref';
 import { ModelLoader } from './model-loader';
 import type { PrismaModelTypes, ShapeFromSelection, UniqueFieldsFromWhereUnique } from './types';
@@ -27,17 +27,40 @@ export function prismaConnectionHelpers<
     ? Shape
     : ShapeFromSelection<Types, Model, { select: Select }>,
   NodeShape = EdgeShape,
+  ExtraArgs extends InputFieldMap = {},
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrType: RefOrType,
   options: {
     cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
-    select?: (nestedSelection: <T extends true | {}>(selection?: T) => T) => Select;
+    select?: (
+      nestedSelection: <T extends true | {}>(selection?: T) => T,
+      args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+      ctx: Types['Context'],
+    ) => Select;
+    query?:
+      | ((
+          args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+          ctx: Types['Context'],
+        ) => {
+          where?: Model['Where'];
+          orderBy?: Model['OrderBy'];
+        })
+      | {
+          where?: Model['Where'];
+          orderBy?: Model['OrderBy'];
+        };
     defaultSize?:
       | number
-      | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => number);
-    maxSize?: number | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: {}) => number);
+      | ((
+          args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+          ctx: Types['Context'],
+        ) => number);
+    maxSize?:
+      | number
+      | ((args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) => number);
     resolveNode?: (edge: EdgeShape) => NodeShape;
+    args?: (t: PothosSchemaTypes.InputFieldBuilder<Types, 'Arg'>) => ExtraArgs;
   },
 ) {
   const modelName =
@@ -53,7 +76,7 @@ export function prismaConnectionHelpers<
 
   function resolve<Parent = unknown>(
     list: (EdgeShape & {})[],
-    args: PothosSchemaTypes.DefaultConnectionArguments,
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     parent?: Parent,
   ) {
@@ -76,7 +99,10 @@ export function prismaConnectionHelpers<
     };
   }
 
-  function getQueryArgs(args: PothosSchemaTypes.DefaultConnectionArguments, ctx: Types['Context']) {
+  function getQueryArgs(
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
+    ctx: Types['Context'],
+  ) {
     return prismaCursorConnectionQuery({
       args,
       ctx,
@@ -90,12 +116,12 @@ export function prismaConnectionHelpers<
   }
 
   function getQuery(
-    args: PothosSchemaTypes.DefaultConnectionArguments,
+    args: InputShapeFromFields<ExtraArgs> & PothosSchemaTypes.DefaultConnectionArguments,
     ctx: Types['Context'],
     nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
   ) {
     const nestedSelect: Record<string, unknown> | true = options.select
-      ? { select: options.select((sel) => nestedSelection(sel, ['edges', 'node'])) }
+      ? { select: options.select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
       : nestedSelection(true, ['edges', 'node']);
 
     const selectState = createState(fieldMap, 'select');
@@ -106,15 +132,23 @@ export function prismaConnectionHelpers<
       mergeSelection(selectState, nestedSelect);
     }
 
+    const baseQuery =
+      typeof options.query === 'function' ? options.query(args, ctx) : options.query ?? {};
+
     return {
+      ...baseQuery,
       ...getQueryArgs(args, ctx),
       ...selectionToQuery(selectState),
     } as unknown as (Model['Select'] extends Select ? {} : { select: Select }) & {
+      where?: Model['Where'];
+      orderBy?: Model['OrderBy'];
       skip?: number;
       take?: number;
       cursor?: Model['WhereUnique'];
     };
   }
+
+  const getArgs = () => (options.args ? builder.args(options.args) : {}) as ExtraArgs;
 
   return {
     ref: (typeof refOrType === 'string'
@@ -123,5 +157,6 @@ export function prismaConnectionHelpers<
     resolve,
     select: options.select ?? {},
     getQuery,
+    getArgs,
   };
 }
