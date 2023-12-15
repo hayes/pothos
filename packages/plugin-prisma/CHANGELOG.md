@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.63.0
+
+### Minor Changes
+
+- 7672c13: Add support for adding args, and query with where/orderBy to prismaConnectionHelpers
+
 ## 3.62.0
 
 ### Minor Changes
