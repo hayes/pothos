@@ -1277,7 +1277,7 @@ builder.prismaObjectField('Post', 'mediaConnection', (t) =>
   t.connection({
     type: Media,
     // add the args from the connection helper to the field
-    args: mediaConnectionHelpers.args,
+    args: mediaConnectionHelpers.getArgs(),
     select: (args, ctx, nestedSelection) => ({
       media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
     }),
