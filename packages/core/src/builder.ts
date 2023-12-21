@@ -65,6 +65,7 @@ import type {
   PothosUnionTypeConfig,
   QueryFieldsShape,
   QueryFieldThunk,
+  RecursivelyNormalizeNullableFields,
   ScalarName,
   SchemaTypes,
   ShapeFromEnumValues,
@@ -584,8 +585,18 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     return ref;
   }
 
-  inputRef<T extends object>(name: string): ImplementableInputObjectRef<Types, T> {
-    return new ImplementableInputObjectRef<Types, T>(this, name);
+  inputRef<T extends object, Normalize = true>(
+    name: string,
+  ): ImplementableInputObjectRef<
+    Types,
+    RecursivelyNormalizeNullableFields<T>,
+    Normalize extends false ? T : RecursivelyNormalizeNullableFields<T>
+  > {
+    return new ImplementableInputObjectRef<
+      Types,
+      RecursivelyNormalizeNullableFields<T>,
+      Normalize extends false ? T : RecursivelyNormalizeNullableFields<T>
+    >(this, name);
   }
 
   objectRef<T>(name: string): ImplementableObjectRef<Types, T> {

@@ -28,7 +28,6 @@ import ConfigStore from './config-store';
 import { PothosError, PothosSchemaError } from './errors';
 import { BasePlugin, MergedPlugins } from './plugins';
 import BuiltinScalarRef from './refs/builtin-scalar';
-import { ImplementableInputObjectRef } from './refs/input-object';
 import {
   InputType,
   OutputType,
@@ -476,13 +475,13 @@ export default class BuildCache<Types extends SchemaTypes> {
 
     if (type instanceof GraphQLObjectType) {
       throw new PothosSchemaError(
-        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLObjectType`,
+        `Expected ${type.name} to be an input type but it was defined as a GraphQLObjectType`,
       );
     }
 
     if (type instanceof GraphQLInterfaceType) {
       throw new PothosSchemaError(
-        `Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLInterfaceType`,
+        `Expected ${type.name} to be an input type but it was defined as a GraphQLInterfaceType`,
       );
     }
 

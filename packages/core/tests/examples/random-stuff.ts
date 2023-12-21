@@ -125,7 +125,7 @@ interface ExampleShape {
   json?: any;
 }
 
-const Example2 = builder.inputRef<ExampleShape>('Example2');
+const Example2 = builder.inputRef<ExampleShape, false>('Example2');
 
 Example2.implement({
   fields: (t) => ({
