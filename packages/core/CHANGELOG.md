@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.41.0
+
+### Minor Changes
+
+- 0d3778a: Allow inputRef to define inputs without normalization via builder.inputRef<Type,
+  false>(...)
+
 ## 3.40.1
 
 ### Patch Changes
