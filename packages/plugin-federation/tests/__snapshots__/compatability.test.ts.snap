@@ -2,7 +2,7 @@
 
 exports[`federation compatibility generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.3", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override"])
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@authenticated", "@policy", "@requiresScopes"])
 
 type Product
   @key(fields: "sku package")
