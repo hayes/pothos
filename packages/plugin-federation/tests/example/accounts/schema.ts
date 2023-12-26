@@ -4,6 +4,7 @@ import FederationPlugin from '../../../src';
 
 const builder = new SchemaBuilder<{
   DefaultFieldNullability: true;
+  FederationPolicies: 'user:policy';
 }>({
   plugins: [DirectivesPlugin, FederationPlugin],
   useGraphQLToolsUnorderedDirectives: true,

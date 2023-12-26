@@ -107,9 +107,44 @@ declare global {
       ) => void;
     }
 
+    export interface UserSchemaTypes {
+      FederationScopes: unknown;
+      FederationPolicies: unknown;
+    }
+
+    export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
+      FederationScopes: string extends PartialTypes['FederationScopes']
+        ? string
+        : PartialTypes['FederationScopes'];
+      FederationPolicies: string extends PartialTypes['FederationPolicies']
+        ? string
+        : PartialTypes['FederationPolicies'];
+    }
+
     export interface ObjectTypeOptions<Types extends SchemaTypes, Shape> {
       shareable?: boolean;
       tag?: string[] | string;
+      authenticated?: boolean;
+      requiresScopes?: Types['FederationScopes'][][];
+      policy?: Types['FederationPolicies'][][];
+    }
+
+    export interface InterfaceTypeOptions<Types extends SchemaTypes, Shape> {
+      authenticated?: boolean;
+      requiresScopes?: Types['FederationScopes'][][];
+      policy?: Types['FederationPolicies'][][];
+    }
+
+    export interface ScalarTypeOptions<Types extends SchemaTypes> {
+      authenticated?: boolean;
+      requiresScopes?: Types['FederationScopes'][][];
+      policy?: Types['FederationPolicies'][][];
+    }
+
+    export interface EnumTypeOptions<Types extends SchemaTypes> {
+      authenticated?: boolean;
+      requiresScopes?: Types['FederationScopes'][][];
+      policy?: Types['FederationPolicies'][][];
     }
 
     export interface BaseTypeOptions<Types extends SchemaTypes = SchemaTypes> {
@@ -133,6 +168,9 @@ declare global {
       inaccessible?: boolean;
       override?: { from: string };
       tag?: string[] | string;
+      authenticated?: boolean;
+      requiresScopes?: Types['FederationScopes'][][];
+      policy?: Types['FederationPolicies'][][];
     }
 
     export interface InputFieldOptions<

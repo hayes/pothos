@@ -109,6 +109,9 @@ function getCommonDirectives<
       tag?: string[] | string;
       inaccessible?: boolean;
       shareable?: boolean;
+      authenticated?: boolean;
+      requiresScopes?: unknown[][];
+      policy?: unknown[][];
     };
   },
 >(config: T) {
@@ -117,10 +120,19 @@ function getCommonDirectives<
       ? [config.pothosOptions.tag]
       : config.pothosOptions.tag ?? [];
   const tagDirectives = tags.map((tag) => ({ name: 'tag', args: { name: tag } }));
+  const requiresScopes = config.pothosOptions.requiresScopes
+    ? { name: 'requiresScopes', args: { scopes: config.pothosOptions.requiresScopes } }
+    : null;
+  const policy = config.pothosOptions.policy
+    ? { name: 'policy', args: { policies: config.pothosOptions.policy } }
+    : null;
 
   return [
     config.pothosOptions.inaccessible ? { name: 'inaccessible' } : null,
     config.pothosOptions.shareable ? { name: 'shareable' } : null,
+    config.pothosOptions.authenticated ? { name: 'authenticated' } : null,
+    requiresScopes,
+    policy,
     ...tagDirectives,
   ].filter(Boolean) as { name: string }[];
 }
