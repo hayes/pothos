@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.12.0
+
+### Minor Changes
+
+- 0979efd: Update referenced version of Apollo Federation specs to v2.6
+
 ## 3.11.0
 
 ### Minor Changes
