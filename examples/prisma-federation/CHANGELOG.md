@@ -1,5 +1,12 @@
 # @pothos-examples/relay
 
+## 2.8.50
+
+### Patch Changes
+
+- Updated dependencies [0979efd]
+  - @pothos/plugin-federation@3.12.0
+
 ## 2.8.49
 
 ### Patch Changes
