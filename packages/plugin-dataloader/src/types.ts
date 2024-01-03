@@ -90,6 +90,36 @@ export type LoadableListFieldOptions<
   >;
 };
 
+export type LoadableGroupFieldOptions<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends OutputType<Types>,
+  Nullable extends FieldNullability<[Type]>,
+  Args extends InputFieldMap,
+  ResolveReturnShape,
+  Key,
+  CacheKey,
+  Kind extends FieldKind = FieldKind,
+> = Omit<
+  FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
+  'resolve' | 'type'
+> & {
+  type: Type;
+  load: (
+    keys: Key[],
+    context: Types['Context'],
+  ) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
+  loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, Type, true>[], CacheKey>;
+  group: (value: ShapeFromTypeParam<Types, Type, false>) => Key;
+  resolve: Resolver<
+    ParentShape,
+    InputShapeFromFields<Args>,
+    Types['Context'],
+    Key,
+    ResolveReturnShape
+  >;
+};
+
 export type DataLoaderOptions<
   Types extends SchemaTypes,
   Shape,

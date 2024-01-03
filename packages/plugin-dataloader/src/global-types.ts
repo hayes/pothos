@@ -24,6 +24,7 @@ import {
 } from './types';
 
 import type {
+  LoadableGroupFieldOptions,
   LoadableInterfaceOptions,
   LoadableListFieldOptions,
   LoadableUnionOptions,
@@ -164,6 +165,27 @@ declare global {
         Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
       >(
         options: LoadableListFieldOptions<
+          Types,
+          ParentShape,
+          Type,
+          Nullable,
+          Args,
+          ResolveReturnShape,
+          Key,
+          CacheKey,
+          Kind
+        >,
+      ) => FieldRef<unknown>;
+
+      loadableGroup: <
+        Args extends InputFieldMap,
+        Type extends OutputType<Types>,
+        Key,
+        CacheKey,
+        ResolveReturnShape,
+        Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
+      >(
+        options: LoadableGroupFieldOptions<
           Types,
           ParentShape,
           Type,

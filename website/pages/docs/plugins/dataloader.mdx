@@ -160,6 +160,26 @@ builder.objectField(User, 'posts', (t) =>
 );
 ```
 
+### loadableGroup fields for one-to-many relations
+
+In many cases, it's easier to load a flat list in a dataloader rather than loading a list of lists.
+the `loadableGroup` method simplifies this.
+
+```typescript
+// Loading multiple Posts
+builder.objectField(User, 'posts', (t) =>
+  t.loadableGroup({
+    // type is singular, but will create a list field
+    type: Post,
+    // will be called with ids of all the users, and should return `Post[]`
+    load: (ids: number[], context) => db.posts.findMany({ where: { authorId: { in: ids } } }),
+    // will be called with each post to determine which group it belongs to
+    group: (post) => post.authorId,
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
 ### dataloader options
 
 You can provide additional options for your dataloaders using `loaderOptions`.
