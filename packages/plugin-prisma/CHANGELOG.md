@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.63.1
+
+### Patch Changes
+
+- 9606ed4: [plugin-prisma] Fix prisma generator not creating the ESM build on windows
+
 ## 3.63.0
 
 ### Minor Changes
