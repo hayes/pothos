@@ -51,8 +51,8 @@ generatorHandler({
       await generateOutput(
         options.dmmf,
         prismaTypes,
-        join(prismaLocation.replace('../', '../../'), 'index.js'),
-        outputLocation.replace('/generated.ts', '/esm/generated.ts'),
+        join(prismaLocation, 'index.js'),
+        join(outputLocation, '../esm/generated.ts'),
       );
     }
   },
