@@ -49,11 +49,26 @@ schemaBuilderProto.externalRef = function externalRef<
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
   linkUrl = 'https://specs.apollo.dev/federation/v2.6',
+  federationDirectives = [
+    '@key',
+    '@shareable',
+    '@inaccessible',
+    '@tag',
+    '@provides',
+    '@requires',
+    '@external',
+    '@extends',
+    '@override',
+    '@authenticated',
+    '@policy',
+    '@requiresScopes',
+  ],
   ...options
 }) {
   const hasInterfaceObjects = [...(entityMapping.get(this)?.values() ?? [])].some(
     (m) => m.interfaceObject,
   );
+
   const schema = this.toSchema({
     ...options,
     extensions: {
@@ -64,18 +79,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
           args: {
             url: linkUrl,
             import: [
-              '@key',
-              '@shareable',
-              '@inaccessible',
-              '@tag',
-              '@provides',
-              '@requires',
-              '@external',
-              '@extends',
-              '@override',
-              '@authenticated',
-              '@policy',
-              '@requiresScopes',
+              ...federationDirectives,
               options.composeDirectives ? '@composeDirective' : null,
               hasInterfaceObjects ? '@interfaceObject' : null,
             ].filter(Boolean),

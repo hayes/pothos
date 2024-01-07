@@ -2,7 +2,7 @@
 
 exports[`federation accounts schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@authenticated", "@policy", "@requiresScopes", "@interfaceObject"])
+  @link(url: "https://specs.apollo.dev/federation/v2.5", import: ["@key", "@shareable", "@inaccessible", "@tag", "@interfaceObject"])
 
 type Media
   @key(fields: "id")
