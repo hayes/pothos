@@ -239,7 +239,7 @@ builder.queryFields((t) => ({
             },
           ]
         }
-      }),
+      },
     },
     {
       name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
