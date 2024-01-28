@@ -659,13 +659,14 @@ export type RelayMutationFieldOptions<
   InputName extends string,
   ResolveShape,
   ResolveReturnShape,
+  Args extends InputFieldMap = {},
 > = Omit<
   FieldOptionsFromKind<
     Types,
     Types['Root'],
     OutputRef<ResolveShape>,
     Nullable,
-    {
+    Args & {
       [K in InputName]: InputFieldRef<InputShapeWithClientMutationId<Types, Fields>>;
     },
     'Mutation',
@@ -673,7 +674,9 @@ export type RelayMutationFieldOptions<
     ResolveReturnShape
   >,
   'args' | 'type'
->;
+> & {
+  args?: Args;
+};
 
 export type RelayMutationPayloadOptions<
   Types extends SchemaTypes,

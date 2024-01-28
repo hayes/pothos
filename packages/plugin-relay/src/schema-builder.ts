@@ -343,12 +343,12 @@ const mutationIdCache = createContextCache(() => new Map<string, string>());
 schemaBuilderProto.relayMutationField = function relayMutationField(
   fieldName,
   inputOptionsOrRef,
-  { resolve, ...fieldOptions },
+  { resolve, args, ...fieldOptions },
   {
     name: payloadName = `${capitalize(fieldName)}Payload`,
     outputFields,
     interfaces,
-    ...paylaodOptions
+    ...payloadOptions
   },
 ) {
   const {
@@ -361,10 +361,10 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 
   const includeClientMutationId = this.options.relayOptions.clientMutationId !== 'omit';
 
-  let inputRef: InputObjectRef<unknown>;
+  let inputRef: InputObjectRef<unknown> | null;
   let argName = 'input';
 
-  if (inputOptionsOrRef instanceof InputObjectRef) {
+  if (!inputOptionsOrRef || inputOptionsOrRef instanceof InputObjectRef) {
     inputRef = inputOptionsOrRef;
   } else {
     const {
@@ -394,7 +394,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
 
   const payloadRef = this.objectRef<unknown>(payloadName).implement({
     ...this.options.relayOptions?.defaultPayloadTypeOptions,
-    ...paylaodOptions,
+    ...payloadOptions,
     interfaces: interfaces as never,
     fields: (t) => ({
       ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
@@ -403,7 +403,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
             clientMutationId: t.id({
               nullable: this.options.relayOptions.clientMutationId === 'optional',
               ...clientMutationIdFieldOptions,
-              resolve: (parent, args, context, info) =>
+              resolve: (parent, _args, context, info) =>
                 mutationIdCache(context).get(String(info.path.prev!.key))!,
             }),
           }
@@ -416,16 +416,27 @@ schemaBuilderProto.relayMutationField = function relayMutationField(
       ...(fieldOptions as {}),
       type: payloadRef,
       args: {
-        [argName]: t.arg({ ...(mutationInputArgOptions as {}), type: inputRef, required: true }),
+        ...args,
+        ...(inputRef
+          ? {
+              [argName]: t.arg({
+                ...(mutationInputArgOptions as {}),
+                type: inputRef,
+                required: true,
+              }),
+            }
+          : {}),
       },
-      resolve: (root, args, context, info) => {
-        mutationIdCache(context).set(
-          String(info.path.key),
-          (args as unknown as Record<string, { clientMutationId: string }>)[argName]
-            .clientMutationId,
-        );
+      resolve: (root, fieldArgs, context, info) => {
+        if (inputRef) {
+          mutationIdCache(context).set(
+            String(info.path.key),
+            (fieldArgs as unknown as Record<string, { clientMutationId: string }>)[argName]
+              .clientMutationId,
+          );
+        }
 
-        return resolve(root, args as never, context, info);
+        return resolve(root, fieldArgs as never, context, info);
       },
     }),
   );

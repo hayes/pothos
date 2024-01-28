@@ -105,16 +105,21 @@ declare global {
         ResolveReturnShape,
         Interfaces extends InterfaceParam<Types>[],
         InputName extends string = 'input',
+        Args extends InputFieldMap = {},
       >(
         name: string,
-        inputOptions: InputObjectRef<unknown> | RelayMutationInputOptions<Types, Fields, InputName>,
+        inputOptions:
+          | InputObjectRef<unknown>
+          | RelayMutationInputOptions<Types, Fields, InputName>
+          | null,
         fieldOptions: RelayMutationFieldOptions<
           Types,
           Fields,
           Nullable,
           InputName,
           ResolveShape,
-          ResolveReturnShape
+          ResolveReturnShape,
+          Args
         >,
         payloadOptions: RelayMutationPayloadOptions<Types, ResolveShape, Interfaces>,
       ) => {

@@ -123,6 +123,24 @@ const { inputType: ExampleMutationInput, payloadType: ExampleMutationPayload } =
     },
   );
 
+builder.relayMutationField(
+  'noInput',
+  null,
+  {
+    args: builder.args((t) => ({
+      status: t.int(),
+    })),
+    resolve: async (_, args) => Promise.resolve({ status: args.status ?? 200 }),
+  },
+  {
+    outputFields: (t) => ({
+      itWorked: t.boolean({
+        resolve: (parent) => parent.status === 200,
+      }),
+    }),
+  },
+);
+
 builder.mutationField('exampleMutationReUse', (t) =>
   t.field({
     type: ExampleMutationPayload,

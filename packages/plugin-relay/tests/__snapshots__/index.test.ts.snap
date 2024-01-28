@@ -66,11 +66,17 @@ type Mutation {
 
   \\"\\"\\"mutation field\\"\\"\\"
   exampleWithDescriptions(customInput: CustomInputName!): CustomOutputName!
+  noInput(status: Int): NoInputPayload!
 }
 
 input NoGlobalIDInput {
   circular: NoGlobalIDInput
   id: ID
+}
+
+type NoInputPayload {
+  clientMutationId: ID!
+  itWorked: Boolean!
 }
 
 interface Node {
