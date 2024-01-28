@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.7.2
+
+### Patch Changes
+
+- 1e1f885: if debounceDelay is set to null, disable debounce timeout
+
 ## 3.7.1
 
 ### Patch Changes
