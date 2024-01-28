@@ -1,5 +1,12 @@
 # @pothos/plugin-federation
 
+## 3.13.0
+
+### Minor Changes
+
+- 126cd76: Allow imported federation directives to be manually configured, and only import used
+  directives by default
+
 ## 3.12.0
 
 ### Minor Changes
