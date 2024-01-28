@@ -40,7 +40,7 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
     ...fieldOptions,
   } as never);
 
-  fieldRef.onFirstUse((config) => {
+  fieldRef.onUse((config) => {
     const { name: getTypeName = defaultGetName, ...defaultTypeOptions } =
       this.builder.options.withInput?.typeOptions ?? {};
 

@@ -60,7 +60,7 @@ export class FieldRef<Types extends SchemaTypes, T = unknown, Kind extends Field
     return config;
   }
 
-  onFirstUse(cb: (config: PothosOutputFieldConfig<Types>) => void) {
+  onUse(cb: (config: PothosOutputFieldConfig<Types>) => void) {
     this.onUseCallbacks.add(cb);
   }
 }

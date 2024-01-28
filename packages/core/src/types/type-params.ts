@@ -143,7 +143,7 @@ export type ShapeWithNullability<
 export type ShapeFromTypeParam<
   Types extends SchemaTypes,
   Param extends TypeParam<Types>,
-  Nullable extends FieldNullability<Param>,
+  Nullable,
 > = Param extends [OutputType<Types>]
   ? ShapeFromListTypeParam<Types, Param, Nullable>
   : FieldNullability<Param> extends Nullable
@@ -157,7 +157,7 @@ export type ShapeFromTypeParam<
 export type ShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [OutputType<Types>],
-  Nullable extends FieldNullability<Param>,
+  Nullable,
 > = FieldNullability<Param> extends Nullable
   ? Types['DefaultFieldNullability'] extends true
     ? readonly OutputShape<Types, Param[0]>[] | null | undefined

@@ -199,7 +199,7 @@ fieldBuilderProto.connection = function connection(
   });
 
   if (!(connectionOptionsOrRef instanceof ObjectRef)) {
-    fieldRef.onFirstUse((fieldConfig) => {
+    fieldRef.onUse((fieldConfig) => {
       const connectionName =
         connectionOptionsOrRef.name ??
         `${fieldConfig.parentType}${capitalize(fieldConfig.name)}${

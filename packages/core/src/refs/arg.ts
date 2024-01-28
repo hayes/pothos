@@ -67,7 +67,7 @@ export class ArgumentRef<Types extends SchemaTypes, T = unknown> {
     return config;
   }
 
-  onFirstUse(cb: (config: PothosInputFieldConfig<Types>) => void) {
+  onUse(cb: (config: PothosInputFieldConfig<Types>) => void) {
     this.onUseCallbacks.add(cb);
   }
 }

@@ -140,7 +140,7 @@ export type FieldOptionsFromKind<
   Kind extends FieldKind,
   ResolveShape,
   ResolveReturnShape,
-> = PothosSchemaTypes.FieldOptionsByKind<
+> = PothosSchemaTypes.BaseFieldOptionsByMode<
   Types,
   ParentShape,
   Type,
@@ -148,7 +148,16 @@ export type FieldOptionsFromKind<
   Args,
   ResolveShape,
   ResolveReturnShape
->[Kind];
+>[SchemaTypes['FieldMode']] &
+  PothosSchemaTypes.FieldOptionsByKind<
+    Types,
+    ParentShape,
+    Type,
+    Nullable,
+    Args,
+    ResolveShape,
+    ResolveReturnShape
+  >[Kind];
 
 export type ObjectTypeOptions<
   Types extends SchemaTypes,
@@ -243,6 +252,16 @@ export type FieldKind = keyof PothosSchemaTypes.FieldOptionsByKind<
   {}
 > &
   keyof PothosSchemaTypes.PothosKindToGraphQLType;
+
+export type FieldMode = keyof PothosSchemaTypes.BaseFieldOptionsByMode<
+  SchemaTypes,
+  {},
+  TypeParam<SchemaTypes>,
+  boolean,
+  {},
+  {},
+  {}
+>;
 
 export type InputFieldKind = keyof PothosSchemaTypes.InputFieldOptionsByKind<
   SchemaTypes,

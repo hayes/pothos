@@ -1,3 +1,5 @@
+import { FieldMode } from './builder-options';
+
 export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   outputShapes: {
     String: unknown;
@@ -26,6 +28,7 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   DefaultFieldNullability: boolean;
   DefaultInputFieldRequiredness: boolean;
   NullableMode: 'v3' | 'v4';
+  FieldMode: FieldMode;
   Root: object;
   Context: object;
 }

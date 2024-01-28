@@ -3,7 +3,7 @@ import { ArgumentRef } from '../refs/arg';
 import { FieldRef } from '../refs/field';
 import type {
   FieldKind,
-  FieldNullabilityOptions,
+  FieldMode,
   InputFieldMap,
   PothosInputFieldConfig,
   ShapeFromTypeParam,
@@ -28,14 +28,39 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     this.graphqlKind = graphqlKind;
   }
 
+  protected createRef<Mode extends FieldMode>(
+    options: PothosSchemaTypes.BaseFieldOptionsByMode<
+      Types,
+      unknown,
+      TypeParam<Types>,
+      unknown,
+      {},
+      unknown,
+      unknown,
+      string
+    >[Mode],
+  ): FieldRef<Types> {
+    throw new Error('TODO');
+  }
+
   protected createField<
     Args extends InputFieldMap,
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
+    Mode extends FieldMode = Types['FieldMode'],
+    Method extends string = string,
   >(
-    options: FieldNullabilityOptions<Types, Nullable> &
+    options: PothosSchemaTypes.BaseFieldOptionsByMode<
+      Types,
+      ParentShape,
+      Type,
+      Nullable,
+      Args,
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
+      any,
+      {},
+      Method
+    >[Mode],
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     const ref = new FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>(
       this.kind,
@@ -89,6 +114,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
     Name extends string & keyof ParentShape,
+    Method extends `expose${string}` = 'expose',
   >(
     name: Name,
     {
@@ -99,7 +125,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
       'resolve'
     >,
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
-    return this.createField({
+    return this.createField<{}, Type, Nullable, 'v4', Method>({
       ...options,
       extensions: {
         pothosExposedField: name,
