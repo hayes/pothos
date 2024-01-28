@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.46.0
+
+### Minor Changes
+
+- 2a1843d: Allow inputOptions on relayMutationField to be set to null to remove input argument
+
 ## 3.45.1
 
 ### Patch Changes
