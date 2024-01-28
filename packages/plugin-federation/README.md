@@ -167,7 +167,7 @@ ReviewType.implement({
 const schema = builder.toSubGraphSchema({
   // defaults to v2.6
   linkUrl: 'https://specs.apollo.dev/federation/v2.3',
-  // defaults to ['@key', '@shareable', '@inaccessible', '@tag', '@provides', '@requires','@external', '@extends', '@override', '@authenticated', '@policy', '@requiresScopes']
+  // defaults to the list of directives used in your schema
   federationDirectives: ['@key', '@external', '@requires', '@provides'],
 });
 
