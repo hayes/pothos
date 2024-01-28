@@ -14,7 +14,7 @@ import { entitiesField, EntityType, serviceField } from '@apollo/subgraph/dist/t
 import SchemaBuilder, { MaybePromise, SchemaTypes } from '@pothos/core';
 import { ExternalEntityRef } from './external-ref';
 import { Selection, SelectionFromShape, selectionShapeKey } from './types';
-import { entityMapping, mergeDirectives } from './util';
+import { entityMapping, getUsedDirectives, mergeDirectives } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
@@ -47,28 +47,14 @@ schemaBuilderProto.externalRef = function externalRef<
   return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, key, resolveReference);
 };
 
-schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
-  linkUrl = 'https://specs.apollo.dev/federation/v2.6',
-  federationDirectives = [
-    '@key',
-    '@shareable',
-    '@inaccessible',
-    '@tag',
-    '@provides',
-    '@requires',
-    '@external',
-    '@extends',
-    '@override',
-    '@authenticated',
-    '@policy',
-    '@requiresScopes',
-  ],
-  ...options
-}) {
-  const hasInterfaceObjects = [...(entityMapping.get(this)?.values() ?? [])].some(
-    (m) => m.interfaceObject,
-  );
-
+schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
+  this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
+  {
+    linkUrl = 'https://specs.apollo.dev/federation/v2.6',
+    federationDirectives = getUsedDirectives(this),
+    ...options
+  },
+) {
   const schema = this.toSchema({
     ...options,
     extensions: {
@@ -81,7 +67,6 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema({
             import: [
               ...federationDirectives,
               options.composeDirectives ? '@composeDirective' : null,
-              hasInterfaceObjects ? '@interfaceObject' : null,
             ].filter(Boolean),
           },
         },

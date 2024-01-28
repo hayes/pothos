@@ -1,4 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
+import { SchemaTypes } from '@pothos/core';
 import { Selection } from './types';
 
 type DirectiveList = { name: string; args?: {} }[];
@@ -50,3 +51,30 @@ export const entityMapping = new WeakMap<
     }
   >
 >();
+
+export const usedDirectives = new Map<
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  PothosSchemaTypes.SchemaBuilder<any>,
+  Set<string>
+>();
+
+export function getUsedDirectives<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+) {
+  builder.toSchema();
+  return [...(usedDirectives.get(builder) ?? new Set())]
+    .map((d) => (d.startsWith('@') ? d : `@${d}`))
+    .sort();
+}
+
+export function addUsedDirectives<Types extends SchemaTypes>(
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  directives: string[],
+): void {
+  if (!usedDirectives.has(builder)) {
+    usedDirectives.set(builder, new Set());
+  }
+
+  const set = usedDirectives.get(builder)!;
+  directives.forEach((directive) => set.add(directive));
+}

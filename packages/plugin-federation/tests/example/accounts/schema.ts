@@ -74,5 +74,5 @@ builder.asEntity(Media, {
 
 export const schema = builder.toSubGraphSchema({
   linkUrl: 'https://specs.apollo.dev/federation/v2.5',
-  federationDirectives: ['@key', '@shareable', '@inaccessible', '@tag'],
+  federationDirectives: ['@key', '@shareable', '@inaccessible', '@tag', '@interfaceObject'],
 });
