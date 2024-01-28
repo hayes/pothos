@@ -179,8 +179,10 @@ ReviewType.implement({
 ```typescript
 // Use new `toSubGraphSchema` method to add subGraph specific types and queries to the schema
 const schema = builder.toSubGraphSchema({
-  // defaults to v2.3
+  // defaults to v2.6
   linkUrl: 'https://specs.apollo.dev/federation/v2.3',
+  // defaults to the list of directives used in your schema
+  federationDirectives: ['@key', '@external', '@requires', '@provides'],
 });
 
 const server = new ApolloServer({
@@ -218,9 +220,6 @@ t.field({
   tag: ['someTag'],
   inaccessible: true,
   override: { from: 'users' },
-  authenticated: true,
-  scopes: ['read:field'],
-  policy: [['read:field']],
 });
 ```
 
@@ -265,7 +264,7 @@ builder.asEntity(Media, {
 
 See federation documentation for more details on `interfaceObject`s
 
-### composeDirective
+### composeDirective =
 
 You can apply the `composeDirective` directive when building the subgraph schema:
 

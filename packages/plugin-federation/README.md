@@ -165,8 +165,10 @@ ReviewType.implement({
 ```typescript
 // Use new `toSubGraphSchema` method to add subGraph specific types and queries to the schema
 const schema = builder.toSubGraphSchema({
-  // defaults to v2.3
+  // defaults to v2.6
   linkUrl: 'https://specs.apollo.dev/federation/v2.3',
+  // defaults to the list of directives used in your schema
+  federationDirectives: ['@key', '@external', '@requires', '@provides'],
 });
 
 const server = new ApolloServer({

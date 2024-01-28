@@ -2,7 +2,7 @@
 
 exports[`federation accounts schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@authenticated", "@policy", "@requiresScopes", "@interfaceObject"])
+  @link(url: "https://specs.apollo.dev/federation/v2.5", import: ["@key", "@shareable", "@inaccessible", "@tag", "@interfaceObject"])
 
 type Media
   @key(fields: "id")
@@ -57,7 +57,7 @@ type _Service {
 
 exports[`federation inventory schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@authenticated", "@policy", "@requiresScopes"])
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@requires"])
 
 type Product
   @key(fields: "upc")
@@ -99,7 +99,7 @@ type _Service {
 
 exports[`federation products schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@authenticated", "@policy", "@requiresScopes", "@composeDirective"])
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@composeDirective"])
   @link(url: "https://myspecs.dev/myCustomDirective/v1.0", import: ["@custom"])
   @composeDirective(name: "@custom")
 
@@ -174,7 +174,7 @@ type _Service {
 
 exports[`federation reviews schema generates expected schema 1`] = `
 "extend schema
-  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@key", "@shareable", "@inaccessible", "@tag", "@provides", "@requires", "@external", "@extends", "@override", "@authenticated", "@policy", "@requiresScopes"])
+  @link(url: "https://specs.apollo.dev/federation/v2.6", import: ["@extends", "@external", "@key", "@provides", "@tag"])
 
 type Product
   @key(fields: "upc")

@@ -72,4 +72,7 @@ builder.asEntity(Media, {
   resolveReference: (ref) => ref,
 });
 
-export const schema = builder.toSubGraphSchema({});
+export const schema = builder.toSubGraphSchema({
+  linkUrl: 'https://specs.apollo.dev/federation/v2.5',
+  federationDirectives: ['@key', '@shareable', '@inaccessible', '@tag', '@interfaceObject'],
+});

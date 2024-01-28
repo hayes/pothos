@@ -87,6 +87,7 @@ declare global {
         options: BuildSchemaOptions<Types> & {
           linkUrl?: string;
           composeDirectives?: `@${string}`[];
+          federationDirectives?: string[];
         },
       ) => GraphQLSchema;
 

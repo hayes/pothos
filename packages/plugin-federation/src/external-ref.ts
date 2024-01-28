@@ -14,7 +14,7 @@ import type {
   SelectionFromShape,
   selectionShapeKey,
 } from './types';
-import { keyDirective, mergeDirectives } from './util';
+import { addUsedDirectives, keyDirective, mergeDirectives } from './util';
 
 export const providesMap = new WeakMap<{}, string>();
 
@@ -58,6 +58,7 @@ export class ExternalEntityRef<
     directives,
     ...options
   }: ExternalEntityOptions<Types, Shape, Interfaces>) {
+    addUsedDirectives(this.builder, ['extends', 'key']);
     this.builder.objectType(this as unknown as ObjectRef<unknown>, {
       ...(options as {} as PothosSchemaTypes.ObjectTypeOptions<Types, Shape>),
       name: this.name,

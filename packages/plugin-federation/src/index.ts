@@ -11,7 +11,7 @@ import SchemaBuilder, {
   TypeParam,
 } from '@pothos/core';
 import { providesMap } from './external-ref';
-import { entityMapping, keyDirective, mergeDirectives } from './util';
+import { addUsedDirectives, entityMapping, keyDirective, mergeDirectives } from './util';
 
 export * from './types';
 
@@ -21,7 +21,6 @@ export default pluginName;
 
 export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override onTypeConfig(typeConfig: PothosTypeConfig) {
-    const commonDirectives = getCommonDirectives(typeConfig);
     const entityConfig = entityMapping.get(this.builder)?.get(typeConfig.name);
 
     const apollo = entityConfig
@@ -34,16 +33,23 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
         }
       : typeConfig.extensions?.apollo;
 
+    const typeDirectives = [
+      ...(entityConfig ? keyDirective(entityConfig.key) : []),
+      ...(entityConfig?.interfaceObject ? [{ name: 'interfaceObject', args: {} }] : []),
+      ...getCommonDirectives(typeConfig),
+    ];
+
+    addUsedDirectives(
+      this.builder,
+      typeDirectives.map((d) => d.name),
+    );
+
     return {
       ...typeConfig,
       extensions: {
         ...typeConfig.extensions,
         apollo,
-        directives: mergeDirectives(typeConfig.extensions?.directives as [], [
-          ...(entityConfig ? keyDirective(entityConfig.key) : []),
-          ...commonDirectives,
-          ...(entityConfig?.interfaceObject ? [{ name: 'interfaceObject', args: {} }] : []),
-        ]),
+        directives: mergeDirectives(typeConfig.extensions?.directives as [], typeDirectives),
       },
     };
   }
@@ -66,22 +72,22 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
       fieldConfig.kind === 'ExternalEntity' ? (defaultFieldResolver as never) : fieldConfig.resolve
     )!;
 
-    const commonDirectives = getCommonDirectives(fieldConfig);
+    const fieldDirectives = [
+      options.requires ? { name: 'requires', args: { fields: options.requires.selection } } : null,
+      fieldConfig.kind === 'ExternalEntity' ? { name: 'external' } : null,
+      providesMap.has(ref) ? { name: 'provides', args: { fields: providesMap.get(ref) } } : null,
+      fieldConfig.pothosOptions.override
+        ? { name: 'override', args: fieldConfig.pothosOptions.override }
+        : null,
+      ...getCommonDirectives(fieldConfig),
+    ].filter(Boolean) as { name: string }[];
 
-    const directives = mergeDirectives(
-      fieldConfig.extensions?.directives as [],
-      [
-        options.requires
-          ? { name: 'requires', args: { fields: options.requires.selection } }
-          : null,
-        fieldConfig.kind === 'ExternalEntity' ? { name: 'external' } : null,
-        providesMap.has(ref) ? { name: 'provides', args: { fields: providesMap.get(ref) } } : null,
-        fieldConfig.pothosOptions.override
-          ? { name: 'override', args: fieldConfig.pothosOptions.override }
-          : null,
-        ...commonDirectives,
-      ].filter(Boolean) as { name: string }[],
+    addUsedDirectives(
+      this.builder,
+      fieldDirectives.map((d) => d.name),
     );
+
+    const directives = mergeDirectives(fieldConfig.extensions?.directives as [], fieldDirectives);
 
     return {
       ...fieldConfig,
@@ -94,11 +100,11 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>) {
-    return addCommonDirectives(fieldConfig);
+    return addCommonDirectives(this.builder, fieldConfig);
   }
 
   override onEnumValueConfig(valueConfig: PothosEnumValueConfig<Types>) {
-    return addCommonDirectives(valueConfig);
+    return addCommonDirectives(this.builder, valueConfig);
   }
 }
 
@@ -138,6 +144,7 @@ function getCommonDirectives<
 }
 
 function addCommonDirectives<
+  Types extends SchemaTypes,
   T extends {
     extensions?: Record<string, unknown> | null;
     pothosOptions: {
@@ -145,11 +152,14 @@ function addCommonDirectives<
       inaccessible?: boolean;
     };
   },
->(config: T): T {
-  const directives = mergeDirectives(
-    config.extensions?.directives as [],
-    getCommonDirectives(config),
+>(builder: PothosSchemaTypes.SchemaBuilder<Types>, config: T): T {
+  const commonDirectives = getCommonDirectives(config);
+  addUsedDirectives(
+    builder,
+    commonDirectives.map((d) => d.name),
   );
+
+  const directives = mergeDirectives(config.extensions?.directives as [], commonDirectives);
 
   return {
     ...config,
