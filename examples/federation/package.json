@@ -1,0 +1,31 @@
+{
+  "$schema": "https://json.schemastore.org/package.json",
+  "version": "2.8.53",
+  "name": "@pothos-examples/prisma-federation",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "scripts": {
+    "generate": "prisma generate",
+    "seed": "prisma migrate reset -f",
+    "start": "node -r @swc-node/register src/server.ts",
+    "type": "tsc --noEmit"
+  },
+  "prisma": {
+    "seed": "node -r @swc-node/register prisma/seed.ts"
+  },
+  "dependencies": {
+    "@apollo/gateway": "2.6.1",
+    "@apollo/server": "^4.9.5",
+    "@apollo/subgraph": "2.6.1",
+    "@faker-js/faker": "^8.3.1",
+    "@pothos/core": "workspace:*",
+    "@pothos/plugin-directives": "workspace:*",
+    "@pothos/plugin-federation": "workspace:*",
+    "@prisma/client": "^5.6.0",
+    "graphql": "16.8.1",
+    "prisma": "^5.6.0"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
