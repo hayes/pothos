@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.13.1
+
+### Patch Changes
+
+- e1b2a69: Fix incorrectly configured exports in package.json
+
 ## 3.13.0
 
 ### Minor Changes
