@@ -1,6 +1,6 @@
 import { startStandaloneServer } from '@apollo/server/standalone';
-import { server as reviewsServer } from './reviews';
 import { server as productsServer } from './products';
+import { server as reviewsServer } from './reviews';
 
 export const servers = [
   { name: 'products', server: productsServer },
