@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { GraphQLFieldExtensions } from 'graphql';
+import { FieldRef } from '../../refs/field';
 import type {
   FieldNullabilityOptions,
   InputFieldMap,
@@ -30,7 +31,7 @@ declare global {
       ResolveReturnShape = unknown,
       Method = string,
     > {
-      v3: {
+      v3: (options: {
         /** The type for this field */
         type: Type & TypeParam<Types>;
         /** Determines if the field can resolve to a null */
@@ -61,8 +62,8 @@ declare global {
           ShapeFromTypeParam<Types, Type, Nullable>,
           ResolveReturnShape
         >;
-      };
-      v4: {
+      }) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
+      v4: (options: {
         /** The type for this field */
         type: Type;
         /** When true errors will propagate to parent fields, and the resolver will not be able to return null */
@@ -93,7 +94,7 @@ declare global {
           ShapeFromTypeParam<Types, Type, Nullable>,
           ResolveReturnShape
         >;
-      };
+      }) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
     }
     export interface FieldOptions<
       Types extends SchemaTypes = SchemaTypes,
