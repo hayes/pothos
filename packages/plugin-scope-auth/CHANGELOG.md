@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.21.0
+
+### Minor Changes
+
+- 22d4118: Add DefaultAuthStrategy to SchemaTypes to allow improve types when defaultStrategy is set
+  to all
+
 ## 3.20.0
 
 ### Minor Changes

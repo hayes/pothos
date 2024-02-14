@@ -1,5 +1,13 @@
 # Change Log
 
+## 3.64.0
+
+### Minor Changes
+
+- 22d4118: Add maxConnectionSize and defaultConnectionSize options
+- 22d4118: Fix type issue where using `select` on a type or field for a nullable relation would
+  result in the relation being non-nullable on the parent object
+
 ## 3.63.1
 
 ### Patch Changes
