@@ -57,6 +57,8 @@ declare global {
                   fields?: boolean;
                 };
             onUnusedQuery?: 'error' | 'warn' | ((info: GraphQLResolveInfo) => void) | null;
+            maxConnectionSize?: number;
+            defaultConnectionSize?: number;
           }
         | {
             filterConnectionTotalCount?: boolean;
@@ -68,6 +70,8 @@ declare global {
                   fields?: boolean;
                 };
             onUnusedQuery?: 'error' | 'warn' | ((info: GraphQLResolveInfo) => void) | null;
+            maxConnectionSize?: number;
+            defaultConnectionSize?: number;
           };
     }
 

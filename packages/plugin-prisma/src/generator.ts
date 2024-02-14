@@ -284,6 +284,14 @@ function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {
                     undefined,
                     ts.factory.createLiteralTypeNode(ts.factory.createStringLiteral(typeName)),
                   ),
+                  ts.factory.createPropertySignature(
+                    [],
+                    'Nullable',
+                    undefined,
+                    ts.factory.createLiteralTypeNode(
+                      field.isRequired ? ts.factory.createFalse() : ts.factory.createTrue(),
+                    ),
+                  ),
                 ]),
               );
             }),

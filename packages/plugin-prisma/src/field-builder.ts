@@ -96,8 +96,8 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
   {
     type,
     cursor,
-    maxSize,
-    defaultSize,
+    maxSize = this.builder.options.prisma?.maxConnectionSize,
+    defaultSize = this.builder.options.prisma?.defaultConnectionSize,
     resolve,
     totalCount,
     ...options

@@ -475,7 +475,7 @@ Prisma supports querying for
 which allow including counts for relations along side other `includes`. Before prisma 4.2.0, this
 does not support any filters on the counts, but can give a total count for a relation. Starting from
 prisma 4.2.0, filters on relation count are available under the `filteredRelationCount` preview
-feature flag, in 4.16.0 this feature became generally available.
+feature flag.
 
 ```typescript
 builder.prismaObject('User', {
@@ -485,24 +485,6 @@ builder.prismaObject('User', {
       where: {
         published: true,
       },
-    }),
-  }),
-});
-```
-
-You can also use arguments and dynamically build where.
-
-```typescript
-builder.prismaObject('User', {
-  fields: (t) => ({
-    id: t.exposeID('id'),
-    postCount: t.relationCount('posts', {
-      args: {
-        published: t.arg.boolean({ required: true }),
-      },
-      where: (args, ctx) => ({
-        published: args.published,
-      }),
     }),
   }),
 });
@@ -722,8 +704,8 @@ This same workaround applies when defining relations using variants.
 
 ## Creating interfaces with `builder.prismaInterface`
 
-`builder.prismaInterface` works just like builder.prismaInterface and can be used to define either
-the primary type or a variant for a model.
+`builder.prismaInterface` works just like builder.prismaObject and can be used to define either the
+primary type or a variant for a model.
 
 The following example creates a `User` interface, and 2 variants Admin and Member. The `resolveType`
 method returns the typenames as strings to avoid issues with circular references.
@@ -757,9 +739,12 @@ builder.prismaObject('User', {
 });
 ```
 
-So far, this is just creating some simple object types. They work just like any other object type in
-Pothos. The main advantage of this is that we get the type information without using object refs, or
-needing imports from prisma client.
+When using select mode, it's recommended to add selections to both the interface and the object
+types that implement them. Selections are not inherited and will fallback to the default selection
+which includes all scalar columns.
+
+You will not be able to extend an interface for a different prisma model, doing so will result in an
+error at build time.
 
 ## Selecting fields from a nested GraphQL field
 
@@ -947,7 +932,7 @@ builder.mutationField(
           info,
           // nested path where the selections for this type can be found
           path: ['post']
-          // optionally you can pass a custom initial selection, genereally you wouldn't need this
+          // optionally you can pass a custom initial selection, generally you wouldn't need this
           // but if the field at `path` is not selected, the initial selection set may be empty
           select: {
             comments: true,
@@ -1012,8 +997,8 @@ builder.prismaNode('Post', {
 ```
 
 When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
-the database, the default behaviour is to throw an error. There are some scenarios where it is
-preferrable to return `null` instead of throwing an error. For this you can add the `nullable: true`
+the database, the default behavior is to throw an error. There are some scenarios where it is
+preferable to return `null` instead of throwing an error. For this you can add the `nullable: true`
 option:
 
 ```typescript
@@ -1062,7 +1047,8 @@ builder.queryType({
   selections.
 - `totalCount`: A function for loading the total count for the connection. This will add a
   `totalCount` field to the connection object. The `totalCount` method will receive (`connection`,
-  `args`, `context`, `info`) as arguments
+  `args`, `context`, `info`) as arguments. Note that this will not work when using a shared
+  connection object (see details below)
 
 The created connection queries currently support the following combinations of connection arguments:
 
@@ -1074,6 +1060,9 @@ Queries for other combinations are not as useful, and generally requiring loadin
 between 2 cursors, or between a cursor and the end of the set. Generating query options for these
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
+
+The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
+`defaultConnectionSize` options in the `prisma` plugin options.
 
 ### `relatedConnection`
 
@@ -1118,11 +1107,12 @@ builder.prismaNode('User', {
 - `query`: A method that accepts the `args` and `context` for the connection field, and returns
   filtering and sorting logic that will be merged into the query for the relation.
 - `totalCount`: when set to true, this will add a `totalCount` field to the connection object. see
-  `relationCount` above for more details.
+  `relationCount` above for more details. Note that this will not work when using a shared
+  connection object (see details below)
 
 ### Indirect relations as connections
 
-Creating connections from indirect relations is a little more involved, but can be acheived using
+Creating connections from indirect relations is a little more involved, but can be achieved using
 `prismaConnectionHelpers` with a normal `t.connection` field.
 
 ```typescript
@@ -1209,6 +1199,82 @@ const SelectPost = builder.prismaObject('Post', {
 });
 ```
 
+To add arguments for a connection defined with a helper, it is often easiest to define the arguments
+on the connection field rather than the connection helper. This allows connection helpers to be
+shared between fields that may not share the same arguments:
+
+```ts
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  select: (nodeSelection) => ({
+    media: nodeSelection({}),
+  }),
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    args: {
+      inverted: t.arg.boolean(),
+    },
+    select: (args, ctx, nestedSelection) => ({
+      media: {
+        ...mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+        orderBy: {
+          post: {
+            createdAt: args.inverted ? 'desc' : 'asc',
+          },
+        },
+      },
+    }),
+    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+  }),
+);
+```
+
+Arguments, ordering and filtering can also be defined on the helpers themselves:
+
+```ts
+const mediaConnectionHelpers = prismaConnectionHelpers(builder, 'PostMedia', {
+  cursor: 'id',
+  // define arguments for the connection helper, these will be available as the second argument of `select`
+  args: (t) => ({
+    inverted: t.arg.boolean(),
+  }),
+  select: (nodeSelection, args) => ({
+    media: nodeSelection({}),
+  }),
+  query: (args) => ({
+    // Custom filtering with a where clause
+    where: {
+      post: {
+        published: true,
+      },
+    },
+    // custom ordering including use of args
+    orderBy: {
+      post: {
+        createdAt: args.inverted ? 'desc' : 'asc',
+      },
+    },
+  }),
+  resolveNode: (postMedia) => postMedia.media,
+});
+
+builder.prismaObjectField('Post', 'mediaConnection', (t) =>
+  t.connection({
+    type: Media,
+    // add the args from the connection helper to the field
+    args: mediaConnectionHelpers.getArgs(),
+    select: (args, ctx, nestedSelection) => ({
+      media: mediaConnectionHelpers.getQuery(args, ctx, nestedSelection),
+    }),
+    resolve: (post, args, ctx) => mediaConnectionHelpers.resolve(post.media, args, ctx),
+  }),
+);
+```
+
 ### Sharing Connections objects
 
 You can create reusable connection objects by using `builder.connectionObject`.
@@ -1233,7 +1299,7 @@ builder.prismaObject('Post', {
     commentsConnection: t.relatedConnection(
       'comments',
       { cursor: 'id' },
-      // The connection object ref can be passed in place of the connection objectoptions
+      // The connection object ref can be passed in place of the connection object options
       CommentConnection
     ),
   }),
@@ -1289,6 +1355,57 @@ builder.prismaObjectFields('Post', (t) => ({
     },
   ),
 }));
+```
+
+### Total count on shared connection objects
+
+If you are set the `totalCount: true` on a `prismaConnection` or `relatedConnection` field, and are
+using a custom connection object, you will need to manually add the `totalCount` field to the
+connection object manually. The parent object on the connection will have a `totalCount` property
+that is either a the totalCount, or a function that will return the totalCount.
+
+```typescript
+const CommentConnection = builder.connectionObject({
+  type: Comment,
+  name: 'CommentConnection',
+  fields: (t) => ({
+    totalCount: t.int({
+      resolve: (connection) => {
+        const { totalCount } = connection as {
+          totalCount?: number | (() => number | Promise<number>);
+        };
+
+        return typeof totalCount === 'function' ? totalCount() : totalCount;
+      },
+    }),
+  }),
+});
+```
+
+If you want to add a global `totalCount` field, you can do something similar using
+`builder.globalConnectionField`:
+
+```typescript
+export const builder = new SchemaBuilder<{
+  PrismaTypes: PrismaTypes;
+  Connection: {
+    totalCount: number | (() => number | Promise<number>);
+  };
+}>({
+  plugins: [PrismaPlugin, RelayPlugin],
+  relayOptions: {},
+  prisma: {
+    client: db,
+  },
+});
+
+builder.globalConnectionField('totalCount', (t) =>
+  t.int({
+    nullable: false,
+    resolve: (parent) =>
+      typeof parent.totalCount === 'function' ? parent.totalCount() : parent.totalCount,
+  }),
+);
 ```
 
 ### Relay Utils

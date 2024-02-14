@@ -52,6 +52,7 @@ export interface PrismaModelTypes {
     {
       Shape: unknown;
       Name: string;
+      Nullable: boolean;
       // Types: PrismaModelTypes;
     }
   >;
@@ -169,7 +170,9 @@ type RelationShapeFromInclude<
     : never]: K extends keyof Model['Relations']
     ? Model['Relations'][K]['Shape'] extends unknown[]
       ? ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>[]
-      : ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>
+      : Model['Relations'][K]['Nullable'] extends true
+        ? ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]> | null
+        : ShapeFromSelection<Types, TypesForRelation<Types, Model, K>, Include[K]>
     : unknown;
 }>;
 

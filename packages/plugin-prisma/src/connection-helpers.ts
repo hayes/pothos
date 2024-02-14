@@ -31,7 +31,15 @@ export function prismaConnectionHelpers<
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   refOrType: RefOrType,
-  options: {
+  {
+    cursor,
+    select,
+    resolveNode,
+    query,
+    args: createArgs,
+    maxSize = builder.options.prisma?.maxConnectionSize,
+    defaultSize = builder.options.prisma?.defaultConnectionSize,
+  }: {
     cursor: UniqueFieldsFromWhereUnique<Model['WhereUnique']>;
     select?: (
       nestedSelection: <T extends true | {}>(selection?: T) => T,
@@ -69,9 +77,9 @@ export function prismaConnectionHelpers<
     typeof refOrType === 'string'
       ? getRefFromModel(modelName, builder)
       : (refOrType as ObjectRef<unknown>);
-  const formatCursor = getCursorFormatter(modelName, builder, options.cursor);
-  const parseCursor = getCursorParser(modelName, builder, options.cursor);
-  const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, options.cursor, builder);
+  const formatCursor = getCursorFormatter(modelName, builder, cursor);
+  const parseCursor = getCursorParser(modelName, builder, cursor);
+  const cursorSelection = ModelLoader.getCursorSelection(ref, modelName, cursor, builder);
   const fieldMap = getRelationMap(getDMMF(builder)).get(modelName)!;
 
   function resolve<Parent = unknown>(
@@ -87,7 +95,7 @@ export function prismaConnectionHelpers<
       getQueryArgs(args, ctx).take,
       formatCursor,
       null,
-      (options?.resolveNode as never) ?? ((edge: unknown) => edge),
+      (resolveNode as never) ?? ((edge: unknown) => edge),
     ) as unknown as {
       edges: (Omit<EdgeShape, 'cursor' | 'node'> & { node: NodeShape; cursor: string })[];
       pageInfo: {
@@ -106,11 +114,8 @@ export function prismaConnectionHelpers<
     return prismaCursorConnectionQuery({
       args,
       ctx,
-      maxSize: typeof options.maxSize === 'function' ? options.maxSize(args, ctx) : options.maxSize,
-      defaultSize:
-        typeof options.defaultSize === 'function'
-          ? options.defaultSize(args, ctx)
-          : options.defaultSize,
+      maxSize: typeof maxSize === 'function' ? maxSize(args, ctx) : maxSize,
+      defaultSize: typeof defaultSize === 'function' ? defaultSize(args, ctx) : defaultSize,
       parseCursor,
     });
   }
@@ -120,8 +125,8 @@ export function prismaConnectionHelpers<
     ctx: Types['Context'],
     nestedSelection: <T extends true | {}>(selection?: T, path?: string[]) => T,
   ) {
-    const nestedSelect: Record<string, unknown> | true = options.select
-      ? { select: options.select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
+    const nestedSelect: Record<string, unknown> | true = select
+      ? { select: select((sel) => nestedSelection(sel, ['edges', 'node']), args, ctx) }
       : nestedSelection(true, ['edges', 'node']);
 
     const selectState = createState(fieldMap, 'select');
@@ -132,8 +137,7 @@ export function prismaConnectionHelpers<
       mergeSelection(selectState, nestedSelect);
     }
 
-    const baseQuery =
-      typeof options.query === 'function' ? options.query(args, ctx) : options.query ?? {};
+    const baseQuery = typeof query === 'function' ? query(args, ctx) : query ?? {};
 
     return {
       ...baseQuery,
@@ -148,14 +152,14 @@ export function prismaConnectionHelpers<
     };
   }
 
-  const getArgs = () => (options.args ? builder.args(options.args) : {}) as ExtraArgs;
+  const getArgs = () => (createArgs ? builder.args(createArgs) : {}) as ExtraArgs;
 
   return {
     ref: (typeof refOrType === 'string'
       ? getRefFromModel(refOrType, builder)
       : refOrType) as PrismaRef<Model>,
     resolve,
-    select: options.select ?? {},
+    select: select ?? {},
     getQuery,
     getArgs,
   };

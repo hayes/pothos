@@ -18,7 +18,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   runScopesOnType?: boolean;
   treatErrorsAsUnauthorized?: boolean;
   authorizeOnSubscribe?: boolean;
-  defaultStrategy?: 'all' | 'any';
+  defaultStrategy?: Types['DefaultAuthStrategy'];
 }
 
 export interface BuiltInScopes<Types extends SchemaTypes> {
@@ -144,19 +144,26 @@ export interface ResolveStep<Types extends SchemaTypes> {
       ) => string);
 }
 
-export type ContextForAuth<Types extends SchemaTypes, Scopes> = Scopes extends (
+export type ContextForAuth<
+  Types extends SchemaTypes,
+  Scopes,
+> = 'any' extends Types['DefaultAuthStrategy']
+  ? ContextForAuthUnion<Types, Scopes>
+  : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
+
+type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (
   ...args: any[]
 ) => infer R
-  ? ContextForAuth<Types, R>
+  ? ContextForAuthUnion<Types, R>
   : Scopes extends boolean
     ? Types['Context']
     : keyof Scopes extends infer Scope
       ? Scope extends keyof Types['AuthContexts']
         ? Types['AuthContexts'][Scope]
         : Scope extends '$any'
-          ? ContextForAuth<Types, Scopes[Scope & keyof Scopes]>
+          ? ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>
           : Scope extends '$all'
-            ? UnionToIntersection<ContextForAuth<Types, Scopes[Scope & keyof Scopes]>>
+            ? UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>>
             : Types['Context']
       : never;
 

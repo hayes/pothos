@@ -28,6 +28,7 @@ const builder = new SchemaBuilder<{
     admin: Context & { user: User; isAdmin: true };
   };
   PrismaTypes: PrismaTypes;
+  DefaultAuthStrategy: 'all';
 }>({
   plugins: [ScopeAuthPlugin, PrismaPlugin, RelayPlugin],
   relayOptions: {
@@ -39,6 +40,7 @@ const builder = new SchemaBuilder<{
   },
   scopeAuthOptions: {
     authorizeOnSubscribe: true,
+    defaultStrategy: 'all',
   },
   authScopes: async (context) => ({
     loggedIn: !!context.user,

@@ -946,7 +946,7 @@ builder.mutationField(
           info,
           // nested path where the selections for this type can be found
           path: ['post']
-          // optionally you can pass a custom initial selection, genereally you wouldn't need this
+          // optionally you can pass a custom initial selection, generally you wouldn't need this
           // but if the field at `path` is not selected, the initial selection set may be empty
           select: {
             comments: true,
@@ -1011,8 +1011,8 @@ builder.prismaNode('Post', {
 ```
 
 When executing the `node(id: ID!)` query with a global ID for which prisma cannot find a record in
-the database, the default behaviour is to throw an error. There are some scenarios where it is
-preferrable to return `null` instead of throwing an error. For this you can add the `nullable: true`
+the database, the default behavior is to throw an error. There are some scenarios where it is
+preferable to return `null` instead of throwing an error. For this you can add the `nullable: true`
 option:
 
 ```typescript
@@ -1075,6 +1075,9 @@ between 2 cursors, or between a cursor and the end of the set. Generating query 
 cases is more complex and likely very inefficient, so they will currently throw an Error indicating
 the argument combinations are not supported.
 
+The `maxSize` and `defaultSize` can also be configured globally using `maxConnectionSize` and
+`defaultConnectionSize` options in the `prisma` plugin options.
+
 ### `relatedConnection`
 
 The `relatedConnection` method can be used to create a relay `connection` field based on a relation
@@ -1123,7 +1126,7 @@ builder.prismaNode('User', {
 
 ### Indirect relations as connections
 
-Creating connections from indirect relations is a little more involved, but can be acheived using
+Creating connections from indirect relations is a little more involved, but can be achieved using
 `prismaConnectionHelpers` with a normal `t.connection` field.
 
 ```typescript
@@ -1310,7 +1313,7 @@ builder.prismaObject('Post', {
     commentsConnection: t.relatedConnection(
       'comments',
       { cursor: 'id' },
-      // The connection object ref can be passed in place of the connection objectoptions
+      // The connection object ref can be passed in place of the connection object options
       CommentConnection
     ),
   }),

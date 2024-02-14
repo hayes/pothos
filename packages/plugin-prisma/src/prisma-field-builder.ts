@@ -197,8 +197,8 @@ export class PrismaObjectFieldBuilder<
     this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
     name: string,
     {
-      maxSize,
-      defaultSize,
+      maxSize = this.builder.options.prisma.maxConnectionSize,
+      defaultSize = this.builder.options.prisma.defaultConnectionSize,
       cursor: cursorValue,
       query,
       resolve,
