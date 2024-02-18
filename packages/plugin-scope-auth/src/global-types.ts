@@ -62,7 +62,9 @@ declare global {
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
       AuthScopes: PartialTypes['AuthScopes'] & {};
       AuthContexts: PartialTypes['AuthContexts'] & {};
-      DefaultAuthStrategy: NonNullable<PartialTypes['DefaultAuthStrategy']>;
+      DefaultAuthStrategy: undefined extends PartialTypes['DefaultAuthStrategy']
+        ? 'any'
+        : PartialTypes['DefaultAuthStrategy'] & string;
     }
 
     export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
