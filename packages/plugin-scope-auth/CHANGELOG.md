@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.21.1
+
+### Patch Changes
+
+- 8019b47: Fix type issue when inferring SchemaTypes when DefaultAuthStrategy isn't defined
+
 ## 3.21.0
 
 ### Minor Changes
