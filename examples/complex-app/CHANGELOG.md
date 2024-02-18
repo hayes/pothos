@@ -1,5 +1,12 @@
 # @pothos-examples/complex-app
 
+## 1.6.23
+
+### Patch Changes
+
+- Updated dependencies [8019b47]
+  - @pothos/plugin-scope-auth@3.21.1
+
 ## 1.6.22
 
 ### Patch Changes
