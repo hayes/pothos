@@ -143,6 +143,7 @@ declare global {
         CacheKey,
         ResolveReturnShape,
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+        ByPath extends boolean = boolean,
       >(
         options: LoadableFieldOptions<
           Types,
@@ -153,7 +154,8 @@ declare global {
           ResolveReturnShape,
           Key,
           CacheKey,
-          Kind
+          Kind,
+          ByPath
         >,
       ) => FieldRef<unknown>;
       loadableList: <
@@ -163,6 +165,7 @@ declare global {
         CacheKey,
         ResolveReturnShape,
         Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
+        ByPath extends boolean = boolean,
       >(
         options: LoadableListFieldOptions<
           Types,
@@ -173,7 +176,8 @@ declare global {
           ResolveReturnShape,
           Key,
           CacheKey,
-          Kind
+          Kind,
+          ByPath
         >,
       ) => FieldRef<unknown>;
 
@@ -184,6 +188,7 @@ declare global {
         CacheKey,
         ResolveReturnShape,
         Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
+        ByPath extends boolean = boolean,
       >(
         options: LoadableGroupFieldOptions<
           Types,
@@ -194,7 +199,8 @@ declare global {
           ResolveReturnShape,
           Key,
           CacheKey,
-          Kind
+          Kind,
+          ByPath
         >,
       ) => FieldRef<unknown>;
     }

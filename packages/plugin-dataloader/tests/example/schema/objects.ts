@@ -1,3 +1,4 @@
+import { resolveArrayConnection } from '@pothos/plugin-relay';
 import { rejectErrors } from '../../../src';
 import builder from '../builder';
 import { ContextType } from '../types';
@@ -27,6 +28,58 @@ export const User = builder.loadableObject('User', {
     id: t.exposeID('id', {}),
   }),
 });
+
+const UserFriendsConnection = builder.connectionObject({
+  type: User,
+  name: 'UserFriendsConnection',
+});
+
+builder.objectFields(User, (t) => ({
+  friends: t.loadable({
+    type: UserFriendsConnection,
+    byPath: true,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    // eslint-disable-next-line @typescript-eslint/require-await
+    load: async (ids, context, args) =>
+      ids.map((id) => {
+        const friends = [];
+        for (let i = 0; i < 5; i += 1) {
+          friends.push({ objType: 'UserNode', id: Number.parseInt(`${id}${i}`, 10) });
+        }
+        return resolveArrayConnection({ args }, friends);
+      }),
+    resolve: (user) => user.id.toString(),
+  }),
+  groupFriends: t.loadableGroup({
+    byPath: true,
+    type: User,
+    args: {
+      limit: t.arg.int({
+        defaultValue: 5,
+        required: true,
+      }),
+    },
+    load: (ids, context, args) => {
+      const friends = [];
+
+      for (const id of ids) {
+        for (let i = 0; i < args.limit; i += 1) {
+          friends.push({ id: Number.parseInt(`${id}${i}`, 10) });
+        }
+      }
+
+      return Promise.resolve(friends);
+    },
+    group: (user) => {
+      const id = typeof user === 'string' ? user : String(user.id);
+
+      return Number.parseInt(id.slice(0, -1), 10);
+    },
+    resolve: (user) => user.id,
+  }),
+}));
 
 const PreloadedUser = builder.loadableObject('PreloadedUser', {
   interfaces: [TestInterface],

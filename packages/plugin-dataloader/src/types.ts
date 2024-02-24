@@ -33,13 +33,16 @@ export type LoadableFieldOptions<
   Key,
   CacheKey,
   Kind extends FieldKind = FieldKind,
+  ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve'
 > & {
+  byPath?: ByPath;
   load: (
     keys: Key[],
     context: Types['Context'],
+    args: boolean extends ByPath ? never : InputShapeFromFields<Args>,
   ) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
   sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
@@ -70,14 +73,17 @@ export type LoadableListFieldOptions<
   Key,
   CacheKey,
   Kind extends FieldKind = FieldKind,
+  ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve' | 'type'
 > & {
   type: Type;
+  byPath?: ByPath;
   load: (
     keys: Key[],
     context: Types['Context'],
+    args: boolean extends ByPath ? never : InputShapeFromFields<Args>,
   ) => Promise<readonly (Error | ShapeFromTypeParam<Types, [Type], Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [Type], Nullable>, CacheKey>;
   sort?: (value: ShapeFromTypeParam<Types, [Type], false>) => Key;
@@ -100,14 +106,17 @@ export type LoadableGroupFieldOptions<
   Key,
   CacheKey,
   Kind extends FieldKind = FieldKind,
+  ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve' | 'type'
 > & {
   type: Type;
+  byPath?: ByPath;
   load: (
     keys: Key[],
     context: Types['Context'],
+    args: boolean extends ByPath ? never : InputShapeFromFields<Args>,
   ) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, Type, true>[], CacheKey>;
   group: (value: ShapeFromTypeParam<Types, Type, false>) => Key;

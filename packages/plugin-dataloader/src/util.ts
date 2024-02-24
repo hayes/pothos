@@ -1,4 +1,5 @@
 import DataLoader, { Options } from 'dataloader';
+import { GraphQLResolveInfo } from 'graphql';
 import { createContextCache, isThenable, MaybePromise, SchemaTypes } from '@pothos/core';
 
 export function rejectErrors<T>(
@@ -11,16 +12,16 @@ export function rejectErrors<T>(
   return val.map((item) => (item instanceof Error ? Promise.reject(item) : item));
 }
 
-export function loadAndSort<K, V, C>(
-  load: (keys: K[], context: C) => Promise<readonly (Error | V)[]>,
+export function loadAndSort<K, V, C, Args = never>(
+  load: (keys: K[], context: C, args: Args) => Promise<readonly (Error | V)[]>,
   toKey: false | ((val: V) => K) | undefined,
 ) {
   if (!toKey) {
     return load;
   }
 
-  return async (keys: K[], context: C) => {
-    const list = await load(keys, context);
+  return async (keys: K[], context: C, args: Args) => {
+    const list = await load(keys, context, args);
     const map = new Map<K, V>();
     const results = new Array<V | null>();
 
@@ -52,7 +53,52 @@ export function dataloaderGetter<K, V, C>(
     keys: readonly K[],
     context: SchemaTypes['Context'],
   ) => Promise<V[]>;
+
   return createContextCache(
     (context: object) => new DataLoader<K, V, C>((keys) => loader(keys, context), loaderOptions),
   );
+}
+
+export function pathDataloaderGetter<K, V, C, Args>(
+  loaderOptions: Options<K, V, C> | undefined,
+  load: (keys: K[], context: SchemaTypes['Context'], args: Args) => Promise<readonly (Error | V)[]>,
+  toKey: ((val: V) => K) | undefined,
+  sort: boolean | ((val: V) => K) | undefined,
+  byPath?: boolean,
+) {
+  const cache = createContextCache(() => new Map<string, DataLoader<K, V, C>>());
+
+  const loader = (sort ? loadAndSort(load, typeof sort === 'function' ? sort : toKey) : load) as (
+    keys: readonly K[],
+    context: SchemaTypes['Context'],
+    args: Args,
+  ) => Promise<V[]>;
+
+  return (args: Args, ctx: SchemaTypes['Context'], info: GraphQLResolveInfo) => {
+    const key = byPath ? cacheKey(info.path) : '*';
+    const map = cache(ctx);
+
+    if (!map.has(key)) {
+      map.set(key, new DataLoader<K, V, C>((keys) => loader(keys, ctx, args), loaderOptions));
+    }
+
+    return map.get(key)!;
+  };
+}
+
+export function cacheKey(path: GraphQLResolveInfo['path'] | undefined) {
+  if (!path) {
+    // Root
+    return '*';
+  }
+
+  let key = String(path.key);
+  let current = path.prev;
+
+  while (current) {
+    key = `${current.key}.${key}`;
+    current = current.prev;
+  }
+
+  return key;
 }

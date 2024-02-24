@@ -13,7 +13,7 @@ import {
 } from '@pothos/core';
 import type { LoadableGroupFieldOptions, LoadableListFieldOptions } from './types';
 import { LoadableFieldOptions, LoaderShapeFromType } from './types';
-import { dataloaderGetter, rejectErrors } from './util';
+import { pathDataloaderGetter, rejectErrors } from './util';
 
 const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFieldBuilder<
   SchemaTypes,
@@ -28,12 +28,14 @@ fieldBuilderProto.loadable = function loadable<
   CacheKey,
   ResolveReturnShape,
   Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability'],
+  ByPath extends boolean = false,
 >({
   load,
   sort,
   loaderOptions,
   resolve,
   type,
+  byPath,
   ...options
 }: LoadableFieldOptions<
   SchemaTypes,
@@ -44,17 +46,20 @@ fieldBuilderProto.loadable = function loadable<
   ResolveReturnShape,
   Key,
   CacheKey,
-  FieldKind
+  FieldKind,
+  ByPath
 >): FieldRef<unknown> {
-  const getLoader = dataloaderGetter<
+  const getLoader = pathDataloaderGetter<
     Key,
     LoaderShapeFromType<SchemaTypes, Type, Nullable>,
-    CacheKey
+    CacheKey,
+    InputShapeFromFields<Args>
   >(
     loaderOptions,
-    load,
+    (keys, ctx, args) => load(keys, ctx, args as never),
     undefined,
     sort as (value: LoaderShapeFromType<SchemaTypes, Type, Nullable>) => Key,
+    byPath,
   );
 
   return this.field({
@@ -73,7 +78,7 @@ fieldBuilderProto.loadable = function loadable<
         return null;
       }
 
-      const loader = getLoader(context);
+      const loader = getLoader(args, context, info);
 
       if (Array.isArray(type)) {
         return rejectErrors((ids as Key[]).map((id) => (id == null ? id : loader.load(id))));
@@ -91,12 +96,14 @@ fieldBuilderProto.loadableList = function loadableList<
   CacheKey,
   ResolveReturnShape,
   Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
+  ByPath extends boolean = false,
 >({
   load,
   sort,
   loaderOptions,
   resolve,
   type,
+  byPath,
   ...options
 }: LoadableListFieldOptions<
   SchemaTypes,
@@ -107,17 +114,20 @@ fieldBuilderProto.loadableList = function loadableList<
   ResolveReturnShape,
   Key,
   CacheKey,
-  FieldKind
+  FieldKind,
+  ByPath
 >): FieldRef<unknown> {
-  const getLoader = dataloaderGetter<
+  const getLoader = pathDataloaderGetter<
     Key,
     ShapeFromTypeParam<SchemaTypes, [Type], Nullable>,
-    CacheKey
+    CacheKey,
+    InputShapeFromFields<Args>
   >(
     loaderOptions,
-    load,
+    (keys, ctx, args) => load(keys, ctx, args as never),
     undefined,
     sort as (value: ShapeFromTypeParam<SchemaTypes, [Type], Nullable>) => Key,
+    byPath,
   );
 
   return this.field({
@@ -131,7 +141,7 @@ fieldBuilderProto.loadableList = function loadableList<
       info: GraphQLResolveInfo,
     ) => {
       const ids = await resolve(parent, args, context, info);
-      const loader = getLoader(context);
+      const loader = getLoader(args, context, info);
 
       return loader.load(ids as Key);
     },
@@ -145,10 +155,12 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
   CacheKey,
   ResolveReturnShape,
   Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
+  ByPath extends boolean = false,
 >({
   load,
   group,
   loaderOptions,
+  byPath,
   resolve,
   type,
   ...options
@@ -161,12 +173,18 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
   ResolveReturnShape,
   Key,
   CacheKey,
-  FieldKind
+  FieldKind,
+  ByPath
 >): FieldRef<unknown> {
-  const getLoader = dataloaderGetter<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[], CacheKey>(
+  const getLoader = pathDataloaderGetter<
+    Key,
+    ShapeFromTypeParam<SchemaTypes, Type, true>[],
+    CacheKey,
+    InputShapeFromFields<Args>
+  >(
     loaderOptions,
-    async (keys, ctx) => {
-      const values = await load(keys, ctx);
+    async (keys, ctx, args) => {
+      const values = await load(keys, ctx, args as never);
       const groups = new Map<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[]>();
 
       for (const value of values) {
@@ -187,6 +205,7 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
     },
     undefined,
     false,
+    byPath,
   );
 
   return this.field({
@@ -200,7 +219,7 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
       info: GraphQLResolveInfo,
     ) => {
       const ids = await resolve(parent, args, context, info);
-      const loader = getLoader(context);
+      const loader = getLoader(args, context, info);
 
       return loader.load(ids as Key);
     },
