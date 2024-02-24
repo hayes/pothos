@@ -1,5 +1,14 @@
 # Change Log
 
+## 3.18.0
+
+### Minor Changes
+
+- 3e20fd4: Add byPath option to loadable field methods that groups by the path in the query rather
+  than the field. This allows the load method to access the fields args
+- 3e20fd4: Add a new loadableGroup method for easier batch loading of where-in style queries for
+  loadable lists
+
 ## 3.17.2
 
 ### Patch Changes
