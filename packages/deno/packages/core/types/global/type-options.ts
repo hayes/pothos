@@ -39,7 +39,7 @@ declare global {
         }
         export interface InterfaceTypeOptions<Types extends SchemaTypes = SchemaTypes, Shape = unknown, Interfaces extends InterfaceParam<Types>[] = InterfaceParam<Types>[], ResolveType = unknown> extends BaseTypeOptions<Types> {
             fields?: InterfaceFieldsShape<Types, Shape>;
-            interfaces?: (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
+            interfaces?: (() => Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]) | (Interfaces & ValidateInterfaces<Shape, Types, Interfaces[number]>[]);
             resolveType?: ResolveType & ((parent: Shape, context: Types["Context"], info: GraphQLResolveInfo, type: GraphQLUnionType) => MaybePromise<ObjectParam<Types> | string | null | undefined>);
         }
         export interface UnionTypeOptions<Types extends SchemaTypes = SchemaTypes, Member extends ObjectParam<Types> = ObjectParam<Types>, ResolveType = unknown> extends BaseTypeOptions<Types> {

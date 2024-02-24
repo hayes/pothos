@@ -6,7 +6,6 @@ import ConfigStore from './config-store.ts';
 import { PothosError, PothosSchemaError } from './errors.ts';
 import { BasePlugin, MergedPlugins } from './plugins/index.ts';
 import BuiltinScalarRef from './refs/builtin-scalar.ts';
-import { ImplementableInputObjectRef } from './refs/input-object.ts';
 import { InputType, OutputType, PluginMap, PothosEnumTypeConfig, PothosEnumValueConfig, PothosInputFieldConfig, PothosInputFieldType, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosKindToGraphQLTypeClass, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosOutputFieldType, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosTypeConfig, PothosTypeKind, PothosUnionTypeConfig, SchemaTypes, typeBrandKey, } from './types/index.ts';
 import { assertNever, getTypeBrand, isThenable } from './utils/index.ts';
 export default class BuildCache<Types extends SchemaTypes> {
@@ -307,10 +306,10 @@ export default class BuildCache<Types extends SchemaTypes> {
             throw new PothosSchemaError(`Missing implementation of for type ${String(ref)}`);
         }
         if (type instanceof GraphQLObjectType) {
-            throw new PothosSchemaError(`Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLObjectType`);
+            throw new PothosSchemaError(`Expected ${type.name} to be an input type but it was defined as a GraphQLObjectType`);
         }
         if (type instanceof GraphQLInterfaceType) {
-            throw new PothosSchemaError(`Expected ${ImplementableInputObjectRef} to be an input type but it was defined as a GraphQLInterfaceType`);
+            throw new PothosSchemaError(`Expected ${type.name} to be an input type but it was defined as a GraphQLInterfaceType`);
         }
         if (type instanceof GraphQLUnionType) {
             throw new PothosSchemaError(`Expected ${String(ref)} to be an input type but it was defined as an GraphQLUnionType`);

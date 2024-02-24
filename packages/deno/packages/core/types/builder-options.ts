@@ -48,7 +48,7 @@ export type EnumTypeOptions<Types extends SchemaTypes, Param extends EnumParam, 
     name: string;
     values?: Partial<Record<keyof Param, Omit<PothosSchemaTypes.EnumValueConfig<Types>, "value">>>;
 }> : PothosSchemaTypes.EnumTypeOptions<Types, Values>;
-export type ArgBuilder<Types extends SchemaTypes> = PothosSchemaTypes.InputFieldBuilder<Types, "Arg">["field"] & Omit<PothosSchemaTypes.InputFieldBuilder<Types, "Arg">, "field">;
+export type ArgBuilder<Types extends SchemaTypes> = Omit<PothosSchemaTypes.InputFieldBuilder<Types, "Arg">, "field"> & PothosSchemaTypes.InputFieldBuilder<Types, "Arg">["field"];
 export type ValidateInterfaces<Shape, Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>> = Interfaces extends InterfaceParam<Types> ? Shape extends GetParentShape<Types, Interfaces> ? Interfaces : "Object shape must extend interface shape" : never;
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
     [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
@@ -65,9 +65,9 @@ export type CompatibleTypes<Types extends SchemaTypes, ParentShape, Type extends
     [K in keyof ParentShape]-?: Awaited<ParentShape[K]> extends ShapeFromTypeParam<Types, Type, Nullable> ? K : never;
 }[keyof ParentShape] & string;
 export type ExposeNullability<Types extends SchemaTypes, Type extends TypeParam<Types>, ParentShape, Name extends keyof ParentShape, Nullable extends FieldNullability<Type>> = Awaited<ParentShape[Name]> extends ShapeFromTypeParam<Types, Type, Nullable> ? {
-    nullable?: Nullable & ExposeNullableOption<Types, Type, ParentShape, Name>;
+    nullable?: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
 } : {
-    nullable: Nullable & ExposeNullableOption<Types, Type, ParentShape, Name>;
+    nullable: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
 };
 export type ExposeNullableOption<Types extends SchemaTypes, Type extends TypeParam<Types>, ParentShape, Name extends keyof ParentShape> = FieldNullability<Type> & (Type extends [
     unknown

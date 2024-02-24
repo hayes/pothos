@@ -201,9 +201,11 @@ export type RelayMutationInputOptions<Types extends SchemaTypes, Fields extends 
     argName?: InputName;
     inputFields: (t: PothosSchemaTypes.InputFieldBuilder<Types, "InputObject">) => Fields;
 };
-export type RelayMutationFieldOptions<Types extends SchemaTypes, Fields extends InputFieldMap, Nullable extends boolean, InputName extends string, ResolveShape, ResolveReturnShape> = Omit<FieldOptionsFromKind<Types, Types["Root"], OutputRef<ResolveShape>, Nullable, {
+export type RelayMutationFieldOptions<Types extends SchemaTypes, Fields extends InputFieldMap, Nullable extends boolean, InputName extends string, ResolveShape, ResolveReturnShape, Args extends InputFieldMap = {}> = Omit<FieldOptionsFromKind<Types, Types["Root"], OutputRef<ResolveShape>, Nullable, Args & {
     [K in InputName]: InputFieldRef<InputShapeWithClientMutationId<Types, Fields>>;
-}, "Mutation", ResolveShape, ResolveReturnShape>, "args" | "type">;
+}, "Mutation", ResolveShape, ResolveReturnShape>, "args" | "type"> & {
+    args?: Args;
+};
 export type RelayMutationPayloadOptions<Types extends SchemaTypes, Shape, Interfaces extends InterfaceParam<Types>[]> = Omit<PothosSchemaTypes.ObjectTypeOptions<Types, Shape> | PothosSchemaTypes.ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>, "fields"> & {
     name?: string;
     outputFields: ObjectFieldsShape<Types, Shape>;

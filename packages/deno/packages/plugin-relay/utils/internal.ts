@@ -8,10 +8,10 @@ export function internalEncodeGlobalID<Types extends SchemaTypes>(builder: Potho
     }
     return encodeGlobalID(typename, id);
 }
-export function internalDecodeGlobalID<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, globalID: string, ctx: object, info: GraphQLResolveInfo, parseIdsForTypes: boolean | {
+export function internalDecodeGlobalID<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, globalID: string, ctx: object, info: GraphQLResolveInfo, parseIdsForTypes: {
     typename: string;
     parseId: (id: string, ctx: object) => unknown;
-}[]) {
+}[] | boolean) {
     const decoded = builder.options.relayOptions.decodeGlobalID
         ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)
         : decodeGlobalID(globalID);
