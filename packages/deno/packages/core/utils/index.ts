@@ -77,7 +77,7 @@ export function getTypeBrand(val: unknown) {
     }
     return null;
 }
-export function unwrapListParam<Types extends SchemaTypes>(param: TypeParam<Types> | InputTypeParam<Types>): OutputType<Types> | InputType<Types> {
+export function unwrapListParam<Types extends SchemaTypes>(param: InputTypeParam<Types> | TypeParam<Types>): InputType<Types> | OutputType<Types> {
     if (Array.isArray(param)) {
         return unwrapListParam(param[0]);
     }
@@ -108,7 +108,7 @@ export function unwrapInputListParam<Types extends SchemaTypes>(param: InputType
  * Helper for allowing plugins to fulfill the return of the `next` resolver, without paying the cost of the
  * Promise if not required.
  */
-export function completeValue<T, R>(valOrPromise: PromiseLike<T> | T, onSuccess: (completedVal: T) => R, onError?: (errVal: unknown) => R): R | Promise<R> {
+export function completeValue<T, R>(valOrPromise: PromiseLike<T> | T, onSuccess: (completedVal: T) => R, onError?: (errVal: unknown) => R): Promise<R> | R {
     if (isThenable(valOrPromise)) {
         return Promise.resolve(valOrPromise).then(onSuccess, onError);
     }

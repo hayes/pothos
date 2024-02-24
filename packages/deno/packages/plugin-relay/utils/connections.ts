@@ -149,7 +149,7 @@ function parseCurserArgs(options: ResolveOffsetConnectionOptions) {
         hasNextPage: (resultSize: number) => (inverted ? !!before : resultSize >= limit),
     };
 }
-type NodeType<T> = T extends Promise<(infer N)[] | null> | (infer N)[] | null ? N : never;
+type NodeType<T> = T extends (infer N)[] | Promise<(infer N)[] | null> | null ? N : never;
 export async function resolveCursorConnection<U extends Promise<readonly unknown[] | null> | readonly unknown[] | null>(options: ResolveCursorConnectionOptions<NodeType<U>>, resolve: (params: ResolveCursorConnectionArgs) => U): Promise<RemoveMaybePromiseProps<ConnectionShape<SchemaTypes, NodeType<U>, false, false, false>>> {
     const { before, after, limit, inverted, expectedSize, hasPreviousPage, hasNextPage } = parseCurserArgs(options);
     const nodes = (await resolve({ before, after, limit, inverted })) as NodeType<U>[] | null;

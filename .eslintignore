@@ -35,3 +35,4 @@ packages/plugin-prisma-utils/tests/client
 packages/plugin-prisma-utils/bin/generator.js
 packages/plugin-prisma/bin/generator.js
 website/public
+website/util/search-index.js

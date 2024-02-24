@@ -242,12 +242,12 @@ schemaBuilderProto.globalConnectionFields = function globalConnectionFields(fiel
     globalConnectionFieldsMap.get(this)!.push(onRef);
 };
 const mutationIdCache = createContextCache(() => new Map<string, string>());
-schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, inputOptionsOrRef, { resolve, ...fieldOptions }, { name: payloadName = `${capitalize(fieldName)}Payload`, outputFields, interfaces, ...paylaodOptions }) {
+schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, inputOptionsOrRef, { resolve, args, ...fieldOptions }, { name: payloadName = `${capitalize(fieldName)}Payload`, outputFields, interfaces, ...payloadOptions }) {
     const { relayOptions: { clientMutationIdInputOptions = {} as never, clientMutationIdFieldOptions = {} as never, mutationInputArgOptions = {} as never, }, } = this.options;
     const includeClientMutationId = this.options.relayOptions.clientMutationId !== "omit";
-    let inputRef: InputObjectRef<unknown>;
+    let inputRef: InputObjectRef<unknown> | null;
     let argName = "input";
-    if (inputOptionsOrRef instanceof InputObjectRef) {
+    if (!inputOptionsOrRef || inputOptionsOrRef instanceof InputObjectRef) {
         inputRef = inputOptionsOrRef;
     }
     else {
@@ -271,7 +271,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, i
     }
     const payloadRef = this.objectRef<unknown>(payloadName).implement({
         ...this.options.relayOptions?.defaultPayloadTypeOptions,
-        ...paylaodOptions,
+        ...payloadOptions,
         interfaces: interfaces as never,
         fields: (t) => ({
             ...(outputFields as ObjectFieldsShape<SchemaTypes, unknown>)(t),
@@ -280,7 +280,7 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, i
                     clientMutationId: t.id({
                         nullable: this.options.relayOptions.clientMutationId === "optional",
                         ...clientMutationIdFieldOptions,
-                        resolve: (parent, args, context, info) => mutationIdCache(context).get(String(info.path.prev!.key))!,
+                        resolve: (parent, _args, context, info) => mutationIdCache(context).get(String(info.path.prev!.key))!,
                     }),
                 }
                 : {}),
@@ -290,14 +290,25 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, i
         ...(fieldOptions as {}),
         type: payloadRef,
         args: {
-            [argName]: t.arg({ ...(mutationInputArgOptions as {}), type: inputRef, required: true }),
+            ...args,
+            ...(inputRef
+                ? {
+                    [argName]: t.arg({
+                        ...(mutationInputArgOptions as {}),
+                        type: inputRef,
+                        required: true,
+                    }),
+                }
+                : {}),
         },
-        resolve: (root, args, context, info) => {
-            mutationIdCache(context).set(String(info.path.key), (args as unknown as Record<string, {
-                clientMutationId: string;
-            }>)[argName]
-                .clientMutationId);
-            return resolve(root, args as never, context, info);
+        resolve: (root, fieldArgs, context, info) => {
+            if (inputRef) {
+                mutationIdCache(context).set(String(info.path.key), (fieldArgs as unknown as Record<string, {
+                    clientMutationId: string;
+                }>)[argName]
+                    .clientMutationId);
+            }
+            return resolve(root, fieldArgs as never, context, info);
         },
     }));
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions

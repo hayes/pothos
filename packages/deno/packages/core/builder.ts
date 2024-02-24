@@ -16,7 +16,7 @@ import InterfaceRef, { ImplementableInterfaceRef } from './refs/interface.ts';
 import ObjectRef, { ImplementableObjectRef } from './refs/object.ts';
 import ScalarRef from './refs/scalar.ts';
 import UnionRef from './refs/union.ts';
-import type { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeArgs, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, OutputType, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldsShape, QueryFieldThunk, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
+import type { AbstractReturnShape, BaseEnum, EnumParam, EnumTypeOptions, EnumValues, InputFieldMap, InputFieldsFromShape, InputShape, InputShapeFromFields, InterfaceFieldsShape, InterfaceFieldThunk, InterfaceParam, InterfaceTypeOptions, MutationFieldsShape, MutationFieldThunk, NormalizeArgs, NormalizeSchemeBuilderOptions, ObjectFieldsShape, ObjectFieldThunk, ObjectParam, ObjectTypeOptions, OutputShape, OutputType, ParentShape, PluginConstructorMap, PothosEnumTypeConfig, PothosInputObjectTypeConfig, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosQueryTypeConfig, PothosScalarTypeConfig, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, QueryFieldsShape, QueryFieldThunk, RecursivelyNormalizeNullableFields, ScalarName, SchemaTypes, ShapeFromEnumValues, SubscriptionFieldsShape, SubscriptionFieldThunk, ValuesFromEnum, } from './types/index.ts';
 import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils/index.ts';
 export default class SchemaBuilder<Types extends SchemaTypes> {
     static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -349,8 +349,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
         this.configStore.addFields(ref, () => options.fields(new InputFieldBuilder(this, "InputObject", name)));
         return ref;
     }
-    inputRef<T extends object>(name: string): ImplementableInputObjectRef<Types, T> {
-        return new ImplementableInputObjectRef<Types, T>(this, name);
+    inputRef<T extends object, Normalize = true>(name: string): ImplementableInputObjectRef<Types, RecursivelyNormalizeNullableFields<T>, Normalize extends false ? T : RecursivelyNormalizeNullableFields<T>> {
+        return new ImplementableInputObjectRef<Types, RecursivelyNormalizeNullableFields<T>, Normalize extends false ? T : RecursivelyNormalizeNullableFields<T>>(this, name);
     }
     objectRef<T>(name: string): ImplementableObjectRef<Types, T> {
         return new ImplementableObjectRef<Types, T>(this, name);

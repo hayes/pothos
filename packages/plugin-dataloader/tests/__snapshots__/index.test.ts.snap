@@ -48,6 +48,13 @@ type NullableUser implements TestInterface {
   idFromInterface: ID!
 }
 
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
 union Pet = Cat | Dog
 
 type Post {
@@ -134,9 +141,21 @@ interface TestInterface {
 }
 
 type User implements TestInterface {
+  friends(after: ID, before: ID, first: Int, last: Int): UserFriendsConnection!
+  groupFriends(limit: Int! = 5): [User!]!
   id: ID!
   idFromInterface: ID!
   self: User!
+}
+
+type UserFriendsConnection {
+  edges: [UserFriendsEdge]!
+  pageInfo: PageInfo!
+}
+
+type UserFriendsEdge {
+  cursor: String!
+  node: User!
 }
 
 type UserNode implements Node & TestInterface {

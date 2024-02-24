@@ -20,6 +20,7 @@ export async function resolveNodes<Types extends SchemaTypes>(builder: PothosSch
             results[cacheKey] = requestCache.get(cacheKey)!;
             return;
         }
+        // eslint-disable-next-line logical-assignment-operators
         idsByType[typename] = idsByType[typename] ?? new Set();
         idsByType[typename].add(id);
     });

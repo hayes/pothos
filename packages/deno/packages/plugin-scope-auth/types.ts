@@ -8,7 +8,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
     runScopesOnType?: boolean;
     treatErrorsAsUnauthorized?: boolean;
     authorizeOnSubscribe?: boolean;
-    defaultStrategy?: "all" | "any";
+    defaultStrategy?: Types["DefaultAuthStrategy"];
 }
 export interface BuiltInScopes<Types extends SchemaTypes> {
     $all?: true extends true ? AuthScopeMap<Types> : never;
@@ -67,7 +67,8 @@ export interface ResolveStep<Types extends SchemaTypes> {
     run: (cache: RequestCache<Types>, parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo, setResolved: (val: unknown) => void) => MaybePromise<AuthFailure | null>;
     errorMessage: string | ((parent: unknown, args: Record<string, unknown>, context: {}, info: GraphQLResolveInfo) => string);
 }
-export type ContextForAuth<Types extends SchemaTypes, Scopes> = Scopes extends (...args: any[]) => infer R ? ContextForAuth<Types, R> : Scopes extends boolean ? Types["Context"] : keyof Scopes extends infer Scope ? Scope extends keyof Types["AuthContexts"] ? Types["AuthContexts"][Scope] : Scope extends "$any" ? ContextForAuth<Types, Scopes[Scope & keyof Scopes]> : Scope extends "$all" ? UnionToIntersection<ContextForAuth<Types, Scopes[Scope & keyof Scopes]>> : Types["Context"] : never;
+export type ContextForAuth<Types extends SchemaTypes, Scopes> = "any" extends Types["DefaultAuthStrategy"] ? ContextForAuthUnion<Types, Scopes> : UnionToIntersection<ContextForAuthUnion<Types, Scopes>>;
+type ContextForAuthUnion<Types extends SchemaTypes, Scopes> = Scopes extends (...args: any[]) => infer R ? ContextForAuthUnion<Types, R> : Scopes extends boolean ? Types["Context"] : keyof Scopes extends infer Scope ? Scope extends keyof Types["AuthContexts"] ? Types["AuthContexts"][Scope] : Scope extends "$any" ? ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]> : Scope extends "$all" ? UnionToIntersection<ContextForAuthUnion<Types, Scopes[Scope & keyof Scopes]>> : Types["Context"] : never;
 export type UnauthorizedResolver<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap> = (parent: ParentShape, args: InputShapeFromFields<Args>, context: Types["Context"], info: GraphQLResolveInfo, error: Error) => MaybePromise<ShapeFromTypeParam<Types, Type, Nullable>>;
 export type UnauthorizedErrorFn<Types extends SchemaTypes, ParentShape, Args extends InputFieldMap> = (parent: ParentShape, args: InputShapeFromFields<Args>, context: Types["Context"], info: GraphQLResolveInfo, result: ForbiddenResult) => Error | string;
 export type UnauthorizedForTypeErrorFn<Types extends SchemaTypes, ParentShape> = (parent: ParentShape, context: Types["Context"], info: GraphQLResolveInfo, result: ForbiddenResult) => Error | string;

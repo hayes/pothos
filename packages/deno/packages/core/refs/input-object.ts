@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable max-classes-per-file */
-import { InputFieldsFromShape, InputRef, inputShapeKey, RecursivelyNormalizeNullableFields, SchemaTypes, } from '../types/index.ts';
+import { InputFieldsFromShape, InputRef, inputShapeKey, SchemaTypes } from '../types/index.ts';
 import BaseTypeRef from './base.ts';
 export default class InputObjectRef<T> extends BaseTypeRef implements InputRef<T>, PothosSchemaTypes.InputObjectRef<T> {
     override kind = "InputObject" as const;
@@ -10,14 +10,14 @@ export default class InputObjectRef<T> extends BaseTypeRef implements InputRef<T
         super("InputObject", name);
     }
 }
-export class ImplementableInputObjectRef<Types extends SchemaTypes, T extends object> extends InputObjectRef<RecursivelyNormalizeNullableFields<T>> {
+export class ImplementableInputObjectRef<Types extends SchemaTypes, T extends object, Resolved = T> extends InputObjectRef<Resolved> {
     protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
         super(name);
         this.builder = builder;
     }
-    implement(options: PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>>) {
-        this.builder.inputType<ImplementableInputObjectRef<Types, T>, InputFieldsFromShape<RecursivelyNormalizeNullableFields<T>>>(this, options);
-        return this as InputObjectRef<RecursivelyNormalizeNullableFields<T>>;
+    implement(options: PothosSchemaTypes.InputObjectTypeOptions<Types, InputFieldsFromShape<T>>) {
+        this.builder.inputType<ImplementableInputObjectRef<Types, T>, InputFieldsFromShape<T>>(this as never, options);
+        return this as InputObjectRef<Resolved>;
     }
 }

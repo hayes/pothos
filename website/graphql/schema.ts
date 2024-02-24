@@ -1,5 +1,5 @@
 // eslint-disable-next-line import/extensions
-import searchIndex from '../util/search-index';
+import searchIndex from '../util/search-index.js';
 import {
   DocsIndex,
   DocsSection,

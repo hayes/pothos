@@ -1,6 +1,6 @@
 # Relay Plugin
 
-The Relay plugin adds a number of builder methods a helper functions to simplify building a relay
+The Relay plugin adds a number of builder methods and helper functions to simplify building a relay
 compatible schema.
 
 ## Usage
@@ -33,9 +33,9 @@ The `relayOptions` object passed to builder can contain the following properties
 - `idFieldOptions`: Options to pass to the id field.
 - `clientMutationId`: `required` (default) | `omit` | `optional`. Determines if clientMutationId
   fields are created on `relayMutationFields`, and if they are required.
-- `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults behavior due to
-  legacy reasons is `String` for everything except for connection arguments which use `ID`.
-  Overwriting this default is highly encouraged.
+- `cursorType`: String | ID. Determines type used for cursor fields. Default behavior due to legacy
+  reasons is String for everything except for connection arguments which use ID. Overwriting this
+  default to String is highly encouraged and will become the default in the next major version.
 - `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
   field
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
@@ -237,9 +237,9 @@ builder.queryFields((t) => ({
               cursor: 'def',
               node: new NumberThing(123),
             },
-          ]
-        }
-      }),
+          ],
+        };
+      },
     },
     {
       name: 'NameOfConnectionType', // optional, will use ParentObject + capitalize(FieldName) + "Connection" as the default
@@ -247,7 +247,7 @@ builder.queryFields((t) => ({
         // define extra fields on Connection
         // We need to use a new variable for the connection field builder (eg tc) to get the correct types
       }),
-      edgesField: {} // optional, allows customizing the edges field on the Connection Object
+      edgesField: {}, // optional, allows customizing the edges field on the Connection Object
       // Other options for connection object can be added here
     },
     {
@@ -257,7 +257,7 @@ builder.queryFields((t) => ({
         // define extra fields on Edge
         // We need to use a new variable for the connection field builder (eg te) to get the correct types
       }),
-      nodeField: {} // optional, allows customizing the node field on the Edge Object
+      nodeField: {}, // optional, allows customizing the node field on the Edge Object
     },
   ),
 }));

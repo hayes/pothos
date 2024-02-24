@@ -21,10 +21,12 @@ declare global {
         export interface UserSchemaTypes {
             AuthScopes: {};
             AuthContexts: {};
+            DefaultAuthStrategy: "all" | "any";
         }
         export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>> {
             AuthScopes: PartialTypes["AuthScopes"] & {};
             AuthContexts: PartialTypes["AuthContexts"] & {};
+            DefaultAuthStrategy: undefined extends PartialTypes["DefaultAuthStrategy"] ? "any" : PartialTypes["DefaultAuthStrategy"] & string;
         }
         export interface RootTypeOptions<Types extends SchemaTypes, Type extends RootName> {
             authScopes?: TypeAuthScopes<Types, Types["Root"]>;

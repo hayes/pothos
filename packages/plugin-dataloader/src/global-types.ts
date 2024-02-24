@@ -24,6 +24,7 @@ import {
 } from './types';
 
 import type {
+  LoadableGroupFieldOptions,
   LoadableInterfaceOptions,
   LoadableListFieldOptions,
   LoadableUnionOptions,
@@ -142,6 +143,7 @@ declare global {
         CacheKey,
         ResolveReturnShape,
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+        ByPath extends boolean = boolean,
       >(
         options: LoadableFieldOptions<
           Types,
@@ -152,7 +154,8 @@ declare global {
           ResolveReturnShape,
           Key,
           CacheKey,
-          Kind
+          Kind,
+          ByPath
         >,
       ) => FieldRef<unknown>;
       loadableList: <
@@ -162,6 +165,7 @@ declare global {
         CacheKey,
         ResolveReturnShape,
         Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
+        ByPath extends boolean = boolean,
       >(
         options: LoadableListFieldOptions<
           Types,
@@ -172,7 +176,31 @@ declare global {
           ResolveReturnShape,
           Key,
           CacheKey,
-          Kind
+          Kind,
+          ByPath
+        >,
+      ) => FieldRef<unknown>;
+
+      loadableGroup: <
+        Args extends InputFieldMap,
+        Type extends OutputType<Types>,
+        Key,
+        CacheKey,
+        ResolveReturnShape,
+        Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
+        ByPath extends boolean = boolean,
+      >(
+        options: LoadableGroupFieldOptions<
+          Types,
+          ParentShape,
+          Type,
+          Nullable,
+          Args,
+          ResolveReturnShape,
+          Key,
+          CacheKey,
+          Kind,
+          ByPath
         >,
       ) => FieldRef<unknown>;
     }

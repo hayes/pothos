@@ -160,6 +160,49 @@ builder.objectField(User, 'posts', (t) =>
 );
 ```
 
+### loadableGroup fields for one-to-many relations
+
+In many cases, it's easier to load a flat list in a dataloader rather than loading a list of lists.
+the `loadableGroup` method simplifies this.
+
+```typescript
+// Loading multiple Posts
+builder.objectField(User, 'posts', (t) =>
+  t.loadableGroup({
+    // type is singular, but will create a list field
+    type: Post,
+    // will be called with ids of all the users, and should return `Post[]`
+    load: (ids: number[], context) => db.posts.findMany({ where: { authorId: { in: ids } } }),
+    // will be called with each post to determine which group it belongs to
+    group: (post) => post.authorId,
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
+### Accessing args on loadable fields
+
+By default the `load` method for fields does not have access to the fields arguments. This is
+because the dataloader will aggregate the calls across different selections and aliases that may not
+have the same arguments. To access the arguments, you can pass `byPath: true` in the fields options.
+This will cause the dataloader to only aggregate calls for the same "path" in the query, meaning all
+calls share the same arguments. This will allow you to access a 3rd `args` argument on the `load`
+method.
+
+```typescript
+builder.objectField(User, 'posts', (t) =>
+  t.loadable({
+    type: [Post],
+    byPath: true,
+    args: {
+      limit: t.arg.int({ required: true }),
+    },
+    load: (ids: number[], context, args) => context loadPostsByUserIds(ids, args.limit),
+    resolve: (user, args) => user.id,
+  }),
+);
+```
+
 ### dataloader options
 
 You can provide additional options for your dataloaders using `loaderOptions`.
@@ -325,6 +368,41 @@ const UserNode = builder.loadableNode('UserNode', {
   load: (ids: string[], context: ContextType) => context.loadUsersById(ids),
   fields: (t) => ({}),
 });
+```
+
+#### Loadable connections
+
+To data-load a connection, you can use a combination of helpers:
+
+- `builder.connectionObject` To create the connection and edge types
+- `builder.loadable` with the `byPath` option to create a loadable field with access to arguments
+- `t.arg.connectionArgs` to add the standard connection arguments to the field
+
+```typescript
+const UserFriendsConnection = builder.connectionObject({
+  type: User,
+  name: 'UserFriendsConnection',
+});
+
+builder.objectFields(User, (t) => ({
+  friends: t.loadable({
+    type: UserFriendsConnection,
+    byPath: true,
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    load: async (ids, context, args) => {
+      // This implementation assumes you will load all friends for each user, and then filter them with `resolveArrayConnection`.
+      // This may not be efficient in a large production system
+      const friendsById = await context.loadFriendsByUserIds(ids);
+
+      return ids.map((id) => {
+        return resolveArrayConnection({ args }, friendsById[id]);
+      });
+    },
+    resolve: (user) => user.id.toString(),
+  }),
+}));
 ```
 
 ### Loadable Refs and Circular references
