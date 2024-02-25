@@ -4,7 +4,7 @@ import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, Input
 export type DataloaderKey = bigint | number | string;
 export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
     byPath?: ByPath;
-    load: (keys: Key[], context: Types["Context"], args: boolean extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
+    load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
     sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], (Type extends unknown[] ? [
@@ -20,7 +20,7 @@ export type LoadableListFieldOptions<Types extends SchemaTypes, ParentShape, Typ
 ], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
     type: Type;
     byPath?: ByPath;
-    load: (keys: Key[], context: Types["Context"], args: boolean extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | ShapeFromTypeParam<Types, [
+    load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | ShapeFromTypeParam<Types, [
         Type
     ], Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [
@@ -38,7 +38,7 @@ export type LoadableGroupFieldOptions<Types extends SchemaTypes, ParentShape, Ty
 ], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
     type: Type;
     byPath?: ByPath;
-    load: (keys: Key[], context: Types["Context"], args: boolean extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
+    load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
     loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, Type, true>[], CacheKey>;
     group: (value: ShapeFromTypeParam<Types, Type, false>) => Key;
     resolve: Resolver<ParentShape, InputShapeFromFields<Args>, Types["Context"], Key, ResolveReturnShape>;

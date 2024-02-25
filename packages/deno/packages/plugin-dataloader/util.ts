@@ -54,7 +54,7 @@ export function cacheKey(path: GraphQLResolveInfo["path"] | undefined) {
     let key = String(path.key);
     let current = path.prev;
     while (current) {
-        key = `${current.key}.${key}`;
+        key = `${typeof current.key === "number" ? "*" : current.key}.${key}`;
         current = current.prev;
     }
     return key;

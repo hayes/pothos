@@ -42,15 +42,18 @@ builder.objectFields(User, (t) => ({
       ...t.arg.connectionArgs(),
     },
     // eslint-disable-next-line @typescript-eslint/require-await
-    load: async (ids, context, args) =>
-      ids.map((id) => {
+    load: async (users: { id: number }[], context, args) => {
+      context.countCall('User.friends');
+
+      return users.map((user) => {
         const friends = [];
         for (let i = 0; i < 5; i += 1) {
-          friends.push({ objType: 'UserNode', id: Number.parseInt(`${id}${i}`, 10) });
+          friends.push({ objType: 'UserNode', id: Number.parseInt(`${user.id}${i}`, 10) });
         }
         return resolveArrayConnection({ args }, friends);
-      }),
-    resolve: (user) => user.id.toString(),
+      });
+    },
+    resolve: (user) => user,
   }),
   groupFriends: t.loadableGroup({
     byPath: true,
@@ -63,6 +66,8 @@ builder.objectFields(User, (t) => ({
     },
     load: (ids, context, args) => {
       const friends = [];
+
+      context.countCall('User.groupFriends');
 
       for (const id of ids) {
         for (let i = 0; i < args.limit; i += 1) {

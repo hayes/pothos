@@ -32,11 +32,15 @@ describe('using byPath to implement a loadable connection', () => {
       }
     `;
 
+    const contextValue = createContext();
     const result = await execute({
       schema,
       document: query,
-      contextValue: createContext(),
+      contextValue,
     });
+
+    expect(contextValue.callCounts.get('User.friends')).toBe(2);
+    expect(contextValue.callCounts.get('User.groupFriends')).toBe(2);
 
     expect(result).toMatchInlineSnapshot(`
       {

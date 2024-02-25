@@ -6,6 +6,7 @@ import { ContextType } from './types';
 let nextID = 0;
 
 export const createContext = (): ContextType => {
+  const callCounts = new Map<string, number>();
   const context: ContextType = {
     // eslint-disable-next-line no-plusplus
     id: nextID++,
@@ -26,6 +27,11 @@ export const createContext = (): ContextType => {
     get loadMany() {
       return <K, V>(ref: LoadableRef<K, V, ContextType>, ids: K[]) =>
         ref.getDataloader(context).loadMany(ids);
+    },
+    callCounts,
+    countCall: (name: string) => {
+      const count = callCounts.get(name) ?? 0;
+      callCounts.set(name, count + 1);
     },
   };
 
