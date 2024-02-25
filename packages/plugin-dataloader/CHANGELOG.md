@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.18.1
+
+### Patch Changes
+
+- 144041f: Fix cacheKey and small type issue for byPath option
+
 ## 3.18.0
 
 ### Minor Changes
