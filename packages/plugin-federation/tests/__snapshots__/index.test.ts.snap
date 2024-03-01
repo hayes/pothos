@@ -17,7 +17,7 @@ type Query {
 }
 
 type User
-  @key(fields: "id")
+  @key(fields: "id", resolvable: true)
 {
   id: ID
   name: String

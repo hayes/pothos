@@ -51,7 +51,7 @@ export const entityMapping = new WeakMap<
       key: Selection<object> | Selection<object>[];
       resolvable?: boolean;
       interfaceObject?: boolean;
-      resolveReference: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
+      resolveReference?: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
     }
   >
 >();

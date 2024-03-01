@@ -18,12 +18,32 @@ import { entityMapping, getUsedDirectives, mergeDirectives } from './util';
 
 const schemaBuilderProto = SchemaBuilder.prototype as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
 
-export function hasDirective(type: GraphQLNamedType, directive: string) {
+function hasResolvableKey(type: GraphQLNamedType) {
   if (Array.isArray(type.extensions?.directives)) {
-    return type.extensions?.directives.some((d) => (d as { name: string }).name === directive);
+    return type.extensions?.directives.some(
+      (d: { name: string; args: Record<string, unknown> }) =>
+        d.name === 'key' && d.args.resolvable !== false,
+    );
   }
 
-  return directive in ((type.extensions?.directives ?? {}) as {});
+  const directives = (type.extensions?.directives ?? {}) as {
+    key?:
+      | {
+          resolvable?: boolean;
+        }[]
+      | {
+          resolvable?: boolean;
+        };
+  };
+  if (!('key' in directives)) {
+    return false;
+  }
+
+  if (Array.isArray(directives.key)) {
+    return directives.key.some((d) => d.resolvable !== false);
+  }
+
+  return directives.key?.resolvable !== false;
 }
 
 schemaBuilderProto.selection = <Shape extends object>(selection: SelectionFromShape<Shape>) => ({
@@ -89,7 +109,7 @@ schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
   queryType?.toConfig();
 
   const entityTypes = Object.values(types).filter(
-    (type) => isObjectType(type) && hasDirective(type, 'key'),
+    (type) => isObjectType(type) && hasResolvableKey(type),
   );
 
   const hasEntities = entityTypes.length > 0;

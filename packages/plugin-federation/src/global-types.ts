@@ -98,14 +98,25 @@ declare global {
         param: Param,
         options: {
           key: KeySelection | KeySelection[];
-          resolvable?: boolean;
           interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
-          resolveReference: (
-            parent: KeySelection[typeof selectionShapeKey],
-            context: Types['Context'],
-            info: GraphQLResolveInfo,
-          ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-        },
+        } & (
+          | {
+              resolvable: false;
+              resolveReference?: (
+                parent: KeySelection[typeof selectionShapeKey],
+                context: Types['Context'],
+                info: GraphQLResolveInfo,
+              ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
+            }
+          | {
+              resolvable?: true;
+              resolveReference: (
+                parent: KeySelection[typeof selectionShapeKey],
+                context: Types['Context'],
+                info: GraphQLResolveInfo,
+              ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
+            }
+        ),
       ) => void;
     }
 
