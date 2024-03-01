@@ -1,5 +1,12 @@
 # @pothos/plugin-federation
 
+## 3.14.0
+
+### Minor Changes
+
+- a534c4a: Add a new resolvable option to asEntity to allow setting resolvable: false on an entities
+  key directive
+
 ## 3.13.1
 
 ### Patch Changes
