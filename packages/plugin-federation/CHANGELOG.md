@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.14.1
+
+### Patch Changes
+
+- 0debcce: Exclude non resolveAble entities from Entity union
+
 ## 3.14.0
 
 ### Minor Changes
