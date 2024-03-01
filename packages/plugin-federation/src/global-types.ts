@@ -73,7 +73,7 @@ declare global {
         Shape extends object = KeySelection[typeof selectionShapeKey],
       >(
         name: string,
-        key: KeySelection | KeySelection[],
+        key?: KeySelection | KeySelection[],
         resolveReference?: (
           parent: KeySelection[typeof selectionShapeKey],
           context: Types['Context'],
@@ -98,6 +98,7 @@ declare global {
         param: Param,
         options: {
           key: KeySelection | KeySelection[];
+          resolvable?: boolean;
           interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
           resolveReference: (
             parent: KeySelection[typeof selectionShapeKey],

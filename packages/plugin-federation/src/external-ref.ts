@@ -27,7 +27,9 @@ export class ExternalEntityRef<
 
   private builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
-  private key: Key | Key[];
+  private key?: Key | Key[];
+
+  private resolvable?: boolean;
 
   private resolveReference?: (
     parent: object,
@@ -38,17 +40,25 @@ export class ExternalEntityRef<
   constructor(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     name: string,
-    key: Key | Key[],
-    resolveReference?: (
-      parent: Key[typeof selectionShapeKey],
-      context: Types['Context'],
-      info: GraphQLResolveInfo,
-    ) => MaybePromise<Shape | null | undefined>,
+    {
+      key,
+      resolvable,
+      resolveReference,
+    }: {
+      key?: Key | Key[];
+      resolvable?: boolean;
+      resolveReference?: (
+        parent: Key[typeof selectionShapeKey],
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => MaybePromise<Shape | null | undefined>;
+    },
   ) {
     super('Object', name);
 
     this.builder = builder;
     this.key = key;
+    this.resolvable = resolvable;
     this.resolveReference = resolveReference;
   }
 
@@ -63,7 +73,7 @@ export class ExternalEntityRef<
       ...(options as {} as PothosSchemaTypes.ObjectTypeOptions<Types, Shape>),
       name: this.name,
       directives: mergeDirectives(directives as [], [
-        ...keyDirective(this.key),
+        ...(this.key ? keyDirective(this.key, this.resolvable) : []),
         { name: 'extends', args: {} },
       ]) as [],
       fields: (t) => ({

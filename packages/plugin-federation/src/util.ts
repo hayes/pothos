@@ -5,21 +5,24 @@ import { Selection } from './types';
 type DirectiveList = { name: string; args?: {} }[];
 type DirectiveOption = DirectiveList | Record<string, {}>;
 
-export function keyDirective(key: Selection<object> | Selection<object>[]): {
+export function keyDirective(
+  key: Selection<object> | Selection<object>[],
+  resolvable?: boolean,
+): {
   name: string;
   args?: {};
 }[] {
   if (Array.isArray(key)) {
     return key.map(({ selection }) => ({
       name: 'key',
-      args: { fields: selection },
+      args: { fields: selection, ...(resolvable === undefined ? {} : { resolvable }) },
     }));
   }
 
   return [
     {
       name: 'key',
-      args: { fields: key.selection },
+      args: { fields: key.selection, ...(resolvable === undefined ? {} : { resolvable }) },
     },
   ];
 }
@@ -46,6 +49,7 @@ export const entityMapping = new WeakMap<
     string,
     {
       key: Selection<object> | Selection<object>[];
+      resolvable?: boolean;
       interfaceObject?: boolean;
       resolveReference: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
     }

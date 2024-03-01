@@ -37,14 +37,18 @@ schemaBuilderProto.externalRef = function externalRef<
   Shape extends object = KeySelection[typeof selectionShapeKey],
 >(
   name: Name,
-  key: KeySelection | KeySelection[],
+  key?: KeySelection | KeySelection[],
   resolveReference?: (
     parent: KeySelection[typeof selectionShapeKey],
     context: {},
     info: GraphQLResolveInfo,
   ) => MaybePromise<Shape | null | undefined>,
 ) {
-  return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, key, resolveReference);
+  return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, {
+    resolvable: key ? undefined : false,
+    key,
+    resolveReference,
+  });
 };
 
 schemaBuilderProto.toSubGraphSchema = function toSubGraphSchema(
