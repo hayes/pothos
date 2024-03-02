@@ -1,5 +1,12 @@
 # @pothos/plugin-federation
 
+## 3.15.0
+
+### Minor Changes
+
+- b62b7ca: revert on asEntity method, and add a new method that accepts a selection and a resolvable
+  boolean
+
 ## 3.14.1
 
 ### Patch Changes
