@@ -51,6 +51,14 @@ schemaBuilderProto.selection = <Shape extends object>(selection: SelectionFromSh
   [selectionShapeKey]: {} as unknown as Shape,
 });
 
+schemaBuilderProto.keyDirective = <Shape extends object, Resolvable extends boolean = true>(
+  key: Selection<Shape>,
+  resolvable?: Resolvable,
+) => ({
+  ...key,
+  resolvable,
+});
+
 schemaBuilderProto.externalRef = function externalRef<
   Name extends string,
   KeySelection extends Selection<object>,
@@ -65,7 +73,6 @@ schemaBuilderProto.externalRef = function externalRef<
   ) => MaybePromise<Shape | null | undefined>,
 ) {
   return new ExternalEntityRef<SchemaTypes, Shape, KeySelection>(this, name, {
-    resolvable: key ? undefined : false,
     key,
     resolveReference,
   });

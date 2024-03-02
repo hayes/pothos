@@ -34,7 +34,7 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
       : typeConfig.extensions?.apollo;
 
     const typeDirectives = [
-      ...(entityConfig ? keyDirective(entityConfig.key, entityConfig.resolvable) : []),
+      ...(entityConfig ? keyDirective(entityConfig.key) : []),
       ...(entityConfig?.interfaceObject ? [{ name: 'interfaceObject', args: {} }] : []),
       ...getCommonDirectives(typeConfig),
     ];

@@ -14,7 +14,13 @@ import {
 } from '@pothos/core';
 import type { ExternalEntityRef } from './external-ref';
 
-import type { PothosFederationPlugin, Selection, SelectionFromShape, selectionShapeKey } from '.';
+import type {
+  KeyDirective,
+  PothosFederationPlugin,
+  Selection,
+  SelectionFromShape,
+  selectionShapeKey,
+} from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -83,6 +89,11 @@ declare global {
 
       selection: <Shape extends object>(selection: SelectionFromShape<Shape>) => Selection<Shape>;
 
+      keyDirective: <Shape extends object, Resolvable extends boolean = true>(
+        key: Selection<Shape>,
+        resolvable?: Resolvable,
+      ) => KeyDirective<Shape, Resolvable>;
+
       toSubGraphSchema: (
         options: BuildSchemaOptions<Types> & {
           linkUrl?: string;
@@ -98,25 +109,13 @@ declare global {
         param: Param,
         options: {
           key: KeySelection | KeySelection[];
+          resolveReference: (
+            parent: KeySelection[typeof selectionShapeKey],
+            context: Types['Context'],
+            info: GraphQLResolveInfo,
+          ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
           interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
-        } & (
-          | {
-              resolvable: false;
-              resolveReference?: (
-                parent: KeySelection[typeof selectionShapeKey],
-                context: Types['Context'],
-                info: GraphQLResolveInfo,
-              ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-            }
-          | {
-              resolvable?: true;
-              resolveReference: (
-                parent: KeySelection[typeof selectionShapeKey],
-                context: Types['Context'],
-                info: GraphQLResolveInfo,
-              ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-            }
-        ),
+        },
       ) => void;
     }
 

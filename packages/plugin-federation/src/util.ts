@@ -1,19 +1,16 @@
 import { GraphQLResolveInfo } from 'graphql';
 import { SchemaTypes } from '@pothos/core';
-import { Selection } from './types';
+import { KeyDirective, Selection } from './types';
 
 type DirectiveList = { name: string; args?: {} }[];
 type DirectiveOption = DirectiveList | Record<string, {}>;
 
-export function keyDirective(
-  key: Selection<object> | Selection<object>[],
-  resolvable?: boolean,
-): {
+export function keyDirective(key: KeyDirective<object> | KeyDirective<object>[]): {
   name: string;
   args?: {};
 }[] {
   if (Array.isArray(key)) {
-    return key.map(({ selection }) => ({
+    return key.map(({ selection, resolvable }) => ({
       name: 'key',
       args: { fields: selection, ...(resolvable === undefined ? {} : { resolvable }) },
     }));
@@ -22,7 +19,10 @@ export function keyDirective(
   return [
     {
       name: 'key',
-      args: { fields: key.selection, ...(resolvable === undefined ? {} : { resolvable }) },
+      args: {
+        fields: key.selection,
+        ...(key.resolvable === undefined ? {} : { resolvable: key.resolvable }),
+      },
     },
   ];
 }
@@ -49,7 +49,6 @@ export const entityMapping = new WeakMap<
     string,
     {
       key: Selection<object> | Selection<object>[];
-      resolvable?: boolean;
       interfaceObject?: boolean;
       resolveReference?: (val: object, context: {}, info: GraphQLResolveInfo) => unknown;
     }

@@ -68,9 +68,6 @@ select (or selection) should use the types of scalars your server will produce f
 example, Apollo server will convert all ID fields to `string`s, even if resolvers in other services
 returns IDs as numbers.
 
-You can set the entities `key` as unresolvable by passing `resolvable: false` to the `asEntity`
-options.
-
 ### Extending external entities
 
 External entities can be extended by calling `builder.externalRef`, and then calling implement on
@@ -120,6 +117,15 @@ ProductRef.implement({
     }),
   }),
 });
+```
+
+To set the `resolvable` property of an external field to `false`, can use `builder.keyDirective`:
+
+```ts
+const ProductRef = builder.externalRef(
+  'Product',
+  builder.keyDirective(builder.selection<{ upc: string }>('upc'), false),
+);
 ```
 
 ### Adding a provides directive

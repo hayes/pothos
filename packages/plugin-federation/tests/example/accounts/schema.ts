@@ -44,8 +44,7 @@ const UserType = builder.objectRef<User>('User').implement({
 });
 
 builder.asEntity(UserType, {
-  key: builder.selection<{ id: string }>('id'),
-  resolvable: true,
+  key: builder.keyDirective(builder.selection<{ id: string }>('id'), true),
   resolveReference: (user) => users.find(({ id }) => user.id === id),
 });
 

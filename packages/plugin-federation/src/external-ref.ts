@@ -29,8 +29,6 @@ export class ExternalEntityRef<
 
   private key?: Key | Key[];
 
-  private resolvable?: boolean;
-
   private resolveReference?: (
     parent: object,
     context: Types['Context'],
@@ -42,11 +40,9 @@ export class ExternalEntityRef<
     name: string,
     {
       key,
-      resolvable,
       resolveReference,
     }: {
       key?: Key | Key[];
-      resolvable?: boolean;
       resolveReference?: (
         parent: Key[typeof selectionShapeKey],
         context: Types['Context'],
@@ -58,7 +54,6 @@ export class ExternalEntityRef<
 
     this.builder = builder;
     this.key = key;
-    this.resolvable = resolvable;
     this.resolveReference = resolveReference;
   }
 
@@ -73,7 +68,7 @@ export class ExternalEntityRef<
       ...(options as {} as PothosSchemaTypes.ObjectTypeOptions<Types, Shape>),
       name: this.name,
       directives: mergeDirectives(directives as [], [
-        ...(this.key ? keyDirective(this.key, this.resolvable) : []),
+        ...(this.key ? keyDirective(this.key) : []),
         { name: 'extends', args: {} },
       ]) as [],
       fields: (t) => ({

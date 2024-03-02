@@ -52,3 +52,8 @@ export interface Selection<Shape extends object> {
   selection: string;
   [selectionShapeKey]: Shape;
 }
+
+export interface KeyDirective<Shape extends object, Resolvable extends boolean = true>
+  extends Selection<Shape> {
+  resolvable?: Resolvable;
+}
