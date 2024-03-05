@@ -1,5 +1,12 @@
 # Change Log
 
+## 3.65.0
+
+### Minor Changes
+
+- 3698a15: Accept a typeName for nestedSelection helper to allow optimized sub-selections on
+  abstract types
+
 ## 3.64.0
 
 ### Minor Changes
