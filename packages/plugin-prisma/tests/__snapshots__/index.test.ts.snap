@@ -624,6 +624,634 @@ type WithUniqueNode implements Node {
 }"
 `;
 
+exports[`prisma > generates schema 2`] = `
+"type BaseError implements Error {
+  message: String!
+}
+
+type Blog {
+  pages: [Int!]!
+  posts: [Post!]!
+}
+
+type CircularComment {
+  author: CircularUser!
+  id: ID!
+}
+
+type CircularUser {
+  comments: [CircularComment!]!
+  id: ID!
+}
+
+type Comment {
+  author: User!
+  authorBio: String
+  content: String!
+  id: ID!
+  post: Post!
+  postAuthor: User!
+}
+
+type CommentConnection {
+  edges: [CommentEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type CommentEdge {
+  cursor: String!
+  node: Comment!
+}
+
+scalar Decimal
+
+interface Error {
+  message: String!
+}
+
+type FindUniqueRelations {
+  id: ID!
+  withCompositeID: WithCompositeID!
+  withCompositeIDNode: WithCompositeIDNode!
+  withCompositeUnique: WithCompositeUnique!
+  withCompositeUniqueCustom: WithCompositeUniqueCustom!
+  withCompositeUniqueNode: WithCompositeUniqueNode!
+  withCompositeUniqueNodeCustom: WithCompositeUniqueNodeCustom!
+  withCompositeUniqueNodeSelect: WithCompositeUniqueNodeSelect!
+  withID: WithID!
+  withIDNode: WithIDNode!
+  withIDSelect: WithIDSelect!
+  withUnique: WithUnique!
+  withUniqueNode: WithUniqueNode!
+}
+
+type Media {
+  url: String!
+}
+
+type MediaConnection {
+  edges: [MediaEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type MediaEdge {
+  cursor: String!
+  node: Media!
+}
+
+interface Named {
+  name: String
+}
+
+union NamedUnion = NormalViewer | User
+
+interface Node {
+  id: ID!
+}
+
+type NormalViewer implements Viewer {
+  aComments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
+  bio: String
+  comments(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsConnection!
+  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsWithNewQueryConnection!
+  id: ID!
+  isNormal: Boolean!
+  postCount: Int!
+  postPreviews: [PostPreview!]!
+  posts: [Post!]!
+  reverseName: String
+  selectUser: SelectUser!
+  user: User!
+}
+
+type PageInfo {
+  endCursor: String
+  hasNextPage: Boolean!
+  hasPreviousPage: Boolean!
+  startCursor: String
+}
+
+\\"\\"\\"Model for Posts!\\"\\"\\"
+type Post {
+  author: User!
+  commentAuthorIds: [ID!]!
+  comments: [Comment!]!
+  commentsConnection(after: ID, before: ID, first: Int, last: Int): CommentConnection!
+  content: String
+  createdAt: String!
+  id: ID!
+  manualMediaConnection(after: ID, before: ID, first: Int, inverted: Boolean, last: Int, reversed: Boolean): PostManualMediaConnection!
+  media: [Media!]!
+  mediaConnection(after: ID, before: ID, first: Int, last: Int, reversed: Boolean): MediaConnection!
+  named: [Named]
+  namedUnion: [NamedUnion]
+  ownComments: [Comment!]!
+  ownCommentsConnection(after: ID, before: ID, first: Int, last: Int): PostOwnCommentsConnection!
+  post: User!
+
+  \\"\\"\\"Has this post been published?\\"\\"\\"
+  published: Boolean!
+
+  \\"\\"\\"Title for the post\\"\\"\\"
+  title: String!
+  views: Decimal!
+  viewsFloat: Float!
+}
+
+type PostManualMediaConnection {
+  edges: [PostManualMediaConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type PostManualMediaConnectionEdge {
+  cursor: String!
+  node: Media!
+  order: Int!
+}
+
+type PostOwnCommentsConnection {
+  edges: [PostOwnCommentsConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type PostOwnCommentsConnectionEdge {
+  cursor: String!
+  node: Comment!
+}
+
+type PostPreview {
+  post: SelectPost!
+  preview: String
+}
+
+type Profile {
+  bio: String
+  id: ID!
+  user: User
+}
+
+type Query {
+  badUser: User!
+  blog: Blog!
+  findUniqueRelations: FindUniqueRelations!
+  findUniqueRelationsSelect: FindUniqueRelations!
+  manualConnection(after: ID, before: ID, first: Int, last: Int): QueryManualConnection!
+  me: User
+  named: [Named]
+  namedConnection(after: ID, before: ID, first: Int, last: Int): QueryNamedConnection!
+  namedUnion: [NamedUnion]
+  namedUnionWithQuery: [NamedUnion]
+  namedWithQuery: [Named]
+  node(id: ID!): Node
+  nodes(ids: [ID!]!): [Node]!
+  nullableUserConnection(after: ID, before: ID, first: Int, last: Int): QueryNullableUserConnection
+  post(id: ID!): Post
+  posts: [Post!]!
+  postsBigIntCursor(after: ID, before: ID, first: Int, last: Int): QueryPostsBigIntCursorConnection!
+  selectMe: SelectUser
+  selectPost(id: ID!): SelectPost!
+  selectPosts: [SelectPost!]!
+  unrelatedConnection(after: ID, before: ID, first: Int, last: Int): QueryUnrelatedConnection!
+  userConnection(after: ID, before: ID, first: Int, last: Int, test: Boolean): QueryUserConnection!
+  userConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): QueryUserConnectionWithErrorsResult!
+  userNodeConnection(after: ID, before: ID, first: Int, last: Int): QueryUserNodeConnection!
+  userOrProfile: [UserOrProfile]
+  users: [User!]!
+  usersWithError: QueryUsersWithErrorResult!
+  viewer: Viewer!
+  viewerNode: ViewerNode!
+  withCompositeConnection(after: ID, before: ID, first: Int, last: Int): QueryWithCompositeConnection!
+  withIDSelectConnection(after: ID, before: ID, first: Int, last: Int): QueryWithIDSelectConnection!
+}
+
+type QueryManualConnection {
+  edges: [QueryManualConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryManualConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type QueryNamedConnection {
+  edges: [QueryNamedConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryNamedConnectionEdge {
+  cursor: String!
+  node: Named!
+}
+
+type QueryNullableUserConnection {
+  edges: [QueryNullableUserConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryNullableUserConnectionEdge {
+  cursor: String!
+  node: User!
+}
+
+type QueryPostsBigIntCursorConnection {
+  edges: [QueryPostsBigIntCursorConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryPostsBigIntCursorConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type QueryUnrelatedConnection {
+  edges: [QueryUnrelatedConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryUnrelatedConnectionEdge {
+  cursor: String!
+  node: Unrelated!
+}
+
+type QueryUserConnection {
+  edges: [QueryUserConnectionEdge]!
+  pageInfo: PageInfo!
+  test: String!
+  totalCount: Int!
+}
+
+type QueryUserConnectionEdge {
+  cursor: String!
+  node: User!
+  test: Boolean
+}
+
+type QueryUserConnectionWithErrorsConnection {
+  edges: [QueryUserConnectionWithErrorsConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryUserConnectionWithErrorsConnectionEdge {
+  cursor: String!
+  node: User!
+}
+
+union QueryUserConnectionWithErrorsResult = BaseError | QueryUserConnectionWithErrorsSuccess
+
+type QueryUserConnectionWithErrorsSuccess {
+  data: QueryUserConnectionWithErrorsConnection!
+}
+
+type QueryUserNodeConnection {
+  edges: [QueryUserNodeConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryUserNodeConnectionEdge {
+  cursor: String!
+  node: User!
+}
+
+union QueryUsersWithErrorResult = BaseError | QueryUsersWithErrorSuccess
+
+type QueryUsersWithErrorSuccess {
+  data: [User!]!
+}
+
+type QueryWithCompositeConnection {
+  edges: [QueryWithCompositeConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryWithCompositeConnectionEdge {
+  cursor: String!
+  node: WithCompositeUniqueNodeSelect!
+}
+
+type QueryWithIDSelectConnection {
+  edges: [QueryWithIDSelectConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type QueryWithIDSelectConnectionEdge {
+  cursor: String!
+  node: WithIDSelect!
+}
+
+\\"\\"\\"Model for Posts!\\"\\"\\"
+type SelectPost implements Node {
+  comments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
+  content: String
+  createdAt: String!
+  id: ID!
+
+  \\"\\"\\"Title for the post\\"\\"\\"
+  title: String!
+}
+
+type SelectUser implements Node {
+  email: String!
+  following(after: ID, before: ID, first: Int, last: Int): SelectUserFollowingConnection!
+  id: ID!
+  name: String
+  postCount: Int!
+  posts: [SelectPost!]!
+  postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean): SelectUserPostsConnection!
+  profile: Profile
+}
+
+type SelectUserFollowingConnection {
+  edges: [SelectUserFollowingConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type SelectUserFollowingConnectionEdge {
+  cursor: String!
+  node: UserFollow!
+}
+
+type SelectUserPostsConnection {
+  edges: [SelectUserPostsConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type SelectUserPostsConnectionEdge {
+  cursor: String!
+  node: SelectPost!
+}
+
+type Unrelated {
+  id: ID!
+  name: String
+}
+
+type User implements Named & Node {
+  commentedPosts: [Post!]!
+  commentedPostsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentedPostsConnection!
+  commentsConnection(after: ID, before: ID, first: Int, last: Int): UserCommentsConnection!
+  directProfileWithErrors: UserDirectProfileWithErrorsResult
+  email: String!
+  filteredCount(published: Boolean!): Int!
+  following(after: ID, before: ID, first: Int, last: Int): UserFollowingConnection!
+  id: ID!
+  name: String
+  postCount: Int!
+  posts(createdAt: String, limit: Int, oldestFirst: Boolean): [Post!]!
+  postsConnection(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean, published: Boolean): UserPostsConnection!
+  postsConnectionWithErrors(after: ID, before: ID, first: Int, last: Int): UserPostsConnectionWithErrorsResult!
+  postsSkipConnection(after: ID, before: ID, first: Int, last: Int, skip: Int, take: Int): UserPostsSkipConnection!
+  prismaFieldComments: [Comment!]!
+  profile: Profile
+  profileThroughManualLookup: Profile
+  profileWithErrors: UserProfileWithErrorsResult
+  publishedCount: Int!
+  viewer: Viewer
+}
+
+type UserCommentedPostsConnection {
+  edges: [UserCommentedPostsConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type UserCommentedPostsConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type UserCommentsConnection {
+  edges: [UserCommentsConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type UserCommentsConnectionEdge {
+  cursor: String!
+  node: Comment!
+}
+
+union UserDirectProfileWithErrorsResult = BaseError | Profile
+
+type UserFollow {
+  from: User!
+  to: User!
+}
+
+type UserFollowingConnection {
+  edges: [UserFollowingConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type UserFollowingConnectionEdge {
+  cursor: String!
+  node: UserFollow!
+}
+
+union UserOrProfile = Profile | User
+
+type UserPostsConnection {
+  edges: [UserPostsConnectionEdge]!
+  pageInfo: PageInfo!
+  test: Boolean
+  totalCount: Int!
+}
+
+type UserPostsConnectionEdge {
+  cursor: String!
+  node: Post!
+  test: Boolean
+}
+
+type UserPostsConnectionWithErrorsConnection {
+  edges: [UserPostsConnectionWithErrorsConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type UserPostsConnectionWithErrorsConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+union UserPostsConnectionWithErrorsResult = BaseError | UserPostsConnectionWithErrorsSuccess
+
+type UserPostsConnectionWithErrorsSuccess {
+  data: UserPostsConnectionWithErrorsConnection!
+}
+
+type UserPostsSkipConnection {
+  edges: [UserPostsSkipConnectionEdge]!
+  pageInfo: PageInfo!
+  totalCount: Int!
+}
+
+type UserPostsSkipConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+union UserProfileWithErrorsResult = BaseError | UserProfileWithErrorsSuccess
+
+type UserProfileWithErrorsSuccess {
+  data: Profile!
+}
+
+interface Viewer {
+  aComments(after: ID, before: ID, first: Int, last: Int): CommentConnection!
+  bio: String
+  comments(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsConnection!
+  commentsWithNewQuery(after: ID, before: ID, first: Int, last: Int, oldestFirst: Boolean!): ViewerCommentsWithNewQueryConnection!
+  id: ID!
+  postCount: Int!
+  postPreviews: [PostPreview!]!
+  posts: [Post!]!
+  selectUser: SelectUser!
+  user: User!
+}
+
+type ViewerCommentsConnection {
+  edges: [ViewerCommentsConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type ViewerCommentsConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type ViewerCommentsWithNewQueryConnection {
+  edges: [ViewerCommentsWithNewQueryConnectionEdge]!
+  pageInfo: PageInfo!
+
+  \\"\\"\\"default totalCount field for all connections\\"\\"\\"
+  totalCount: Int!
+}
+
+type ViewerCommentsWithNewQueryConnectionEdge {
+  cursor: String!
+  node: Post!
+}
+
+type ViewerNode implements Node {
+  bio: String
+  id: ID!
+}
+
+type WithCompositeID {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeIDNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUnique {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueCustom {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueNodeCustom implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithCompositeUniqueNodeSelect implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithID {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithIDNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithIDSelect {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithUnique {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}
+
+type WithUniqueNode implements Node {
+  id: ID!
+  relations: [FindUniqueRelations!]!
+}"
+`;
+
 exports[`prisma > queries for list with nested relations 1`] = `
 {
   "data": {

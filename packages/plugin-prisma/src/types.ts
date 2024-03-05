@@ -100,6 +100,7 @@ export type PrismaObjectFieldOptions<
           nestedSelection: <Selection extends boolean | {}>(
             selection?: Selection,
             path?: string[],
+            type?: string,
           ) => Selection,
         ) => ExtractModel<Types, ParentShape>['Select'])
     );
@@ -797,6 +798,7 @@ export type FieldSelection =
       mergeNestedSelection: (
         selection: SelectionMap | boolean | ((args: object, context: object) => SelectionMap),
         path?: IndirectInclude | string[],
+        type?: string,
       ) => SelectionMap | boolean,
       resolveSelection: (path: string[]) => FieldNode | null,
     ) => SelectionMap);

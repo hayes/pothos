@@ -95,7 +95,7 @@ export class PrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
               ? (
                   args: {},
                   ctx: Types['Context'],
-                  nestedQuery: (query: unknown, path?: string[]) => never,
+                  nestedQuery: (query: unknown, path?: string[], type?: string) => never,
                 ) => ({
                   select: (select as (args: unknown, ctx: unknown, nestedQuery: unknown) => {})(
                     args,

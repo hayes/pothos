@@ -301,12 +301,16 @@ function addFieldSelection(
     fieldSelectionMap = fieldSelect(
       args,
       context,
-      (rawQuery, indirectInclude) => {
+      (rawQuery, indirectInclude, expectedType) => {
         const returnType = getNamedType(field.type);
         const query = typeof rawQuery === 'function' ? rawQuery(args, context) : rawQuery;
 
         const normalizedIndirectInclude = Array.isArray(indirectInclude)
-          ? normalizeInclude(indirectInclude, getIndirectType(returnType, info))
+          ? normalizeInclude(
+              indirectInclude,
+              getIndirectType(returnType, info),
+              expectedType ? getNamedType(info.schema.getType(expectedType)) : undefined,
+            )
           : indirectInclude;
 
         const fieldState = createStateForType(
@@ -333,7 +337,8 @@ function addFieldSelection(
             info,
             selection,
             (returnType.extensions?.pothosPrismaIndirectInclude as { path: [] })?.path ?? [],
-            normalizedIndirectInclude.paths ?? [normalizedIndirectInclude.path!],
+            normalizedIndirectInclude?.paths ??
+              (normalizedIndirectInclude?.path ? [normalizedIndirectInclude.path] : []),
             [],
             (resolvedType, resolvedField, path) => {
               addTypeSelectionsForField(
@@ -346,6 +351,11 @@ function addFieldSelection(
               );
             },
           );
+        } else if (normalizedIndirectInclude) {
+          const targetType = info.schema.getType(normalizedIndirectInclude.getType())!;
+          if (targetType !== returnType) {
+            addTypeSelectionsForField(targetType, context, info, fieldState, selection, []);
+          }
         }
 
         addTypeSelectionsForField(returnType, context, info, fieldState, selection, []);
@@ -530,8 +540,12 @@ export function getIndirectType(type: GraphQLNamedType, info: GraphQLResolveInfo
   return targetType;
 }
 
-function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclude {
-  let currentType = type;
+function normalizeInclude(
+  path: string[],
+  type: GraphQLNamedType,
+  expectedType?: GraphQLNamedType,
+): IndirectInclude {
+  let currentType = path.length > 0 ? type : expectedType ?? type;
 
   const normalized: { name: string; type: string }[] = [];
 
@@ -556,7 +570,9 @@ function normalizeInclude(path: string[], type: GraphQLNamedType): IndirectInclu
   }
 
   return {
-    getType: () => (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
+    getType: () =>
+      expectedType?.name ??
+      (normalized.length > 0 ? normalized[normalized.length - 1].type : type.name),
     path: normalized,
   };
 }

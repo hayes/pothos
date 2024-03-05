@@ -787,6 +787,8 @@ builder.prismaObject('User', {
           },
           // Look at the selections in postPreviews.post to determine what relations/fields to select
           ['post'],
+          // (optional) If the field returns a union or interface, you can pass a typeName to get selections for a specific object type
+          'Post',
         ),
       }),
       type: [PostPreview],

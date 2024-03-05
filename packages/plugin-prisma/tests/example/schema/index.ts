@@ -485,6 +485,28 @@ builder.prismaObjectFields('Post', (t) => ({
       }),
     },
   ),
+  named: t.field({
+    type: [Named],
+    nullable: {
+      items: true,
+      list: true,
+    },
+    select: (args, ctx, nestedSelection) => ({
+      author: nestedSelection({}, [], 'User'),
+    }),
+    resolve: (post) => (post.author ? User.addBrand([post.author]) : []),
+  }),
+  namedUnion: t.field({
+    type: [NamedUnion],
+    nullable: {
+      items: true,
+      list: true,
+    },
+    select: (args, ctx, nestedSelection) => ({
+      author: nestedSelection({}, [], 'NormalViewer'),
+    }),
+    resolve: (post) => (post.author ? NormalViewer.addBrand([post.author]) : []),
+  }),
 }));
 
 const SelectUser = builder.prismaNode('User', {
@@ -915,6 +937,42 @@ builder.queryType({
       },
       resolve: async () => {
         const user = await prisma.user.findFirstOrThrow({ where: { id: 1 } });
+        return [User.addBrand({ ...user })];
+      },
+    }),
+    namedWithQuery: t.field({
+      type: [Named],
+      nullable: {
+        items: true,
+        list: true,
+      },
+      resolve: async (root, args, context, info) => {
+        const user = await prisma.user.findFirstOrThrow({
+          where: { id: 1 },
+          ...queryFromInfo({
+            context,
+            info,
+            typeName: 'User',
+          }),
+        });
+        return [User.addBrand({ ...user }), user];
+      },
+    }),
+    namedUnionWithQuery: t.field({
+      type: [NamedUnion],
+      nullable: {
+        items: true,
+        list: true,
+      },
+      resolve: async (root, args, context, info) => {
+        const user = await prisma.user.findFirstOrThrow({
+          where: { id: 1 },
+          ...queryFromInfo({
+            context,
+            info,
+            typeName: 'User',
+          }),
+        });
         return [User.addBrand({ ...user })];
       },
     }),
