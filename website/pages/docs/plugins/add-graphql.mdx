@@ -59,7 +59,7 @@ const builder = new SchemaBuilder({
   add: {
     // You can add individual types
     // This accepts Any GraphQLNamedType (Objects, Interface, Unions, Enums, Scalars, and InputObjects)
-    types: [schema.getType('User'), schema.getType('Post')],
+    types: [existingSchema.getType('User'), existingSchema.getType('Post')],
     // Or you can add an entire external schema
     schema: existingSchema,
   },
