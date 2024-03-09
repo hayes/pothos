@@ -6,6 +6,7 @@ export interface Types {
   Objects: { Droid: Droid; Human: Human; String: string };
   Interfaces: { Character: Character };
   Context: ContextType;
+  FieldMode: 'v3';
 }
 
 export default new SchemaBuilder<Types>({});

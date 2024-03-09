@@ -79,8 +79,10 @@ describe('ways to add enums', () => {
         }),
     ],
   ])('%s enum', async (_name, addEnum) => {
-    const builder = new SchemaBuilder({}) as PothosSchemaTypes.SchemaBuilder<SchemaTypes>;
-    const ChessPieceType = addEnum(builder);
+    const builder = new SchemaBuilder<{
+      FieldMode: 'v3';
+    }>({});
+    const ChessPieceType = addEnum(builder as PothosSchemaTypes.SchemaBuilder<SchemaTypes>);
 
     builder.queryType({
       fields: (t) => ({
@@ -140,6 +142,7 @@ describe('ways to add enums', () => {
   /** Validate docs for an object with `as const` (values) {@link website/pages/docs/guide/enums.mdx} */
   it('Object as const enum (entries)', async () => {
     const builder = new SchemaBuilder({});
+
     const VehicleType = {
       sedan: 'SEDAN',
       suv: 'SUV',

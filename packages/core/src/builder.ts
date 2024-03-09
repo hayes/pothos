@@ -23,6 +23,7 @@ import { QueryFieldBuilder } from './fieldUtils/query';
 import { SubscriptionFieldBuilder } from './fieldUtils/subscription';
 import { BaseTypeRef } from './refs/base';
 import { EnumRef } from './refs/enum';
+import { FieldRef } from './refs/field';
 import { ImplementableInputObjectRef, InputObjectRef } from './refs/input-object';
 import { ImplementableInterfaceRef, InterfaceRef } from './refs/interface';
 import { MutationRef } from './refs/mutation';
@@ -39,6 +40,12 @@ import type {
   EnumParam,
   EnumTypeOptions,
   EnumValues,
+  FieldKind,
+  FieldMode,
+  FieldNullability,
+  FieldOptionNormalizer,
+  FieldOptionsFromKind,
+  FieldRefFromMode,
   InputFieldMap,
   InputFieldsFromShape,
   InputShape,
@@ -58,7 +65,9 @@ import type {
   OutputShape,
   ParentShape,
   PluginConstructorMap,
+  PothosInputFieldConfig,
   PothosInputObjectTypeConfig,
+  PothosOutputFieldConfig,
   QueryFieldsShape,
   QueryFieldThunk,
   RecursivelyNormalizeNullableFields,
@@ -67,9 +76,17 @@ import type {
   ShapeFromEnumValues,
   SubscriptionFieldsShape,
   SubscriptionFieldThunk,
+  TypeParam,
   ValuesFromEnum,
 } from './types';
-import { normalizeEnumValues, valuesFromEnum, verifyInterfaces, verifyRef } from './utils';
+import {
+  nonNullableFromOptions,
+  normalizeEnumValues,
+  typeFromParam,
+  valuesFromEnum,
+  verifyInterfaces,
+  verifyRef,
+} from './utils';
 
 export class SchemaBuilder<Types extends SchemaTypes> {
   static plugins: Partial<PluginConstructorMap<SchemaTypes>> = {};
@@ -84,6 +101,29 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     }
   > = new Map();
 
+  static fieldOptionNormalizers: FieldOptionNormalizer = {
+    v3: (builder, name, options, type = options.type) => {
+      const { resolve } = options as { resolve?: (...argList: unknown[]) => unknown };
+      const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
+
+      return {
+        args: options.args,
+        type:
+          type &&
+          typeFromParam(type, builder.configStore, nonNullableFromOptions(builder, options)),
+        extensions: {
+          pothosOriginalResolve: resolve,
+          pothosOriginalSubscribe: subscribe,
+          ...options.extensions,
+        },
+        description: options.description,
+        deprecationReason: options.deprecationReason,
+        resolve,
+        subscribe,
+      };
+    },
+  };
+
   static allowPluginReRegistration = false;
 
   configStore: ConfigStore<Types>;
@@ -93,6 +133,8 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   defaultFieldNullability: boolean;
 
   defaultInputFieldRequiredness: boolean;
+
+  private fieldMode: Types['FieldMode'] = 'v3';
 
   constructor(options: PothosSchemaTypes.SchemaBuilderOptions<Types>) {
     this.options = [...SchemaBuilder.optionNormalizers.values()].reduce((opts, normalize) => {
@@ -129,10 +171,12 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   static registerPlugin<T extends keyof PluginConstructorMap<SchemaTypes>>(
     name: T,
     plugin: PluginConstructorMap<SchemaTypes>[T],
-    normalizeOptions?: {
-      v3?: (
-        options: AddVersionedDefaultsToBuilderOptions<SchemaTypes, 'v3'>,
-      ) => Partial<NormalizeSchemeBuilderOptions<SchemaTypes>>;
+    options?: {
+      normalizeOptions?: {
+        v3?: (
+          options: AddVersionedDefaultsToBuilderOptions<SchemaTypes, 'v3'>,
+        ) => Partial<NormalizeSchemeBuilderOptions<SchemaTypes>>;
+      };
     },
   ) {
     if (!this.allowPluginReRegistration && this.plugins[name]) {
@@ -141,8 +185,8 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
     this.plugins[name] = plugin;
 
-    if (normalizeOptions) {
-      this.optionNormalizers.set(name, normalizeOptions);
+    if (options?.normalizeOptions) {
+      this.optionNormalizers.set(name, options.normalizeOptions);
     }
   }
 
@@ -188,12 +232,14 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (fields) {
-      ref.addFields(() => fields(new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(this)));
+      ref.addFields(() =>
+        fields(new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(this, this.fieldMode)),
+      );
     }
 
     if (options.fields) {
       ref.addFields(() => {
-        const t = new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(this);
+        const t = new ObjectFieldBuilder<Types, ParentShape<Types, Param>>(this, this.fieldMode);
 
         return options.fields!(t);
       });
@@ -210,7 +256,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     verifyRef(param);
     this.configStore.addFields(param, () =>
-      fields(new ObjectFieldBuilder<Types, ParentShape<Types, Type>>(this)),
+      fields(new ObjectFieldBuilder<Types, ParentShape<Types, Type>>(this, this.fieldMode)),
     );
   }
 
@@ -221,7 +267,9 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     verifyRef(param);
     this.configStore.addFields(param, () => ({
-      [fieldName]: field(new ObjectFieldBuilder<Types, ParentShape<Types, Type>>(this)),
+      [fieldName]: field(
+        new ObjectFieldBuilder<Types, ParentShape<Types, Type>>(this, this.fieldMode),
+      ),
     }));
   }
 
@@ -245,23 +293,23 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeRef(ref);
 
     if (fields) {
-      ref.addFields(() => fields(new QueryFieldBuilder(this)));
+      ref.addFields(() => fields(new QueryFieldBuilder(this, this.fieldMode)));
     }
 
     if (options.fields) {
-      ref.addFields(() => options.fields!(new QueryFieldBuilder(this)));
+      ref.addFields(() => options.fields!(new QueryFieldBuilder(this, this.fieldMode)));
     }
 
     return ref;
   }
 
   queryFields(fields: QueryFieldsShape<Types>) {
-    this.configStore.addFields('Query', () => fields(new QueryFieldBuilder(this)));
+    this.configStore.addFields('Query', () => fields(new QueryFieldBuilder(this, this.fieldMode)));
   }
 
   queryField(name: string, field: QueryFieldThunk<Types>) {
     this.configStore.addFields('Query', () => ({
-      [name]: field(new QueryFieldBuilder(this)),
+      [name]: field(new QueryFieldBuilder(this, this.fieldMode)),
     }));
   }
 
@@ -285,23 +333,29 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeRef(ref);
 
     if (fields) {
-      this.configStore.addFields('Mutation', () => fields(new MutationFieldBuilder(this)));
+      this.configStore.addFields('Mutation', () =>
+        fields(new MutationFieldBuilder(this, this.fieldMode)),
+      );
     }
 
     if (options.fields) {
-      this.configStore.addFields('Mutation', () => options.fields!(new MutationFieldBuilder(this)));
+      this.configStore.addFields('Mutation', () =>
+        options.fields!(new MutationFieldBuilder(this, this.fieldMode)),
+      );
     }
 
     return ref;
   }
 
   mutationFields(fields: MutationFieldsShape<Types>) {
-    this.configStore.addFields('Mutation', () => fields(new MutationFieldBuilder(this)));
+    this.configStore.addFields('Mutation', () =>
+      fields(new MutationFieldBuilder(this, this.fieldMode)),
+    );
   }
 
   mutationField(name: string, field: MutationFieldThunk<Types>) {
     this.configStore.addFields('Mutation', () => ({
-      [name]: field(new MutationFieldBuilder(this)),
+      [name]: field(new MutationFieldBuilder(this, this.fieldMode)),
     }));
   }
 
@@ -328,12 +382,14 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeRef(ref);
 
     if (fields) {
-      this.configStore.addFields('Subscription', () => fields(new SubscriptionFieldBuilder(this)));
+      this.configStore.addFields('Subscription', () =>
+        fields(new SubscriptionFieldBuilder(this, this.fieldMode)),
+      );
     }
 
     if (options.fields) {
       this.configStore.addFields('Subscription', () =>
-        options.fields!(new SubscriptionFieldBuilder(this)),
+        options.fields!(new SubscriptionFieldBuilder(this, this.fieldMode)),
       );
     }
 
@@ -341,12 +397,14 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   }
 
   subscriptionFields(fields: SubscriptionFieldsShape<Types>) {
-    this.configStore.addFields('Subscription', () => fields(new SubscriptionFieldBuilder(this)));
+    this.configStore.addFields('Subscription', () =>
+      fields(new SubscriptionFieldBuilder(this, this.fieldMode)),
+    );
   }
 
   subscriptionField(name: string, field: SubscriptionFieldThunk<Types>) {
     this.configStore.addFields('Subscription', () => ({
-      [name]: field(new SubscriptionFieldBuilder(this)),
+      [name]: field(new SubscriptionFieldBuilder(this, this.fieldMode)),
     }));
   }
 
@@ -414,11 +472,15 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     }
 
     if (fields) {
-      this.configStore.addFields(ref, () => fields(new InterfaceFieldBuilder(this)));
+      this.configStore.addFields(ref, () =>
+        fields(new InterfaceFieldBuilder(this, this.fieldMode)),
+      );
     }
 
     if (options.fields) {
-      this.configStore.addFields(ref, () => options.fields!(new InterfaceFieldBuilder(this)));
+      this.configStore.addFields(ref, () =>
+        options.fields!(new InterfaceFieldBuilder(this, this.fieldMode)),
+      );
     }
 
     return ref;
@@ -430,7 +492,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   ) {
     verifyRef(ref);
 
-    this.configStore.addFields(ref, () => fields(new InterfaceFieldBuilder(this)));
+    this.configStore.addFields(ref, () => fields(new InterfaceFieldBuilder(this, this.fieldMode)));
   }
 
   interfaceField<Type extends InterfaceParam<Types>>(
@@ -441,7 +503,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     verifyRef(ref);
 
     this.configStore.addFields(ref, () => ({
-      [fieldName]: field(new InterfaceFieldBuilder(this)),
+      [fieldName]: field(new InterfaceFieldBuilder(this, this.fieldMode)),
     }));
   }
 
@@ -680,5 +742,80 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     return options.sortSchema === false
       ? processedSchema
       : lexicographicSortSchema(processedSchema);
+  }
+
+  createFieldRef<
+    Parent,
+    Type extends TypeParam<Types>,
+    Nullable extends FieldNullability<Type>,
+    Args extends InputFieldMap,
+    Kind extends FieldKind,
+    ResolveShape,
+    ResolveReturnShape,
+    Mode extends FieldMode,
+  >(
+    mode: Mode,
+    kind: FieldKind,
+    type: TypeParam<Types> | undefined,
+    options: FieldOptionsFromKind<
+      Types,
+      Parent,
+      Type,
+      Nullable,
+      Args,
+      Kind,
+      ResolveShape,
+      ResolveReturnShape,
+      Mode
+    >,
+    extra: (name: string) => Partial<PothosOutputFieldConfig<Types>> = () => ({}),
+  ): FieldRefFromMode<
+    Types,
+    Parent,
+    Type,
+    Nullable,
+    Args,
+    ResolveShape,
+    ResolveReturnShape,
+    Kind,
+    Mode
+  > {
+    const normalizer = SchemaBuilder.fieldOptionNormalizers[mode];
+
+    if (!normalizer) {
+      throw new PothosError(`No field option normalizer found for mode ${mode}`);
+    }
+
+    const ref = new FieldRef<Types>(kind, (name, typeConfig) => {
+      const args: Record<string, PothosInputFieldConfig<Types>> = {};
+      const { extensions, ...normalized } = normalizer(
+        this as never,
+        name,
+        options as never,
+        type as never,
+      );
+      const { extensions: extraExtensions, ...extraConfig } = extra(name);
+
+      for (const [argName, arg] of Object.entries(normalized.args ?? {})) {
+        args[argName] = arg.getConfig(argName, name, typeConfig);
+      }
+
+      return {
+        ...normalized,
+        ...extraConfig,
+        extensions: {
+          ...extensions,
+          ...extraExtensions,
+        },
+        kind: kind as never,
+        graphqlKind: typeConfig.graphqlKind as never,
+        parentType: typeConfig.name,
+        pothosOptions: options as never,
+        name,
+        args,
+      } satisfies Partial<PothosOutputFieldConfig<Types>> as never;
+    });
+
+    return ref as never;
   }
 }

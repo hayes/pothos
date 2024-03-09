@@ -1,12 +1,12 @@
-import { SchemaTypes } from '../types';
+import { FieldMode, SchemaTypes } from '../types';
 import { FieldBuilder } from './builder';
 
-export class ObjectFieldBuilder<Types extends SchemaTypes, ParentShape> extends FieldBuilder<
-  Types,
+export class ObjectFieldBuilder<
+  Types extends SchemaTypes,
   ParentShape,
-  'Object'
-> {
-  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>) {
-    super(builder, 'Object', 'Object');
+  Mode extends FieldMode = Types['FieldMode'],
+> extends FieldBuilder<Types, ParentShape, 'Object', Mode> {
+  constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, mode: Mode) {
+    super({ builder, kind: 'Object', graphqlKind: 'Object', mode });
   }
 }

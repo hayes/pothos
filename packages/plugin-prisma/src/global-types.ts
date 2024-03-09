@@ -96,16 +96,20 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
+      Kind,
+      Mode,
     > {
-      PrismaObject: PrismaObjectFieldOptions<
-        Types,
-        ParentShape,
-        Type,
-        Nullable,
-        Args,
-        ResolveShape,
-        ResolveReturnShape
-      >;
+      PrismaObject: [Kind] extends ['PrismaObject']
+        ? PrismaObjectFieldOptions<
+            Types,
+            ParentShape,
+            Type,
+            Nullable,
+            Args,
+            ResolveShape,
+            ResolveReturnShape
+          >
+        : never;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {

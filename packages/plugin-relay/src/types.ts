@@ -507,7 +507,7 @@ export type GlobalIDInputFieldOptions<
   Req extends boolean,
   Kind extends 'Arg' | 'InputObject',
   For = unknown,
-> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req>[Kind], 'type'> & {
+> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, 'ID', Req, Kind>[Kind], 'type'> & {
   for?: For | For[];
 };
 
@@ -516,7 +516,7 @@ export type GlobalIDListInputFieldOptions<
   Req extends FieldRequiredness<['ID']>,
   Kind extends 'Arg' | 'InputObject',
   For = unknown,
-> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req>[Kind], 'type'> & {
+> = Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, ['ID'], Req, Kind>[Kind], 'type'> & {
   for?: For | For[];
 };
 

@@ -162,10 +162,12 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosDirectivesPlugin, {
-  v3: (options) => ({
-    useGraphQLToolsUnorderedDirectives: undefined,
-    directives: {
-      useGraphQLToolsUnorderedDirectives: options.useGraphQLToolsUnorderedDirectives,
-    },
-  }),
+  normalizeOptions: {
+    v3: (options) => ({
+      useGraphQLToolsUnorderedDirectives: undefined,
+      directives: {
+        useGraphQLToolsUnorderedDirectives: options.useGraphQLToolsUnorderedDirectives,
+      },
+    }),
+  },
 });

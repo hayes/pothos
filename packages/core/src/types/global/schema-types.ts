@@ -1,5 +1,6 @@
 /* eslint-disable @typescript-eslint/no-unused-vars, @typescript-eslint/no-empty-interface */
 import type { GraphQLDirective } from 'graphql';
+import { FieldMode } from '../builder-options';
 import type { PluginConstructorMap } from '../plugins';
 import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types';
 import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils';
@@ -67,6 +68,7 @@ declare global {
       Context: object;
       DefaultFieldNullability: boolean;
       DefaultInputFieldRequiredness: boolean;
+      FieldMode: FieldMode;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>>
@@ -79,6 +81,9 @@ declare global {
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
       NullableMode: PartialTypes['NullableMode'] extends 'v3' ? 'v3' : 'v4';
+      FieldMode: undefined extends PartialTypes['FieldMode']
+        ? 'v4'
+        : FieldMode & PartialTypes['FieldMode'];
       DefaultFieldNullability: PartialTypes['Defaults'] extends 'v3'
         ? PartialTypes['DefaultFieldNullability'] extends true
           ? true

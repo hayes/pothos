@@ -42,35 +42,42 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
+      Kind,
     > {
-      ExtendedEntity: ObjectFieldOptions<
-        Types,
-        ParentShape & ResolveShape,
-        Type,
-        Nullable,
-        Args,
-        ResolveReturnShape
-      > & {
-        requires?: Selection<ResolveShape & object>;
-      };
-      ExternalEntity: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      >;
-      EntityObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      > & {
-        resolve: Resolver<
-          ParentShape,
-          Args,
-          Types['Context'],
-          Type extends [unknown]
-            ? ((ShapeFromTypeParam<Types, Type, false> & unknown[])[number] & ResolveShape)[]
-            : ResolveShape & ShapeFromTypeParam<Types, Type, false>,
-          ResolveReturnShape
-        >;
-      };
+      ExtendedEntity: [Kind] extends ['ExtendedEntity']
+        ? ObjectFieldOptions<
+            Types,
+            ParentShape & ResolveShape,
+            Type,
+            Nullable,
+            Args,
+            ResolveReturnShape
+          > & {
+            requires?: Selection<ResolveShape & object>;
+          }
+        : never;
+      ExternalEntity: [Kind] extends ['ExtendedEntity']
+        ? Omit<
+            ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          >
+        : never;
+      EntityObject: [Kind] extends ['ExtendedEntity']
+        ? Omit<
+            ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          > & {
+            resolve: Resolver<
+              ParentShape,
+              Args,
+              Types['Context'],
+              Type extends [unknown]
+                ? ((ShapeFromTypeParam<Types, Type, false> & unknown[])[number] & ResolveShape)[]
+                : ResolveShape & ShapeFromTypeParam<Types, Type, false>,
+              ResolveReturnShape
+            >;
+          }
+        : never;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {

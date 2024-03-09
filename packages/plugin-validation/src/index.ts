@@ -186,11 +186,13 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin, {
-  v3(options) {
-    return {
-      validationOptions: undefined,
-      validation: options.validationOptions,
-    };
+  normalizeOptions: {
+    v3(options) {
+      return {
+        validationOptions: undefined,
+        validation: options.validationOptions,
+      };
+    },
   },
 });
 

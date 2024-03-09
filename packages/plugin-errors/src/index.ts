@@ -230,8 +230,10 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
 }
 
 SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
-  v3: (options) => ({
-    errorOptions: undefined,
-    errors: options?.errorOptions,
-  }),
+  normalizeOptions: {
+    v3: (options) => ({
+      errorOptions: undefined,
+      errors: options?.errorOptions,
+    }),
+  },
 });

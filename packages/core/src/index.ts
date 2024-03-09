@@ -21,6 +21,7 @@ import { UnionRef as InternalUnionRef } from './refs/union';
 import type {
   AddVersionedDefaultsToBuilderOptions,
   FieldKind,
+  FieldMode,
   NormalizeSchemeBuilderOptions,
   RootName,
   SchemaTypes,
@@ -48,60 +49,68 @@ export const FieldBuilder = InternalFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
   Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
->(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  kind: FieldKind,
-  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
-) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
+  Mode extends FieldMode = Types['FieldMode'],
+>(options: {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  kind: FieldKind;
+  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind];
+  mode: Mode;
+}) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind, Mode>;
 
 export type RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
-> = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind, Mode>;
 
 export const RootFieldBuilder = InternalRootFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
->(
-  builder: PothosSchemaTypes.SchemaBuilder<Types>,
-  kind: FieldKind,
-  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
-) => PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+  Mode extends FieldMode = Types['FieldMode'],
+>(options: {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  kind: FieldKind;
+  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind];
+  mode: Mode;
+}) => PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind, Mode>;
 
 export type QueryFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape,
-> = PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.QueryFieldBuilder<Types, Mode>;
 export const QueryFieldBuilder = InternalQueryFieldBuilder as new <
   Types extends SchemaTypes,
-  ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) => PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
+  mode: Mode,
+) => PothosSchemaTypes.QueryFieldBuilder<Types, Mode>;
 
 export type MutationFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape,
-> = PothosSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.MutationFieldBuilder<Types, Mode>;
 export const MutationFieldBuilder = InternalMutationFieldBuilder as new <
   Types extends SchemaTypes,
-  ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) => PothosSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
+  mode: Mode,
+) => PothosSchemaTypes.MutationFieldBuilder<Types, Mode>;
 
 export type SubscriptionFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape,
-> = PothosSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.SubscriptionFieldBuilder<Types, Mode>;
 export const SubscriptionFieldBuilder = InternalSubscriptionFieldBuilder as new <
   Types extends SchemaTypes,
-  ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) => PothosSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
+  mode: Mode,
+) => PothosSchemaTypes.SubscriptionFieldBuilder<Types, Mode>;
 
 export type ObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -110,20 +119,25 @@ export type ObjectFieldBuilder<
 export const ObjectFieldBuilder = InternalObjectFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) => PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
+  mode: Mode,
+) => PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape, Mode>;
 
 export type InterfaceFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape, Mode>;
 export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) => PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
+  mode: Mode,
+) => PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape, Mode>;
 
 export type InputFieldBuilder<
   Types extends SchemaTypes,

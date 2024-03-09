@@ -118,7 +118,7 @@ export class InputFieldBuilder<
    * @param {PothosSchemaTypes.InputFieldOptions} [options={}] - Options for this field
    */
   field<Type extends InputType<Types> | [InputType<Types>], Req extends FieldRequiredness<Type>>(
-    options: PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind],
+    options: PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req, Kind>[Kind],
   ): InputOrArgRef<Types, InputShapeFromTypeParam<Types, Type, Req>, Kind> {
     const ref =
       this.kind === 'Arg'
@@ -171,7 +171,12 @@ export class InputFieldBuilder<
   private helper<Type extends InputType<Types> | [InputType<Types>]>(type: Type) {
     return <Req extends FieldRequiredness<Type>>(
       ...args: NormalizeArgs<
-        [options: Omit<PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind], 'type'>]
+        [
+          options: Omit<
+            PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req, Kind>[Kind],
+            'type'
+          >,
+        ]
       >
     ) => {
       const [options = {} as never] = args;
@@ -179,7 +184,7 @@ export class InputFieldBuilder<
       return this.field({
         ...options,
         type,
-      } as PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req>[Kind]);
+      } as PothosSchemaTypes.InputFieldOptionsByKind<Types, Type, Req, Kind>[Kind]);
     };
   }
 }

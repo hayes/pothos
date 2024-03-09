@@ -1,7 +1,10 @@
 import type { SchemaBuilder as Builder } from '../../builder';
 import type { FieldBuilder as InternalFieldBuilder } from '../../fieldUtils/builder';
 import type { InputFieldBuilder as InternalInputFieldBuilder } from '../../fieldUtils/input';
+import type { MutationFieldBuilder as InternalMutationFieldBuilder } from '../../fieldUtils/mutation';
+import type { QueryFieldBuilder as InternalQueryFieldBuilder } from '../../fieldUtils/query';
 import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUtils/root';
+import type { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from '../../fieldUtils/subscription';
 import type { BaseTypeRef as InternalBaseRef } from '../../refs/base';
 import type { EnumRef as InternalEnumRef } from '../../refs/enum';
 import type { InputListRef as InternalInputListRef } from '../../refs/input-list';
@@ -11,7 +14,7 @@ import type { ListRef as InternalListRef } from '../../refs/list';
 import type { ObjectRef as InternalObjectRef } from '../../refs/object';
 import type { ScalarRef as InternalScalarRef } from '../../refs/scalar';
 import type { UnionRef as InternalUnionRef } from '../../refs/union';
-import type { FieldKind } from '../builder-options';
+import type { FieldKind, FieldMode } from '../builder-options';
 import type { SchemaTypes } from '../schema-types';
 
 declare global {
@@ -22,29 +25,42 @@ declare global {
       Types extends SchemaTypes,
       ParentShape,
       Kind extends FieldKind = FieldKind,
-    > extends InternalRootFieldBuilder<Types, ParentShape, Kind> {}
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends InternalRootFieldBuilder<Types, ParentShape, Kind, Mode> {}
 
     export interface FieldBuilder<
       Types extends SchemaTypes,
       ParentShape,
       Kind extends FieldKind = FieldKind,
-    > extends InternalFieldBuilder<Types, ParentShape, Kind>,
-        RootFieldBuilder<Types, ParentShape, Kind> {}
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends InternalFieldBuilder<Types, ParentShape, Kind, Mode> {}
 
-    export interface QueryFieldBuilder<Types extends SchemaTypes, ParentShape>
-      extends RootFieldBuilder<Types, ParentShape, 'Query'> {}
+    export interface QueryFieldBuilder<
+      Types extends SchemaTypes,
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends InternalQueryFieldBuilder<Types, Mode> {}
 
-    export interface MutationFieldBuilder<Types extends SchemaTypes, ParentShape>
-      extends RootFieldBuilder<Types, ParentShape, 'Mutation'> {}
+    export interface MutationFieldBuilder<
+      Types extends SchemaTypes,
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends InternalMutationFieldBuilder<Types, Mode> {}
 
-    export interface SubscriptionFieldBuilder<Types extends SchemaTypes, ParentShape>
-      extends RootFieldBuilder<Types, ParentShape, 'Subscription'> {}
+    export interface SubscriptionFieldBuilder<
+      Types extends SchemaTypes,
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends InternalSubscriptionFieldBuilder<Types, Mode> {}
 
-    export interface ObjectFieldBuilder<Types extends SchemaTypes, ParentShape>
-      extends FieldBuilder<Types, ParentShape, 'Object'> {}
+    export interface ObjectFieldBuilder<
+      Types extends SchemaTypes,
+      ParentShape,
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends FieldBuilder<Types, ParentShape, 'Object', Mode> {}
 
-    export interface InterfaceFieldBuilder<Types extends SchemaTypes, ParentShape>
-      extends FieldBuilder<Types, ParentShape, 'Interface'> {}
+    export interface InterfaceFieldBuilder<
+      Types extends SchemaTypes,
+      ParentShape,
+      Mode extends FieldMode = Types['FieldMode'],
+    > extends FieldBuilder<Types, ParentShape, 'Interface', Mode> {}
 
     export interface InputFieldBuilder<
       Types extends SchemaTypes,

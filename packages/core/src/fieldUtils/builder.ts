@@ -2,6 +2,7 @@ import {
   CompatibleTypes,
   ExposeNullability,
   FieldKind,
+  FieldMode,
   FieldNullability,
   FieldOptionsFromKind,
   NormalizeArgs,
@@ -14,7 +15,8 @@ export class FieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
-> extends RootFieldBuilder<Types, ParentShape, Kind> {
+  Mode extends FieldMode = Types['FieldMode'],
+> extends RootFieldBuilder<Types, ParentShape, Kind, Mode> {
   /**
    * Create a Boolean field from a boolean property on the parent object
    * @param {string} name - the name of the property on the source object (does not need to match the field name).
@@ -38,7 +40,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -46,8 +49,7 @@ export class FieldBuilder<
     >
   ) {
     const [options = {} as never] = args;
-
-    return this.exposeField<'Boolean', Nullable, Name>(name, { ...options, type: 'Boolean' });
+    return this.exposeField<'Boolean', Nullable, Name>(name, 'Boolean', options as never);
   }
 
   /**
@@ -73,7 +75,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -82,7 +85,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<'Float', Nullable, Name>(name, { ...options, type: 'Float' });
+    return this.exposeField<'Float', Nullable, Name>(name, 'Float', options as never);
   }
 
   /**
@@ -108,7 +111,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -117,7 +121,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<'ID', Nullable, Name>(name, { ...options, type: 'ID' });
+    return this.exposeField<'ID', Nullable, Name>(name, 'ID', options as never);
   }
 
   /**
@@ -143,7 +147,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -152,7 +157,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<'Int', Nullable, Name>(name, { ...options, type: 'Int' });
+    return this.exposeField<'Int', Nullable, Name>(name, 'Int', options as never);
   }
 
   /**
@@ -178,7 +183,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -187,7 +193,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<'String', Nullable, Name>(name, { ...options, type: 'String' });
+    return this.exposeField<'String', Nullable, Name>(name, 'String', options as never);
   }
 
   /**
@@ -213,7 +219,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -222,7 +229,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<['Boolean'], Nullable, Name>(name, { ...options, type: ['Boolean'] });
+    return this.exposeField<['Boolean'], Nullable, Name>(name, ['Boolean'], options as never);
   }
 
   /**
@@ -248,7 +255,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -257,7 +265,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<['Float'], Nullable, Name>(name, { ...options, type: ['Float'] });
+    return this.exposeField<['Float'], Nullable, Name>(name, ['Float'], options as never);
   }
 
   /**
@@ -283,7 +291,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -292,7 +301,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<['ID'], Nullable, Name>(name, { ...options, type: ['ID'] });
+    return this.exposeField<['ID'], Nullable, Name>(name, ['ID'], options as never);
   }
 
   /**
@@ -318,7 +327,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -327,7 +337,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<['Int'], Nullable, Name>(name, { ...options, type: ['Int'] });
+    return this.exposeField<['Int'], Nullable, Name>(name, ['Int'], options as never);
   }
 
   /**
@@ -353,7 +363,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve' | 'type'
           >,
@@ -362,7 +373,7 @@ export class FieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.exposeField<['String'], Nullable, Name>(name, { ...options, type: ['String'] });
+    return this.exposeField<['String'], Nullable, Name>(name, ['String'], options as never);
   }
 
   /**
@@ -394,7 +405,8 @@ export class FieldBuilder<
               {},
               Kind,
               ParentShape,
-              ResolveReturnShape
+              ResolveReturnShape,
+              Mode
             >,
             'nullable' | 'resolve'
           >,
@@ -410,7 +422,8 @@ export class FieldBuilder<
         Type,
         Type extends [unknown] ? { list: true; items: true } : true
       >,
-      options,
+      null,
+      options as never,
     );
   }
 }

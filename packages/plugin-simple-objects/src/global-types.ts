@@ -57,15 +57,20 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
+      Kind,
     > {
-      SimpleObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      >;
-      SimpleInterface: Omit<
-        InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      >;
+      SimpleObject: [Kind] extends 'SimpleObject'
+        ? Omit<
+            ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          >
+        : never;
+      SimpleInterface: [Kind] extends 'SimpleInterface'
+        ? Omit<
+            InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          >
+        : never;
     }
 
     export type SimpleObjectTypeOptions<

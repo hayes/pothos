@@ -4,6 +4,7 @@ import SchemaBuilder from '../../src';
 // Define backing models/types
 interface Types {
   Defaults: 'v4';
+  FieldMode: 'v3';
   NullableMode: 'v3';
   Objects: {
     User: { firstName: string; lastName: string; funFact?: string | null };
