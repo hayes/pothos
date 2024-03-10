@@ -14,7 +14,22 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 # Scalars
 
+## Adding GraphQL Scalars that have type information
+
+To add a custom scalar that has been implemented as a GraphQLScalarType from
+[graphql-js](https://github.com/graphql/graphql-js), when the GraphQLScalar has `TInteral` and
+`TExternal` type information this can be inferred using `withScalars.
+
+```typescript
+import { DateResolver, JSONResolver } from 'graphql-scalars';
+
+const builder = new SchemaBuilder({})
+  .withScalar('Date', DateResolver)
+  .withScalar('JSON', JSONResolver);
+```
+
 ## Adding Custom GraphQL Scalars
+
 
 To add a custom scalar that has been implemented as GraphQLScalar from
 [graphql-js](https://github.com/graphql/graphql-js) you need to provide some type information in
@@ -114,6 +129,33 @@ builder.scalarType('PositiveInt', {
     throw new Error('Value must be positive');
   },
 });
+```
+
+or using `graphql` and `withScalars`
+
+```typescript
+import { GraphQLScalarType, Kind } from 'graphql';
+
+const PositiveInt = new GraphQLScalarType<number, number>({
+  name: 'PositiveInt',
+  serialize: (n) => {
+    if (typeof n !== 'number') {
+      throw new TypeError('Value must be number');
+    }
+    return n;
+  },
+  parseValue: (n) => {
+    if (typeof n !== 'number') {
+      throw new TypeError('Value must be number');
+    }
+    if (n >= 0) {
+      return n;
+    }
+    throw new Error('Value must be positive');
+  },
+});
+
+const builder = new SchemaBuilder({}).withScalars({ PositiveInt });
 ```
 
 ## Using scalars

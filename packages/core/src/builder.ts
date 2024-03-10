@@ -611,8 +611,8 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const [options = {}] = args;
     const { directives, extensions } = options;
 
-    const scalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
-    scalars.forEach((scalar) => {
+    const builtInScalars = [GraphQLID, GraphQLInt, GraphQLFloat, GraphQLString, GraphQLBoolean];
+    builtInScalars.forEach((scalar) => {
       if (!this.configStore.hasConfig(scalar.name as OutputType<Types>)) {
         this.addScalarType(scalar.name as ScalarName<Types>, scalar);
       }
@@ -641,4 +641,43 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
       ? processedSchema
       : lexicographicSortSchema(processedSchema);
   }
+
+
+  withScalar<
+    const TName extends string,
+    TInternal,
+    TExternal,
+    TScalarType extends GraphQLScalarType<TInternal, TExternal>,
+    TTypes extends Types & {
+      Scalars: { [K in TName]: { Input: TInternal; Output: TExternal; }}
+      outputShapes: { [K in TName]: TInternal },
+      inputShapes: {[K in TName]: TInternal},
+    }
+  >(
+    name: TName,
+    scalar: TScalarType,
+    options?: Omit<
+      PothosSchemaTypes.ScalarTypeOptions<TTypes, InputShape<TTypes, TName>, OutputShape<TTypes, TName>>,
+      'serialize'
+    > & {
+      serialize?: GraphQLScalarSerializer<OutputShape<TTypes, TName>>;
+    },
+  ) {
+    const builder = this as unknown as SchemaBuilder<TTypes>;
+    const config = scalar.toConfig();``
+    builder.scalarType<TName>(name, {
+      ...config,
+      ...options,
+      extensions: {
+        ...config.extensions,
+        ...options?.extensions,
+      },
+    } as PothosSchemaTypes.ScalarTypeOptions<
+    TTypes,
+      InputShape<TTypes, TName>,
+      ParentShape<TTypes, TName>
+    >);
+    return builder
+  }
+
 }
