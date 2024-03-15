@@ -23,6 +23,7 @@ export class BaseTypeRef<Types extends SchemaTypes, T = unknown>
       | 'InputObject'
       | 'Interface'
       | 'List'
+      | 'NonNull'
       | 'Object'
       | 'Scalar'
       | 'Union',

@@ -1,25 +1,41 @@
-import { outputShapeKey, parentShapeKey, SchemaTypes, TypeParam } from '../types';
+import {
+  InputShape,
+  inputShapeKey,
+  InputType,
+  OutputShape,
+  outputShapeKey,
+  OutputType,
+  SchemaTypes,
+} from '../types';
 import { BaseTypeRef } from './base';
+import { NonNullRef } from './non-null';
 
-export class ListRef<Types extends SchemaTypes, T, P = T>
+export class ListRef<Types extends SchemaTypes, T extends InputType<Types> | OutputType<Types>>
   extends BaseTypeRef<Types>
-  implements PothosSchemaTypes.ListRef<Types, T, P>
+  implements PothosSchemaTypes.ListRef<Types, T>
 {
   override kind = 'List' as const;
 
-  $inferType!: T;
+  $inferType!: T extends OutputType<Types> ? OutputShape<Types, T>[] : never;
 
-  [outputShapeKey]!: T;
+  $inferInput!: T extends InputType<Types> ? InputShape<Types, T>[] : never;
 
-  [parentShapeKey]!: P;
+  [outputShapeKey]!: T extends OutputType<Types> ? OutputShape<Types, T>[] : never;
 
-  listType: TypeParam<Types>;
+  [inputShapeKey]!: T extends InputType<Types> ? InputShape<Types, T>[] : never;
 
-  nonNull: boolean;
+  listType: T;
 
-  constructor(listType: TypeParam<Types>, nonNull: boolean) {
+  constructor(listType: T) {
     super('List', `List<${String(listType)}>`);
     this.listType = listType;
-    this.nonNull = nonNull;
+  }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
   }
 }

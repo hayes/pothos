@@ -439,6 +439,16 @@ builder
     }),
   });
 
+builder.queryFields((t) => ({
+  chainNonNullList: t.field({
+    type: t.nonNull('String').list().list().nonNull(),
+    resolve: () => [
+      ['a', 'b'],
+      ['c', 'd'],
+    ],
+  }),
+}));
+
 const schema = builder.toSchema();
 
 export default schema;

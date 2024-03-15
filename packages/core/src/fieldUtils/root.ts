@@ -1,18 +1,14 @@
 import { ListRef } from '../refs/list';
+import { NonNullRef } from '../refs/non-null';
 import type {
   ArgBuilder,
   FieldMode,
   InputFieldMap,
+  InputType,
   NormalizeArgs,
-  ShapeFromTypeParam,
+  OutputType,
 } from '../types';
-import {
-  FieldKind,
-  FieldNullability,
-  FieldOptionsFromKind,
-  SchemaTypes,
-  TypeParam,
-} from '../types';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, SchemaTypes } from '../types';
 import { nonNullableFromOptions } from '../utils';
 import { BaseFieldUtil } from './base';
 import { InputFieldBuilder } from './input';
@@ -401,7 +397,7 @@ export class RootFieldBuilder<
    */
   field<
     Args extends InputFieldMap,
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
@@ -424,13 +420,23 @@ export class RootFieldBuilder<
     );
   }
 
-  listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(
+  listRef<T extends OutputType<Types>, Nullable extends boolean = false>(
     type: T,
-    options?: { nullable: Nullable }, // TODO,
-  ): ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]> {
-    return new ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]>(
-      type,
-      nonNullableFromOptions(this.builder, options ?? { nonNull: true }),
-    );
+    { nullable = false as Nullable }: { nullable?: Nullable } = {},
+  ) {
+    const nonNull = nonNullableFromOptions(this.builder, { nullable });
+    const ref = nonNull ? new NonNullRef<Types, T>(type) : type;
+
+    return new ListRef<Types, typeof ref>(ref) as Nullable extends true
+      ? ListRef<Types, T>
+      : ListRef<Types, NonNullRef<Types, T>>;
+  }
+
+  list<T extends InputType<Types> | OutputType<Types>>(type: T) {
+    return new ListRef<Types, T>(type);
+  }
+
+  nonNull<T extends InputType<Types> | OutputType<Types>>(type: T) {
+    return new NonNullRef<Types, T>(type);
   }
 }

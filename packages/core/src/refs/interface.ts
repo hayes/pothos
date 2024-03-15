@@ -10,6 +10,8 @@ import {
   SchemaTypes,
 } from '../types';
 import { TypeRefWithFields } from './base-with-fields';
+import { ListRef } from './list';
+import { NonNullRef } from './non-null';
 
 export class InterfaceRef<Types extends SchemaTypes, T, P = T>
   extends TypeRefWithFields<Types, PothosInterfaceTypeConfig>
@@ -26,6 +28,14 @@ export class InterfaceRef<Types extends SchemaTypes, T, P = T>
   constructor(name: string, config?: PothosInterfaceTypeConfig) {
     super('Interface', name, config);
   }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
+  }
 }
 
 export class ImplementableInterfaceRef<
@@ -41,13 +51,8 @@ export class ImplementableInterfaceRef<
   }
 
   implement<Interfaces extends InterfaceParam<Types>[]>(
-    options: InterfaceTypeOptions<
-      Types,
-      ImplementableInterfaceRef<Types, Shape, Parent>,
-      Parent,
-      Interfaces
-    >,
+    options: InterfaceTypeOptions<Types, InterfaceRef<Types, Shape, Parent>, Parent, Interfaces>,
   ) {
-    return this.builder.interfaceType(this, options);
+    return this.builder.interfaceType(this as never, options);
   }
 }

@@ -1,18 +1,17 @@
 import type { ConfigStore } from '../config-store';
 import { PothosSchemaError } from '../errors';
 import { BaseTypeRef } from '../refs/base';
-import { InputListRef } from '../refs/input-list';
 import { ListRef } from '../refs/list';
+import { NonNullRef } from '../refs/non-null';
 import {
   FieldNullability,
   FieldRequiredness,
+  InputRef,
   InputType,
-  InputTypeParam,
   OutputType,
   PothosInputFieldType,
   PothosOutputFieldType,
   SchemaTypes,
-  TypeParam,
 } from '../types';
 
 export function unwrapOutputFieldType<Types extends SchemaTypes>(
@@ -26,7 +25,7 @@ export function unwrapOutputFieldType<Types extends SchemaTypes>(
 }
 
 export function typeFromParam<Types extends SchemaTypes>(
-  param: TypeParam<Types>,
+  param: OutputType<Types> | [OutputType<Types>],
   configStore: ConfigStore<Types>,
   nonNullOption: FieldNullability<[unknown]>,
 ): PothosOutputFieldType<Types> {
@@ -44,14 +43,30 @@ export function typeFromParam<Types extends SchemaTypes>(
   if (param instanceof ListRef) {
     return {
       kind: 'List',
-      type: typeFromParam(param.listType as TypeParam<Types>, configStore, param.nonNull),
+      type: typeFromParam(param.listType as OutputType<Types>, configStore, false),
       nonNull,
     };
   }
 
   const ref = configStore.getOutputTypeRef(param);
-  const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
-  const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
+
+  let kind;
+  let name;
+
+  if (ref instanceof BaseTypeRef) {
+    if (ref.kind === 'NonNull') {
+      return typeFromParam((ref as NonNullRef<Types, OutputType<Types>>).type, configStore, true);
+    }
+    // eslint-disable-next-line prefer-destructuring
+    kind = ref.kind;
+    // eslint-disable-next-line prefer-destructuring
+    name = ref.name;
+  } else {
+    const typeConfig = configStore.getTypeConfig(ref);
+    kind = typeConfig.graphqlKind;
+    // eslint-disable-next-line prefer-destructuring
+    name = typeConfig.name;
+  }
 
   if (kind !== 'InputObject' && kind !== 'List' && kind !== 'InputList') {
     return {
@@ -75,7 +90,7 @@ export function unwrapInputFieldType<Types extends SchemaTypes>(
 }
 
 export function inputTypeFromParam<Types extends SchemaTypes>(
-  param: InputTypeParam<Types>,
+  param: InputType<Types> | [InputType<Types>],
   configStore: ConfigStore<Types>,
   requiredOption: FieldRequiredness<[unknown]>,
 ): PothosInputFieldType<Types> {
@@ -90,21 +105,37 @@ export function inputTypeFromParam<Types extends SchemaTypes>(
     };
   }
 
-  if (param instanceof InputListRef) {
+  if (param instanceof ListRef) {
     return {
       kind: 'List',
-      type: inputTypeFromParam(
-        param.listType as InputTypeParam<Types>,
-        configStore,
-        param.required,
-      ),
+      type: inputTypeFromParam(param.listType as InputRef<Types>, configStore, false),
       required,
     };
   }
 
   const ref = configStore.getInputTypeRef(param);
-  const kind = ref instanceof BaseTypeRef ? ref.kind : configStore.getTypeConfig(ref).graphqlKind;
-  const name = ref instanceof BaseTypeRef ? ref.name : configStore.getTypeConfig(ref).name;
+
+  let kind;
+  let name;
+
+  if (ref instanceof BaseTypeRef) {
+    if (ref.kind === 'NonNull') {
+      return inputTypeFromParam(
+        (ref as NonNullRef<Types, InputType<Types>>).type,
+        configStore,
+        true,
+      );
+    }
+    // eslint-disable-next-line prefer-destructuring
+    kind = ref.kind;
+    // eslint-disable-next-line prefer-destructuring
+    name = ref.name;
+  } else {
+    const typeConfig = configStore.getTypeConfig(ref);
+    kind = typeConfig.graphqlKind;
+    // eslint-disable-next-line prefer-destructuring
+    name = typeConfig.name;
+  }
 
   if (kind === 'InputObject' || kind === 'Enum' || kind === 'Scalar') {
     return {

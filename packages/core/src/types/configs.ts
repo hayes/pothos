@@ -21,11 +21,9 @@ import type {
   FieldNullability,
   FieldRequiredness,
   InputType,
-  InputTypeParam,
   InterfaceParam,
   ObjectParam,
   OutputType,
-  TypeParam,
 } from './type-params';
 import type { Merge } from './utils';
 
@@ -125,8 +123,8 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
       pothosOptions: FieldOptionsFromKind<
         Types,
         unknown,
-        TypeParam<Types>,
-        FieldNullability<[unknown]>,
+        unknown,
+        FieldNullability<unknown>,
         InputFieldMap,
         K,
         unknown,
@@ -140,7 +138,7 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
 type PothosInputOptions<Types extends SchemaTypes> = {
   [K in keyof PothosSchemaTypes.InputFieldOptionsByKind]: PothosSchemaTypes.InputFieldOptionsByKind<
     Types,
-    InputTypeParam<Types>,
+    InputType<Types> | [InputType<Types>],
     FieldRequiredness<[unknown]>,
     K
   >[K];

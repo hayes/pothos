@@ -239,7 +239,13 @@ export class ConfigStore<Types extends SchemaTypes> {
     const resolved = this.resolveParamAssociations(param);
 
     if (param instanceof BaseTypeRef) {
-      if (param.kind !== 'InputObject' && param.kind !== 'Enum' && param.kind !== 'Scalar') {
+      if (
+        param.kind !== 'InputObject' &&
+        param.kind !== 'Enum' &&
+        param.kind !== 'Scalar' &&
+        param.kind !== 'NonNull' &&
+        param.kind !== 'List'
+      ) {
         throw new PothosSchemaError(
           `Expected ${this.describeRef(param)} to be an input type but got ${param.kind}`,
         );

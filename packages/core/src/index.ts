@@ -11,21 +11,27 @@ import { RootFieldBuilder as InternalRootFieldBuilder } from './fieldUtils/root'
 import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './fieldUtils/subscription';
 import { BaseTypeRef as InternalBaseTypeRef } from './refs/base';
 import { EnumRef as InternalEnumRef } from './refs/enum';
-import { InputListRef as InternalInputListRef } from './refs/input-list';
 import { InputObjectRef as InternalInputObjectRef } from './refs/input-object';
 import { InterfaceRef as InternalInterfaceRef } from './refs/interface';
 import { ListRef as InternalListRef } from './refs/list';
+import { NonNullRef as InternalNonNullRef } from './refs/non-null';
 import { ObjectRef as InternalObjectRef } from './refs/object';
 import { ScalarRef as InternalScalarRef } from './refs/scalar';
 import { UnionRef as InternalUnionRef } from './refs/union';
-import type {
-  AddVersionedDefaultsToBuilderOptions,
-  FieldKind,
-  FieldMode,
-  NormalizeSchemeBuilderOptions,
-  RootName,
-  SchemaTypes,
+import {
+  type AddVersionedDefaultsToBuilderOptions,
+  type FieldKind,
+  type FieldMode,
+  inputShapeKey,
+  type InputType,
+  type NormalizeSchemeBuilderOptions,
+  type OutputType,
+  type RootName,
+  type SchemaTypes,
 } from './types';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+inputShapeKey;
 
 export * from './errors';
 export * from './plugins';
@@ -171,12 +177,6 @@ export const InputObjectRef = InternalInputObjectRef as new <Types extends Schem
   name: string,
 ) => PothosSchemaTypes.InputObjectRef<Types, T>;
 
-export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
-export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(
-  name: string,
-  required: boolean,
-) => PothosSchemaTypes.InputListRef<Types, T>;
-
 export type InterfaceRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.InterfaceRef<
   Types,
   T,
@@ -210,11 +210,32 @@ export const UnionRef = InternalUnionRef as new <Types extends SchemaTypes, T, P
   name: string,
 ) => PothosSchemaTypes.UnionRef<Types, T, P>;
 
-export type ListRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ListRef<Types, T, P>;
-export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(
-  name: string,
-  nullable: boolean,
-) => PothosSchemaTypes.ListRef<Types, T, P>;
+export type ListRef<
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+> = PothosSchemaTypes.ListRef<Types, T>;
+export type ListRefConstructor = new <
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+>(
+  type: T,
+) => PothosSchemaTypes.ListRef<Types, T>;
+
+export const ListRef = InternalListRef as ListRefConstructor;
+
+export type NonNullRef<
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+> = PothosSchemaTypes.NonNullRef<Types, T>;
+
+export type NonNullRefConstructor = new <
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+>(
+  type: T,
+) => PothosSchemaTypes.NonNullRef<Types, T>;
+
+export const NonNullRef = InternalNonNullRef as NonNullRefConstructor;
 
 export { BuildCache } from './build-cache';
 export { ArgumentRef } from './refs/arg';

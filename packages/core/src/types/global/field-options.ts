@@ -2,6 +2,7 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import type { GraphQLFieldExtensions } from 'graphql';
 import { FieldRef } from '../../refs/field';
+import { InputFieldRef } from '../../refs/input-field';
 import type {
   ArgFieldMap,
   BaseFieldOptionsForMode,
@@ -18,8 +19,8 @@ import type {
   FieldRequiredness,
   InputShapeFromTypeParam,
   InputType,
+  OutputType,
   ShapeFromTypeParam,
-  TypeParam,
 } from '../type-params';
 
 declare global {
@@ -27,7 +28,7 @@ declare global {
     export interface BaseFieldOptionsByMode<
       Types extends SchemaTypes,
       ParentShape,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable,
       Args extends InputFieldMap = {},
       ResolveShape = unknown,
@@ -38,7 +39,7 @@ declare global {
       v3: [Mode] extends ['v3']
         ? (options: {
             /** The type for this field */
-            type: Type & TypeParam<Types>;
+            type: Type & (OutputType<Types> | [OutputType<Types>]);
             /** Determines if the field can resolve to a null */
             nullable?: FieldNullability<Type> & Nullable;
             /** arguments for this field (created via `t.args`) */
@@ -104,10 +105,51 @@ declare global {
           }) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>
         : never;
     }
+
+    export interface BaseInputFieldOptionsByMode<
+      Types extends SchemaTypes,
+      Type,
+      NonNullable,
+      Mode extends FieldMode = never,
+    > {
+      v3: [Mode] extends ['v3']
+        ? (options: {
+            /** The type for this field */
+            type: Type;
+            /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
+            description?: string;
+            /** When present marks this field as deprecated */
+            deprecationReason?: string;
+            /** determines if this field can be omitted (or set as null) */
+            required?: NonNullable;
+            /** default value if this field is not included in the query */
+            defaultValue?: InputShapeFromTypeParam<Types, Type, NonNullable>;
+            /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
+            extensions?: Readonly<Record<string, unknown>>;
+          }) => InputFieldRef<Types, InputShapeFromTypeParam<Types, Type, NonNullable>>
+        : never;
+      v4: [Mode] extends ['v4']
+        ? (options: {
+            /** The type for this field */
+            type: Type;
+            /** text description for this field.  This will be added into your schema file and visable in tools like graphql-playground */
+            description?: string;
+            /** When present marks this field as deprecated */
+            deprecationReason?: string;
+            /** determines if this field can be omitted (or set as null) */
+            nonNullable?: NonNullable;
+            /** default value if this field is not included in the query */
+            defaultValue?: InputShapeFromTypeParam<Types, Type, NonNullable>;
+            /** extensions for this field for use by directives, server plugins or other tools that depend on extensions */
+            extensions?: Readonly<Record<string, unknown>>;
+          }) => InputFieldRef<Types, InputShapeFromTypeParam<Types, Type, NonNullable>>
+        : never;
+    }
+
     export interface FieldOptions<
       Types extends SchemaTypes = SchemaTypes,
       ParentShape = unknown,
-      Type extends TypeParam<Types> = TypeParam<Types>,
+      Type = unknown,
       Nullable extends FieldNullability<Type> = FieldNullability<Type>,
       Args extends InputFieldMap = InputFieldMap,
       ResolveShape = unknown,
@@ -117,7 +159,7 @@ declare global {
     export interface ObjectFieldOptions<
       Types extends SchemaTypes,
       ParentShape,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape,
@@ -133,7 +175,7 @@ declare global {
 
     export interface QueryFieldOptions<
       Types extends SchemaTypes,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape,
@@ -149,7 +191,7 @@ declare global {
 
     export interface MutationFieldOptions<
       Types extends SchemaTypes,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape,
@@ -166,7 +208,7 @@ declare global {
     export interface InterfaceFieldOptions<
       Types extends SchemaTypes,
       ParentShape,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveReturnShape,
@@ -182,7 +224,7 @@ declare global {
 
     export interface SubscriptionFieldOptions<
       Types extends SchemaTypes,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,
@@ -214,7 +256,7 @@ declare global {
     export interface FieldOptionsByKind<
       Types extends SchemaTypes,
       ParentShape,
-      Type extends TypeParam<Types>,
+      Type,
       Nullable extends FieldNullability<Type>,
       Args extends InputFieldMap,
       ResolveShape,

@@ -6,8 +6,8 @@ import {
   FieldNullability,
   FieldOptionsFromKind,
   NormalizeArgs,
+  OutputType,
   SchemaTypes,
-  TypeParam,
 } from '../types';
 import { RootFieldBuilder } from './root';
 
@@ -382,7 +382,7 @@ export class FieldBuilder<
    * @param {object} [options={}] - Options for this field
    */
   expose<
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     Nullable extends FieldNullability<Type>,
     ResolveReturnShape,
     Name extends CompatibleTypes<

@@ -9,6 +9,8 @@ import {
 } from '../types';
 import { BaseTypeRef } from './base';
 import { InputFieldRef } from './input-field';
+import { ListRef } from './list';
+import { NonNullRef } from './non-null';
 
 export class InputObjectRef<Types extends SchemaTypes, T>
   extends BaseTypeRef<Types, PothosInputObjectTypeConfig>
@@ -26,6 +28,14 @@ export class InputObjectRef<Types extends SchemaTypes, T>
 
   constructor(name: string) {
     super('InputObject', name);
+  }
+
+  list() {
+    return new ListRef<Types, InputRef<T>>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, InputRef<T>>(this);
   }
 
   addFields(fields: () => InputFieldMap) {
@@ -69,10 +79,7 @@ export class ImplementableInputObjectRef<
       InputFieldsFromShape<Types, T, 'InputObject'>
     >,
   ): InputObjectRef<Types, Resolved> {
-    this.builder.inputType<
-      ImplementableInputObjectRef<Types, T>,
-      InputFieldsFromShape<Types, T, 'InputObject'>
-    >(this as never, options);
+    this.builder.inputType(this as never, options as never);
 
     return this;
   }

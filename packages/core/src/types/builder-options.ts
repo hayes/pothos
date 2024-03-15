@@ -15,9 +15,9 @@ import type {
   InputRef,
   InterfaceParam,
   ObjectParam,
+  OutputType,
   ParentShape as GetParentShape,
   ShapeFromTypeParam,
-  TypeParam,
 } from './type-params';
 import type {
   MaybePromise,
@@ -136,7 +136,7 @@ export type ArgFieldMap<Types extends SchemaTypes> = Record<string, ArgumentRef<
 export type BaseFieldOptionsForMode<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends TypeParam<Types>,
+  Type,
   Nullable,
   Args extends InputFieldMap,
   ResolveShape,
@@ -160,7 +160,7 @@ export type BaseFieldOptionsForMode<
 export type FieldRefFromMode<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends TypeParam<Types>,
+  Type,
   Nullable,
   Args extends InputFieldMap,
   ResolveShape,
@@ -183,7 +183,7 @@ export type FieldRefFromMode<
 export type FieldOptionsFromKind<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends TypeParam<Types>,
+  Type,
   Nullable extends FieldNullability<Type>,
   Args extends InputFieldMap,
   Kind extends FieldKind,
@@ -288,7 +288,7 @@ export type InputShapeFromField<Field extends GenericInputFieldRef> = Field exte
 export type FieldKind = keyof PothosSchemaTypes.FieldOptionsByKind<
   SchemaTypes,
   {},
-  TypeParam<SchemaTypes>,
+  unknown,
   boolean,
   {},
   {},
@@ -301,7 +301,7 @@ export type FieldKind = keyof PothosSchemaTypes.FieldOptionsByKind<
 export type FieldMode = keyof PothosSchemaTypes.BaseFieldOptionsByMode<
   SchemaTypes,
   {},
-  TypeParam<SchemaTypes>,
+  unknown,
   boolean,
   {},
   {},
@@ -317,7 +317,7 @@ export type InputFieldKind = keyof PothosSchemaTypes.InputFieldOptionsByKind<
 export type CompatibleTypes<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends TypeParam<Types>,
+  Type,
   Nullable extends FieldNullability<Type>,
 > = {
   [K in keyof ParentShape]-?: Awaited<ParentShape[K]> extends ShapeFromTypeParam<
@@ -332,7 +332,7 @@ export type CompatibleTypes<
 
 export type ExposeNullability<
   Types extends SchemaTypes,
-  Type extends TypeParam<Types>,
+  Type,
   ParentShape,
   Name extends keyof ParentShape,
   Nullable extends FieldNullability<Type>,
@@ -345,8 +345,9 @@ export type ExposeNullability<
     };
 
 export type ExposeNullableOption<
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   Types extends SchemaTypes,
-  Type extends TypeParam<Types>,
+  Type,
   ParentShape,
   Name extends keyof ParentShape,
 > = FieldNullability<Type> &
@@ -367,7 +368,7 @@ export type ExposeNullableOption<
 type FieldOptionTypes = PothosSchemaTypes.BaseFieldOptionsByMode<
   SchemaTypes,
   unknown,
-  TypeParam<SchemaTypes>,
+  unknown,
   unknown,
   InputFieldMap,
   unknown,
@@ -380,7 +381,7 @@ export type FieldOptionNormalizer = {
         builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
         name: string,
         options: Partial<T>,
-        type?: TypeParam<SchemaTypes>,
+        type?: OutputType<SchemaTypes> | [OutputType<SchemaTypes>],
       ) => Partial<
         Omit<
           PothosOutputFieldConfig<SchemaTypes>,

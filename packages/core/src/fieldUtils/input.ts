@@ -1,16 +1,16 @@
 import { ArgumentRef } from '../refs/arg';
 import { InputFieldRef } from '../refs/input-field';
-import { InputListRef } from '../refs/input-list';
+import { ListRef } from '../refs/list';
+import { NonNullRef } from '../refs/non-null';
 import type {
   ArgBuilder,
   FieldRequiredness,
   InputOrArgRef,
   InputShapeFromTypeParam,
-  InputTypeParam,
   NormalizeArgs,
 } from '../types';
 import { InputType, SchemaTypes } from '../types';
-import { inputTypeFromParam } from '../utils';
+import { inputTypeFromParam, nonNullableFromOptions } from '../utils';
 
 export class InputFieldBuilder<
   Types extends SchemaTypes,
@@ -85,14 +85,21 @@ export class InputFieldBuilder<
     this.kind = kind;
   }
 
-  listRef = <T extends InputTypeParam<Types>, Required extends boolean = true>(
+  listRef = <T extends InputType<Types>, Required extends boolean = true>(
     type: T,
-    options?: { required?: Required },
-  ): InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]> =>
-    new InputListRef<Types, InputShapeFromTypeParam<Types, T, Required>[]>(
-      type,
-      options?.required ?? true,
-    );
+    { required = true as Required }: { required?: Required } = {},
+  ) => {
+    const nonNull = nonNullableFromOptions(this.builder, { nullable: !required });
+    const ref = nonNull ? new NonNullRef<Types, T>(type) : type;
+
+    return new ListRef<Types, typeof ref>(ref) as Required extends true
+      ? ListRef<Types, NonNullRef<Types, T>>
+      : ListRef<Types, T>;
+  };
+
+  list = <T extends InputType<Types>>(type: T) => new ListRef<Types, typeof type>(type);
+
+  nonNull = <T extends InputType<Types>>(type: T) => new NonNullRef<Types, typeof type>(type);
 
   argBuilder(): ArgBuilder<Types> {
     const builder = this.field.bind(this as never) as InputFieldBuilder<Types, 'Arg'>['field'];

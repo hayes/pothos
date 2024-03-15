@@ -1,6 +1,8 @@
 import type { PothosUnionTypeConfig, SchemaTypes } from '../types';
 import { ObjectParam, OutputRef, outputShapeKey, parentShapeKey } from '../types/type-params';
 import { BaseTypeRef } from './base';
+import { ListRef } from './list';
+import { NonNullRef } from './non-null';
 
 export class UnionRef<Types extends SchemaTypes, T, P = T>
   extends BaseTypeRef<Types, PothosUnionTypeConfig>
@@ -18,6 +20,14 @@ export class UnionRef<Types extends SchemaTypes, T, P = T>
 
   constructor(name: string, config?: PothosUnionTypeConfig) {
     super('Union', name, config);
+  }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
   }
 
   addTypes(types: ObjectParam<Types>[] | (() => ObjectParam<Types>[])) {

@@ -63,6 +63,7 @@ import type {
   ObjectParam,
   ObjectTypeOptions,
   OutputShape,
+  OutputType,
   ParentShape,
   PluginConstructorMap,
   PothosInputFieldConfig,
@@ -76,7 +77,6 @@ import type {
   ShapeFromEnumValues,
   SubscriptionFieldsShape,
   SubscriptionFieldThunk,
-  TypeParam,
   ValuesFromEnum,
 } from './types';
 import {
@@ -746,7 +746,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
 
   createFieldRef<
     Parent,
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     Nullable extends FieldNullability<Type>,
     Args extends InputFieldMap,
     Kind extends FieldKind,
@@ -756,7 +756,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
   >(
     mode: Mode,
     kind: FieldKind,
-    type: TypeParam<Types> | undefined,
+    type: OutputType<Types> | [OutputType<Types>] | undefined,
     options: FieldOptionsFromKind<
       Types,
       Parent,

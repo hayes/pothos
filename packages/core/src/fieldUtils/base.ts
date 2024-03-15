@@ -5,8 +5,9 @@ import type {
   FieldNullability,
   FieldOptionsFromKind,
   InputFieldMap,
+  OutputType,
 } from '../types';
-import { SchemaTypes, TypeParam } from '../types';
+import { SchemaTypes } from '../types';
 
 export class BaseFieldUtil<
   Types extends SchemaTypes,
@@ -40,7 +41,7 @@ export class BaseFieldUtil<
   }
 
   protected createField<
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     Args extends InputFieldMap,
     Nullable extends FieldNullability<Type>,
     ResolveShape,
@@ -63,7 +64,7 @@ export class BaseFieldUtil<
   }
 
   protected exposeField<
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     Nullable extends FieldNullability<Type>,
     Name extends string & keyof ParentShape,
   >(

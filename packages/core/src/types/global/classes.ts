@@ -7,15 +7,16 @@ import type { RootFieldBuilder as InternalRootFieldBuilder } from '../../fieldUt
 import type { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from '../../fieldUtils/subscription';
 import type { BaseTypeRef as InternalBaseRef } from '../../refs/base';
 import type { EnumRef as InternalEnumRef } from '../../refs/enum';
-import type { InputListRef as InternalInputListRef } from '../../refs/input-list';
 import type { InputObjectRef as InternalInputObjectRef } from '../../refs/input-object';
 import type { InterfaceRef as InternalInterfaceRef } from '../../refs/interface';
 import type { ListRef as InternalListRef } from '../../refs/list';
+import type { NonNullRef as InternalNonNull } from '../../refs/non-null';
 import type { ObjectRef as InternalObjectRef } from '../../refs/object';
 import type { ScalarRef as InternalScalarRef } from '../../refs/scalar';
 import type { UnionRef as InternalUnionRef } from '../../refs/union';
 import type { FieldKind, FieldMode } from '../builder-options';
 import type { SchemaTypes } from '../schema-types';
+import { InputType, OutputType } from '../type-params';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -72,8 +73,7 @@ declare global {
       extends InternalEnumRef<Types, T, U> {}
     export interface InputObjectRef<Types extends SchemaTypes, T>
       extends InternalInputObjectRef<Types, T> {}
-    export interface InputListRef<Types extends SchemaTypes, T>
-      extends InternalInputListRef<Types, T> {}
+
     export interface InterfaceRef<Types extends SchemaTypes, T, P = T>
       extends InternalInterfaceRef<Types, T, P> {}
     export interface ObjectRef<Types extends SchemaTypes, T, P = T>
@@ -82,7 +82,13 @@ declare global {
       extends InternalScalarRef<Types, T, U, P> {}
     export interface UnionRef<Types extends SchemaTypes, T, P = T>
       extends InternalUnionRef<Types, T, P> {}
-    export interface ListRef<Types extends SchemaTypes, T, P = T>
-      extends InternalListRef<Types, T, P> {}
+    export interface ListRef<
+      Types extends SchemaTypes,
+      T extends InputType<Types> | OutputType<Types>,
+    > extends InternalListRef<Types, T> {}
+    export interface NonNullRef<
+      Types extends SchemaTypes,
+      T extends InputType<Types> | OutputType<Types>,
+    > extends InternalNonNull<Types, T> {}
   }
 }

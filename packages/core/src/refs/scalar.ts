@@ -8,6 +8,8 @@ import {
   SchemaTypes,
 } from '../types';
 import { BaseTypeRef } from './base';
+import { ListRef } from './list';
+import { NonNullRef } from './non-null';
 
 export class ScalarRef<Types extends SchemaTypes, T, U, P = T>
   extends BaseTypeRef<Types, PothosScalarTypeConfig>
@@ -27,5 +29,13 @@ export class ScalarRef<Types extends SchemaTypes, T, U, P = T>
 
   constructor(name: string, config?: PothosScalarTypeConfig) {
     super('Scalar', name, config);
+  }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
   }
 }
