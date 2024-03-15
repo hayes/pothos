@@ -2,6 +2,7 @@ import {
   InputShape,
   inputShapeKey,
   InputType,
+  NonNullShape,
   OutputShape,
   outputShapeKey,
   OutputType,
@@ -18,13 +19,13 @@ export class NonNullRef<
   // implements PothosSchemaTypes.NonNullRef<Types, T>
   override kind = 'NonNull' as const;
 
-  $inferType!: T extends OutputType<Types> ? NonNullable<OutputShape<Types, T>> : never;
+  $inferType!: T extends OutputType<Types> ? NonNullShape<OutputShape<Types, T>> : never;
 
-  $inferInput!: T extends InputType<Types> ? NonNullable<InputShape<Types, T>> : never;
+  $inferInput!: T extends InputType<Types> ? NonNullShape<InputShape<Types, T>> : never;
 
-  [outputShapeKey]!: T extends OutputType<Types> ? NonNullable<OutputShape<Types, T>> : never;
+  [outputShapeKey]!: T extends OutputType<Types> ? NonNullShape<OutputShape<Types, T>> : never;
 
-  [inputShapeKey]!: T extends InputType<Types> ? NonNullable<InputShape<Types, T>> : never;
+  [inputShapeKey]!: T extends InputType<Types> ? NonNullShape<InputShape<Types, T>> : never;
 
   type: T;
 

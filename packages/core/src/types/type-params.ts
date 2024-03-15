@@ -12,6 +12,7 @@ export const inputShapeKey = Symbol.for('Pothos.inputShapeKey');
 export const inputFieldShapeKey = Symbol.for('Pothos.inputFieldShapeKey');
 export const outputFieldShapeKey = Symbol.for('Pothos.outputFieldShapeKey');
 export const typeBrandKey = Symbol.for('Pothos.typeBrandKey');
+export const nonNullKey = Symbol.for('Pothos.nonNullKey');
 
 export type OutputShape<Types extends SchemaTypes, T> = T extends {
   [outputShapeKey]: infer U;
@@ -28,6 +29,18 @@ export type OutputShape<Types extends SchemaTypes, T> = T extends {
       : T extends BaseEnum
         ? ValuesFromEnum<T>
         : never;
+
+export interface NonNullShape<T> {
+  [nonNullKey]: NonNullable<T>;
+}
+
+export type OutputFieldShape<Types extends SchemaTypes, T> = OutputShape<Types, T> extends infer U
+  ? U extends {
+      [nonNullKey]: infer V;
+    }
+    ? V
+    : U | null | undefined
+  : never;
 
 export type ParentShape<Types extends SchemaTypes, T> = T extends {
   [parentShapeKey]: infer U;
@@ -63,13 +76,11 @@ export type InputShape<Types extends SchemaTypes, T> = T extends {
         ? ValuesFromEnum<T>
         : never;
 
-export interface OutputRefShape<T> {
-  [outputShapeKey]: T;
-}
-
-export interface InputRefShape<T> {
-  [inputShapeKey]: T;
-}
+export type InputFieldShape<Types extends SchemaTypes, T> = InputShape<Types, T> extends infer U
+  ? U extends NonNullShape<infer V>
+    ? V
+    : U | null | undefined
+  : never;
 
 export interface OutputRef<T = unknown> {
   [outputShapeKey]: T;
@@ -145,11 +156,11 @@ export type ShapeFromTypeParam<Types extends SchemaTypes, Param, Nullable> = Par
   ? ShapeFromListTypeParam<Types, Param, Nullable>
   : FieldNullability<Param> extends Nullable
     ? Types['DefaultFieldNullability'] extends true
-      ? OutputShape<Types, Param> | null | undefined
-      : OutputShape<Types, Param>
+      ? OutputFieldShape<Types, Param> | null | undefined
+      : OutputFieldShape<Types, Param>
     : Nullable extends true
-      ? OutputShape<Types, Param> | null | undefined
-      : OutputShape<Types, Param>;
+      ? OutputFieldShape<Types, Param> | null | undefined
+      : OutputFieldShape<Types, Param>;
 
 export type ShapeFromListTypeParam<
   Types extends SchemaTypes,
@@ -157,12 +168,12 @@ export type ShapeFromListTypeParam<
   Nullable,
 > = FieldNullability<Param> extends Nullable
   ? Types['DefaultFieldNullability'] extends true
-    ? readonly OutputShape<Types, Param[0]>[] | null | undefined
-    : readonly OutputShape<Types, Param[0]>[]
+    ? readonly OutputFieldShape<Types, Param[0]>[] | null | undefined
+    : readonly OutputFieldShape<Types, Param[0]>[]
   : Nullable extends true
-    ? readonly OutputShape<Types, Param[0]>[] | null | undefined
+    ? readonly OutputFieldShape<Types, Param[0]>[] | null | undefined
     : Nullable extends false
-      ? readonly OutputShape<Types, Param[0]>[]
+      ? readonly OutputFieldShape<Types, Param[0]>[]
       : Nullable extends { list: infer List; items: infer Items }
         ? Items extends boolean
           ? List extends true
@@ -191,11 +202,11 @@ export type InputShapeFromTypeParam<Types extends SchemaTypes, Param, Required> 
   ? InputShapeFromListTypeParam<Types, Param, Required>
   : FieldRequiredness<Param> extends Required
     ? Types['DefaultInputFieldRequiredness'] extends false
-      ? InputShape<Types, Param> | null | undefined
-      : InputShape<Types, Param>
+      ? InputFieldShape<Types, Param> | null | undefined
+      : InputFieldShape<Types, Param>
     : Required extends true
-      ? InputShape<Types, Param>
-      : InputShape<Types, Param> | null | undefined;
+      ? InputFieldShape<Types, Param>
+      : InputFieldShape<Types, Param> | null | undefined;
 
 export type InputShapeFromListTypeParam<
   Types extends SchemaTypes,
@@ -203,14 +214,14 @@ export type InputShapeFromListTypeParam<
   Required,
 > = FieldRequiredness<Param> extends Required
   ? Types['DefaultInputFieldRequiredness'] extends false
-    ? InputShape<Types, Param[0]>[] | null | undefined
-    : InputShape<Types, Param[0]>[]
+    ? InputFieldShape<Types, Param[0]>[] | null | undefined
+    : InputFieldShape<Types, Param[0]>[]
   : Required extends true
-    ? InputShape<Types, Param[0]>[]
+    ? InputFieldShape<Types, Param[0]>[]
     : Required extends false
-      ? InputShape<Types, Param[0]>[] | null | undefined
+      ? InputFieldShape<Types, Param[0]>[] | null | undefined
       : FieldRequiredness<Param> extends Required
-        ? InputShape<Types, Param[0]>[] | null | undefined
+        ? InputFieldShape<Types, Param[0]>[] | null | undefined
         : Required extends boolean | { list: infer List; items: infer Items }
           ? Items extends boolean
             ? List extends true

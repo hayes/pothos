@@ -1,13 +1,14 @@
 import {
-  InputShape,
+  InputFieldShape,
   inputShapeKey,
   InputType,
-  OutputShape,
+  OutputFieldShape,
   outputShapeKey,
   OutputType,
   SchemaTypes,
 } from '../types';
 import { BaseTypeRef } from './base';
+// eslint-disable-next-line import/no-cycle
 import { NonNullRef } from './non-null';
 
 export class ListRef<Types extends SchemaTypes, T extends InputType<Types> | OutputType<Types>>
@@ -16,13 +17,13 @@ export class ListRef<Types extends SchemaTypes, T extends InputType<Types> | Out
 {
   override kind = 'List' as const;
 
-  $inferType!: T extends OutputType<Types> ? OutputShape<Types, T>[] : never;
+  $inferType!: T extends OutputType<Types> ? OutputFieldShape<Types, T>[] : never;
 
-  $inferInput!: T extends InputType<Types> ? InputShape<Types, T>[] : never;
+  $inferInput!: T extends InputType<Types> ? InputFieldShape<Types, T>[] : never;
 
-  [outputShapeKey]!: T extends OutputType<Types> ? OutputShape<Types, T>[] : never;
+  [outputShapeKey]!: T extends OutputType<Types> ? OutputFieldShape<Types, T>[] : never;
 
-  [inputShapeKey]!: T extends InputType<Types> ? InputShape<Types, T>[] : never;
+  [inputShapeKey]!: T extends InputType<Types> ? InputFieldShape<Types, T>[] : never;
 
   listType: T;
 

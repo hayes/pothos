@@ -442,10 +442,7 @@ builder
 builder.queryFields((t) => ({
   chainNonNullList: t.field({
     type: t.nonNull('String').list().list().nonNull(),
-    resolve: () => [
-      ['a', 'b'],
-      ['c', 'd'],
-    ],
+    resolve: () => [['1', '2'], null, ['3', '4']],
   }),
 }));
 
