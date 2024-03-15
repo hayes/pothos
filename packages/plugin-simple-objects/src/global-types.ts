@@ -31,17 +31,17 @@ declare global {
         name: string,
         options: SimpleObjectTypeOptions<Types, Interfaces, Fields, Shape>,
         fields?: ObjectFieldsShape<Types, Shape>,
-      ) => ObjectRef<Shape>;
+      ) => ObjectRef<Types, Shape>;
 
       simpleInterface: <
         Fields extends FieldMap,
         Shape extends OutputShapeFromFields<Fields>,
-        Interfaces extends InterfaceParam<SchemaTypes>[],
+        Interfaces extends InterfaceParam<Types>[],
       >(
         name: string,
         options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
         fields?: InterfaceFieldsShape<Types, Shape>,
-      ) => InterfaceRef<Shape>;
+      ) => InterfaceRef<Types, Shape>;
     }
 
     export interface PothosKindToGraphQLType {
@@ -57,15 +57,20 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
+      Kind,
     > {
-      SimpleObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      >;
-      SimpleInterface: Omit<
-        InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      >;
+      SimpleObject: [Kind] extends 'SimpleObject'
+        ? Omit<
+            ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          >
+        : never;
+      SimpleInterface: [Kind] extends 'SimpleInterface'
+        ? Omit<
+            InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          >
+        : never;
     }
 
     export type SimpleObjectTypeOptions<
@@ -84,7 +89,7 @@ declare global {
       Types extends SchemaTypes,
       Fields extends FieldMap,
       Shape extends OutputShapeFromFields<Fields>,
-      Interfaces extends InterfaceParam<SchemaTypes>[],
+      Interfaces extends InterfaceParam<Types>[],
     > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'args' | 'fields'> {
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }

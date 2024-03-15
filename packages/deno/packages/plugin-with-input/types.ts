@@ -1,5 +1,5 @@
 // @ts-nocheck
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputFieldRef, InputRef, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
+import { ArgumentRef, FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputFieldRef, InputRef, InputShapeFromFields, SchemaTypes, TypeParam, } from '../core/index.ts';
 export interface WithInputBuilderOptions<Types extends SchemaTypes> {
     argOptions?: Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<{}>, true>, "required" | "type"> & {
         required?: Types["WithInputArgRequired"];
@@ -22,8 +22,8 @@ export type WithInputTypeOptions<Types extends SchemaTypes, Fields extends Input
 export type WithInputArgOptions<Types extends SchemaTypes, Fields extends InputFieldMap, InputName, ArgRequired extends boolean> = Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<InputShapeFromFields<Fields>>, ArgRequired>, "type"> & {
     name?: InputName;
 };
-export type FieldWithInputOptions<Types extends SchemaTypes, ParentShape, Kind extends FieldKind, Args extends Record<string, InputFieldRef<unknown, "Arg">>, Fields extends Record<string, InputFieldRef<unknown, "InputObject">>, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, InputName extends string, ResolveShape, ResolveReturnShape, ArgRequired extends boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args & {
-    [K in InputName]: InputFieldRef<InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)>;
+export type FieldWithInputOptions<Types extends SchemaTypes, ParentShape, Kind extends FieldKind, Args extends Record<string, ArgumentRef<Types, unknown>>, Fields extends Record<string, InputFieldRef<Types, unknown>>, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, InputName extends string, ResolveShape, ResolveReturnShape, ArgRequired extends boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args & {
+    [K in InputName]: InputFieldRef<Types, InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)>;
 }, Kind, ResolveShape, ResolveReturnShape>, "args"> & {
     typeOptions?: WithInputTypeOptions<Types, Fields>;
     argOptions?: WithInputArgOptions<Types, Fields, InputName, ArgRequired>;

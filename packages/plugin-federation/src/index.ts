@@ -64,7 +64,8 @@ export class PothosFederationPlugin<Types extends SchemaTypes> extends BasePlugi
       false,
       {},
       {},
-      {}
+      {},
+      'ExtendedEntity'
     >['ExtendedEntity'];
 
     const ref = Array.isArray(options.type) ? options.type[0] : options.type;

@@ -21,11 +21,9 @@ import type {
   FieldNullability,
   FieldRequiredness,
   InputType,
-  InputTypeParam,
   InterfaceParam,
   ObjectParam,
   OutputType,
-  TypeParam,
 } from './type-params';
 import type { Merge } from './utils';
 
@@ -125,16 +123,26 @@ export type PothosFieldKindToConfig<Types extends SchemaTypes, Kind extends Fiel
       pothosOptions: FieldOptionsFromKind<
         Types,
         unknown,
-        TypeParam<Types>,
-        FieldNullability<[unknown]>,
+        unknown,
+        FieldNullability<unknown>,
         InputFieldMap,
         K,
         unknown,
-        unknown
+        unknown,
+        Types['FieldMode']
       >;
     }
   >;
 }[Kind];
+
+type PothosInputOptions<Types extends SchemaTypes> = {
+  [K in keyof PothosSchemaTypes.InputFieldOptionsByKind]: PothosSchemaTypes.InputFieldOptionsByKind<
+    Types,
+    InputType<Types> | [InputType<Types>],
+    FieldRequiredness<[unknown]>,
+    K
+  >[K];
+}[keyof PothosSchemaTypes.InputFieldOptionsByKind];
 
 export interface PothosInputFieldConfig<Types extends SchemaTypes>
   extends Omit<GraphQLInputFieldConfig, 'type'> {
@@ -144,11 +152,7 @@ export interface PothosInputFieldConfig<Types extends SchemaTypes>
   parentField: string | undefined;
   parentType: string;
   type: PothosInputFieldType<Types>;
-  pothosOptions: PothosSchemaTypes.InputFieldOptionsByKind<
-    Types,
-    InputTypeParam<Types>,
-    FieldRequiredness<[unknown]>
-  >[keyof PothosSchemaTypes.InputFieldOptionsByKind];
+  pothosOptions: PothosInputOptions<Types>;
 }
 
 export interface PothosEnumValueConfig<Types extends SchemaTypes> extends GraphQLEnumValueConfig {
@@ -170,12 +174,12 @@ export type PothosOutputFieldType<Types extends SchemaTypes> =
   | {
       kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
       ref: OutputType<Types>;
-      nullable: boolean;
+      nonNull: boolean;
     }
   | {
       kind: 'List';
       type: PothosOutputFieldType<Types>;
-      nullable: boolean;
+      nonNull: boolean;
     };
 
 export type PothosNameOutputFieldType<Types extends SchemaTypes> = Exclude<

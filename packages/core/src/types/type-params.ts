@@ -1,5 +1,8 @@
-import type InterfaceRef from '../refs/interface';
-import type ObjectRef from '../refs/object';
+import type { ArgumentRef } from '../refs/arg';
+import { BaseTypeRef } from '../refs/base';
+import type { InputFieldRef } from '../refs/input-field';
+import type { InterfaceRef } from '../refs/interface';
+import type { ObjectRef } from '../refs/object';
 import type { RootName, SchemaTypes } from './schema-types';
 
 export const outputShapeKey = Symbol.for('Pothos.outputShapeKey');
@@ -9,6 +12,7 @@ export const inputShapeKey = Symbol.for('Pothos.inputShapeKey');
 export const inputFieldShapeKey = Symbol.for('Pothos.inputFieldShapeKey');
 export const outputFieldShapeKey = Symbol.for('Pothos.outputFieldShapeKey');
 export const typeBrandKey = Symbol.for('Pothos.typeBrandKey');
+export const nonNullKey = Symbol.for('Pothos.nonNullKey');
 
 export type OutputShape<Types extends SchemaTypes, T> = T extends {
   [outputShapeKey]: infer U;
@@ -25,6 +29,18 @@ export type OutputShape<Types extends SchemaTypes, T> = T extends {
       : T extends BaseEnum
         ? ValuesFromEnum<T>
         : never;
+
+export interface NonNullShape<T> {
+  [nonNullKey]: NonNullable<T>;
+}
+
+export type OutputFieldShape<Types extends SchemaTypes, T> = OutputShape<Types, T> extends infer U
+  ? U extends {
+      [nonNullKey]: infer V;
+    }
+    ? V
+    : U | null | undefined
+  : never;
 
 export type ParentShape<Types extends SchemaTypes, T> = T extends {
   [parentShapeKey]: infer U;
@@ -60,24 +76,22 @@ export type InputShape<Types extends SchemaTypes, T> = T extends {
         ? ValuesFromEnum<T>
         : never;
 
-export interface OutputRefShape<T> {
-  [outputShapeKey]: T;
-}
-
-export interface InputRefShape<T> {
-  [inputShapeKey]: T;
-}
+export type InputFieldShape<Types extends SchemaTypes, T> = InputShape<Types, T> extends infer U
+  ? U extends NonNullShape<infer V>
+    ? V
+    : U | null | undefined
+  : never;
 
 export interface OutputRef<T = unknown> {
   [outputShapeKey]: T;
   name: string;
-  kind: 'Enum' | 'Interface' | 'Object' | 'Scalar' | 'Union';
+  kind: 'Enum' | 'Interface' | 'List' | 'NonNull' | 'Object' | 'Scalar' | 'Union';
 }
 
 export interface InputRef<T = unknown> {
   [inputShapeKey]: T;
   name: string;
-  kind: 'Enum' | 'InputList' | 'InputObject' | 'Scalar';
+  kind: 'Enum' | 'Input' | 'InputObject' | 'List' | 'NonNull' | 'Scalar';
 }
 
 export type OutputType<Types extends SchemaTypes> =
@@ -97,22 +111,22 @@ export type InputType<Types extends SchemaTypes> =
     };
 
 export type ConfigurableRef<Types extends SchemaTypes> =
+  | BaseTypeRef<Types, unknown>
   | InputType<Types>
   | OutputType<Types>
   | RootName;
 
-export type TypeParam<Types extends SchemaTypes> = OutputType<Types> | [OutputType<Types>];
-
-export type InputTypeParam<Types extends SchemaTypes> = InputType<Types> | [InputType<Types>];
-
 export type ObjectParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Objects']>
-  | ObjectRef<unknown> // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | ObjectRef<Types, any>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   | (new (...args: any[]) => any);
 
 export type InterfaceParam<Types extends SchemaTypes> =
   | Extract<OutputType<Types>, keyof Types['Interfaces']>
-  | InterfaceRef<unknown>
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  | InterfaceRef<Types, any>
   | (new (...args: any[]) => unknown);
 
 export interface BaseEnum {
@@ -136,32 +150,30 @@ export type ShapeWithNullability<
     ? Shape | null | undefined
     : Shape;
 
-export type ShapeFromTypeParam<
-  Types extends SchemaTypes,
-  Param extends TypeParam<Types>,
-  Nullable extends FieldNullability<Param>,
-> = Param extends [OutputType<Types>]
+export type ShapeFromTypeParam<Types extends SchemaTypes, Param, Nullable> = Param extends [
+  OutputType<Types>,
+]
   ? ShapeFromListTypeParam<Types, Param, Nullable>
   : FieldNullability<Param> extends Nullable
     ? Types['DefaultFieldNullability'] extends true
-      ? OutputShape<Types, Param> | null | undefined
-      : OutputShape<Types, Param>
+      ? OutputFieldShape<Types, Param> | null | undefined
+      : OutputFieldShape<Types, Param>
     : Nullable extends true
-      ? OutputShape<Types, Param> | null | undefined
-      : OutputShape<Types, Param>;
+      ? OutputFieldShape<Types, Param> | null | undefined
+      : OutputFieldShape<Types, Param>;
 
 export type ShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [OutputType<Types>],
-  Nullable extends FieldNullability<Param>,
+  Nullable,
 > = FieldNullability<Param> extends Nullable
   ? Types['DefaultFieldNullability'] extends true
-    ? readonly OutputShape<Types, Param[0]>[] | null | undefined
-    : readonly OutputShape<Types, Param[0]>[]
+    ? readonly OutputFieldShape<Types, Param[0]>[] | null | undefined
+    : readonly OutputFieldShape<Types, Param[0]>[]
   : Nullable extends true
-    ? readonly OutputShape<Types, Param[0]>[] | null | undefined
+    ? readonly OutputFieldShape<Types, Param[0]>[] | null | undefined
     : Nullable extends false
-      ? readonly OutputShape<Types, Param[0]>[]
+      ? readonly OutputFieldShape<Types, Param[0]>[]
       : Nullable extends { list: infer List; items: infer Items }
         ? Items extends boolean
           ? List extends true
@@ -184,34 +196,32 @@ export type FieldNullability<Param> =
             }
       : boolean);
 
-export type InputShapeFromTypeParam<
-  Types extends SchemaTypes,
-  Param extends InputTypeParam<Types>,
-  Required extends FieldRequiredness<Param>,
-> = Param extends [InputType<Types>]
+export type InputShapeFromTypeParam<Types extends SchemaTypes, Param, Required> = Param extends [
+  InputType<Types>,
+]
   ? InputShapeFromListTypeParam<Types, Param, Required>
   : FieldRequiredness<Param> extends Required
     ? Types['DefaultInputFieldRequiredness'] extends false
-      ? InputShape<Types, Param> | null | undefined
-      : InputShape<Types, Param>
+      ? InputFieldShape<Types, Param> | null | undefined
+      : InputFieldShape<Types, Param>
     : Required extends true
-      ? InputShape<Types, Param>
-      : InputShape<Types, Param> | null | undefined;
+      ? InputFieldShape<Types, Param>
+      : InputFieldShape<Types, Param> | null | undefined;
 
 export type InputShapeFromListTypeParam<
   Types extends SchemaTypes,
   Param extends [InputType<Types>],
-  Required extends FieldRequiredness<Param>,
+  Required,
 > = FieldRequiredness<Param> extends Required
   ? Types['DefaultInputFieldRequiredness'] extends false
-    ? InputShape<Types, Param[0]>[] | null | undefined
-    : InputShape<Types, Param[0]>[]
+    ? InputFieldShape<Types, Param[0]>[] | null | undefined
+    : InputFieldShape<Types, Param[0]>[]
   : Required extends true
-    ? InputShape<Types, Param[0]>[]
+    ? InputFieldShape<Types, Param[0]>[]
     : Required extends false
-      ? InputShape<Types, Param[0]>[] | null | undefined
+      ? InputFieldShape<Types, Param[0]>[] | null | undefined
       : FieldRequiredness<Param> extends Required
-        ? InputShape<Types, Param[0]>[] | null | undefined
+        ? InputFieldShape<Types, Param[0]>[] | null | undefined
         : Required extends boolean | { list: infer List; items: infer Items }
           ? Items extends boolean
             ? List extends true
@@ -233,3 +243,21 @@ export type FieldRequiredness<Param> =
               list: boolean;
             }
       : boolean);
+
+export type InputOrArgRef<
+  Types extends SchemaTypes,
+  T,
+  Kind extends 'Arg' | 'InputObject',
+> = Kind extends 'Arg'
+  ? ArgumentRef<Types, T>
+  : Kind extends 'InputObject'
+    ? InputFieldRef<Types, T>
+    : never;
+
+export interface GenericFieldRef<T = unknown> {
+  [outputFieldShapeKey]: T;
+}
+
+export interface GenericInputFieldRef<T = unknown> {
+  [inputFieldShapeKey]: T;
+}

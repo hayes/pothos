@@ -1,4 +1,4 @@
-import builder from '../builder';
+import { builder } from '../builder';
 
 const OriginalEpisodes = {
   NEWHOPE: { description: 'Released in 1977.', value: 4 },

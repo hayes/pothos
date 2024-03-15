@@ -42,35 +42,42 @@ declare global {
       Args extends InputFieldMap,
       ResolveShape,
       ResolveReturnShape,
+      Kind,
     > {
-      ExtendedEntity: ObjectFieldOptions<
-        Types,
-        ParentShape & ResolveShape,
-        Type,
-        Nullable,
-        Args,
-        ResolveReturnShape
-      > & {
-        requires?: Selection<ResolveShape & object>;
-      };
-      ExternalEntity: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      >;
-      EntityObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
-      > & {
-        resolve: Resolver<
-          ParentShape,
-          Args,
-          Types['Context'],
-          Type extends [unknown]
-            ? ((ShapeFromTypeParam<Types, Type, false> & unknown[])[number] & ResolveShape)[]
-            : ResolveShape & ShapeFromTypeParam<Types, Type, false>,
-          ResolveReturnShape
-        >;
-      };
+      ExtendedEntity: [Kind] extends ['ExtendedEntity']
+        ? ObjectFieldOptions<
+            Types,
+            ParentShape & ResolveShape,
+            Type,
+            Nullable,
+            Args,
+            ResolveReturnShape
+          > & {
+            requires?: Selection<ResolveShape & object>;
+          }
+        : never;
+      ExternalEntity: [Kind] extends ['ExtendedEntity']
+        ? Omit<
+            ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          >
+        : never;
+      EntityObject: [Kind] extends ['ExtendedEntity']
+        ? Omit<
+            ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
+            'resolve'
+          > & {
+            resolve: Resolver<
+              ParentShape,
+              Args,
+              Types['Context'],
+              Type extends [unknown]
+                ? ((ShapeFromTypeParam<Types, Type, false> & unknown[])[number] & ResolveShape)[]
+                : ResolveShape & ShapeFromTypeParam<Types, Type, false>,
+              ResolveReturnShape
+            >;
+          }
+        : never;
     }
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
@@ -103,7 +110,7 @@ declare global {
       ) => GraphQLSchema;
 
       asEntity: <
-        Param extends InterfaceRef<unknown> | ObjectRef<unknown>,
+        Param extends InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
         KeySelection extends Selection<object>,
       >(
         param: Param,
@@ -114,7 +121,7 @@ declare global {
             context: Types['Context'],
             info: GraphQLResolveInfo,
           ) => MaybePromise<ShapeFromTypeParam<Types, Param, true>>;
-          interfaceObject?: Param extends ObjectRef<unknown> ? boolean : never;
+          interfaceObject?: Param extends ObjectRef<Types, unknown> ? boolean : never;
         },
       ) => void;
     }

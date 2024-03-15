@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { PothosSchemaError, PothosValidationError } from '../errors.ts';
-import InputListRef from '../refs/input-list.ts';
-import ListRef from '../refs/list.ts';
+import { InputListRef } from '../refs/input-list.ts';
+import { ListRef } from '../refs/list.ts';
 import { InputType, InputTypeParam, OutputType, SchemaTypes, typeBrandKey, TypeParam, } from '../types/index.ts';
 export * from './base64.ts';
 export * from './context-cache.ts';

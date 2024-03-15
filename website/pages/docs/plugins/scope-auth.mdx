@@ -51,20 +51,20 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [ScopeAuthPlugin],
-  // scope initializer, create the scopes and scope loaders for each request
-  authScopes: async (context) => ({
-    public: !!context.User,
-    // eagerly evaluated scope
-    employee: await context.User.isEmployee(),
-    // evaluated when used
-    deferredScope: () => context.User.isEmployee(),
-    // scope loader with argument
-    customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
-  }),
-  scopeAuthOptions: {
+  scopeAuth: {
     // Recommended when using subscriptions
     // when this is not set, auth checks are run when event is resolved rather than when the subscription is created
     authorizeOnSubscribe: true,
+    // scope initializer, create the scopes and scope loaders for each request
+    authScopes: async (context) => ({
+      public: !!context.User,
+      // eagerly evaluated scope
+      employee: await context.User.isEmployee(),
+      // evaluated when used
+      deferredScope: () => context.User.isEmployee(),
+      // scope loader with argument
+      customPerm: (perm) => context.permissionService.hasPermission(context.User, perm),
+    }),
   },
 });
 ```
@@ -255,7 +255,7 @@ for each field of that type. Type level scopes are only executed once, but the e
 for each affected field.
 
 The behavior may not be desireable for all users. You can set `runScopesOnType` to true, either on
-object types, or in the `scopeAuthOptions` of the builder
+object types, or in the `scopeAuth` options of the builder
 
 ```typescript
 const builder = new SchemaBuilder<{
@@ -264,14 +264,14 @@ const builder = new SchemaBuilder<{
     loggedIn: boolean;
   };
 }>({
-  scopeAuthOptions: {
+  scopeAuth: {
     // Affects all object types (Excluding Query, Mutation, and Subscription)
     runScopesOnType: true,
+    authScopes: async (context) => ({
+      loggedIn: !!context.User,
+    }),
   },
   plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    loggedIn: !!context.User,
-  }),
 });
 
 builder.objectType(Article, {
@@ -344,14 +344,14 @@ const builder = new SchemaBuilder<{
     loggedIn: boolean;
   };
 }>({
-  scopeAuthOptions: {
+  scopeAuth: {
     treatErrorsAsUnauthorized: true,
     unauthorizedError: (parent, context, info, result) => new Error(`Not authorized`),
+    authScopes: async (context) => ({
+      loggedIn: !!context.User,
+    }),
   },
   plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    loggedIn: !!context.User,
-  }),
 });
 ```
 
@@ -406,7 +406,7 @@ const builder = new SchemaBuilder<{
     loggedIn: boolean;
   };
 }>({
-  scopeAuthOptions: {
+  scopeAuth: {
     treatErrorsAsUnauthorized: true,
     unauthorizedError: (parent, context, info, result) => {
       // throw an error if it's found
@@ -788,13 +788,13 @@ const builder = new SchemaBuilder<{
     loggedIn: boolean;
   };
 }>({
-  scopeAuthOptions: {
+  scopeAuth: {
     cacheKey: (val) => JSON.stringify(val),
+    authScopes: async (context) => ({
+      loggedIn: !!context.User,
+    }),
   },
   plugins: [ScopeAuthPlugin],
-  authScopes: async (context) => ({
-    loggedIn: !!context.User,
-  }),
 });
 ```
 

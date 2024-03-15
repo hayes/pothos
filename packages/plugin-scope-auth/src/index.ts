@@ -53,8 +53,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     }
 
     const authorizedOnSubscribe =
-      !!this.builder.options.scopeAuthOptions?.authorizeOnSubscribe &&
-      typeConfig.kind === 'Subscription';
+      !!this.builder.options.scopeAuth?.authorizeOnSubscribe && typeConfig.kind === 'Subscription';
 
     const nonRoot =
       (typeConfig.graphqlKind === 'Interface' || typeConfig.graphqlKind === 'Object') &&
@@ -66,7 +65,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
       !nonRoot ||
       !(
         typeConfig.pothosOptions.runScopesOnType ??
-        this.builder.options.scopeAuthOptions?.runScopesOnType ??
+        this.builder.options.scopeAuth?.runScopesOnType ??
         false
       );
 
@@ -102,7 +101,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
     }
 
     if (
-      !this.builder.options.scopeAuthOptions?.authorizeOnSubscribe ||
+      !this.builder.options.scopeAuth?.authorizeOnSubscribe ||
       typeConfig.kind !== 'Subscription'
     ) {
       return subscriber;
@@ -142,7 +141,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
 
     const shouldRunTypeScopes =
       typeConfig.pothosOptions.runScopesOnType ??
-      this.builder.options.scopeAuthOptions?.runScopesOnType ??
+      this.builder.options.scopeAuth?.runScopesOnType ??
       false;
 
     if (!shouldRunTypeScopes) {
@@ -318,4 +317,13 @@ fieldBuilderProto.authField = function authField(options) {
   return this.field(options as never);
 };
 
-SchemaBuilder.registerPlugin(pluginName, PothosScopeAuthPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosScopeAuthPlugin, {
+  v3: (options) => ({
+    scopeAuthOptions: undefined,
+    authScopes: undefined,
+    scopeAuth: {
+      ...options.scopeAuthOptions,
+      authScopes: options.authScopes,
+    },
+  }),
+});

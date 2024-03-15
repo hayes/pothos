@@ -11,7 +11,7 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { ImplementableLoadableNodeRef } from './refs';
+import { ImplementableLoadableNodeRef, LoadableNodeRef } from './refs';
 import { ImplementableLoadableInterfaceRef, LoadableInterfaceRef } from './refs/interface';
 import { ImplementableLoadableObjectRef, LoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
@@ -124,10 +124,7 @@ declare global {
               Key,
               CacheKey
             >,
-          ) => Omit<
-            ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>,
-            'implement'
-          >
+          ) => LoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>
         : '@pothos/plugin-relay is required to use this method';
     }
 
@@ -157,7 +154,7 @@ declare global {
           Kind,
           ByPath
         >,
-      ) => FieldRef<unknown>;
+      ) => FieldRef<Types, unknown, Kind>;
       loadableList: <
         Args extends InputFieldMap,
         Type extends OutputType<Types>,
@@ -179,7 +176,7 @@ declare global {
           Kind,
           ByPath
         >,
-      ) => FieldRef<unknown>;
+      ) => FieldRef<Types, unknown>;
 
       loadableGroup: <
         Args extends InputFieldMap,
@@ -202,7 +199,7 @@ declare global {
           Kind,
           ByPath
         >,
-      ) => FieldRef<unknown>;
+      ) => FieldRef<Types, unknown>;
     }
   }
 }

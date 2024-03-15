@@ -5,14 +5,14 @@ import DataloaderPlugin from '../../src';
 import { ContextType } from './types';
 
 export default new SchemaBuilder<{ Context: ContextType }>({
-  relayOptions: {
+  relay: {
     pageInfoTypeOptions: {},
     nodeTypeOptions: {},
     nodeQueryOptions: {},
     nodesQueryOptions: {},
   },
   plugins: [RelayPlugin, ErrorsPlugin, DataloaderPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
   },
 });

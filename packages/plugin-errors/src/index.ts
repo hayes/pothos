@@ -83,7 +83,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   ): PothosOutputFieldConfig<Types> | null {
     const errorOptions = fieldConfig.pothosOptions.errors;
 
-    const errorBuilderOptions = this.builder.options.errorOptions;
+    const errorBuilderOptions = this.builder.options.errors;
 
     if (!errorOptions) {
       return fieldConfig;
@@ -156,10 +156,10 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
             [dataFieldName]: t.field({
               ...dataField,
               type: fieldConfig.pothosOptions.type,
-              nullable:
+              nonNull:
                 fieldConfig.type.kind === 'List'
-                  ? { items: fieldConfig.type.type.nullable, list: false }
-                  : false,
+                  ? { items: fieldConfig.type.type.nonNull, list: true }
+                  : true,
               resolve: (data) => data as never,
             }),
           }),
@@ -194,7 +194,7 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
       type: {
         kind: 'Union',
         ref: unionType,
-        nullable: fieldConfig.type.nullable,
+        nonNull: fieldConfig.type.nonNull,
       },
     };
   }
@@ -229,4 +229,11 @@ export class PothosErrorsPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosErrorsPlugin, {
+  normalizeOptions: {
+    v3: (options) => ({
+      errorOptions: undefined,
+      errors: options?.errorOptions,
+    }),
+  },
+});

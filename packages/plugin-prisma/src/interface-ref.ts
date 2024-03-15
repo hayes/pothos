@@ -1,12 +1,16 @@
-import { InterfaceRef } from '@pothos/core';
+import { InterfaceRef, SchemaTypes } from '@pothos/core';
 import { prismaModelKey, PrismaObjectRef } from './object-ref';
 import type { PrismaModelTypes } from './types';
 
-export type PrismaRef<Model extends PrismaModelTypes, T = {}> =
-  | PrismaInterfaceRef<Model, T>
-  | PrismaObjectRef<Model, T>;
+export type PrismaRef<Types extends SchemaTypes, Model extends PrismaModelTypes, T = {}> =
+  | PrismaInterfaceRef<Types, Model, T>
+  | PrismaObjectRef<Types, Model, T>;
 
-export class PrismaInterfaceRef<Model extends PrismaModelTypes, T = {}> extends InterfaceRef<T> {
+export class PrismaInterfaceRef<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  T = {},
+> extends InterfaceRef<Types, T> {
   [prismaModelKey]!: Model;
 
   modelName: string;

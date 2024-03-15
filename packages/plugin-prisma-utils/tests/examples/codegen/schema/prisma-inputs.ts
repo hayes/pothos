@@ -2,10 +2,12 @@ import { InputObjectRef } from '@pothos/core';
 import * as Prisma from '../../../client';
 import { builder } from '../builder';
 
+type Types = typeof builder extends PothosSchemaTypes.SchemaBuilder<infer T> ? T : never;
+
 builder.enumType(Prisma.Category, {
   name: 'Category',
 });
-export const PostFilter: InputObjectRef<Prisma.Prisma.PostWhereInput> = builder.prismaWhere(
+export const PostFilter: InputObjectRef<Types, Prisma.Prisma.PostWhereInput> = builder.prismaWhere(
   'Post',
   {
     name: 'PostFilter',
@@ -64,7 +66,7 @@ export const BooleanFilter = builder.prismaFilter('Boolean', {
   name: 'BooleanFilter',
   ops: ['equals', 'in', 'notIn', 'not', 'is', 'isNot'],
 });
-export const UserFilter: InputObjectRef<Prisma.Prisma.UserWhereInput> = builder.prismaWhere(
+export const UserFilter: InputObjectRef<Types, Prisma.Prisma.UserWhereInput> = builder.prismaWhere(
   'User',
   {
     name: 'UserFilter',
@@ -85,9 +87,8 @@ export const PostListFilter = builder.prismaListFilter(PostFilter, {
   name: 'PostListFilter',
   ops: ['every', 'some', 'none'],
 });
-export const CommentFilter: InputObjectRef<Prisma.Prisma.CommentWhereInput> = builder.prismaWhere(
-  'Comment',
-  {
+export const CommentFilter: InputObjectRef<Types, Prisma.Prisma.CommentWhereInput> =
+  builder.prismaWhere('Comment', {
     name: 'CommentFilter',
     fields: () => ({
       id: IntFilter,
@@ -98,15 +99,13 @@ export const CommentFilter: InputObjectRef<Prisma.Prisma.CommentWhereInput> = bu
       authorId: IntFilter,
       postId: IntFilter,
     }),
-  },
-);
+  });
 export const CommentListFilter = builder.prismaListFilter(CommentFilter, {
   name: 'CommentListFilter',
   ops: ['every', 'some', 'none'],
 });
-export const ProfileFilter: InputObjectRef<Prisma.Prisma.ProfileWhereInput> = builder.prismaWhere(
-  'Profile',
-  {
+export const ProfileFilter: InputObjectRef<Types, Prisma.Prisma.ProfileWhereInput> =
+  builder.prismaWhere('Profile', {
     name: 'ProfileFilter',
     fields: () => ({
       id: IntFilter,
@@ -114,11 +113,9 @@ export const ProfileFilter: InputObjectRef<Prisma.Prisma.ProfileWhereInput> = bu
       user: UserFilter,
       userId: IntFilter,
     }),
-  },
-);
-export const FollowFilter: InputObjectRef<Prisma.Prisma.FollowWhereInput> = builder.prismaWhere(
-  'Follow',
-  {
+  });
+export const FollowFilter: InputObjectRef<Types, Prisma.Prisma.FollowWhereInput> =
+  builder.prismaWhere('Follow', {
     name: 'FollowFilter',
     fields: () => ({
       fromId: IntFilter,
@@ -126,15 +123,13 @@ export const FollowFilter: InputObjectRef<Prisma.Prisma.FollowWhereInput> = buil
       from: UserFilter,
       to: UserFilter,
     }),
-  },
-);
+  });
 export const FollowListFilter = builder.prismaListFilter(FollowFilter, {
   name: 'FollowListFilter',
   ops: ['every', 'some', 'none'],
 });
-export const MediaFilter: InputObjectRef<Prisma.Prisma.MediaWhereInput> = builder.prismaWhere(
-  'Media',
-  {
+export const MediaFilter: InputObjectRef<Types, Prisma.Prisma.MediaWhereInput> =
+  builder.prismaWhere('Media', {
     name: 'MediaFilter',
     fields: () => ({
       id: IntFilter,
@@ -143,9 +138,8 @@ export const MediaFilter: InputObjectRef<Prisma.Prisma.MediaWhereInput> = builde
       uploadedBy: UserFilter,
       uploadedById: IntFilter,
     }),
-  },
-);
-export const PostMediaFilter: InputObjectRef<Prisma.Prisma.PostMediaWhereInput> =
+  });
+export const PostMediaFilter: InputObjectRef<Types, Prisma.Prisma.PostMediaWhereInput> =
   builder.prismaWhere('PostMedia', {
     name: 'PostMediaFilter',
     fields: () => ({
@@ -184,7 +178,7 @@ export const PostUniqueFilter = builder.prismaWhereUnique('Post', {
     createdAt: 'DateTime',
   }),
 });
-export const CommentOrderBy: InputObjectRef<Prisma.Prisma.CommentOrderByWithRelationInput> =
+export const CommentOrderBy: InputObjectRef<Types, Prisma.Prisma.CommentOrderByWithRelationInput> =
   builder.prismaOrderBy('Comment', {
     name: 'CommentOrderBy',
     fields: () => ({
@@ -197,7 +191,7 @@ export const CommentOrderBy: InputObjectRef<Prisma.Prisma.CommentOrderByWithRela
       postId: true,
     }),
   });
-export const ProfileOrderBy: InputObjectRef<Prisma.Prisma.ProfileOrderByWithRelationInput> =
+export const ProfileOrderBy: InputObjectRef<Types, Prisma.Prisma.ProfileOrderByWithRelationInput> =
   builder.prismaOrderBy('Profile', {
     name: 'ProfileOrderBy',
     fields: () => ({
@@ -207,7 +201,7 @@ export const ProfileOrderBy: InputObjectRef<Prisma.Prisma.ProfileOrderByWithRela
       userId: true,
     }),
   });
-export const FollowOrderBy: InputObjectRef<Prisma.Prisma.FollowOrderByWithRelationInput> =
+export const FollowOrderBy: InputObjectRef<Types, Prisma.Prisma.FollowOrderByWithRelationInput> =
   builder.prismaOrderBy('Follow', {
     name: 'FollowOrderBy',
     fields: () => ({
@@ -217,19 +211,21 @@ export const FollowOrderBy: InputObjectRef<Prisma.Prisma.FollowOrderByWithRelati
       to: UserOrderBy,
     }),
   });
-export const PostMediaOrderBy: InputObjectRef<Prisma.Prisma.PostMediaOrderByWithRelationInput> =
-  builder.prismaOrderBy('PostMedia', {
-    name: 'PostMediaOrderBy',
-    fields: () => ({
-      id: true,
-      post: PostOrderBy,
-      media: MediaOrderBy,
-      postId: true,
-      mediaId: true,
-      order: true,
-    }),
-  });
-export const MediaOrderBy: InputObjectRef<Prisma.Prisma.MediaOrderByWithRelationInput> =
+export const PostMediaOrderBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostMediaOrderByWithRelationInput
+> = builder.prismaOrderBy('PostMedia', {
+  name: 'PostMediaOrderBy',
+  fields: () => ({
+    id: true,
+    post: PostOrderBy,
+    media: MediaOrderBy,
+    postId: true,
+    mediaId: true,
+    order: true,
+  }),
+});
+export const MediaOrderBy: InputObjectRef<Types, Prisma.Prisma.MediaOrderByWithRelationInput> =
   builder.prismaOrderBy('Media', {
     name: 'MediaOrderBy',
     fields: () => ({
@@ -240,7 +236,7 @@ export const MediaOrderBy: InputObjectRef<Prisma.Prisma.MediaOrderByWithRelation
       uploadedById: true,
     }),
   });
-export const UserOrderBy: InputObjectRef<Prisma.Prisma.UserOrderByWithRelationInput> =
+export const UserOrderBy: InputObjectRef<Types, Prisma.Prisma.UserOrderByWithRelationInput> =
   builder.prismaOrderBy('User', {
     name: 'UserOrderBy',
     fields: () => ({
@@ -255,7 +251,7 @@ export const UserOrderBy: InputObjectRef<Prisma.Prisma.UserOrderByWithRelationIn
       Media: MediaOrderBy,
     }),
   });
-export const PostOrderBy: InputObjectRef<Prisma.Prisma.PostOrderByWithRelationInput> =
+export const PostOrderBy: InputObjectRef<Types, Prisma.Prisma.PostOrderByWithRelationInput> =
   builder.prismaOrderBy('Post', {
     name: 'PostOrderBy',
     fields: () => ({
@@ -275,14 +271,16 @@ export const PostOrderBy: InputObjectRef<Prisma.Prisma.PostOrderByWithRelationIn
       views: true,
     }),
   });
-export const ProfileCreateWithoutUser: InputObjectRef<Prisma.Prisma.ProfileCreateWithoutUserInput> =
-  builder.prismaCreate('Profile', {
-    name: 'ProfileCreateWithoutUser',
-    fields: () => ({
-      id: 'Int',
-      bio: 'String',
-    }),
-  });
+export const ProfileCreateWithoutUser: InputObjectRef<
+  Types,
+  Prisma.Prisma.ProfileCreateWithoutUserInput
+> = builder.prismaCreate('Profile', {
+  name: 'ProfileCreateWithoutUser',
+  fields: () => ({
+    id: 'Int',
+    bio: 'String',
+  }),
+});
 export const ProfileUniqueFilter = builder.prismaWhereUnique('Profile', {
   name: 'ProfileUniqueFilter',
   fields: () => ({
@@ -296,41 +294,45 @@ export const UserCreateProfile = builder.prismaCreateRelation('User', 'profile',
     connect: ProfileUniqueFilter,
   }),
 });
-export const PostCreateWithoutMedia: InputObjectRef<Prisma.Prisma.PostCreateWithoutMediaInput> =
-  builder.prismaCreate('Post', {
-    name: 'PostCreateWithoutMedia',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      updatedAt: 'DateTime',
-      title: 'String',
-      content: 'String',
-      published: 'Boolean',
-      author: PostCreateAuthor,
-      comments: PostCreateComments,
-      authorId: 'Int',
-      tags: 'String',
-      categories: Prisma.Category,
-      ratings: 'Int',
-      views: 'Int',
-    }),
-  });
+export const PostCreateWithoutMedia: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostCreateWithoutMediaInput
+> = builder.prismaCreate('Post', {
+  name: 'PostCreateWithoutMedia',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    updatedAt: 'DateTime',
+    title: 'String',
+    content: 'String',
+    published: 'Boolean',
+    author: PostCreateAuthor,
+    comments: PostCreateComments,
+    authorId: 'Int',
+    tags: 'String',
+    categories: Prisma.Category,
+    ratings: 'Int',
+    views: 'Int',
+  }),
+});
 export const PostMediaCreatePost = builder.prismaCreateRelation('PostMedia', 'post', {
   fields: () => ({
     create: PostCreateWithoutMedia,
     connect: PostUniqueFilter,
   }),
 });
-export const PostMediaCreateWithoutMedia: InputObjectRef<Prisma.Prisma.PostMediaCreateWithoutMediaInput> =
-  builder.prismaCreate('PostMedia', {
-    name: 'PostMediaCreateWithoutMedia',
-    fields: () => ({
-      id: 'Int',
-      post: PostMediaCreatePost,
-      postId: 'Int',
-      order: 'Int',
-    }),
-  });
+export const PostMediaCreateWithoutMedia: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostMediaCreateWithoutMediaInput
+> = builder.prismaCreate('PostMedia', {
+  name: 'PostMediaCreateWithoutMedia',
+  fields: () => ({
+    id: 'Int',
+    post: PostMediaCreatePost,
+    postId: 'Int',
+    order: 'Int',
+  }),
+});
 export const PostMediaUniqueFilter = builder.prismaWhereUnique('PostMedia', {
   name: 'PostMediaUniqueFilter',
   fields: () => ({
@@ -343,15 +345,17 @@ export const MediaCreatePosts = builder.prismaCreateRelation('Media', 'posts', {
     connect: PostMediaUniqueFilter,
   }),
 });
-export const MediaCreateWithoutUploadedBy: InputObjectRef<Prisma.Prisma.MediaCreateWithoutUploadedByInput> =
-  builder.prismaCreate('Media', {
-    name: 'MediaCreateWithoutUploadedBy',
-    fields: () => ({
-      id: 'Int',
-      url: 'String',
-      posts: MediaCreatePosts,
-    }),
-  });
+export const MediaCreateWithoutUploadedBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.MediaCreateWithoutUploadedByInput
+> = builder.prismaCreate('Media', {
+  name: 'MediaCreateWithoutUploadedBy',
+  fields: () => ({
+    id: 'Int',
+    url: 'String',
+    posts: MediaCreatePosts,
+  }),
+});
 export const MediaUniqueFilter = builder.prismaWhereUnique('Media', {
   name: 'MediaUniqueFilter',
   fields: () => ({
@@ -364,20 +368,22 @@ export const UserCreateMedia = builder.prismaCreateRelation('User', 'Media', {
     connect: MediaUniqueFilter,
   }),
 });
-export const UserCreateWithoutFollowing: InputObjectRef<Prisma.Prisma.UserCreateWithoutFollowingInput> =
-  builder.prismaCreate('User', {
-    name: 'UserCreateWithoutFollowing',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserCreatePosts,
-      comments: UserCreateComments,
-      profile: UserCreateProfile,
-      followers: UserCreateFollowers,
-      Media: UserCreateMedia,
-    }),
-  });
+export const UserCreateWithoutFollowing: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserCreateWithoutFollowingInput
+> = builder.prismaCreate('User', {
+  name: 'UserCreateWithoutFollowing',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserCreatePosts,
+    comments: UserCreateComments,
+    profile: UserCreateProfile,
+    followers: UserCreateFollowers,
+    Media: UserCreateMedia,
+  }),
+});
 export const UserUniqueFilter = builder.prismaWhereUnique('User', {
   name: 'UserUniqueFilter',
   fields: () => ({
@@ -391,14 +397,16 @@ export const FollowCreateFrom = builder.prismaCreateRelation('Follow', 'from', {
     connect: UserUniqueFilter,
   }),
 });
-export const FollowCreateWithoutTo: InputObjectRef<Prisma.Prisma.FollowCreateWithoutToInput> =
-  builder.prismaCreate('Follow', {
-    name: 'FollowCreateWithoutTo',
-    fields: () => ({
-      fromId: 'Int',
-      from: FollowCreateFrom,
-    }),
-  });
+export const FollowCreateWithoutTo: InputObjectRef<
+  Types,
+  Prisma.Prisma.FollowCreateWithoutToInput
+> = builder.prismaCreate('Follow', {
+  name: 'FollowCreateWithoutTo',
+  fields: () => ({
+    fromId: 'Int',
+    from: FollowCreateFrom,
+  }),
+});
 export const FollowUniqueFilter = builder.prismaWhereUnique('Follow', {
   name: 'FollowUniqueFilter',
   fields: () => ({
@@ -411,71 +419,79 @@ export const UserCreateFollowers = builder.prismaCreateRelation('User', 'followe
     connect: FollowUniqueFilter,
   }),
 });
-export const UserCreateWithoutFollowers: InputObjectRef<Prisma.Prisma.UserCreateWithoutFollowersInput> =
-  builder.prismaCreate('User', {
-    name: 'UserCreateWithoutFollowers',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserCreatePosts,
-      comments: UserCreateComments,
-      profile: UserCreateProfile,
-      following: UserCreateFollowing,
-      Media: UserCreateMedia,
-    }),
-  });
+export const UserCreateWithoutFollowers: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserCreateWithoutFollowersInput
+> = builder.prismaCreate('User', {
+  name: 'UserCreateWithoutFollowers',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserCreatePosts,
+    comments: UserCreateComments,
+    profile: UserCreateProfile,
+    following: UserCreateFollowing,
+    Media: UserCreateMedia,
+  }),
+});
 export const FollowCreateTo = builder.prismaCreateRelation('Follow', 'to', {
   fields: () => ({
     create: UserCreateWithoutFollowers,
     connect: UserUniqueFilter,
   }),
 });
-export const FollowCreateWithoutFrom: InputObjectRef<Prisma.Prisma.FollowCreateWithoutFromInput> =
-  builder.prismaCreate('Follow', {
-    name: 'FollowCreateWithoutFrom',
-    fields: () => ({
-      toId: 'Int',
-      to: FollowCreateTo,
-    }),
-  });
+export const FollowCreateWithoutFrom: InputObjectRef<
+  Types,
+  Prisma.Prisma.FollowCreateWithoutFromInput
+> = builder.prismaCreate('Follow', {
+  name: 'FollowCreateWithoutFrom',
+  fields: () => ({
+    toId: 'Int',
+    to: FollowCreateTo,
+  }),
+});
 export const UserCreateFollowing = builder.prismaCreateRelation('User', 'following', {
   fields: () => ({
     create: FollowCreateWithoutFrom,
     connect: FollowUniqueFilter,
   }),
 });
-export const UserCreateWithoutComments: InputObjectRef<Prisma.Prisma.UserCreateWithoutCommentsInput> =
-  builder.prismaCreate('User', {
-    name: 'UserCreateWithoutComments',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserCreatePosts,
-      profile: UserCreateProfile,
-      followers: UserCreateFollowers,
-      following: UserCreateFollowing,
-      Media: UserCreateMedia,
-    }),
-  });
+export const UserCreateWithoutComments: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserCreateWithoutCommentsInput
+> = builder.prismaCreate('User', {
+  name: 'UserCreateWithoutComments',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserCreatePosts,
+    profile: UserCreateProfile,
+    followers: UserCreateFollowers,
+    following: UserCreateFollowing,
+    Media: UserCreateMedia,
+  }),
+});
 export const CommentCreateAuthor = builder.prismaCreateRelation('Comment', 'author', {
   fields: () => ({
     create: UserCreateWithoutComments,
     connect: UserUniqueFilter,
   }),
 });
-export const CommentCreateWithoutPost: InputObjectRef<Prisma.Prisma.CommentCreateWithoutPostInput> =
-  builder.prismaCreate('Comment', {
-    name: 'CommentCreateWithoutPost',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      content: 'String',
-      author: CommentCreateAuthor,
-      authorId: 'Int',
-    }),
-  });
+export const CommentCreateWithoutPost: InputObjectRef<
+  Types,
+  Prisma.Prisma.CommentCreateWithoutPostInput
+> = builder.prismaCreate('Comment', {
+  name: 'CommentCreateWithoutPost',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    content: 'String',
+    author: CommentCreateAuthor,
+    authorId: 'Int',
+  }),
+});
 export const CommentUniqueFilter = builder.prismaWhereUnique('Comment', {
   name: 'CommentUniqueFilter',
   fields: () => ({
@@ -489,147 +505,160 @@ export const PostCreateComments = builder.prismaCreateRelation('Post', 'comments
     connect: CommentUniqueFilter,
   }),
 });
-export const PostCreateWithoutAuthor: InputObjectRef<Prisma.Prisma.PostCreateWithoutAuthorInput> =
-  builder.prismaCreate('Post', {
-    name: 'PostCreateWithoutAuthor',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      updatedAt: 'DateTime',
-      title: 'String',
-      content: 'String',
-      published: 'Boolean',
-      comments: PostCreateComments,
-      media: PostCreateMedia,
-      tags: 'String',
-      categories: Prisma.Category,
-      ratings: 'Int',
-      views: 'Int',
-    }),
-  });
+export const PostCreateWithoutAuthor: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostCreateWithoutAuthorInput
+> = builder.prismaCreate('Post', {
+  name: 'PostCreateWithoutAuthor',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    updatedAt: 'DateTime',
+    title: 'String',
+    content: 'String',
+    published: 'Boolean',
+    comments: PostCreateComments,
+    media: PostCreateMedia,
+    tags: 'String',
+    categories: Prisma.Category,
+    ratings: 'Int',
+    views: 'Int',
+  }),
+});
 export const UserCreatePosts = builder.prismaCreateRelation('User', 'posts', {
   fields: () => ({
     create: PostCreateWithoutAuthor,
     connect: PostUniqueFilter,
   }),
 });
-export const UserCreateWithoutMedia: InputObjectRef<Prisma.Prisma.UserCreateWithoutMediaInput> =
-  builder.prismaCreate('User', {
-    name: 'UserCreateWithoutMedia',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserCreatePosts,
-      comments: UserCreateComments,
-      profile: UserCreateProfile,
-      followers: UserCreateFollowers,
-      following: UserCreateFollowing,
-    }),
-  });
+export const UserCreateWithoutMedia: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserCreateWithoutMediaInput
+> = builder.prismaCreate('User', {
+  name: 'UserCreateWithoutMedia',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserCreatePosts,
+    comments: UserCreateComments,
+    profile: UserCreateProfile,
+    followers: UserCreateFollowers,
+    following: UserCreateFollowing,
+  }),
+});
 export const MediaCreateUploadedBy = builder.prismaCreateRelation('Media', 'uploadedBy', {
   fields: () => ({
     create: UserCreateWithoutMedia,
     connect: UserUniqueFilter,
   }),
 });
-export const MediaCreateWithoutPosts: InputObjectRef<Prisma.Prisma.MediaCreateWithoutPostsInput> =
-  builder.prismaCreate('Media', {
-    name: 'MediaCreateWithoutPosts',
-    fields: () => ({
-      id: 'Int',
-      url: 'String',
-      uploadedBy: MediaCreateUploadedBy,
-      uploadedById: 'Int',
-    }),
-  });
+export const MediaCreateWithoutPosts: InputObjectRef<
+  Types,
+  Prisma.Prisma.MediaCreateWithoutPostsInput
+> = builder.prismaCreate('Media', {
+  name: 'MediaCreateWithoutPosts',
+  fields: () => ({
+    id: 'Int',
+    url: 'String',
+    uploadedBy: MediaCreateUploadedBy,
+    uploadedById: 'Int',
+  }),
+});
 export const PostMediaCreateMedia = builder.prismaCreateRelation('PostMedia', 'media', {
   fields: () => ({
     create: MediaCreateWithoutPosts,
     connect: MediaUniqueFilter,
   }),
 });
-export const PostMediaCreateWithoutPost: InputObjectRef<Prisma.Prisma.PostMediaCreateWithoutPostInput> =
-  builder.prismaCreate('PostMedia', {
-    name: 'PostMediaCreateWithoutPost',
-    fields: () => ({
-      id: 'Int',
-      media: PostMediaCreateMedia,
-      mediaId: 'Int',
-      order: 'Int',
-    }),
-  });
+export const PostMediaCreateWithoutPost: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostMediaCreateWithoutPostInput
+> = builder.prismaCreate('PostMedia', {
+  name: 'PostMediaCreateWithoutPost',
+  fields: () => ({
+    id: 'Int',
+    media: PostMediaCreateMedia,
+    mediaId: 'Int',
+    order: 'Int',
+  }),
+});
 export const PostCreateMedia = builder.prismaCreateRelation('Post', 'media', {
   fields: () => ({
     create: PostMediaCreateWithoutPost,
     connect: PostMediaUniqueFilter,
   }),
 });
-export const PostCreateWithoutComments: InputObjectRef<Prisma.Prisma.PostCreateWithoutCommentsInput> =
-  builder.prismaCreate('Post', {
-    name: 'PostCreateWithoutComments',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      updatedAt: 'DateTime',
-      title: 'String',
-      content: 'String',
-      published: 'Boolean',
-      author: PostCreateAuthor,
-      authorId: 'Int',
-      media: PostCreateMedia,
-      tags: 'String',
-      categories: Prisma.Category,
-      ratings: 'Int',
-      views: 'Int',
-    }),
-  });
+export const PostCreateWithoutComments: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostCreateWithoutCommentsInput
+> = builder.prismaCreate('Post', {
+  name: 'PostCreateWithoutComments',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    updatedAt: 'DateTime',
+    title: 'String',
+    content: 'String',
+    published: 'Boolean',
+    author: PostCreateAuthor,
+    authorId: 'Int',
+    media: PostCreateMedia,
+    tags: 'String',
+    categories: Prisma.Category,
+    ratings: 'Int',
+    views: 'Int',
+  }),
+});
 export const CommentCreatePost = builder.prismaCreateRelation('Comment', 'post', {
   fields: () => ({
     create: PostCreateWithoutComments,
     connect: PostUniqueFilter,
   }),
 });
-export const CommentCreateWithoutAuthor: InputObjectRef<Prisma.Prisma.CommentCreateWithoutAuthorInput> =
-  builder.prismaCreate('Comment', {
-    name: 'CommentCreateWithoutAuthor',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      content: 'String',
-      post: CommentCreatePost,
-      postId: 'Int',
-    }),
-  });
+export const CommentCreateWithoutAuthor: InputObjectRef<
+  Types,
+  Prisma.Prisma.CommentCreateWithoutAuthorInput
+> = builder.prismaCreate('Comment', {
+  name: 'CommentCreateWithoutAuthor',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    content: 'String',
+    post: CommentCreatePost,
+    postId: 'Int',
+  }),
+});
 export const UserCreateComments = builder.prismaCreateRelation('User', 'comments', {
   fields: () => ({
     create: CommentCreateWithoutAuthor,
     connect: CommentUniqueFilter,
   }),
 });
-export const UserCreateWithoutPosts: InputObjectRef<Prisma.Prisma.UserCreateWithoutPostsInput> =
-  builder.prismaCreate('User', {
-    name: 'UserCreateWithoutPosts',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      comments: UserCreateComments,
-      profile: UserCreateProfile,
-      followers: UserCreateFollowers,
-      following: UserCreateFollowing,
-      Media: UserCreateMedia,
-    }),
-  });
+export const UserCreateWithoutPosts: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserCreateWithoutPostsInput
+> = builder.prismaCreate('User', {
+  name: 'UserCreateWithoutPosts',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    comments: UserCreateComments,
+    profile: UserCreateProfile,
+    followers: UserCreateFollowers,
+    following: UserCreateFollowing,
+    Media: UserCreateMedia,
+  }),
+});
 export const PostCreateAuthor = builder.prismaCreateRelation('Post', 'author', {
   fields: () => ({
     create: UserCreateWithoutPosts,
     connect: UserUniqueFilter,
   }),
 });
-export const PostCreate: InputObjectRef<Prisma.Prisma.PostCreateInput> = builder.prismaCreate(
-  'Post',
-  {
+export const PostCreate: InputObjectRef<Types, Prisma.Prisma.PostCreateInput> =
+  builder.prismaCreate('Post', {
     name: 'PostCreate',
     fields: () => ({
       id: 'Int',
@@ -647,16 +676,17 @@ export const PostCreate: InputObjectRef<Prisma.Prisma.PostCreateInput> = builder
       ratings: 'Int',
       views: 'Int',
     }),
-  },
-);
-export const ProfileUpdateWithoutUser: InputObjectRef<Prisma.Prisma.ProfileUpdateWithoutUserInput> =
-  builder.prismaUpdate('Profile', {
-    name: 'ProfileUpdateWithoutUser',
-    fields: () => ({
-      id: 'Int',
-      bio: 'String',
-    }),
   });
+export const ProfileUpdateWithoutUser: InputObjectRef<
+  Types,
+  Prisma.Prisma.ProfileUpdateWithoutUserInput
+> = builder.prismaUpdate('Profile', {
+  name: 'ProfileUpdateWithoutUser',
+  fields: () => ({
+    id: 'Int',
+    bio: 'String',
+  }),
+});
 export const UserUpdateProfile = builder.prismaUpdateRelation('User', 'profile', {
   fields: () => ({
     create: ProfileCreateWithoutUser,
@@ -666,25 +696,27 @@ export const UserUpdateProfile = builder.prismaUpdateRelation('User', 'profile',
     delete: true,
   }),
 });
-export const PostUpdateWithoutMedia: InputObjectRef<Prisma.Prisma.PostUpdateWithoutMediaInput> =
-  builder.prismaUpdate('Post', {
-    name: 'PostUpdateWithoutMedia',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      updatedAt: 'DateTime',
-      title: 'String',
-      content: 'String',
-      published: 'Boolean',
-      author: PostUpdateAuthor,
-      comments: PostUpdateComments,
-      authorId: 'Int',
-      tags: 'String',
-      categories: Prisma.Category,
-      ratings: 'Int',
-      views: 'Int',
-    }),
-  });
+export const PostUpdateWithoutMedia: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostUpdateWithoutMediaInput
+> = builder.prismaUpdate('Post', {
+  name: 'PostUpdateWithoutMedia',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    updatedAt: 'DateTime',
+    title: 'String',
+    content: 'String',
+    published: 'Boolean',
+    author: PostUpdateAuthor,
+    comments: PostUpdateComments,
+    authorId: 'Int',
+    tags: 'String',
+    categories: Prisma.Category,
+    ratings: 'Int',
+    views: 'Int',
+  }),
+});
 export const PostMediaUpdatePost = builder.prismaUpdateRelation('PostMedia', 'post', {
   fields: () => ({
     create: PostCreateWithoutMedia,
@@ -692,17 +724,19 @@ export const PostMediaUpdatePost = builder.prismaUpdateRelation('PostMedia', 'po
     connect: PostUniqueFilter,
   }),
 });
-export const PostMediaUpdateWithoutMedia: InputObjectRef<Prisma.Prisma.PostMediaUpdateWithoutMediaInput> =
-  builder.prismaUpdate('PostMedia', {
-    name: 'PostMediaUpdateWithoutMedia',
-    fields: () => ({
-      id: 'Int',
-      post: PostMediaUpdatePost,
-      postId: 'Int',
-      order: 'Int',
-    }),
-  });
-export const PostMediaWithoutMediaFilter: InputObjectRef<Prisma.Prisma.PostMediaWhereInput> =
+export const PostMediaUpdateWithoutMedia: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostMediaUpdateWithoutMediaInput
+> = builder.prismaUpdate('PostMedia', {
+  name: 'PostMediaUpdateWithoutMedia',
+  fields: () => ({
+    id: 'Int',
+    post: PostMediaUpdatePost,
+    postId: 'Int',
+    order: 'Int',
+  }),
+});
+export const PostMediaWithoutMediaFilter: InputObjectRef<Types, Prisma.Prisma.PostMediaWhereInput> =
   builder.prismaWhere('PostMedia', {
     name: 'PostMediaWithoutMediaFilter',
     fields: () => ({
@@ -730,16 +764,18 @@ export const MediaUpdatePosts = builder.prismaUpdateRelation('Media', 'posts', {
     deleteMany: PostMediaWithoutMediaFilter,
   }),
 });
-export const MediaUpdateWithoutUploadedBy: InputObjectRef<Prisma.Prisma.MediaUpdateWithoutUploadedByInput> =
-  builder.prismaUpdate('Media', {
-    name: 'MediaUpdateWithoutUploadedBy',
-    fields: () => ({
-      id: 'Int',
-      url: 'String',
-      posts: MediaUpdatePosts,
-    }),
-  });
-export const MediaWithoutUploadedByFilter: InputObjectRef<Prisma.Prisma.MediaWhereInput> =
+export const MediaUpdateWithoutUploadedBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.MediaUpdateWithoutUploadedByInput
+> = builder.prismaUpdate('Media', {
+  name: 'MediaUpdateWithoutUploadedBy',
+  fields: () => ({
+    id: 'Int',
+    url: 'String',
+    posts: MediaUpdatePosts,
+  }),
+});
+export const MediaWithoutUploadedByFilter: InputObjectRef<Types, Prisma.Prisma.MediaWhereInput> =
   builder.prismaWhere('Media', {
     name: 'MediaWithoutUploadedByFilter',
     fields: () => ({
@@ -766,20 +802,22 @@ export const UserUpdateMedia = builder.prismaUpdateRelation('User', 'Media', {
     deleteMany: MediaWithoutUploadedByFilter,
   }),
 });
-export const UserUpdateWithoutFollowing: InputObjectRef<Prisma.Prisma.UserUpdateWithoutFollowingInput> =
-  builder.prismaUpdate('User', {
-    name: 'UserUpdateWithoutFollowing',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserUpdatePosts,
-      comments: UserUpdateComments,
-      profile: UserUpdateProfile,
-      followers: UserUpdateFollowers,
-      Media: UserUpdateMedia,
-    }),
-  });
+export const UserUpdateWithoutFollowing: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserUpdateWithoutFollowingInput
+> = builder.prismaUpdate('User', {
+  name: 'UserUpdateWithoutFollowing',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserUpdatePosts,
+    comments: UserUpdateComments,
+    profile: UserUpdateProfile,
+    followers: UserUpdateFollowers,
+    Media: UserUpdateMedia,
+  }),
+});
 export const FollowUpdateFrom = builder.prismaUpdateRelation('Follow', 'from', {
   fields: () => ({
     create: UserCreateWithoutFollowing,
@@ -787,15 +825,17 @@ export const FollowUpdateFrom = builder.prismaUpdateRelation('Follow', 'from', {
     connect: UserUniqueFilter,
   }),
 });
-export const FollowUpdateWithoutTo: InputObjectRef<Prisma.Prisma.FollowUpdateWithoutToInput> =
-  builder.prismaUpdate('Follow', {
-    name: 'FollowUpdateWithoutTo',
-    fields: () => ({
-      fromId: 'Int',
-      from: FollowUpdateFrom,
-    }),
-  });
-export const FollowWithoutToFilter: InputObjectRef<Prisma.Prisma.FollowWhereInput> =
+export const FollowUpdateWithoutTo: InputObjectRef<
+  Types,
+  Prisma.Prisma.FollowUpdateWithoutToInput
+> = builder.prismaUpdate('Follow', {
+  name: 'FollowUpdateWithoutTo',
+  fields: () => ({
+    fromId: 'Int',
+    from: FollowUpdateFrom,
+  }),
+});
+export const FollowWithoutToFilter: InputObjectRef<Types, Prisma.Prisma.FollowWhereInput> =
   builder.prismaWhere('Follow', {
     name: 'FollowWithoutToFilter',
     fields: () => ({
@@ -821,20 +861,22 @@ export const UserUpdateFollowers = builder.prismaUpdateRelation('User', 'followe
     deleteMany: FollowWithoutToFilter,
   }),
 });
-export const UserUpdateWithoutFollowers: InputObjectRef<Prisma.Prisma.UserUpdateWithoutFollowersInput> =
-  builder.prismaUpdate('User', {
-    name: 'UserUpdateWithoutFollowers',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserUpdatePosts,
-      comments: UserUpdateComments,
-      profile: UserUpdateProfile,
-      following: UserUpdateFollowing,
-      Media: UserUpdateMedia,
-    }),
-  });
+export const UserUpdateWithoutFollowers: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserUpdateWithoutFollowersInput
+> = builder.prismaUpdate('User', {
+  name: 'UserUpdateWithoutFollowers',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserUpdatePosts,
+    comments: UserUpdateComments,
+    profile: UserUpdateProfile,
+    following: UserUpdateFollowing,
+    Media: UserUpdateMedia,
+  }),
+});
 export const FollowUpdateTo = builder.prismaUpdateRelation('Follow', 'to', {
   fields: () => ({
     create: UserCreateWithoutFollowers,
@@ -842,15 +884,17 @@ export const FollowUpdateTo = builder.prismaUpdateRelation('Follow', 'to', {
     connect: UserUniqueFilter,
   }),
 });
-export const FollowUpdateWithoutFrom: InputObjectRef<Prisma.Prisma.FollowUpdateWithoutFromInput> =
-  builder.prismaUpdate('Follow', {
-    name: 'FollowUpdateWithoutFrom',
-    fields: () => ({
-      toId: 'Int',
-      to: FollowUpdateTo,
-    }),
-  });
-export const FollowWithoutFromFilter: InputObjectRef<Prisma.Prisma.FollowWhereInput> =
+export const FollowUpdateWithoutFrom: InputObjectRef<
+  Types,
+  Prisma.Prisma.FollowUpdateWithoutFromInput
+> = builder.prismaUpdate('Follow', {
+  name: 'FollowUpdateWithoutFrom',
+  fields: () => ({
+    toId: 'Int',
+    to: FollowUpdateTo,
+  }),
+});
+export const FollowWithoutFromFilter: InputObjectRef<Types, Prisma.Prisma.FollowWhereInput> =
   builder.prismaWhere('Follow', {
     name: 'FollowWithoutFromFilter',
     fields: () => ({
@@ -876,20 +920,22 @@ export const UserUpdateFollowing = builder.prismaUpdateRelation('User', 'followi
     deleteMany: FollowWithoutFromFilter,
   }),
 });
-export const UserUpdateWithoutComments: InputObjectRef<Prisma.Prisma.UserUpdateWithoutCommentsInput> =
-  builder.prismaUpdate('User', {
-    name: 'UserUpdateWithoutComments',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserUpdatePosts,
-      profile: UserUpdateProfile,
-      followers: UserUpdateFollowers,
-      following: UserUpdateFollowing,
-      Media: UserUpdateMedia,
-    }),
-  });
+export const UserUpdateWithoutComments: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserUpdateWithoutCommentsInput
+> = builder.prismaUpdate('User', {
+  name: 'UserUpdateWithoutComments',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserUpdatePosts,
+    profile: UserUpdateProfile,
+    followers: UserUpdateFollowers,
+    following: UserUpdateFollowing,
+    Media: UserUpdateMedia,
+  }),
+});
 export const CommentUpdateAuthor = builder.prismaUpdateRelation('Comment', 'author', {
   fields: () => ({
     create: UserCreateWithoutComments,
@@ -897,18 +943,20 @@ export const CommentUpdateAuthor = builder.prismaUpdateRelation('Comment', 'auth
     connect: UserUniqueFilter,
   }),
 });
-export const CommentUpdateWithoutPost: InputObjectRef<Prisma.Prisma.CommentUpdateWithoutPostInput> =
-  builder.prismaUpdate('Comment', {
-    name: 'CommentUpdateWithoutPost',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      content: 'String',
-      author: CommentUpdateAuthor,
-      authorId: 'Int',
-    }),
-  });
-export const CommentWithoutPostFilter: InputObjectRef<Prisma.Prisma.CommentWhereInput> =
+export const CommentUpdateWithoutPost: InputObjectRef<
+  Types,
+  Prisma.Prisma.CommentUpdateWithoutPostInput
+> = builder.prismaUpdate('Comment', {
+  name: 'CommentUpdateWithoutPost',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    content: 'String',
+    author: CommentUpdateAuthor,
+    authorId: 'Int',
+  }),
+});
+export const CommentWithoutPostFilter: InputObjectRef<Types, Prisma.Prisma.CommentWhereInput> =
   builder.prismaWhere('Comment', {
     name: 'CommentWithoutPostFilter',
     fields: () => ({
@@ -937,25 +985,27 @@ export const PostUpdateComments = builder.prismaUpdateRelation('Post', 'comments
     deleteMany: CommentWithoutPostFilter,
   }),
 });
-export const PostUpdateWithoutAuthor: InputObjectRef<Prisma.Prisma.PostUpdateWithoutAuthorInput> =
-  builder.prismaUpdate('Post', {
-    name: 'PostUpdateWithoutAuthor',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      updatedAt: 'DateTime',
-      title: 'String',
-      content: 'String',
-      published: 'Boolean',
-      comments: PostUpdateComments,
-      media: PostUpdateMedia,
-      tags: 'String',
-      categories: Prisma.Category,
-      ratings: 'Int',
-      views: 'Int',
-    }),
-  });
-export const PostWithoutAuthorFilter: InputObjectRef<Prisma.Prisma.PostWhereInput> =
+export const PostUpdateWithoutAuthor: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostUpdateWithoutAuthorInput
+> = builder.prismaUpdate('Post', {
+  name: 'PostUpdateWithoutAuthor',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    updatedAt: 'DateTime',
+    title: 'String',
+    content: 'String',
+    published: 'Boolean',
+    comments: PostUpdateComments,
+    media: PostUpdateMedia,
+    tags: 'String',
+    categories: Prisma.Category,
+    ratings: 'Int',
+    views: 'Int',
+  }),
+});
+export const PostWithoutAuthorFilter: InputObjectRef<Types, Prisma.Prisma.PostWhereInput> =
   builder.prismaWhere('Post', {
     name: 'PostWithoutAuthorFilter',
     fields: () => ({
@@ -991,20 +1041,22 @@ export const UserUpdatePosts = builder.prismaUpdateRelation('User', 'posts', {
     deleteMany: PostWithoutAuthorFilter,
   }),
 });
-export const UserUpdateWithoutMedia: InputObjectRef<Prisma.Prisma.UserUpdateWithoutMediaInput> =
-  builder.prismaUpdate('User', {
-    name: 'UserUpdateWithoutMedia',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserUpdatePosts,
-      comments: UserUpdateComments,
-      profile: UserUpdateProfile,
-      followers: UserUpdateFollowers,
-      following: UserUpdateFollowing,
-    }),
-  });
+export const UserUpdateWithoutMedia: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserUpdateWithoutMediaInput
+> = builder.prismaUpdate('User', {
+  name: 'UserUpdateWithoutMedia',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserUpdatePosts,
+    comments: UserUpdateComments,
+    profile: UserUpdateProfile,
+    followers: UserUpdateFollowers,
+    following: UserUpdateFollowing,
+  }),
+});
 export const MediaUpdateUploadedBy = builder.prismaUpdateRelation('Media', 'uploadedBy', {
   fields: () => ({
     create: UserCreateWithoutMedia,
@@ -1012,16 +1064,18 @@ export const MediaUpdateUploadedBy = builder.prismaUpdateRelation('Media', 'uplo
     connect: UserUniqueFilter,
   }),
 });
-export const MediaUpdateWithoutPosts: InputObjectRef<Prisma.Prisma.MediaUpdateWithoutPostsInput> =
-  builder.prismaUpdate('Media', {
-    name: 'MediaUpdateWithoutPosts',
-    fields: () => ({
-      id: 'Int',
-      url: 'String',
-      uploadedBy: MediaUpdateUploadedBy,
-      uploadedById: 'Int',
-    }),
-  });
+export const MediaUpdateWithoutPosts: InputObjectRef<
+  Types,
+  Prisma.Prisma.MediaUpdateWithoutPostsInput
+> = builder.prismaUpdate('Media', {
+  name: 'MediaUpdateWithoutPosts',
+  fields: () => ({
+    id: 'Int',
+    url: 'String',
+    uploadedBy: MediaUpdateUploadedBy,
+    uploadedById: 'Int',
+  }),
+});
 export const PostMediaUpdateMedia = builder.prismaUpdateRelation('PostMedia', 'media', {
   fields: () => ({
     create: MediaCreateWithoutPosts,
@@ -1029,17 +1083,19 @@ export const PostMediaUpdateMedia = builder.prismaUpdateRelation('PostMedia', 'm
     connect: MediaUniqueFilter,
   }),
 });
-export const PostMediaUpdateWithoutPost: InputObjectRef<Prisma.Prisma.PostMediaUpdateWithoutPostInput> =
-  builder.prismaUpdate('PostMedia', {
-    name: 'PostMediaUpdateWithoutPost',
-    fields: () => ({
-      id: 'Int',
-      media: PostMediaUpdateMedia,
-      mediaId: 'Int',
-      order: 'Int',
-    }),
-  });
-export const PostMediaWithoutPostFilter: InputObjectRef<Prisma.Prisma.PostMediaWhereInput> =
+export const PostMediaUpdateWithoutPost: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostMediaUpdateWithoutPostInput
+> = builder.prismaUpdate('PostMedia', {
+  name: 'PostMediaUpdateWithoutPost',
+  fields: () => ({
+    id: 'Int',
+    media: PostMediaUpdateMedia,
+    mediaId: 'Int',
+    order: 'Int',
+  }),
+});
+export const PostMediaWithoutPostFilter: InputObjectRef<Types, Prisma.Prisma.PostMediaWhereInput> =
   builder.prismaWhere('PostMedia', {
     name: 'PostMediaWithoutPostFilter',
     fields: () => ({
@@ -1067,25 +1123,27 @@ export const PostUpdateMedia = builder.prismaUpdateRelation('Post', 'media', {
     deleteMany: PostMediaWithoutPostFilter,
   }),
 });
-export const PostUpdateWithoutComments: InputObjectRef<Prisma.Prisma.PostUpdateWithoutCommentsInput> =
-  builder.prismaUpdate('Post', {
-    name: 'PostUpdateWithoutComments',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      updatedAt: 'DateTime',
-      title: 'String',
-      content: 'String',
-      published: 'Boolean',
-      author: PostUpdateAuthor,
-      authorId: 'Int',
-      media: PostUpdateMedia,
-      tags: 'String',
-      categories: Prisma.Category,
-      ratings: 'Int',
-      views: 'Int',
-    }),
-  });
+export const PostUpdateWithoutComments: InputObjectRef<
+  Types,
+  Prisma.Prisma.PostUpdateWithoutCommentsInput
+> = builder.prismaUpdate('Post', {
+  name: 'PostUpdateWithoutComments',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    updatedAt: 'DateTime',
+    title: 'String',
+    content: 'String',
+    published: 'Boolean',
+    author: PostUpdateAuthor,
+    authorId: 'Int',
+    media: PostUpdateMedia,
+    tags: 'String',
+    categories: Prisma.Category,
+    ratings: 'Int',
+    views: 'Int',
+  }),
+});
 export const CommentUpdatePost = builder.prismaUpdateRelation('Comment', 'post', {
   fields: () => ({
     create: PostCreateWithoutComments,
@@ -1093,18 +1151,20 @@ export const CommentUpdatePost = builder.prismaUpdateRelation('Comment', 'post',
     connect: PostUniqueFilter,
   }),
 });
-export const CommentUpdateWithoutAuthor: InputObjectRef<Prisma.Prisma.CommentUpdateWithoutAuthorInput> =
-  builder.prismaUpdate('Comment', {
-    name: 'CommentUpdateWithoutAuthor',
-    fields: () => ({
-      id: 'Int',
-      createdAt: 'DateTime',
-      content: 'String',
-      post: CommentUpdatePost,
-      postId: 'Int',
-    }),
-  });
-export const CommentWithoutAuthorFilter: InputObjectRef<Prisma.Prisma.CommentWhereInput> =
+export const CommentUpdateWithoutAuthor: InputObjectRef<
+  Types,
+  Prisma.Prisma.CommentUpdateWithoutAuthorInput
+> = builder.prismaUpdate('Comment', {
+  name: 'CommentUpdateWithoutAuthor',
+  fields: () => ({
+    id: 'Int',
+    createdAt: 'DateTime',
+    content: 'String',
+    post: CommentUpdatePost,
+    postId: 'Int',
+  }),
+});
+export const CommentWithoutAuthorFilter: InputObjectRef<Types, Prisma.Prisma.CommentWhereInput> =
   builder.prismaWhere('Comment', {
     name: 'CommentWithoutAuthorFilter',
     fields: () => ({
@@ -1133,20 +1193,22 @@ export const UserUpdateComments = builder.prismaUpdateRelation('User', 'comments
     deleteMany: CommentWithoutAuthorFilter,
   }),
 });
-export const UserUpdateWithoutPosts: InputObjectRef<Prisma.Prisma.UserUpdateWithoutPostsInput> =
-  builder.prismaUpdate('User', {
-    name: 'UserUpdateWithoutPosts',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      comments: UserUpdateComments,
-      profile: UserUpdateProfile,
-      followers: UserUpdateFollowers,
-      following: UserUpdateFollowing,
-      Media: UserUpdateMedia,
-    }),
-  });
+export const UserUpdateWithoutPosts: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserUpdateWithoutPostsInput
+> = builder.prismaUpdate('User', {
+  name: 'UserUpdateWithoutPosts',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    comments: UserUpdateComments,
+    profile: UserUpdateProfile,
+    followers: UserUpdateFollowers,
+    following: UserUpdateFollowing,
+    Media: UserUpdateMedia,
+  }),
+});
 export const PostUpdateAuthor = builder.prismaUpdateRelation('Post', 'author', {
   fields: () => ({
     create: UserCreateWithoutPosts,
@@ -1154,9 +1216,8 @@ export const PostUpdateAuthor = builder.prismaUpdateRelation('Post', 'author', {
     connect: UserUniqueFilter,
   }),
 });
-export const PostUpdate: InputObjectRef<Prisma.Prisma.PostUpdateInput> = builder.prismaUpdate(
-  'Post',
-  {
+export const PostUpdate: InputObjectRef<Types, Prisma.Prisma.PostUpdateInput> =
+  builder.prismaUpdate('Post', {
     name: 'PostUpdate',
     fields: () => ({
       id: 'Int',
@@ -1174,11 +1235,9 @@ export const PostUpdate: InputObjectRef<Prisma.Prisma.PostUpdateInput> = builder
       ratings: 'Int',
       views: 'Int',
     }),
-  },
-);
-export const MediaCreate: InputObjectRef<Prisma.Prisma.MediaCreateInput> = builder.prismaCreate(
-  'Media',
-  {
+  });
+export const MediaCreate: InputObjectRef<Types, Prisma.Prisma.MediaCreateInput> =
+  builder.prismaCreate('Media', {
     name: 'MediaCreate',
     fields: () => ({
       id: 'Int',
@@ -1187,11 +1246,9 @@ export const MediaCreate: InputObjectRef<Prisma.Prisma.MediaCreateInput> = build
       uploadedBy: MediaCreateUploadedBy,
       uploadedById: 'Int',
     }),
-  },
-);
-export const MediaUpdate: InputObjectRef<Prisma.Prisma.MediaUpdateInput> = builder.prismaUpdate(
-  'Media',
-  {
+  });
+export const MediaUpdate: InputObjectRef<Types, Prisma.Prisma.MediaUpdateInput> =
+  builder.prismaUpdate('Media', {
     name: 'MediaUpdate',
     fields: () => ({
       id: 'Int',
@@ -1200,9 +1257,8 @@ export const MediaUpdate: InputObjectRef<Prisma.Prisma.MediaUpdateInput> = build
       uploadedBy: MediaUpdateUploadedBy,
       uploadedById: 'Int',
     }),
-  },
-);
-export const PostMediaCreate: InputObjectRef<Prisma.Prisma.PostMediaCreateInput> =
+  });
+export const PostMediaCreate: InputObjectRef<Types, Prisma.Prisma.PostMediaCreateInput> =
   builder.prismaCreate('PostMedia', {
     name: 'PostMediaCreate',
     fields: () => ({
@@ -1214,7 +1270,7 @@ export const PostMediaCreate: InputObjectRef<Prisma.Prisma.PostMediaCreateInput>
       order: 'Int',
     }),
   });
-export const PostMediaUpdate: InputObjectRef<Prisma.Prisma.PostMediaUpdateInput> =
+export const PostMediaUpdate: InputObjectRef<Types, Prisma.Prisma.PostMediaUpdateInput> =
   builder.prismaUpdate('PostMedia', {
     name: 'PostMediaUpdate',
     fields: () => ({
@@ -1226,9 +1282,8 @@ export const PostMediaUpdate: InputObjectRef<Prisma.Prisma.PostMediaUpdateInput>
       order: 'Int',
     }),
   });
-export const CommentCreate: InputObjectRef<Prisma.Prisma.CommentCreateInput> = builder.prismaCreate(
-  'Comment',
-  {
+export const CommentCreate: InputObjectRef<Types, Prisma.Prisma.CommentCreateInput> =
+  builder.prismaCreate('Comment', {
     name: 'CommentCreate',
     fields: () => ({
       id: 'Int',
@@ -1239,11 +1294,9 @@ export const CommentCreate: InputObjectRef<Prisma.Prisma.CommentCreateInput> = b
       authorId: 'Int',
       postId: 'Int',
     }),
-  },
-);
-export const CommentUpdate: InputObjectRef<Prisma.Prisma.CommentUpdateInput> = builder.prismaUpdate(
-  'Comment',
-  {
+  });
+export const CommentUpdate: InputObjectRef<Types, Prisma.Prisma.CommentUpdateInput> =
+  builder.prismaUpdate('Comment', {
     name: 'CommentUpdate',
     fields: () => ({
       id: 'Int',
@@ -1254,31 +1307,31 @@ export const CommentUpdate: InputObjectRef<Prisma.Prisma.CommentUpdateInput> = b
       authorId: 'Int',
       postId: 'Int',
     }),
-  },
-);
-export const UserCreateWithoutProfile: InputObjectRef<Prisma.Prisma.UserCreateWithoutProfileInput> =
-  builder.prismaCreate('User', {
-    name: 'UserCreateWithoutProfile',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserCreatePosts,
-      comments: UserCreateComments,
-      followers: UserCreateFollowers,
-      following: UserCreateFollowing,
-      Media: UserCreateMedia,
-    }),
   });
+export const UserCreateWithoutProfile: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserCreateWithoutProfileInput
+> = builder.prismaCreate('User', {
+  name: 'UserCreateWithoutProfile',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserCreatePosts,
+    comments: UserCreateComments,
+    followers: UserCreateFollowers,
+    following: UserCreateFollowing,
+    Media: UserCreateMedia,
+  }),
+});
 export const ProfileCreateUser = builder.prismaCreateRelation('Profile', 'user', {
   fields: () => ({
     create: UserCreateWithoutProfile,
     connect: UserUniqueFilter,
   }),
 });
-export const ProfileCreate: InputObjectRef<Prisma.Prisma.ProfileCreateInput> = builder.prismaCreate(
-  'Profile',
-  {
+export const ProfileCreate: InputObjectRef<Types, Prisma.Prisma.ProfileCreateInput> =
+  builder.prismaCreate('Profile', {
     name: 'ProfileCreate',
     fields: () => ({
       id: 'Int',
@@ -1286,22 +1339,23 @@ export const ProfileCreate: InputObjectRef<Prisma.Prisma.ProfileCreateInput> = b
       user: ProfileCreateUser,
       userId: 'Int',
     }),
-  },
-);
-export const UserUpdateWithoutProfile: InputObjectRef<Prisma.Prisma.UserUpdateWithoutProfileInput> =
-  builder.prismaUpdate('User', {
-    name: 'UserUpdateWithoutProfile',
-    fields: () => ({
-      id: 'Int',
-      email: 'String',
-      name: 'String',
-      posts: UserUpdatePosts,
-      comments: UserUpdateComments,
-      followers: UserUpdateFollowers,
-      following: UserUpdateFollowing,
-      Media: UserUpdateMedia,
-    }),
   });
+export const UserUpdateWithoutProfile: InputObjectRef<
+  Types,
+  Prisma.Prisma.UserUpdateWithoutProfileInput
+> = builder.prismaUpdate('User', {
+  name: 'UserUpdateWithoutProfile',
+  fields: () => ({
+    id: 'Int',
+    email: 'String',
+    name: 'String',
+    posts: UserUpdatePosts,
+    comments: UserUpdateComments,
+    followers: UserUpdateFollowers,
+    following: UserUpdateFollowing,
+    Media: UserUpdateMedia,
+  }),
+});
 export const ProfileUpdateUser = builder.prismaUpdateRelation('Profile', 'user', {
   fields: () => ({
     create: UserCreateWithoutProfile,
@@ -1311,9 +1365,8 @@ export const ProfileUpdateUser = builder.prismaUpdateRelation('Profile', 'user',
     delete: true,
   }),
 });
-export const ProfileUpdate: InputObjectRef<Prisma.Prisma.ProfileUpdateInput> = builder.prismaUpdate(
-  'Profile',
-  {
+export const ProfileUpdate: InputObjectRef<Types, Prisma.Prisma.ProfileUpdateInput> =
+  builder.prismaUpdate('Profile', {
     name: 'ProfileUpdate',
     fields: () => ({
       id: 'Int',
@@ -1321,11 +1374,9 @@ export const ProfileUpdate: InputObjectRef<Prisma.Prisma.ProfileUpdateInput> = b
       user: ProfileUpdateUser,
       userId: 'Int',
     }),
-  },
-);
-export const UserCreate: InputObjectRef<Prisma.Prisma.UserCreateInput> = builder.prismaCreate(
-  'User',
-  {
+  });
+export const UserCreate: InputObjectRef<Types, Prisma.Prisma.UserCreateInput> =
+  builder.prismaCreate('User', {
     name: 'UserCreate',
     fields: () => ({
       id: 'Int',
@@ -1338,11 +1389,9 @@ export const UserCreate: InputObjectRef<Prisma.Prisma.UserCreateInput> = builder
       following: UserCreateFollowing,
       Media: UserCreateMedia,
     }),
-  },
-);
-export const UserUpdate: InputObjectRef<Prisma.Prisma.UserUpdateInput> = builder.prismaUpdate(
-  'User',
-  {
+  });
+export const UserUpdate: InputObjectRef<Types, Prisma.Prisma.UserUpdateInput> =
+  builder.prismaUpdate('User', {
     name: 'UserUpdate',
     fields: () => ({
       id: 'Int',
@@ -1355,11 +1404,9 @@ export const UserUpdate: InputObjectRef<Prisma.Prisma.UserUpdateInput> = builder
       following: UserUpdateFollowing,
       Media: UserUpdateMedia,
     }),
-  },
-);
-export const FollowCreate: InputObjectRef<Prisma.Prisma.FollowCreateInput> = builder.prismaCreate(
-  'Follow',
-  {
+  });
+export const FollowCreate: InputObjectRef<Types, Prisma.Prisma.FollowCreateInput> =
+  builder.prismaCreate('Follow', {
     name: 'FollowCreate',
     fields: () => ({
       fromId: 'Int',
@@ -1367,11 +1414,9 @@ export const FollowCreate: InputObjectRef<Prisma.Prisma.FollowCreateInput> = bui
       from: FollowCreateFrom,
       to: FollowCreateTo,
     }),
-  },
-);
-export const FollowUpdate: InputObjectRef<Prisma.Prisma.FollowUpdateInput> = builder.prismaUpdate(
-  'Follow',
-  {
+  });
+export const FollowUpdate: InputObjectRef<Types, Prisma.Prisma.FollowUpdateInput> =
+  builder.prismaUpdate('Follow', {
     name: 'FollowUpdate',
     fields: () => ({
       fromId: 'Int',
@@ -1379,9 +1424,8 @@ export const FollowUpdate: InputObjectRef<Prisma.Prisma.FollowUpdateInput> = bui
       from: FollowUpdateFrom,
       to: FollowUpdateTo,
     }),
-  },
-);
-export const UnrelatedFilter: InputObjectRef<Prisma.Prisma.UnrelatedWhereInput> =
+  });
+export const UnrelatedFilter: InputObjectRef<Types, Prisma.Prisma.UnrelatedWhereInput> =
   builder.prismaWhere('Unrelated', {
     name: 'UnrelatedFilter',
     fields: () => ({
@@ -1395,15 +1439,17 @@ export const UnrelatedUniqueFilter = builder.prismaWhereUnique('Unrelated', {
     id: 'Int',
   }),
 });
-export const UnrelatedOrderBy: InputObjectRef<Prisma.Prisma.UnrelatedOrderByWithRelationInput> =
-  builder.prismaOrderBy('Unrelated', {
-    name: 'UnrelatedOrderBy',
-    fields: () => ({
-      id: true,
-      name: true,
-    }),
-  });
-export const UnrelatedCreate: InputObjectRef<Prisma.Prisma.UnrelatedCreateInput> =
+export const UnrelatedOrderBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.UnrelatedOrderByWithRelationInput
+> = builder.prismaOrderBy('Unrelated', {
+  name: 'UnrelatedOrderBy',
+  fields: () => ({
+    id: true,
+    name: true,
+  }),
+});
+export const UnrelatedCreate: InputObjectRef<Types, Prisma.Prisma.UnrelatedCreateInput> =
   builder.prismaCreate('Unrelated', {
     name: 'UnrelatedCreate',
     fields: () => ({
@@ -1411,7 +1457,7 @@ export const UnrelatedCreate: InputObjectRef<Prisma.Prisma.UnrelatedCreateInput>
       name: 'String',
     }),
   });
-export const UnrelatedUpdate: InputObjectRef<Prisma.Prisma.UnrelatedUpdateInput> =
+export const UnrelatedUpdate: InputObjectRef<Types, Prisma.Prisma.UnrelatedUpdateInput> =
   builder.prismaUpdate('Unrelated', {
     name: 'UnrelatedUpdate',
     fields: () => ({
@@ -1419,34 +1465,34 @@ export const UnrelatedUpdate: InputObjectRef<Prisma.Prisma.UnrelatedUpdateInput>
       name: 'String',
     }),
   });
-export const WithIDFilter: InputObjectRef<Prisma.Prisma.WithIDWhereInput> = builder.prismaWhere(
-  'WithID',
-  {
+export const WithIDFilter: InputObjectRef<Types, Prisma.Prisma.WithIDWhereInput> =
+  builder.prismaWhere('WithID', {
     name: 'WithIDFilter',
     fields: () => ({
       id: StringFilter,
       FindUniqueRelations: FindUniqueRelationsListFilter,
     }),
-  },
-);
-export const FindUniqueRelationsFilter: InputObjectRef<Prisma.Prisma.FindUniqueRelationsWhereInput> =
-  builder.prismaWhere('FindUniqueRelations', {
-    name: 'FindUniqueRelationsFilter',
-    fields: () => ({
-      id: StringFilter,
-      withID_id: StringFilter,
-      withID: WithIDFilter,
-      withUnique_id: StringFilter,
-      withUnique: WithUniqueFilter,
-      withCompositeID_a: StringFilter,
-      withCompositeID_b: StringFilter,
-      withCompositeID: WithCompositeIDFilter,
-      withCompositeUnique_a: StringFilter,
-      withCompositeUnique_b: StringFilter,
-      withCompositeUnique: WithCompositeUniqueFilter,
-    }),
   });
-export const WithUniqueFilter: InputObjectRef<Prisma.Prisma.WithUniqueWhereInput> =
+export const FindUniqueRelationsFilter: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsWhereInput
+> = builder.prismaWhere('FindUniqueRelations', {
+  name: 'FindUniqueRelationsFilter',
+  fields: () => ({
+    id: StringFilter,
+    withID_id: StringFilter,
+    withID: WithIDFilter,
+    withUnique_id: StringFilter,
+    withUnique: WithUniqueFilter,
+    withCompositeID_a: StringFilter,
+    withCompositeID_b: StringFilter,
+    withCompositeID: WithCompositeIDFilter,
+    withCompositeUnique_a: StringFilter,
+    withCompositeUnique_b: StringFilter,
+    withCompositeUnique: WithCompositeUniqueFilter,
+  }),
+});
+export const WithUniqueFilter: InputObjectRef<Types, Prisma.Prisma.WithUniqueWhereInput> =
   builder.prismaWhere('WithUnique', {
     name: 'WithUniqueFilter',
     fields: () => ({
@@ -1458,7 +1504,7 @@ export const FindUniqueRelationsListFilter = builder.prismaListFilter(FindUnique
   name: 'FindUniqueRelationsListFilter',
   ops: ['every', 'some', 'none'],
 });
-export const WithCompositeIDFilter: InputObjectRef<Prisma.Prisma.WithCompositeIDWhereInput> =
+export const WithCompositeIDFilter: InputObjectRef<Types, Prisma.Prisma.WithCompositeIDWhereInput> =
   builder.prismaWhere('WithCompositeID', {
     name: 'WithCompositeIDFilter',
     fields: () => ({
@@ -1467,67 +1513,77 @@ export const WithCompositeIDFilter: InputObjectRef<Prisma.Prisma.WithCompositeID
       FindUniqueRelations: FindUniqueRelationsListFilter,
     }),
   });
-export const WithCompositeUniqueFilter: InputObjectRef<Prisma.Prisma.WithCompositeUniqueWhereInput> =
-  builder.prismaWhere('WithCompositeUnique', {
-    name: 'WithCompositeUniqueFilter',
-    fields: () => ({
-      a: StringFilter,
-      c: StringFilter,
-      b: StringFilter,
-      FindUniqueRelations: FindUniqueRelationsListFilter,
-    }),
-  });
+export const WithCompositeUniqueFilter: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeUniqueWhereInput
+> = builder.prismaWhere('WithCompositeUnique', {
+  name: 'WithCompositeUniqueFilter',
+  fields: () => ({
+    a: StringFilter,
+    c: StringFilter,
+    b: StringFilter,
+    FindUniqueRelations: FindUniqueRelationsListFilter,
+  }),
+});
 export const WithIDUniqueFilter = builder.prismaWhereUnique('WithID', {
   name: 'WithIDUniqueFilter',
   fields: () => ({
     id: 'String',
   }),
 });
-export const WithUniqueOrderBy: InputObjectRef<Prisma.Prisma.WithUniqueOrderByWithRelationInput> =
-  builder.prismaOrderBy('WithUnique', {
-    name: 'WithUniqueOrderBy',
-    fields: () => ({
-      id: true,
-      FindUniqueRelations: FindUniqueRelationsOrderBy,
-    }),
-  });
-export const WithCompositeIDOrderBy: InputObjectRef<Prisma.Prisma.WithCompositeIDOrderByWithRelationInput> =
-  builder.prismaOrderBy('WithCompositeID', {
-    name: 'WithCompositeIDOrderBy',
-    fields: () => ({
-      a: true,
-      b: true,
-      FindUniqueRelations: FindUniqueRelationsOrderBy,
-    }),
-  });
-export const WithCompositeUniqueOrderBy: InputObjectRef<Prisma.Prisma.WithCompositeUniqueOrderByWithRelationInput> =
-  builder.prismaOrderBy('WithCompositeUnique', {
-    name: 'WithCompositeUniqueOrderBy',
-    fields: () => ({
-      a: true,
-      c: true,
-      b: true,
-      FindUniqueRelations: FindUniqueRelationsOrderBy,
-    }),
-  });
-export const FindUniqueRelationsOrderBy: InputObjectRef<Prisma.Prisma.FindUniqueRelationsOrderByWithRelationInput> =
-  builder.prismaOrderBy('FindUniqueRelations', {
-    name: 'FindUniqueRelationsOrderBy',
-    fields: () => ({
-      id: true,
-      withID_id: true,
-      withID: WithIDOrderBy,
-      withUnique_id: true,
-      withUnique: WithUniqueOrderBy,
-      withCompositeID_a: true,
-      withCompositeID_b: true,
-      withCompositeID: WithCompositeIDOrderBy,
-      withCompositeUnique_a: true,
-      withCompositeUnique_b: true,
-      withCompositeUnique: WithCompositeUniqueOrderBy,
-    }),
-  });
-export const WithIDOrderBy: InputObjectRef<Prisma.Prisma.WithIDOrderByWithRelationInput> =
+export const WithUniqueOrderBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithUniqueOrderByWithRelationInput
+> = builder.prismaOrderBy('WithUnique', {
+  name: 'WithUniqueOrderBy',
+  fields: () => ({
+    id: true,
+    FindUniqueRelations: FindUniqueRelationsOrderBy,
+  }),
+});
+export const WithCompositeIDOrderBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeIDOrderByWithRelationInput
+> = builder.prismaOrderBy('WithCompositeID', {
+  name: 'WithCompositeIDOrderBy',
+  fields: () => ({
+    a: true,
+    b: true,
+    FindUniqueRelations: FindUniqueRelationsOrderBy,
+  }),
+});
+export const WithCompositeUniqueOrderBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeUniqueOrderByWithRelationInput
+> = builder.prismaOrderBy('WithCompositeUnique', {
+  name: 'WithCompositeUniqueOrderBy',
+  fields: () => ({
+    a: true,
+    c: true,
+    b: true,
+    FindUniqueRelations: FindUniqueRelationsOrderBy,
+  }),
+});
+export const FindUniqueRelationsOrderBy: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsOrderByWithRelationInput
+> = builder.prismaOrderBy('FindUniqueRelations', {
+  name: 'FindUniqueRelationsOrderBy',
+  fields: () => ({
+    id: true,
+    withID_id: true,
+    withID: WithIDOrderBy,
+    withUnique_id: true,
+    withUnique: WithUniqueOrderBy,
+    withCompositeID_a: true,
+    withCompositeID_b: true,
+    withCompositeID: WithCompositeIDOrderBy,
+    withCompositeUnique_a: true,
+    withCompositeUnique_b: true,
+    withCompositeUnique: WithCompositeUniqueOrderBy,
+  }),
+});
+export const WithIDOrderBy: InputObjectRef<Types, Prisma.Prisma.WithIDOrderByWithRelationInput> =
   builder.prismaOrderBy('WithID', {
     name: 'WithIDOrderBy',
     fields: () => ({
@@ -1535,13 +1591,15 @@ export const WithIDOrderBy: InputObjectRef<Prisma.Prisma.WithIDOrderByWithRelati
       FindUniqueRelations: FindUniqueRelationsOrderBy,
     }),
   });
-export const WithUniqueCreateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithUniqueCreateWithoutFindUniqueRelationsInput> =
-  builder.prismaCreate('WithUnique', {
-    name: 'WithUniqueCreateWithoutFindUniqueRelations',
-    fields: () => ({
-      id: 'String',
-    }),
-  });
+export const WithUniqueCreateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithUniqueCreateWithoutFindUniqueRelationsInput
+> = builder.prismaCreate('WithUnique', {
+  name: 'WithUniqueCreateWithoutFindUniqueRelations',
+  fields: () => ({
+    id: 'String',
+  }),
+});
 export const WithUniqueUniqueFilter = builder.prismaWhereUnique('WithUnique', {
   name: 'WithUniqueUniqueFilter',
   fields: () => ({
@@ -1558,14 +1616,16 @@ export const FindUniqueRelationsCreateWithUnique = builder.prismaCreateRelation(
     }),
   },
 );
-export const WithCompositeIDCreateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithCompositeIDCreateWithoutFindUniqueRelationsInput> =
-  builder.prismaCreate('WithCompositeID', {
-    name: 'WithCompositeIDCreateWithoutFindUniqueRelations',
-    fields: () => ({
-      a: 'String',
-      b: 'String',
-    }),
-  });
+export const WithCompositeIDCreateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeIDCreateWithoutFindUniqueRelationsInput
+> = builder.prismaCreate('WithCompositeID', {
+  name: 'WithCompositeIDCreateWithoutFindUniqueRelations',
+  fields: () => ({
+    a: 'String',
+    b: 'String',
+  }),
+});
 export const WithCompositeIDUniqueFilter = builder.prismaWhereUnique('WithCompositeID', {
   name: 'WithCompositeIDUniqueFilter',
   fields: () => ({
@@ -1582,15 +1642,17 @@ export const FindUniqueRelationsCreateWithCompositeID = builder.prismaCreateRela
     }),
   },
 );
-export const WithCompositeUniqueCreateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithCompositeUniqueCreateWithoutFindUniqueRelationsInput> =
-  builder.prismaCreate('WithCompositeUnique', {
-    name: 'WithCompositeUniqueCreateWithoutFindUniqueRelations',
-    fields: () => ({
-      a: 'String',
-      c: 'String',
-      b: 'String',
-    }),
-  });
+export const WithCompositeUniqueCreateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeUniqueCreateWithoutFindUniqueRelationsInput
+> = builder.prismaCreate('WithCompositeUnique', {
+  name: 'WithCompositeUniqueCreateWithoutFindUniqueRelations',
+  fields: () => ({
+    a: 'String',
+    c: 'String',
+    b: 'String',
+  }),
+});
 export const WithCompositeUniqueUniqueFilter = builder.prismaWhereUnique('WithCompositeUnique', {
   name: 'WithCompositeUniqueUniqueFilter',
   fields: () => ({
@@ -1609,21 +1671,23 @@ export const FindUniqueRelationsCreateWithCompositeUnique = builder.prismaCreate
     }),
   },
 );
-export const FindUniqueRelationsCreateWithoutWithID: InputObjectRef<Prisma.Prisma.FindUniqueRelationsCreateWithoutWithIDInput> =
-  builder.prismaCreate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsCreateWithoutWithID',
-    fields: () => ({
-      id: 'String',
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsCreateWithUnique,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsCreateWithCompositeID,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
-    }),
-  });
+export const FindUniqueRelationsCreateWithoutWithID: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsCreateWithoutWithIDInput
+> = builder.prismaCreate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsCreateWithoutWithID',
+  fields: () => ({
+    id: 'String',
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsCreateWithUnique,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsCreateWithCompositeID,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
+  }),
+});
 export const FindUniqueRelationsUniqueFilter = builder.prismaWhereUnique('FindUniqueRelations', {
   name: 'FindUniqueRelationsUniqueFilter',
   fields: () => ({
@@ -1640,23 +1704,23 @@ export const WithIDCreateFindUniqueRelations = builder.prismaCreateRelation(
     }),
   },
 );
-export const WithIDCreate: InputObjectRef<Prisma.Prisma.WithIDCreateInput> = builder.prismaCreate(
-  'WithID',
-  {
+export const WithIDCreate: InputObjectRef<Types, Prisma.Prisma.WithIDCreateInput> =
+  builder.prismaCreate('WithID', {
     name: 'WithIDCreate',
     fields: () => ({
       id: 'String',
       FindUniqueRelations: WithIDCreateFindUniqueRelations,
     }),
-  },
-);
-export const WithUniqueUpdateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithUniqueUpdateWithoutFindUniqueRelationsInput> =
-  builder.prismaUpdate('WithUnique', {
-    name: 'WithUniqueUpdateWithoutFindUniqueRelations',
-    fields: () => ({
-      id: 'String',
-    }),
   });
+export const WithUniqueUpdateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithUniqueUpdateWithoutFindUniqueRelationsInput
+> = builder.prismaUpdate('WithUnique', {
+  name: 'WithUniqueUpdateWithoutFindUniqueRelations',
+  fields: () => ({
+    id: 'String',
+  }),
+});
 export const FindUniqueRelationsUpdateWithUnique = builder.prismaUpdateRelation(
   'FindUniqueRelations',
   'withUnique',
@@ -1668,14 +1732,16 @@ export const FindUniqueRelationsUpdateWithUnique = builder.prismaUpdateRelation(
     }),
   },
 );
-export const WithCompositeIDUpdateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithCompositeIDUpdateWithoutFindUniqueRelationsInput> =
-  builder.prismaUpdate('WithCompositeID', {
-    name: 'WithCompositeIDUpdateWithoutFindUniqueRelations',
-    fields: () => ({
-      a: 'String',
-      b: 'String',
-    }),
-  });
+export const WithCompositeIDUpdateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeIDUpdateWithoutFindUniqueRelationsInput
+> = builder.prismaUpdate('WithCompositeID', {
+  name: 'WithCompositeIDUpdateWithoutFindUniqueRelations',
+  fields: () => ({
+    a: 'String',
+    b: 'String',
+  }),
+});
 export const FindUniqueRelationsUpdateWithCompositeID = builder.prismaUpdateRelation(
   'FindUniqueRelations',
   'withCompositeID',
@@ -1687,15 +1753,17 @@ export const FindUniqueRelationsUpdateWithCompositeID = builder.prismaUpdateRela
     }),
   },
 );
-export const WithCompositeUniqueUpdateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithCompositeUniqueUpdateWithoutFindUniqueRelationsInput> =
-  builder.prismaUpdate('WithCompositeUnique', {
-    name: 'WithCompositeUniqueUpdateWithoutFindUniqueRelations',
-    fields: () => ({
-      a: 'String',
-      c: 'String',
-      b: 'String',
-    }),
-  });
+export const WithCompositeUniqueUpdateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeUniqueUpdateWithoutFindUniqueRelationsInput
+> = builder.prismaUpdate('WithCompositeUnique', {
+  name: 'WithCompositeUniqueUpdateWithoutFindUniqueRelations',
+  fields: () => ({
+    a: 'String',
+    c: 'String',
+    b: 'String',
+  }),
+});
 export const FindUniqueRelationsUpdateWithCompositeUnique = builder.prismaUpdateRelation(
   'FindUniqueRelations',
   'withCompositeUnique',
@@ -1707,36 +1775,40 @@ export const FindUniqueRelationsUpdateWithCompositeUnique = builder.prismaUpdate
     }),
   },
 );
-export const FindUniqueRelationsUpdateWithoutWithID: InputObjectRef<Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithIDInput> =
-  builder.prismaUpdate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsUpdateWithoutWithID',
-    fields: () => ({
-      id: 'String',
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsUpdateWithUnique,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
-    }),
-  });
-export const FindUniqueRelationsWithoutWithIDFilter: InputObjectRef<Prisma.Prisma.FindUniqueRelationsWhereInput> =
-  builder.prismaWhere('FindUniqueRelations', {
-    name: 'FindUniqueRelationsWithoutWithIDFilter',
-    fields: () => ({
-      id: StringFilter,
-      withUnique_id: StringFilter,
-      withUnique: WithUniqueFilter,
-      withCompositeID_a: StringFilter,
-      withCompositeID_b: StringFilter,
-      withCompositeID: WithCompositeIDFilter,
-      withCompositeUnique_a: StringFilter,
-      withCompositeUnique_b: StringFilter,
-      withCompositeUnique: WithCompositeUniqueFilter,
-    }),
-  });
+export const FindUniqueRelationsUpdateWithoutWithID: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithIDInput
+> = builder.prismaUpdate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsUpdateWithoutWithID',
+  fields: () => ({
+    id: 'String',
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsUpdateWithUnique,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
+  }),
+});
+export const FindUniqueRelationsWithoutWithIDFilter: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsWhereInput
+> = builder.prismaWhere('FindUniqueRelations', {
+  name: 'FindUniqueRelationsWithoutWithIDFilter',
+  fields: () => ({
+    id: StringFilter,
+    withUnique_id: StringFilter,
+    withUnique: WithUniqueFilter,
+    withCompositeID_a: StringFilter,
+    withCompositeID_b: StringFilter,
+    withCompositeID: WithCompositeIDFilter,
+    withCompositeUnique_a: StringFilter,
+    withCompositeUnique_b: StringFilter,
+    withCompositeUnique: WithCompositeUniqueFilter,
+  }),
+});
 export const WithIDUpdateFindUniqueRelations = builder.prismaUpdateRelation(
   'WithID',
   'FindUniqueRelations',
@@ -1759,23 +1831,23 @@ export const WithIDUpdateFindUniqueRelations = builder.prismaUpdateRelation(
     }),
   },
 );
-export const WithIDUpdate: InputObjectRef<Prisma.Prisma.WithIDUpdateInput> = builder.prismaUpdate(
-  'WithID',
-  {
+export const WithIDUpdate: InputObjectRef<Types, Prisma.Prisma.WithIDUpdateInput> =
+  builder.prismaUpdate('WithID', {
     name: 'WithIDUpdate',
     fields: () => ({
       id: 'String',
       FindUniqueRelations: WithIDUpdateFindUniqueRelations,
     }),
-  },
-);
-export const WithIDCreateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithIDCreateWithoutFindUniqueRelationsInput> =
-  builder.prismaCreate('WithID', {
-    name: 'WithIDCreateWithoutFindUniqueRelations',
-    fields: () => ({
-      id: 'String',
-    }),
   });
+export const WithIDCreateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithIDCreateWithoutFindUniqueRelationsInput
+> = builder.prismaCreate('WithID', {
+  name: 'WithIDCreateWithoutFindUniqueRelations',
+  fields: () => ({
+    id: 'String',
+  }),
+});
 export const FindUniqueRelationsCreateWithID = builder.prismaCreateRelation(
   'FindUniqueRelations',
   'withID',
@@ -1786,21 +1858,23 @@ export const FindUniqueRelationsCreateWithID = builder.prismaCreateRelation(
     }),
   },
 );
-export const FindUniqueRelationsCreateWithoutWithUnique: InputObjectRef<Prisma.Prisma.FindUniqueRelationsCreateWithoutWithUniqueInput> =
-  builder.prismaCreate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsCreateWithoutWithUnique',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsCreateWithID,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsCreateWithCompositeID,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
-    }),
-  });
+export const FindUniqueRelationsCreateWithoutWithUnique: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsCreateWithoutWithUniqueInput
+> = builder.prismaCreate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsCreateWithoutWithUnique',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsCreateWithID,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsCreateWithCompositeID,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
+  }),
+});
 export const WithUniqueCreateFindUniqueRelations = builder.prismaCreateRelation(
   'WithUnique',
   'FindUniqueRelations',
@@ -1811,7 +1885,7 @@ export const WithUniqueCreateFindUniqueRelations = builder.prismaCreateRelation(
     }),
   },
 );
-export const WithUniqueCreate: InputObjectRef<Prisma.Prisma.WithUniqueCreateInput> =
+export const WithUniqueCreate: InputObjectRef<Types, Prisma.Prisma.WithUniqueCreateInput> =
   builder.prismaCreate('WithUnique', {
     name: 'WithUniqueCreate',
     fields: () => ({
@@ -1819,13 +1893,15 @@ export const WithUniqueCreate: InputObjectRef<Prisma.Prisma.WithUniqueCreateInpu
       FindUniqueRelations: WithUniqueCreateFindUniqueRelations,
     }),
   });
-export const WithIDUpdateWithoutFindUniqueRelations: InputObjectRef<Prisma.Prisma.WithIDUpdateWithoutFindUniqueRelationsInput> =
-  builder.prismaUpdate('WithID', {
-    name: 'WithIDUpdateWithoutFindUniqueRelations',
-    fields: () => ({
-      id: 'String',
-    }),
-  });
+export const WithIDUpdateWithoutFindUniqueRelations: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithIDUpdateWithoutFindUniqueRelationsInput
+> = builder.prismaUpdate('WithID', {
+  name: 'WithIDUpdateWithoutFindUniqueRelations',
+  fields: () => ({
+    id: 'String',
+  }),
+});
 export const FindUniqueRelationsUpdateWithID = builder.prismaUpdateRelation(
   'FindUniqueRelations',
   'withID',
@@ -1837,36 +1913,40 @@ export const FindUniqueRelationsUpdateWithID = builder.prismaUpdateRelation(
     }),
   },
 );
-export const FindUniqueRelationsUpdateWithoutWithUnique: InputObjectRef<Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithUniqueInput> =
-  builder.prismaUpdate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsUpdateWithoutWithUnique',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsUpdateWithID,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
-    }),
-  });
-export const FindUniqueRelationsWithoutWithUniqueFilter: InputObjectRef<Prisma.Prisma.FindUniqueRelationsWhereInput> =
-  builder.prismaWhere('FindUniqueRelations', {
-    name: 'FindUniqueRelationsWithoutWithUniqueFilter',
-    fields: () => ({
-      id: StringFilter,
-      withID_id: StringFilter,
-      withID: WithIDFilter,
-      withCompositeID_a: StringFilter,
-      withCompositeID_b: StringFilter,
-      withCompositeID: WithCompositeIDFilter,
-      withCompositeUnique_a: StringFilter,
-      withCompositeUnique_b: StringFilter,
-      withCompositeUnique: WithCompositeUniqueFilter,
-    }),
-  });
+export const FindUniqueRelationsUpdateWithoutWithUnique: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithUniqueInput
+> = builder.prismaUpdate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsUpdateWithoutWithUnique',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsUpdateWithID,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
+  }),
+});
+export const FindUniqueRelationsWithoutWithUniqueFilter: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsWhereInput
+> = builder.prismaWhere('FindUniqueRelations', {
+  name: 'FindUniqueRelationsWithoutWithUniqueFilter',
+  fields: () => ({
+    id: StringFilter,
+    withID_id: StringFilter,
+    withID: WithIDFilter,
+    withCompositeID_a: StringFilter,
+    withCompositeID_b: StringFilter,
+    withCompositeID: WithCompositeIDFilter,
+    withCompositeUnique_a: StringFilter,
+    withCompositeUnique_b: StringFilter,
+    withCompositeUnique: WithCompositeUniqueFilter,
+  }),
+});
 export const WithUniqueUpdateFindUniqueRelations = builder.prismaUpdateRelation(
   'WithUnique',
   'FindUniqueRelations',
@@ -1889,7 +1969,7 @@ export const WithUniqueUpdateFindUniqueRelations = builder.prismaUpdateRelation(
     }),
   },
 );
-export const WithUniqueUpdate: InputObjectRef<Prisma.Prisma.WithUniqueUpdateInput> =
+export const WithUniqueUpdate: InputObjectRef<Types, Prisma.Prisma.WithUniqueUpdateInput> =
   builder.prismaUpdate('WithUnique', {
     name: 'WithUniqueUpdate',
     fields: () => ({
@@ -1897,20 +1977,22 @@ export const WithUniqueUpdate: InputObjectRef<Prisma.Prisma.WithUniqueUpdateInpu
       FindUniqueRelations: WithUniqueUpdateFindUniqueRelations,
     }),
   });
-export const FindUniqueRelationsCreateWithoutWithCompositeID: InputObjectRef<Prisma.Prisma.FindUniqueRelationsCreateWithoutWithCompositeIDInput> =
-  builder.prismaCreate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsCreateWithoutWithCompositeID',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsCreateWithID,
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsCreateWithUnique,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
-    }),
-  });
+export const FindUniqueRelationsCreateWithoutWithCompositeID: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsCreateWithoutWithCompositeIDInput
+> = builder.prismaCreate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsCreateWithoutWithCompositeID',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsCreateWithID,
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsCreateWithUnique,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
+  }),
+});
 export const WithCompositeIDCreateFindUniqueRelations = builder.prismaCreateRelation(
   'WithCompositeID',
   'FindUniqueRelations',
@@ -1921,43 +2003,49 @@ export const WithCompositeIDCreateFindUniqueRelations = builder.prismaCreateRela
     }),
   },
 );
-export const WithCompositeIDCreate: InputObjectRef<Prisma.Prisma.WithCompositeIDCreateInput> =
-  builder.prismaCreate('WithCompositeID', {
-    name: 'WithCompositeIDCreate',
-    fields: () => ({
-      a: 'String',
-      b: 'String',
-      FindUniqueRelations: WithCompositeIDCreateFindUniqueRelations,
-    }),
-  });
-export const FindUniqueRelationsUpdateWithoutWithCompositeID: InputObjectRef<Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithCompositeIDInput> =
-  builder.prismaUpdate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsUpdateWithoutWithCompositeID',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsUpdateWithID,
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsUpdateWithUnique,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
-    }),
-  });
-export const FindUniqueRelationsWithoutWithCompositeIDFilter: InputObjectRef<Prisma.Prisma.FindUniqueRelationsWhereInput> =
-  builder.prismaWhere('FindUniqueRelations', {
-    name: 'FindUniqueRelationsWithoutWithCompositeIDFilter',
-    fields: () => ({
-      id: StringFilter,
-      withID_id: StringFilter,
-      withID: WithIDFilter,
-      withUnique_id: StringFilter,
-      withUnique: WithUniqueFilter,
-      withCompositeUnique_a: StringFilter,
-      withCompositeUnique_b: StringFilter,
-      withCompositeUnique: WithCompositeUniqueFilter,
-    }),
-  });
+export const WithCompositeIDCreate: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeIDCreateInput
+> = builder.prismaCreate('WithCompositeID', {
+  name: 'WithCompositeIDCreate',
+  fields: () => ({
+    a: 'String',
+    b: 'String',
+    FindUniqueRelations: WithCompositeIDCreateFindUniqueRelations,
+  }),
+});
+export const FindUniqueRelationsUpdateWithoutWithCompositeID: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithCompositeIDInput
+> = builder.prismaUpdate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsUpdateWithoutWithCompositeID',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsUpdateWithID,
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsUpdateWithUnique,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
+  }),
+});
+export const FindUniqueRelationsWithoutWithCompositeIDFilter: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsWhereInput
+> = builder.prismaWhere('FindUniqueRelations', {
+  name: 'FindUniqueRelationsWithoutWithCompositeIDFilter',
+  fields: () => ({
+    id: StringFilter,
+    withID_id: StringFilter,
+    withID: WithIDFilter,
+    withUnique_id: StringFilter,
+    withUnique: WithUniqueFilter,
+    withCompositeUnique_a: StringFilter,
+    withCompositeUnique_b: StringFilter,
+    withCompositeUnique: WithCompositeUniqueFilter,
+  }),
+});
 export const WithCompositeIDUpdateFindUniqueRelations = builder.prismaUpdateRelation(
   'WithCompositeID',
   'FindUniqueRelations',
@@ -1980,29 +2068,33 @@ export const WithCompositeIDUpdateFindUniqueRelations = builder.prismaUpdateRela
     }),
   },
 );
-export const WithCompositeIDUpdate: InputObjectRef<Prisma.Prisma.WithCompositeIDUpdateInput> =
-  builder.prismaUpdate('WithCompositeID', {
-    name: 'WithCompositeIDUpdate',
-    fields: () => ({
-      a: 'String',
-      b: 'String',
-      FindUniqueRelations: WithCompositeIDUpdateFindUniqueRelations,
-    }),
-  });
-export const FindUniqueRelationsCreateWithoutWithCompositeUnique: InputObjectRef<Prisma.Prisma.FindUniqueRelationsCreateWithoutWithCompositeUniqueInput> =
-  builder.prismaCreate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsCreateWithoutWithCompositeUnique',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsCreateWithID,
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsCreateWithUnique,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsCreateWithCompositeID,
-    }),
-  });
+export const WithCompositeIDUpdate: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeIDUpdateInput
+> = builder.prismaUpdate('WithCompositeID', {
+  name: 'WithCompositeIDUpdate',
+  fields: () => ({
+    a: 'String',
+    b: 'String',
+    FindUniqueRelations: WithCompositeIDUpdateFindUniqueRelations,
+  }),
+});
+export const FindUniqueRelationsCreateWithoutWithCompositeUnique: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsCreateWithoutWithCompositeUniqueInput
+> = builder.prismaCreate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsCreateWithoutWithCompositeUnique',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsCreateWithID,
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsCreateWithUnique,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsCreateWithCompositeID,
+  }),
+});
 export const WithCompositeUniqueCreateFindUniqueRelations = builder.prismaCreateRelation(
   'WithCompositeUnique',
   'FindUniqueRelations',
@@ -2013,44 +2105,50 @@ export const WithCompositeUniqueCreateFindUniqueRelations = builder.prismaCreate
     }),
   },
 );
-export const WithCompositeUniqueCreate: InputObjectRef<Prisma.Prisma.WithCompositeUniqueCreateInput> =
-  builder.prismaCreate('WithCompositeUnique', {
-    name: 'WithCompositeUniqueCreate',
-    fields: () => ({
-      a: 'String',
-      c: 'String',
-      b: 'String',
-      FindUniqueRelations: WithCompositeUniqueCreateFindUniqueRelations,
-    }),
-  });
-export const FindUniqueRelationsUpdateWithoutWithCompositeUnique: InputObjectRef<Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithCompositeUniqueInput> =
-  builder.prismaUpdate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsUpdateWithoutWithCompositeUnique',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsUpdateWithID,
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsUpdateWithUnique,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
-    }),
-  });
-export const FindUniqueRelationsWithoutWithCompositeUniqueFilter: InputObjectRef<Prisma.Prisma.FindUniqueRelationsWhereInput> =
-  builder.prismaWhere('FindUniqueRelations', {
-    name: 'FindUniqueRelationsWithoutWithCompositeUniqueFilter',
-    fields: () => ({
-      id: StringFilter,
-      withID_id: StringFilter,
-      withID: WithIDFilter,
-      withUnique_id: StringFilter,
-      withUnique: WithUniqueFilter,
-      withCompositeID_a: StringFilter,
-      withCompositeID_b: StringFilter,
-      withCompositeID: WithCompositeIDFilter,
-    }),
-  });
+export const WithCompositeUniqueCreate: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeUniqueCreateInput
+> = builder.prismaCreate('WithCompositeUnique', {
+  name: 'WithCompositeUniqueCreate',
+  fields: () => ({
+    a: 'String',
+    c: 'String',
+    b: 'String',
+    FindUniqueRelations: WithCompositeUniqueCreateFindUniqueRelations,
+  }),
+});
+export const FindUniqueRelationsUpdateWithoutWithCompositeUnique: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsUpdateWithoutWithCompositeUniqueInput
+> = builder.prismaUpdate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsUpdateWithoutWithCompositeUnique',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsUpdateWithID,
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsUpdateWithUnique,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
+  }),
+});
+export const FindUniqueRelationsWithoutWithCompositeUniqueFilter: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsWhereInput
+> = builder.prismaWhere('FindUniqueRelations', {
+  name: 'FindUniqueRelationsWithoutWithCompositeUniqueFilter',
+  fields: () => ({
+    id: StringFilter,
+    withID_id: StringFilter,
+    withID: WithIDFilter,
+    withUnique_id: StringFilter,
+    withUnique: WithUniqueFilter,
+    withCompositeID_a: StringFilter,
+    withCompositeID_b: StringFilter,
+    withCompositeID: WithCompositeIDFilter,
+  }),
+});
 export const WithCompositeUniqueUpdateFindUniqueRelations = builder.prismaUpdateRelation(
   'WithCompositeUnique',
   'FindUniqueRelations',
@@ -2073,47 +2171,53 @@ export const WithCompositeUniqueUpdateFindUniqueRelations = builder.prismaUpdate
     }),
   },
 );
-export const WithCompositeUniqueUpdate: InputObjectRef<Prisma.Prisma.WithCompositeUniqueUpdateInput> =
-  builder.prismaUpdate('WithCompositeUnique', {
-    name: 'WithCompositeUniqueUpdate',
-    fields: () => ({
-      a: 'String',
-      c: 'String',
-      b: 'String',
-      FindUniqueRelations: WithCompositeUniqueUpdateFindUniqueRelations,
-    }),
-  });
-export const FindUniqueRelationsCreate: InputObjectRef<Prisma.Prisma.FindUniqueRelationsCreateInput> =
-  builder.prismaCreate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsCreate',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsCreateWithID,
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsCreateWithUnique,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsCreateWithCompositeID,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
-    }),
-  });
-export const FindUniqueRelationsUpdate: InputObjectRef<Prisma.Prisma.FindUniqueRelationsUpdateInput> =
-  builder.prismaUpdate('FindUniqueRelations', {
-    name: 'FindUniqueRelationsUpdate',
-    fields: () => ({
-      id: 'String',
-      withID_id: 'String',
-      withID: FindUniqueRelationsUpdateWithID,
-      withUnique_id: 'String',
-      withUnique: FindUniqueRelationsUpdateWithUnique,
-      withCompositeID_a: 'String',
-      withCompositeID_b: 'String',
-      withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
-      withCompositeUnique_a: 'String',
-      withCompositeUnique_b: 'String',
-      withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
-    }),
-  });
+export const WithCompositeUniqueUpdate: InputObjectRef<
+  Types,
+  Prisma.Prisma.WithCompositeUniqueUpdateInput
+> = builder.prismaUpdate('WithCompositeUnique', {
+  name: 'WithCompositeUniqueUpdate',
+  fields: () => ({
+    a: 'String',
+    c: 'String',
+    b: 'String',
+    FindUniqueRelations: WithCompositeUniqueUpdateFindUniqueRelations,
+  }),
+});
+export const FindUniqueRelationsCreate: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsCreateInput
+> = builder.prismaCreate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsCreate',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsCreateWithID,
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsCreateWithUnique,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsCreateWithCompositeID,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsCreateWithCompositeUnique,
+  }),
+});
+export const FindUniqueRelationsUpdate: InputObjectRef<
+  Types,
+  Prisma.Prisma.FindUniqueRelationsUpdateInput
+> = builder.prismaUpdate('FindUniqueRelations', {
+  name: 'FindUniqueRelationsUpdate',
+  fields: () => ({
+    id: 'String',
+    withID_id: 'String',
+    withID: FindUniqueRelationsUpdateWithID,
+    withUnique_id: 'String',
+    withUnique: FindUniqueRelationsUpdateWithUnique,
+    withCompositeID_a: 'String',
+    withCompositeID_b: 'String',
+    withCompositeID: FindUniqueRelationsUpdateWithCompositeID,
+    withCompositeUnique_a: 'String',
+    withCompositeUnique_b: 'String',
+    withCompositeUnique: FindUniqueRelationsUpdateWithCompositeUnique,
+  }),
+});

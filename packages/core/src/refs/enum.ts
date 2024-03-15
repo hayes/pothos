@@ -1,9 +1,18 @@
-import { InputRef, inputShapeKey, OutputRef, outputShapeKey } from '../types';
-import BaseTypeRef from './base';
+import {
+  InputRef,
+  inputShapeKey,
+  OutputRef,
+  outputShapeKey,
+  PothosEnumTypeConfig,
+  SchemaTypes,
+} from '../types';
+import { BaseTypeRef } from './base';
+import { ListRef } from './list';
+import { NonNullRef } from './non-null';
 
-export default class EnumRef<T, U = T>
-  extends BaseTypeRef
-  implements OutputRef, InputRef, PothosSchemaTypes.EnumRef<T, U>
+export class EnumRef<Types extends SchemaTypes, T, U = T>
+  extends BaseTypeRef<Types, PothosEnumTypeConfig>
+  implements OutputRef, InputRef, PothosSchemaTypes.EnumRef<Types, T, U>
 {
   override kind = 'Enum' as const;
 
@@ -15,7 +24,15 @@ export default class EnumRef<T, U = T>
 
   [inputShapeKey]!: U;
 
-  constructor(name: string) {
-    super('Enum', name);
+  constructor(name: string, config?: PothosEnumTypeConfig) {
+    super('Enum', name, config);
+  }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
   }
 }

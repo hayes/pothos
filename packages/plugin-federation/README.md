@@ -259,7 +259,7 @@ builder.asEntity(Media, {
 
 See federation documentation for more details on `interfaceObject`s
 
-### composeDirective =
+### composeDirective
 
 You can apply the `composeDirective` directive when building the subgraph schema:
 

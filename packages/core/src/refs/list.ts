@@ -1,25 +1,42 @@
-import { outputShapeKey, parentShapeKey, SchemaTypes, TypeParam } from '../types';
-import BaseTypeRef from './base';
+import {
+  InputFieldShape,
+  inputShapeKey,
+  InputType,
+  OutputFieldShape,
+  outputShapeKey,
+  OutputType,
+  SchemaTypes,
+} from '../types';
+import { BaseTypeRef } from './base';
+// eslint-disable-next-line import/no-cycle
+import { NonNullRef } from './non-null';
 
-export default class ListRef<Types extends SchemaTypes, T, P = T>
-  extends BaseTypeRef
-  implements PothosSchemaTypes.ListRef<Types, T, P>
+export class ListRef<Types extends SchemaTypes, T extends InputType<Types> | OutputType<Types>>
+  extends BaseTypeRef<Types>
+  implements PothosSchemaTypes.ListRef<Types, T>
 {
   override kind = 'List' as const;
 
-  $inferType!: T;
+  $inferType!: T extends OutputType<Types> ? OutputFieldShape<Types, T>[] : never;
 
-  [outputShapeKey]!: T;
+  $inferInput!: T extends InputType<Types> ? InputFieldShape<Types, T>[] : never;
 
-  [parentShapeKey]!: P;
+  [outputShapeKey]!: T extends OutputType<Types> ? OutputFieldShape<Types, T>[] : never;
 
-  listType: TypeParam<Types>;
+  [inputShapeKey]!: T extends InputType<Types> ? InputFieldShape<Types, T>[] : never;
 
-  nullable: boolean;
+  listType: T;
 
-  constructor(listType: TypeParam<Types>, nullable: boolean) {
+  constructor(listType: T) {
     super('List', `List<${String(listType)}>`);
     this.listType = listType;
-    this.nullable = nullable;
+  }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
   }
 }

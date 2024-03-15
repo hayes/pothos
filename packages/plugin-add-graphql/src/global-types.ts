@@ -8,7 +8,7 @@ import {
   GraphQLSchema,
   GraphQLUnionType,
 } from 'graphql';
-import { InputTypeRef, NormalizeArgs, SchemaTypes } from '@pothos/core';
+import { NormalizeArgs, SchemaTypes } from '@pothos/core';
 import {
   AddGraphQLEnumTypeOptions,
   AddGraphQLInputTypeOptions,
@@ -37,29 +37,31 @@ declare global {
       addGraphQLObject: <Shape>(
         type: GraphQLObjectType<Shape>,
         ...args: NormalizeArgs<[options: AddGraphQLObjectTypeOptions<Types, Shape>]>
-      ) => ObjectRef<Shape>;
+      ) => ObjectRef<Types, Shape>;
 
       addGraphQLInterface: <Shape>(
         type: GraphQLInterfaceType,
         ...args: NormalizeArgs<[options: AddGraphQLInterfaceTypeOptions<Types, Shape>]>
-      ) => InterfaceRef<Shape>;
+      ) => InterfaceRef<Types, Shape>;
 
       addGraphQLUnion: <Shape>(
         type: GraphQLUnionType,
-        ...args: NormalizeArgs<[options: AddGraphQLUnionTypeOptions<Types, ObjectRef<Shape>>]>
-      ) => UnionRef<Shape>;
+        ...args: NormalizeArgs<
+          [options: AddGraphQLUnionTypeOptions<Types, ObjectRef<Types, Shape>>]
+        >
+      ) => UnionRef<Types, Shape>;
 
       addGraphQLEnum: <Shape extends number | string>(
         type: GraphQLEnumType,
         ...args: NormalizeArgs<
           [options: AddGraphQLEnumTypeOptions<Types, EnumValuesWithShape<Types, Shape>>]
         >
-      ) => EnumRef<Shape>;
+      ) => EnumRef<Types, Shape>;
 
       addGraphQLInput: <Shape extends {}>(
         type: GraphQLInputObjectType,
         ...args: NormalizeArgs<[options: AddGraphQLInputTypeOptions<Types, Shape>]>
-      ) => InputTypeRef<Shape>;
+      ) => InputObjectRef<Types, Shape>;
     }
   }
 }

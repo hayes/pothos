@@ -1,5 +1,5 @@
-import builder from '../builder';
-import Character from './character';
+import { builder } from '../builder';
+import { Character } from './character';
 
 export default builder.objectType('Droid', {
   description: 'A mechanical creature in the Star Wars universe.',

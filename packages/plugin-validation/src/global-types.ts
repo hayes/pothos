@@ -20,6 +20,11 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      validation?: ValidationPluginOptions<Types>;
+    }
+
+    export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+      validation?: never;
       validationOptions?: ValidationPluginOptions<Types>;
     }
 

@@ -1,7 +1,7 @@
 // @ts-nocheck
-import { inputShapeKey } from '../types/index.ts';
-import BaseTypeRef from './base.ts';
-export default class InputTypeRef<T> extends BaseTypeRef {
+import { inputShapeKey, SchemaTypes } from '../types/index.ts';
+import { BaseTypeRef } from './base.ts';
+export class InputTypeRef<Types extends SchemaTypes, T> extends BaseTypeRef<Types> {
     override kind;
     $inferInput!: T;
     [inputShapeKey]!: T;

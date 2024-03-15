@@ -1,25 +1,25 @@
-import ListRef from '../refs/list';
-import type { ArgBuilder, InputFieldMap, NormalizeArgs, ShapeFromTypeParam } from '../types';
-import {
-  FieldKind,
-  FieldNullability,
-  FieldOptionsFromKind,
-  SchemaTypes,
-  TypeParam,
+import { ListRef } from '../refs/list';
+import { NonNullRef } from '../refs/non-null';
+import type {
+  ArgBuilder,
+  FieldMode,
+  InputFieldMap,
+  InputType,
+  NormalizeArgs,
+  OutputType,
 } from '../types';
-import BaseFieldUtil from './base';
-import InputFieldBuilder from './input';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, SchemaTypes } from '../types';
+import { nonNullableFromOptions } from '../utils';
+import { BaseFieldUtil } from './base';
+import { InputFieldBuilder } from './input';
 
-export default class RootFieldBuilder<
+export class RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
-> extends BaseFieldUtil<Types, ParentShape, Kind> {
-  arg: ArgBuilder<Types> = new InputFieldBuilder<Types, 'Arg'>(
-    this.builder,
-    'Arg',
-    this.typename,
-  ).argBuilder();
+  Mode extends FieldMode = Types['FieldMode'],
+> extends BaseFieldUtil<Types, ParentShape, Kind, Mode> {
+  arg: ArgBuilder<Types> = new InputFieldBuilder<Types, 'Arg'>(this.builder, 'Arg').argBuilder();
 
   /**
    * Create a Boolean field
@@ -42,7 +42,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -51,11 +52,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Boolean', Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: 'Boolean',
-    });
+    return this.createField<'Boolean', Args, Nullable, ResolveShape, ResolveReturnShape>(
+      'Boolean',
+      options as never,
+    );
   }
 
   /**
@@ -79,7 +79,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -88,11 +89,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Float', Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: 'Float',
-    });
+    return this.createField<'Float', Args, Nullable, ResolveShape, ResolveReturnShape>(
+      'Float',
+      options as never,
+    );
   }
 
   /**
@@ -116,7 +116,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -125,11 +126,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'ID', Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: 'ID',
-    });
+    return this.createField<'ID', Args, Nullable, ResolveShape, ResolveReturnShape>(
+      'ID',
+      options as never,
+    );
   }
 
   /**
@@ -153,7 +153,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -162,11 +163,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Int', Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: 'Int',
-    });
+    return this.createField<'Int', Args, Nullable, ResolveShape, ResolveReturnShape>(
+      'Int',
+      options as never,
+    );
   }
 
   /**
@@ -190,7 +190,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -199,11 +200,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'String', Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: 'String',
-    });
+    return this.createField<'String', Args, Nullable, ResolveShape, ResolveReturnShape>(
+      'String',
+      options as never,
+    );
   }
 
   /**
@@ -227,7 +227,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -236,11 +237,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Boolean'], Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: ['Boolean'],
-    });
+    return this.createField<['Boolean'], Args, Nullable, ResolveShape, ResolveReturnShape>(
+      ['Boolean'],
+      options as never,
+    );
   }
 
   /**
@@ -264,7 +264,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -273,11 +274,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Float'], Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: ['Float'],
-    });
+    return this.createField<['Float'], Args, Nullable, ResolveShape, ResolveReturnShape>(
+      ['Float'],
+      options as never,
+    );
   }
 
   /**
@@ -301,7 +301,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -310,11 +311,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['ID'], Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: ['ID'],
-    });
+    return this.createField<['ID'], Args, Nullable, ResolveShape, ResolveReturnShape>(
+      ['ID'],
+      options as never,
+    );
   }
 
   /**
@@ -338,7 +338,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -347,11 +348,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Int'], Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: ['Int'],
-    });
+    return this.createField<['Int'], Args, Nullable, ResolveShape, ResolveReturnShape>(
+      ['Int'],
+      options as never,
+    );
   }
 
   /**
@@ -375,7 +375,8 @@ export default class RootFieldBuilder<
             Args,
             Kind,
             ResolveShape,
-            ResolveReturnShape
+            ResolveReturnShape,
+            Mode
           >,
           'type'
         >,
@@ -384,11 +385,10 @@ export default class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['String'], Nullable>({
-      resolve: undefined as never,
-      ...options,
-      type: ['String'],
-    });
+    return this.createField<['String'], Args, Nullable, ResolveShape, ResolveReturnShape>(
+      ['String'],
+      options as never,
+    );
   }
 
   /**
@@ -397,7 +397,7 @@ export default class RootFieldBuilder<
    */
   field<
     Args extends InputFieldMap,
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
@@ -410,19 +410,33 @@ export default class RootFieldBuilder<
       Args,
       Kind,
       ResolveShape,
-      ResolveReturnShape
+      ResolveReturnShape,
+      Mode
     >,
   ) {
-    return this.createField<Args, Type, Nullable>(options as never);
+    return this.createField<Type, Args, Nullable, ResolveShape, ResolveReturnShape>(
+      null,
+      options as never,
+    );
   }
 
-  listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(
+  listRef<T extends OutputType<Types>, Nullable extends boolean = false>(
     type: T,
-    options?: { nullable?: Nullable },
-  ): ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]> {
-    return new ListRef<Types, ShapeFromTypeParam<Types, T, Nullable>[]>(
-      type,
-      options?.nullable ?? false,
-    );
+    { nullable = false as Nullable }: { nullable?: Nullable } = {},
+  ) {
+    const nonNull = nonNullableFromOptions(this.builder, { nullable });
+    const ref = nonNull ? new NonNullRef<Types, T>(type) : type;
+
+    return new ListRef<Types, typeof ref>(ref) as Nullable extends true
+      ? ListRef<Types, T>
+      : ListRef<Types, NonNullRef<Types, T>>;
+  }
+
+  list<T extends InputType<Types> | OutputType<Types>>(type: T) {
+    return new ListRef<Types, T>(type);
+  }
+
+  nonNull<T extends InputType<Types> | OutputType<Types>>(type: T) {
+    return new NonNullRef<Types, T>(type);
   }
 }

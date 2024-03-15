@@ -28,7 +28,7 @@ describe('simple objects example schema', () => {
       type Post implements Node {
         content: String
         id: ID!
-        postTitle: String!
+        postTitle: String
       }
 
       type Profile implements Node {
@@ -37,10 +37,10 @@ describe('simple objects example schema', () => {
       }
 
       type Query {
-        extra: ExtraType!
-        extraFromSchema: ExtraTypeFromSchema!
-        posts: [Post!]!
-        user(id: ID!): AddedUser!
+        extra: ExtraType
+        extraFromSchema: ExtraTypeFromSchema
+        posts: [Post!]
+        user(id: ID!): AddedUser
       }"
     `);
     expect(printSchema(lexicographicSortSchema(extendSchema))).toMatchInlineSnapshot(`
@@ -60,7 +60,7 @@ describe('simple objects example schema', () => {
       }
 
       type Query {
-        posts: [Post!]!
+        posts: [Post!]
         user(id: ID!): User
       }
 

@@ -1,133 +1,97 @@
 import { defaultFieldResolver } from 'graphql';
-import { PothosSchemaError } from '../errors';
-import FieldRef from '../refs/field';
 import type {
   FieldKind,
+  FieldMode,
+  FieldNullability,
+  FieldOptionsFromKind,
   InputFieldMap,
-  PothosInputFieldConfig,
-  ShapeFromTypeParam,
+  OutputType,
 } from '../types';
-import { FieldNullability, SchemaTypes, TypeParam } from '../types';
-import { typeFromParam } from '../utils';
+import { SchemaTypes } from '../types';
 
-export default class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
-  typename: string;
-
-  builder: PothosSchemaTypes.SchemaBuilder<Types>;
-
+export class BaseFieldUtil<
+  Types extends SchemaTypes,
+  ParentShape,
+  Kind extends FieldKind,
+  Mode extends FieldMode = Types['FieldMode'],
+> {
   kind: Kind;
 
   graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind];
 
-  constructor(
-    name: string,
-    builder: PothosSchemaTypes.SchemaBuilder<Types>,
-    kind: Kind,
-    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind],
-  ) {
-    this.typename = name;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+
+  mode: Mode;
+
+  constructor({
+    builder,
+    kind,
+    graphqlKind,
+    mode,
+  }: {
+    builder: PothosSchemaTypes.SchemaBuilder<Types>;
+    kind: Kind;
+    graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[Kind];
+    mode: Mode;
+  }) {
     this.builder = builder;
     this.kind = kind;
     this.graphqlKind = graphqlKind;
+    this.mode = mode;
   }
 
   protected createField<
+    Type extends OutputType<Types> | [OutputType<Types>],
     Args extends InputFieldMap,
-    Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
+    ResolveShape,
+    ResolveReturnShape,
   >(
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
-    const ref: FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> = new FieldRef(
-      this.kind,
-      this.typename,
-    );
-
-    this.builder.configStore.addFieldRef(
-      ref,
-      options.type,
-      options.args ?? {},
-      (name, parentField, typeConfig) => {
-        const args: Record<string, PothosInputFieldConfig<Types>> = {};
-
-        if (options.args) {
-          Object.keys(options.args).forEach((argName) => {
-            const argRef = options.args![argName];
-
-            args[argName] = this.builder.configStore.createFieldConfig(
-              argRef,
-              argName,
-              typeConfig,
-              name,
-              'Arg',
-            );
-          });
-        }
-
-        let resolve =
-          (options as { resolve?: (...argList: unknown[]) => unknown }).resolve ??
-          (() => {
-            throw new PothosSchemaError(
-              `Not implemented: No resolver found for ${this.typename}.${name}`,
-            );
-          });
-
-        if (options.extensions?.pothosExposedField === name) {
-          resolve = defaultFieldResolver as typeof resolve;
-        }
-
-        const { subscribe } = options as { subscribe?: (...argList: unknown[]) => unknown };
-
-        return {
-          kind: this.kind as never,
-          graphqlKind: this.graphqlKind,
-          parentType: typeConfig.name,
-          name,
-          args,
-          type: typeFromParam(
-            options.type,
-            this.builder.configStore,
-            options.nullable ?? this.builder.defaultFieldNullability,
-          ),
-          pothosOptions: options as never,
-          extensions: {
-            pothosOriginalResolve: resolve,
-            pothosOriginalSubscribe: subscribe,
-            ...options.extensions,
-          },
-          description: options.description,
-          deprecationReason: options.deprecationReason,
-          resolve,
-          subscribe,
-        };
-      },
-    );
-
-    return ref;
+    type: Type | null,
+    options: FieldOptionsFromKind<
+      Types,
+      ParentShape,
+      Type,
+      Nullable,
+      Args,
+      Kind,
+      ResolveShape,
+      ResolveReturnShape,
+      Mode
+    >,
+  ) {
+    return this.builder.createFieldRef(this.mode, this.kind, type ?? undefined, options);
   }
 
   protected exposeField<
-    Type extends TypeParam<Types>,
+    Type extends OutputType<Types> | [OutputType<Types>],
     Nullable extends FieldNullability<Type>,
     Name extends string & keyof ParentShape,
   >(
     name: Name,
-    {
-      extensions,
-      ...options
-    }: Omit<
-      PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
-      'resolve'
+    type: Type | null,
+    options: Omit<
+      FieldOptionsFromKind<Types, ParentShape, Type, Nullable, {}, Kind, unknown, unknown, Mode>,
+      'resolve' | 'type'
     >,
-  ): FieldRef<ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
-    return this.createField({
-      ...options,
+  ) {
+    return this.builder.createFieldRef<
+      ParentShape,
+      Type,
+      Nullable,
+      {},
+      Kind,
+      unknown,
+      unknown,
+      Mode
+    >(this.mode, this.kind, type ?? undefined, options as never, (fieldName) => ({
       extensions: {
         pothosExposedField: name,
-        ...extensions,
       },
-      resolve: (parent) => (parent as Record<string, never>)[name as string],
-    });
+      resolve:
+        fieldName === name
+          ? defaultFieldResolver
+          : (parent) => (parent as Record<string, never>)[name as string],
+    }));
   }
 }

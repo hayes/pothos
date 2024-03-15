@@ -19,6 +19,7 @@ export interface ScopeAuthPluginOptions<Types extends SchemaTypes> {
   treatErrorsAsUnauthorized?: boolean;
   authorizeOnSubscribe?: boolean;
   defaultStrategy?: Types['DefaultAuthStrategy'];
+  authScopes: ScopeAuthInitializer<Types>;
 }
 
 export interface BuiltInScopes<Types extends SchemaTypes> {

@@ -59,7 +59,9 @@ const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [DirectivePlugin],
-  useGraphQLToolsUnorderedDirectives: true,
+  directives: {
+    useGraphQLToolsUnorderedDirectives: true,
+  },
 });
 
 export default builder;

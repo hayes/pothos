@@ -3,6 +3,9 @@ import SchemaBuilder from '../../src';
 
 // Define backing models/types
 interface Types {
+  Defaults: 'v4';
+  FieldMode: 'v3';
+  NullableMode: 'v3';
   Objects: {
     User: { firstName: string; lastName: string; funFact?: string | null };
     Article: { title: string; body: string };
@@ -39,7 +42,9 @@ class Giraffe extends Animal {
   }
 }
 
-const builder = new SchemaBuilder<Types>({});
+const builder = new SchemaBuilder<Types>({
+  defaults: 'v4',
+});
 
 builder.scalarType('AnyJson', {
   serialize: (json) => json,
@@ -112,15 +117,15 @@ const Example = builder.inputType('Example', {
 
 interface ExampleShape {
   example: {
-    id: number | string;
+    id: string;
     id2?: number;
-    ids: (number | string)[];
+    ids: string[];
     ids2?: number[];
     enum?: MyEnum;
     date?: Date | string;
   };
-  id?: number | string;
-  ids: (number | string)[];
+  id?: string;
+  ids: string[];
   more: ExampleShape;
   json?: any;
 }
@@ -187,8 +192,7 @@ builder.objectType('User', {
         example2: t.arg({ type: Example2, required: true }),
         firstN: t.arg.id(),
       },
-      resolve: (parent, args) =>
-        Number.parseInt(String(args.example2.more.more.more.example.id), 10),
+      resolve: (parent, args) => Number.parseInt(args.example2.more.more.more.example.id, 10),
     }),
     // Using a union type
     related: t.field({
@@ -220,7 +224,7 @@ builder.objectType('User', {
       args: {
         ids: t.arg.idList({ required: true }),
       },
-      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(String(n), 10)),
+      resolve: (parent, args) => (args.ids || []).map((n) => Number.parseInt(n, 10)),
     }),
     sparseList: t.idList({
       args: {
@@ -434,6 +438,13 @@ builder
       optionalList: t.exposeStringList('optionalList', { nullable: true }),
     }),
   });
+
+builder.queryFields((t) => ({
+  chainNonNullList: t.field({
+    type: t.nonNull('String').list().list().nonNull(),
+    resolve: () => [['1', '2'], null, ['3', '4']],
+  }),
+}));
 
 const schema = builder.toSchema();
 

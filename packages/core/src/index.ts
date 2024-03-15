@@ -1,24 +1,37 @@
 /* eslint-disable @typescript-eslint/no-redeclare */
 import './types/global';
-import SchemaBuilderClass from './builder';
-import InternalFieldBuilder from './fieldUtils/builder';
-import InternalInputFieldBuilder from './fieldUtils/input';
-import InternalInterfaceFieldBuilder from './fieldUtils/interface';
-import InternalMutationFieldBuilder from './fieldUtils/mutation';
-import InternalObjectFieldBuilder from './fieldUtils/object';
-import InternalQueryFieldBuilder from './fieldUtils/query';
-import InternalRootFieldBuilder from './fieldUtils/root';
-import InternalSubscriptionFieldBuilder from './fieldUtils/subscription';
-import InternalBaseTypeRef from './refs/base';
-import InternalEnumRef from './refs/enum';
-import InternalInputListRef from './refs/input-list';
-import InternalInputObjectRef from './refs/input-object';
-import InternalInterfaceRef from './refs/interface';
-import InternalListRef from './refs/list';
-import InternalObjectRef from './refs/object';
-import InternalScalarRef from './refs/scalar';
-import InternalUnionRef from './refs/union';
-import type { FieldKind, NormalizeSchemeBuilderOptions, RootName, SchemaTypes } from './types';
+import { SchemaBuilder as SchemaBuilderClass } from './builder';
+import { FieldBuilder as InternalFieldBuilder } from './fieldUtils/builder';
+import { InputFieldBuilder as InternalInputFieldBuilder } from './fieldUtils/input';
+import { InterfaceFieldBuilder as InternalInterfaceFieldBuilder } from './fieldUtils/interface';
+import { MutationFieldBuilder as InternalMutationFieldBuilder } from './fieldUtils/mutation';
+import { ObjectFieldBuilder as InternalObjectFieldBuilder } from './fieldUtils/object';
+import { QueryFieldBuilder as InternalQueryFieldBuilder } from './fieldUtils/query';
+import { RootFieldBuilder as InternalRootFieldBuilder } from './fieldUtils/root';
+import { SubscriptionFieldBuilder as InternalSubscriptionFieldBuilder } from './fieldUtils/subscription';
+import { BaseTypeRef as InternalBaseTypeRef } from './refs/base';
+import { EnumRef as InternalEnumRef } from './refs/enum';
+import { InputObjectRef as InternalInputObjectRef } from './refs/input-object';
+import { InterfaceRef as InternalInterfaceRef } from './refs/interface';
+import { ListRef as InternalListRef } from './refs/list';
+import { NonNullRef as InternalNonNullRef } from './refs/non-null';
+import { ObjectRef as InternalObjectRef } from './refs/object';
+import { ScalarRef as InternalScalarRef } from './refs/scalar';
+import { UnionRef as InternalUnionRef } from './refs/union';
+import {
+  type AddVersionedDefaultsToBuilderOptions,
+  type FieldKind,
+  type FieldMode,
+  inputShapeKey,
+  type InputType,
+  type NormalizeSchemeBuilderOptions,
+  type OutputType,
+  type RootName,
+  type SchemaTypes,
+} from './types';
+
+// eslint-disable-next-line @typescript-eslint/no-unused-expressions
+inputShapeKey;
 
 export * from './errors';
 export * from './plugins';
@@ -30,7 +43,9 @@ const SchemaBuilder = SchemaBuilderClass as unknown as {
   allowPluginReRegistration: boolean;
 
   new <Types extends Partial<PothosSchemaTypes.UserSchemaTypes> = {}>(
-    options: NormalizeSchemeBuilderOptions<PothosSchemaTypes.ExtendDefaultTypes<Types>>,
+    options: Types extends { Defaults: 'v3' }
+      ? AddVersionedDefaultsToBuilderOptions<PothosSchemaTypes.ExtendDefaultTypes<Types>, 'v3'>
+      : NormalizeSchemeBuilderOptions<PothosSchemaTypes.ExtendDefaultTypes<Types>>,
   ): PothosSchemaTypes.SchemaBuilder<PothosSchemaTypes.ExtendDefaultTypes<Types>>;
 };
 
@@ -40,62 +55,68 @@ export const FieldBuilder = InternalFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
   Kind extends Exclude<FieldKind, RootName> = Exclude<FieldKind, RootName>,
->(
-  name: string,
-  builder: SchemaBuilderClass<Types>,
-  kind: FieldKind,
-  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
-) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind>;
+  Mode extends FieldMode = Types['FieldMode'],
+>(options: {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  kind: FieldKind;
+  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind];
+  mode: Mode;
+}) => PothosSchemaTypes.FieldBuilder<Types, ParentShape, Kind, Mode>;
 
 export type RootFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
-> = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind, Mode>;
 
 export const RootFieldBuilder = InternalRootFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind = FieldKind,
->(
-  name: string,
-  builder: SchemaBuilderClass<Types>,
-  kind: FieldKind,
-  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind],
-) => PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind>;
+  Mode extends FieldMode = Types['FieldMode'],
+>(options: {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  kind: FieldKind;
+  graphqlKind: PothosSchemaTypes.PothosKindToGraphQLType[FieldKind];
+  mode: Mode;
+}) => PothosSchemaTypes.RootFieldBuilder<Types, ParentShape, Kind, Mode>;
 
 export type QueryFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape,
-> = PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.QueryFieldBuilder<Types, Mode>;
 export const QueryFieldBuilder = InternalQueryFieldBuilder as new <
   Types extends SchemaTypes,
-  ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
-  builder: SchemaBuilderClass<Types>,
-) => PothosSchemaTypes.QueryFieldBuilder<Types, ParentShape>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  mode: Mode,
+) => PothosSchemaTypes.QueryFieldBuilder<Types, Mode>;
 
 export type MutationFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape,
-> = PothosSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.MutationFieldBuilder<Types, Mode>;
 export const MutationFieldBuilder = InternalMutationFieldBuilder as new <
   Types extends SchemaTypes,
-  ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
-  builder: SchemaBuilderClass<Types>,
-) => PothosSchemaTypes.MutationFieldBuilder<Types, ParentShape>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  mode: Mode,
+) => PothosSchemaTypes.MutationFieldBuilder<Types, Mode>;
 
 export type SubscriptionFieldBuilder<
   Types extends SchemaTypes,
-  ParentShape,
-> = PothosSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.SubscriptionFieldBuilder<Types, Mode>;
 export const SubscriptionFieldBuilder = InternalSubscriptionFieldBuilder as new <
   Types extends SchemaTypes,
-  ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
-  builder: SchemaBuilderClass<Types>,
-) => PothosSchemaTypes.SubscriptionFieldBuilder<Types, ParentShape>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  mode: Mode,
+) => PothosSchemaTypes.SubscriptionFieldBuilder<Types, Mode>;
 
 export type ObjectFieldBuilder<
   Types extends SchemaTypes,
@@ -104,22 +125,25 @@ export type ObjectFieldBuilder<
 export const ObjectFieldBuilder = InternalObjectFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
-  name: string,
-  builder: SchemaBuilderClass<Types>,
-) => PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  mode: Mode,
+) => PothosSchemaTypes.ObjectFieldBuilder<Types, ParentShape, Mode>;
 
 export type InterfaceFieldBuilder<
   Types extends SchemaTypes,
   ParentShape,
-> = PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
+  Mode extends FieldMode = Types['FieldMode'],
+> = PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape, Mode>;
 export const InterfaceFieldBuilder = InternalInterfaceFieldBuilder as new <
   Types extends SchemaTypes,
   ParentShape,
+  Mode extends FieldMode = Types['FieldMode'],
 >(
-  name: string,
-  builder: SchemaBuilderClass<Types>,
-) => PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
+  mode: Mode,
+) => PothosSchemaTypes.InterfaceFieldBuilder<Types, ParentShape, Mode>;
 
 export type InputFieldBuilder<
   Types extends SchemaTypes,
@@ -129,65 +153,100 @@ export const InputFieldBuilder = InternalInputFieldBuilder as new <
   Types extends SchemaTypes,
   Kind extends 'Arg' | 'InputObject' = 'Arg' | 'InputObject',
 >(
-  builder: SchemaBuilderClass<Types>,
+  builder: PothosSchemaTypes.SchemaBuilder<Types>,
   kind: Kind,
   typename: string,
 ) => PothosSchemaTypes.InputFieldBuilder<Types, Kind>;
 
-export type BaseTypeRef = PothosSchemaTypes.BaseTypeRef;
-export const BaseTypeRef = InternalBaseTypeRef as new (
+export type BaseTypeRef<Types extends SchemaTypes, T> = PothosSchemaTypes.BaseTypeRef<Types, T>;
+export const BaseTypeRef = InternalBaseTypeRef as new <Types extends SchemaTypes, T>(
   kind: 'Enum' | 'InputObject' | 'Interface' | 'Object' | 'Scalar' | 'Union',
   name: string,
-) => PothosSchemaTypes.BaseTypeRef;
+) => PothosSchemaTypes.BaseTypeRef<Types, T>;
 
-export type EnumRef<T, P = T> = PothosSchemaTypes.EnumRef<T, P>;
-export const EnumRef = InternalEnumRef as new <T, P = T>(
+export type EnumRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.EnumRef<Types, T, P>;
+export const EnumRef = InternalEnumRef as new <Types extends SchemaTypes, T, P = T>(
   name: string,
-) => PothosSchemaTypes.EnumRef<T, P>;
+) => PothosSchemaTypes.EnumRef<Types, T, P>;
 
-export type InputObjectRef<T> = PothosSchemaTypes.InputObjectRef<T>;
-export const InputObjectRef = InternalInputObjectRef as new <T>(
+export type InputObjectRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputObjectRef<
+  Types,
+  T
+>;
+export const InputObjectRef = InternalInputObjectRef as new <Types extends SchemaTypes, T>(
   name: string,
-) => PothosSchemaTypes.InputObjectRef<T>;
+) => PothosSchemaTypes.InputObjectRef<Types, T>;
 
-export type InputListRef<Types extends SchemaTypes, T> = PothosSchemaTypes.InputListRef<Types, T>;
-export const InputListRef = InternalInputListRef as new <Types extends SchemaTypes, T>(
+export type InterfaceRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.InterfaceRef<
+  Types,
+  T,
+  P
+>;
+export const InterfaceRef = InternalInterfaceRef as new <Types extends SchemaTypes, T, P = T>(
   name: string,
-  required: boolean,
-) => PothosSchemaTypes.InputListRef<Types, T>;
+) => PothosSchemaTypes.InterfaceRef<Types, T, P>;
 
-export type InterfaceRef<T, P = T> = PothosSchemaTypes.InterfaceRef<T, P>;
-export const InterfaceRef = InternalInterfaceRef as new <T, P = T>(
+export type ObjectRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ObjectRef<
+  Types,
+  T,
+  P
+>;
+export const ObjectRef = InternalObjectRef as new <Types extends SchemaTypes, T, P = T>(
   name: string,
-) => PothosSchemaTypes.InterfaceRef<T, P>;
+) => PothosSchemaTypes.ObjectRef<Types, T, P>;
 
-export type ObjectRef<T, P = T> = PothosSchemaTypes.ObjectRef<T, P>;
-export const ObjectRef = InternalObjectRef as new <T, P = T>(
+export type ScalarRef<Types extends SchemaTypes, T, U, P = T> = PothosSchemaTypes.ScalarRef<
+  Types,
+  T,
+  U,
+  P
+>;
+export const ScalarRef = InternalScalarRef as new <Types extends SchemaTypes, T, U, P = T>(
   name: string,
-) => PothosSchemaTypes.ObjectRef<T, P>;
+) => PothosSchemaTypes.ScalarRef<Types, T, U, P>;
 
-export type ScalarRef<T, U, P = T> = PothosSchemaTypes.ScalarRef<T, U, P>;
-export const ScalarRef = InternalScalarRef as new <T, U, P = T>(
+export type UnionRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.UnionRef<Types, T, P>;
+export const UnionRef = InternalUnionRef as new <Types extends SchemaTypes, T, P = T>(
   name: string,
-) => PothosSchemaTypes.ScalarRef<T, U, P>;
+) => PothosSchemaTypes.UnionRef<Types, T, P>;
 
-export type UnionRef<T, P = T> = PothosSchemaTypes.UnionRef<T, P>;
-export const UnionRef = InternalUnionRef as new <T, P = T>(
-  name: string,
-) => PothosSchemaTypes.UnionRef<T, P>;
+export type ListRef<
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+> = PothosSchemaTypes.ListRef<Types, T>;
+export type ListRefConstructor = new <
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+>(
+  type: T,
+) => PothosSchemaTypes.ListRef<Types, T>;
 
-export type ListRef<Types extends SchemaTypes, T, P = T> = PothosSchemaTypes.ListRef<Types, T, P>;
-export const ListRef = InternalListRef as new <Types extends SchemaTypes, T, P = T>(
-  name: string,
-  nullable: boolean,
-) => PothosSchemaTypes.ListRef<Types, T, P>;
+export const ListRef = InternalListRef as ListRefConstructor;
 
-export { default as BuildCache } from './build-cache';
-export { default as BuiltinScalarRef } from './refs/builtin-scalar';
-export { default as FieldRef } from './refs/field';
-export { default as InputTypeRef } from './refs/input';
-export { default as InputFieldRef } from './refs/input-field';
+export type NonNullRef<
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+> = PothosSchemaTypes.NonNullRef<Types, T>;
+
+export type NonNullRefConstructor = new <
+  Types extends SchemaTypes,
+  T extends InputType<Types> | OutputType<Types>,
+>(
+  type: T,
+) => PothosSchemaTypes.NonNullRef<Types, T>;
+
+export const NonNullRef = InternalNonNullRef as NonNullRefConstructor;
+
+export { BuildCache } from './build-cache';
+export { ArgumentRef } from './refs/arg';
+export { BuiltinScalarRef } from './refs/builtin-scalar';
+export { FieldRef } from './refs/field';
+export { InputTypeRef } from './refs/input';
+export { InputFieldRef } from './refs/input-field';
 export { ImplementableInputObjectRef } from './refs/input-object';
 export { ImplementableInterfaceRef } from './refs/interface';
+export { MutationRef } from './refs/mutation';
 export { ImplementableObjectRef } from './refs/object';
-export { default as OutputTypeRef } from './refs/output';
+export { OutputTypeRef } from './refs/output';
+export { QueryRef } from './refs/query';
+export { SubscriptionRef } from './refs/subscription';

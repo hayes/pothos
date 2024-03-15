@@ -2,13 +2,19 @@ import SchemaBuilder from '../../src';
 
 export const nullableFieldBuilder = new SchemaBuilder<{
   DefaultFieldNullability: true;
+  Defaults: 'v3';
+  FieldMode: 'v3';
 }>({
+  defaults: 'v3',
   defaultFieldNullability: true,
 });
 
 export const nonNullableFieldBuilder = new SchemaBuilder<{
   DefaultInputFieldRequiredness: true;
+  Defaults: 'v3';
+  FieldMode: 'v3';
 }>({
+  defaults: 'v3',
   defaultInputFieldRequiredness: true,
 });
 
@@ -30,11 +36,8 @@ nullableFieldBuilder.queryType({
       resolve: () => null,
     }),
     nullableListError: t.booleanList({
-      resolve: () => [
-        false,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [false, null],
     }),
     nonNullableList: t.booleanList({
       nullable: false,
@@ -72,11 +75,8 @@ nullableFieldBuilder.queryType({
         items: false,
         list: true,
       },
-      resolve: () => [
-        true,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [true, null],
     }),
     bothNull: t.booleanList({
       nullable: {
@@ -154,11 +154,8 @@ nonNullableFieldBuilder.queryType({
     }),
     nullableListError: t.booleanList({
       nullable: true,
-      resolve: () => [
-        false,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [false, null],
     }),
     nonNullableList: t.booleanList({
       resolve: () => [false],
@@ -194,11 +191,8 @@ nonNullableFieldBuilder.queryType({
         items: false,
         list: true,
       },
-      resolve: () => [
-        true,
-        // @ts-expect-error testing default nullability
-        null,
-      ],
+      // @ts-expect-error testing default nullability
+      resolve: () => [true, null],
     }),
     bothNull: t.booleanList({
       nullable: {

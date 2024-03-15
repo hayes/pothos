@@ -75,7 +75,7 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      export const ${name}: InputObjectRef<Prisma.Prisma.${type}Create${withoutName}Input> = builder.prismaCreate('${type}', {
+      export const ${name}: InputObjectRef<Types, Prisma.Prisma.${type}Create${withoutName}Input> = builder.prismaCreate('${type}', {
         name: '${name}',
         fields: () => (${printExpression(fields)})
       });
@@ -160,7 +160,7 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      export const ${name}: InputObjectRef<Prisma.Prisma.${type}Update${withoutName}Input> = builder.prismaUpdate('${type}', {
+      export const ${name}: InputObjectRef<Types, Prisma.Prisma.${type}Update${withoutName}Input> = builder.prismaUpdate('${type}', {
         name: '${name}',
         fields: () => (${printExpression(fields)})
       });
@@ -296,7 +296,7 @@ class PrismaGenerator {
       index,
       0,
       ...parse/* ts */ `
-      export const ${name}: InputObjectRef<Prisma.Prisma.${type}WhereInput> = builder.prismaWhere('${type}', {
+      export const ${name}: InputObjectRef<Types, Prisma.Prisma.${type}WhereInput> = builder.prismaWhere('${type}', {
         name: '${name}',
         fields: () => (${printExpression(fields)})
       });
@@ -356,7 +356,7 @@ class PrismaGenerator {
 
     this.statements.push(
       ...parse/* ts */ `
-      export const ${name}: InputObjectRef<Prisma.Prisma.${type}OrderByWithRelationInput> = builder.prismaOrderBy('${type}', {
+      export const ${name}: InputObjectRef<Types, Prisma.Prisma.${type}OrderByWithRelationInput> = builder.prismaOrderBy('${type}', {
         name: '${name}',
         fields: () => (${printExpression(fields)})
       });
@@ -498,6 +498,8 @@ async function printCode() {
   import { InputObjectRef } from '@pothos/core';
   import * as Prisma from '../../../client';
   import { builder } from '../builder';
+
+  type Types = typeof builder extends PothosSchemaTypes.SchemaBuilder<infer T> ? T : never;
 
   ${generated}`,
     { ...config, parser: 'typescript' },

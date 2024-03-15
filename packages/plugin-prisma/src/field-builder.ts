@@ -28,9 +28,10 @@ fieldBuilderProto.prismaField = function prismaField({ type, resolve, ...options
   const typeRef =
     typeof modelOrRef === 'string'
       ? getRefFromModel(modelOrRef, this.builder)
-      : (modelOrRef as ObjectRef<unknown>);
-  const typeParam = Array.isArray(type) ? ([typeRef] as [ObjectRef<unknown>]) : typeRef;
-
+      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
+  const typeParam = Array.isArray(type)
+    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
+    : typeRef;
   return this.field({
     ...(options as {}),
     type: typeParam,
@@ -60,9 +61,10 @@ fieldBuilderProto.prismaFieldWithInput = function prismaFieldWithInput({
   const typeRef =
     typeof modelOrRef === 'string'
       ? getRefFromModel(modelOrRef, this.builder)
-      : (modelOrRef as ObjectRef<unknown>);
-  const typeParam = Array.isArray(type) ? ([typeRef] as [ObjectRef<unknown>]) : typeRef;
-
+      : (modelOrRef as ObjectRef<SchemaTypes, unknown>);
+  const typeParam = Array.isArray(type)
+    ? ([typeRef] as [ObjectRef<SchemaTypes, unknown>])
+    : typeRef;
   return (
     this as typeof fieldBuilderProto & { fieldWithInput: typeof fieldBuilderProto.field }
   ).fieldWithInput({
@@ -106,7 +108,7 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
     unknown,
     Type,
     Model,
-    ObjectRef<{}>,
+    ObjectRef<SchemaTypes, {}>,
     Nullable,
     Args,
     ResolveReturnShape,
@@ -117,15 +119,14 @@ fieldBuilderProto.prismaConnection = function prismaConnection<
 ) {
   const ref = typeof type === 'string' ? getRefFromModel(type, this.builder) : type;
   const typeName = this.builder.configStore.getTypeConfig(ref).name;
-
   const model = this.builder.configStore.getTypeConfig(ref).extensions?.pothosPrismaModel as string;
-
   const formatCursor = getCursorFormatter(model, this.builder, cursor);
   const parseCursor = getCursorParser(model, this.builder, cursor);
   const cursorSelection = ModelLoader.getCursorSelection(ref, model, cursor, this.builder);
-
   const fieldRef = (
-    this as typeof fieldBuilderProto & { connection: (...args: unknown[]) => FieldRef<unknown> }
+    this as typeof fieldBuilderProto & {
+      connection: (...args: unknown[]) => FieldRef<SchemaTypes, unknown>;
+    }
   ).connection(
     {
       ...options,

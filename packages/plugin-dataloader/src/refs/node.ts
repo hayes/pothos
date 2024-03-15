@@ -1,13 +1,47 @@
+/* eslint-disable max-classes-per-file */
 import { GraphQLResolveInfo } from 'graphql';
 import {
   completeValue,
   FieldRef,
+  ImplementableObjectRef,
   InterfaceRef,
-  PothosObjectTypeConfig,
+  ObjectFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
 import { DataLoaderOptions, LoadableNodeId } from '../types';
-import { ImplementableLoadableObjectRef } from './object';
+import { dataloaderGetter } from '../util';
+import { LoadableObjectRef } from './object';
+
+export class LoadableNodeRef<
+  Types extends SchemaTypes,
+  RefShape,
+  Shape extends object,
+  IDShape extends bigint | number | string = string,
+  Key extends bigint | number | string = IDShape,
+  CacheKey = Key,
+> extends LoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
+  parseId: ((id: string, ctx: object) => IDShape) | undefined;
+
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
+
+  constructor(
+    builder: PothosSchemaTypes.SchemaBuilder<Types>,
+    name: string,
+    {
+      id,
+      loaderOptions,
+      load,
+      toKey,
+      sort,
+    }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, IDShape>,
+  ) {
+    super(name, dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort));
+
+    this.builder = builder;
+
+    this.parseId = id.parse;
+  }
+}
 
 export class ImplementableLoadableNodeRef<
   Types extends SchemaTypes,
@@ -16,64 +50,70 @@ export class ImplementableLoadableNodeRef<
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,
   CacheKey = Key,
-> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
+> extends ImplementableObjectRef<Types, RefShape, Shape> {
   parseId: ((id: string, ctx: object) => IDShape) | undefined;
 
-  private idOptions;
+  getDataloader;
+
+  protected cacheResolved;
 
   constructor(
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
     name: string,
     {
       id,
-      ...options
+      loaderOptions,
+      load,
+      toKey,
+      sort,
+      cacheResolved,
     }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, IDShape>,
   ) {
-    super(builder, name, options);
-    this.idOptions = id;
+    super(builder, name);
     this.parseId = id.parse;
+    this.builder = builder;
+
+    this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+    this.cacheResolved =
+      typeof cacheResolved === 'function' ? cacheResolved : cacheResolved && toKey;
 
     this.builder.configStore.onTypeConfig(this, (config) => {
-      const nodeInterface = (
-        this.builder as PothosSchemaTypes.SchemaBuilder<Types> & {
-          nodeInterfaceRef: () => InterfaceRef<unknown>;
-        }
-      ).nodeInterfaceRef();
-
+      // eslint-disable-next-line no-param-reassign
+      config.extensions = {
+        ...config.extensions,
+        getDataloader: this.getDataloader,
+        cacheResolved: this.cacheResolved,
+      };
       // eslint-disable-next-line no-param-reassign
       (config.pothosOptions as { loadManyWithoutCache: unknown }).loadManyWithoutCache = (
         ids: Key[],
         context: SchemaTypes['Context'],
       ) => this.getDataloader(context).loadMany(ids);
-
-      const { interfaces } = config as PothosObjectTypeConfig;
-
-      if (!interfaces.includes(nodeInterface)) {
-        interfaces.push(nodeInterface);
-      }
-
-      this.builder.objectField(
-        this,
-        (this.builder.options as { relayOptions?: { idFieldName?: string } }).relayOptions
-          ?.idFieldName ?? 'id',
-        (t) =>
-          (
-            t as unknown as {
-              globalID: (options: Record<string, unknown>) => FieldRef<unknown>;
-            }
-          ).globalID({
-            ...(this.builder.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
-              ?.idFieldOptions,
-            ...this.idOptions,
-            nullable: false,
-            args: {},
-            resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) =>
-              completeValue(this.idOptions.resolve(parent, args, context, info), (globalId) => ({
-                type: config.name,
-                id: globalId,
-              })),
-          }),
-      );
     });
+
+    this.addInterfaces([
+      (
+        this.builder as typeof this.builder & { nodeInterfaceRef: () => InterfaceRef<Types, {}> }
+      ).nodeInterfaceRef(),
+    ]);
+
+    this.addFields(() => ({
+      id: (
+        new ObjectFieldBuilder(this.builder) as PothosSchemaTypes.FieldBuilder<Types, 'Object'> & {
+          globalID: (options: unknown) => FieldRef<Types>;
+        }
+      ).globalID({
+        ...(this.builder.options as { relayOptions?: { idFieldOptions?: {} } }).relayOptions
+          ?.idFieldOptions,
+        ...id,
+        nullable: false,
+        args: {},
+        resolve: (parent: Shape, args: object, context: object, info: GraphQLResolveInfo) =>
+          completeValue(id.resolve(parent, args, context, info), (globalId) => ({
+            type: name,
+            id: globalId,
+          })),
+      }),
+    }));
   }
 }

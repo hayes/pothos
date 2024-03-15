@@ -137,7 +137,7 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 
   normalizeDirectives(directives: DirectiveList | Record<string, {}>) {
-    if (this.builder.options.useGraphQLToolsUnorderedDirectives) {
+    if (this.builder.options.directives?.useGraphQLToolsUnorderedDirectives) {
       if (!Array.isArray(directives)) {
         return directives;
       }
@@ -161,4 +161,13 @@ export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosDirectivesPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosDirectivesPlugin, {
+  normalizeOptions: {
+    v3: (options) => ({
+      useGraphQLToolsUnorderedDirectives: undefined,
+      directives: {
+        useGraphQLToolsUnorderedDirectives: options.useGraphQLToolsUnorderedDirectives,
+      },
+    }),
+  },
+});

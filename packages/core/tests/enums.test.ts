@@ -1,7 +1,6 @@
 import { execute } from 'graphql';
 import gql from 'graphql-tag';
-import { SchemaTypes } from '../src';
-import SchemaBuilder from '../src/builder';
+import SchemaBuilder, { SchemaTypes } from '../src';
 
 describe('ways to add enums', () => {
   enum ChessPieceNumeric {
@@ -37,17 +36,17 @@ describe('ways to add enums', () => {
   it.each([
     [
       'Typescript numeric enum uses keys',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType(ChessPieceNumeric, { name: 'ChessPiece' }),
     ],
     [
       'Typescript string enum uses keys',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType(ChessPieceString, { name: 'ChessPiece' }),
     ],
     [
       'Object entries',
-      (builder: SchemaBuilder<SchemaTypes>) => {
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => {
         const e = builder.enumType('ChessPiece', {
           // eslint-disable-next-line node/no-unsupported-features/es-builtins
           values: Object.fromEntries(
@@ -60,14 +59,14 @@ describe('ways to add enums', () => {
     ],
     [
       'Array of strings uses values',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType('ChessPiece', {
           values: ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'] as const,
         }),
     ],
     [
       'Object values uses keys',
-      (builder: SchemaBuilder<SchemaTypes>) =>
+      (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType('ChessPiece', {
           values: {
             Pawn: { value: 'P' },
@@ -80,8 +79,10 @@ describe('ways to add enums', () => {
         }),
     ],
   ])('%s enum', async (_name, addEnum) => {
-    const builder = new SchemaBuilder({});
-    const ChessPieceType = addEnum(builder);
+    const builder = new SchemaBuilder<{
+      FieldMode: 'v3';
+    }>({});
+    const ChessPieceType = addEnum(builder as PothosSchemaTypes.SchemaBuilder<SchemaTypes>);
 
     builder.queryType({
       fields: (t) => ({
@@ -141,6 +142,7 @@ describe('ways to add enums', () => {
   /** Validate docs for an object with `as const` (values) {@link website/pages/docs/guide/enums.mdx} */
   it('Object as const enum (entries)', async () => {
     const builder = new SchemaBuilder({});
+
     const VehicleType = {
       sedan: 'SEDAN',
       suv: 'SUV',

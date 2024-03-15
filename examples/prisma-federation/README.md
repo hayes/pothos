@@ -164,7 +164,10 @@ ReviewType.implement({
 
 ```typescript
 // Use new `toSubGraphSchema` method to add subGraph specific types and queries to the schema
-const schema = builder.toSubGraphSchema({});
+const schema = builder.toSubGraphSchema({
+  // defaults to v2.3
+  linkUrl: 'https://specs.apollo.dev/federation/v2.3',
+});
 
 const server = new ApolloServer({
   schema,
@@ -181,3 +184,88 @@ startStandaloneServer(server, { listen: { port: 4000 } })
 
 For a functional example that combines multiple graphs built with Pothos into a single schema see
 [https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example](https://github.com/hayes/pothos/tree/main/packages/plugin-federation/tests/example)
+
+### Printing the schema
+
+If you are printing the schema as a string for any reason, and then using the printed schema for
+Apollo Federation(submitting if using Managed Federation, or composing manually with `rover`), you
+must use `printSubgraphSchema`(from `@apollo/subgraph`) or another compatible way of printing the
+schema(that includes directives) in order for it to work.
+
+### Field directives directives
+
+Several federation directives can be configured directly when defining a field includes
+`@shareable`, `@tag`, `@inaccessible`, and `@override`.
+
+```ts
+t.field({
+  type: 'String',
+  shareable: true,
+  tag: ['someTag'],
+  inaccessible: true,
+  override: { from: 'users' },
+});
+```
+
+For more details on these directives, see the official Federation documentation.
+
+### interface entities and @interfaceObject
+
+Federation 2.3 introduces new features for federating interface definitions.
+
+You can now pass interfaces to `asEntity` to defined keys for an interface:
+
+```ts
+const Media = builder.interfaceRef<{ id: string }>('Media').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    ...
+  }),
+});
+
+builder.asEntity(Media, {
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: ({ id }) => loadMediaById(id),
+});
+```
+
+You can also extend interfaces from another subGraph by creating an `interfaceObject`:
+
+```ts
+const Media = builder.objectRef<{ id: string }>('Media').implement({
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    // add new MediaFields here that are available on all implementors of the `Media` type
+  }),
+});
+
+builder.asEntity(Media, {
+  interfaceObject: true,
+  key: builder.selection<{ id: string }>('id'),
+  resolveReference: (ref) => ref,
+});
+```
+
+See federation documentation for more details on `interfaceObject`s
+
+### composeDirective
+
+You can apply the `composeDirective` directive when building the subgraph schema:
+
+```ts
+export const schema = builder.toSubGraphSchema({
+  // This adds the @composeDirective directive
+  composeDirectives: ['@custom'],
+  // composeDirective requires an @link directive on the schema pointing the the url for your directive
+  schemaDirectives: {
+    link: { url: 'https://myspecs.dev/myCustomDirective/v1.0', import: ['@custom'] },
+  },
+  // You currently also need to provide an actual implementation for your Directive
+  directives: [
+    new GraphQLDirective({
+      locations: [DirectiveLocation.OBJECT, DirectiveLocation.INTERFACE],
+      name: 'custom',
+    }),
+  ],
+});
+```

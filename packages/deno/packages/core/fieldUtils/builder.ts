@@ -1,7 +1,7 @@
 // @ts-nocheck
 import { CompatibleTypes, ExposeNullability, FieldKind, FieldNullability, FieldOptionsFromKind, NormalizeArgs, SchemaTypes, TypeParam, } from '../types/index.ts';
-import RootFieldBuilder from './root.ts';
-export default class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends RootFieldBuilder<Types, ParentShape, Kind> {
+import { RootFieldBuilder } from './root.ts';
+export class FieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> extends RootFieldBuilder<Types, ParentShape, Kind> {
     /**
      * Create a Boolean field from a boolean property on the parent object
      * @param {string} name - the name of the property on the source object (does not need to match the field name).

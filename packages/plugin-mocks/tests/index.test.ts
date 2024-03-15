@@ -1,7 +1,7 @@
 import './examples/starwars/schema';
 import { execute } from 'graphql';
 import { gql } from 'graphql-tag';
-import builder from './examples/starwars/builder';
+import { builder } from './examples/starwars/builder';
 
 describe('mocked', () => {
   it('query some stuff', async () => {

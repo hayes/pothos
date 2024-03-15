@@ -1,7 +1,9 @@
-import { inputShapeKey } from '../types';
-import BaseTypeRef from './base';
+import { inputShapeKey, SchemaTypes } from '../types';
+import { BaseTypeRef } from './base';
+import { ListRef } from './list';
+import { NonNullRef } from './non-null';
 
-export default class InputTypeRef<T> extends BaseTypeRef {
+export class InputTypeRef<Types extends SchemaTypes, T> extends BaseTypeRef<Types> {
   override kind;
 
   $inferInput!: T;
@@ -11,5 +13,13 @@ export default class InputTypeRef<T> extends BaseTypeRef {
   constructor(kind: 'Enum' | 'InputObject' | 'Scalar', name: string) {
     super(kind, name);
     this.kind = kind;
+  }
+
+  list() {
+    return new ListRef<Types, typeof this>(this);
+  }
+
+  nonNull() {
+    return new NonNullRef<Types, typeof this>(this);
   }
 }

@@ -4,7 +4,7 @@ import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
 import { ImplementableObjectRef, ObjectRef, SchemaTypes } from '../../core/index.ts';
 import { DataLoaderOptions } from '../types.ts';
 import { dataloaderGetter } from '../util.ts';
-export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends ObjectRef<RefShape, Shape> {
+export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, CacheKey> extends ObjectRef<Types, RefShape, Shape> {
     getDataloader;
     constructor(name: string, getDataloader: (context: Types["Context"]) => DataLoader<Key, Shape, CacheKey>) {
         super(name);

@@ -11,6 +11,7 @@ import type PrismaTypes from '../prisma/generated';
 import { db } from './db';
 
 export const builder = new SchemaBuilder<{
+  Defaults: 'v3';
   PrismaTypes: PrismaTypes;
   Scalars: {
     ID: {
@@ -28,6 +29,7 @@ export const builder = new SchemaBuilder<{
     };
   };
 }>({
+  defaults: 'v3',
   plugins: [
     ScopeAuthPlugin,
     PrismaPlugin,

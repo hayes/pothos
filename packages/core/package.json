@@ -47,7 +47,7 @@
     "provenance": true
   },
   "peerDependencies": {
-    "graphql": ">=15.1.0"
+    "graphql": ">=16.4.0"
   },
   "devDependencies": {
     "@pothos/test-utils": "workspace:*",

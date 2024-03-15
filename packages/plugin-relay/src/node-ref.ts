@@ -1,8 +1,12 @@
-import { ObjectRef } from '@pothos/core';
+import { ObjectRef, SchemaTypes } from '@pothos/core';
 
 export const relayIDShapeKey = Symbol.for('Pothos.relayIDShapeKey');
 
-export class NodeRef<T, P = T, IDShape = string> extends ObjectRef<T, P> {
+export class NodeRef<Types extends SchemaTypes, T, P = T, IDShape = string> extends ObjectRef<
+  Types,
+  T,
+  P
+> {
   [relayIDShapeKey]!: IDShape;
 
   parseId: ((id: string, ctx: object) => IDShape) | undefined;

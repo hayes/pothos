@@ -1,8 +1,8 @@
-import builder from '../builder';
+import { builder } from '../builder';
 import { getFriends } from '../data';
 import { Episode } from './episode';
 
-export default builder.interfaceType('Character', {
+export const Character = builder.interfaceType('Character', {
   fields: (t) => ({
     id: t.exposeID('id', { description: 'The id of the character' }),
     name: t.exposeString('name', { description: 'The name of the character' }),

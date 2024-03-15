@@ -60,7 +60,7 @@ export class ModelLoader {
   }
 
   static forRef<Types extends SchemaTypes>(
-    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
+    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
     findUnique: ((model: Record<string, unknown>, ctx: {}) => unknown) | undefined,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -106,7 +106,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindBy<Types extends SchemaTypes>(
-    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
+    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ) {
@@ -143,7 +143,7 @@ export class ModelLoader {
   }
 
   static getDefaultFindUnique<Types extends SchemaTypes>(
-    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
+    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): (model: Record<string, unknown>) => {} {
@@ -153,7 +153,7 @@ export class ModelLoader {
   }
 
   static getDefaultIDSelection<Types extends SchemaTypes>(
-    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
+    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
   ): Record<string, boolean> {
@@ -173,7 +173,7 @@ export class ModelLoader {
   }
 
   static getCursorSelection<Types extends SchemaTypes>(
-    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
+    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
     cursor: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,
@@ -202,7 +202,7 @@ export class ModelLoader {
   }
 
   static getFindUniqueForField<Types extends SchemaTypes>(
-    ref: InterfaceRef<unknown> | ObjectRef<unknown>,
+    ref: InterfaceRef<Types, unknown> | ObjectRef<Types, unknown>,
     modelName: string,
     fieldName: string,
     builder: PothosSchemaTypes.SchemaBuilder<Types>,

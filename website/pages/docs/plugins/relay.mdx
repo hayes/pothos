@@ -31,25 +31,19 @@ yarn add @pothos/plugin-relay
 import RelayPlugin from '@pothos/plugin-relay';
 const builder = new SchemaBuilder({
   plugins: [RelayPlugin],
-  relayOptions: {
-    // These will become the defaults in the next major version
-    clientMutationId: 'omit',
-    cursorType: 'String',
-  },
+  relay: {},
 });
 ```
 
 ### Options
 
-The `relayOptions` object passed to builder can contain the following properties:
+The `relay` options object passed to builder can contain the following properties:
 
 - `idFieldName`: The name of the field that contains the global id for the node. Defaults to `id`.
 - `idFieldOptions`: Options to pass to the id field.
-- `clientMutationId`: `required` (default) | `omit` | `optional`. Determines if clientMutationId
+- `clientMutationId`: `omit` (default) | `required` | `optional`. Determines if clientMutationId
   fields are created on `relayMutationFields`, and if they are required.
-- `cursorType`: String | ID. Determines type used for cursor fields. Default behavior due to legacy
-  reasons is String for everything except for connection arguments which use ID. Overwriting this
-  default to String is highly encouraged and will become the default in the next major version.
+- `cursorType`: `String` | `ID`. Determines type used for cursor fields. Defaults to `String`
 - `nodeQueryOptions`: Options for the `node` field on the query object, set to false to omit the
   field
 - `nodesQueryOptions`: Options for the `nodes` field on the query object, set to false to omit the
@@ -78,6 +72,85 @@ The `relayOptions` object passed to builder can contain the following properties
 - `defaultMutationInputTypeOptions`: default options for the mutation `Input` types.
 - `nodesOnConnection`: If true, the `nodes` field will be added to the `Connection` object types.
 - `defaultConnectionFieldOptions`: Default options for connection fields defined with t.connection
+- `brandLoadedObjects`: Defaults to `true`. This will add a hidden symbol to objects returned from
+  the `load` methods of Nodes that allows the default `resolveType` implementation to identify the
+  type of the node. When this is enabled, you will not need to implement an `isTypeOf` check for
+  most common patterns.
+
+### Creating Nodes
+
+To create objects that extend the `Node` interface, you can use the new `builder.node` method.
+
+```typescript
+// Using object refs
+const User = builder.objectRef<UserType>('User');
+// Or using a class
+class User {
+  id: string;
+  name: string;
+}
+
+builder.node(User, {
+  // define an id field
+  id: {
+    resolve: (user) => user.id,
+    // other options for id field can be added here
+  },
+
+  // Define only one of the following methods for loading nodes by id
+  loadOne: (id) => loadUserByID(id),
+  loadMany: (ids) => loadUsers(ids),
+  loadWithoutCache: (id) => loadUserByID(id),
+  loadManyWithoutCache: (ids) => loadUsers(ids),
+
+  // if using a class instaed of a ref, you will need to provide a name
+  name: 'User',
+  fields: (t) => ({
+    name: t.exposeString('name'),
+  }),
+});
+```
+
+`builder.node` will create an object type that implements the `Node` interface. It will also create
+the `Node` interface the first time it is used. The `resolve` function for `id` should return a
+number or string, which will be converted to a globalID. The relay plugin adds to new query fields
+`node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
+provided `loadOne` or `loadMany` method. Each node will only be loaded once by id, and cached if the
+same node is loaded multiple times inn the same request. You can provide `loadWithoutCache` or
+`loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
+datasource like a dataloader.
+
+Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
+lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
+using an `instanceof` check, and falls back to checking the constructor property on the prototype.
+The means that for many cases if you are using classes in your type parameters, and all your values
+are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
+better to explicitly define that behavior.
+
+By default (unless `brandLoadedObjects` is set to `false`) any nodes loaded through one of the
+`load*` methods will be branded so that the default `resolveType` method can identify the GraphQL
+type for the loaded object. This means `isTypeOf` is only required for `union` and `interface`
+fields that return node objects that are manually loaded, where the union or interface does not have
+a custom `resolveType` method that knows how to resolve the node type.
+
+#### parsing node ids
+
+By default all node ids are parsed as string. This behavior can be customized by providing a custom
+parse function for your node's ID field:
+
+```ts
+const User = builder.objectRef<UserType>('User')
+builder.node(User, {
+  // define an id field
+  id: {
+    resolve: (user) => user.id,
+    parse: (id) => Number.parseInt(id, 10),
+  },
+  // the ID is now a number
+  loadOne: (id) => loadUserByID(id),
+  ...
+});
+```
 
 ### Global IDs
 
@@ -90,7 +163,7 @@ import { encodeGlobalID } from '@pothos/plugin-relay';
 builder.queryFields((t) => ({
   singleID: t.globalID({
     resolve: (parent, args, context) => {
-      return encodeGlobalID('SomeType', 123);
+      return { id: 123, type: 'SomeType' };
     },
   }),
   listOfIDs: t.globalIDList({
@@ -149,76 +222,6 @@ builder.queryType({
       },
     }),
   }),
-});
-```
-
-### Creating Nodes
-
-To create objects that extend the `Node` interface, you can use the new `builder.node` method.
-
-```typescript
-class NumberThing {
-  id: number;
-
-  binary: string;
-
-  constructor(n: number) {
-    this.id = n;
-    this.binary = n.toString(2);
-  }
-}
-
-builder.node(NumberThing, {
-  // define an id field
-  id: {
-    resolve: (num) => num.id,
-    // other options for id field can be added here
-  },
-
-  // Define only one of the following methods for loading nodes by id
-  loadOne: (id) => new NumberThing(parseInt(id)),
-  loadMany: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
-  loadWithoutCache: (id) => new NumberThing(parseInt(id)),
-  loadManyWithoutCache: (ids) => ids.map((id) => new NumberThing(parseInt(id))),
-
-  name: 'Number',
-  fields: (t) => ({
-    binary: t.exposeString('binary', {}),
-  }),
-});
-```
-
-`builder.node` will create an object type that implements the `Node` interface. It will also create
-the `Node` interface the first time it is used. The `resolve` function for `id` should return a
-number or string, which will be converted to a globalID. The relay plugin adds to new query fields
-`node` and `nodes` which can be used to directly fetch nodes using global IDs by calling the
-provided `loadOne` or `loadMany` method. Each node will only be loaded once by id, and cached if the
-same node is loaded multiple times inn the same request. You can provide `loadWithoutCache` or
-`loadManyWithoutCache` instead if caching is not desired, or you are already using a caching
-datasource like a dataloader.
-
-Nodes may also implement an `isTypeOf` method which can be used to resolve the correct type for
-lists of generic nodes. When using a class as the type parameter, the `isTypeOf` method defaults to
-using an `instanceof` check, and falls back to checking the constructor property on the prototype.
-The means that for many cases if you are using classes in your type parameters, and all your values
-are instances of those classes, you won't need to implement an `isTypeOf` method, but it is usually
-better to explicitly define that behavior.
-
-#### parsing node ids
-
-By default all node ids are parsed as string. This behavior can be customized by providing a custom
-parse function for your node's ID field:
-
-```ts
-builder.node(NumberThing, {
-  // define an id field
-  id: {
-    resolve: (num) => num.id,
-    parse: (id) => Number.parseInt(id, 10),
-  },
-  // the ID is now a number
-  loadOne: (id) => new NumberThing(id),
-  ...
 });
 ```
 
@@ -287,7 +290,7 @@ import { resolveOffsetConnection } from '@pothos/plugin-relay';
 
 builder.queryFields((t) => ({
   things: t.connection({
-    type: SomeThings,
+    type: SomeThing,
     resolve: (parent, args) => {
       return resolveOffsetConnection({ args }, ({ limit, offset }) => {
         return getThings(offset, limit);

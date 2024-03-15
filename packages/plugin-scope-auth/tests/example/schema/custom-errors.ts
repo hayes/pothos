@@ -10,6 +10,7 @@ interface Context {
 }
 
 const builder = new SchemaBuilder<{
+  Defaults: 'v3';
   Context: Context;
   AuthScopes: {
     loggedIn: boolean;
@@ -22,6 +23,7 @@ const builder = new SchemaBuilder<{
   };
   DefaultFieldNullability: true;
 }>({
+  defaults: 'v3',
   relayOptions: {},
   defaultFieldNullability: true,
   scopeAuthOptions: {

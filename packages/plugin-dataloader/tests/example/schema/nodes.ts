@@ -108,8 +108,8 @@ builder.queryFields((t) => ({
   loadableParseNodes: t.field({
     type: [LoadableParseRef],
     args: {
-      ids: t.arg.globalIDList({ for: [LoadableParseRef] }),
+      ids: t.arg.globalIDList({ for: LoadableParseRef }),
     },
-    resolve: (source, args) => args.ids?.map((id) => id.id) ?? [],
+    resolve: (source, args) => args.ids?.map((id) => id.id) ?? ([] as any),
   }),
 }));

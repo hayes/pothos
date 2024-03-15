@@ -17,6 +17,11 @@ declare global {
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      errors?: ErrorsPluginOptions<Types>;
+    }
+
+    export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+      errors: never;
       errorOptions?: ErrorsPluginOptions<Types>;
     }
 
