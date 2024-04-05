@@ -6,7 +6,7 @@ import SimpleObjects from '@pothos/plugin-simple-objects';
 import PrismaPlugin from '../../src';
 // eslint-disable-next-line import/no-useless-path-segments
 import { Prisma, PrismaClient } from '../client/index';
-import PrismaTypes from '../generated';
+import PrismaTypes from '../generated.js';
 
 export const prisma = new PrismaClient({
   log: [
