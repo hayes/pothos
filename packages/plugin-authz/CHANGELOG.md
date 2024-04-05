@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.5.9
+
+### Patch Changes
+
+- e6088cf: Fix merging of extensions to resolve compatibility issues with other plugins
+
 ## 3.5.8
 
 ### Patch Changes
