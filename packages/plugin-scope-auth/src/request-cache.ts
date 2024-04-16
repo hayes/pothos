@@ -57,6 +57,10 @@ export default class RequestCache<Types extends SchemaTypes> {
     return requestCache.get(context)!;
   }
 
+  static clearForContext<T extends SchemaTypes>(context: T['Context']): void {
+    requestCache.delete(context);
+  }
+
   getScopes(): MaybePromise<ScopeLoaderMap<Types>> {
     if (!this.scopes) {
       const scopes = this.builder.options.authScopes(this.context);

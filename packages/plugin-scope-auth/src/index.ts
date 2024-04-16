@@ -17,6 +17,7 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '@pothos/core';
 import { isTypeOfHelper } from './is-type-of-helper';
+import RequestCache from './request-cache';
 import { resolveHelper } from './resolve-helper';
 import {
   createFieldAuthScopesStep,
@@ -27,6 +28,7 @@ import {
 } from './steps';
 import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types';
 
+export { RequestCache };
 export * from './errors';
 export * from './types';
 

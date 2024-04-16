@@ -42,20 +42,28 @@ const builder = new SchemaBuilder<{
     authorizeOnSubscribe: true,
     defaultStrategy: 'all',
   },
-  authScopes: async (context) => ({
-    loggedIn: !!context.user,
-    admin: !!context.user?.roles.includes('admin'),
-    syncPermission: (perm) => {
-      context.count?.('syncPermission');
+  authScopes: async (context) => {
+    context.count?.('authScopes');
 
-      return !!context.user?.permissions.includes(perm);
-    },
-    asyncPermission: async (perm) => {
-      context.count?.('asyncPermission');
+    // locally reference use to simulate data loaded in this authScopes fn that depends on incoming
+    // context data and is not modifiable from resolvers
+    const { user } = context;
 
-      return !!context.user?.permissions.includes(perm);
-    },
-  }),
+    return {
+      loggedIn: !!user,
+      admin: !!user?.roles.includes('admin'),
+      syncPermission: (perm) => {
+        context.count?.('syncPermission');
+
+        return !!user?.permissions.includes(perm);
+      },
+      asyncPermission: async (perm) => {
+        context.count?.('asyncPermission');
+
+        return !!user?.permissions.includes(perm);
+      },
+    };
+  },
 });
 
 export default builder;
