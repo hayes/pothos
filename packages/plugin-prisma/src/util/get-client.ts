@@ -42,7 +42,7 @@ export interface RuntimeDataModel {
 }
 
 const prismaClientCache = createContextCache(
-  <Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>) =>
+  (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
     createContextCache((context: object) =>
       typeof builder.options.prisma.client === 'function'
         ? builder.options.prisma.client(context)
@@ -55,7 +55,9 @@ export function getClient<Types extends SchemaTypes>(
   context: Types['Context'],
 ): PrismaClient {
   if (typeof builder.options.prisma.client === 'function') {
-    return prismaClientCache(builder)(context);
+    return prismaClientCache(builder as unknown as PothosSchemaTypes.SchemaBuilder<SchemaTypes>)(
+      context,
+    );
   }
 
   return builder.options.prisma.client;
