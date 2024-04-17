@@ -11,7 +11,7 @@ import { loadDocsFiles, MDXFile } from './build-nav';
 
 const docsProcessor = remark()
   .use(remarkMDX)
-  .use(() => (node) => ({
+  .use(() => (node: { children: { type: string }[] }) => ({
     ...node,
     children: node.children.filter((child) => !child.type.startsWith('mdxjs')),
   }));
