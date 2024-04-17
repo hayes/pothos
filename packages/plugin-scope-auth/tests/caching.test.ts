@@ -226,4 +226,40 @@ describe('caching', () => {
       `);
     });
   });
+
+  it('clears cache during request', async () => {
+    const query = gql`
+      query {
+        obj: ClearCache {
+          field
+        }
+      }
+    `;
+
+    const counter = new Counter();
+
+    const result = await execute({
+      schema,
+      document: query,
+      contextValue: {
+        count: counter.count,
+        user: new User({
+          'x-user-id': '1',
+          'x-permissions': 'a',
+        }),
+      },
+    });
+
+    expect(counter.counts.get('authScopes')).toBe(2);
+
+    expect(result).toMatchInlineSnapshot(`
+        {
+          "data": {
+            "obj": {
+              "field": "ok",
+            },
+          },
+        }
+      `);
+  });
 });

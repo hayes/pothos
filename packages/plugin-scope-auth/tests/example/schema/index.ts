@@ -1,7 +1,9 @@
 /* eslint-disable @typescript-eslint/require-await */
 import './custom-errors';
 import './with-auth';
+import { RequestCache } from '../../../src';
 import builder from '../builder';
+import User from '../user';
 
 builder.queryField('currentId', (t) =>
   t.authField({
@@ -846,6 +848,23 @@ builder.queryType({
       nullable: true,
 
       resolve: () => ({}),
+    }),
+    ClearCache: t.field({
+      type: ObjForSyncPermFn,
+      nullable: true,
+      authScopes: {
+        syncPermission: 'a',
+      },
+      resolve: (parent, args, context) => {
+        context.user = new User({
+          'x-user-id': '1',
+          'x-permissions': 'b',
+        });
+
+        RequestCache.clearForContext(context);
+
+        return { permission: 'b' };
+      },
     }),
   }),
 });

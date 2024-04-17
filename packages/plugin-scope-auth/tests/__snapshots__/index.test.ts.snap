@@ -111,6 +111,7 @@ type Post {
 }
 
 type Query {
+  ClearCache: ObjForSyncPermFn
   IfaceBooleanFn(result: Boolean!): IfaceBooleanFn
   IfaceForAdmin: IfaceForAdmin
   ObjAdminIface: ObjAdminIface
