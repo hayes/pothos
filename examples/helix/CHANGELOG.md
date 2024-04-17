@@ -1,5 +1,12 @@
 # @pothos-examples/helix
 
+## 2.4.41
+
+### Patch Changes
+
+- Updated dependencies [f763170]
+  - @pothos/core@3.41.1
+
 ## 2.4.40
 
 ### Patch Changes

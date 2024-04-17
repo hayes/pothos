@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.41.1
+
+### Patch Changes
+
+- f763170: Add delete method to context caches
+
 ## 3.41.0
 
 ### Minor Changes
