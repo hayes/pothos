@@ -16,7 +16,7 @@ export * from './types';
 export * from './util';
 export * from './validator';
 
-const pluginName = 'complexity' as const;
+const pluginName = 'complexity';
 
 export default pluginName;
 

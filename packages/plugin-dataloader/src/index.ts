@@ -16,7 +16,7 @@ export * from './refs';
 export * from './types';
 export * from './util';
 
-const pluginName = 'dataloader' as const;
+const pluginName = 'dataloader';
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,

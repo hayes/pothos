@@ -63,7 +63,6 @@ export function parsePrismaCursor(cursor: unknown) {
       case 'J':
         return JSON.parse(value) as unknown;
       case 'I':
-        // eslint-disable-next-line node/no-unsupported-features/es-builtins
         return BigInt(value);
       default:
         throw new PothosValidationError(`Invalid cursor type ${type}`);
@@ -84,7 +83,6 @@ export function parseID(id: string, dataType: string): unknown {
     case 'Int':
       return Number.parseInt(id, 10);
     case 'BigInt':
-      // eslint-disable-next-line node/no-unsupported-features/es-builtins
       return BigInt(id);
     case 'Boolean':
       return id !== 'false';

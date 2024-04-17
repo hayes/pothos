@@ -1,5 +1,4 @@
 /* eslint-disable unicorn/no-process-exit */
-/* eslint-disable no-process-exit */
 /* eslint-disable unicorn/prefer-module */
 import { writeFileSync } from 'node:fs';
 import { resolve } from 'node:path';

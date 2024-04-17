@@ -4,7 +4,7 @@ import { GraphQLFieldResolver, GraphQLIsTypeOfFn } from 'https://cdn.skypack.dev
 import SchemaBuilder, { BasePlugin, ImplementableObjectRef, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosSchemaError, SchemaTypes, sortClasses, typeBrandKey, unwrapOutputFieldType, } from '../core/index.ts';
 import { GetTypeName } from './types.ts';
 export * from './types.ts';
-const pluginName = "errors" as const;
+const pluginName = "errors";
 export default pluginName;
 export function capitalize(s: string) {
     return `${s.slice(0, 1).toUpperCase()}${s.slice(1)}`;

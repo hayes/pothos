@@ -74,7 +74,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     async throw(error: unknown) {
         this.handleError(error);
         // eslint-disable-next-line unicorn/no-useless-promise-resolve-reject
-        return Promise.reject<IteratorResult<object>>(error);
+        return Promise.reject<IteratorResult<object>>(error as Error);
     }
     async next(): Promise<IteratorResult<object>> {
         if (this.pendingError) {
@@ -114,7 +114,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
             this.rejectNext = (err) => {
                 this.resolveNext = null;
                 this.rejectNext = null;
-                reject(err);
+                reject(err as Error);
             };
             const pending = this.pendingEvents;
             if (pending.length > 0) {
@@ -130,7 +130,6 @@ export default class SubscriptionManager implements AsyncIterator<object> {
         if (this.rejectNext) {
             this.rejectNext(err);
         }
-        // eslint-disable-next-line promise/no-promise-in-callback
         this.stop().catch((error) => void this.handleError(error));
     }
     private async stop() {

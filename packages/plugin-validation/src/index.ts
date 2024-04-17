@@ -22,7 +22,7 @@ import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './ty
 
 export * from './types';
 
-const pluginName = 'validation' as const;
+const pluginName = 'validation';
 
 export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();

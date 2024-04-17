@@ -460,7 +460,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     const values =
       typeof param === 'object'
         ? valuesFromEnum<Types>(
-            // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
             param as BaseEnum,
             options?.values as Record<string, PothosSchemaTypes.EnumValueConfig<Types>>,
           )
@@ -479,7 +478,6 @@ export default class SchemaBuilder<Types extends SchemaTypes> {
     this.configStore.addTypeConfig(config, ref);
 
     if (typeof param !== 'string') {
-      // eslint-disable-next-line @typescript-eslint/no-unnecessary-type-assertion
       this.configStore.associateRefWithName(param as BaseEnum, name);
     }
 

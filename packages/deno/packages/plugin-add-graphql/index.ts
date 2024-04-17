@@ -4,7 +4,7 @@ import './schema-builder.ts';
 import { GraphQLSchema } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, SchemaTypes } from '../core/index.ts';
 import { addTypeToSchema } from './utils.ts';
-const pluginName = "addGraphQL" as const;
+const pluginName = "addGraphQL";
 export default pluginName;
 const builtInTypes = Object.keys(new GraphQLSchema({}).getTypeMap());
 export class PothosAddGraphQLPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

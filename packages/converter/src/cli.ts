@@ -4,7 +4,7 @@ import { buildSchema } from 'graphql';
 import yargs from 'yargs';
 import PothosConverter from '.';
 
-export default yargs.command(
+export default yargs().command(
   'convert <path>',
   'convert SDL to Pothos',
   (args) => {

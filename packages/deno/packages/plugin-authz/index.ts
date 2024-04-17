@@ -2,7 +2,7 @@
 import './global-types.ts';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
 export * from './types.ts';
-const pluginName = "authz" as const;
+const pluginName = "authz";
 export class PothosAuthZPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>): PothosOutputFieldConfig<Types> | null {
         const { authz } = fieldConfig.pothosOptions;

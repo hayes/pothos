@@ -12,8 +12,8 @@
       "esnext",
       "dom"
     ],
-    "module": "commonjs",
-    "moduleResolution": "node",
+    "module": "Preserve",
+    "moduleResolution": "Bundler",
     "noEmitOnError": false,
     "noImplicitOverride": true,
     "noImplicitReturns": true,

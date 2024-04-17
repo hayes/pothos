@@ -48,7 +48,7 @@ input PostCreateInput {
 input PostFilter {
   author: UserFilter
 
-  \\"\\"\\"filter by author id\\"\\"\\"
+  """filter by author id"""
   authorId: IntFilter
   comments: CommentListFilter
   createdAt: DateTime

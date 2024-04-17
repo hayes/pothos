@@ -27,7 +27,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { replaceType } from './util';
 
-const pluginName = 'subGraph' as const;
+const pluginName = 'subGraph';
 
 export default pluginName;
 

@@ -49,7 +49,6 @@ describe('ways to add enums', () => {
       'Object entries',
       (builder: SchemaBuilder<SchemaTypes>) => {
         const e = builder.enumType('ChessPiece', {
-          // eslint-disable-next-line node/no-unsupported-features/es-builtins
           values: Object.fromEntries(
             Object.entries(ChessPieceObject).map(([name, value]) => [name, { value }]),
           ),
@@ -148,7 +147,6 @@ describe('ways to add enums', () => {
       motorcycle: 'MOTORCYCLE',
     } as const;
     const VehicleTypeEnum = builder.enumType('VehicleType', {
-      // eslint-disable-next-line node/no-unsupported-features/es-builtins
       values: Object.fromEntries(
         Object.entries(VehicleType).map(([name, value]) => [name, { value }]),
       ),

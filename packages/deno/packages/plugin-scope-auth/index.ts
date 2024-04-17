@@ -5,12 +5,14 @@ import './field-builders.ts';
 import { GraphQLFieldResolver, GraphQLIsTypeOfFn, GraphQLTypeResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, FieldKind, PothosInterfaceTypeConfig, PothosMutationTypeConfig, PothosObjectTypeConfig, PothosOutputFieldConfig, PothosQueryTypeConfig, PothosSchemaError, PothosSubscriptionTypeConfig, PothosUnionTypeConfig, RootFieldBuilder, SchemaTypes, } from '../core/index.ts';
 import { isTypeOfHelper } from './is-type-of-helper.ts';
+import RequestCache from './request-cache.ts';
 import { resolveHelper } from './resolve-helper.ts';
 import { createFieldAuthScopesStep, createFieldGrantScopesStep, createResolveStep, createTypeAuthScopesStep, createTypeGrantScopesStep, } from './steps.ts';
 import { ResolveStep, TypeAuthScopes, TypeGrantScopes } from './types.ts';
+export { RequestCache };
 export * from './errors.ts';
 export * from './types.ts';
-const pluginName = "scopeAuth" as const;
+const pluginName = "scopeAuth";
 export default pluginName;
 let inResolveType = false;
 export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

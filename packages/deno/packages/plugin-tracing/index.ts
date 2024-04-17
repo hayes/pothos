@@ -3,7 +3,7 @@ import './global-types.ts';
 import { GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
 import { TracingFieldOptions, TracingFieldWrapper } from './types.ts';
-const pluginName = "tracing" as const;
+const pluginName = "tracing";
 export default pluginName;
 export * from './types.ts';
 export * from './util.ts';

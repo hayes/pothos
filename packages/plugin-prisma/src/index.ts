@@ -24,7 +24,7 @@ export { PrismaNodeRef } from './node-ref';
 export { prismaModelKey, PrismaObjectRef } from './object-ref';
 export * from './types';
 
-const pluginName = 'prisma' as const;
+const pluginName = 'prisma';
 
 export default pluginName;
 

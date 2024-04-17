@@ -1,6 +1,5 @@
 {
-  "baseBranch": "origin/main",
-  "npmClient": "pnpm",
+  "$schema": "https://turbo.build/schema.json",
   "pipeline": {
     "generate": {
       "dependsOn": [

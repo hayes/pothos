@@ -4,7 +4,7 @@ import SchemaBuilder, { BasePlugin, SchemaTypes } from '@pothos/core';
 
 export * from './types';
 
-const pluginName = 'withInput' as const;
+const pluginName = 'withInput';
 
 export default pluginName;
 

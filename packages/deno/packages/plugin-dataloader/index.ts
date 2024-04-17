@@ -8,7 +8,7 @@ import SchemaBuilder, { BasePlugin, isThenable, MaybePromise, PothosOutputFieldC
 export * from './refs/index.ts';
 export * from './types.ts';
 export * from './util.ts';
-const pluginName = "dataloader" as const;
+const pluginName = "dataloader";
 export class PothosDataloaderPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const isList = fieldConfig.type.kind === "List";

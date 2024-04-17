@@ -9,7 +9,7 @@ import { internalDecodeGlobalID } from './utils/internal.ts';
 export * from './node-ref.ts';
 export * from './types.ts';
 export * from './utils/index.ts';
-const pluginName = "relay" as const;
+const pluginName = "relay";
 export default pluginName;
 export class PothosRelayPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {

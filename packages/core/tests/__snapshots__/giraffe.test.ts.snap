@@ -13,9 +13,9 @@ interface AnimalFromRef {
   diet: Diet!
 }
 
-\\"\\"\\"
+"""
 A date string, such as 2007-12-03, compliant with the \`full-date\` format outlined in section 5.6 of the RFC 3339 profile of the ISO 8601 standard for representation of dates and times using the Gregorian calendar.
-\\"\\"\\"
+"""
 scalar Date
 
 enum Diet {
@@ -28,30 +28,30 @@ input FindGiraffeInput {
   name: String!
 }
 
-\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+"""Long necks, cool patterns, taller than you."""
 type Giraffe implements Animal {
   age: Int!
 
-  \\"\\"\\"
+  """
   While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium
-  \\"\\"\\"
+  """
   diet: Diet!
   height(unit: LengthUnit! = Meters): Float!
   name: String!
-  oldName(old: Boolean @deprecated(reason: \\"because\\")): String! @deprecated(reason: \\"should use name instead\\")
+  oldName(old: Boolean @deprecated(reason: "because")): String! @deprecated(reason: "should use name instead")
   species: GiraffeSpecies!
 }
 
 union GiraffeFact = GiraffeNumericFact | GiraffeStringFact
 
-\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+"""Long necks, cool patterns, taller than you."""
 type GiraffeFromClass implements AnimalFromClass {
   age: Int!
   diet: Diet!
   name: String!
 }
 
-\\"\\"\\"Long necks, cool patterns, taller than you.\\"\\"\\"
+"""Long necks, cool patterns, taller than you."""
 type GiraffeFromRef implements AnimalFromRef {
   age: Int!
   diet: Diet!
@@ -74,7 +74,7 @@ enum GiraffeSpecies {
   Northern
   Reticulated
 
-  \\"\\"\\"Also known as two-horned giraffe\\"\\"\\"
+  """Also known as two-horned giraffe"""
   Southern
 }
 

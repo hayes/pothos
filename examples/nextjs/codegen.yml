@@ -1,10 +1,7 @@
 overwrite: true
-schema: graphql/build-schema.js
+schema: schema.graphql
 documents: 'components/**/!(*.generated).tsx'
 generates:
-  schema.graphql:
-    plugins:
-      - schema-ast
   components/__generated__/types.generated.ts:
     plugins:
       - typescript

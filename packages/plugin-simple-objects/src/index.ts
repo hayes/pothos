@@ -13,7 +13,7 @@ import SchemaBuilder, {
 } from '@pothos/core';
 import { OutputShapeFromFields } from './types';
 
-const pluginName = 'simpleObjects' as const;
+const pluginName = 'simpleObjects';
 
 export default pluginName;
 

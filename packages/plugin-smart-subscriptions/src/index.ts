@@ -17,7 +17,7 @@ const DEFAULT_DEBOUNCE_DELAY = 10;
 export * from './types';
 export * from './utils';
 
-const pluginName = 'smartSubscriptions' as const;
+const pluginName = 'smartSubscriptions';
 
 export default pluginName;
 export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends BasePlugin<
@@ -47,7 +47,9 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
     this.subscribe = this.builder.options.smartSubscriptions.subscribe;
     this.unsubscribe = this.builder.options.smartSubscriptions.unsubscribe;
     this.debounceDelay =
-      this.builder.options.smartSubscriptions.debounceDelay === null ? null : DEFAULT_DEBOUNCE_DELAY;
+      this.builder.options.smartSubscriptions.debounceDelay === null
+        ? null
+        : DEFAULT_DEBOUNCE_DELAY;
   }
 
   override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {

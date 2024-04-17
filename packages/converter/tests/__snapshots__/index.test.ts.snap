@@ -1,7 +1,7 @@
 // Vitest Snapshot v1, https://vitest.dev/guide/snapshot.html
 
 exports[`Code generator > example schema 1`] = `
-"import SchemaBuilder from \\"@pothos/core\\";
+"import SchemaBuilder from "@pothos/core";
 const builder = new SchemaBuilder<{
     Context: {};
     Objects: {
@@ -159,14 +159,14 @@ const Shaveable = builder.interfaceType('Shaveable', {
     }),
 });
 builder.objectType('Article', {
-    description: \\"shape can be last arg\\",
+    description: "shape can be last arg",
     fields: t => ({
         comments: t.field({
             type: ['String'],
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         title: t.field({
-            description: \\"Title of the article, probably click bait\\",
+            description: "Title of the article, probably click bait",
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
@@ -242,7 +242,7 @@ builder.objectType('User', {
                 ids: t.arg({
                     type: ['ID'],
                     required: { list: true, items: true },
-                    defaultValue: [\\"abc\\"],
+                    defaultValue: ["abc"],
                 }),
             },
             type: ['ID'],
@@ -365,11 +365,11 @@ exports[`Code generator > example schema 2`] = `
   species: String
 }
 
-\\"\\"\\"shape can be last arg\\"\\"\\"
+"""shape can be last arg"""
 type Article {
   comments: [String!]!
 
-  \\"\\"\\"Title of the article, probably click bait\\"\\"\\"
+  """Title of the article, probably click bait"""
   title: String!
 }
 
@@ -436,7 +436,7 @@ type Subscription {
 }
 
 type User {
-  defaultArgs(ids: [ID!]! = [\\"abc\\"]): [ID!]!
+  defaultArgs(ids: [ID!]! = ["abc"]): [ID!]!
   displayName: String!
   fact: String
   firstBornChild: User!
@@ -464,7 +464,7 @@ enum stuff {
 `;
 
 exports[`Code generator > starwars schema 1`] = `
-"import SchemaBuilder from \\"@pothos/core\\";
+"import SchemaBuilder from "@pothos/core";
 const builder = new SchemaBuilder<{
     Context: {};
     Objects: {
@@ -476,18 +476,18 @@ const builder = new SchemaBuilder<{
     };
 }>({});
 const Episode = builder.enumType('Episode', {
-    description: \\"One of the films in the Star Wars Trilogy\\",
+    description: "One of the films in the Star Wars Trilogy",
     values: {
         EMPIRE: {
-            description: \\"Released in 1980.\\",
+            description: "Released in 1980.",
             value: 5 as const,
         },
         JEDI: {
-            description: \\"Released in 1983\\",
+            description: "Released in 1983",
             value: 6 as const,
         },
         NEWHOPE: {
-            description: \\"Released in 1977.\\",
+            description: "Released in 1977.",
             value: 4 as const,
         },
     },
@@ -495,47 +495,47 @@ const Episode = builder.enumType('Episode', {
 const Character = builder.interfaceType('Character', {
     fields: t => ({
         appearsIn: t.field({
-            description: \\"Which movies they appear in.\\",
+            description: "Which movies they appear in.",
             type: [Episode],
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         friends: t.field({
-            description: \\"The friends of the character, or an empty list if they have none.\\",
+            description: "The friends of the character, or an empty list if they have none.",
             type: ['Character'],
             nullable: { list: false, items: true },
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         id: t.field({
-            description: \\"The id of the character\\",
+            description: "The id of the character",
             type: 'ID',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         }),
         name: t.field({
-            description: \\"The name of the character\\",
+            description: "The name of the character",
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
 builder.objectType('Droid', {
-    description: \\"A mechanical creature in the Star Wars universe.\\",
+    description: "A mechanical creature in the Star Wars universe.",
     interfaces: [Character],
     isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
     fields: t => ({
         primaryFunction: t.field({
-            description: \\"The primary function of the droid.\\",
+            description: "The primary function of the droid.",
             type: 'String',
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
         })
     }),
 });
 builder.objectType('Human', {
-    description: \\"A humanoid creature in the Star Wars universe.\\",
+    description: "A humanoid creature in the Star Wars universe.",
     interfaces: [Character],
     isTypeOf: (obj, context, info) => { throw new Error('Not implemented'); },
     fields: t => ({
         homePlanet: t.field({
-            description: \\"The home planet of the human, or null if unknown.\\",
+            description: "The home planet of the human, or null if unknown.",
             type: 'String',
             nullable: true,
             resolve: (parent, args, context, info) => { throw new Error('Not implemented'); },
@@ -548,7 +548,7 @@ builder.queryType({
             args: {
                 id: t.arg({
                     type: 'ID',
-                    description: \\"id of the character\\",
+                    description: "id of the character",
                     required: true,
                 }),
             },
@@ -559,7 +559,7 @@ builder.queryType({
             args: {
                 episode: t.arg({
                     type: Episode,
-                    description: \\"If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.\\",
+                    description: "If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.",
                     required: true,
                 }),
             },
@@ -570,7 +570,7 @@ builder.queryType({
             args: {
                 id: t.arg({
                     type: 'ID',
-                    description: \\"id of the character\\",
+                    description: "id of the character",
                     required: true,
                 }),
             },
@@ -589,80 +589,80 @@ export const schema = builder.toSchema();
 
 exports[`Code generator > starwars schema 2`] = `
 "interface Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  """Which movies they appear in."""
   appearsIn: [Episode!]!
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
-\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+"""A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  """Which movies they appear in."""
   appearsIn: [Episode!]!
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 
-  \\"\\"\\"The primary function of the droid.\\"\\"\\"
+  """The primary function of the droid."""
   primaryFunction: String!
 }
 
-\\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
+"""One of the films in the Star Wars Trilogy"""
 enum Episode {
-  \\"\\"\\"Released in 1980.\\"\\"\\"
+  """Released in 1980."""
   EMPIRE
 
-  \\"\\"\\"Released in 1983\\"\\"\\"
+  """Released in 1983"""
   JEDI
 
-  \\"\\"\\"Released in 1977.\\"\\"\\"
+  """Released in 1977."""
   NEWHOPE
 }
 
-\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
+"""A humanoid creature in the Star Wars universe."""
 type Human implements Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  """Which movies they appear in."""
   appearsIn: [Episode!]!
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  """The home planet of the human, or null if unknown."""
   homePlanet: String
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
 type Query {
   droid(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
   ): Droid!
   hero(
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
+    """
     episode: Episode!
   ): Character!
   human(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
   ): Human!
   r2d2: Droid!

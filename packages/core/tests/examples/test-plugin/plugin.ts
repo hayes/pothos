@@ -11,7 +11,7 @@ import SchemaBuilder, {
   SchemaTypes,
 } from '../../../src';
 
-const pluginName = 'test' as const;
+const pluginName = 'test';
 
 export default pluginName;
 

@@ -16,13 +16,13 @@ type CursorObject {
   id: ID!
 }
 
-\\"\\"\\"input type\\"\\"\\"
+"""input type"""
 input CustomInputName {
   clientMutationId: ID!
   id: ID!
 }
 
-\\"\\"\\"output type\\"\\"\\"
+"""output type"""
 type CustomOutputName {
   clientMutationId: ID!
   itWorked: Boolean!
@@ -43,7 +43,7 @@ input GlobalIDInput {
   circularWithoutGlobalIds: NoGlobalIDInput
   id: ID!
   idList: [ID]!
-  otherList: [OtherInput!] = [{someField: \\"abc\\"}]
+  otherList: [OtherInput!] = [{someField: "abc"}]
 }
 
 type IDResult {
@@ -64,7 +64,7 @@ type Mutation {
   exampleMutation(input: ExampleMutationInput!): ExampleMutationPayload!
   exampleMutationReUse(input: ExampleMutationInput!): ExampleMutationPayload!
 
-  \\"\\"\\"mutation field\\"\\"\\"
+  """mutation field"""
   exampleWithDescriptions(customInput: CustomInputName!): CustomOutputName!
   noInput(status: Int): NoInputPayload!
 }
@@ -235,7 +235,7 @@ type QueryOddNumbersConnectionEdge {
 }
 
 type QueryPollsConnection {
-  \\"\\"\\"edgesField test description\\"\\"\\"
+  """edgesField test description"""
   edges: [QueryPollsConnectionEdge]!
   extraConnectionField: String!
   pageInfo: PageInfo!
@@ -245,7 +245,7 @@ type QueryPollsConnectionEdge {
   cursor: String!
   extraEdgeField: Int!
 
-  \\"\\"\\"nodeField test description\\"\\"\\"
+  """nodeField test description"""
   node: Poll!
 }
 
@@ -287,10 +287,10 @@ interface Node {
 }
 
 type Query {
-  \\"\\"\\"node query\\"\\"\\"
+  """node query"""
   node(id: ID!): Node
 
-  \\"\\"\\"nodes query\\"\\"\\"
+  """nodes query"""
   nodes(ids: [ID!]!): [Node]!
 }
 
@@ -312,12 +312,12 @@ type BatchNumber implements Node {
   number: Int!
 }
 
-\\"\\"\\"input type\\"\\"\\"
+"""input type"""
 input CustomInputName {
   id: ID!
 }
 
-\\"\\"\\"output type\\"\\"\\"
+"""output type"""
 type CustomOutputName {
   itWorked: Boolean!
 }
@@ -341,13 +341,13 @@ type Mutation {
   answerPoll(answer: Int!, id: ID!): Poll!
   createPoll(answers: [String!]!, question: String!): Poll!
   exampleMutation(
-    \\"\\"\\"mutation input arg\\"\\"\\"
+    """mutation input arg"""
     input: ExampleMutationInput!
   ): ExampleMutationPayload!
 
-  \\"\\"\\"mutation field\\"\\"\\"
+  """mutation field"""
   exampleWithDescriptions(
-    \\"\\"\\"mutation input arg\\"\\"\\"
+    """mutation input arg"""
     customInput: CustomInputName!
   ): CustomOutputName!
 }
@@ -357,7 +357,7 @@ input NoGlobalIDInput {
   id: ID
 }
 
-\\"\\"\\"node type\\"\\"\\"
+"""node type"""
 interface Node {
   nodeId: ID!
 }
@@ -367,7 +367,7 @@ type Number implements Node {
   number: Int!
 }
 
-\\"\\"\\"page info type\\"\\"\\"
+"""page info type"""
 type PageInfo {
   endCursor: String
   hasNextPage: Boolean!

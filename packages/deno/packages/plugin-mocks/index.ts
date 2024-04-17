@@ -3,7 +3,7 @@ import './global-types.ts';
 import { GraphQLFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '../core/index.ts';
 import { ResolverMap } from './types.ts';
-const pluginName = "mocks" as const;
+const pluginName = "mocks";
 export default pluginName;
 export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {

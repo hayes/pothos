@@ -32,7 +32,7 @@ export { RequestCache };
 export * from './errors';
 export * from './types';
 
-const pluginName = 'scopeAuth' as const;
+const pluginName = 'scopeAuth';
 
 export default pluginName;
 

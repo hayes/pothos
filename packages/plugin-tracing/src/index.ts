@@ -3,7 +3,7 @@ import { GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 import { TracingFieldOptions, TracingFieldWrapper } from './types';
 
-const pluginName = 'tracing' as const;
+const pluginName = 'tracing';
 
 export default pluginName;
 

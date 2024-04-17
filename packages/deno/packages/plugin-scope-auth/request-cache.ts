@@ -1,11 +1,10 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/promise-function-async */
 import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
-import { isThenable, MaybePromise, Path, PothosValidationError, SchemaTypes } from '../core/index.ts';
+import { createContextCache, isThenable, MaybePromise, Path, PothosValidationError, SchemaTypes, } from '../core/index.ts';
 import { AuthFailure, AuthScopeFailureType, AuthScopeMap, ScopeLoaderMap, TypeAuthScopesFunction, } from './types.ts';
 import { cacheKey, canCache } from './util.ts';
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const requestCache = new WeakMap<{}, RequestCache<any>>();
+const contextCache = createContextCache((ctx, builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) => new RequestCache(builder, ctx));
 export default class RequestCache<Types extends SchemaTypes> {
     builder;
     context;
@@ -27,11 +26,10 @@ export default class RequestCache<Types extends SchemaTypes> {
         this.defaultStrategy = builder.options.scopeAuthOptions?.defaultStrategy ?? "any";
     }
     static fromContext<T extends SchemaTypes>(context: T["Context"], builder: PothosSchemaTypes.SchemaBuilder<T>): RequestCache<T> {
-        if (!requestCache.has(context)) {
-            requestCache.set(context, new RequestCache<T>(builder, context));
-        }
-        // eslint-disable-next-line @typescript-eslint/no-unsafe-return
-        return requestCache.get(context)!;
+        return contextCache(context, builder as never) as never;
+    }
+    static clearForContext<T extends SchemaTypes>(context: T["Context"]): void {
+        contextCache.delete(context);
     }
     getScopes(): MaybePromise<ScopeLoaderMap<Types>> {
         if (!this.scopes) {

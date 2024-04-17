@@ -4,7 +4,7 @@ import './global-types.ts';
 import { getNamedType, GraphQLEnumType, GraphQLFieldConfigArgumentMap, GraphQLFieldConfigMap, GraphQLInputFieldConfigMap, GraphQLInputObjectType, GraphQLInterfaceType, GraphQLNamedType, GraphQLObjectType, GraphQLScalarType, GraphQLSchema, GraphQLUnionType, isInterfaceType, isNonNullType, isObjectType, } from 'https://cdn.skypack.dev/graphql?dts';
 import SchemaBuilder, { BasePlugin, PothosInputFieldConfig, PothosOutputFieldConfig, PothosSchemaError, PothosTypeConfig, SchemaTypes, } from '../core/index.ts';
 import { replaceType } from './util.ts';
-const pluginName = "subGraph" as const;
+const pluginName = "subGraph";
 export default pluginName;
 function intersect(left: string[], right: string[]) {
     for (const entry of left) {

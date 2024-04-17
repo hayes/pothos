@@ -14,7 +14,7 @@ import SchemaBuilder, {
 
 export * from './types';
 
-const pluginName = 'example' as const;
+const pluginName = 'example';
 
 export default pluginName;
 

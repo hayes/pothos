@@ -13,7 +13,7 @@ import SchemaBuilder, {
 
 export * from './types';
 
-const pluginName = 'prismaUtils' as const;
+const pluginName = 'prismaUtils';
 
 export default pluginName;
 

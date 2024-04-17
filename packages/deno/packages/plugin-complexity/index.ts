@@ -8,7 +8,7 @@ import { ComplexityErrorFn, ComplexityErrorKind, ComplexityResult } from './type
 export * from './types.ts';
 export * from './util.ts';
 export * from './validator.ts';
-const pluginName = "complexity" as const;
+const pluginName = "complexity";
 export default pluginName;
 export class PothosComplexityPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     defaultComplexity = this.options.complexity?.defaultComplexity ??

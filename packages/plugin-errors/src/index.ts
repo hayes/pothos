@@ -15,7 +15,7 @@ import { GetTypeName } from './types';
 
 export * from './types';
 
-const pluginName = 'errors' as const;
+const pluginName = 'errors';
 
 export default pluginName;
 

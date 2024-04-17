@@ -29,7 +29,7 @@ builder.node('Poll', {
       resolve: async (parent, args) => ({
         totalCount: parent.answers.length,
         // This would be for simple cases where you already have all the data
-        ...(await resolveArrayConnection({ args }, parent.answers))!,
+        ...(await resolveArrayConnection({ args }, parent.answers)),
       }),
     }),
     answersUsingOffset: t.connection({
@@ -40,7 +40,7 @@ builder.node('Poll', {
         ...(await resolveOffsetConnection({ args }, ({ limit, offset }) =>
           // replace with call to limit/offset based service
           parent.answers.slice(offset, offset + limit),
-        ))!,
+        )),
       }),
     }),
     answersWithoutHelpers: t.connection(

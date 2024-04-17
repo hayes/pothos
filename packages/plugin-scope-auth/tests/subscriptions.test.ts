@@ -23,7 +23,6 @@ describe('subscriptions', () => {
 
     let i = 0;
     for await (const value of result as AsyncIterable<unknown>) {
-      // eslint-disable-next-line jest/no-interpolation-in-snapshots
       expect(value).toMatchInlineSnapshot(`
         {
           "data": {

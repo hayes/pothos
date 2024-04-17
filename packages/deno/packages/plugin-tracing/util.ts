@@ -1,5 +1,4 @@
 // @ts-nocheck
-/* eslint-disable node/no-unsupported-features/es-builtins */
 import { defaultFieldResolver, GraphQLFieldResolver, GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { isThenable, PothosOutputFieldConfig, PothosOutputFieldType, SchemaTypes, } from '../core/index.ts';
 export function isRootField<Types extends SchemaTypes>(config: PothosOutputFieldConfig<Types>) {

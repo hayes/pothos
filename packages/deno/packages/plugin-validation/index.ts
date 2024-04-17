@@ -6,7 +6,7 @@ import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, Poth
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
 import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types.ts';
 export * from './types.ts';
-const pluginName = "validation" as const;
+const pluginName = "validation";
 export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
     override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>): PothosInputFieldConfig<Types> {

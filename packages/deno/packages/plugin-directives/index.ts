@@ -6,7 +6,7 @@ import SchemaBuilder, { BasePlugin, PothosEnumValueConfig, PothosInputFieldConfi
 import mockAst from './mock-ast.ts';
 import { DirectiveList } from './types.ts';
 export * from './types.ts';
-const pluginName = "directives" as const;
+const pluginName = "directives";
 export default pluginName;
 export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override onOutputFieldConfig(fieldConfig: PothosOutputFieldConfig<Types>) {

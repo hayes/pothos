@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/ban-ts-comment */
 /* eslint-disable no-restricted-globals */
 /* eslint-disable @typescript-eslint/no-invalid-this */
-/* eslint-disable node/no-unsupported-features/es-builtins */
 
 import { PothosValidationError } from '../errors';
 

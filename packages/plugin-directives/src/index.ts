@@ -14,7 +14,7 @@ import { DirectiveList } from './types';
 
 export * from './types';
 
-const pluginName = 'directives' as const;
+const pluginName = 'directives';
 
 export default pluginName;
 export class PothosDirectivesPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

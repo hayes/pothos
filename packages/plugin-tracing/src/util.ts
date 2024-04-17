@@ -1,4 +1,3 @@
-/* eslint-disable node/no-unsupported-features/es-builtins */
 import { defaultFieldResolver, GraphQLFieldResolver, GraphQLResolveInfo } from 'graphql';
 import {
   isThenable,

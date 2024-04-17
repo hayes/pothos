@@ -3,7 +3,7 @@ import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from '@pothos/core';
 import { ResolverMap } from './types';
 
-const pluginName = 'mocks' as const;
+const pluginName = 'mocks';
 
 export default pluginName;
 export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {

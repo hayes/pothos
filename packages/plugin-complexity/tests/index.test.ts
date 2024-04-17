@@ -1,4 +1,3 @@
-/* eslint-disable jest/no-conditional-in-test */
 import { execute, lexicographicSortSchema, parse, printSchema, validate } from 'graphql';
 import { gql } from 'graphql-tag';
 import { createComplexityRule } from '../src';

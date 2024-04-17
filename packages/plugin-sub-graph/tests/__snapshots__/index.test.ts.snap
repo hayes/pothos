@@ -2,14 +2,14 @@
 
 exports[`subGraphs > Private graph 1`] = `
 "interface Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
@@ -24,39 +24,39 @@ type CharacterFriendsConnectionEdge {
 }
 
 input DeprecatedInput {
-  id: ID! @deprecated(reason: \\"its deprecated\\")
+  id: ID! @deprecated(reason: "its deprecated")
 }
 
-\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+"""A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 
-  \\"\\"\\"The primary function of the droid.\\"\\"\\"
+  """The primary function of the droid."""
   primaryFunction(
     filter: FunctionFilter
 
-    \\"\\"\\"The language to use for localization.\\"\\"\\"
+    """The language to use for localization."""
     language: String
   ): String!
 }
 
-\\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
+"""One of the films in the Star Wars Trilogy"""
 enum Episode {
-  \\"\\"\\"Released in 1980.\\"\\"\\"
+  """Released in 1980."""
   EMPIRE
 
-  \\"\\"\\"Released in 1983\\"\\"\\"
+  """Released in 1983"""
   JEDI
 
-  \\"\\"\\"Released in 1977.\\"\\"\\"
+  """Released in 1977."""
   NEWHOPE
 }
 
@@ -68,19 +68,19 @@ input FunctionFilter {
   private: Boolean
 }
 
-\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
+"""A humanoid creature in the Star Wars universe."""
 type Human implements Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  """The home planet of the human, or null if unknown."""
   homePlanet: String
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
@@ -106,24 +106,24 @@ type PageInfo {
 
 type Query {
   droid(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
   ): Droid!
   hero(
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
+    """
     episode: Episode!
 
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
-    whatEpisode: DeprecatedInput @deprecated(reason: \\"Use \`episode\` instead.\\")
+    """
+    whatEpisode: DeprecatedInput @deprecated(reason: "Use \`episode\` instead.")
   ): QueryHeroResult!
   human(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
-  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
+  ): Human! @deprecated(reason: "Use \`hero\` instead.")
   node: Node
 }
 
@@ -136,22 +136,22 @@ type QueryHeroSuccess {
 
 exports[`subGraphs > Public graph 1`] = `
 "interface Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
-\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+"""A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 
-  \\"\\"\\"The primary function of the droid.\\"\\"\\"
+  """The primary function of the droid."""
   primaryFunction(filter: FunctionFilter): String!
 }
 
@@ -159,44 +159,44 @@ input FunctionFilter {
   public: Boolean
 }
 
-\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
+"""A humanoid creature in the Star Wars universe."""
 type Human implements Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
 
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  """The home planet of the human, or null if unknown."""
   homePlanet: String
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
 type Query {
   droid(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
   ): Droid!
   human(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
-  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
+  ): Human! @deprecated(reason: "Use \`hero\` instead.")
   r2d2: Droid!
 }"
 `;
 
 exports[`subGraphs > full graph 1`] = `
 "interface Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  """Which movies they appear in."""
   appearsIn: [Episode!]!
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
@@ -211,42 +211,42 @@ type CharacterFriendsConnectionEdge {
 }
 
 input DeprecatedInput {
-  id: ID! @deprecated(reason: \\"its deprecated\\")
+  id: ID! @deprecated(reason: "its deprecated")
 }
 
-\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+"""A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  """Which movies they appear in."""
   appearsIn: [Episode!]!
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 
-  \\"\\"\\"The primary function of the droid.\\"\\"\\"
+  """The primary function of the droid."""
   primaryFunction(
     filter: FunctionFilter
 
-    \\"\\"\\"The language to use for localization.\\"\\"\\"
+    """The language to use for localization."""
     language: String
   ): String!
 }
 
-\\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
+"""One of the films in the Star Wars Trilogy"""
 enum Episode {
-  \\"\\"\\"Released in 1980.\\"\\"\\"
+  """Released in 1980."""
   EMPIRE
 
-  \\"\\"\\"Released in 1983\\"\\"\\"
+  """Released in 1983"""
   JEDI
 
-  \\"\\"\\"Released in 1977.\\"\\"\\"
+  """Released in 1977."""
   NEWHOPE
 }
 
@@ -259,22 +259,22 @@ input FunctionFilter {
   public: Boolean
 }
 
-\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
+"""A humanoid creature in the Star Wars universe."""
 type Human implements Character {
-  \\"\\"\\"Which movies they appear in.\\"\\"\\"
+  """Which movies they appear in."""
   appearsIn: [Episode!]!
 
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  """The home planet of the human, or null if unknown."""
   homePlanet: String
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
@@ -300,24 +300,24 @@ type PageInfo {
 
 type Query {
   droid(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
   ): Droid!
   hero(
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
+    """
     episode: Episode!
 
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
-    whatEpisode: DeprecatedInput @deprecated(reason: \\"Use \`episode\` instead.\\")
+    """
+    whatEpisode: DeprecatedInput @deprecated(reason: "Use \`episode\` instead.")
   ): QueryHeroResult!
   human(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
-  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
+  ): Human! @deprecated(reason: "Use \`hero\` instead.")
   node: Node
   r2d2: Droid!
 }
@@ -331,14 +331,14 @@ type QueryHeroSuccess {
 
 exports[`subGraphs > multiple 1`] = `
 "interface Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
@@ -353,39 +353,39 @@ type CharacterFriendsConnectionEdge {
 }
 
 input DeprecatedInput {
-  id: ID! @deprecated(reason: \\"its deprecated\\")
+  id: ID! @deprecated(reason: "its deprecated")
 }
 
-\\"\\"\\"A mechanical creature in the Star Wars universe.\\"\\"\\"
+"""A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 
-  \\"\\"\\"The primary function of the droid.\\"\\"\\"
+  """The primary function of the droid."""
   primaryFunction(
     filter: FunctionFilter
 
-    \\"\\"\\"The language to use for localization.\\"\\"\\"
+    """The language to use for localization."""
     language: String
   ): String!
 }
 
-\\"\\"\\"One of the films in the Star Wars Trilogy\\"\\"\\"
+"""One of the films in the Star Wars Trilogy"""
 enum Episode {
-  \\"\\"\\"Released in 1980.\\"\\"\\"
+  """Released in 1980."""
   EMPIRE
 
-  \\"\\"\\"Released in 1983\\"\\"\\"
+  """Released in 1983"""
   JEDI
 
-  \\"\\"\\"Released in 1977.\\"\\"\\"
+  """Released in 1977."""
   NEWHOPE
 }
 
@@ -398,19 +398,19 @@ input FunctionFilter {
   public: Boolean
 }
 
-\\"\\"\\"A humanoid creature in the Star Wars universe.\\"\\"\\"
+"""A humanoid creature in the Star Wars universe."""
 type Human implements Character {
-  \\"\\"\\"The friends of the character, or an empty list if they have none.\\"\\"\\"
+  """The friends of the character, or an empty list if they have none."""
   friends: [Character]!
-  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: \\"not a real input\\"), first: Int, last: Int): CharacterFriendsConnection!
+  friendsConnection(after: String, before: String, deprecatedInput: DeprecatedInput @deprecated(reason: "not a real input"), first: Int, last: Int): CharacterFriendsConnection!
 
-  \\"\\"\\"The home planet of the human, or null if unknown.\\"\\"\\"
+  """The home planet of the human, or null if unknown."""
   homePlanet: String
 
-  \\"\\"\\"The id of the character\\"\\"\\"
+  """The id of the character"""
   id: ID!
 
-  \\"\\"\\"The name of the character\\"\\"\\"
+  """The name of the character"""
   name: String!
 }
 
@@ -436,24 +436,24 @@ type PageInfo {
 
 type Query {
   droid(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
   ): Droid!
   hero(
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
+    """
     episode: Episode!
 
-    \\"\\"\\"
+    """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
-    \\"\\"\\"
-    whatEpisode: DeprecatedInput @deprecated(reason: \\"Use \`episode\` instead.\\")
+    """
+    whatEpisode: DeprecatedInput @deprecated(reason: "Use \`episode\` instead.")
   ): QueryHeroResult!
   human(
-    \\"\\"\\"id of the character\\"\\"\\"
+    """id of the character"""
     id: ID!
-  ): Human! @deprecated(reason: \\"Use \`hero\` instead.\\")
+  ): Human! @deprecated(reason: "Use \`hero\` instead.")
   node: Node
   r2d2: Droid!
 }

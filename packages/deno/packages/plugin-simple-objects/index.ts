@@ -2,7 +2,7 @@
 import './global-types.ts';
 import SchemaBuilder, { BasePlugin, FieldMap, InterfaceFieldsShape, InterfaceParam, InterfaceRef, Normalize, ObjectFieldsShape, ObjectRef, ParentShape, SchemaTypes, } from '../core/index.ts';
 import { OutputShapeFromFields } from './types.ts';
-const pluginName = "simpleObjects" as const;
+const pluginName = "simpleObjects";
 export default pluginName;
 export class PothosSimpleObjectsPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
 }
