@@ -1,6 +1,6 @@
 {
   "name": "@pothos-examples/nextjs",
-  "version": "2.6.23",
+  "version": "2.6.24",
   "private": true,
   "scripts": {
     "generate": "tsx graphql/build-schema.ts && graphql-codegen",

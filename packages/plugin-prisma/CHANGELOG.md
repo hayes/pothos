@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.65.1
+
+### Patch Changes
+
+- f763170: Add delete method to context caches
+
 ## 3.65.0
 
 ### Minor Changes
@@ -922,7 +928,7 @@
   You will need to remove PrismaClient from the builder types, so your builder setup now looks like:
 
   ```typescript
-  import PrismaPlugin, { PrismaTypes } from '@giraphql/plugin-prisma';
+  import PrismaPlugin, { PrismaTypes } from "@giraphql/plugin-prisma";
 
   export default new SchemaBuilder<{}>({
     prisma: {
@@ -938,9 +944,9 @@
   builder.prismaObject(prisma.post, {
     findUnique: (post) => ({ id: post.id }),
     fields: (t) => ({
-      id: t.exposeID('id'),
-      title: t.exposeString('title'),
-      author: t.relation('author'),
+      id: t.exposeID("id"),
+      title: t.exposeString("title"),
+      author: t.relation("author"),
     }),
   });
 
