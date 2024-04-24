@@ -18,6 +18,7 @@
     "packages/*/src/**/*.js",
     "packages/*/test/**/*.js",
     "packages/*/tests/**/*.js",
+    "packages/plugin-drizzle/drizzle.config.ts",
     "examples/**/*.ts",
     "examples/**/*.js",
     "examples/**/*.tsx",

@@ -22,7 +22,7 @@ import {
   typeBrandKey,
   TypeParam,
 } from '@pothos/core';
-import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
+import { PrismaRef } from './interface-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
 
 export interface PrismaDelegate {
@@ -628,10 +628,7 @@ export type PrismaFieldResolver<
 export type PrismaConnectionFieldOptions<
   Types extends SchemaTypes,
   ParentShape,
-  Type extends
-    | PrismaInterfaceRef<Types, PrismaModelTypes>
-    | PrismaRef<Types, PrismaModelTypes>
-    | keyof Types['PrismaTypes'],
+  Type extends PrismaRef<Types, PrismaModelTypes> | keyof Types['PrismaTypes'],
   Model extends PrismaModelTypes,
   Param extends OutputType<Types>,
   Nullable extends boolean,
