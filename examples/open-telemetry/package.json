@@ -5,17 +5,17 @@
   "license": "MIT",
   "dependencies": {
     "@opentelemetry/api": "^1.8.0",
-    "@opentelemetry/exporter-zipkin": "^1.23.0",
-    "@opentelemetry/instrumentation": "^0.50.0",
-    "@opentelemetry/instrumentation-http": "^0.50.0",
-    "@opentelemetry/sdk-trace-base": "^1.23.0",
-    "@opentelemetry/sdk-trace-node": "^1.23.0",
+    "@opentelemetry/exporter-zipkin": "^1.24.1",
+    "@opentelemetry/instrumentation": "^0.51.1",
+    "@opentelemetry/instrumentation-http": "^0.51.1",
+    "@opentelemetry/sdk-trace-base": "^1.24.1",
+    "@opentelemetry/sdk-trace-node": "^1.24.1",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/tracing-opentelemetry": "workspace:*",
     "bema": "^0.1.2",
     "graphql": "16.8.1",
-    "graphql-yoga": "5.3.0",
+    "graphql-yoga": "5.3.1",
     "tsm": "^2.3.0"
   },
   "publishConfig": {

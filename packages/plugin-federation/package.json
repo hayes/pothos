@@ -47,13 +47,13 @@
   },
   "peerDependencies": {
     "@apollo/subgraph": "^2.0.0",
-    "graphql": ">=15.1.0"
+    "graphql": "16.8.1"
   },
   "devDependencies": {
-    "@apollo/gateway": "^2.7.2",
-    "@apollo/server": "^4.10.2",
-    "@apollo/subgraph": "2.7.2",
-    "@graphql-tools/utils": "^10.1.3",
+    "@apollo/gateway": "^2.7.6",
+    "@apollo/server": "^4.10.4",
+    "@apollo/subgraph": "2.7.6",
+    "@graphql-tools/utils": "^10.2.0",
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/test-utils": "workspace:*",

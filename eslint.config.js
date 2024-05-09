@@ -109,6 +109,7 @@ const ignores = [
   'website/public',
   'website/tailwind.config.js',
   'website/util/search-index.js',
+  'website/.next/*',
 ];
 
 module.exports = [

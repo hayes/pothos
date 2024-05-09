@@ -46,16 +46,16 @@
     "provenance": true
   },
   "peerDependencies": {
-    "graphql": ">=15.1.0"
+    "graphql": "16.8.1"
   },
   "devDependencies": {
-    "@graphql-tools/utils": "^10.1.3",
+    "@graphql-tools/utils": "^10.2.0",
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "graphql": "16.8.1",
     "graphql-rate-limit-directive": "^2.0.5",
     "graphql-tag": "^2.12.6",
-    "rate-limiter-flexible": "^5.0.0"
+    "rate-limiter-flexible": "^5.0.3"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"
 }

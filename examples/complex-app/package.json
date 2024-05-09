@@ -18,7 +18,7 @@
   "dependencies": {
     "@faker-js/faker": "^8.4.1",
     "@graphql-typed-document-node/core": "^3.2.0",
-    "@pothos/core": "^3.41.1",
+    "@pothos/core": "workspace:*",
     "@pothos/plugin-dataloader": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-prisma-utils": "workspace:*",
@@ -26,14 +26,14 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-validation": "workspace:*",
-    "@prisma/client": "^5.12.1",
+    "@prisma/client": "^5.13.0",
     "graphql": "16.8.1",
     "graphql-scalars": "^1.23.0",
-    "graphql-yoga": "5.3.0",
-    "prisma": "^5.12.1",
-    "react": "^18.2.0",
+    "graphql-yoga": "5.3.1",
+    "prisma": "^5.13.0",
+    "react": "^18.3.1",
     "urql": "^4.0.7",
-    "zod": "^3.22.4"
+    "zod": "^3.23.8"
   },
   "publishConfig": {
     "access": "public"
@@ -43,7 +43,7 @@
     "@graphql-codegen/client-preset": "4.2.5",
     "@graphql-codegen/introspection": "4.0.3",
     "@graphql-codegen/schema-ast": "^4.0.2",
-    "@types/node": "^20.12.7",
+    "@types/node": "^20.12.11",
     "typescript": "^5.4.5"
   }
 }

@@ -1,5 +1,5 @@
 import { DateTimeResolver } from 'graphql-scalars';
-import SchemaBuilder from '@pothos/core';
+import SchemaBuilder, { RootFieldBuilder } from '@pothos/core';
 import DataloaderPlugin from '@pothos/plugin-dataloader';
 import PrismaPlugin from '@pothos/plugin-prisma';
 import PrismaUtilsPlugin from '@pothos/plugin-prisma-utils';
@@ -9,6 +9,8 @@ import SimpleObjectsPlugin from '@pothos/plugin-simple-objects';
 import ValidationPlugin from '@pothos/plugin-validation';
 import type PrismaTypes from '../prisma/generated';
 import { db } from './db';
+
+console.log(RootFieldBuilder.prototype)
 
 export const builder = new SchemaBuilder<{
   PrismaTypes: PrismaTypes;
