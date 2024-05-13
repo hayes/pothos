@@ -42,7 +42,7 @@ jobs:
         id: pnpm-install
         with:
           run_install: false
-          version: ^8.1.0
+          version: 9.1.1
 
       - name: Use Node.js ${{ matrix.node }}
         uses: actions/setup-node@v3
