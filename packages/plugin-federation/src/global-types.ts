@@ -178,7 +178,7 @@ declare global {
     > {
       shareable?: boolean;
       inaccessible?: boolean;
-      override?: { from: string };
+      override?: { from: string, label: string };
       tag?: string[] | string;
       authenticated?: boolean;
       requiresScopes?: Types['FederationScopes'][][];
