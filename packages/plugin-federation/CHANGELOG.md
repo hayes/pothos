@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.16.0
+
+### Minor Changes
+
+- 8164cba: Add label option to the @override directive
+
 ## 3.15.0
 
 ### Minor Changes
