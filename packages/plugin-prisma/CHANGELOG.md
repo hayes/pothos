@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.65.2
+
+### Patch Changes
+
+- ae7d3fb: Fix prisma esm import on windows
+
 ## 3.65.1
 
 ### Patch Changes
