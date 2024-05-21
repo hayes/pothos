@@ -59,6 +59,9 @@
     "typescript-json-schema": "^0.63.0",
     "vitest": "^1.6.0"
   },
+  "engines": {
+    "pnpm": ">=9.0.0"
+  },
   "resolutions": {
     "graphql": "16.8.1",
     "@whatwg-node/fetch": "0.8.8"
