@@ -60,7 +60,7 @@ describe('ways to add enums', () => {
       'Array of strings uses values',
       (builder: PothosSchemaTypes.SchemaBuilder<SchemaTypes>) =>
         builder.enumType('ChessPiece', {
-          values: ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'] as const,
+          values: ['Pawn', 'Knight', 'Bishop', 'Rook', 'Queen', 'King'],
         }),
     ],
     [
@@ -74,7 +74,7 @@ describe('ways to add enums', () => {
             Rook: { value: 'R' },
             Queen: { value: 'Q' },
             King: { value: 'K' },
-          } as const,
+          },
         }),
     ],
   ])('%s enum', async (_name, addEnum) => {

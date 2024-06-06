@@ -300,7 +300,7 @@ const Shaveable = builder.interfaceType('Shaveable', {
 
 // Enums
 const Stuff = builder.enumType('stuff', {
-  values: ['Beats', 'Bears', 'BattlestarGalactica'] as const,
+  values: ['Beats', 'Bears', 'BattlestarGalactica'],
 });
 
 builder.objectType('Sheep', {

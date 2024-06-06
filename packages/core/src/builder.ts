@@ -480,7 +480,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
     return ref;
   }
 
-  enumType<Param extends EnumParam, Values extends EnumValues<Types>>(
+  enumType<Param extends EnumParam, const Values extends EnumValues<Types>>(
     param: Param,
     options: EnumTypeOptions<Types, Param, Values>,
   ): PothosSchemaTypes.EnumRef<

@@ -171,4 +171,11 @@ export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Ty
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosPrismaPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosPrismaPlugin, {
+  v3: (options) => ({
+    prisma: {
+      ...options.prisma,
+      filterConnectionTotalCount: options.prisma?.filterConnectionTotalCount ?? false,
+    },
+  }),
+});

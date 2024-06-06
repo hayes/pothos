@@ -208,7 +208,7 @@ const builder = new SchemaBuilder<{
     // for object types, relations and exposed fields.
     // descriptions can be omitted by setting description to false
     exposeDescriptions: boolean | { models: boolean, fields: boolean },
-    // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
+    // use where clause from prismaRelatedConnection for totalCount (defaults to true)
     filterConnectionTotalCount: true,
     // warn when not using a query parameter correctly
     onUnusedQuery: process.env.NODE_ENV === 'production' ? null : 'warn',
@@ -248,8 +248,6 @@ const builder = new SchemaBuilder<{
     client: (ctx) => (ctx.user.isAdmin ? prisma : readOnlyPrisma),
     // Because the prisma client is loaded dynamically, we need to explicitly provide the some information about the prisma schema
     dmmf: Prisma.dmmf,
-    // use where clause from prismaRelatedConnection for totalCount (will true by default in next major version)
-    filterConnectionTotalCount: true,
   },
 });
 ```
