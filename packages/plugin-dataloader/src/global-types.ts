@@ -29,6 +29,7 @@ import type {
   LoadableListFieldOptions,
   LoadableUnionOptions,
   PothosDataloaderPlugin,
+  ShapeFromLoadResult,
 } from '.';
 
 declare global {
@@ -41,78 +42,109 @@ declare global {
       loadableObject: <
         Shape extends NameOrRef extends ObjectParam<Types>
           ? ShapeFromTypeParam<Types, NameOrRef, false>
-          : object,
+          : ShapeFromLoadResult<LoadResult>,
         Key extends bigint | number | string,
         Interfaces extends InterfaceParam<Types>[],
         NameOrRef extends ObjectParam<Types> | string,
         CacheKey = Key,
+        LoadResult = object,
       >(
         nameOrRef: NameOrRef,
-        options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+        options: DataloaderObjectTypeOptions<
+          Types,
+          Shape,
+          Key,
+          Interfaces,
+          NameOrRef,
+          CacheKey,
+          LoadResult
+        >,
       ) => LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableInterface: <
         Shape extends NameOrRef extends InterfaceParam<Types>
           ? ShapeFromTypeParam<Types, NameOrRef, false>
-          : object,
+          : ShapeFromLoadResult<LoadResult>,
         Key extends bigint | number | string,
         Interfaces extends InterfaceParam<Types>[],
         NameOrRef extends InterfaceParam<Types> | string,
         CacheKey = Key,
+        LoadResult = object,
       >(
         nameOrRef: NameOrRef,
-        options: LoadableInterfaceOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+        options: LoadableInterfaceOptions<
+          Types,
+          Shape,
+          Key,
+          Interfaces,
+          NameOrRef,
+          CacheKey,
+          LoadResult
+        >,
       ) => LoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableObjectRef: <
-        Shape extends object,
+        Shape extends ShapeFromLoadResult<LoadResult>,
         Key extends bigint | number | string,
         CacheKey = Key,
+        LoadResult = object,
       >(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
-      ) => ImplementableLoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult>,
+      ) => ImplementableLoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey, LoadResult>;
 
       loadableInterfaceRef: <
-        Shape extends object,
+        Shape extends ShapeFromLoadResult<LoadResult>,
         Key extends bigint | number | string,
         CacheKey = Key,
+        LoadResult = object,
       >(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
-      ) => ImplementableLoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult>,
+      ) => ImplementableLoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey, LoadResult>;
 
       loadableNodeRef: <
-        Shape extends object,
+        Shape extends ShapeFromLoadResult<LoadResult>,
         IDShape extends bigint | number | string = string,
         Key extends bigint | number | string = IDShape,
         CacheKey = Key,
+        LoadResult = object,
       >(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey> &
+        options: DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult> &
           LoadableNodeId<Types, Shape, IDShape>,
-      ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>;
+      ) => ImplementableLoadableNodeRef<
+        Types,
+        Key | Shape,
+        Shape,
+        IDShape,
+        Key,
+        CacheKey,
+        LoadResult
+      >;
 
       loadableUnion: <
         Key extends bigint | number | string,
         Member extends ObjectParam<Types>,
         CacheKey = Key,
         Shape = ShapeFromTypeParam<Types, Member, false>,
+        LoadResult = object,
       >(
         name: string,
-        options: LoadableUnionOptions<Types, Key, Member, CacheKey, Shape>,
+        options: LoadableUnionOptions<Types, Key, Member, CacheKey, Shape, LoadResult>,
       ) => LoadableUnionRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableNode: 'relay' extends PluginName
         ? <
             Shape extends NameOrRef extends ObjectParam<Types>
               ? ShapeFromTypeParam<Types, NameOrRef, false>
-              : object,
+              : ShapeFromLoadResult<LoadResult>,
             Interfaces extends InterfaceParam<Types>[],
             NameOrRef extends ObjectParam<Types> | string,
             IDShape extends bigint | number | string = string,
             Key extends bigint | number | string = IDShape,
             CacheKey = Key,
+            LoadResult = object,
           >(
             nameOrRef: NameOrRef,
             options: LoadableNodeOptions<
@@ -122,7 +154,8 @@ declare global {
               NameOrRef,
               IDShape,
               Key,
-              CacheKey
+              CacheKey,
+              LoadResult
             >,
           ) => Omit<
             ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>,
@@ -144,6 +177,7 @@ declare global {
         ResolveReturnShape,
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         ByPath extends boolean = boolean,
+        LoadResult = object,
       >(
         options: LoadableFieldOptions<
           Types,
@@ -155,7 +189,8 @@ declare global {
           Key,
           CacheKey,
           Kind,
-          ByPath
+          ByPath,
+          LoadResult
         >,
       ) => FieldRef<unknown>;
       loadableList: <
@@ -166,6 +201,7 @@ declare global {
         ResolveReturnShape,
         Nullable extends FieldNullability<[Type]> = Types['DefaultFieldNullability'],
         ByPath extends boolean = boolean,
+        LoadResult = object,
       >(
         options: LoadableListFieldOptions<
           Types,
@@ -177,7 +213,8 @@ declare global {
           Key,
           CacheKey,
           Kind,
-          ByPath
+          ByPath,
+          LoadResult
         >,
       ) => FieldRef<unknown>;
 

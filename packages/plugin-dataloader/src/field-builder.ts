@@ -29,6 +29,7 @@ fieldBuilderProto.loadable = function loadable<
   ResolveReturnShape,
   Nullable extends FieldNullability<Type> = SchemaTypes['DefaultFieldNullability'],
   ByPath extends boolean = false,
+  LoadResult = object,
 >({
   load,
   sort,
@@ -47,13 +48,15 @@ fieldBuilderProto.loadable = function loadable<
   Key,
   CacheKey,
   FieldKind,
-  ByPath
+  ByPath,
+  LoadResult
 >): FieldRef<unknown> {
   const getLoader = pathDataloaderGetter<
     Key,
     LoaderShapeFromType<SchemaTypes, Type, Nullable>,
     CacheKey,
-    InputShapeFromFields<Args>
+    InputShapeFromFields<Args>,
+    LoadResult
   >(
     loaderOptions,
     (keys, ctx, args) => load(keys, ctx, args as never),
@@ -97,6 +100,7 @@ fieldBuilderProto.loadableList = function loadableList<
   ResolveReturnShape,
   Nullable extends FieldNullability<[Type]> = SchemaTypes['DefaultFieldNullability'],
   ByPath extends boolean = false,
+  LoadResult = object,
 >({
   load,
   sort,
@@ -115,13 +119,15 @@ fieldBuilderProto.loadableList = function loadableList<
   Key,
   CacheKey,
   FieldKind,
-  ByPath
+  ByPath,
+  LoadResult
 >): FieldRef<unknown> {
   const getLoader = pathDataloaderGetter<
     Key,
     ShapeFromTypeParam<SchemaTypes, [Type], Nullable>,
     CacheKey,
-    InputShapeFromFields<Args>
+    InputShapeFromFields<Args>,
+    LoadResult
   >(
     loaderOptions,
     (keys, ctx, args) => load(keys, ctx, args as never),
@@ -187,7 +193,7 @@ fieldBuilderProto.loadableGroup = function loadableGroup<
       const values = await load(keys, ctx, args as never);
       const groups = new Map<Key, ShapeFromTypeParam<SchemaTypes, Type, true>[]>();
 
-      for (const value of values) {
+      for (const value of values as ShapeFromTypeParam<SchemaTypes, Type, true>[]) {
         if (value == null) {
           // eslint-disable-next-line no-continue
           continue;

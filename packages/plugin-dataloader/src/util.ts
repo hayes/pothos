@@ -12,8 +12,8 @@ export function rejectErrors<T>(
   return val.map((item) => (item instanceof Error ? Promise.reject(item) : item));
 }
 
-export function loadAndSort<K, V, C, Args = never>(
-  load: (keys: K[], context: C, args: Args) => Promise<readonly (Error | V)[]>,
+export function loadAndSort<K, V, C, LoadResult, Args = never>(
+  load: (keys: K[], context: C, args: Args) => MaybePromise<LoadResult>,
   toKey: false | ((val: V) => K) | undefined,
 ) {
   if (!toKey) {
@@ -25,7 +25,7 @@ export function loadAndSort<K, V, C, Args = never>(
     const map = new Map<K, V>();
     const results = new Array<V | null>();
 
-    for (const val of list) {
+    for (const val of list as V[]) {
       if (val instanceof Error) {
         throw val;
       }
@@ -43,9 +43,9 @@ export function loadAndSort<K, V, C, Args = never>(
   };
 }
 
-export function dataloaderGetter<K, V, C>(
+export function dataloaderGetter<K, V, C, LoadResult>(
   loaderOptions: Options<K, V, C> | undefined,
-  load: (keys: K[], context: SchemaTypes['Context']) => Promise<readonly (Error | V)[]>,
+  load: (keys: K[], context: SchemaTypes['Context']) => MaybePromise<LoadResult>,
   toKey: ((val: V) => K) | undefined,
   sort: boolean | ((val: V) => K) | undefined,
 ) {
@@ -59,9 +59,9 @@ export function dataloaderGetter<K, V, C>(
   );
 }
 
-export function pathDataloaderGetter<K, V, C, Args>(
+export function pathDataloaderGetter<K, V, C, Args, LoadResult = object>(
   loaderOptions: Options<K, V, C> | undefined,
-  load: (keys: K[], context: SchemaTypes['Context'], args: Args) => Promise<readonly (Error | V)[]>,
+  load: (keys: K[], context: SchemaTypes['Context'], args: Args) => MaybePromise<LoadResult>,
   toKey: ((val: V) => K) | undefined,
   sort: boolean | ((val: V) => K) | undefined,
   byPath?: boolean,

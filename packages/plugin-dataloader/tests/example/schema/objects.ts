@@ -12,6 +12,7 @@ import {
   usersCounts,
 } from './counts';
 import { TestInterface } from './interfaces';
+import { GraphQLError } from 'graphql';
 
 export const User = builder.loadableObject('User', {
   interfaces: [TestInterface],
@@ -21,7 +22,7 @@ export const User = builder.loadableObject('User', {
     countCall(context, usersCounts, keys.length);
 
     return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new GraphQLError(`Invalid ID ${id}`))),
     );
   },
   fields: (t) => ({
