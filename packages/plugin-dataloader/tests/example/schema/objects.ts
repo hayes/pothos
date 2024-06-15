@@ -1,3 +1,4 @@
+import { GraphQLError } from 'graphql';
 import { resolveArrayConnection } from '@pothos/plugin-relay';
 import { rejectErrors } from '../../../src';
 import builder from '../builder';
@@ -12,7 +13,6 @@ import {
   usersCounts,
 } from './counts';
 import { TestInterface } from './interfaces';
-import { GraphQLError } from 'graphql';
 
 export const User = builder.loadableObject('User', {
   interfaces: [TestInterface],
