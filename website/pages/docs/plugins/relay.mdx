@@ -386,12 +386,12 @@ builder.relayMutationField(
         return { success: true };
       }
 
-      return { sucess: false };
+      return { success: false };
     },
   },
   {
     outputFields: (t) => ({
-      sucess: t.boolean({
+      success: t.boolean({
         resolve: (result) => result.success,
       }),
     }),
