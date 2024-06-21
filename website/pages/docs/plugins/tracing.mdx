@@ -671,7 +671,7 @@ const server = createServer(yoga);
 #### install
 
 ```bash
-yarn add @pothos/tracing-sentry @sentry/node @sentry/tracing
+yarn add @pothos/tracing-sentry @sentry/node
 ```
 
 #### Basic usage
@@ -711,7 +711,6 @@ Many graphql server implementations have ways to wrap or replace the execution c
 slightly different.
 
 ```ts
-import '@sentry/tracing';
 import { print } from 'graphql';
 import { createYoga, Plugin } from 'graphql-yoga';
 import { createServer } from 'node:http';
@@ -726,28 +725,20 @@ Sentry.init({
 
 const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
-    setExecuteFn(async (options) => {
-      const transaction = Sentry.startTransaction({
-        op: 'graphql.execute',
-        name: options.operationName ?? '<unnamed operation>',
-        tags: {
-          [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
-          [AttributeNames.SOURCE]: print(options.document),
+    setExecuteFn((options) =>
+      Sentry.startSpan(
+        {
+          op: 'graphql.execute',
+          name: options.operationName ?? '<unnamed operation>',
+          forceTransaction: true,
+          attributes: {
+            [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
+            [AttributeNames.SOURCE]: print(options.document),
+          },
         },
-        data: {
-          [AttributeNames.SOURCE]: print(options.document),
-        },
-      });
-      Sentry.getCurrentHub().configureScope((scope) => scope.setSpan(transaction));
-
-      try {
-        const result = await executeFn(options);
-
-        return result;
-      } finally {
-        transaction.finish();
-      }
-    });
+        () => executeFn(options),
+      ),
+    );
   },
 };
 

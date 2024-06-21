@@ -19,7 +19,7 @@ type Post {
 type Query {
   post(id: ID!): Post
   posts(skip: Int, take: Int): [Post!]
-  user(id: ID!): User
+  user(id: ID!): User!
 }
 
 type User {
