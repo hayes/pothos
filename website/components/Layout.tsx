@@ -72,7 +72,7 @@ export function Layout({ children, toc }: { children: ReactNode; toc: TableOfCon
             </li>
           </ul>
         </header>
-        <details className="xl:hidden absolute top-0 z-20 h-full">
+        <details className="xl:hidden absolute top-0 z-20 h-auto open:h-full">
           <summary className="p-4 text-white">
             <Bars3Icon className="h-8" />
           </summary>
