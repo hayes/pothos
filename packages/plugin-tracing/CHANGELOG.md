@@ -1,5 +1,11 @@
 # @pothos/plugin-tracing
 
+## 0.6.0
+
+### Minor Changes
+
+- cea5c66: Update sentry plugin to be compatible with sentry v8
+
 ## 0.5.8
 
 ### Patch Changes
