@@ -38,12 +38,11 @@ export type PrismaObjectFieldBuilder<
 export const ObjectFieldBuilder = InternalPrismaObjectFieldBuilder as new <
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  NeedsResolve extends boolean,
   Shape extends object = Model['Shape'],
 >(
   typename: string,
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
-) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>;
+) => PothosSchemaTypes.PrismaObjectFieldBuilder<Types, Model, Shape>;
 
 export class PothosPrismaPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   constructor(cache: BuildCache<Types>) {

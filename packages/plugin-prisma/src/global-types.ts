@@ -112,7 +112,6 @@ declare global {
       prismaObject: <
         Name extends keyof Types['PrismaTypes'],
         Interfaces extends InterfaceParam<Types>[],
-        FindUnique,
         Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
         Include = unknown,
         Select = unknown,
@@ -122,7 +121,6 @@ declare global {
           Types,
           Model,
           Interfaces,
-          FindUnique,
           Include,
           Select,
           ShapeFromSelection<Types, Model, { select: Select; include: Include }>
@@ -136,7 +134,6 @@ declare global {
       prismaInterface: <
         Name extends keyof Types['PrismaTypes'],
         Interfaces extends InterfaceParam<Types>[],
-        FindUnique,
         Model extends PrismaModelTypes & Types['PrismaTypes'][Name],
         Include = unknown,
         Select = unknown,
@@ -146,7 +143,6 @@ declare global {
           Types,
           Model,
           Interfaces,
-          FindUnique,
           Include,
           Select,
           ShapeFromSelection<Types, Model, { select: Select; include: Include }>
@@ -170,7 +166,7 @@ declare global {
       >(
         type: Type,
         fieldName: string,
-        field: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldRef<Types>,
+        field: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldRef<Types>,
       ) => void;
 
       prismaInterfaceField: <
@@ -186,7 +182,7 @@ declare global {
       >(
         type: Type,
         fieldName: string,
-        field: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldRef<Types>,
+        field: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldRef<Types>,
       ) => void;
 
       prismaObjectFields: <
@@ -201,7 +197,7 @@ declare global {
             },
       >(
         type: Type,
-        fields: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldMap,
+        fields: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap,
       ) => void;
 
       prismaInterfaceFields: <
@@ -216,7 +212,7 @@ declare global {
             },
       >(
         type: Type,
-        fields: (t: PrismaObjectFieldBuilder<Types, Model, false, Shape>) => FieldMap,
+        fields: (t: PrismaObjectFieldBuilder<Types, Model, Shape>) => FieldMap,
       ) => void;
 
       prismaNode: 'relay' extends PluginName
@@ -455,9 +451,8 @@ declare global {
     export interface PrismaObjectFieldBuilder<
       Types extends SchemaTypes,
       Model extends PrismaModelTypes,
-      NeedsResolve extends boolean,
       Shape extends object = Model['Shape'],
-    > extends InternalPrismaObjectFieldBuilder<Types, Model, NeedsResolve, Shape>,
+    > extends InternalPrismaObjectFieldBuilder<Types, Model, Shape>,
         RootFieldBuilder<Types, Shape, 'PrismaObject'> {}
 
     export interface FieldWithInputBaseOptions<

@@ -77,7 +77,6 @@ type FieldAuthScopes<Types extends SchemaTypes, Parent, Args extends {} = {}> =
 export class PrismaObjectFieldBuilder<
   Types extends SchemaTypes,
   Model extends PrismaModelTypes,
-  NeedsResolve extends boolean,
   Shape extends object = Model['Shape'],
 > extends RootBuilder<Types, Shape, 'PrismaObject'> {
   model: string;
@@ -110,7 +109,6 @@ export class PrismaObjectFieldBuilder<
       ) => PothosSchemaTypes.PrismaObjectFieldBuilder<
         Omit<Types, 'Context'> & { Context: ContextForAuth<Types, Scopes> },
         Model,
-        NeedsResolve,
         Shape
       >
     : '@pothos/plugin-scope-auth is required to use this method' = withAuth as never;
@@ -124,7 +122,7 @@ export class PrismaObjectFieldBuilder<
         EdgeInterfaces extends InterfaceParam<Types>[] = [],
       >(
         field: Field,
-        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args, NeedsResolve>,
+        options: RelatedConnectionOptions<Types, Model, Field, Nullable, Args>,
         ...args: NormalizeArgs<
           [
             connectionOptions:
@@ -215,7 +213,7 @@ export class PrismaObjectFieldBuilder<
         ShapeFromConnection<PothosSchemaTypes.ConnectionShapeHelper<Types, Shape, Nullable>>
       >
     : '@pothos/plugin-relay is required to use this method' = function relatedConnection(
-    this: PrismaObjectFieldBuilder<SchemaTypes, Model, boolean>,
+    this: PrismaObjectFieldBuilder<SchemaTypes, Model>,
     name: string,
     {
       maxSize = this.builder.options.prisma.maxConnectionSize,
@@ -449,18 +447,7 @@ export class PrismaObjectFieldBuilder<
   >(
     name: Field,
     ...allArgs: NormalizeArgs<
-      [
-        options: RelatedFieldOptions<
-          Types,
-          Model,
-          Field,
-          Nullable,
-          Args,
-          ResolveReturnShape,
-          NeedsResolve,
-          Shape
-        >,
-      ]
+      [options: RelatedFieldOptions<Types, Model, Field, Nullable, Args, ResolveReturnShape, Shape>]
     >
   ): FieldRef<Types, Model['Relations'][Field]['Shape'], 'Object'> {
     const [{ description, ...options } = {} as never] = allArgs;
@@ -505,7 +492,6 @@ export class PrismaObjectFieldBuilder<
         options: RelationCountOptions<
           Types,
           Shape,
-          NeedsResolve,
           TypesForRelation<Types, Model, Field>['Where'],
           Args
         >,
@@ -700,10 +686,7 @@ function addScopes(
   return builder as never;
 }
 
-function withAuth(
-  this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, false, {}>,
-  scopes: {},
-) {
+function withAuth(this: PrismaObjectFieldBuilder<SchemaTypes, PrismaModelTypes, {}>, scopes: {}) {
   return addScopes(
     scopes,
     new PrismaObjectFieldBuilder(
