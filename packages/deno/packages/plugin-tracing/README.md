@@ -665,7 +665,7 @@ server.listen(3000);
 #### install
 
 ```bash
-yarn add @pothos/tracing-sentry @sentry/node @sentry/tracing
+yarn add @pothos/tracing-sentry @sentry/node
 ```
 
 #### Basic usage
@@ -705,7 +705,6 @@ Many graphql server implementations have ways to wrap or replace the execution c
 slightly different.
 
 ```ts
-import '@sentry/tracing';
 import { print } from 'graphql';
 import { createYoga, Plugin } from 'graphql-yoga';
 import { createServer } from 'node:http';

@@ -1,4 +1,3 @@
-import '@sentry/tracing';
 import { createServer } from 'node:http';
 import { print } from 'graphql';
 import { createYoga, Plugin } from 'graphql-yoga';
@@ -14,26 +13,27 @@ Sentry.init({
 const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
     setExecuteFn(async (options) => {
-      const transaction = Sentry.startTransaction({
-        op: 'graphql.execute',
-        name: options.operationName ?? '<unnamed operation>',
-        tags: {
+      await Sentry.withScope(async (scope) => {
+        scope.setTags({
           [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
           [AttributeNames.SOURCE]: print(options.document),
-        },
-        data: {
-          [AttributeNames.SOURCE]: print(options.document),
-        },
-      });
-      Sentry.getCurrentHub().configureScope((scope) => scope.setSpan(transaction));
+        })
 
-      try {
-        const result = await executeFn(options);
+        const transaction = Sentry.startInactiveSpan({
+          op: 'graphql.execute',
+          name: options.operationName ?? '<unnamed operation>',
+        })
 
-        return result;
-      } finally {
-        transaction.finish();
-      }
+        transaction.setAttribute(AttributeNames.SOURCE, print(options.document));
+
+        try {
+          const result = await executeFn(options);
+
+          return result;
+        } finally {
+          transaction.end();
+        }
+      })
     });
   },
 };
