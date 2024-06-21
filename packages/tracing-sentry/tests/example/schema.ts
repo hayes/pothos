@@ -81,11 +81,19 @@ builder.queryType({
     }),
     user: t.field({
       type: User,
-      nullable: true,
+      nullable: false,
       args: {
         id: t.arg.id({ required: true }),
       },
-      resolve: (root, args) => Users.get(String(args.id)),
+      resolve: (root, args) => {
+        const user = Users.get(String(args.id));
+
+        if (!user) {
+          throw new Error(`User with id ${args.id} not found`);
+        }
+
+        return user;
+      },
     }),
   }),
 });

@@ -12,29 +12,20 @@ Sentry.init({
 
 const tracingPlugin: Plugin = {
   onExecute: ({ setExecuteFn, executeFn }) => {
-    setExecuteFn(async (options) => {
-      await Sentry.withScope(async (scope) => {
-        scope.setTags({
-          [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
-          [AttributeNames.SOURCE]: print(options.document),
-        })
-
-        const transaction = Sentry.startInactiveSpan({
+    setExecuteFn((options) =>
+      Sentry.startSpan(
+        {
           op: 'graphql.execute',
           name: options.operationName ?? '<unnamed operation>',
-        })
-
-        transaction.setAttribute(AttributeNames.SOURCE, print(options.document));
-
-        try {
-          const result = await executeFn(options);
-
-          return result;
-        } finally {
-          transaction.end();
-        }
-      })
-    });
+          forceTransaction: true,
+          attributes: {
+            [AttributeNames.OPERATION_NAME]: options.operationName ?? undefined,
+            [AttributeNames.SOURCE]: print(options.document),
+          },
+        },
+        () => executeFn(options),
+      ),
+    );
   },
 };
 

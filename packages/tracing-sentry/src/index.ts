@@ -26,46 +26,49 @@ export function createSentryWrapper<T = unknown>(options?: SentryWrapperOptions<
       tracingOptions?: SentryWrapperOptions<T>,
     ): GraphQLFieldResolver<unknown, Context, Record<string, unknown>> =>
     (source, args, ctx, info) => {
-      const transaction = Sentry.getCurrentHub().getScope()?.getTransaction();
+      const parentSpan = Sentry.getActiveSpan();
 
-      if (!transaction) {
+      if (!parentSpan) {
         return resolver(source, args, ctx, info);
       }
 
-      const tags = {
+      const attributes: Record<string, string> = {
         [AttributeNames.FIELD_NAME]: info.fieldName,
         [AttributeNames.FIELD_PATH]: pathToString(info),
         [AttributeNames.FIELD_TYPE]: info.returnType.toString(),
       };
 
-      const data: Record<string, unknown> = {};
-
       if (tracingOptions?.includeArgs ?? options?.includeArgs) {
-        data[AttributeNames.FIELD_ARGS] = args;
+        attributes[AttributeNames.FIELD_ARGS] = JSON.stringify(args, null, 2);
       }
 
       if (tracingOptions?.includeSource ?? options?.includeSource) {
-        data[AttributeNames.SOURCE] = print(info.fieldNodes[0]);
+        attributes[AttributeNames.SOURCE] = print(info.fieldNodes[0]);
       }
 
-      const span = transaction.startChild({
-        op: 'graphql.resolve',
-        description: info.fieldName,
-        tags,
-        data,
-      });
+      return Sentry.startSpan(
+        {
+          parentSpan,
+          name: info.fieldName,
+          op: 'graphql.resolve',
+          attributes,
+        },
+        (span) => {
+          tracingOptions?.onSpan?.(span, fieldOptions, source, args, ctx, info);
+          options?.onSpan?.(span, fieldOptions, source, args, ctx, info);
 
-      tracingOptions?.onSpan?.(span, fieldOptions, source, args, ctx, info);
-      options?.onSpan?.(span, fieldOptions, source, args, ctx, info);
-
-      return runFunction(
-        () => resolver(source, args, ctx, info),
-        (error) => {
-          if (error && !(tracingOptions?.ignoreError ?? options?.ignoreError)) {
-            Sentry.captureException(error);
-          }
-
-          span.finish();
+          return runFunction(
+            () => resolver(source, args, ctx, info),
+            (error) => {
+              if (error) {
+                span.setStatus({
+                  code: 2,
+                  message: error instanceof Error ? error.message : 'Unknown error',
+                });
+                Sentry.captureException(error);
+              }
+            },
+          );
         },
       );
     };
