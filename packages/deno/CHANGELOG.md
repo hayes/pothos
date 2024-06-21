@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.49.0
+
+### Minor Changes
+
+- cea5c66: Update sentry plugin to be compatible with sentry v8
+
 ## 3.48.1
 
 ### Patch Changes
