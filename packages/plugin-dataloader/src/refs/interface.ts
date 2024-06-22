@@ -35,7 +35,6 @@ export class ImplementableLoadableInterfaceRef<
   Shape,
   Key extends bigint | number | string,
   CacheKey,
-  LoadResult,
 > extends ImplementableInterfaceRef<Types, RefShape, Shape> {
   cacheResolved;
 
@@ -50,13 +49,13 @@ export class ImplementableLoadableInterfaceRef<
       toKey,
       sort,
       cacheResolved,
-    }: DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult>,
+    }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>,
   ) {
     super(builder, name);
 
-    this.getDataloader = dataloaderGetter<Key, Shape, CacheKey, LoadResult>(
+    this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(
       loaderOptions,
-      load,
+      load as never,
       toKey,
       sort,
     );

@@ -20,7 +20,6 @@ import {
   ShapeFromTypeParam,
   TypeParam,
 } from '@pothos/core';
-import { GraphQLError } from 'graphql';
 
 export type DataloaderKey = bigint | number | string;
 
@@ -35,7 +34,6 @@ export type LoadableFieldOptions<
   CacheKey,
   Kind extends FieldKind = FieldKind,
   ByPath extends boolean = boolean,
-  LoadResult = object,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve'
@@ -45,7 +43,7 @@ export type LoadableFieldOptions<
     keys: Key[],
     context: Types['Context'],
     args: false extends ByPath ? never : InputShapeFromFields<Args>,
-  ) => MaybePromise<LoadResult>;
+  ) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
   sort?: (value: LoaderShapeFromType<Types, Type, false>) => Key;
   resolve: Resolver<
@@ -76,7 +74,6 @@ export type LoadableListFieldOptions<
   CacheKey,
   Kind extends FieldKind = FieldKind,
   ByPath extends boolean = boolean,
-  LoadResult = object,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve' | 'type'
@@ -87,7 +84,7 @@ export type LoadableListFieldOptions<
     keys: Key[],
     context: Types['Context'],
     args: false extends ByPath ? never : InputShapeFromFields<Args>,
-  ) => MaybePromise<LoadResult>;
+  ) => Promise<readonly (Error | ShapeFromTypeParam<Types, [Type], Nullable>)[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, [Type], Nullable>, CacheKey>;
   sort?: (value: ShapeFromTypeParam<Types, [Type], false>) => Key;
   resolve: Resolver<
@@ -110,7 +107,6 @@ export type LoadableGroupFieldOptions<
   CacheKey,
   Kind extends FieldKind = FieldKind,
   ByPath extends boolean = boolean,
-  LoadResult = object,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
   'resolve' | 'type'
@@ -121,7 +117,7 @@ export type LoadableGroupFieldOptions<
     keys: Key[],
     context: Types['Context'],
     args: false extends ByPath ? never : InputShapeFromFields<Args>,
-  ) => MaybePromise<LoadResult>;
+  ) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;
   loaderOptions?: DataLoader.Options<Key, ShapeFromTypeParam<Types, Type, true>[], CacheKey>;
   group: (value: ShapeFromTypeParam<Types, Type, false>) => Key;
   resolve: Resolver<
@@ -135,12 +131,12 @@ export type LoadableGroupFieldOptions<
 
 export type DataLoaderOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Key extends bigint | number | string,
   CacheKey,
-  LoadResult,
+  Shape = ShapeFromLoadResult<LoadResult>,
 > = {
-  load: (keys: Key[], context: Types['Context']) => MaybePromise<LoadResult>;
+  load: (keys: Key[], context: Types['Context']) => Promise<readonly LoadResult[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & (
   | {
@@ -157,13 +153,13 @@ export type DataLoaderOptions<
 
 export type DataloaderObjectTypeOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-  LoadResult,
-> = DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult> &
+  Shape,
+> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   ObjectTypeOptions<
     Types,
     NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
@@ -173,13 +169,13 @@ export type DataloaderObjectTypeOptions<
 
 export type LoadableInterfaceOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends InterfaceParam<Types> | string,
   CacheKey,
-  LoadResult,
-> = DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult> &
+  Shape = ShapeFromLoadResult<LoadResult>,
+> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   InterfaceTypeOptions<
     Types,
     NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
@@ -193,8 +189,7 @@ export type LoadableUnionOptions<
   Member extends ObjectParam<Types>,
   CacheKey,
   Shape,
-  LoadResult,
-> = DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult> &
+> = DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape> &
   PothosSchemaTypes.UnionTypeOptions<Types, Member>;
 
 export type LoaderShapeFromType<
@@ -229,18 +224,14 @@ export interface LoadableNodeId<Types extends SchemaTypes, Shape, IDShape> {
 
 export type LoadableNodeOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,
   CacheKey = Key,
-  LoadResult = object,
-> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey, LoadResult> &
+  Shape = ShapeFromLoadResult<LoadResult>,
+> = DataloaderObjectTypeOptions<Types, LoadResult, Key, Interfaces, NameOrRef, CacheKey, Shape> &
   LoadableNodeId<Types, Shape, IDShape>;
 
-export type ShapeFromLoadResult<T> = T extends (infer U)[]
-  ? ShapeFromLoadResult<U>
-  : T extends Error
-    ? Exclude<T, Error>
-    : T;
+export type ShapeFromLoadResult<T> = Exclude<T, Error>;

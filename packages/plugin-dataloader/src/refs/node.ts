@@ -16,8 +16,7 @@ export class ImplementableLoadableNodeRef<
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,
   CacheKey = Key,
-  LoadResult = object,
-> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey, LoadResult> {
+> extends ImplementableLoadableObjectRef<Types, RefShape, Shape, Key, CacheKey> {
   parseId: ((id: string, ctx: object) => IDShape) | undefined;
 
   private idOptions;
@@ -28,7 +27,7 @@ export class ImplementableLoadableNodeRef<
     {
       id,
       ...options
-    }: DataLoaderOptions<Types, Shape, Key, CacheKey, LoadResult> &
+    }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape> &
       LoadableNodeId<Types, Shape, IDShape>,
   ) {
     super(builder, name, options);

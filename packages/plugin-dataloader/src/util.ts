@@ -43,9 +43,9 @@ export function loadAndSort<K, V, C, LoadResult, Args = never>(
   };
 }
 
-export function dataloaderGetter<K, V, C, LoadResult>(
+export function dataloaderGetter<K, V, C>(
   loaderOptions: Options<K, V, C> | undefined,
-  load: (keys: K[], context: SchemaTypes['Context']) => MaybePromise<LoadResult>,
+  load: (keys: K[], context: SchemaTypes['Context']) => Promise<readonly (Error | V)[]>,
   toKey: ((val: V) => K) | undefined,
   sort: boolean | ((val: V) => K) | undefined,
 ) {
@@ -59,9 +59,9 @@ export function dataloaderGetter<K, V, C, LoadResult>(
   );
 }
 
-export function pathDataloaderGetter<K, V, C, Args, LoadResult = object>(
+export function pathDataloaderGetter<K, V, C, Args>(
   loaderOptions: Options<K, V, C> | undefined,
-  load: (keys: K[], context: SchemaTypes['Context'], args: Args) => MaybePromise<LoadResult>,
+  load: (keys: K[], context: SchemaTypes['Context'], args: Args) => Promise<readonly (Error | V)[]>,
   toKey: ((val: V) => K) | undefined,
   sort: boolean | ((val: V) => K) | undefined,
   byPath?: boolean,
