@@ -22,7 +22,7 @@
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
     "@prisma/client": "^5.13.0",
-    "graphql": "16.8.1",
+    "graphql": "^16.8.1",
     "prisma": "^5.13.0"
   },
   "publishConfig": {

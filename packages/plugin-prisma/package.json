@@ -71,7 +71,7 @@
   "peerDependencies": {
     "@pothos/core": "*",
     "@prisma/client": "*",
-    "graphql": "16.8.1",
+    "graphql": "^16.8.1",
     "typescript": ">=4.7.2"
   },
   "devDependencies": {
@@ -82,7 +82,7 @@
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^5.13.0",
-    "graphql": "16.8.1",
+    "graphql": "^16.8.1",
     "graphql-scalars": "^1.23.0",
     "graphql-tag": "^2.12.6",
     "prisma": "^5.13.0"
