@@ -1,5 +1,11 @@
 # @pothos/plugin-prisma-utils
 
+## 0.14.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 0.14.0
 
 ### Minor Changes

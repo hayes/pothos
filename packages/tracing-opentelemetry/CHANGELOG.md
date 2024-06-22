@@ -1,5 +1,11 @@
 # @pothos/tracing-opentelemetry
 
+## 0.6.10
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 0.6.9
 
 ### Patch Changes

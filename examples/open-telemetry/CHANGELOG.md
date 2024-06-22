@@ -1,5 +1,15 @@
 # @pothos-examples/open-telemetry
 
+## 1.2.43
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+- Updated dependencies [1ecea46]
+  - @pothos/tracing-opentelemetry@0.6.10
+  - @pothos/plugin-tracing@0.6.1
+  - @pothos/core@3.41.2
+
 ## 1.2.42
 
 ### Patch Changes

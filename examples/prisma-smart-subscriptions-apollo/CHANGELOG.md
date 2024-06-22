@@ -1,5 +1,15 @@
 # @pothos-examples/prisma-smart-subscriptions-apollo
 
+## 2.6.55
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+- Updated dependencies [1ecea46]
+  - @pothos/plugin-smart-subscriptions@3.7.3
+  - @pothos/plugin-prisma@3.65.3
+  - @pothos/core@3.41.2
+
 ## 2.6.54
 
 ### Patch Changes

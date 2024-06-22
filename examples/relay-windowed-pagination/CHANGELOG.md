@@ -1,5 +1,14 @@
 # @pothos-examples/prisma-relay
 
+## 2.7.56
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+- Updated dependencies [1ecea46]
+  - @pothos/plugin-relay@3.46.1
+  - @pothos/core@3.41.2
+
 ## 2.7.55
 
 ### Patch Changes

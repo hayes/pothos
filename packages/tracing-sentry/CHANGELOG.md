@@ -1,5 +1,11 @@
 # @pothos/tracing-sentry
 
+## 0.8.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 0.8.0
 
 ### Minor Changes

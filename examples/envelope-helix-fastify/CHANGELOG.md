@@ -1,5 +1,13 @@
 # @pothos-examples/envelope-helix-fastify
 
+## 2.4.42
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+- Updated dependencies [1ecea46]
+  - @pothos/core@3.41.2
+
 ## 2.4.41
 
 ### Patch Changes

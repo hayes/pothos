@@ -1,5 +1,11 @@
 # @pothos/plugin-federation
 
+## 3.16.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 3.16.0
 
 ### Minor Changes
