@@ -1,5 +1,11 @@
 # @pothos/plugin-add-graphql
 
+## 3.2.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 3.2.0
 
 ### Minor Changes

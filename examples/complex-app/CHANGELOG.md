@@ -1,5 +1,20 @@
 # @pothos-examples/complex-app
 
+## 1.6.29
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+- Updated dependencies [1ecea46]
+  - @pothos/plugin-simple-objects@3.7.1
+  - @pothos/plugin-prisma-utils@0.14.1
+  - @pothos/plugin-dataloader@3.18.2
+  - @pothos/plugin-scope-auth@3.22.1
+  - @pothos/plugin-validation@3.10.2
+  - @pothos/plugin-prisma@3.65.3
+  - @pothos/plugin-relay@3.46.1
+  - @pothos/core@3.41.2
+
 ## 1.6.28
 
 ### Patch Changes

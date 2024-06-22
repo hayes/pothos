@@ -1,5 +1,17 @@
 # @pothos-examples/relay
 
+## 2.8.63
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+- Updated dependencies [1ecea46]
+  - @pothos/plugin-directives@3.10.3
+  - @pothos/plugin-federation@3.16.1
+  - @pothos/plugin-prisma@3.65.3
+  - @pothos/plugin-relay@3.46.1
+  - @pothos/core@3.41.2
+
 ## 2.8.62
 
 ### Patch Changes

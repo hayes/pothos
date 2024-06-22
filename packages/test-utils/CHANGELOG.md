@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 1.4.9
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 1.4.8
 
 ### Patch Changes

@@ -1,5 +1,11 @@
 # @pothos/plugin-authz
 
+## 3.5.10
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 3.5.9
 
 ### Patch Changes

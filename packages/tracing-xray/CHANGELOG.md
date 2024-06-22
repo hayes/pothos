@@ -1,5 +1,11 @@
 # @pothos/tracing-xray
 
+## 0.5.9
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 0.5.8
 
 ### Patch Changes

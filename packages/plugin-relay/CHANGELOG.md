@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.46.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 3.46.0
 
 ### Minor Changes

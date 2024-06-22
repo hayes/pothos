@@ -1,5 +1,11 @@
 # @pothos/plugin-tracing
 
+## 0.6.1
+
+### Patch Changes
+
+- 1ecea46: revert accidental pinning of graphql peer dependency
+
 ## 0.6.0
 
 ### Minor Changes
