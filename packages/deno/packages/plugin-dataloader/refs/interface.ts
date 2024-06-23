@@ -14,9 +14,9 @@ export class LoadableInterfaceRef<Types extends SchemaTypes, RefShape, Shape, Ke
 export class ImplementableLoadableInterfaceRef<Types extends SchemaTypes, RefShape, Shape, Key extends bigint | number | string, CacheKey> extends ImplementableInterfaceRef<Types, RefShape, Shape> {
     cacheResolved;
     getDataloader;
-    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { loaderOptions, load, toKey, sort, cacheResolved, }: DataLoaderOptions<Types, Shape, Key, CacheKey>) {
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { loaderOptions, load, toKey, sort, cacheResolved, }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>) {
         super(builder, name);
-        this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
+        this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load as never, toKey, sort);
         this.cacheResolved =
             typeof cacheResolved === "function" ? cacheResolved : cacheResolved && toKey;
     }
