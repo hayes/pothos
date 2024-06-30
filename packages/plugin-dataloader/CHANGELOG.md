@@ -1,5 +1,11 @@
 # Change Log
 
+## 3.19.0
+
+### Minor Changes
+
+- c84bfc4: Improve typing when returning errors from dataloader methods
+
 ## 3.18.2
 
 ### Patch Changes
