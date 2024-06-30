@@ -2,17 +2,17 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { FieldNullability, FieldRequiredness, InputFieldMap, InputShapeFromFields, InputShapeFromTypeParam, InputType, SchemaTypes, TypeParam, } from '../core/index.ts';
 import { ValidationOptions, ValidationPluginOptions } from './types.ts';
-import type { PothosValidationPlugin } from './index.ts';
+import type { PothosZodPlugin } from './index.ts';
 declare global {
     export namespace PothosSchemaTypes {
         export interface Plugins<Types extends SchemaTypes> {
-            validation: PothosValidationPlugin<Types>;
+            zod: PothosZodPlugin<Types>;
         }
         export interface SchemaBuilderOptions<Types extends SchemaTypes> {
-            validation?: ValidationPluginOptions<Types>;
+            zod?: ValidationPluginOptions<Types>;
         }
         export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
-            validation?: never;
+            zod?: never;
             validationOptions?: ValidationPluginOptions<Types>;
         }
         export interface FieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {

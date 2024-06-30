@@ -1,5 +1,5 @@
 import SchemaBuilder from '@pothos/core';
-import ValidationPlugin from '@pothos/plugin-validation';
+import ValidationPlugin from '@pothos/plugin-zod';
 import ErrorPlugin from '../../src';
 
 export const builder = new SchemaBuilder<{}>({

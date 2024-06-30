@@ -1,5 +1,5 @@
 {
-  "name": "@pothos/plugin-validation",
+  "name": "@pothos/plugin-zod",
   "version": "3.10.2",
   "description": "A Pothos plugin for adding argument validation",
   "main": "./lib/index.js",
@@ -29,7 +29,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/hayes/pothos.git",
-    "directory": "packages/plugin-validation"
+    "directory": "packages/plugin-zod"
   },
   "keywords": [
     "pothos",

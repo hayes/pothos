@@ -6,8 +6,8 @@ export default new SchemaBuilder<{
     ID: { Input: bigint | number | string; Output: bigint | number | string };
   };
 }>({
-  plugins: ['validation'],
-  validation: {
+  plugins: ['zod'],
+  zod: {
     validationError: (error, args, ctx, info) =>
       error.issues.map((issue) => `${issue.path.join('.')}: ${issue.message}`).join(', '),
   },

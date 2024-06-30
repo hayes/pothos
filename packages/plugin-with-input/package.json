@@ -51,7 +51,7 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
-    "@pothos/plugin-validation": "workspace:*",
+    "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
     "@prisma/client": "^5.13.0",
     "graphql": "^16.8.1",

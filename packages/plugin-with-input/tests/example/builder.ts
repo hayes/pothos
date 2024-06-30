@@ -1,6 +1,6 @@
 import SchemaBuilder from '@pothos/core';
 import PrismaPlugin from '@pothos/plugin-prisma';
-import ValidationPlugin from '@pothos/plugin-validation';
+import ValidationPlugin from '@pothos/plugin-zod';
 import { PrismaClient } from '../../prisma/client';
 import type PrismaTypes from '../../prisma/generated';
 import WithInputPlugin from '../../src';

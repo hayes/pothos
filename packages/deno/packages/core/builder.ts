@@ -282,7 +282,7 @@ export class SchemaBuilder<Types extends SchemaTypes> {
         ref.addTypes(options.types);
         return ref;
     }
-    enumType<Param extends EnumParam, Values extends EnumValues<Types>>(param: Param, options: EnumTypeOptions<Types, Param, Values>): PothosSchemaTypes.EnumRef<Types, Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>> {
+    enumType<Param extends EnumParam, const Values extends EnumValues<Types>>(param: Param, options: EnumTypeOptions<Types, Param, Values>): PothosSchemaTypes.EnumRef<Types, Param extends BaseEnum ? ValuesFromEnum<Param> : ShapeFromEnumValues<Types, Values>> {
         verifyRef(param);
         const name = typeof param === "string" ? param : (options as {
             name: string;

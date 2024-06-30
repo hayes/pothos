@@ -121,9 +121,9 @@ importers:
       '@pothos/plugin-simple-objects':
         specifier: workspace:*
         version: link:../../packages/plugin-simple-objects
-      '@pothos/plugin-validation':
+      '@pothos/plugin-zod':
         specifier: workspace:*
-        version: link:../../packages/plugin-validation
+        version: link:../../packages/plugin-zod
       '@prisma/client':
         specifier: ^5.13.0
         version: 5.13.0(prisma@5.13.0)
@@ -743,9 +743,9 @@ importers:
       '@pothos/core':
         specifier: workspace:*
         version: link:../core
-      '@pothos/plugin-validation':
+      '@pothos/plugin-zod':
         specifier: workspace:*
-        version: link:../plugin-validation
+        version: link:../plugin-zod
       '@pothos/test-utils':
         specifier: workspace:*
         version: link:../test-utils
@@ -1025,7 +1025,34 @@ importers:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.8.1)
 
-  packages/plugin-validation:
+  packages/plugin-with-input:
+    devDependencies:
+      '@pothos/core':
+        specifier: workspace:*
+        version: link:../core
+      '@pothos/plugin-prisma':
+        specifier: workspace:*
+        version: link:../plugin-prisma
+      '@pothos/plugin-zod':
+        specifier: workspace:*
+        version: link:../plugin-zod
+      '@pothos/test-utils':
+        specifier: workspace:*
+        version: link:../test-utils
+      '@prisma/client':
+        specifier: ^5.13.0
+        version: 5.13.0(prisma@5.13.0)
+      graphql:
+        specifier: ^16.8.1
+        version: 16.8.1
+      graphql-tag:
+        specifier: ^2.12.6
+        version: 2.12.6(graphql@16.8.1)
+      prisma:
+        specifier: ^5.13.0
+        version: 5.13.0
+
+  packages/plugin-zod:
     devDependencies:
       '@pothos/core':
         specifier: workspace:*
@@ -1042,33 +1069,6 @@ importers:
       zod:
         specifier: ^3.23.8
         version: 3.23.8
-
-  packages/plugin-with-input:
-    devDependencies:
-      '@pothos/core':
-        specifier: workspace:*
-        version: link:../core
-      '@pothos/plugin-prisma':
-        specifier: workspace:*
-        version: link:../plugin-prisma
-      '@pothos/plugin-validation':
-        specifier: workspace:*
-        version: link:../plugin-validation
-      '@pothos/test-utils':
-        specifier: workspace:*
-        version: link:../test-utils
-      '@prisma/client':
-        specifier: ^5.13.0
-        version: 5.13.0(prisma@5.13.0)
-      graphql:
-        specifier: ^16.8.1
-        version: 16.8.1
-      graphql-tag:
-        specifier: ^2.12.6
-        version: 2.12.6(graphql@16.8.1)
-      prisma:
-        specifier: ^5.13.0
-        version: 5.13.0
 
   packages/test-utils:
     dependencies:

@@ -1,4 +1,4 @@
-# Validation Plugin
+# Zod Validation Plugin
 
 A plugin for adding validation for field arguments based on
 [zod](https://github.com/colinhacks/zod). This plugin does not expose zod directly, but most of the
@@ -8,19 +8,19 @@ options map closely to the validations available in zod.
 
 ### Install
 
-To use the validation plugin you will need to install both `zod` package and the validation plugin:
+To use the zod plugin you will need to install both `zod` package and the zod plugin:
 
 ```bash
-yarn add zod @pothos/plugin-validation
+yarn add zod @pothos/plugin-zod
 ```
 
 ### Setup
 
 ```typescript
-import ValidationPlugin from '@pothos/plugin-validation';
+import ZodPlugin from '@pothos/plugin-zod';
 const builder = new SchemaBuilder({
-  plugins: [ValidationPlugin],
-  validation: {
+  plugins: [ZodPlugin],
+  zod: {
     // optionally customize how errors are formatted
     validationError: (zodError, args, context, info) => {
       // the default behavior is to just throw the zod error directly
@@ -121,6 +121,30 @@ builder.queryType({
           validate: {
             schema: zod.number().int().max(5),
           },
+        }),
+      },
+      resolve: () => true,
+    }),
+  }),
+});
+```
+
+You can also validate all arguments together using a zod schema:
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    simple: t.boolean({
+      nullable: true,
+      args: {
+        email: t.arg.string(),
+        phone: t.arg.string(),
+      },
+      // Validate all args together using own zod schema
+      validate: {
+        schema: zod.object({
+          email: zod.string().email(),
+          phone: zod.string(),
         }),
       },
       resolve: () => true,
@@ -305,7 +329,7 @@ file using the normal zod APIs, and then attaching those to your fields using th
 
 ```typescript
 // shared
-import { ValidationOptions } from '@pothos/plugin-validation';
+import { ValidationOptions } from '@pothos/plugin-zod';
 
 const numberValidation = zod.number().max(5);
 
@@ -335,7 +359,7 @@ options object:
 
 ```typescript
 // shared
-import { ValidationOptions } from '@pothos/plugin-validation';
+import { ValidationOptions } from '@pothos/plugin-zod';
 
 const numberValidation: ValidationOptions<number> = {
   max: 5,
@@ -356,7 +380,7 @@ builder.queryType({
 });
 
 // client
-import { createZodSchema } from '@pothos/plugin-validation';
+import { createZodSchema } from '@pothos/plugin-zod';
 
 const validator = createZodSchema(numberValidator);
 

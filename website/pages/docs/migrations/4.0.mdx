@@ -16,7 +16,7 @@ export const getStaticProps = () => ({ props: { nav: buildNav() } });
 
 The `4.0` release of Pothos is largely focused on updating 4 things:
 
-1. Improving outdated defaults to be more consistant and aligned with best practices
+1. Improving outdated defaults to be more consistent and aligned with best practices
 2. Updating naming of some config options to be more consistent
 3. Updating minimum versions of peer dependencies
 4. Updating internal types to support some previously challenging plugin patterns
@@ -47,6 +47,19 @@ const builder = new SchemaBuilder<{
 
 This will restore all the defaults and config options from previous Pothos versions for both core
 and plugins.
+
+If you are using `@pothos/plugin-validation`, it has been renamed to `@pothos/plugin-zod`, and a new
+validation plugin will be released in the future.
+
+```diff
+- import ValidationPlugin from '@pothos/plugin-validation';
++ import ZodPlugin from '@pothos/plugin-zod';
+
+const builder = new SchemaBuilder({
+-  plugins: [ValidationPlugin],
++  plugins: [ZodPlugin],
+});
+```
 
 ## Manual update
 
@@ -199,7 +212,7 @@ consistent with options for other plugins. The `authScopes` option has been move
  })
 ```
 
-## `@pothos/plugin-validation`
+## `@pothos/plugin-zod` (previously `@pothos/plugin-validation`)
 
 ### Renamed options
 
@@ -209,21 +222,21 @@ consistent with options for other plugins.
 ```diff
  const builder = new SchemaBuilder<{}>({
 -  validationOptions: {...}
-+  validation: {...}
++  zod: {...}
  })
 ```
 
 # Plugin API and Type changes
 
 Unlike the defaults and config changes, the changes to the types and classes used throughout Pothos
-can't be easily made backwards compatbile with the 3.x releases. Below is a summary of the main
+can't be easily made backwards compatibility with the 3.x releases. Below is a summary of the main
 changes made to the types and classes that may be used by plugins, helpers, or other libraries. Many
 of these types and classes are primarily intended for internal use, and should not affect most
 applications using pothos, but the changes are documented here to help upgrades for those of you
 building your own plugins, or using these types in your applications.
 
 The 4.0 release is intended to allow pothos to become more modular and extensible. This requires
-Refs and many associated type helerps to propagate the SchemaTypes from the builder that originated
+Refs and many associated type helpers to propagate the SchemaTypes from the builder that originated
 them, meaning most of the changes listed below are adding `Types extends SchemaTypes` as the first
 generic argument to the type.
 
@@ -237,31 +250,31 @@ generic argument to the type.
 - `ObjectFieldBuilder`
   - Removed the `typename` argument from the constructor
 - `BaseTypeRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `EnumTypeRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `InputObjectRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `InputRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `OutputTypeRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `ListRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `InterfaceRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `ObjectRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `ScalarRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `UnionRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `FieldRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
   - removed the typename from constructor args
   - add the builder and Field options as arguments for the constructor
 - `InputFieldRef`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
   - removed the typename and kind from constructor args
   - add the builder and Field options as arguments for the constructor
   - split argument refs into a new `ArgumentRef` class
@@ -275,6 +288,6 @@ generic argument to the type.
 - `InputFieldMap`
   - Updated to `Record<string, GenericInputFieldRef<unknown>>;`
 - `InputFieldsFromShape`
-  - Added `SchemaTypes` as a new Generic paramater
+  - Added `SchemaTypes` as a new Generic parameter
 - `InputShapeFromField`
   - Updated to accept a `GenericFieldRef`

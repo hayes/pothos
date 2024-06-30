@@ -22,9 +22,9 @@ import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './ty
 
 export * from './types';
 
-const pluginName = 'validation';
+const pluginName = 'zod';
 
-export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
 
   override onInputFieldConfig(
@@ -97,7 +97,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
       validator = refine(validator, fieldConfig.pothosOptions.validate as ValidationOptionUnion);
     }
 
-    const validationError = this.builder.options.validation?.validationError;
+    const validationError = this.builder.options.zod?.validationError;
 
     const validatorWithErrorHandling =
       validationError &&
@@ -185,11 +185,11 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin, {
+SchemaBuilder.registerPlugin(pluginName, PothosZodPlugin, {
   v3(options) {
     return {
       validationOptions: undefined,
-      validation: options.validationOptions,
+      zod: options.validationOptions,
     };
   },
 });
