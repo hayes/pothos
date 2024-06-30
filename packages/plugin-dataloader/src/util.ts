@@ -12,8 +12,8 @@ export function rejectErrors<T>(
   return val.map((item) => (item instanceof Error ? Promise.reject(item) : item));
 }
 
-export function loadAndSort<K, V, C, Args = never>(
-  load: (keys: K[], context: C, args: Args) => Promise<readonly (Error | V)[]>,
+export function loadAndSort<K, V, C, LoadResult, Args = never>(
+  load: (keys: K[], context: C, args: Args) => MaybePromise<LoadResult>,
   toKey: false | ((val: V) => K) | undefined,
 ) {
   if (!toKey) {
@@ -25,7 +25,7 @@ export function loadAndSort<K, V, C, Args = never>(
     const map = new Map<K, V>();
     const results = new Array<V | null>();
 
-    for (const val of list) {
+    for (const val of list as V[]) {
       if (val instanceof Error) {
         throw val;
       }

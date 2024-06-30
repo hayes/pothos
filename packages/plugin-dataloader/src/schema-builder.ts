@@ -11,7 +11,12 @@ import { ImplementableLoadableNodeRef } from './refs';
 import { ImplementableLoadableInterfaceRef } from './refs/interface';
 import { ImplementableLoadableObjectRef } from './refs/object';
 import { LoadableUnionRef } from './refs/union';
-import type { DataloaderKey, LoadableInterfaceOptions, LoadableUnionOptions } from './types';
+import type {
+  DataloaderKey,
+  LoadableInterfaceOptions,
+  LoadableUnionOptions,
+  ShapeFromLoadResult,
+} from './types';
 import { DataloaderObjectTypeOptions, LoadableNodeOptions } from './types';
 import { dataloaderGetter } from './util';
 
@@ -30,16 +35,23 @@ schemaBuilderProto.loadableNodeRef = function loadableNodeRef(name, options) {
 };
 
 schemaBuilderProto.loadableObject = function loadableObject<
-  Shape extends NameOrRef extends ObjectParam<SchemaTypes>
-    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
-    : object,
+  LoadResult,
   Key extends DataloaderKey,
   Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends ObjectParam<SchemaTypes> | string,
   CacheKey = Key,
+  Shape = ShapeFromLoadResult<LoadResult>,
 >(
   nameOrRef: NameOrRef,
-  options: DataloaderObjectTypeOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: DataloaderObjectTypeOptions<
+    SchemaTypes,
+    LoadResult,
+    Key,
+    Interfaces,
+    NameOrRef,
+    CacheKey,
+    Shape
+  >,
 ) {
   const name =
     typeof nameOrRef === 'string'
@@ -49,7 +61,7 @@ schemaBuilderProto.loadableObject = function loadableObject<
   const ref = new ImplementableLoadableObjectRef<SchemaTypes, Key | Shape, Shape, Key, CacheKey>(
     this,
     name,
-    options,
+    options as never,
   );
 
   ref.implement(options);
@@ -62,16 +74,23 @@ schemaBuilderProto.loadableObject = function loadableObject<
 };
 
 schemaBuilderProto.loadableInterface = function loadableInterface<
-  Shape extends NameOrRef extends InterfaceParam<SchemaTypes>
-    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
-    : object,
+  LoadResult,
   Key extends DataloaderKey,
   Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends InterfaceParam<SchemaTypes> | string,
   CacheKey = Key,
+  Shape = ShapeFromLoadResult<LoadResult>,
 >(
   nameOrRef: NameOrRef,
-  options: LoadableInterfaceOptions<SchemaTypes, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+  options: LoadableInterfaceOptions<
+    SchemaTypes,
+    LoadResult,
+    Key,
+    Interfaces,
+    NameOrRef,
+    CacheKey,
+    Shape
+  >,
 ) {
   const name =
     typeof nameOrRef === 'string'
@@ -81,7 +100,7 @@ schemaBuilderProto.loadableInterface = function loadableInterface<
   const ref = new ImplementableLoadableInterfaceRef<SchemaTypes, Shape, Shape, Key, CacheKey>(
     this,
     name,
-    options,
+    options as never,
   );
 
   ref.implement(options);
@@ -129,18 +148,28 @@ schemaBuilderProto.loadableUnion = function loadableUnion<
 const TloadableNode = schemaBuilderProto.loadableNode;
 
 schemaBuilderProto.loadableNode = function loadableNode<
-  Shape extends NameOrRef extends ObjectParam<SchemaTypes>
-    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false>
-    : object,
+  LoadResult extends NameOrRef extends ObjectParam<SchemaTypes>
+    ? ShapeFromTypeParam<SchemaTypes, NameOrRef, false> | Error
+    : unknown,
   Interfaces extends InterfaceParam<SchemaTypes>[],
   NameOrRef extends ObjectParam<SchemaTypes> | string,
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,
   CacheKey = Key,
+  Shape = ShapeFromLoadResult<LoadResult>,
 >(
   this: PothosSchemaTypes.SchemaBuilder<SchemaTypes>,
   nameOrRef: NameOrRef,
-  options: LoadableNodeOptions<SchemaTypes, Shape, Interfaces, NameOrRef, IDShape, Key, CacheKey>,
+  options: LoadableNodeOptions<
+    SchemaTypes,
+    LoadResult,
+    Interfaces,
+    NameOrRef,
+    IDShape,
+    Key,
+    CacheKey,
+    Shape
+  >,
 ) {
   if (
     typeof (this as PothosSchemaTypes.SchemaBuilder<SchemaTypes> & Record<string, unknown>)
@@ -159,7 +188,7 @@ schemaBuilderProto.loadableNode = function loadableNode<
   const ref = new ImplementableLoadableNodeRef<SchemaTypes, Shape, Shape, IDShape, Key, CacheKey>(
     this,
     name,
-    options,
+    options as never,
   );
 
   ref.implement({

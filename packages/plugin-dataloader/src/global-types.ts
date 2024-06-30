@@ -29,6 +29,7 @@ import type {
   LoadableListFieldOptions,
   LoadableUnionOptions,
   PothosDataloaderPlugin,
+  ShapeFromLoadResult,
 } from '.';
 
 declare global {
@@ -39,57 +40,67 @@ declare global {
 
     export interface SchemaBuilder<Types extends SchemaTypes> {
       loadableObject: <
-        Shape extends NameOrRef extends ObjectParam<Types>
-          ? ShapeFromTypeParam<Types, NameOrRef, false>
-          : object,
+        LoadResult extends NameOrRef extends ObjectParam<Types>
+          ? ShapeFromTypeParam<Types, NameOrRef, false> | Error
+          : unknown,
         Key extends bigint | number | string,
         Interfaces extends InterfaceParam<Types>[],
         NameOrRef extends ObjectParam<Types> | string,
         CacheKey = Key,
+        Shape = ShapeFromLoadResult<LoadResult>,
       >(
         nameOrRef: NameOrRef,
-        options: DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+        options: DataloaderObjectTypeOptions<
+          Types,
+          LoadResult,
+          Key,
+          Interfaces,
+          NameOrRef,
+          CacheKey,
+          Shape
+        >,
       ) => LoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableInterface: <
-        Shape extends NameOrRef extends InterfaceParam<Types>
-          ? ShapeFromTypeParam<Types, NameOrRef, false>
-          : object,
+        LoadResult extends NameOrRef extends InterfaceParam<Types>
+          ? ShapeFromTypeParam<Types, NameOrRef, false> | Error
+          : unknown,
         Key extends bigint | number | string,
         Interfaces extends InterfaceParam<Types>[],
         NameOrRef extends InterfaceParam<Types> | string,
         CacheKey = Key,
+        Shape = ShapeFromLoadResult<LoadResult>,
       >(
         nameOrRef: NameOrRef,
-        options: LoadableInterfaceOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey>,
+        options: LoadableInterfaceOptions<
+          Types,
+          LoadResult,
+          Key,
+          Interfaces,
+          NameOrRef,
+          CacheKey,
+          Shape
+        >,
       ) => LoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
-      loadableObjectRef: <
-        Shape extends object,
-        Key extends bigint | number | string,
-        CacheKey = Key,
-      >(
+      loadableObjectRef: <Shape, Key extends bigint | number | string, CacheKey = Key>(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
+        options: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>,
       ) => ImplementableLoadableObjectRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
-      loadableInterfaceRef: <
-        Shape extends object,
-        Key extends bigint | number | string,
-        CacheKey = Key,
-      >(
+      loadableInterfaceRef: <Shape, Key extends bigint | number | string, CacheKey = Key>(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey>,
+        options: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>,
       ) => ImplementableLoadableInterfaceRef<Types, Key | Shape, Shape, Key, CacheKey>;
 
       loadableNodeRef: <
-        Shape extends object,
+        Shape,
         IDShape extends bigint | number | string = string,
         Key extends bigint | number | string = IDShape,
         CacheKey = Key,
       >(
         name: string,
-        options: DataLoaderOptions<Types, Shape, Key, CacheKey> &
+        options: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape> &
           LoadableNodeId<Types, Shape, IDShape>,
       ) => ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>;
 
@@ -105,24 +116,26 @@ declare global {
 
       loadableNode: 'relay' extends PluginName
         ? <
-            Shape extends NameOrRef extends ObjectParam<Types>
-              ? ShapeFromTypeParam<Types, NameOrRef, false>
-              : object,
+            LoadResult extends NameOrRef extends ObjectParam<Types>
+              ? ShapeFromTypeParam<Types, NameOrRef, false> | Error
+              : unknown,
             Interfaces extends InterfaceParam<Types>[],
             NameOrRef extends ObjectParam<Types> | string,
             IDShape extends bigint | number | string = string,
             Key extends bigint | number | string = IDShape,
             CacheKey = Key,
+            Shape = ShapeFromLoadResult<LoadResult>,
           >(
             nameOrRef: NameOrRef,
             options: LoadableNodeOptions<
               Types,
-              Shape,
+              LoadResult,
               Interfaces,
               NameOrRef,
               IDShape,
               Key,
-              CacheKey
+              CacheKey,
+              Shape
             >,
           ) => Omit<
             ImplementableLoadableNodeRef<Types, Key | Shape, Shape, IDShape, Key, CacheKey>,

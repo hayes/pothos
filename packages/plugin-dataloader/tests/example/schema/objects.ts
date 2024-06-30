@@ -1,3 +1,4 @@
+import { GraphQLError } from 'graphql';
 import { resolveArrayConnection } from '@pothos/plugin-relay';
 import { rejectErrors } from '../../../src';
 import builder from '../builder';
@@ -21,7 +22,7 @@ export const User = builder.loadableObject('User', {
     countCall(context, usersCounts, keys.length);
 
     return Promise.resolve(
-      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new Error(`Invalid ID ${id}`))),
+      keys.map((id) => (Number(id) > 0 ? { id: Number(id) } : new GraphQLError(`Invalid ID ${id}`))),
     );
   },
   fields: (t) => ({

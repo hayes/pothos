@@ -43,7 +43,7 @@ export class ImplementableLoadableObjectRef<
       toKey,
       sort,
       cacheResolved,
-    }: DataLoaderOptions<Types, Shape, Key, CacheKey>,
+    }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>,
   ) {
     super(builder, name);
 

@@ -12,7 +12,7 @@ import { ImplementableLoadableObjectRef } from './object';
 export class ImplementableLoadableNodeRef<
   Types extends SchemaTypes,
   RefShape,
-  Shape extends object,
+  Shape,
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,
   CacheKey = Key,
@@ -27,7 +27,8 @@ export class ImplementableLoadableNodeRef<
     {
       id,
       ...options
-    }: DataLoaderOptions<Types, Shape, Key, CacheKey> & LoadableNodeId<Types, Shape, IDShape>,
+    }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape> &
+      LoadableNodeId<Types, Shape, IDShape>,
   ) {
     super(builder, name, options);
     this.idOptions = id;

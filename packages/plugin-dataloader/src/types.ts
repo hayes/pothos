@@ -131,11 +131,12 @@ export type LoadableGroupFieldOptions<
 
 export type DataLoaderOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Key extends bigint | number | string,
   CacheKey,
+  Shape = ShapeFromLoadResult<LoadResult>,
 > = {
-  load: (keys: Key[], context: Types['Context']) => Promise<readonly (Error | Shape)[]>;
+  load: (keys: Key[], context: Types['Context']) => Promise<readonly LoadResult[]>;
   loaderOptions?: DataLoader.Options<Key, Shape, CacheKey>;
 } & (
   | {
@@ -152,12 +153,13 @@ export type DataLoaderOptions<
 
 export type DataloaderObjectTypeOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   CacheKey,
-> = DataLoaderOptions<Types, Shape, Key, CacheKey> &
+  Shape,
+> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   ObjectTypeOptions<
     Types,
     NameOrRef extends ObjectParam<Types> ? NameOrRef : ObjectRef<Shape>,
@@ -167,12 +169,13 @@ export type DataloaderObjectTypeOptions<
 
 export type LoadableInterfaceOptions<
   Types extends SchemaTypes,
-  Shape,
+  LoadResult,
   Key extends bigint | number | string,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends InterfaceParam<Types> | string,
   CacheKey,
-> = DataLoaderOptions<Types, Shape, Key, CacheKey> &
+  Shape = ShapeFromLoadResult<LoadResult>,
+> = DataLoaderOptions<Types, LoadResult, Key, CacheKey, Shape> &
   InterfaceTypeOptions<
     Types,
     NameOrRef extends InterfaceParam<Types> ? NameOrRef : InterfaceRef<Shape>,
@@ -186,7 +189,7 @@ export type LoadableUnionOptions<
   Member extends ObjectParam<Types>,
   CacheKey,
   Shape,
-> = DataLoaderOptions<Types, Shape, Key, CacheKey> &
+> = DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape> &
   PothosSchemaTypes.UnionTypeOptions<Types, Member>;
 
 export type LoaderShapeFromType<
@@ -201,7 +204,7 @@ export interface LoadableRef<K, V, C> {
   getDataloader: (context: C) => DataLoader<K, V>;
 }
 
-export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object, IDShape> {
+export interface LoadableNodeId<Types extends SchemaTypes, Shape, IDShape> {
   id: Omit<
     FieldOptionsFromKind<
       Types,
@@ -221,11 +224,14 @@ export interface LoadableNodeId<Types extends SchemaTypes, Shape extends object,
 
 export type LoadableNodeOptions<
   Types extends SchemaTypes,
-  Shape extends object,
+  LoadResult,
   Interfaces extends InterfaceParam<Types>[],
   NameOrRef extends ObjectParam<Types> | string,
   IDShape extends bigint | number | string = string,
   Key extends bigint | number | string = IDShape,
   CacheKey = Key,
-> = DataloaderObjectTypeOptions<Types, Shape, Key, Interfaces, NameOrRef, CacheKey> &
+  Shape = ShapeFromLoadResult<LoadResult>,
+> = DataloaderObjectTypeOptions<Types, LoadResult, Key, Interfaces, NameOrRef, CacheKey, Shape> &
   LoadableNodeId<Types, Shape, IDShape>;
+
+export type ShapeFromLoadResult<T> = Exclude<T, Error>;

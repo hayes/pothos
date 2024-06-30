@@ -14,7 +14,7 @@ export class LoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key, 
 export class ImplementableLoadableObjectRef<Types extends SchemaTypes, RefShape, Shape, Key extends bigint | number | string, CacheKey> extends ImplementableObjectRef<Types, RefShape, Shape> {
     getDataloader;
     protected cacheResolved;
-    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { loaderOptions, load, toKey, sort, cacheResolved, }: DataLoaderOptions<Types, Shape, Key, CacheKey>) {
+    constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string, { loaderOptions, load, toKey, sort, cacheResolved, }: DataLoaderOptions<Types, Shape | Error, Key, CacheKey, Shape>) {
         super(builder, name);
         this.getDataloader = dataloaderGetter<Key, Shape, CacheKey>(loaderOptions, load, toKey, sort);
         this.cacheResolved =
