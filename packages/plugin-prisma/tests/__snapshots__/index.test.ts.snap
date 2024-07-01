@@ -371,7 +371,7 @@ type SelectUser implements Node {
   postCount: Int!
   posts: [SelectPost!]
   postsConnection(after: String, before: String, first: Int, last: Int, oldestFirst: Boolean): SelectUserPostsConnection
-  profile: Profile
+  profile: Profile!
 }
 
 type SelectUserFollowingConnection {

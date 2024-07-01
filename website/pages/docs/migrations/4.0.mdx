@@ -166,6 +166,39 @@ const builder = new SchemaBuilder<{
 });
 ```
 
+## `@pothos/plugin-prisma`
+
+### Nullable relations
+
+Previously the prisma would allow t.relation to define non-nullable fields using nullable relations.
+The plugin option now requires an `onNull` option to handle null relations on NonNullable fields
+
+To restore the previous behavior you can set the `onNull` option to `'error'`, which will result in
+a runtime error when the field returns null
+
+```diff
+ t.relation('nullableRelation', {
++  onNull: 'error',
+ })
+```
+
+Alternatively you can mark the field as nullable:
+
+```diff
+ t.relation('nullableRelation', {
++  nullable: true,
+ })
+```
+
+`onNull` can also be set to a function that returns either a record matching the type of the
+relation, or a custom Error to throw when the relation is null.
+
+```ts
+t.relation('nullableRelation', {
+  onNull: () => loadPlaceholder(),
+});
+```
+
 ## `@pothos/plugin-directives`
 
 `useGraphQLToolsUnorderedDirectives` has been nested inside a `directives` options object:

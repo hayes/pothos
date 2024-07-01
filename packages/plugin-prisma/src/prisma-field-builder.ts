@@ -455,7 +455,7 @@ export class PrismaObjectFieldBuilder<
     const relationField = getRelation(this.model, this.builder, name);
     const ref = options.type ?? getRefFromModel(relationField.type, this.builder);
 
-    const { query = {}, resolve, extensions, ...rest } = options;
+    const { query = {}, resolve, extensions, onNull, ...rest } = options;
 
     const relationSelect = (
       args: object,
@@ -482,7 +482,15 @@ export class PrismaObjectFieldBuilder<
               info,
             )),
       },
-      resolve: (parent) => (parent as Record<string, never>)[name],
+      resolve: (parent) => {
+        const result = (parent as Record<string, never>)[name];
+
+        if (typeof onNull === 'function' && result == null) {
+          return onNull(parent, {} as never, {} as never, {} as never) as never;
+        }
+
+        return result;
+      },
     }) as FieldRef<Types, Model['Relations'][Field]['Shape'], 'Object'>;
   }
 

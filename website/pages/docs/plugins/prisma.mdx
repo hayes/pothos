@@ -480,6 +480,30 @@ builder.prismaObject('User', {
 });
 ```
 
+### Nullable relations
+
+If a relation is nullable in the Prisma schema, but should be NonNullable in the GraphQL schema, you
+will need to set the `onNull` option of the `t.relation` method to determine what to do when the
+relation is null.
+
+`onNull` can be set to `'error'` to throw an error when the relation is null, or a function that
+returns either a record matching the relations type, or custom Error to throw when the relation is
+null.
+
+```typescript
+builder.prismaObject('User', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    profile: t.relation('profile', {
+      onNull: 'error',
+    }),
+    profileOrDefault: t.relation('profile', {
+      onNull: (user, args, ctx, info) => loadDefaultProfile(),
+    }),
+  }),
+});
+```
+
 ## relationCount
 
 Prisma supports querying for

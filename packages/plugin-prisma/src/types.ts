@@ -435,7 +435,22 @@ export type RelatedFieldOptions<
   description?: string | false;
   type?: PrismaRef<Types, TypesForRelation<Types, Model, Field>>;
   query?: QueryForField<Types, Args, Model['Include'][Field & keyof Model['Include']]>;
-};
+  onNull?:
+    | 'error'
+    | ((
+        parent: Shape,
+        args: InputShapeFromFields<Args>,
+        context: Types['Context'],
+        info: GraphQLResolveInfo,
+      ) => MaybePromise<
+        Error | ShapeWithNullability<Types, Model['Relations'][Field]['Shape'], Nullable>
+      >);
+} & ({
+    field: boolean extends Nullable ? Types['DefaultFieldNullability'] : Nullable;
+    relation: Model['Relations'][Field]['Nullable'];
+  } extends { field: false; relation: true }
+    ? { onNull: {} }
+    : {});
 
 export type VariantFieldOptions<
   Types extends SchemaTypes,
