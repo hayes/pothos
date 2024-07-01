@@ -11,15 +11,20 @@ import {
 } from '@pothos/core';
 import { ValidationOptions, ValidationPluginOptions } from './types';
 
-import type { PothosValidationPlugin } from '.';
+import type { PothosZodPlugin } from '.';
 
 declare global {
   export namespace PothosSchemaTypes {
     export interface Plugins<Types extends SchemaTypes> {
-      validation: PothosValidationPlugin<Types>;
+      zod: PothosZodPlugin<Types>;
     }
 
     export interface SchemaBuilderOptions<Types extends SchemaTypes> {
+      zod?: ValidationPluginOptions<Types>;
+    }
+
+    export interface V3SchemaBuilderOptions<Types extends SchemaTypes> {
+      zod?: never;
       validationOptions?: ValidationPluginOptions<Types>;
     }
 

@@ -6,13 +6,14 @@ import {
   OutputRef,
   outputShapeKey,
   parentShapeKey,
+  PothosInterfaceTypeConfig,
   SchemaTypes,
 } from '../types';
-import BaseTypeRef from './base';
+import { TypeRefWithFields } from './base-with-fields';
 
-export default class InterfaceRef<T, P = T>
-  extends BaseTypeRef
-  implements OutputRef, PothosSchemaTypes.InterfaceRef<T, P>
+export class InterfaceRef<Types extends SchemaTypes, T, P = T>
+  extends TypeRefWithFields<Types, PothosInterfaceTypeConfig>
+  implements OutputRef, PothosSchemaTypes.InterfaceRef<Types, T, P>
 {
   override kind = 'Interface' as const;
 
@@ -22,8 +23,8 @@ export default class InterfaceRef<T, P = T>
 
   [parentShapeKey]!: P;
 
-  constructor(name: string) {
-    super('Interface', name);
+  constructor(name: string, config?: PothosInterfaceTypeConfig) {
+    super('Interface', name, config);
   }
 }
 
@@ -31,12 +32,11 @@ export class ImplementableInterfaceRef<
   Types extends SchemaTypes,
   Shape,
   Parent = Shape,
-> extends InterfaceRef<Shape, Parent> {
-  protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
+> extends InterfaceRef<Types, Shape, Parent> {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
     super(name);
-
     this.builder = builder;
   }
 

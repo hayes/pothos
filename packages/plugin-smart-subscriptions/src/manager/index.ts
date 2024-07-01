@@ -104,10 +104,10 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     };
   }
 
-  async throw(error: unknown) {
+  // eslint-disable-next-line @typescript-eslint/promise-function-async
+  throw(error: unknown) {
     this.handleError(error);
 
-    // eslint-disable-next-line unicorn/no-useless-promise-resolve-reject
     return Promise.reject<IteratorResult<object>>(error as Error);
   }
 
@@ -232,8 +232,7 @@ export default class SubscriptionManager implements AsyncIterator<object> {
     for (const options of optionsList) {
       const currentAllowed = !options.filter || options.filter(value);
 
-      // eslint-disable-next-line logical-assignment-operators
-      allowed = allowed || currentAllowed;
+      allowed ||= currentAllowed;
 
       if (currentAllowed && options.onValue) {
         const promise = options.onValue(value);

@@ -1,8 +1,8 @@
 import { inputShapeKey, InputTypeParam, SchemaTypes } from '../types';
-import BaseTypeRef from './base';
+import { BaseTypeRef } from './base';
 
-export default class InputListRef<Types extends SchemaTypes, T>
-  extends BaseTypeRef
+export class InputListRef<Types extends SchemaTypes, T>
+  extends BaseTypeRef<Types>
   implements PothosSchemaTypes.InputListRef<Types, T>
 {
   override kind = 'InputList' as const;

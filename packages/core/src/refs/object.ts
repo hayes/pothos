@@ -5,13 +5,22 @@ import {
   OutputRef,
   outputShapeKey,
   parentShapeKey,
+  PothosMutationTypeConfig,
+  PothosObjectTypeConfig,
+  PothosQueryTypeConfig,
+  PothosSubscriptionTypeConfig,
   SchemaTypes,
 } from '../types';
-import BaseTypeRef from './base';
+import { TypeRefWithFields } from './base-with-fields';
 
-export default class ObjectRef<T, P = T>
-  extends BaseTypeRef
-  implements OutputRef, PothosSchemaTypes.ObjectRef<T, P>
+export type ObjectLikeConfig =
+  | PothosMutationTypeConfig
+  | PothosObjectTypeConfig
+  | PothosQueryTypeConfig
+  | PothosSubscriptionTypeConfig;
+export class ObjectRef<Types extends SchemaTypes, T, P = T>
+  extends TypeRefWithFields<Types, ObjectLikeConfig>
+  implements OutputRef, PothosSchemaTypes.ObjectRef<Types, T, P>
 {
   override kind = 'Object' as const;
 
@@ -21,8 +30,8 @@ export default class ObjectRef<T, P = T>
 
   [parentShapeKey]!: P;
 
-  constructor(name: string) {
-    super('Object', name);
+  constructor(name: string, config?: ObjectLikeConfig) {
+    super('Object', name, config);
   }
 }
 
@@ -30,12 +39,11 @@ export class ImplementableObjectRef<
   Types extends SchemaTypes,
   Shape,
   Parent = Shape,
-> extends ObjectRef<Shape, Parent> {
-  protected builder: PothosSchemaTypes.SchemaBuilder<Types>;
+> extends ObjectRef<Types, Shape, Parent> {
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, name: string) {
     super(name);
-
     this.builder = builder;
   }
 
@@ -44,7 +52,7 @@ export class ImplementableObjectRef<
       ObjectTypeOptions<Types, ImplementableObjectRef<Types, Shape, Parent>, Parent, Interfaces>,
       'name'
     >,
-  ): PothosSchemaTypes.ObjectRef<Shape, Parent> {
+  ): PothosSchemaTypes.ObjectRef<Types, Shape, Parent> {
     return this.builder.objectType(
       this,
       options as ObjectTypeOptions<

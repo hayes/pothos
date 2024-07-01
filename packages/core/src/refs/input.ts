@@ -1,7 +1,7 @@
-import { inputShapeKey } from '../types';
-import BaseTypeRef from './base';
+import { inputShapeKey, SchemaTypes } from '../types';
+import { BaseTypeRef } from './base';
 
-export default class InputTypeRef<T> extends BaseTypeRef {
+export class InputTypeRef<Types extends SchemaTypes, T> extends BaseTypeRef<Types> {
   override kind;
 
   $inferInput!: T;

@@ -1,4 +1,5 @@
 import {
+  ArgumentRef,
   FieldKind,
   FieldNullability,
   FieldRef,
@@ -42,12 +43,12 @@ declare global {
     > {
       input: InputFieldBuilder<Types, 'InputObject'>;
       fieldWithInput: <
-        Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+        Fields extends Record<string, InputFieldRef<Types, unknown>>,
         Type extends TypeParam<Types>,
         ResolveShape,
         ResolveReturnShape,
         ArgRequired extends boolean,
-        Args extends Record<string, InputFieldRef<unknown, 'Arg'>> = {},
+        Args extends Record<string, ArgumentRef<Types, unknown>> = {},
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         InputName extends string = 'input',
       >(
@@ -64,13 +65,13 @@ declare global {
           ResolveReturnShape,
           boolean extends ArgRequired ? Types['WithInputArgRequired'] & boolean : ArgRequired
         >,
-      ) => FieldRef<ShapeFromTypeParam<Types, Type, Nullable>>;
+      ) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
     }
 
     export interface FieldWithInputBaseOptions<
       Types extends SchemaTypes,
-      Args extends Record<string, InputFieldRef<unknown, 'Arg'>>,
-      Fields extends Record<string, InputFieldRef<unknown, 'InputObject'>>,
+      Args extends Record<string, ArgumentRef<Types, unknown>>,
+      Fields extends Record<string, InputFieldRef<Types, unknown>>,
       InputName extends string,
       ArgRequired extends boolean,
     > {

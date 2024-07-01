@@ -29,7 +29,7 @@ export const prisma = new PrismaClient({
   ],
 });
 
-const builder = new SchemaBuilder<{
+interface Types {
   Scalars: {
     Decimal: {
       Input: Prisma.Decimal;
@@ -43,9 +43,11 @@ const builder = new SchemaBuilder<{
   AuthScopes: {
     user: boolean;
   };
-}>({
+}
+
+const builder = new SchemaBuilder<Types>({
   plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin, ComplexityPlugin, SimpleObjects],
-  relayOptions: {},
+  relay: {},
   prisma: {
     filterConnectionTotalCount: true,
     client: () => prisma,
@@ -53,7 +55,7 @@ const builder = new SchemaBuilder<{
     exposeDescriptions: true,
     onUnusedQuery: 'error',
   },
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
   },
 });

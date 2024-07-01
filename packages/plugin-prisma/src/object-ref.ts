@@ -1,9 +1,19 @@
-import { abstractReturnShapeKey, brandWithType, ObjectRef, typeBrandKey } from '@pothos/core';
+import {
+  abstractReturnShapeKey,
+  brandWithType,
+  ObjectRef,
+  SchemaTypes,
+  typeBrandKey,
+} from '@pothos/core';
 import type { PrismaModelTypes, WithBrand } from './types';
 
 export const prismaModelKey = Symbol.for('Pothos.prismaModelKey');
 
-export class PrismaObjectRef<Model extends PrismaModelTypes, T = {}> extends ObjectRef<T> {
+export class PrismaObjectRef<
+  Types extends SchemaTypes,
+  Model extends PrismaModelTypes,
+  T = {},
+> extends ObjectRef<Types, T> {
   [prismaModelKey]!: Model;
 
   [abstractReturnShapeKey]!: WithBrand<T>;

@@ -6,7 +6,7 @@ import { db } from './db';
 
 export const builder = new SchemaBuilder<{ PrismaTypes: PrismaTypes }>({
   plugins: [PrismaPlugin, RelayPlugin],
-  relayOptions: {},
+  relay: {},
   prisma: {
     client: db,
   },

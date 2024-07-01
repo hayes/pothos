@@ -4,7 +4,6 @@ import {
   InterfaceParam,
   MaybePromise,
   ObjectRef,
-  OutputTypeRef,
   RootFieldBuilder,
   SchemaTypes,
 } from '@pothos/core';
@@ -22,10 +21,10 @@ export class ExternalEntityRef<
   Types extends SchemaTypes,
   Shape extends object,
   Key extends Selection<object>,
-> extends OutputTypeRef<Shape> {
+> extends ObjectRef<Types, Shape> {
   override kind = 'Object' as const;
 
-  private builder: PothosSchemaTypes.SchemaBuilder<Types>;
+  builder: PothosSchemaTypes.SchemaBuilder<Types>;
 
   private key?: Key | Key[];
 
@@ -50,7 +49,7 @@ export class ExternalEntityRef<
       ) => MaybePromise<Shape | null | undefined>;
     },
   ) {
-    super('Object', name);
+    super(name);
 
     this.builder = builder;
     this.key = key;
@@ -64,7 +63,7 @@ export class ExternalEntityRef<
     ...options
   }: ExternalEntityOptions<Types, Shape, Interfaces>) {
     addUsedDirectives(this.builder, ['extends', 'key']);
-    this.builder.objectType(this as unknown as ObjectRef<unknown>, {
+    this.builder.objectType(this as unknown as ObjectRef<Types, unknown>, {
       ...(options as {} as PothosSchemaTypes.ObjectTypeOptions<Types, Shape>),
       name: this.name,
       directives: mergeDirectives(directives as [], [
@@ -73,9 +72,9 @@ export class ExternalEntityRef<
       ]) as [],
       fields: (t) => ({
         ...externalFields?.(
-          new RootFieldBuilder(this.name, this.builder, 'ExternalEntity', 'Object') as never,
+          new RootFieldBuilder(this.builder, 'ExternalEntity', 'Object') as never,
         ),
-        ...fields?.(new FieldBuilder(this.name, this.builder, 'ExtendedEntity', 'Object') as never),
+        ...fields?.(new FieldBuilder(this.builder, 'ExtendedEntity', 'Object') as never),
       }),
       extensions: {
         ...options.extensions,
@@ -96,7 +95,7 @@ export class ExternalEntityRef<
     const ref = Object.create(this) as ExternalEntityRef<Types, Shape & T, Key>;
 
     providesMap.set(ref, selection);
-    this.builder.configStore.associateRefWithName(ref, this.name);
+    this.builder.configStore.associateParamWithRef(ref, this);
 
     return ref;
   }

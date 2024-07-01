@@ -2,12 +2,12 @@ import SchemaBuilder from '@pothos/core';
 import Mocks from '../../../src';
 import { Character, ContextType, Droid, Human } from './backing-models';
 
-interface Types {
+export interface Types {
   Objects: { Droid: Droid; Human: Human; String: string };
   Interfaces: { Character: Character };
   Context: ContextType;
 }
 
-export default new SchemaBuilder<Types>({
+export const builder = new SchemaBuilder<Types>({
   plugins: [Mocks],
 });

@@ -31,38 +31,37 @@ const builder = new SchemaBuilder<{
   DefaultAuthStrategy: 'all';
 }>({
   plugins: [ScopeAuthPlugin, PrismaPlugin, RelayPlugin],
-  relayOptions: {
+  relay: {
     clientMutationId: 'omit',
     cursorType: 'String',
   },
   prisma: {
     client: db,
   },
-  scopeAuthOptions: {
+  scopeAuth: {
     authorizeOnSubscribe: true,
     defaultStrategy: 'all',
-  },
-  authScopes: async (context) => {
-    context.count?.('authScopes');
+    authScopes: async (context) => {
+      context.count?.('authScopes');
 
-    // locally reference use to simulate data loaded in this authScopes fn that depends on incoming
-    // context data and is not modifiable from resolvers
-    const { user } = context;
+      // locally reference use to simulate data loaded in this authScopes fn that depends on incoming
+      // context data and is not modifiable from resolvers
+      const { user } = context;
+      return {
+        loggedIn: !!user,
+        admin: !!user?.roles.includes('admin'),
+        syncPermission: (perm) => {
+          context.count?.('syncPermission');
 
-    return {
-      loggedIn: !!user,
-      admin: !!user?.roles.includes('admin'),
-      syncPermission: (perm) => {
-        context.count?.('syncPermission');
+          return !!context.user?.permissions.includes(perm);
+        },
+        asyncPermission: async (perm) => {
+          context.count?.('asyncPermission');
 
-        return !!user?.permissions.includes(perm);
-      },
-      asyncPermission: async (perm) => {
-        context.count?.('asyncPermission');
-
-        return !!user?.permissions.includes(perm);
-      },
-    };
+          return !!context.user?.permissions.includes(perm);
+        },
+      };
+    },
   },
 });
 

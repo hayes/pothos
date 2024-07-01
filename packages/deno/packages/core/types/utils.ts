@@ -26,11 +26,11 @@ export type EmptyToOptional<T> = T extends object ? Normalize<{
     [K in NonEmptyKeys<T>]: T[K];
 }> : T;
 export type NormalizeNullable<T> = undefined extends T ? T | null | undefined : null extends T ? T | null | undefined : T;
-export type NormalizeNullableFields<T extends object> = {
+export type NormalizeNullableFields<T extends object> = Normalize<{
     [K in OptionalKeys<T>]?: T[K] | null | undefined;
 } & {
     [K in RequiredKeys<T>]: T[K];
-};
+}>;
 // Check if T is a Record of string keys who's values are not functions
 export type IsSimpleRecord<T> = ([
     T
@@ -56,7 +56,12 @@ export type RemoveNeverKeys<T extends {}> = {
 };
 export type Merge<T> = {
     [K in keyof T]: T[K];
-};
+} & {};
+export type MergeUnion<T, Keys extends keyof T = T extends unknown ? keyof T : never> = Merge<T extends unknown ? {
+    [K in Keys as K extends keyof T ? never : K]?: never;
+} & {
+    [K in Keys as K extends keyof T ? K : never]: T[K & keyof T];
+} : never>;
 export interface Path {
     prev: Path | undefined;
     key: number | string;

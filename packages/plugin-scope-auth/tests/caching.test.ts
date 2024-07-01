@@ -118,11 +118,15 @@ describe('caching', () => {
               "a1": "ok",
               "a2": "ok",
             },
-            "obj2": null,
+            "obj2": {
+              "b1": null,
+              "b2": null,
+            },
           },
           "errors": [
             [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
             [GraphQLError: Not authorized to resolve Query.forAsyncPermissionFn],
+            [GraphQLError: Not authorized to read fields for ObjForAsyncPermFn],
             [GraphQLError: Not authorized to read fields for ObjForAsyncPermFn],
           ],
         }

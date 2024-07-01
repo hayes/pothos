@@ -21,7 +21,7 @@ Ensure that the target in your `tsconfig.json` is set to `es6` or higher (defaul
 import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [],
   },
 });
@@ -103,7 +103,7 @@ errors plugin will automatically resolve to the corresponding error object type.
     ```ts
     export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
       plugins: [ErrorPlugin, ValidationPlugin],
-      errorOptions: {
+      errors: {
         defaultTypes: [Error],
         defaultResultOptions: {
           name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
@@ -119,7 +119,7 @@ errors plugin will automatically resolve to the corresponding error object type.
     ```ts
     export const builderWithCustomErrorTypeNames = new SchemaBuilder<{}>({
       plugins: [ErrorPlugin, ValidationPlugin],
-      errorOptions: {
+      errors: {
         defaultTypes: [Error],
         defaultResultOptions: {
           name: ({ parentTypeName, fieldName }) => `${fieldName}_Custom`,
@@ -164,7 +164,7 @@ The follow is a small example of this pattern:
 import ErrorsPlugin from '@pothos/plugin-errors';
 const builder = new SchemaBuilder({
   plugins: [ErrorsPlugin],
-  errorOptions: {
+  errors: {
     defaultTypes: [Error],
   },
 });

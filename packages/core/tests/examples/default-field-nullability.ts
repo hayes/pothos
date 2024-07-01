@@ -2,13 +2,17 @@ import SchemaBuilder from '../../src';
 
 export const nullableFieldBuilder = new SchemaBuilder<{
   DefaultFieldNullability: true;
+  Defaults: 'v3';
 }>({
+  defaults: 'v3',
   defaultFieldNullability: true,
 });
 
 export const nonNullableFieldBuilder = new SchemaBuilder<{
   DefaultInputFieldRequiredness: true;
+  Defaults: 'v3';
 }>({
+  defaults: 'v3',
   defaultInputFieldRequiredness: true,
 });
 

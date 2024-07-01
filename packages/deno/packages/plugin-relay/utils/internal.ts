@@ -3,8 +3,8 @@ import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 import { PothosValidationError, SchemaTypes } from '../../core/index.ts';
 import { decodeGlobalID, encodeGlobalID } from './global-ids.ts';
 export function internalEncodeGlobalID<Types extends SchemaTypes>(builder: PothosSchemaTypes.SchemaBuilder<Types>, typename: string, id: bigint | number | string, ctx: object) {
-    if (builder.options.relayOptions.encodeGlobalID) {
-        return builder.options.relayOptions.encodeGlobalID(typename, id, ctx);
+    if (builder.options.relay?.encodeGlobalID) {
+        return builder.options.relay.encodeGlobalID(typename, id, ctx);
     }
     return encodeGlobalID(typename, id);
 }
@@ -12,8 +12,8 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(builder: Potho
     typename: string;
     parseId: (id: string, ctx: object) => unknown;
 }[] | boolean) {
-    const decoded = builder.options.relayOptions.decodeGlobalID
-        ? builder.options.relayOptions.decodeGlobalID(globalID, ctx)
+    const decoded = builder.options.relay?.decodeGlobalID
+        ? builder.options.relay.decodeGlobalID(globalID, ctx)
         : decodeGlobalID(globalID);
     if (Array.isArray(parseIdsForTypes)) {
         const entry = parseIdsForTypes.find(({ typename }) => typename === decoded.typename);

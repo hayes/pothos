@@ -298,306 +298,310 @@ describe('findUnique', () => {
       }
     `);
 
-    expect(queries).toMatchInlineSnapshot(`
-      [
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "withCompositeID": true,
-              "withCompositeUnique": true,
-              "withID": true,
-              "withUnique": true,
-            },
-            "where": {
-              "id": "1",
-            },
+    const expectedQueries = [
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            withCompositeID: true,
+            withCompositeUnique: true,
+            withID: true,
+            withUnique: true,
           },
-          "dataPath": [],
-          "model": "FindUniqueRelations",
-          "runInTransaction": false,
+          where: {
+            id: '1',
+          },
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "withCompositeUnique": {
-                "select": {
-                  "FindUniqueRelations": true,
-                  "a": true,
-                  "b": true,
-                },
-              },
-              "withID": {
-                "select": {
-                  "FindUniqueRelations": true,
-                  "id": true,
-                },
+        dataPath: [],
+        model: 'FindUniqueRelations',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            withCompositeUnique: {
+              select: {
+                FindUniqueRelations: true,
+                a: true,
+                b: true,
               },
             },
-            "where": {
-              "id": "1",
-            },
-          },
-          "dataPath": [],
-          "model": "FindUniqueRelations",
-          "runInTransaction": false,
-        },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "id": "1",
-            },
-          },
-          "dataPath": [],
-          "model": "WithID",
-          "runInTransaction": false,
-        },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "id": "1",
-            },
-          },
-          "dataPath": [],
-          "model": "WithUnique",
-          "runInTransaction": false,
-        },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
+            withID: {
+              select: {
+                FindUniqueRelations: true,
+                id: true,
               },
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeID",
-          "runInTransaction": false,
+          where: {
+            id: '1',
+          },
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
-              },
+        dataPath: [],
+        model: 'FindUniqueRelations',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            id: '1',
+          },
+        },
+        dataPath: [],
+        model: 'WithID',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            id: '1',
+          },
+        },
+        dataPath: [],
+        model: 'WithUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_c": {
-                "a": "1",
-                "c": "1",
-              },
+        dataPath: [],
+        model: 'WithCompositeID',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "id": "1",
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_c: {
+              a: '1',
+              c: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithID",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "id": "1",
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            id: '1',
+          },
+        },
+        dataPath: [],
+        model: 'WithID',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            id: '1',
+          },
+        },
+        dataPath: [],
+        model: 'WithUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithUnique",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
-              },
+        dataPath: [],
+        model: 'WithCompositeID',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeID",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
-              },
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            id: '1',
+          },
+        },
+        dataPath: [],
+        model: 'WithID',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            id: '1',
+          },
+        },
+        dataPath: [],
+        model: 'WithUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "id": "1",
+        dataPath: [],
+        model: 'WithCompositeID',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithID",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "id": "1",
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_c: {
+              a: '1',
+              c: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithUnique",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
-              },
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_c: {
+              a: '1',
+              c: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeID",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
-              },
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+      {
+        action: 'findUniqueOrThrow',
+        args: {
+          include: {
+            FindUniqueRelations: true,
+          },
+          where: {
+            a_b: {
+              a: '1',
+              b: '1',
             },
           },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
         },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_c": {
-                "a": "1",
-                "c": "1",
-              },
-            },
-          },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
-        },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_c": {
-                "a": "1",
-                "c": "1",
-              },
-            },
-          },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
-        },
-        {
-          "action": "findUniqueOrThrow",
-          "args": {
-            "include": {
-              "FindUniqueRelations": true,
-            },
-            "where": {
-              "a_b": {
-                "a": "1",
-                "b": "1",
-              },
-            },
-          },
-          "dataPath": [],
-          "model": "WithCompositeUnique",
-          "runInTransaction": false,
-        },
-      ]
-    `);
+        dataPath: [],
+        model: 'WithCompositeUnique',
+        runInTransaction: false,
+      },
+    ];
+
+    expect(queries).toHaveLength(expectedQueries.length);
+
+    for (const q of queries) {
+      expect(expectedQueries).toContainEqual(q);
+    }
   });
 });

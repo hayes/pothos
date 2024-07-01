@@ -111,7 +111,7 @@ serve(yoga, {
 
   Build multiple subsets of your graph to easily share code between internal and external APIs.
 
-- [**Validation**](https://pothos-graphql.dev/docs/plugins/validation)
+- [**Zod Validation**](https://pothos-graphql.dev/docs/plugins/zod)
 
   Validating your inputs and arguments
 

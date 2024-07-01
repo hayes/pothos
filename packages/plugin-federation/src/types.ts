@@ -1,5 +1,5 @@
 import './global-types';
-import { FieldMap, FieldRef, InterfaceParam, SchemaTypes } from '@pothos/core';
+import { FieldMap, FieldRef, GenericFieldRef, InterfaceParam, SchemaTypes } from '@pothos/core';
 
 export const selectionShapeKey = Symbol.for('Pothos.federationSelectionKey');
 
@@ -7,7 +7,7 @@ export type EntityObjectFieldsShape<Types extends SchemaTypes, Shape, Fields ext
   t: PothosSchemaTypes.FieldBuilder<Types, Shape, 'EntityObject'>,
 ) => Fields;
 
-export type ShapeFromField<T extends FieldRef<unknown>> = T extends FieldRef<infer U> ? U : never;
+export type ShapeFromField<T extends GenericFieldRef> = T extends FieldRef<infer U> ? U : never;
 
 export type ExternalEntityOptions<
   Types extends SchemaTypes,

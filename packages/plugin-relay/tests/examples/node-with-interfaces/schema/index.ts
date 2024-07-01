@@ -24,4 +24,17 @@ builder.node('Customer', {
 
 builder.queryType({});
 
+builder.queryField('nullConnection', (t) =>
+  t.connection({
+    type: 'Boolean',
+    args: {
+      ...t.arg.connectionArgs(),
+    },
+    resolve: (root, args) => ({
+      edges: null,
+      pageInfo: { hasNextPage: false, hasPreviousPage: false },
+    }),
+  }),
+);
+
 export default builder.toSchema();

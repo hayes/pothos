@@ -16,7 +16,7 @@ export const builder = new SchemaBuilder<{
   prisma: {
     client: db,
   },
-  relayOptions: {
+  relay: {
     clientMutationId: 'omit',
     cursorType: 'String',
     pageInfoTypeOptions: {

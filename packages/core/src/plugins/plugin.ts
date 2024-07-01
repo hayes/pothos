@@ -4,7 +4,7 @@ import {
   GraphQLSchema,
   GraphQLTypeResolver,
 } from 'graphql';
-import type BuildCache from '../build-cache';
+import type { BuildCache } from '../build-cache';
 import { PothosError } from '../errors';
 import type {
   PothosEnumValueConfig,

@@ -9,7 +9,7 @@ enum EN {
 }
 
 interface IF {
-  field: String!
+  field: String
 }
 
 input In {
@@ -31,11 +31,11 @@ input MyOtherInput {
 }
 
 type Obj {
-  field: String!
+  field: String
 }
 
 type Query {
-  test(arg1: String, myInput: MyInput, myOtherInput: MyOtherInput = {}): String!
+  test(arg1: String, myInput: MyInput, myOtherInput: MyOtherInput = {}): String
 }
 
 union UN = Obj"

@@ -16,7 +16,7 @@ export default new SchemaBuilder<{
   DefaultNodeNullability: true;
 }>({
   plugins: [RelayPlugin],
-  relayOptions: {
+  relay: {
     nodesOnConnection: true,
     idFieldName: 'nodeId',
     nodeFieldOptions: {

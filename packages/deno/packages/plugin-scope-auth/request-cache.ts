@@ -20,10 +20,9 @@ export default class RequestCache<Types extends SchemaTypes> {
     constructor(builder: PothosSchemaTypes.SchemaBuilder<Types>, context: Types["Context"]) {
         this.builder = builder;
         this.context = context;
-        this.cacheKey = builder.options.scopeAuthOptions?.cacheKey;
-        this.treatErrorsAsUnauthorized =
-            builder.options.scopeAuthOptions?.treatErrorsAsUnauthorized ?? false;
-        this.defaultStrategy = builder.options.scopeAuthOptions?.defaultStrategy ?? "any";
+        this.cacheKey = builder.options.scopeAuth?.cacheKey;
+        this.treatErrorsAsUnauthorized = builder.options.scopeAuth?.treatErrorsAsUnauthorized ?? false;
+        this.defaultStrategy = builder.options.scopeAuth?.defaultStrategy ?? "any";
     }
     static fromContext<T extends SchemaTypes>(context: T["Context"], builder: PothosSchemaTypes.SchemaBuilder<T>): RequestCache<T> {
         return contextCache(context, builder as never) as never;
@@ -33,7 +32,7 @@ export default class RequestCache<Types extends SchemaTypes> {
     }
     getScopes(): MaybePromise<ScopeLoaderMap<Types>> {
         if (!this.scopes) {
-            const scopes = this.builder.options.authScopes(this.context);
+            const scopes = this.builder.options.scopeAuth.authScopes(this.context);
             this.scopes = isThenable(scopes)
                 ? scopes.then((resolved) => {
                     this.scopes = resolved;

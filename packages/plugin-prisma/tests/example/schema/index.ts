@@ -256,7 +256,10 @@ const User = builder.prismaNode('User', {
     profile: t.relation('profile', {
       nullable: true,
     }),
-    profileWithErrors: t.relation('profile', { nullable: true, errors: {} }),
+    profileWithErrors: t.relation('profile', {
+      nullable: true,
+      errors: {},
+    }),
     directProfileWithErrors: t.relation('profile', {
       nullable: true,
       errors: { directResult: true },
@@ -521,7 +524,8 @@ const SelectUser = builder.prismaNode('User', {
     email: t.exposeString('email'),
     name: t.exposeString('name', { nullable: true }),
     profile: t.relation('profile', {
-      nullable: true,
+      nullable: false,
+      onNull: 'error',
     }),
     postCount: t.relationCount('posts'),
     following: t.relatedConnection('following', {

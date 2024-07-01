@@ -1,8 +1,8 @@
-import type ConfigStore from '../config-store';
+import type { ConfigStore } from '../config-store';
 import { PothosSchemaError } from '../errors';
-import BaseTypeRef from '../refs/base';
-import InputListRef from '../refs/input-list';
-import ListRef from '../refs/list';
+import { BaseTypeRef } from '../refs/base';
+import { InputListRef } from '../refs/input-list';
+import { ListRef } from '../refs/list';
 import {
   FieldNullability,
   FieldRequiredness,

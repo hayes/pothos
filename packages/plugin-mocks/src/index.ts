@@ -6,7 +6,7 @@ import { ResolverMap } from './types';
 const pluginName = 'mocks';
 
 export default pluginName;
-export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   override wrapResolve(
     resolver: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
@@ -66,4 +66,4 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
   }
 }
 
-SchemaBuilder.registerPlugin(pluginName, MocksPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosMocksPlugin);

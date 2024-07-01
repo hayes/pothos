@@ -27,7 +27,7 @@ exports[`simple objects example schema > complexity from query > as string 1`] =
 exports[`simple objects example schema > generates expected schema 1`] = `
 "interface Character {
   """Which movies they appear in."""
-  appearsIn: [Episode!]!
+  appearsIn: [Episode!]
 
   """The friends of the character, or an empty list if they have none."""
   friends(limit: Int): [Character]!
@@ -36,16 +36,16 @@ exports[`simple objects example schema > generates expected schema 1`] = `
   friendsUnion(limit: Int): [Friend]!
 
   """The id of the character"""
-  id: ID!
+  id: ID
 
   """The name of the character"""
-  name: String!
+  name: String
 }
 
 """A mechanical creature in the Star Wars universe."""
 type Droid implements Character {
   """Which movies they appear in."""
-  appearsIn: [Episode!]!
+  appearsIn: [Episode!]
 
   """The friends of the character, or an empty list if they have none."""
   friends(limit: Int): [Character]!
@@ -54,13 +54,13 @@ type Droid implements Character {
   friendsUnion(limit: Int): [Friend]!
 
   """The id of the character"""
-  id: ID!
+  id: ID
 
   """The name of the character"""
-  name: String!
+  name: String
 
   """The primary function of the droid."""
-  primaryFunction: String!
+  primaryFunction: String
 }
 
 """One of the films in the Star Wars Trilogy"""
@@ -80,7 +80,7 @@ union Friend = Droid | Human
 """A humanoid creature in the Star Wars universe."""
 type Human implements Character {
   """Which movies they appear in."""
-  appearsIn: [Episode!]!
+  appearsIn: [Episode!]
 
   """The friends of the character, or an empty list if they have none."""
   friends(limit: Int): [Character]!
@@ -92,34 +92,36 @@ type Human implements Character {
   homePlanet: String
 
   """The id of the character"""
-  id: ID!
+  id: ID
 
   """The name of the character"""
-  name: String!
+  name: String
 }
 
 type Query {
   droid(
     """id of the character"""
     id: ID!
-  ): Droid!
+  ): Droid
   hero(
     """
     If omitted, returns the hero of the whole saga. If provided, returns the hero of that particular episode.
     """
     episode: Episode!
-  ): Character!
+  ): Character
   human(
     """id of the character"""
     id: ID!
-  ): Human!
-  r2d2: Droid!
+  ): Human
+  r2d2: Droid
 }"
 `;
 
 exports[`simple objects example schema > negative limits > negative breadth 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum breadth (breadth: 2, max: -1)],
   ],
@@ -128,7 +130,9 @@ exports[`simple objects example schema > negative limits > negative breadth 1`] 
 
 exports[`simple objects example schema > negative limits > negative complexity 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 2, max: -1)],
   ],
@@ -137,7 +141,9 @@ exports[`simple objects example schema > negative limits > negative complexity 1
 
 exports[`simple objects example schema > negative limits > negative depth 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum depth (depth: 2, max: -1)],
   ],
@@ -174,7 +180,9 @@ exports[`simple objects example schema > queries > complexity based on args 1`] 
 
 exports[`simple objects example schema > queries > complexity based options 1`] = `
 {
-  "data": null,
+  "data": {
+    "human": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 501, max: 200)],
   ],
@@ -183,7 +191,9 @@ exports[`simple objects example schema > queries > complexity based options 1`] 
 
 exports[`simple objects example schema > queries > too complex 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 287, max: 200)],
   ],
@@ -192,7 +202,9 @@ exports[`simple objects example schema > queries > too complex 1`] = `
 
 exports[`simple objects example schema > queries > too deep 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum depth (depth: 6, max: 5)],
   ],
@@ -201,7 +213,9 @@ exports[`simple objects example schema > queries > too deep 1`] = `
 
 exports[`simple objects example schema > queries > too wide 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum breadth (breadth: 13, max: 10)],
   ],
@@ -465,7 +479,9 @@ exports[`simple objects example schema > queries > valid query 1`] = `
 
 exports[`simple objects example schema > zero limits > zero breadth 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum breadth (breadth: 2, max: 0)],
   ],
@@ -474,7 +490,9 @@ exports[`simple objects example schema > zero limits > zero breadth 1`] = `
 
 exports[`simple objects example schema > zero limits > zero complexity 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum complexity (complexity: 2, max: 0)],
   ],
@@ -483,7 +501,9 @@ exports[`simple objects example schema > zero limits > zero complexity 1`] = `
 
 exports[`simple objects example schema > zero limits > zero depth 1`] = `
 {
-  "data": null,
+  "data": {
+    "hero": null,
+  },
   "errors": [
     [GraphQLError: Query exceeds maximum depth (depth: 2, max: 0)],
   ],

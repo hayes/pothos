@@ -8,5 +8,5 @@ export const builder = new SchemaBuilder<{
   };
 }>({
   plugins: [RelayPlugin],
-  relayOptions: {},
+  relay: {},
 });

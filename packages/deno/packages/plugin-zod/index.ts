@@ -6,8 +6,8 @@ import SchemaBuilder, { BasePlugin, mapInputFields, PothosInputFieldConfig, Poth
 import createZodSchema, { combine, createArrayValidator, isArrayValidator, refine, } from './createZodSchema.ts';
 import { RefineConstraint, ValidationOptions, ValidationOptionUnion } from './types.ts';
 export * from './types.ts';
-const pluginName = "validation";
-export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+const pluginName = "zod";
+export class PothosZodPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     inputFieldValidators = new Map<string, Record<string, zod.ZodType<unknown>>>();
     override onInputFieldConfig(fieldConfig: PothosInputFieldConfig<Types>): PothosInputFieldConfig<Types> {
         const fieldType = resolveInputTypeConfig(fieldConfig.type, this.buildCache);
@@ -51,7 +51,7 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
         if (fieldConfig.pothosOptions.validate) {
             validator = refine(validator, fieldConfig.pothosOptions.validate as ValidationOptionUnion);
         }
-        const validationError = this.builder.options.validationOptions?.validationError;
+        const validationError = this.builder.options.zod?.validationError;
         const validatorWithErrorHandling = validationError &&
             async function validate(value: unknown, ctx: object, info: GraphQLResolveInfo) {
                 try {
@@ -98,6 +98,13 @@ export class PothosValidationPlugin<Types extends SchemaTypes> extends BasePlugi
         return createZodSchema(options, !type || type.required);
     }
 }
-SchemaBuilder.registerPlugin(pluginName, PothosValidationPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosZodPlugin, {
+    v3(options) {
+        return {
+            validationOptions: undefined,
+            zod: options.validationOptions,
+        };
+    },
+});
 export default pluginName;
 export { default as createZodSchema } from './createZodSchema.ts';

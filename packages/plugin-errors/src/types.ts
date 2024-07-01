@@ -1,4 +1,11 @@
-import { EmptyToOptional, FieldNullability, Normalize, SchemaTypes, TypeParam } from '@pothos/core';
+import {
+  EmptyToOptional,
+  FieldNullability,
+  InferredResolveOptionsKeys,
+  Normalize,
+  SchemaTypes,
+  TypeParam,
+} from '@pothos/core';
 
 export type GetTypeName = (options: { parentTypeName: string; fieldName: string }) => string;
 
@@ -50,7 +57,7 @@ export type ErrorFieldOptions<
         {},
         Shape
       >,
-      'args' | 'nullable' | 'resolve' | 'type'
+      'args' | 'nullable' | 'type' | InferredResolveOptionsKeys
     > & {
       name?: string;
     }

@@ -24,15 +24,14 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         if (typeConfig.graphqlKind !== "Object" && typeConfig.graphqlKind !== "Interface") {
             throw new PothosSchemaError(`Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`);
         }
-        const authorizedOnSubscribe = !!this.builder.options.scopeAuthOptions?.authorizeOnSubscribe &&
-            typeConfig.kind === "Subscription";
+        const authorizedOnSubscribe = !!this.builder.options.scopeAuth?.authorizeOnSubscribe && typeConfig.kind === "Subscription";
         const nonRoot = (typeConfig.graphqlKind === "Interface" || typeConfig.graphqlKind === "Object") &&
             typeConfig.kind !== "Query" &&
             typeConfig.kind !== "Mutation" &&
             typeConfig.kind !== "Subscription";
         const runTypeScopesOnField = !nonRoot ||
             !(typeConfig.pothosOptions.runScopesOnType ??
-                this.builder.options.scopeAuthOptions?.runScopesOnType ??
+                this.builder.options.scopeAuth?.runScopesOnType ??
                 false);
         const steps = this.createResolveSteps(fieldConfig, typeConfig, resolver, runTypeScopesOnField, authorizedOnSubscribe);
         if (steps.length > 1) {
@@ -48,7 +47,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
         if (typeConfig.graphqlKind !== "Object" && typeConfig.graphqlKind !== "Interface") {
             throw new PothosSchemaError(`Got fields for ${fieldConfig.parentType} which is a ${typeConfig.graphqlKind} which cannot have fields`);
         }
-        if (!this.builder.options.scopeAuthOptions?.authorizeOnSubscribe ||
+        if (!this.builder.options.scopeAuth?.authorizeOnSubscribe ||
             typeConfig.kind !== "Subscription") {
             return subscriber;
         }
@@ -74,7 +73,7 @@ export class PothosScopeAuthPlugin<Types extends SchemaTypes> extends BasePlugin
             return isTypeOf;
         }
         const shouldRunTypeScopes = typeConfig.pothosOptions.runScopesOnType ??
-            this.builder.options.scopeAuthOptions?.runScopesOnType ??
+            this.builder.options.scopeAuth?.runScopesOnType ??
             false;
         if (!shouldRunTypeScopes) {
             return isTypeOf;
@@ -165,4 +164,13 @@ const fieldBuilderProto = RootFieldBuilder.prototype as PothosSchemaTypes.RootFi
 fieldBuilderProto.authField = function authField(options) {
     return this.field(options as never);
 };
-SchemaBuilder.registerPlugin(pluginName, PothosScopeAuthPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosScopeAuthPlugin, {
+    v3: (options) => ({
+        scopeAuthOptions: undefined,
+        authScopes: undefined,
+        scopeAuth: {
+            ...options.scopeAuthOptions,
+            authScopes: options.authScopes,
+        },
+    }),
+});

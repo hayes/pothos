@@ -2,8 +2,8 @@
 
 exports[`plugin example > generates expected schema 1`] = `
 "type Query {
-  args(input: TestInput, notRemoved: Boolean, testEnum: TestEnum): Boolean!
-  notRemoved: Boolean!
+  args(input: TestInput, notRemoved: Boolean, testEnum: TestEnum): Boolean
+  notRemoved: Boolean
 }
 
 enum TestEnum {
@@ -15,38 +15,38 @@ input TestInput {
 }
 
 interface TestInterface {
-  boolean: Boolean!
-  booleanList: [Boolean!]!
-  booleanListWithOptions: [Boolean!]!
-  booleanWithOptions: Boolean!
-  float: Float!
-  floatList: [Float!]!
-  floatListWithOptions: [Float!]!
-  floatWithOptions: Float!
-  id: ID!
-  idList: [ID!]!
-  idListWithOptions: [ID!]!
-  idWithOptions: ID!
-  int: Int!
-  intList: [Int!]!
-  intListWithOptions: [Int!]!
-  intWithOptions: Int!
-  string: String!
-  stringList: [String!]!
-  stringListWithOptions: [String!]!
-  stringWithOptions: String!
+  boolean: Boolean
+  booleanList: [Boolean!]
+  booleanListWithOptions: [Boolean!]
+  booleanWithOptions: Boolean
+  float: Float
+  floatList: [Float!]
+  floatListWithOptions: [Float!]
+  floatWithOptions: Float
+  id: ID
+  idList: [ID!]
+  idListWithOptions: [ID!]
+  idWithOptions: ID
+  int: Int
+  intList: [Int!]
+  intListWithOptions: [Int!]
+  intWithOptions: Int
+  string: String
+  stringList: [String!]
+  stringListWithOptions: [String!]
+  stringWithOptions: String
 }
 
 type TestObject {
-  boolean: Boolean!
-  booleanList: [Boolean!]!
-  float: Float!
-  floatList: [Float!]!
-  id: ID!
-  idList: [ID!]!
-  int: Int!
-  intList: [Int!]!
-  string: String!
-  stringList: [String!]!
+  boolean: Boolean
+  booleanList: [Boolean!]
+  float: Float
+  floatList: [Float!]
+  id: ID
+  idList: [ID!]
+  int: Int
+  intList: [Int!]
+  string: String
+  stringList: [String!]
 }"
 `;

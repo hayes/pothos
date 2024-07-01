@@ -95,7 +95,7 @@ export class PothosSmartSubscriptionsPlugin<Types extends SchemaTypes> extends B
                 },
               };
             },
-          }) as FieldRef<unknown>,
+          }) as FieldRef<Types, unknown>,
       );
     }
 

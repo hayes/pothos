@@ -26,10 +26,7 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
   input,
   ...fieldOptions
 }) {
-  const inputRef = this.builder.inputRef(typeName ?? `UnnamedWithInputOn${this.typename}`);
-  const { name: getTypeName = defaultGetName, ...defaultTypeOptions } =
-    this.builder.options.withInput?.typeOptions ?? {};
-
+  const inputRef = this.builder.inputRef(typeName ?? `UnnamedWithInput`);
   const fieldRef = this.field({
     args: {
       ...args,
@@ -43,16 +40,20 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
     ...fieldOptions,
   } as never);
 
-  this.builder.configStore.onFieldUse(fieldRef, (config) => {
-    const name = typeName ?? getTypeName({ parentTypeName: this.typename, fieldName: config.name });
+  fieldRef.onFirstUse((config) => {
+    const { name: getTypeName = defaultGetName, ...defaultTypeOptions } =
+      this.builder.options.withInput?.typeOptions ?? {};
 
-    this.builder.inputType(name, {
+    const name =
+      typeName ?? getTypeName({ parentTypeName: config.parentType, fieldName: config.name });
+
+    inputRef.name = name;
+
+    this.builder.inputType(inputRef, {
       fields: () => input,
       ...defaultTypeOptions,
       ...typeOptions,
     } as never);
-
-    this.builder.configStore.associateRefWithName(inputRef, name);
   });
 
   return fieldRef;
@@ -60,6 +61,6 @@ rootBuilderProto.fieldWithInput = function fieldWithInput({
 
 Object.defineProperty(rootBuilderProto, 'input', {
   get: function getInputBuilder(this: RootFieldBuilder<SchemaTypes, unknown>) {
-    return new InputFieldBuilder(this.builder, 'InputObject', `UnnamedWithInputOn${this.typename}`);
+    return new InputFieldBuilder(this.builder, 'InputObject', `UnnamedWithInput`);
   },
 });

@@ -7,7 +7,7 @@ export class LoadableUnionRef<
   Shape,
   Key,
   CacheKey,
-> extends UnionRef<RefShape, Shape> {
+> extends UnionRef<Types, RefShape, Shape> {
   getDataloader;
 
   constructor(

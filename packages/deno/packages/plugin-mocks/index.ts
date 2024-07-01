@@ -5,7 +5,7 @@ import SchemaBuilder, { BasePlugin, PothosOutputFieldConfig, SchemaTypes } from 
 import { ResolverMap } from './types.ts';
 const pluginName = "mocks";
 export default pluginName;
-export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
+export class PothosMocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
     override wrapResolve(resolver: GraphQLFieldResolver<unknown, Types["Context"], object>, fieldConfig: PothosOutputFieldConfig<Types>): GraphQLFieldResolver<unknown, Types["Context"], object> {
         const { mocks } = this.options;
         if (!mocks) {
@@ -43,4 +43,4 @@ export class MocksPlugin<Types extends SchemaTypes> extends BasePlugin<Types> {
         return fieldMock.subscribe || null;
     }
 }
-SchemaBuilder.registerPlugin(pluginName, MocksPlugin);
+SchemaBuilder.registerPlugin(pluginName, PothosMocksPlugin);

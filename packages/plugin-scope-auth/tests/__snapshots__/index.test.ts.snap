@@ -2,11 +2,11 @@
 
 exports[`example schema > generates expected schema 1`] = `
 "interface IfaceBooleanFn {
-  field: String!
+  field: String
 }
 
 interface IfaceForAdmin {
-  field: String!
+  field: String
 }
 
 type Mutation {
@@ -14,68 +14,68 @@ type Mutation {
 }
 
 type ObjAdminIface implements IfaceForAdmin & StringInterface {
-  field: String!
-  stringInterfaceField: String!
+  field: String
+  stringInterfaceField: String
 }
 
 type ObjBooleanFn {
-  field: String!
+  field: String
 }
 
 type ObjBooleanIface implements IfaceBooleanFn {
-  field: String!
+  field: String
 }
 
 type ObjEmptyAll {
-  field: String!
+  field: String
 }
 
 type ObjEmptyAllFn {
-  field: String!
+  field: String
 }
 
 type ObjEmptyAny {
-  field: String!
+  field: String
 }
 
 type ObjEmptyAnyFn {
-  field: String!
+  field: String
 }
 
 type ObjExpectsGrants {
-  field: String!
+  field: String
 }
 
 type ObjFieldExpectsGrants {
-  field: String!
+  field: String
 }
 
 type ObjForAdmin {
-  field: String!
+  field: String
 }
 
 type ObjForAdminAsyncFn {
-  field: String!
+  field: String
 }
 
 type ObjForAdminFn {
-  field: String!
+  field: String
 }
 
 type ObjForAll {
-  field: String!
+  field: String
 }
 
 type ObjForAllFn {
-  field: String!
+  field: String
 }
 
 type ObjForAny {
-  field: String!
+  field: String
 }
 
 type ObjForAnyFn {
-  field: String!
+  field: String
 }
 
 type ObjForAsyncPerm {
@@ -83,11 +83,11 @@ type ObjForAsyncPerm {
 }
 
 type ObjForAsyncPermFn {
-  field: String!
+  field: String
 }
 
 type ObjForSyncPerm {
-  field: String!
+  field: String
 }
 
 type ObjForSyncPermFn {
@@ -95,7 +95,7 @@ type ObjForSyncPermFn {
 }
 
 type ObjWithIfaceSkipFields implements IfaceForAdmin {
-  field: String!
+  field: String
   skipBoth: String
   skipIface: String
   skipType: String
@@ -106,7 +106,7 @@ type ObjWithSkipFields {
 }
 
 type Post {
-  id: ID!
+  id: ID
   withAUthOnPrismaObject: Boolean
 }
 
@@ -151,31 +151,31 @@ type Query {
   ObjForSyncPermFn(permission: String): ObjForSyncPermFn
   ObjWithIfaceSkipFields: ObjWithIfaceSkipFields
   ObjWithSkipFields: ObjWithSkipFields
-  currentId: ID!
+  currentId: ID
   customError: String
   customErrorMessage: String
-  emptyAll: String!
-  emptyAllFn: String!
-  emptyAny: String!
-  emptyAnyFn: String!
-  forAdmin: String!
-  forAdminAsyncFn: String!
-  forAdminFn: String!
-  forAdminUnauthorizedResolve: [String!]!
-  forAll: String!
-  forAllFn: String!
-  forAny: String!
-  forAnyFn: String!
-  forAsyncPermission: String!
+  emptyAll: String
+  emptyAllFn: String
+  emptyAny: String
+  emptyAnyFn: String
+  forAdmin: String
+  forAdminAsyncFn: String
+  forAdminFn: String
+  forAdminUnauthorizedResolve: [String!]
+  forAll: String
+  forAllFn: String
+  forAny: String
+  forAnyFn: String
+  forAsyncPermission: String
   forAsyncPermissionFn(permission: String): String
-  forBooleanFn(result: Boolean!): String!
-  forSyncPermission: String!
+  forBooleanFn(result: Boolean!): String
+  forSyncPermission: String
   forSyncPermissionFn(permission: String): String
-  grantedFromRoot: String!
-  notGrantedFromRoot: String!
-  post: Post!
+  grantedFromRoot: String
+  notGrantedFromRoot: String
+  post: Post
   withAll: Boolean
-  withAny: Boolean!
+  withAny: Boolean
   withAuth: Boolean
   withAuthBoolean: User
   withAuthFunction: User
@@ -184,17 +184,17 @@ type Query {
 }
 
 interface StringInterface {
-  stringInterfaceField: String!
+  stringInterfaceField: String
 }
 
 type Subscription {
-  count: Int!
+  count: Int
   withAuth: Boolean
 }
 
 type User {
-  firstName: String!
-  id: ID!
+  firstName: String
+  id: ID
 }
 
 interface WithAuthInterface {
