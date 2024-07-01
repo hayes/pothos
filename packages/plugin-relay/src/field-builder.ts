@@ -106,7 +106,7 @@ fieldBuilderProto.globalID = function globalID<
 };
 
 fieldBuilderProto.node = function node({ id, ...options }) {
-  return this.field<{}, InterfaceRef<SchemaTypes, unknown>, unknown, Promise<unknown>, true>({
+  return this.field<InterfaceRef<SchemaTypes, unknown>, unknown, Promise<unknown>, true, {}>({
     ...(options as {}),
     type: this.builder.nodeInterfaceRef(),
     nullable: true,
@@ -188,13 +188,11 @@ fieldBuilderProto.connection = function connection(
     ...(this.builder.options.relay?.defaultConnectionFieldOptions as {}),
     ...fieldOptions,
     type: connectionRef,
-    // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
     args: {
       ...fieldOptions.args,
       ...this.arg.connectionArgs(),
-    } as never,
-    resolve: fieldOptions.resolve as never,
-  });
+    },
+  } as never);
 
   if (!(connectionOptionsOrRef instanceof ObjectRef)) {
     fieldRef.onFirstUse((fieldConfig) => {

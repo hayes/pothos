@@ -17,8 +17,8 @@ declare global {
             SimpleInterface: "Interface";
         }
         export interface FieldOptionsByKind<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveShape, ResolveReturnShape> {
-            SimpleObject: Omit<ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>, "resolve">;
-            SimpleInterface: Omit<InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>, "resolve">;
+            SimpleObject: ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
+            SimpleInterface: InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>;
         }
         export type SimpleObjectTypeOptions<Types extends SchemaTypes, Interfaces extends InterfaceParam<Types>[], Fields extends FieldMap, Shape> = Omit<ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>, "fields"> & {
             fields?: SimpleObjectFieldsShape<Types, Fields>;

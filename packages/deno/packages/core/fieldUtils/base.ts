@@ -2,7 +2,7 @@
 import { defaultFieldResolver } from 'https://cdn.skypack.dev/graphql?dts';
 import { ArgumentRef } from '../refs/arg.ts';
 import { FieldRef } from '../refs/field.ts';
-import type { FieldKind, InputFieldMap, PothosInputFieldConfig, ShapeFromTypeParam, } from '../types/index.ts';
+import type { FieldKind, InputFieldMap, PothosInputFieldConfig, Resolver, ShapeFromTypeParam, } from '../types/index.ts';
 import { FieldNullability, SchemaTypes, TypeParam } from '../types/index.ts';
 import { typeFromParam } from '../utils/index.ts';
 export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends FieldKind> {
@@ -14,9 +14,11 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
         this.kind = kind;
         this.graphqlKind = graphqlKind;
     }
-    protected createField<Args extends InputFieldMap, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>>(
+    protected createField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap = {}>(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}> & {
+        resolve?: Resolver<unknown, {}, {}, unknown, unknown>;
+    }): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         const ref = new FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>(this.kind, (name, typeConfig) => {
             const args: Record<string, PothosInputFieldConfig<Types>> = {};
             if (options.args) {
@@ -54,7 +56,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
         });
         return ref;
     }
-    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends string & keyof ParentShape>(name: Name, { extensions, ...options }: Omit<PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>, "resolve">): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
+    protected exposeField<Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Name extends string & keyof ParentShape>(name: Name, { extensions, ...options }: PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
         return this.createField({
             ...options,
             extensions: {

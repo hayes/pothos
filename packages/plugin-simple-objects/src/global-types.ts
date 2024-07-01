@@ -58,13 +58,22 @@ declare global {
       ResolveShape,
       ResolveReturnShape,
     > {
-      SimpleObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+      SimpleObject: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       >;
-      SimpleInterface: Omit<
-        InterfaceFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+
+      SimpleInterface: InterfaceFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       >;
     }
 

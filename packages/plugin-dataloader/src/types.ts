@@ -3,6 +3,7 @@ import {
   FieldKind,
   FieldNullability,
   FieldOptionsFromKind,
+  InferredResolveOptionsKeys,
   InputFieldMap,
   InputShapeFromFields,
   InterfaceParam,
@@ -36,7 +37,7 @@ export type LoadableFieldOptions<
   ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>,
-  'resolve'
+  InferredResolveOptionsKeys
 > & {
   byPath?: ByPath;
   load: (
@@ -76,7 +77,7 @@ export type LoadableListFieldOptions<
   ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
-  'resolve' | 'type'
+  InferredResolveOptionsKeys | 'type'
 > & {
   type: Type;
   byPath?: ByPath;
@@ -109,7 +110,7 @@ export type LoadableGroupFieldOptions<
   ByPath extends boolean = boolean,
 > = Omit<
   FieldOptionsFromKind<Types, ParentShape, [Type], Nullable, Args, Kind, Key, ResolveReturnShape>,
-  'resolve' | 'type'
+  InferredResolveOptionsKeys | 'type'
 > & {
   type: Type;
   byPath?: ByPath;

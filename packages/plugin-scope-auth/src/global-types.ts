@@ -4,6 +4,7 @@ import {
   FieldNullability,
   FieldOptionsFromKind,
   FieldRef,
+  InferredResolveOptionsKeys,
   InputFieldMap,
   InputShapeFromFields,
   MaybePromise,
@@ -167,7 +168,7 @@ declare global {
               ResolveShape,
               ResolveReturnShape
             >,
-            'resolve'
+            InferredResolveOptionsKeys
           > & {
             authScopes: Scopes;
             resolve: Resolver<

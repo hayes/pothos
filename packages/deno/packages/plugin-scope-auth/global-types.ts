@@ -1,6 +1,6 @@
 // @ts-nocheck
 /* eslint-disable @typescript-eslint/no-unused-vars */
-import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InputFieldMap, InputShapeFromFields, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, FieldRef, InferredResolveOptionsKeys, InputFieldMap, InputShapeFromFields, MaybePromise, Normalize, Resolver, RootName, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 import type { AuthScopeMap, ContextForAuth, FieldAuthScopes, FieldGrantScopes, ForbiddenResult, ReplaceContext, ScopeAuthInitializer, ScopeAuthPluginOptions, TypeAuthScopes, TypeGrantScopes, UnauthorizedOptions, } from './types.ts';
 import type { PothosScopeAuthPlugin } from './index.ts';
 declare global {
@@ -59,7 +59,7 @@ declare global {
             skipInterfaceScopes?: boolean;
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> {
-            authField: <Args extends InputFieldMap, Type extends TypeParam<Types>, Scopes extends FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: Normalize<Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, "resolve"> & {
+            authField: <Args extends InputFieldMap, Type extends TypeParam<Types>, Scopes extends FieldAuthScopes<Types, ParentShape, InputShapeFromFields<Args>>, ResolveShape, ResolveReturnShape, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"]>(options: Normalize<Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, ResolveShape, ResolveReturnShape>, InferredResolveOptionsKeys> & {
                 authScopes: Scopes;
                 resolve: Resolver<Types["Root"], InputShapeFromFields<Args>, ContextForAuth<Types, Scopes>, ShapeFromTypeParam<Types, Type, Nullable>, ResolveReturnShape>;
             }>) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>;

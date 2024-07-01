@@ -6,6 +6,7 @@ import {
   FieldNullability,
   FieldOptionsFromKind,
   FieldRequiredness,
+  InferredResolveOptionsKeys,
   InputFieldMap,
   InputFieldRef,
   InputFieldsFromShape,
@@ -35,7 +36,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
   idFieldOptions?: Partial<
     Omit<
       PothosSchemaTypes.ObjectFieldOptions<Types, {}, 'ID', boolean, {}, PageInfoShape>,
-      'args' | 'nullable' | 'resolve' | 'type'
+      'args' | 'nullable' | 'type' | InferredResolveOptionsKeys
     >
   >;
   clientMutationId?: 'omit' | 'optional' | 'required';
@@ -55,7 +56,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           { id: ArgumentRef<Types, { typename: string; id: string }> },
           Promise<unknown>
         >,
-        'args' | 'resolve' | 'type'
+        'args' | 'type' | InferredResolveOptionsKeys
       > & {
         args?: {
           id?: Omit<GlobalIDInputFieldOptions<Types, true, 'Arg', ObjectParam<Types>>, 'required'>;
@@ -80,7 +81,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           { ids: ArgumentRef<Types, { typename: string; id: string }[]> },
           Promise<unknown>[]
         >,
-        'args' | 'resolve' | 'type'
+        'args' | 'type' | InferredResolveOptionsKeys
       > & {
         args?: {
           ids?: Omit<
@@ -115,7 +116,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       Types['Scalars']['ID']['Output']
     >,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   cursorFieldOptions: Normalize<
     Omit<
@@ -127,7 +128,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
         {},
         Types['Scalars']['ID' | 'String']['Output']
       >,
-      'args' | 'resolve' | 'type'
+      'args' | 'type' | InferredResolveOptionsKeys
     > & {
       type?: 'ID' | 'String';
     }
@@ -141,7 +142,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       GlobalIDShape<Types> | string
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'nullable' | 'type' | InferredResolveOptionsKeys
   > & {
     nullable?: Types['DefaultNodeNullability'];
   };
@@ -154,7 +155,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       unknown[]
     >,
-    'args' | 'nullable' | 'resolve' | 'type'
+    'args' | 'nullable' | 'type' | InferredResolveOptionsKeys
   > & {
     nullable?: Types['DefaultEdgesNullability'];
   };
@@ -167,7 +168,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       unknown[]
     >,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   pageInfoFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
@@ -178,15 +179,15 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       PageInfoShape
     >,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   hasNextPageFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', boolean, {}, boolean>,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   hasPreviousPageFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<Types, PageInfoShape, 'Boolean', boolean, {}, boolean>,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   startCursorFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
@@ -197,7 +198,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       string | null
     >,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   endCursorFieldOptions: Omit<
     PothosSchemaTypes.ObjectFieldOptions<
@@ -208,7 +209,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       {},
       string | null
     >,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   beforeArgOptions: Omit<
     PothosSchemaTypes.InputObjectFieldOptions<Types, 'ID' | 'String', boolean>,
@@ -257,7 +258,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
       InputFieldsFromShape<Types, DefaultConnectionArguments, 'Arg'>,
       ConnectionShape<Types, unknown, false, true, true>
     >,
-    'args' | 'resolve' | 'type'
+    'args' | 'type' | InferredResolveOptionsKeys
   >;
   nodesOnConnection?:
     | Omit<
@@ -272,7 +273,7 @@ export type RelayPluginOptions<Types extends SchemaTypes> = EmptyToOptional<{
           {},
           GlobalIDShape<Types> | string
         >,
-        'args' | 'nullable' | 'resolve' | 'type'
+        'args' | 'nullable' | 'type' | InferredResolveOptionsKeys
       >
     | boolean;
 }>;
@@ -387,42 +388,43 @@ export type ConnectionShapeFromResolve<
     EdgeNullability,
     NodeNullability
   >,
-> = Resolved extends Promise<infer T>
-  ? NonNullable<T> extends ConnectionShapeForType<
-      Types,
-      Type,
-      Nullable,
-      EdgeNullability,
-      NodeNullability
-    >
-    ? NonNullable<T>
-    : ConnectionShapeForType<
+> =
+  Resolved extends Promise<infer T>
+    ? NonNullable<T> extends ConnectionShapeForType<
         Types,
         Type,
         Nullable,
         EdgeNullability,
-        NodeNullability,
-        ConnectionResult
-      > &
-        NonNullable<T>
-  : Resolved extends ConnectionShapeForType<
-        Types,
-        Type,
-        Nullable,
-        EdgeNullability,
-        NodeNullability,
-        ConnectionResult
+        NodeNullability
       >
-    ? NonNullable<Resolved>
-    : ConnectionShapeForType<
-        Types,
-        Type,
-        Nullable,
-        EdgeNullability,
-        NodeNullability,
-        ConnectionResult
-      > &
-        NonNullable<Resolved>;
+      ? NonNullable<T>
+      : ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        > &
+          NonNullable<T>
+    : Resolved extends ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        >
+      ? NonNullable<Resolved>
+      : ConnectionShapeForType<
+          Types,
+          Type,
+          Nullable,
+          EdgeNullability,
+          NodeNullability,
+          ConnectionResult
+        > &
+          NonNullable<Resolved>;
 
 export interface DefaultConnectionArguments extends PothosSchemaTypes.DefaultConnectionArguments {}
 
@@ -491,7 +493,7 @@ export type GlobalIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'resolve' | 'type'
+  'type' | InferredResolveOptionsKeys
 > & {
   resolve: Resolver<
     ParentShape,
@@ -538,7 +540,7 @@ export type NodeIDFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'resolve' | 'type'
+  'type' | InferredResolveOptionsKeys
 > & {
   resolve: Resolver<
     ParentShape,
@@ -567,7 +569,7 @@ export type GlobalIDListFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'resolve' | 'type'
+  'type' | InferredResolveOptionsKeys
 > & {
   resolve: Resolver<
     ParentShape,
@@ -602,7 +604,7 @@ export type NodeFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'nullable' | 'resolve' | 'type'
+  'nullable' | 'type' | InferredResolveOptionsKeys
 > & {
   id: Resolver<
     ParentShape,
@@ -633,7 +635,7 @@ export type NodeListFieldOptions<
     ParentShape,
     ResolveReturnShape
   >,
-  'nullable' | 'resolve' | 'type'
+  'nullable' | 'type' | InferredResolveOptionsKeys
 > & {
   ids: Resolver<
     ParentShape,

@@ -5,6 +5,7 @@ import type {
   FieldKind,
   InputFieldMap,
   PothosInputFieldConfig,
+  Resolver,
   ShapeFromTypeParam,
 } from '../types';
 import { FieldNullability, SchemaTypes, TypeParam } from '../types';
@@ -28,12 +29,14 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
   }
 
   protected createField<
-    Args extends InputFieldMap,
     Type extends TypeParam<Types>,
     Nullable extends FieldNullability<Type>,
+    Args extends InputFieldMap = {},
   >(
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}>,
+    options: PothosSchemaTypes.FieldOptions<Types, ParentShape, Type, Nullable, Args, any, {}> & {
+      resolve?: Resolver<unknown, {}, {}, unknown, unknown>;
+    },
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     const ref = new FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind>(
       this.kind,
@@ -92,10 +95,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
     {
       extensions,
       ...options
-    }: Omit<
-      PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
-      'resolve'
-    >,
+    }: PothosSchemaTypes.ObjectFieldOptions<Types, ParentShape, Type, Nullable, {}, {}>,
   ): FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>, Kind> {
     return this.createField({
       ...options,

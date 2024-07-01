@@ -71,7 +71,7 @@ builder.objectType(Giraffe, {
     age: t.exposeInt('age'),
     a: t.field({
       type: 'Boolean',
-      resolve: (parent) => false,
+      resolve: (parent, args) => false,
     }),
   }),
 });

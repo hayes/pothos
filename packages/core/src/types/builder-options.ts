@@ -29,11 +29,12 @@ import type {
 export type AddVersionedDefaultsToBuilderOptions<
   Types extends SchemaTypes,
   Version extends keyof VersionedSchemaBuilderOptions<SchemaTypes>,
-> = PothosSchemaTypes.SchemaBuilderOptions<Types> extends infer Options
-  ? VersionedSchemaBuilderOptions<Types>[Version] extends infer Defaults
-    ? RemoveNeverKeys<Defaults & Omit<Options, keyof Defaults>>
-    : never
-  : never;
+> =
+  PothosSchemaTypes.SchemaBuilderOptions<Types> extends infer Options
+    ? VersionedSchemaBuilderOptions<Types>[Version] extends infer Defaults
+      ? RemoveNeverKeys<Defaults & Omit<Options, keyof Defaults>>
+      : never
+    : never;
 
 export type NormalizeSchemeBuilderOptions<Types extends SchemaTypes> = RemoveNeverKeys<
   PothosSchemaTypes.SchemaBuilderOptions<Types>
@@ -48,15 +49,16 @@ export type Resolver<Parent, Args, Context, Type, Return = unknown> = (
   ? ListResolveValue<Type, Item, Return>
   : MaybePromise<Type>;
 
-export type ListResolveValue<Type, Item, Return> = Return extends AsyncGenerator<unknown, unknown>
-  ? GeneratorResolver<Type, Item> & Return
-  : null extends Type
-    ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
-      ? Return
-      : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
-    : Return extends MaybePromise<readonly MaybePromise<Item>[]>
-      ? Return
-      : MaybePromise<readonly MaybePromise<Item>[]>;
+export type ListResolveValue<Type, Item, Return> =
+  Return extends AsyncGenerator<unknown, unknown>
+    ? GeneratorResolver<Type, Item> & Return
+    : null extends Type
+      ? Return extends MaybePromise<readonly MaybePromise<Item>[] | null | undefined>
+        ? Return
+        : MaybePromise<readonly MaybePromise<Item>[]> | null | undefined
+      : Return extends MaybePromise<readonly MaybePromise<Item>[]>
+        ? Return
+        : MaybePromise<readonly MaybePromise<Item>[]>;
 
 export type GeneratorResolver<Type, Item> = null extends Type
   ? AsyncGenerator<Item | null | undefined, Item | null | undefined>
@@ -205,11 +207,12 @@ export type ValidateInterfaces<
   Shape,
   Types extends SchemaTypes,
   Interfaces extends InterfaceParam<Types>,
-> = Interfaces extends InterfaceParam<Types>
-  ? Shape extends GetParentShape<Types, Interfaces>
-    ? Interfaces
-    : 'Object shape must extend interface shape'
-  : never;
+> =
+  Interfaces extends InterfaceParam<Types>
+    ? Shape extends GetParentShape<Types, Interfaces>
+      ? Interfaces
+      : 'Object shape must extend interface shape'
+    : never;
 
 export type InputShapeFromFields<Fields extends InputFieldMap> = NormalizeNullableFields<{
   [K in string & keyof Fields]: InputShapeFromField<Fields[K]>;
@@ -272,13 +275,14 @@ export type ExposeNullability<
   ParentShape,
   Name extends keyof ParentShape,
   Nullable extends FieldNullability<Type>,
-> = Awaited<ParentShape[Name]> extends ShapeFromTypeParam<Types, Type, Nullable>
-  ? {
-      nullable?: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
-    }
-  : {
-      nullable: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
-    };
+> =
+  Awaited<ParentShape[Name]> extends ShapeFromTypeParam<Types, Type, Nullable>
+    ? {
+        nullable?: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
+      }
+    : {
+        nullable: ExposeNullableOption<Types, Type, ParentShape, Name> & Nullable;
+      };
 
 export type ExposeNullableOption<
   Types extends SchemaTypes,
@@ -299,3 +303,31 @@ export type ExposeNullableOption<
     : Awaited<ParentShape[Name]> extends NonNullable<Awaited<ParentShape[Name]>>
       ? boolean
       : true);
+
+export type InferredResolveOptionsKind<Types extends SchemaTypes = SchemaTypes> =
+  keyof PothosSchemaTypes.InferredResolveOptions<Types>;
+
+export type InferredResolveOptionsByKind<
+  Types extends SchemaTypes,
+  Kind extends InferredResolveOptionsKind,
+  ResolveShape = unknown,
+  Type extends TypeParam<Types> = TypeParam<Types>,
+  Nullable extends FieldNullability<Type> = FieldNullability<Type>,
+  Args extends InputFieldMap = InputFieldMap,
+  ResolveReturnShape = unknown,
+> = PothosSchemaTypes.InferredResolveOptions<
+  Types,
+  ResolveShape,
+  Type,
+  Nullable,
+  Args,
+  ResolveReturnShape
+>[Kind];
+
+export type InferredResolveOptionsKeys<
+  Kind extends InferredResolveOptionsKind = InferredResolveOptionsKind,
+> = PothosSchemaTypes.InferredResolveOptions<SchemaTypes>[Kind] extends infer Options
+  ? Options extends unknown
+    ? keyof Options
+    : never
+  : never;

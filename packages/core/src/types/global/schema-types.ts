@@ -3,6 +3,7 @@ import type { GraphQLDirective } from 'graphql';
 import type { PluginConstructorMap } from '../plugins';
 import type { MergedScalars, SchemaTypes, V3DefaultScalars } from '../schema-types';
 import type { IsStrictMode, RecursivelyNormalizeNullableFields } from '../utils';
+import { InferredResolveOptionsKind } from '../builder-options';
 
 declare global {
   export namespace PothosSchemaTypes {
@@ -66,6 +67,7 @@ declare global {
       Context: object;
       DefaultFieldNullability: boolean;
       DefaultInputFieldRequiredness: boolean;
+      InferredResolveOptionsKind: InferredResolveOptionsKind;
     }
 
     export interface ExtendDefaultTypes<PartialTypes extends Partial<UserSchemaTypes>>
@@ -77,6 +79,9 @@ declare global {
       Interfaces: PartialTypes['Interfaces'] & {};
       Root: PartialTypes['Root'] & {};
       Context: PartialTypes['Context'] & {};
+      InferredResolveOptionsKind: PartialTypes['InferredResolveOptionsKind'] extends InferredResolveOptionsKind
+        ? PartialTypes['InferredResolveOptionsKind']
+        : 'Resolve';
       DefaultFieldNullability: PartialTypes['Defaults'] extends 'v3'
         ? PartialTypes['DefaultFieldNullability'] extends true
           ? true

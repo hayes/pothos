@@ -1,8 +1,8 @@
 // @ts-nocheck
 import DataLoader from 'https://cdn.skypack.dev/dataloader?dts';
-import { FieldKind, FieldNullability, FieldOptionsFromKind, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
+import { FieldKind, FieldNullability, FieldOptionsFromKind, InferredResolveOptionsKeys, InputFieldMap, InputShapeFromFields, InterfaceParam, InterfaceRef, InterfaceTypeOptions, MaybePromise, ObjectParam, ObjectRef, ObjectTypeOptions, OutputRef, OutputShape, OutputType, Resolver, SchemaTypes, ShapeFromTypeParam, TypeParam, } from '../core/index.ts';
 export type DataloaderKey = bigint | number | string;
-export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve"> & {
+export type LoadableFieldOptions<Types extends SchemaTypes, ParentShape, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args, Kind, Key, ResolveReturnShape>, InferredResolveOptionsKeys> & {
     byPath?: ByPath;
     load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | LoaderShapeFromType<Types, Type, Nullable>)[]>;
     loaderOptions?: DataLoader.Options<Key, LoaderShapeFromType<Types, Type, Nullable>, CacheKey>;
@@ -17,7 +17,7 @@ export type LoadableListFieldOptions<Types extends SchemaTypes, ParentShape, Typ
     Type
 ]>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, [
     Type
-], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
+], Nullable, Args, Kind, Key, ResolveReturnShape>, InferredResolveOptionsKeys | "type"> & {
     type: Type;
     byPath?: ByPath;
     load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly (Error | ShapeFromTypeParam<Types, [
@@ -35,7 +35,7 @@ export type LoadableGroupFieldOptions<Types extends SchemaTypes, ParentShape, Ty
     Type
 ]>, Args extends InputFieldMap, ResolveReturnShape, Key, CacheKey, Kind extends FieldKind = FieldKind, ByPath extends boolean = boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, [
     Type
-], Nullable, Args, Kind, Key, ResolveReturnShape>, "resolve" | "type"> & {
+], Nullable, Args, Kind, Key, ResolveReturnShape>, InferredResolveOptionsKeys | "type"> & {
     type: Type;
     byPath?: ByPath;
     load: (keys: Key[], context: Types["Context"], args: false extends ByPath ? never : InputShapeFromFields<Args>) => Promise<readonly ShapeFromTypeParam<Types, Type, true>[]>;

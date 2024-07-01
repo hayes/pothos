@@ -1,3 +1,5 @@
+import { InferredResolveOptionsKind } from './builder-options';
+
 export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   outputShapes: {
     String: unknown;
@@ -25,6 +27,7 @@ export interface SchemaTypes extends PothosSchemaTypes.UserSchemaTypes {
   };
   DefaultFieldNullability: boolean;
   DefaultInputFieldRequiredness: boolean;
+  InferredResolveOptionsKind: InferredResolveOptionsKind;
   Root: object;
   Context: object;
 }

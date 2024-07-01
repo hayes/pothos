@@ -291,3 +291,58 @@ generic argument to the type.
   - Added `SchemaTypes` as a new Generic parameter
 - `InputShapeFromField`
   - Updated to accept a `GenericFieldRef`
+
+## Field options
+
+The global interfaces for FieldOptions no-longer include the `resolve` option, which has moved to
+the `InferredResolveOptions` interface to allow plugins to replace or change the resolve functions
+types globally.
+
+This means that when extending the `FieldOptionsByKind` interface, if you previously extended one of
+the built in Field option interfaces, you will need to update your types to include the `resolve`
+function types as well:
+
+```diff
+export interface FieldOptionsByKind<
+  Types extends SchemaTypes,
+  ParentShape,
+  Type extends TypeParam<Types>,
+  Nullable extends FieldNullability<Type>,
+  Args extends InputFieldMap,
+  ResolveShape,
+  ResolveReturnShape,
+> {
+- CustomObjectObject: CustomOptions<Types> &
+-   PothosSchemaTypes.ObjectFieldOptions<
+-     Types,
+-     ParentShape,
+-     Type,
+-     Nullable,
+-     Args,
+-     ResolveReturnShape
+-   >;
++ CustomObjectObject: CustomOptions<Types> &
++   PothosSchemaTypes.ObjectFieldOptions<
++     Types,
++     ParentShape,
++     Type,
++     Nullable,
++     Args,
++     ResolveReturnShape
++   > &
++   InferredResolveOptionsByKind<
++     Types,
++     Types['InferredResolveOptionsKind'],
++     ParentShape,
++     Type,
++     Nullable,
++     Args,
++     ResolveReturnShape
++   >;
+}
+```
+
+The `InferredResolveOptionsByKind` interface can be used to get the `resolve` option by default, but
+will also work for plugins that replace the `resolve` function with a different options for
+configuring how a field is resolved. Some custom object types may want to explicitly define a
+`resolve` option type, or omit it entirely (eg, the SimpleObject plugin does not use resolvers).

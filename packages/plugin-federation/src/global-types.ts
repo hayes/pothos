@@ -4,6 +4,8 @@ import { GraphQLResolveInfo, GraphQLSchema } from 'graphql';
 import {
   FieldNullability,
   FieldRequiredness,
+  InferredResolveOptionsByKind,
+  InferredResolveOptionsKeys,
   InputFieldMap,
   InputType,
   MaybePromise,
@@ -52,14 +54,31 @@ declare global {
         ResolveReturnShape
       > & {
         requires?: Selection<ResolveShape & object>;
-      };
-      ExternalEntity: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+      } & InferredResolveOptionsByKind<
+          Types,
+          Types['InferredResolveOptionsKind'],
+          ParentShape & ResolveShape,
+          Type,
+          Nullable,
+          Args,
+          ResolveReturnShape
+        >;
+      ExternalEntity: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       >;
-      EntityObject: Omit<
-        ObjectFieldOptions<Types, ParentShape, Type, Nullable, Args, ResolveReturnShape>,
-        'resolve'
+
+      EntityObject: ObjectFieldOptions<
+        Types,
+        ParentShape,
+        Type,
+        Nullable,
+        Args,
+        ResolveReturnShape
       > & {
         resolve: Resolver<
           ParentShape,

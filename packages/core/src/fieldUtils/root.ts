@@ -22,10 +22,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   boolean<
-    Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<'Boolean'> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -47,7 +47,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Boolean', Nullable>({
+    return this.createField<'Boolean', Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: 'Boolean',
@@ -59,10 +59,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   float<
-    Args extends InputFieldMap,
     Nullable extends FieldNullability<'Float'>,
     ResolveShape,
     ResolveReturnShape,
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -84,7 +84,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Float', Nullable>({
+    return this.createField<'Float', Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: 'Float',
@@ -96,10 +96,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   id<
-    Args extends InputFieldMap,
     Nullable extends FieldNullability<'ID'>,
     ResolveShape,
     ResolveReturnShape,
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -121,7 +121,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'ID', Nullable>({
+    return this.createField<'ID', Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: 'ID',
@@ -133,10 +133,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   int<
-    Args extends InputFieldMap,
     Nullable extends FieldNullability<'Int'>,
     ResolveShape,
     ResolveReturnShape,
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -158,7 +158,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'Int', Nullable>({
+    return this.createField<'Int', Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: 'Int',
@@ -170,10 +170,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   string<
-    Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<'String'> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -195,7 +195,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, 'String', Nullable>({
+    return this.createField<'String', Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: 'String',
@@ -207,10 +207,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   booleanList<
-    Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Boolean']> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -232,7 +232,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Boolean'], Nullable>({
+    return this.createField<['Boolean'], Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: ['Boolean'],
@@ -244,10 +244,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   floatList<
-    Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Float']> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -269,7 +269,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Float'], Nullable>({
+    return this.createField<['Float'], Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: ['Float'],
@@ -281,10 +281,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   idList<
-    Args extends InputFieldMap,
     Nullable extends FieldNullability<['ID']>,
     ResolveShape,
     ResolveReturnShape,
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -306,7 +306,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['ID'], Nullable>({
+    return this.createField<['ID'], Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: ['ID'],
@@ -318,10 +318,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   intList<
-    Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['Int']> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -343,7 +343,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['Int'], Nullable>({
+    return this.createField<['Int'], Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: ['Int'],
@@ -355,10 +355,10 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - Options for this field
    */
   stringList<
-    Args extends InputFieldMap,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<['String']> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     ...args: NormalizeArgs<
       [
@@ -380,7 +380,7 @@ export class RootFieldBuilder<
   ) {
     const [options = {} as never] = args;
 
-    return this.createField<Args, ['String'], Nullable>({
+    return this.createField<['String'], Nullable, Args>({
       resolve: undefined as never,
       ...options,
       type: ['String'],
@@ -392,11 +392,11 @@ export class RootFieldBuilder<
    * @param {PothosSchemaTypes.FieldOptions} options - options for this field
    */
   field<
-    Args extends InputFieldMap,
     Type extends TypeParam<Types>,
     ResolveShape,
     ResolveReturnShape,
     Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
+    Args extends InputFieldMap = {},
   >(
     options: FieldOptionsFromKind<
       Types,
@@ -409,7 +409,7 @@ export class RootFieldBuilder<
       ResolveReturnShape
     >,
   ) {
-    return this.createField<Args, Type, Nullable>(options as never);
+    return this.createField<Type, Nullable, Args>(options as never);
   }
 
   listRef<T extends TypeParam<Types>, Nullable extends boolean = false>(

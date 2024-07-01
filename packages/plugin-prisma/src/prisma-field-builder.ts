@@ -13,6 +13,7 @@ import {
   ExposeNullability,
   FieldKind,
   FieldRef,
+  InferredResolveOptionsKeys,
   InputFieldMap,
   InterfaceParam,
   isThenable,
@@ -595,7 +596,7 @@ export class PrismaObjectFieldBuilder<
               {},
               ResolveReturnShape
             >,
-            'description' | 'nullable' | 'resolve' | 'select'
+            'description' | 'nullable' | 'select' | InferredResolveOptionsKeys
           > & {
             description?: string | false;
           },
@@ -649,7 +650,7 @@ export class PrismaObjectFieldBuilder<
                 {},
                 ResolveReturnShape
               >,
-              'description' | 'nullable' | 'resolve' | 'select' | 'type'
+              'description' | 'nullable' | 'select' | 'type' | InferredResolveOptionsKeys
             > & {
               description?: string | false;
             },
