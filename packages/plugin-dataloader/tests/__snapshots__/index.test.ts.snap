@@ -155,7 +155,7 @@ type UserFriendsConnection {
 
 type UserFriendsEdge {
   cursor: String!
-  node: User!
+  node: User
 }
 
 type UserNode implements Node & TestInterface {

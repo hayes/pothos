@@ -47,7 +47,11 @@ interface Types {
 
 const builder = new SchemaBuilder<Types>({
   plugins: [ErrorsPlugin, PrismaPlugin, RelayPlugin, ComplexityPlugin, SimpleObjects],
-  relay: {},
+  relay: {
+    nodeFieldOptions: {
+      nullable: false,
+    },
+  },
   prisma: {
     filterConnectionTotalCount: true,
     client: () => prisma,
