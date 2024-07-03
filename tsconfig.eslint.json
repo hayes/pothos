@@ -25,6 +25,7 @@
     "website/**/*.ts",
     "website/**/*.js",
     "website/**/*.mjs",
+    "website/**/*.mdx",
     "*.js"
   ]
 }

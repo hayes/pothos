@@ -1,7 +1,5 @@
 # Prisma utils for Pothos
 
-<Alert>This package is highly experimental and not recommended for production use</Alert>
-
 The plugin adds new helpers for creating prisma compatible input types. It is NOT required to use
 the normal prisma plugin.
 
@@ -10,7 +8,7 @@ the normal prisma plugin.
 To use this plugin, you will need to enable prismaUtils option in the generator in your
 schema.prisma:
 
-```
+```prisma
 generator pothos {
   provider     = "prisma-pothos-types"
   // Enable prismaUtils feature

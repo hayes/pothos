@@ -481,8 +481,9 @@ export class BuildCache<Types extends SchemaTypes> {
     }
     private buildEnum(config: PothosEnumTypeConfig) {
         const values: Record<string, PothosEnumValueConfig<Types>> = {};
+        const configValues = typeof config.values === "function" ? config.values() : config.values;
         for (const key of Object.keys(config.values)) {
-            const original = config.values[key] as PothosEnumValueConfig<Types>;
+            const original = configValues[key] as PothosEnumValueConfig<Types>;
             if (!this.enumValueConfigs.has(original)) {
                 this.enumValueConfigs.set(original, this.plugin.onEnumValueConfig(original));
             }

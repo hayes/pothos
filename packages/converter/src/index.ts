@@ -678,9 +678,7 @@ export default class PothosConverter {
       writer.writeLine('},');
     }
 
-    const interfaces = gqlTypes.filter(
-      (type) => type instanceof GraphQLInterfaceType,
-    ) as GraphQLInterfaceType[];
+    const interfaces = gqlTypes.filter((type) => type instanceof GraphQLInterfaceType);
     if (interfaces.length > 0) {
       writer.writeLine('Interfaces: {');
       writer.indent(() => {
