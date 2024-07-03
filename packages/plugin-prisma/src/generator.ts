@@ -119,7 +119,7 @@ async function generateOutput(
   prismaLocation: string,
   outputLocation: string,
   config: GeneratorConfig,
-  datamodel: 'esm' | 'cjs' | 'ts' = 'ts',
+  datamodel?: 'esm' | 'cjs',
 ) {
   const prismaImportStatement = ts.factory.createImportDeclaration(
     ...modifiersArg,
@@ -194,7 +194,7 @@ async function generateOutput(
   );
 
   const nodes = ts.factory.createNodeArray(
-    config.generateDatamodel === 'true' && datamodel === 'ts'
+    config.generateDatamodel === 'true'
       ? [prismaImportStatement, dmmfImportStatement, prismaTypes, dmmfExport]
       : [prismaImportStatement, prismaTypes],
   );
@@ -204,18 +204,20 @@ async function generateOutput(
   mkdirSync(dirname(sourcefile.fileName), { recursive: true });
   writeFileSync(sourcefile.fileName, `/* eslint-disable */\n${result}`);
 
-  if (config.generateDatamodel === 'true' && datamodel === 'cjs') {
-    writeFileSync(
-      outputLocation.replace(/\.ts$/, '.js'),
-      `/* eslint-disable */\nmodule.exports = { getDatamodel: () => JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}) }\n`,
-    );
-  }
+  if (outputLocation.endsWith('.d.ts')) {
+    if (config.generateDatamodel === 'true' && datamodel === 'cjs') {
+      writeFileSync(
+        outputLocation.replace(/\.d\.ts$/, '.js'),
+        `/* eslint-disable */\nmodule.exports = { getDatamodel: () => JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}) }\n`,
+      );
+    }
 
-  if (config.generateDatamodel === 'true' && datamodel === 'esm') {
-    writeFileSync(
-      outputLocation.replace(/\.ts$/, '.js'),
-      `/* eslint-disable */\nexport function getDatamodel() { return JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}) }\n`,
-    );
+    if (config.generateDatamodel === 'true' && datamodel === 'esm') {
+      writeFileSync(
+        outputLocation.replace(/\.d\.ts$/, '.js'),
+        `/* eslint-disable */\nexport function getDatamodel() { return JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}) }\n`,
+      );
+    }
   }
 }
 
