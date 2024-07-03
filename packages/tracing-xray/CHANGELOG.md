@@ -1,5 +1,17 @@
 # @pothos/tracing-xray
 
+## 1.0.0-next.0
+
+### Minor Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0-next.0
+  - @pothos/plugin-tracing@1.0.0-next.0
+
 ## 0.5.9
 
 ### Patch Changes

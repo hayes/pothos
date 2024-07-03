@@ -44,5 +44,7 @@
     "@pothos/tracing-sentry": "0.9.0",
     "@pothos/tracing-xray": "0.6.0"
   },
-  "changesets": []
+  "changesets": [
+    "hungry-spoons-hang"
+  ]
 }

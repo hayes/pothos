@@ -1,5 +1,11 @@
 # @giraphql/test-utils
 
+## 2.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
 ## 1.4.9
 
 ### Patch Changes

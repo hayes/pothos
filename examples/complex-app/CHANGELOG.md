@@ -1,5 +1,23 @@
 # @pothos-examples/complex-app
 
+## 2.0.0-next.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/plugin-simple-objects@4.0.0-next.0
+  - @pothos/plugin-dataloader@4.0.0-next.0
+  - @pothos/plugin-scope-auth@4.0.0-next.0
+  - @pothos/plugin-prisma@4.0.0-next.0
+  - @pothos/plugin-relay@4.0.0-next.0
+  - @pothos/plugin-zod@4.0.0-next.0
+  - @pothos/core@4.0.0-next.0
+  - @pothos/plugin-prisma-utils@1.0.0-next.0
+
 ## 1.6.30
 
 ### Patch Changes

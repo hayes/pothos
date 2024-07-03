@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-zod",
-  "version": "3.10.2",
+  "version": "4.0.0-next.0",
   "description": "A Pothos plugin for adding argument validation",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -45,7 +45,7 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "*",
+    "@pothos/core": "4.0.0-next.0",
     "graphql": "^16.8.1",
     "zod": "*"
   },

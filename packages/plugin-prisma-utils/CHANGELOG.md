@@ -1,5 +1,17 @@
 # @pothos/plugin-prisma-utils
 
+## 1.0.0-next.0
+
+### Minor Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- Updated dependencies [29841a8]
+  - @pothos/plugin-prisma@4.0.0-next.0
+  - @pothos/core@4.0.0-next.0
+
 ## 0.14.1
 
 ### Patch Changes
