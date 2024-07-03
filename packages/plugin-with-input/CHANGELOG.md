@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 4.0.0-next.4
+
+### Patch Changes
+
+- rebuild with-input plugin
+
 ## 4.0.0-next.3
 
 ### Patch Changes
