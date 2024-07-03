@@ -88,6 +88,9 @@
         "jest": "^28.1.0",
         "graphql": "^16.5.0"
       }
+    },
+    "patchedDependencies": {
+      "@changesets/assemble-release-plan@6.0.3": "patches/@changesets__assemble-release-plan@6.0.3.patch"
     }
   },
   "dependencies": {
