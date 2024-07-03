@@ -2,8 +2,8 @@ import { createPreset } from 'fumadocs-ui/tailwind-plugin';
 
 const darkHue = 165;
 const darkContrast = 250;
-const lightHue = 150;
-const lightContrast = 155;
+const lightHue = 100;
+const lightContrast = 100;
 /** @type {import('fumadocs-ui/tailwind-plugin').Preset} */
 const pothosPreset = {
   light: {
@@ -13,14 +13,14 @@ const pothosPreset = {
     'muted-foreground': `0 0% 45.1%`,
     popover: `0 0% 98%`,
     'popover-foreground': `0 0% 15.1%`,
-    card: `${lightHue} 50% 98%`,
+    card: `${lightHue} 60% 98%`,
     'card-foreground': `0 0% 3.9%`,
     border: `${lightHue} 50% 89.8%`,
     primary: `${lightContrast} 80% 20.2%`,
     'primary-foreground': `0 0% 98%`,
-    secondary: `${lightHue} 90% 96.1%`,
+    secondary: `${lightHue} 40% 60%`,
     'secondary-foreground': `0 0% 9%`,
-    accent: `${lightHue} 50% 94.1%`,
+    accent: `${lightHue} 40% 80%`,
     'accent-foreground': `0 0% 9%`,
     ring: `${lightHue} 100% 63.9%`,
   },
@@ -63,6 +63,9 @@ const pothosPreset = {
     '#nd-docs-layout .prose ul': {
       'list-style-position': 'outside',
       'padding-left': '16px',
+    },
+    '.light #nd-docs-layout figure.not-prose': {
+      background: `hsla(${lightHue} 40% 95%)`,
     },
   },
 };

@@ -33,7 +33,7 @@
     "next-env.d.ts",
     "**/*.ts",
     "**/*.tsx",
-    "tailwind.config.js",
+    "tailwind.config.mjs",
     ".next/types/**/*.ts"
   ],
   "exclude": [
