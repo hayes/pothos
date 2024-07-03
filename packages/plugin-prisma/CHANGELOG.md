@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.0-next.3
+
+### Patch Changes
+
+- 924ae0b: rebuild generator
+
 ## 4.0.0-next.2
 
 ### Patch Changes

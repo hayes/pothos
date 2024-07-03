@@ -45,6 +45,7 @@
     "@pothos/tracing-xray": "0.6.0"
   },
   "changesets": [
+    "chatty-horses-swim",
     "great-elephants-check",
     "hungry-spoons-hang",
     "lovely-apples-shout"

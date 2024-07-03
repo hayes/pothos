@@ -60,7 +60,7 @@ generatorHandler({
       prismaLocation,
       outputLocation,
       config,
-      outputLocation === defaultOutput ? 'cjs' : 'ts',
+      outputLocation === defaultOutput ? 'cjs' : undefined,
     );
 
     if (outputLocation === defaultOutput) {
