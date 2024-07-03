@@ -43,7 +43,7 @@ declare global {
     > {
       input: InputFieldBuilder<Types, 'InputObject'>;
       fieldWithInput: <
-        Fields extends Record<string, InputFieldRef<Types, unknown>>,
+        Fields extends InputFieldMap,
         Type extends TypeParam<Types>,
         ResolveShape,
         ResolveReturnShape,

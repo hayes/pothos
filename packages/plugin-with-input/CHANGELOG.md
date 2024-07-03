@@ -1,5 +1,11 @@
 # @pothos/plugin-with-input
 
+## 4.0.0-next.3
+
+### Patch Changes
+
+- fix fieldWithInput when used with fieldWithAuth
+
 ## 4.0.0-next.2
 
 ### Patch Changes
