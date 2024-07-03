@@ -83,6 +83,24 @@ some type helpers you have created.
 
 ## `@pothos/core`
 
+### Default field nullability
+
+In previous versions of Pothos, fields were non-nullable by default. This is inconsistent with the
+rest of the GraphQL ecosystem, so the default is being changed to make fields nullable by default.
+
+To restore the previous behavior you can set the `defaultFieldNullability` option when creating your
+builder:
+
+```ts
+export const builder = new SchemaBuilder<{
+  DefaultFieldNullability: false;
+}>({
+  defaultFieldNullability: false,
+});
+```
+
+Alternatively, fields can be updated to add `nullable: false` to the fields options.
+
 ### Default ID Scalar types
 
 The default types for the built in `ID` Scalar has been changed to more closely match the behavior
