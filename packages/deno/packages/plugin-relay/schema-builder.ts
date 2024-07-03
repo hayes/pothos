@@ -319,7 +319,10 @@ schemaBuilderProto.relayMutationField = function relayMutationField(fieldName, i
 };
 schemaBuilderProto.connectionObject = function connectionObject({ type, name: connectionName, edgesNullable: edgesNullableField, nodeNullable, edgesField, ...connectionOptions }, edgeOptionsOrRef) {
     verifyRef(type);
-    const { edgesFieldOptions: { nullable: edgesNullable = { items: true, list: true }, ...edgesFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relay ?? {};
+    const { edgesFieldOptions: { nullable: edgesNullable = {
+        items: true,
+        list: this.defaultFieldNullability,
+    }, ...edgesFieldOptions } = {} as never, pageInfoFieldOptions = {} as never, } = this.options.relay ?? {};
     const connectionRef = this.objectRef<ConnectionShape<SchemaTypes, unknown, false>>(connectionName);
     const edgeRef = edgeOptionsOrRef instanceof ObjectRef
         ? edgeOptionsOrRef
@@ -365,10 +368,10 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
                         type: [type],
                         nullable: {
                             list: edgeListNullable,
-                            items: edgeItemsNullable ??
-                                nodeNullable ??
-                                this.options.relay?.nodeFieldOptions?.nullable ??
-                                true,
+                            items: edgeItemsNullable ||
+                                (nodeNullable ??
+                                    this.options.relay?.nodeFieldOptions?.nullable ??
+                                    this.defaultFieldNullability),
                         },
                         resolve: (con) => completeValue(con.edges, (edges) => edges?.map((e) => e?.node) ?? (edgeListNullable ? null : [])) as never,
                     }),
@@ -386,7 +389,7 @@ schemaBuilderProto.connectionObject = function connectionObject({ type, name: co
 };
 schemaBuilderProto.edgeObject = function edgeObject({ type, name: edgeName, nodeNullable: nodeFieldNullable, nodeField, ...edgeOptions }) {
     verifyRef(type);
-    const { edgeCursorType = this.options.relay?.cursorType ?? "String", cursorFieldOptions = {} as never, nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never, } = this.options.relay ?? {};
+    const { edgeCursorType = this.options.relay?.cursorType ?? "String", cursorFieldOptions = {} as never, nodeFieldOptions: { nullable: nodeNullable = this.defaultFieldNullability, ...nodeFieldOptions } = {} as never, } = this.options.relay ?? {};
     const edgeRef = this.objectRef<{
         cursor: string;
         node: unknown;

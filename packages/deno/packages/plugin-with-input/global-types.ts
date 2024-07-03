@@ -18,7 +18,7 @@ declare global {
         }
         export interface RootFieldBuilder<Types extends SchemaTypes, ParentShape, Kind extends FieldKind = FieldKind> {
             input: InputFieldBuilder<Types, "InputObject">;
-            fieldWithInput: <Fields extends Record<string, InputFieldRef<Types, unknown>>, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, ArgRequired extends boolean, Args extends InputFieldMap = {}, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"], InputName extends string = "input">(options: FieldWithInputOptions<Types, ParentShape, Kind, Args, Fields, Type, Nullable, InputName, ResolveShape, ResolveReturnShape, boolean extends ArgRequired ? Types["WithInputArgRequired"] & boolean : ArgRequired>) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
+            fieldWithInput: <Fields extends InputFieldMap, Type extends TypeParam<Types>, ResolveShape, ResolveReturnShape, ArgRequired extends boolean, Args extends InputFieldMap = {}, Nullable extends FieldNullability<Type> = Types["DefaultFieldNullability"], InputName extends string = "input">(options: FieldWithInputOptions<Types, ParentShape, Kind, Args, Fields, Type, Nullable, InputName, ResolveShape, ResolveReturnShape, boolean extends ArgRequired ? Types["WithInputArgRequired"] & boolean : ArgRequired>) => FieldRef<Types, ShapeFromTypeParam<Types, Type, Nullable>>;
         }
         export interface FieldWithInputBaseOptions<Types extends SchemaTypes, Args extends InputFieldMap, Fields extends InputFieldMap, InputName extends string, ArgRequired extends boolean> {
             typeOptions?: WithInputTypeOptions<Types, Fields>;
