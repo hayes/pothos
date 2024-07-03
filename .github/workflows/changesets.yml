@@ -47,7 +47,6 @@ jobs:
         id: pnpm-install
         with:
           run_install: false
-          version: 9.1.1
 
       - name: Use Node.js 22
         uses: actions/setup-node@v4
