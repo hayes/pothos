@@ -5,6 +5,7 @@ import { mkdir, writeFile } from 'node:fs';
 import { dirname, join, resolve as resolvePath, posix } from 'node:path';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import { DMMF, generatorHandler } from '@prisma/generator-helper';
+import { PothosPrismaDatamodel } from './types';
 
 const MIN_TS_VERSION = [4, 5, 2];
 
@@ -28,6 +29,13 @@ function checkTSVersion() {
 
 const defaultOutput = resolvePath(__dirname, '../generated.ts');
 
+interface GeneratorConfig {
+  clientOutput?: string;
+  prismaUtils?: string;
+  generateDatamodel?: string;
+  documentation?: string;
+}
+
 generatorHandler({
   onManifest: () => ({
     prettyName: 'Pothos integration',
@@ -36,7 +44,7 @@ generatorHandler({
   }),
   onGenerate: async (options) => {
     checkTSVersion();
-    const config = options.generator.config as { clientOutput?: string; prismaUtils?: string };
+    const config = options.generator.config as GeneratorConfig;
     const prismaLocation =
       config.clientOutput ??
       options.otherGenerators.find((gen) => gen.provider.value === 'prisma-client-js')!.output!
@@ -45,7 +53,7 @@ generatorHandler({
     const outputLocation = options.generator.output?.value ?? defaultOutput;
     const prismaTypes = buildTypes(options.dmmf, config);
 
-    await generateOutput(options.dmmf, prismaTypes, prismaLocation, outputLocation);
+    await generateOutput(options.dmmf, prismaTypes, prismaLocation, outputLocation, config);
 
     if (outputLocation === defaultOutput) {
       await generateOutput(
@@ -53,18 +61,57 @@ generatorHandler({
         prismaTypes,
         prismaLocation.startsWith('@') ? prismaLocation : posix.join(prismaLocation, 'index.js'),
         join(outputLocation, '../esm/generated.ts'),
+        config,
       );
     }
   },
 });
+
+function trimDmmf(dmmf: DMMF.Document, documentation = false): PothosPrismaDatamodel {
+  const trimmed: PothosPrismaDatamodel = {
+    datamodel: {
+      models: {},
+    },
+  };
+
+  dmmf.datamodel.models.forEach((model) => {
+    trimmed.datamodel.models[model.name] = {
+      fields: model.fields.map((field) => ({
+        type: field.type,
+        kind: field.kind,
+        name: field.name,
+        isRequired: field.isRequired,
+        isList: field.isList,
+        hasDefaultValue: field.hasDefaultValue,
+        isUnique: field.isUnique,
+        isId: field.isId,
+        relationName: field.relationName,
+        relationFromFields: field.relationFromFields,
+        isUpdatedAt: field.isUpdatedAt,
+        documentation: documentation ? field.documentation : undefined,
+      })),
+      primaryKey: model.primaryKey
+        ? { name: model.primaryKey.name, fields: model.primaryKey.fields }
+        : null,
+      uniqueIndexes: model.uniqueIndexes.map((index) => ({
+        name: index.name,
+        fields: index.fields,
+      })),
+      documentation: documentation ? model.documentation : undefined,
+    };
+  });
+
+  return trimmed;
+}
 
 async function generateOutput(
   dmmf: DMMF.Document,
   prismaTypes: ts.InterfaceDeclaration,
   prismaLocation: string,
   outputLocation: string,
+  config: GeneratorConfig,
 ) {
-  const importStatement = ts.factory.createImportDeclaration(
+  const prismaImportStatement = ts.factory.createImportDeclaration(
     ...modifiersArg,
     [],
     ts.factory.createImportClause(
@@ -84,6 +131,23 @@ async function generateOutput(
     ts.factory.createStringLiteral(prismaLocation),
   );
 
+  const dmmfImportStatement = ts.factory.createImportDeclaration(
+    ...modifiersArg,
+    [],
+    ts.factory.createImportClause(
+      true,
+      undefined,
+      ts.factory.createNamedImports([
+        ts.factory.createImportSpecifier(
+          false,
+          undefined,
+          ts.factory.createIdentifier('PothosPrismaDatamodel'),
+        ),
+      ]),
+    ),
+    ts.factory.createStringLiteral('@pothos/plugin-prisma'),
+  );
+
   const printer = ts.createPrinter({});
 
   const sourcefile = ts.createSourceFile(
@@ -94,7 +158,31 @@ async function generateOutput(
     ScriptKind.TS,
   );
 
-  const nodes = ts.factory.createNodeArray([importStatement, prismaTypes]);
+  const trimmedDatamodel = trimDmmf(dmmf, config.documentation === 'true');
+
+  const dmmfExport = ts.factory.createFunctionDeclaration(
+    [ts.factory.createModifier(SyntaxKind.ExportKeyword)],
+    undefined,
+    'getDatamodel',
+    [],
+    [],
+    ts.factory.createTypeReferenceNode('PothosPrismaDatamodel'),
+    ts.factory.createBlock([
+      ts.factory.createReturnStatement(
+        ts.factory.createCallExpression(
+          ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier('JSON'), 'parse'),
+          [],
+          [ts.factory.createStringLiteral(JSON.stringify(trimmedDatamodel))],
+        ),
+      ),
+    ]),
+  );
+
+  const nodes = ts.factory.createNodeArray(
+    config.generateDatamodel === 'true'
+      ? [prismaImportStatement, dmmfImportStatement, prismaTypes, dmmfExport]
+      : [prismaImportStatement, prismaTypes],
+  );
 
   const result = printer.printList(ListFormat.SourceFileStatements, nodes, sourcefile);
 

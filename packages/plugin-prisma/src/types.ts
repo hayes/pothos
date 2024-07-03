@@ -827,3 +827,32 @@ export type UniqueFieldsFromWhereUnique<T> = string &
       ? keyof T
       : K
     : never);
+
+interface DMMFField {
+  type: string;
+  kind: string;
+  name: string;
+  isRequired: boolean;
+  isList: boolean;
+  hasDefaultValue: boolean;
+  isUnique: boolean;
+  isId: boolean;
+  documentation?: string;
+  relationName?: string;
+  relationFromFields?: readonly string[];
+  isUpdatedAt?: boolean;
+}
+
+export interface PothosPrismaDatamodel {
+  datamodel: {
+    models: Record<
+      string,
+      {
+        fields: readonly DMMFField[];
+        primaryKey: { name: string | null; fields: readonly string[] } | null;
+        uniqueIndexes: { name: string | null; fields: readonly string[] }[];
+        documentation?: string;
+      }
+    >;
+  };
+}

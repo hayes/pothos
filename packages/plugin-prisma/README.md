@@ -154,7 +154,7 @@ could not be typed correctly.
 
 ### Add a the `pothos` generator to your prisma schema
 
-```
+```prisma
 generator pothos {
   provider = "prisma-pothos-types"
 }
@@ -176,7 +176,7 @@ additional options:
 
 Example with more options:
 
-```
+```prisma
 generator pothos {
   provider = "prisma-pothos-types"
   clientOutput = "@prisma/client"
