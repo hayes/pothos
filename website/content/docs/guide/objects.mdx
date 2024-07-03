@@ -6,55 +6,59 @@ description: Guide for defining Object types in Pothos
 This will walk you through creating your first object types, some concepts in this guide will be
 explained further in later guides.
 
-### Create some data
+### Defining an Object type
 
 When adding a new type to your schema, you'll need to figure how the data behind this type will be
-represented. In this guide, we will use a class to represent some information about giraffes. Using
-classes is completely optional, but it's a good place to start, since it makes it easy to show all
-the different ways that you can tie the shape of your data to a new object type.
+represented. Pothos entirely decouples your data from your GraphQL schema, and has many different
+ways to implement Objects in your schema.
+
+In this guide, we will be implementing a `Giraffe` object type:
 
 ```typescript
-export class Giraffe {
+interface Giraffe {
   name: string;
   birthday: Date;
   heightInMeters: number;
-
-  constructor(name: string, birthday: Date, heightInMeters: number) {
-    this.name = name;
-    this.birthday = birthday;
-    this.heightInMeters = heightInMeters;
-  }
 }
 ```
 
-### Define the type
-
-You can use `builder.objectType` to add new `Object` types to your schema.
+The easiest way to create a new Object based in an existing Typescript type is wit the `objectRef`
+method:
 
 ```typescript
 const builder = new SchemaBuilder({});
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+```
 
-builder.objectType(Giraffe, {
-  name: 'Giraffe',
+This will create a new `ObjectRef` that can be used to reference the `Giraffe` type in other parts
+of the schema. By passing in the Giraffe interface, We give the `ObjectRef` the information it needs
+to ensure that fields we add to the Giraffe type are type-safe, and that any fields that reference
+the Giraffe Field return the expected data.
+
+Next, We can need to add an implementation for the `Giraffe` type:
+
+```typescript
+const GiraffeRef = builder.objectRef<Giraffe>('Giraffe');
+
+GiraffeRef.implement({
   description: 'Long necks, cool patterns, taller than you.',
   fields: (t) => ({}),
 });
 ```
 
-The first argument is an `ObjectParam`, in this case the class that represents our giraffes. This is
-used to convey type information about our underlying data, so that fields can know what properties
-are available on the parent object.
+In the implementation, we can add a description (optional) and a function to define the fields
+available to query on the Giraffe type.
 
 ### Add some fields
 
-Fields define what data is available in your schema
+The `fields` function receives a `FieldBuilder` instance that can be used to define the fields for
+your type. the `FieldBuilder` will be covered in more details in the [fields guide](./fields).
 
 ```typescript
-builder.objectType(Giraffe, {
-  name: 'Giraffe',
-  description: 'Long necks, cool patterns, taller than you.',
+GiraffeRef.implement(Giraffe, {
   fields: (t) => ({
-    name: t.exposeString('name', {}),
+    name: t.exposeString('name'),
+    height: t.exposeFloat('heightInMeters'),
     age: t.int({
       resolve: (parent) => {
         // Do some date math to get an approximate age from a birthday
@@ -63,19 +67,18 @@ builder.objectType(Giraffe, {
         return Math.abs(ageDate.getUTCFullYear() - 1970);
       },
     }),
-    height: t.float({
-      resolve: (parent) => parent.heightInMeters,
-    }),
   }),
 });
 ```
 
-In Pothos we never automatically expose properties from the underlying data. Each property we want
-to add in our schema needs to be explicitly defined. The `fields` property in the options object
-should be a function that accepts one argument (a [FieldBuilder](../api/field-builder)) and returns
-an object whose keys are the field names, and whose values are `FieldRefs` created by the
-[FieldBuilder](../api/field-builder). Fields are explained in more detail in the
-[fields guide](./fields).
+You'll notice that we haven't added any additional typescript definitions when defining our fields.
+Pothos will uses the type provided to `objectRef` to ensure that the fields we add to the Giraffe
+type are type-safe. This type is only used to ensure that the implementation is type-safe, but
+Pothos we never automatically expose properties from the underlying data without an explicit field
+definition.
+
+In the example above, we have examples of "exposing" data from the underlying type, ad well as field
+that requires some additional logic to resolve.
 
 ## Add a query
 
@@ -85,16 +88,19 @@ We can create a root `Query` object with a field that returns a giraffe using `b
 builder.queryType({
   fields: (t) => ({
     giraffe: t.field({
-      type: Giraffe,
-      resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
+      type: GiraffeRef,
+      resolve: () => ({
+        name: 'James',
+        birthday: new Date(Date.UTC(2012, 11, 12)),
+        heightInMeters: 5.2,
+      }),
     }),
   }),
 });
 ```
 
-The `type` parameter can use whatever was used as the first argument of `builder.objectType`, in
-this case the Giraffe class. `builder.objectType` also returns a `Ref` object that can be used as a
-`TypeParam`.
+We can use the `ObjectRef` created earlier as the `type` option when defining fields that return the
+Giraffe type.
 
 ### Create a server
 
@@ -143,20 +149,52 @@ query {
 
 ## Different ways to define Object types
 
-There are 3 different ways that you can provide type information to Pothos about what the underlying
-data in your graph will be. Depending on how the rest of your application is structured you can pick
-the approach that works best for you, or use a combination of different styles.
+There are many different ways that you can provide type information to Pothos about what the
+underlying data in your graph will be. Depending on how the rest of your application is structured
+you can pick the approach that works best for you, or use a combination of different styles.
+
+### Using Refs
+
+ObjectRefs (the method shown above) is the most flexible solution, and makes it easy to integrate
+pothos with data sources that have their own Typescript types.
+
+Object refs can be created using `builder.objectRef`, and then implemented by calling the
+`implement` method on the ref, or by passing the ref to `builder.objectType`:
+
+```typescript
+const GiraffeRef = builder.objectRef<GireffeType>('Giraffe').implement({
+  description: 'Long necks, cool patterns, taller than you.',
+  fields: (t) => ({}),
+});
+```
+
+import { Callout } from 'fumadocs-ui/components/callout';
+
+<Callout type="warn">
+  When using objectRefs with circular dependencies, ensure that the `implement` method is called as
+  a separate statement, or typescript may complain about circular references:
+</Callout>
 
 ### Using classes
 
-This is the approach used above. If your data is already represented as a class, this is a fairly
-straight forward approach, since you can just use your existing classes anywhere that a `TypeParam`
-is expected.
+If your data is already represented as a class, Pothos supports using the classes themselves as
+ObjectRefs. This allows you to define a type-safe schema with minimal typescript definitions.
 
 ```typescript
-const builder = new SchemaBuilder({});
+export class Giraffe {
+  name: string;
+  birthday: Date;
+  heightInMeters: number;
+
+  constructor(name: string, birthday: Date, heightInMeters: number) {
+    this.name = name;
+    this.birthday = birthday;
+    this.heightInMeters = heightInMeters;
+  }
+}
 
 builder.objectType(Giraffe, {
+  // Name is required when using a class as an ObjectRef
   name: 'Giraffe',
   description: 'Long necks, cool patterns, taller than you.',
   fields: (t) => ({}),
@@ -172,11 +210,11 @@ builder.queryFields((t) => ({
 
 ### Using SchemaTypes
 
-You can provide a type mappings when you create the [SchemaBuilder](./schema-builder). This will
-allow you to reference the type by name throughout your schema (as a string).
+You can also provide type mappings when you create the [SchemaBuilder](./schema-builder), which
+allows you to reference the types by name throughout your schema (as a string).
 
 ```typescript
-const builder = new SchemaBuilder<{ Objects: { Giraffe: Giraffe } }>({});
+const builder = new SchemaBuilder<{ Objects: { Giraffe: GiraffeType } }>({});
 
 builder.objectType('Giraffe', {
   description: 'Long necks, cool patterns, taller than you.',
@@ -186,7 +224,11 @@ builder.objectType('Giraffe', {
 builder.queryFields((t) => ({
   giraffe: t.field({
     type: 'Giraffe',
-    resolve: () => new Giraffe('James', new Date(Date.UTC(2012, 11, 12)), 5.2),
+    resolve: () => ({
+      name: 'James',
+      birthday: new Date(Date.UTC(2012, 11, 12)),
+      heightInMeters: 5.2,
+    }),
   }),
 }));
 ```
@@ -199,66 +241,3 @@ The type signature for [SchemaBuilder](../api/schema-builder) is described in mo
 [later](../api/schema-builder), for now, it is enough to know that the `Objects` type provided to
 the schema builder allows you to map the names of object types to type definitions that describe the
 data for those types.
-
-### Using Refs
-
-You can use an `ObjectRef` to reference your class and provide a `Generic` argument that describes
-the shape or your data.
-
-```typescript
-const builder = new SchemaBuilder({});
-
-const Giraffe = builder.objectRef<GiraffeShape>('Giraffe');
-
-builder.objectType(Giraffe, {
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
-});
-
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: Giraffe,
-    resolve: () => ({
-      name: 'James',
-      birthday: new Date(Date.UTC(2012, 11, 12)),
-      height: 5.2,
-    }),
-  }),
-}));
-```
-
-`ObjectRefs` are useful when you don't want to define all the types in a single place
-(`SchemaTypes`) and your data is not represented as classes. Regardless of how you define your
-object types, `builder.objectType` returns an `ObjectRef` that can be used as a type parameter in
-other parts of the schema.
-
-A slightly simplified version of the above could be written as
-
-```typescript
-const builder = new SchemaBuilder({});
-
-const Giraffe = builder.objectRef<GiraffeShape>('Giraffe').implement({
-  description: 'Long necks, cool patterns, taller than you.',
-  fields: (t) => ({}),
-});
-
-builder.queryFields((t) => ({
-  giraffe: t.field({
-    type: Giraffe,
-    resolve: () => ({
-      name: 'James',
-      birthday: new Date(Date.UTC(2012, 11, 12)),
-      height: 5.2,
-    }),
-  }),
-}));
-```
-
-import { Callout } from 'fumadocs-ui/components/callout';
-
-<Callout type="warn">
-  If the type you are defining has a circular reference to itself (either directly, or through
-  another type) you may need to keep \`builder.objectRef\` and \`ref.implement\` as separate
-  statements for at least one of the types to allow typescript to correctly resolve the types for
-  your circular references.
-</Callout>
