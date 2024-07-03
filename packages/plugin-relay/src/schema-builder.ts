@@ -464,7 +464,10 @@ schemaBuilderProto.connectionObject = function connectionObject(
 
   const {
     edgesFieldOptions: {
-      nullable: edgesNullable = { items: true, list: true },
+      nullable: edgesNullable = {
+        items: true,
+        list: this.defaultFieldNullability,
+      },
       ...edgesFieldOptions
     } = {} as never,
     pageInfoFieldOptions = {} as never,
@@ -524,10 +527,10 @@ schemaBuilderProto.connectionObject = function connectionObject(
               nullable: {
                 list: edgeListNullable,
                 items:
-                  edgeItemsNullable ??
-                  nodeNullable ??
-                  this.options.relay?.nodeFieldOptions?.nullable ??
-                  true,
+                  edgeItemsNullable ||
+                  (nodeNullable ??
+                    this.options.relay?.nodeFieldOptions?.nullable ??
+                    this.defaultFieldNullability),
               },
               resolve: (con) =>
                 completeValue(
@@ -564,7 +567,10 @@ schemaBuilderProto.edgeObject = function edgeObject({
   const {
     edgeCursorType = this.options.relay?.cursorType ?? 'String',
     cursorFieldOptions = {} as never,
-    nodeFieldOptions: { nullable: nodeNullable = false, ...nodeFieldOptions } = {} as never,
+    nodeFieldOptions: {
+      nullable: nodeNullable = this.defaultFieldNullability,
+      ...nodeFieldOptions
+    } = {} as never,
   } = this.options.relay ?? {};
 
   const edgeRef = this.objectRef<{

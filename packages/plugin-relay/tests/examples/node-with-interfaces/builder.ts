@@ -9,7 +9,7 @@ export default new SchemaBuilder<{
   Objects: {
     Customer: Customer;
   };
-  DefaultNodeNullability: true;
+  DefaultNodeNullability: false;
 }>({
   plugins: [RelayPlugin],
   relay: {
@@ -18,6 +18,9 @@ export default new SchemaBuilder<{
     },
     nodesQueryOptions: {
       description: 'nodes query',
+    },
+    nodeFieldOptions: {
+      nullable: false,
     },
   },
 });

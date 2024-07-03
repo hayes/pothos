@@ -80,7 +80,7 @@ interface IDType {
 }
 ```
 
-This will make working with IDs in arguments and input types easier by avoiding unnecissary type
+This will make working with IDs in arguments and input types easier by avoiding unnecessary type
 checks to see if an `ID` is a `number` or `string`.
 
 When returning an `ID` from a scalar you will be able to return a `string`, `number`, or `bigint`.
@@ -122,18 +122,17 @@ A number of the default values for relay options have changed:
 - `cursorType`: Now defaults to `"String"` and was previously `"ID"`
   - The previous defaults were inconsistent about the type of a cursor. Cursors generally should not
     be treated as IDs as they are meant to indicate a position in a list, and may contain
-    information specific to other filters or arguments applied to the conenction.
+    information specific to other filters or arguments applied to the connection.
 - `brandLoadedObjects`: Now defaults to `true` and was previously `false`
-  - This change will imrpove developer experience for most node implementations, as it removes the
+  - This change will improve developer experience for most node implementations, as it removes the
     need for `isTypeOf` to be defined for most nodes.
-  - TODO: write docs for `brandLoadedObjects`
-- `edgesFieldOptions.nullable`: Not defaults to `{ list: true, items: true }` and was previously
+- `edgesFieldOptions.nullable`: Now defaults to
+  `{ list: options.defaultFieldNullability, items: true }` and was previously
   `{ list: false, items: true }`
+- `nodeFieldOptions.nullable`: Now defaults to `options.defaultFieldNullability` and was previously
+  `false`
   - This new default is intended to align with the relay connection spec, which does not expect
     connections to be NonNullable by default
-  - TODO: validate this assumption, I think following default field nullability of the builder may
-    make more sense, although edges in the list should likely remain nullable. Further investigation
-    required.
 
 To restore the previous defaults you can pass the old values when setting up the builder:
 
@@ -148,9 +147,12 @@ const builder = new SchemaBuilder<{
     edgesFieldOptions: {
       nullable: { list: false, items: true },
     },
+    nodeFieldOptions: {
+      nullable: false,
+    },
     cursorType: 'ID',
     // the cursor fields on edges and pageInfo previously defaulted to `String`
-    // but will be overwrittedn by `cursorType` so you also need to explicity set them
+    // but will be overwritten by `cursorType` so you also need to explicity set them
     edgeCursorType: 'String',
     pageInfoCursorType: 'String',
   },
