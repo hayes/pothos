@@ -1,20 +1,15 @@
-import './util/build-index.mjs';
-import dotenv from 'dotenv';
-import highlight from 'rehype-highlight';
-import slug from 'rehype-slug';
-import frontmatter from 'remark-frontmatter';
-import remarkMdxFrontmatter from 'remark-mdx-frontmatter';
-import withMDX from '@next/mdx';
+import { remarkInstall } from 'fumadocs-docgen';
+import createMDX from 'fumadocs-mdx/config';
 
-dotenv.config();
-
-export default withMDX({
-  extension: /\.mdx?$/,
-  options: {
-    providerImportSource: '@mdx-js/react',
-    remarkPlugins: [frontmatter, remarkMdxFrontmatter],
-    rehypePlugins: [slug, [highlight, { languages: {} }]],
+const withMDX = createMDX({
+  mdxOptions: {
+    remarkPlugins: [remarkInstall],
   },
-})({
-  pageExtensions: ['js', 'jsx', 'ts', 'tsx', 'md', 'mdx'],
 });
+
+/** @type {import('next').NextConfig} */
+const config = {
+  reactStrictMode: true,
+};
+
+export default withMDX(config);

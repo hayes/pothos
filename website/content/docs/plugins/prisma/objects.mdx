@@ -1,0 +1,69 @@
+---
+title: Prisma Objects
+description: Prisma plugin docs for Pothos
+---
+
+## Creating types with `builder.prismaObject`
+
+`builder.prismaObject` takes 2 arguments:
+
+1. `name`: The name of the prisma model this new type represents
+2. `options`: options for the type being created, this is very similar to the options for any other
+   object type
+
+```typescript
+builder.prismaObject('User', {
+  // Optional name for the object, defaults to the name of the prisma model
+  name: 'PostAuthor',
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    email: t.exposeString('email'),
+  }),
+});
+
+builder.prismaObject('Post', {
+  fields: (t) => ({
+    id: t.exposeID('id'),
+    title: t.exposeString('title'),
+  }),
+});
+```
+
+So far, this is just creating some simple object types. They work just like any other object type in
+Pothos. The main advantage of this is that we get the type information without using object refs, or
+needing imports from prisma client.
+
+## Adding prisma fields to non-prisma objects (including Query and Mutation)
+
+There is a new `t.prismaField` method which can be used to define fields that resolve to your prisma
+types:
+
+```typescript
+builder.queryType({
+  fields: (t) => ({
+    me: t.prismaField({
+      type: 'User',
+      resolve: async (query, root, args, ctx, info) =>
+        prisma.user.findUniqueOrThrow({
+          ...query,
+          where: { id: ctx.userId },
+        }),
+    }),
+  }),
+});
+```
+
+This method works just like the normal `t.field` method with a couple of differences:
+
+1. The `type` option must contain the name of the prisma model (eg. `User` or `[User]` for a list
+   field).
+2. The `resolve` function has a new first argument `query` which should be spread into query prisma
+   query. This will be used to load data for nested relationships.
+
+You do not need to use this method, and the `builder.prismaObject` method returns an object ref than
+can be used like any other object ref (with `t.field`), but using `t.prismaField` will allow you to
+take advantage of more efficient queries.
+
+The `query` object will contain an object with `include` or `select` options to pre-load data needed
+to resolve nested parts of the current query. The included/selected fields are based on which fields
+are being queried, and the options provided when defining those fields and types.

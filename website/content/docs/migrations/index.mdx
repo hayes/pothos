@@ -1,0 +1,26 @@
+---
+title: Migrations
+description: List of Pothos migration guides
+---
+
+- [3.\* to (4.0)](./migrations/v4)
+- [GiraphQL (2.\*) to Pothos (3.0)](./migrations/giraphql-pothos)
+- [1.\* to 2.0](./migrations/v2)
+
+# Migration to Pothos from other GraphQL libraries
+
+Official migration tools are currently a work in progress, and we are hoping to make incremental
+migration from a number of common setups much easier in the near future. For now there are a few
+tools that may be helpful while the official tooling for migrations is being developed.
+
+- [Nexus to Pothos codemod](https://github.com/villesau/nexus-to-pothos-codemod)
+
+  This 3rd party code-mod aims to transform all the nexus types, queries and mutations to Pothos
+  equivalents. This codemod will still require some manual adjustments to get everything working
+  correctly, but can be a huge help in the migration process.
+
+- [Pothos Generator](https://github.com/hayes/pothos/tree/main/packages/converter)
+
+  This is an undocumented CLI that can convert a schema into valid Pothos code. Resolvers are all
+  placeholders that throw errors, so this is not quite as useful as it sounds, but can be helpful,
+  especially for generating input types.

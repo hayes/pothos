@@ -1,0 +1,13 @@
+{
+  "title": "Prisma",
+  "pages": [
+    "setup",
+    "objects",
+    "relations",
+    "relay",
+    "connections",
+    "prisma-utils",
+    "without-a-plugin",
+    "..."
+  ]
+}

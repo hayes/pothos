@@ -1,0 +1,144 @@
+---
+title: Enums
+description: Guide for defining Enum types in Pothos
+---
+
+Enums can be defined a number of different ways:
+
+1. Using typescript enums
+
+   ```typescript
+   export enum Diet {
+     HERBIVOROUS,
+     CARNIVOROUS,
+     OMNIVORIOUS,
+   }
+
+   builder.enumType(Diet, {
+     name: 'Diet',
+   });
+   ```
+
+1. Using an array of strings
+
+   ```typescript
+   export const LengthUnit = builder.enumType('LengthUnit', {
+     values: ['Feet', 'Meters'] as const,
+   });
+   ```
+
+   Note that we use `as const` to allow ts to properly type our enum values.
+
+1. Using a values object:
+
+   ```typescript
+   export const GiraffeSpecies = builder.enumType('GiraffeSpecies', {
+     values: {
+       Southern: {
+         description: 'Also known as two-horned giraffe',
+         value: 'giraffa',
+       },
+       Masai: {
+         value: 'tippelskirchi',
+       },
+       Reticulated: {
+         value: 'reticulata',
+       },
+       Northern: {
+         value: 'camelopardalis',
+       },
+     } as const,
+   });
+   ```
+
+   Again we use `as const` here to allow the enum values to be correctly inferred. The `as const`
+   can also be added to the values instead, or omitted if the `values` are already defined using a
+   variable that typescript can type correctly.
+
+   Using a values object like this enables defining additional options like a description for each
+   enum value.
+
+   Using a values object also allows the name of the enum value to be different from the typescript
+   value used internally in your resolvers.
+
+   The keys (eg `Southern`) are used as the name of the enum value in you GraphQL schema, and the
+   `value` (eg. `'giraffa'`) property is used as the value you will receive in the arguments for
+   your resolvers, or the value you need to return from your resolvers. This is similar to how
+   typescript enum values can be assigned string or numeric values.
+
+1. Using an object with `as const`
+
+   ```ts
+   const VehicleType = {
+     sedan: 'SEDAN',
+     suv: 'SUV',
+     truck: 'TRUCK',
+     motorcycle: 'MOTORCYCLE',
+   } as const;
+
+   const VehicleTypeEnum = builder.enumType('VehicleType', {
+     values: Object.fromEntries(
+       Object.entries(VehicleType).map(([name, value]) => [name, { value }]),
+     ),
+   });
+   ```
+
+   Modern TypeScript may prefer using objects with as const over enums to align with JavaScript
+   standards. This approach essentially mirrors the "array of strings" method. You can use
+   `Object.toEntries` and `Object.fromEntries` to turn convert to Object values form described
+   above.
+
+   For more detailed information, you can refer to the TypeScript handbook on
+   [Objects vs Enums](https://www.typescriptlang.org/docs/handbook/enums.html#objects-vs-enums).
+
+   Alternatively, using `Object.keys` or `Object.values` will allow you to produce an enum that uses
+   just the keys or values of the object for both the internal typescript and name in the GraphQL
+   schema.
+
+   ```ts
+   const VehicleType = {
+     sedan: 'SEDAN',
+     suv: 'SUV',
+     truck: 'TRUCK',
+     motorcycle: 'MOTORCYCLE',
+   } as const;
+
+   const VehicleTypeEnum = builder.enumType('VehicleType', {
+     values: Object.values(VehicleType),
+   });
+   // Or
+   const VehicleTypeEnum = builder.enumType('VehicleType', {
+     values: Object.keys(VehicleType) as (keyof typeof VehicleType)[],
+   });
+   ```
+
+## Using Enum Types
+
+Enums can be referenced either by the `Ref` that was returned by calling `builder.enumType` or by
+using the typescript enum. They can be used either as arguments, or as field return types:
+
+```typescript
+builder.objectFields('Giraffe', (t) => ({
+  height: t.float({
+    args: {
+      unit: t.arg({
+        type: LengthUnit,
+        required: true,
+        defaultValue: 'Meters',
+      }),
+    },
+    resolve: (parent, args) =>
+      args.unit === 'Meters' ? parent.heightInMeters : parent.heightInMeters * 3.281,
+  }),
+  diet: t.field({
+    description:
+      'While Giraffes are herbivores, they do eat the bones of dead animals to get extra calcium',
+    type: Diet,
+    resolve: () => Diet.HERBIVOROUS,
+  }),
+  species: t.field({
+    type: GiraffeSpecies,
+    resolve: () => 'camelopardalis' as const,
+  }),
+}));
+```
