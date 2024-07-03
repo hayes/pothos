@@ -1,6 +1,6 @@
 {
   "name": "@pothos/converter",
-  "version": "4.0.0-next.0",
+  "version": "4.0.0-next.1",
   "description": "A converter for generating typescript that implements an SDL input schema",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",

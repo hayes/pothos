@@ -1,5 +1,14 @@
 # @pothos/tracing-sentry
 
+## 1.0.0-next.1
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/plugin-tracing@1.0.0-next.1
+  - @pothos/core@4.0.0-next.1
+
 ## 1.0.0-next.0
 
 ### Minor Changes

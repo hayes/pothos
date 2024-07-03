@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-simple-objects",
-  "version": "4.0.0-next.0",
+  "version": "4.0.0-next.1",
   "description": "A Pothos plugin for defining objects and interfaces without ts definitions for those types",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -46,7 +46,7 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "4.0.0-next.0",
+    "@pothos/core": "4.0.0-next.1",
     "graphql": "^16.8.1"
   },
   "devDependencies": {

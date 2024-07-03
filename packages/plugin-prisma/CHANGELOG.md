@@ -1,5 +1,13 @@
 # Change Log
 
+## 4.0.0-next.4
+
+### Patch Changes
+
+- update readmes
+- Updated dependencies
+  - @pothos/core@4.0.0-next.1
+
 ## 4.0.0-next.3
 
 ### Patch Changes
