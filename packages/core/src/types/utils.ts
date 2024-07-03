@@ -1,3 +1,5 @@
+import { GraphQLResolveInfo } from 'graphql';
+
 export type MaybePromise<T> = Promise<T> | T;
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -125,3 +127,9 @@ export type NormalizeArgs<
     : T;
 
 export type IsStrictMode = undefined extends {} ? false : true;
+
+export interface PartialResolveInfo {
+  fragments: GraphQLResolveInfo['fragments'];
+  variableValues: GraphQLResolveInfo['variableValues'];
+  schema: GraphQLResolveInfo['schema'];
+}

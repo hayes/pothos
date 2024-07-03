@@ -213,6 +213,7 @@ export class BuildCache<Types extends SchemaTypes> {
                     pothosSubscribeWrapped: subscribe !== config.subscribe,
                     pothosOptions: config.pothosOptions,
                     pothosConfig: config,
+                    pothosArgMappers: config.argMappers,
                 },
                 resolve: resolve === defaultFieldResolver ? undefined : resolve,
                 subscribe,

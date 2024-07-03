@@ -414,7 +414,8 @@ type User implements Named & Node {
   id: ID!
   name: String
   postCount: Int!
-  posts(createdAt: String, limit: Int, oldestFirst: Boolean): [Post!]
+  postNodes(id: ID, limit: Int): [SelectPost!]
+  posts(createdAt: String, id: ID, limit: Int, oldestFirst: Boolean): [Post!]
   postsConnection(after: String, before: String, first: Int, last: Int, oldestFirst: Boolean, published: Boolean): UserPostsConnection
   postsConnectionWithErrors(after: String, before: String, first: Int, last: Int): UserPostsConnectionWithErrorsResult
   postsSkipConnection(after: String, before: String, first: Int, last: Int, skip: Int, take: Int): UserPostsSkipConnection

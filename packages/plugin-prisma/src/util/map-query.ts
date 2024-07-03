@@ -3,7 +3,6 @@
 import {
   FieldNode,
   FragmentDefinitionNode,
-  getArgumentValues,
   getDirectiveValues,
   getNamedType,
   GraphQLField,
@@ -19,7 +18,7 @@ import {
   Kind,
   SelectionSetNode,
 } from 'graphql';
-import { PothosValidationError } from '@pothos/core';
+import { getMappedArgumentValues, PothosValidationError } from '@pothos/core';
 import {
   FieldSelection,
   IncludeMap,
@@ -293,7 +292,7 @@ function addFieldSelection(
   let mappings: LoaderMappings = {};
 
   if (typeof fieldSelect === 'function') {
-    const args = getArgumentValues(field, selection, info.variableValues) as Record<
+    const args = getMappedArgumentValues(field, selection, context, info) as Record<
       string,
       unknown
     >;

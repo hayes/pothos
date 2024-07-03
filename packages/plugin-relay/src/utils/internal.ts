@@ -1,5 +1,5 @@
 import { GraphQLResolveInfo } from 'graphql';
-import { PothosValidationError, SchemaTypes } from '@pothos/core';
+import { PartialResolveInfo, PothosValidationError, SchemaTypes } from '@pothos/core';
 import { decodeGlobalID, encodeGlobalID } from './global-ids';
 
 export function internalEncodeGlobalID<Types extends SchemaTypes>(
@@ -19,7 +19,7 @@ export function internalDecodeGlobalID<Types extends SchemaTypes>(
   builder: PothosSchemaTypes.SchemaBuilder<Types>,
   globalID: string,
   ctx: object,
-  info: GraphQLResolveInfo,
+  info: PartialResolveInfo,
   parseIdsForTypes: { typename: string; parseId: (id: string, ctx: object) => unknown }[] | boolean,
 ) {
   const decoded = builder.options.relay?.decodeGlobalID

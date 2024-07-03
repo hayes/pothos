@@ -67,21 +67,54 @@ export class MergedPlugins<Types extends SchemaTypes> extends BasePlugin<Types> 
   override wrapResolve(
     resolve: GraphQLFieldResolver<unknown, Types['Context'], object>,
     fieldConfig: PothosOutputFieldConfig<Types>,
-  ) {
-    return this.plugins.reduceRight(
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> {
+    const wrapped = this.plugins.reduceRight(
       (nextResolve, plugin) => plugin.wrapResolve(nextResolve, fieldConfig),
       resolve,
     );
+
+    if (fieldConfig.argMappers.length) {
+      const argMappers = fieldConfig.argMappers;
+
+      return (parent, args, context, info) => {
+        const mappedArgs = argMappers.reduce(
+          (acc, argMapper) => {
+            return argMapper(acc, context, info);
+          },
+          args as Record<string, unknown>,
+        );
+
+        return wrapped(parent, mappedArgs, context, info);
+      };
+    }
+
+    return wrapped;
   }
 
   override wrapSubscribe(
     subscribe: GraphQLFieldResolver<unknown, Types['Context'], object> | undefined,
     fieldConfig: PothosOutputFieldConfig<Types>,
-  ) {
-    return this.plugins.reduceRight(
+  ): GraphQLFieldResolver<unknown, Types['Context'], object> | undefined {
+    const wrapped = this.plugins.reduceRight(
       (nextSubscribe, plugin) => plugin.wrapSubscribe(nextSubscribe, fieldConfig),
       subscribe,
     );
+
+    if (!wrapped || !fieldConfig.argMappers.length) {
+      return wrapped;
+    }
+
+    const argMappers = fieldConfig.argMappers;
+    return (parent, args, context, info) => {
+      const mappedArgs = argMappers.reduce(
+        (acc, argMapper) => {
+          return argMapper(acc, context, info);
+        },
+        args as Record<string, unknown>,
+      );
+
+      return wrapped(parent, mappedArgs, context, info);
+    };
   }
 
   override wrapResolveType(

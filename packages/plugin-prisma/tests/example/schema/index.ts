@@ -283,6 +283,7 @@ const User = builder.prismaNode('User', {
         oldestFirst: t.arg.boolean(),
         createdAt: t.arg.string(),
         limit: t.arg.int(),
+        id: t.arg.globalID(),
       },
       query: (args) => ({
         orderBy: {
@@ -291,9 +292,30 @@ const User = builder.prismaNode('User', {
         where: args.createdAt
           ? {
               createdAt: new Date(args.createdAt),
+              id: args.id ? Number.parseInt(args.id.id, 10) : undefined,
             }
           : undefined,
         take: args.limit ?? 10,
+      }),
+      resolve: (query, user) =>
+        prisma.post.findMany({
+          ...query,
+          where: { ...(query as { where?: {} }).where, authorId: user.id },
+        }),
+    }),
+    postNodes: t.relation('posts', {
+      type: SelectPost,
+      args: {
+        limit: t.arg.int(),
+        id: t.arg.globalID(),
+      },
+      query: (args) => ({
+        where: args.id
+          ? {
+              id: args.id ? Number.parseInt(args.id.id, 10) : undefined,
+            }
+          : undefined,
+        take: args.limit ?? 3,
       }),
       resolve: (query, user) =>
         prisma.post.findMany({

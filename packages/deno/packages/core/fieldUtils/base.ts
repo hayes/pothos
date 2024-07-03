@@ -41,6 +41,7 @@ export class BaseFieldUtil<Types extends SchemaTypes, ParentShape, Kind extends 
                 parentType: typeConfig.name,
                 name,
                 args,
+                argMappers: [],
                 type: typeFromParam(options.type, this.builder.configStore, options.nullable ?? this.builder.defaultFieldNullability),
                 pothosOptions: options as never,
                 extensions: {

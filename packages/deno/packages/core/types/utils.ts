@@ -1,4 +1,5 @@
 // @ts-nocheck
+import { GraphQLResolveInfo } from 'https://cdn.skypack.dev/graphql?dts';
 export type MaybePromise<T> = Promise<T> | T;
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 export type UnionToIntersection<U> = (U extends any ? (k: U) => void : never) extends (k: infer I) => void ? I : never;
@@ -79,3 +80,8 @@ export type NormalizeArgs<T extends unknown[], Index extends keyof T = LastIndex
     [K in keyof T]?: T[K];
 } : T;
 export type IsStrictMode = undefined extends {} ? false : true;
+export interface PartialResolveInfo {
+    fragments: GraphQLResolveInfo["fragments"];
+    variableValues: GraphQLResolveInfo["variableValues"];
+    schema: GraphQLResolveInfo["schema"];
+}

@@ -1,6 +1,5 @@
 import './global-types';
 import './schema-builder';
-import { GraphQLFieldResolver } from 'graphql';
 import SchemaBuilder, {
   BasePlugin,
   BuildCache,
@@ -44,10 +43,9 @@ export class PothosPrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlug
     super(cache, pluginName);
   }
 
-  override wrapResolve(
-    resolver: GraphQLFieldResolver<unknown, Types['Context'], object, unknown>,
+  override onOutputFieldConfig(
     fieldConfig: PothosOutputFieldConfig<Types>,
-  ): GraphQLFieldResolver<unknown, Types['Context'], object, unknown> {
+  ): PothosOutputFieldConfig<Types> | null {
     const argMappings = mapInputFields(fieldConfig.args, this.buildCache, (inputField) => {
       const inputType = this.buildCache.getTypeConfig(unwrapInputFieldType(inputField.type));
 
@@ -65,14 +63,17 @@ export class PothosPrismaUtilsPlugin<Types extends SchemaTypes> extends BasePlug
     });
 
     if (!argMappings) {
-      return resolver;
+      return fieldConfig;
     }
 
     const argMapper = createInputValueMapper(argMappings, (inputObject, mapping) =>
       normalizeInputObject(inputObject, mapping.value?.nullableFields ?? new Set()),
     );
 
-    return (parent, args, context, info) => resolver(parent, argMapper(args), context, info);
+    return {
+      ...fieldConfig,
+      argMappers: [...(fieldConfig.argMappers ?? []), (args) => argMapper(args)],
+    };
   }
 }
 
