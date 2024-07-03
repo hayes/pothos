@@ -32,6 +32,7 @@ const defaultOutput = resolvePath(__dirname, '../generated.ts');
 interface GeneratorConfig {
   clientOutput?: string;
   prismaUtils?: string;
+  pluginPath?: string;
   generateDatamodel?: string;
   documentation?: string;
 }
@@ -145,7 +146,7 @@ async function generateOutput(
         ),
       ]),
     ),
-    ts.factory.createStringLiteral('@pothos/plugin-prisma'),
+    ts.factory.createStringLiteral(config.pluginPath ?? '@pothos/plugin-prisma'),
   );
 
   const printer = ts.createPrinter({});

@@ -657,24 +657,6 @@ importers:
         specifier: ^2.12.6
         version: 2.12.6(graphql@16.9.0)
 
-  packages/plugin-authz:
-    devDependencies:
-      '@graphql-authz/core':
-        specifier: ^1.3.1
-        version: 1.3.1(graphql@16.9.0)
-      '@pothos/core':
-        specifier: workspace:*
-        version: link:../core
-      '@pothos/test-utils':
-        specifier: workspace:*
-        version: link:../test-utils
-      graphql:
-        specifier: ^16.8.1
-        version: 16.9.0
-      graphql-tag:
-        specifier: ^2.12.6
-        version: 2.12.6(graphql@16.9.0)
-
   packages/plugin-complexity:
     devDependencies:
       '@pothos/core':
@@ -2332,11 +2314,6 @@ packages:
 
   '@formatjs/intl-localematcher@0.5.4':
     resolution: {integrity: sha512-zTwEpWOzZ2CiKcB93BLngUX59hQkuZjT2+SAQEscSm52peDW/getsawMcWF1rGRpMCX6D7nSJA3CzJ8gn13N/g==}
-
-  '@graphql-authz/core@1.3.1':
-    resolution: {integrity: sha512-fF3H9NXiDjF1uZgLYtjjv0j4JFeJgaVRCWg7WgcXmxh5hq5y8wRIK29twgZVpURggXMsZid9EzEu5LY1pH2utw==}
-    peerDependencies:
-      graphql: ^16.8.1
 
   '@graphql-codegen/add@3.2.3':
     resolution: {integrity: sha512-sQOnWpMko4JLeykwyjFTxnhqjd/3NOG2OyMuvK76Wnnwh8DRrNf2VEs2kmSvLl7MndMlOj7Kh5U154dVcvhmKQ==}
@@ -12164,10 +12141,6 @@ snapshots:
   '@formatjs/intl-localematcher@0.5.4':
     dependencies:
       tslib: 2.6.2
-
-  '@graphql-authz/core@1.3.1(graphql@16.9.0)':
-    dependencies:
-      graphql: 16.9.0
 
   '@graphql-codegen/add@3.2.3(graphql@16.9.0)':
     dependencies:
