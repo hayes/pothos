@@ -1,8 +1,8 @@
 import {
-  ArgumentRef,
   FieldKind,
   FieldNullability,
   FieldRef,
+  InputFieldMap,
   InputFieldRef,
   SchemaTypes,
   ShapeFromTypeParam,
@@ -48,7 +48,7 @@ declare global {
         ResolveShape,
         ResolveReturnShape,
         ArgRequired extends boolean,
-        Args extends Record<string, ArgumentRef<Types, unknown>> = {},
+        Args extends InputFieldMap = {},
         Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
         InputName extends string = 'input',
       >(
@@ -70,8 +70,8 @@ declare global {
 
     export interface FieldWithInputBaseOptions<
       Types extends SchemaTypes,
-      Args extends Record<string, ArgumentRef<Types, unknown>>,
-      Fields extends Record<string, InputFieldRef<Types, unknown>>,
+      Args extends InputFieldMap,
+      Fields extends InputFieldMap,
       InputName extends string,
       ArgRequired extends boolean,
     > {

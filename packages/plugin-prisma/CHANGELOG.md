@@ -1,5 +1,11 @@
 # Change Log
 
+## 4.0.0-next.1
+
+### Patch Changes
+
+- Fix prismaFieldWithInput
+
 ## 4.0.0-next.0
 
 ### Major Changes

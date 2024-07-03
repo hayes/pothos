@@ -45,6 +45,7 @@
     "@pothos/tracing-xray": "0.6.0"
   },
   "changesets": [
-    "hungry-spoons-hang"
+    "hungry-spoons-hang",
+    "lovely-apples-shout"
   ]
 }

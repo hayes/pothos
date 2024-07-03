@@ -2,13 +2,11 @@
 /* eslint-disable @typescript-eslint/no-empty-interface */
 import { GraphQLResolveInfo } from 'graphql';
 import {
-  ArgumentRef,
   FieldKind,
   FieldMap,
   FieldNullability,
   FieldRef,
   InputFieldMap,
-  InputFieldRef,
   InterfaceParam,
   NormalizeArgs,
   OutputType,
@@ -357,7 +355,7 @@ declare global {
 
       prismaFieldWithInput: 'prisma' extends PluginName
         ? <
-            Fields extends Record<string, InputFieldRef<Types, unknown>>,
+            Fields extends InputFieldMap,
             TypeParam extends
               | PrismaRef<Types, PrismaModelTypes>
               | keyof Types['PrismaTypes']
@@ -369,7 +367,7 @@ declare global {
             ResolveShape,
             ResolveReturnShape,
             ArgRequired extends boolean,
-            Args extends Record<string, ArgumentRef<Types, unknown>> = {},
+            Args extends InputFieldMap = {},
             Nullable extends FieldNullability<Type> = Types['DefaultFieldNullability'],
             InputName extends string = 'input',
             Model extends PrismaModelTypes = PrismaModelTypes &
@@ -457,8 +455,8 @@ declare global {
 
     export interface FieldWithInputBaseOptions<
       Types extends SchemaTypes,
-      Args extends Record<string, ArgumentRef<Types, unknown>>,
-      Fields extends Record<string, InputFieldRef<Types, unknown>>,
+      Args extends InputFieldMap,
+      Fields extends InputFieldMap,
       InputName extends string,
       ArgRequired extends boolean,
     > {}

@@ -22,7 +22,7 @@ export type WithInputTypeOptions<Types extends SchemaTypes, Fields extends Input
 export type WithInputArgOptions<Types extends SchemaTypes, Fields extends InputFieldMap, InputName, ArgRequired extends boolean> = Omit<PothosSchemaTypes.ArgFieldOptions<Types, InputRef<InputShapeFromFields<Fields>>, ArgRequired>, "type"> & {
     name?: InputName;
 };
-export type FieldWithInputOptions<Types extends SchemaTypes, ParentShape, Kind extends FieldKind, Args extends Record<string, ArgumentRef<Types, unknown>>, Fields extends Record<string, InputFieldRef<Types, unknown>>, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, InputName extends string, ResolveShape, ResolveReturnShape, ArgRequired extends boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args & {
+export type FieldWithInputOptions<Types extends SchemaTypes, ParentShape, Kind extends FieldKind, Args extends InputFieldMap, Fields extends InputFieldMap, Type extends TypeParam<Types>, Nullable extends FieldNullability<Type>, InputName extends string, ResolveShape, ResolveReturnShape, ArgRequired extends boolean> = Omit<FieldOptionsFromKind<Types, ParentShape, Type, Nullable, Args & {
     [K in InputName]: InputFieldRef<Types, InputShapeFromFields<Fields> | (true extends ArgRequired ? never : null | undefined)>;
 }, Kind, ResolveShape, ResolveReturnShape>, "args"> & {
     typeOptions?: WithInputTypeOptions<Types, Fields>;

@@ -1,7 +1,7 @@
 /* eslint-disable unicorn/prefer-module */
 /* eslint-disable no-magic-numbers */
 /* eslint-disable no-nested-ternary */
-import { mkdir, writeFile } from 'node:fs';
+import { mkdirSync, writeFileSync } from 'node:fs';
 import { dirname, join, resolve as resolvePath, posix } from 'node:path';
 import ts, { ListFormat, ScriptKind, ScriptTarget, SyntaxKind, version } from 'typescript';
 import { DMMF, generatorHandler } from '@prisma/generator-helper';
@@ -27,7 +27,7 @@ function checkTSVersion() {
   }
 }
 
-const defaultOutput = resolvePath(__dirname, '../generated.ts');
+const defaultOutput = resolvePath(__dirname, '../generated.d.ts');
 
 interface GeneratorConfig {
   clientOutput?: string;
@@ -54,15 +54,23 @@ generatorHandler({
     const outputLocation = options.generator.output?.value ?? defaultOutput;
     const prismaTypes = buildTypes(options.dmmf, config);
 
-    await generateOutput(options.dmmf, prismaTypes, prismaLocation, outputLocation, config);
+    await generateOutput(
+      options.dmmf,
+      prismaTypes,
+      prismaLocation,
+      outputLocation,
+      config,
+      outputLocation === defaultOutput ? 'cjs' : 'ts',
+    );
 
     if (outputLocation === defaultOutput) {
       await generateOutput(
         options.dmmf,
         prismaTypes,
         prismaLocation.startsWith('@') ? prismaLocation : posix.join(prismaLocation, 'index.js'),
-        join(outputLocation, '../esm/generated.ts'),
+        join(outputLocation, '../esm/generated.d.ts'),
         config,
+        'esm',
       );
     }
   },
@@ -111,6 +119,7 @@ async function generateOutput(
   prismaLocation: string,
   outputLocation: string,
   config: GeneratorConfig,
+  datamodel: 'esm' | 'cjs' | 'ts' = 'ts',
 ) {
   const prismaImportStatement = ts.factory.createImportDeclaration(
     ...modifiersArg,
@@ -168,44 +177,46 @@ async function generateOutput(
     [],
     [],
     ts.factory.createTypeReferenceNode('PothosPrismaDatamodel'),
-    ts.factory.createBlock([
-      ts.factory.createReturnStatement(
-        ts.factory.createCallExpression(
-          ts.factory.createPropertyAccessExpression(ts.factory.createIdentifier('JSON'), 'parse'),
-          [],
-          [ts.factory.createStringLiteral(JSON.stringify(trimmedDatamodel))],
-        ),
-      ),
-    ]),
+    outputLocation.endsWith('.d.ts')
+      ? undefined
+      : ts.factory.createBlock([
+          ts.factory.createReturnStatement(
+            ts.factory.createCallExpression(
+              ts.factory.createPropertyAccessExpression(
+                ts.factory.createIdentifier('JSON'),
+                'parse',
+              ),
+              [],
+              [ts.factory.createStringLiteral(JSON.stringify(trimmedDatamodel))],
+            ),
+          ),
+        ]),
   );
 
   const nodes = ts.factory.createNodeArray(
-    config.generateDatamodel === 'true'
+    config.generateDatamodel === 'true' && datamodel === 'ts'
       ? [prismaImportStatement, dmmfImportStatement, prismaTypes, dmmfExport]
       : [prismaImportStatement, prismaTypes],
   );
 
   const result = printer.printList(ListFormat.SourceFileStatements, nodes, sourcefile);
 
-  await new Promise<void>((resolve, reject) => {
-    mkdir(dirname(sourcefile.fileName), { recursive: true }, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
+  mkdirSync(dirname(sourcefile.fileName), { recursive: true });
+  writeFileSync(sourcefile.fileName, `/* eslint-disable */\n${result}`);
 
-  return new Promise<void>((resolve, reject) => {
-    writeFile(sourcefile.fileName, `/* eslint-disable */\n${result}`, (err) => {
-      if (err) {
-        reject(err);
-      } else {
-        resolve();
-      }
-    });
-  });
+  if (config.generateDatamodel === 'true' && datamodel === 'cjs') {
+    writeFileSync(
+      outputLocation.replace(/\.ts$/, '.js'),
+      `/* eslint-disable */\nmodule.exports = { getDatamodel: () => JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}) }\n`,
+    );
+  }
+
+  if (config.generateDatamodel === 'true' && datamodel === 'esm') {
+    writeFileSync(
+      outputLocation.replace(/\.ts$/, '.js'),
+      `/* eslint-disable */\nexport function getDatamodel() { return JSON.parse(${JSON.stringify(JSON.stringify(trimmedDatamodel))}) }\n`,
+    );
+  }
 }
 
 function buildTypes(dmmf: DMMF.Document, config: { prismaUtils?: string }) {

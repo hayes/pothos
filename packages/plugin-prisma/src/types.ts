@@ -8,7 +8,6 @@ import {
   InferredResolveOptionsByKind,
   InferredResolveOptionsKeys,
   InputFieldMap,
-  InputFieldRef,
   InputFieldsFromShape,
   InputShapeFromFields,
   InterfaceParam,
@@ -545,8 +544,8 @@ export type PrismaFieldWithInputOptions<
   Types extends SchemaTypes,
   ParentShape,
   Kind extends FieldKind,
-  Args extends Record<string, ArgumentRef<Types, unknown>>,
-  Fields extends Record<string, InputFieldRef<Types, unknown>>,
+  Args extends InputFieldMap,
+  Fields extends InputFieldMap,
   Type extends
     | PrismaRef<Types, PrismaModelTypes>
     | keyof Types['PrismaTypes']
