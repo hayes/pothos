@@ -39,11 +39,9 @@ for more details.
 
 ### Install the codegen packages
 
-```bash
-yarn add graphql
-yarn add -D typescript
-yarn add -D @graphql-codegen/cli
-yarn add -D @graphql-codegen/client-preset
+```package-install
+npm install graphql
+npm install -D typescript @graphql-codegen/cli @graphql-codegen/client-preset
 ```
 
 ### Configure the codegen to import your schema
@@ -79,8 +77,8 @@ You can customize this config as needed, but the relevant parts are:
 You can generate a schema.graphql file with graphql-code-generator by adding the `schema-ast`
 plugin:
 
-```bash
-yarn add -D @graphql-codegen/schema-ast
+```package-install
+-D @graphql-codegen/schema-ast
 ```
 
 ```typescript
