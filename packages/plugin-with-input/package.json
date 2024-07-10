@@ -23,7 +23,7 @@
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
     "generate": "prisma generate",
-    "test": "pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm vitest --run"
   },
   "repository": {
     "type": "git",
@@ -53,9 +53,9 @@
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^5.16.1",
-    "graphql": "^16.9.0",
+    "@prisma/client": "^5.16.2",
+    "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6",
-    "prisma": "^5.16.1"
+    "prisma": "^5.16.2"
   }
 }

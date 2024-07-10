@@ -12,10 +12,10 @@
   },
   "dependencies": {
     "classnames": "^2.5.1",
-    "fumadocs-core": "12.3.5",
-    "fumadocs-docgen": "^1.0.2",
+    "fumadocs-core": "12.4.2",
+    "fumadocs-docgen": "^1.1.0",
     "fumadocs-mdx": "8.2.33",
-    "fumadocs-ui": "12.3.5",
+    "fumadocs-ui": "12.4.2",
     "next": "^14.2.4",
     "react": "^18.3.1",
     "react-dom": "^18.3.1"

@@ -26,11 +26,11 @@
     "@pothos/plugin-scope-auth": "workspace:*",
     "@pothos/plugin-simple-objects": "workspace:*",
     "@pothos/plugin-zod": "workspace:*",
-    "@prisma/client": "^5.16.1",
-    "graphql": "^16.9.0",
+    "@prisma/client": "^5.16.2",
+    "graphql": "^16.8.1",
     "graphql-scalars": "^1.23.0",
     "graphql-yoga": "5.6.0",
-    "prisma": "^5.16.1",
+    "prisma": "^5.16.2",
     "react": "^18.3.1",
     "urql": "^4.1.0",
     "zod": "^3.23.8"
@@ -43,7 +43,7 @@
     "@graphql-codegen/client-preset": "4.3.2",
     "@graphql-codegen/introspection": "4.0.3",
     "@graphql-codegen/schema-ast": "^4.1.0",
-    "@types/node": "^20.14.9",
+    "@types/node": "^20.14.10",
     "typescript": "^5.5.3"
   }
 }

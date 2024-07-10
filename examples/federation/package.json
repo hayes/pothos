@@ -16,9 +16,9 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-directives": "workspace:*",
     "@pothos/plugin-federation": "workspace:*",
-    "@prisma/client": "^5.16.1",
-    "graphql": "^16.9.0",
-    "prisma": "^5.16.1"
+    "@prisma/client": "^5.16.2",
+    "graphql": "^16.8.1",
+    "prisma": "^5.16.2"
   },
   "publishConfig": {
     "access": "public"

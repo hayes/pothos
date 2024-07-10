@@ -22,7 +22,7 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm vitest --run"
   },
   "repository": {
     "type": "git",
@@ -43,7 +43,7 @@
     "provenance": true
   },
   "dependencies": {
-    "graphql": "^16.9.0",
+    "graphql": "^16.8.1",
     "ts-morph": "^23.0.0",
     "yargs": "^17.7.2"
   },

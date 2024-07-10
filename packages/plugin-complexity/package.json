@@ -22,7 +22,7 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm vitest --run"
   },
   "repository": {
     "type": "git",
@@ -52,7 +52,7 @@
   "devDependencies": {
     "@pothos/core": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "graphql": "^16.9.0",
+    "graphql": "^16.8.1",
     "graphql-tag": "^2.12.6"
   },
   "gitHead": "9dfe52f1975f41a111e01bf96a20033a914e2acc"

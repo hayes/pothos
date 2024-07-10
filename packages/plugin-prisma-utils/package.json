@@ -24,7 +24,7 @@
     "build:esm": "cp -r dts/* esm/ && swc src -d esm --config-file ../../.swcrc -C module.type=es6 --strip-leading-paths && pnpm esm:extensions",
     "build:dts": "tsc",
     "esm:extensions": "TS_NODE_PROJECT=../../tsconfig.json node -r @swc-node/register ../../scripts/esm-transformer.ts",
-    "test": "pnpm prisma migrate reset -f && pnpm vitest --run --segfault-retry=3"
+    "test": "pnpm prisma migrate reset -f && pnpm vitest --run"
   },
   "repository": {
     "type": "git",
@@ -48,7 +48,7 @@
     "seed": "node prisma/seed.mjs"
   },
   "dependencies": {
-    "@prisma/generator-helper": "^5.16.1"
+    "@prisma/generator-helper": "^5.16.2"
   },
   "peerDependencies": {
     "@pothos/core": "4.0.0-next.1",
@@ -60,12 +60,12 @@
     "@pothos/core": "workspace:*",
     "@pothos/plugin-prisma": "workspace:*",
     "@pothos/test-utils": "workspace:*",
-    "@prisma/client": "^5.16.1",
-    "graphql": "^16.9.0",
+    "@prisma/client": "^5.16.2",
+    "graphql": "^16.8.1",
     "graphql-scalars": "^1.23.0",
     "graphql-tag": "^2.12.6",
     "prettier": "^3.3.2",
-    "prisma": "^5.16.1",
+    "prisma": "^5.16.2",
     "ts-node": "^10.9.2",
     "typescript": "^5.5.3"
   }

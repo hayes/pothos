@@ -14,7 +14,7 @@
     "@pothos/plugin-tracing": "workspace:*",
     "@pothos/tracing-opentelemetry": "workspace:*",
     "bema": "^0.1.2",
-    "graphql": "^16.9.0",
+    "graphql": "^16.8.1",
     "graphql-yoga": "5.6.0",
     "tsm": "^2.3.0"
   },
