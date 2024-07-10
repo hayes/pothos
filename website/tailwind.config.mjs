@@ -52,9 +52,15 @@ const pothosPreset = {
     '#nd-sidebar>div:first-child': {
       display: 'none',
     },
-    '@media (max-width: 776px)': {
+    '@media (max-width: 767px)': {
       '#nd-nav': {
         display: 'none',
+      },
+    },
+    '@media (min-width: 768px)': {
+      'main#nd-docs-layout>aside': {
+        top: '56px',
+        height: 'calc(100dvh - 56px)',
       },
     },
     'nav.max-w-container': {
