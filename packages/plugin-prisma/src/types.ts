@@ -25,7 +25,6 @@ import {
 } from '@pothos/core';
 import { PrismaInterfaceRef, PrismaRef } from './interface-ref';
 import type { PrismaObjectFieldBuilder } from './prisma-field-builder';
-import type { Prisma } from '@prisma/client';
 
 export interface PrismaDelegate {
   findUniqueOrThrow?: (...args: any[]) => Promise<unknown>;
@@ -829,7 +828,7 @@ export type UniqueFieldsFromWhereUnique<T> = string &
     : never);
 
 // Infer the type of a specific field from a given type
-type InferField<T, N extends string> = T extends { [K in N]?: infer U } ? U : never;
+type InferField<T, N extends string> = T extends { [K in N]?: infer U | null } ? U : never;
 
 // Check if a type is nullable
 type IsNullable<T> = null extends T ? true : undefined extends T ? true : false;
@@ -859,27 +858,55 @@ type InferRelationList<Model> = {
   [K in keyof Model as Model[K] extends Array<any> ? K : never]: K;
 };
 
-// Extract model keys excluding those starting with '$'
 type ExtractModelKeys<T> = {
   [K in keyof T]: K extends `$${string}` ? never : K;
 }[keyof T];
 
-// Main type to generate Prisma types from the client
+type PrismaArgs<T, F extends string> = T extends {
+  [K: symbol]: {
+    types: {
+      operations: {
+        [K in F]: {
+          args: unknown;
+        };
+      };
+    };
+  };
+}
+  ? T[symbol]['types']['operations'][F]['args']
+  : unknown;
+
+type PrismaPayload<T> = T extends {
+  [K: symbol]: {
+    types: {
+      payload: unknown;
+    };
+  };
+}
+  ? T[symbol]['types']['payload']
+  : unknown;
+
+/**
+ * Infer PrismaTypes from a PrismaClient
+ * @example
+ * `type PrismaTypes = PrismaTypesFromClient<typeof prisma>`
+ **/
 export type PrismaTypesFromClient<ClientType> = {
-  [K in ExtractModelKeys<ClientType> as CapitalizeFirst<K & string>]: {
+  [K in ExtractModelKeys<ClientType> as CapitalizeFirst<K & string>]: PrismaModelTypes & {
     Name: CapitalizeFirst<K & string>;
-    Shape: InferField<Prisma.Payload<ClientType[K], 'findUnique'>, 'scalars'>;
-    Include: InferField<Prisma.Args<ClientType[K], 'findUnique'>, 'include'>;
-    Select: InferField<Prisma.Args<ClientType[K], 'findUnique'>, 'select'>;
-    OrderBy: InferField<Prisma.Args<ClientType[K], 'findUnique'>, 'orderBy'>;
-    ListRelations: keyof InferRelationList<
-      InferField<Prisma.Payload<ClientType[K], 'findUnique'>, 'objects'>
-    >;
-    RelationName: keyof InferField<Prisma.Payload<ClientType[K], 'findUnique'>, 'objects'>;
-    Relations: InferRelations<InferField<Prisma.Payload<ClientType[K], 'findUnique'>, 'objects'>>;
+    Shape: InferField<PrismaPayload<ClientType[K]>, 'scalars'>;
+    Include: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'include'>;
+    Select: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'select'>;
+    OrderBy: InferField<PrismaArgs<ClientType[K], 'findMany'>, 'orderBy'>;
+    WhereUnique: InferField<PrismaArgs<ClientType[K], 'findUnique'>, 'where'>;
+    Where: InferField<PrismaArgs<ClientType[K], 'findFirst'>, 'where'>;
+    ListRelations: keyof InferRelationList<InferField<PrismaPayload<ClientType[K]>, 'objects'>>;
+    RelationName: keyof InferField<PrismaPayload<ClientType[K]>, 'objects'>;
+    Relations: InferRelations<InferField<PrismaPayload<ClientType[K]>, 'objects'>>;
+    Create: InferField<PrismaArgs<ClientType[K], 'create'>, 'data'>;
+    Update: InferField<PrismaArgs<ClientType[K], 'update'>, 'data'>;
   };
 };
-
 
 interface DMMFField {
   type: string;

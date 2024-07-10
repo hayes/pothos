@@ -499,7 +499,9 @@ builder.prismaObjectFields('Post', (t) => ({
     },
     {
       fields: (con) => ({
-        totalCount: con.exposeInt('totalCount'),
+        totalCount: con.exposeInt('totalCount', {
+          nullable: true,
+        }),
       }),
     },
     {

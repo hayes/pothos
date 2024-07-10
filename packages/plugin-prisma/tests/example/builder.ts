@@ -3,10 +3,10 @@ import ComplexityPlugin from '@pothos/plugin-complexity';
 import ErrorsPlugin from '@pothos/plugin-errors';
 import RelayPlugin from '@pothos/plugin-relay';
 import SimpleObjects from '@pothos/plugin-simple-objects';
-import PrismaPlugin from '../../src';
+import PrismaPlugin, { PrismaTypesFromClient } from '../../src';
 // eslint-disable-next-line import/no-useless-path-segments
 import { Prisma, PrismaClient } from '../client/index';
-import PrismaTypes, { getDatamodel } from '../generated.js';
+import { getDatamodel } from '../generated.js';
 
 export const prisma = new PrismaClient({
   log: [
@@ -28,6 +28,8 @@ export const prisma = new PrismaClient({
     },
   ],
 });
+
+type PrismaTypes = PrismaTypesFromClient<typeof prisma>;
 
 interface Types {
   Scalars: {
