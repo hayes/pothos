@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-simple-objects",
-  "version": "4.0.0",
+  "version": "4.0.1",
   "description": "A Pothos plugin for defining objects and interfaces without ts definitions for those types",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
