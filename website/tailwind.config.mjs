@@ -48,6 +48,8 @@ const pothosPreset = {
     },
     'main#nd-docs-layout>div:last-child.sticky': {
       'min-width': '300px !important',
+      top: '56px',
+      height: 'calc(100dvh - 112px)',
     },
     '#nd-sidebar>div:first-child': {
       display: 'none',
