@@ -10,6 +10,7 @@ import SchemaBuilder, {
   ObjectRef,
   ParentShape,
   SchemaTypes,
+  UnionToIntersection,
 } from '@pothos/core';
 import { OutputShapeFromFields } from './types';
 
@@ -28,7 +29,8 @@ proto.simpleObject = function simpleObject<
   Interfaces extends InterfaceParam<SchemaTypes>[],
   Fields extends FieldMap,
   Shape extends Normalize<
-    OutputShapeFromFields<Fields> & ParentShape<SchemaTypes, Interfaces[number]>
+    OutputShapeFromFields<Fields> &
+      UnionToIntersection<ParentShape<SchemaTypes, Interfaces[number]>>
   >,
 >(
   name: string,
@@ -47,12 +49,15 @@ proto.simpleObject = function simpleObject<
 };
 
 proto.simpleInterface = function simpleInterface<
-  Fields extends FieldMap,
-  Shape extends OutputShapeFromFields<Fields>,
   Interfaces extends InterfaceParam<SchemaTypes>[],
+  Fields extends FieldMap,
+  Shape extends Normalize<
+    OutputShapeFromFields<Fields> &
+      UnionToIntersection<ParentShape<SchemaTypes, Interfaces[number]>>
+  >,
 >(
   name: string,
-  options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Fields, Shape, Interfaces>,
+  options: PothosSchemaTypes.SimpleInterfaceTypeOptions<SchemaTypes, Interfaces, Fields, Shape>,
   extraFields?: InterfaceFieldsShape<SchemaTypes, Shape>,
 ) {
   const ref = new InterfaceRef<SchemaTypes, Shape>(name);

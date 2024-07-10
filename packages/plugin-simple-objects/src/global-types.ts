@@ -10,6 +10,7 @@ import {
   ParentShape,
   SchemaTypes,
   TypeParam,
+  UnionToIntersection,
 } from '@pothos/core';
 import { OutputShapeFromFields, SimpleObjectFieldsShape } from './types';
 
@@ -25,7 +26,8 @@ declare global {
         Interfaces extends InterfaceParam<Types>[],
         Fields extends FieldMap,
         Shape extends Normalize<
-          OutputShapeFromFields<Fields> & ParentShape<Types, Interfaces[number]>
+          OutputShapeFromFields<Fields> &
+            UnionToIntersection<ParentShape<Types, Interfaces[number]>>
         >,
       >(
         name: string,
@@ -34,12 +36,15 @@ declare global {
       ) => ObjectRef<Types, Shape>;
 
       simpleInterface: <
-        Fields extends FieldMap,
-        Shape extends OutputShapeFromFields<Fields>,
         Interfaces extends InterfaceParam<Types>[],
+        Fields extends FieldMap,
+        Shape extends Normalize<
+          OutputShapeFromFields<Fields> &
+            UnionToIntersection<ParentShape<Types, Interfaces[number]>>
+        >,
       >(
         name: string,
-        options: SimpleInterfaceTypeOptions<Types, Fields, Shape, Interfaces>,
+        options: SimpleInterfaceTypeOptions<Types, Interfaces, Fields, Shape>,
         fields?: InterfaceFieldsShape<Types, Shape>,
       ) => InterfaceRef<Types, Shape>;
     }
@@ -84,17 +89,19 @@ declare global {
       Shape,
     > = Omit<
       ObjectTypeOptions<Types, Shape> | ObjectTypeWithInterfaceOptions<Types, Shape, Interfaces>,
-      'fields'
+      'fields' | 'interfaces'
     > & {
+      interfaces?: (() => Interfaces) | Interfaces;
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     };
 
     export interface SimpleInterfaceTypeOptions<
       Types extends SchemaTypes,
-      Fields extends FieldMap,
-      Shape extends OutputShapeFromFields<Fields>,
       Interfaces extends InterfaceParam<Types>[],
-    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'args' | 'fields'> {
+      Fields extends FieldMap,
+      Shape,
+    > extends Omit<InterfaceTypeOptions<Types, Shape, Interfaces>, 'fields' | 'interfaces'> {
+      interfaces?: (() => Interfaces) | Interfaces;
       fields?: SimpleObjectFieldsShape<Types, Fields>;
     }
   }
