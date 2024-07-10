@@ -1,6 +1,6 @@
 {
   "name": "@pothos/plugin-prisma-utils",
-  "version": "1.0.0-next.4",
+  "version": "1.0.0",
   "description": "A Pothos plugin containing utility functions for building prisma inputs",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -51,8 +51,8 @@
     "@prisma/generator-helper": "^5.16.2"
   },
   "peerDependencies": {
-    "@pothos/core": "4.0.0-next.1",
-    "@pothos/plugin-prisma": "4.0.0-next.4",
+    "@pothos/core": "4.0.0",
+    "@pothos/plugin-prisma": "4.0.0",
     "@prisma/client": "*",
     "graphql": "^16.8.1"
   },

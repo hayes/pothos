@@ -1,5 +1,22 @@
 # @pothos/plugin-with-input
 
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- 78c469d: rebuild with-input plugin
+- bdcb8cd: Fix prismaFieldWithInput
+- 03855c2: fix fieldWithInput when used with fieldWithAuth
+- 4a7dc40: rebuild with-input plugin
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
 ## 4.0.0-next.5
 
 ### Patch Changes

@@ -1,5 +1,21 @@
 # Change Log
 
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- 79139e8: rebuild generator
+- c1e6dcb: update readmes
+- b2de1f2: fix datamodel generator
+- bdcb8cd: Fix prismaFieldWithInput
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
 ## 4.0.0-next.4
 
 ### Patch Changes

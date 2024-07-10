@@ -1,6 +1,6 @@
 {
   "$schema": "https://json.schemastore.org/package.json",
-  "version": "3.0.0-next.4",
+  "version": "3.0.0",
   "name": "@pothos-examples/prisma-subscriptions",
   "main": "src/index.ts",
   "types": "src/index.ts",
