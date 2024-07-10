@@ -1,6 +1,6 @@
 {
   "name": "@pothos/tracing-newrelic",
-  "version": "1.0.0-next.1",
+  "version": "1.0.0",
   "description": "New Relic utilities for the Pothos tracing plugin",
   "main": "./lib/index.js",
   "types": "./dts/index.d.ts",
@@ -46,8 +46,8 @@
     "provenance": true
   },
   "peerDependencies": {
-    "@pothos/core": "4.0.0-next.1",
-    "@pothos/plugin-tracing": "1.0.0-next.1",
+    "@pothos/core": "4.0.0",
+    "@pothos/plugin-tracing": "1.0.0",
     "graphql": "^16.8.1",
     "newrelic": "*"
   },

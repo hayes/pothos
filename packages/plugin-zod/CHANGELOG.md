@@ -1,5 +1,18 @@
 # Change Log
 
+## 4.0.0
+
+### Major Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/core@4.0.0
+
 ## 4.0.0-next.1
 
 ### Patch Changes

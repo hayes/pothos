@@ -1,5 +1,19 @@
 # @pothos/tracing-sentry
 
+## 1.0.0
+
+### Minor Changes
+
+- 29841a8: Release Pothos v4 🎉 see https://pothos-graphql.dev/docs/migrations/v4 for more details
+
+### Patch Changes
+
+- c1e6dcb: update readmes
+- Updated dependencies [c1e6dcb]
+- Updated dependencies [29841a8]
+  - @pothos/plugin-tracing@1.0.0
+  - @pothos/core@4.0.0
+
 ## 1.0.0-next.1
 
 ### Patch Changes
