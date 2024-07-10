@@ -17,7 +17,7 @@
     },
     "./generated": {
       "import": {
-        "types": "./esm/generated.ts",
+        "types": "./esm/generated.d.ts",
         "default": "./esm/generated.js"
       },
       "require": {
